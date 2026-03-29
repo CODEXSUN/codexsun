@@ -8,7 +8,7 @@ type WorkspaceShellProps = {
 
 function WorkspaceShell({ children, title, eyebrow }: WorkspaceShellProps) {
   return (
-    <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
+    <section className="mx-auto flex w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
       <header className="flex items-center justify-between border-b border-border/60 pb-6">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-muted-foreground">

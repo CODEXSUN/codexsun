@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Workflow,
 } from "lucide-react"
+import { Link } from "react-router-dom"
 
 import type { AppSuite } from "@framework/application/app-manifest"
 
@@ -38,27 +39,32 @@ const appIcons = {
 
 function HomePage({ appSuite }: HomePageProps) {
   return (
-    <PublicShell>
+    <PublicShell appCount={appSuite.apps.length}>
       <WorkspaceShell
-        eyebrow="CxApp"
-        title="Enterprise ERP interface built on framework-first composition"
+        eyebrow="codexsun"
+        title="Enterprise ERP platform with a shared portfolio shell"
       >
-        <section className="space-y-8">
+        <section id="platform" className="space-y-8">
           <div className="max-w-3xl space-y-5">
             <p className="text-lg leading-8 text-muted-foreground">
-              CxApp is the main suite-facing application. Framework owns runtime,
-              DI, auth, database, and HTTP orchestration underneath it, while CxApp
-              exposes the shared interface that can compose billing, commerce, task,
-              and connector apps without collapsing boundaries.
+              codexsun is the suite-facing application shell. Framework owns
+              runtime, DI, auth, database, and HTTP orchestration underneath it,
+              while cxapp exposes the shared interface that can compose billing,
+              commerce, task, and connector apps without collapsing boundaries.
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="gap-2">
-                Open suite
-                <ArrowRight className="size-4" />
+              <Button size="lg" className="gap-2" asChild>
+                <Link to="/login">
+                  Login
+                  <ArrowRight className="size-4" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline">
-                Inspect internal apps
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/login?variant=desktop">Desktop Variant</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href="/internal/apps">Inspect internal apps</a>
               </Button>
             </div>
           </div>
@@ -93,7 +99,7 @@ function HomePage({ appSuite }: HomePageProps) {
             </Card>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div id="apps" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {appSuite.apps.map((app) => {
               const Icon =
                 appIcons[app.id as keyof typeof appIcons] ?? Building2
@@ -135,16 +141,19 @@ function HomePage({ appSuite }: HomePageProps) {
           </div>
         </section>
 
-        <Card className="border border-border/70 bg-background/90 shadow-sm backdrop-blur">
+        <Card
+          id="contact"
+          className="border border-border/70 bg-background/90 shadow-sm backdrop-blur"
+        >
           <CardHeader>
             <div className="flex items-center gap-2 text-primary">
               <Blocks className="size-5" />
-              <span className="text-sm font-medium">Suite interface</span>
+              <span className="text-sm font-medium">Portfolio contact</span>
             </div>
-            <CardTitle>CxApp coordinates the application stack</CardTitle>
+            <CardTitle>codexsun coordinates the application stack</CardTitle>
             <CardDescription>
-              Use CxApp as the operator-facing interface while framework stays reusable
-              beneath it for other standalone products.
+              Use cxapp as the operator-facing interface while framework stays
+              reusable beneath it for other standalone products.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
