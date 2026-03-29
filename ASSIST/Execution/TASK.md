@@ -4,30 +4,22 @@
 
 ### Reference
 
-`#10`
+`#11`
 
 ### Title
 
-`ASSIST reconciliation, Plan-1 baseline, Plan-4 foundation metadata, and Plan-5 HTTP routing`
+`CLI GitHub helper and operational workflow baseline`
 
 ### Scope Checklist
 
-- [x] Move ASSIST tracking from the old `#9` normalization batch to the current repository state
-- [x] Remove stale ASSIST references to `githelper`, `version:bump`, `Test/`, and retired migration/layout assumptions
-- [x] Update architecture, overview, setup, testing, contributing, and planning docs to match the live repo
-- [x] Record the current shared UI state: desk shell, auth layouts, and design-system docs surface
-- [x] Implement a machine-readable workspace and host baseline in the framework boundary
-- [x] Expose that baseline through the internal API surface
-- [x] Add tests for the baseline assembly and route payload
-- [x] Add ordered framework database foundation section definitions
-- [x] Add ordered platform migration section definitions that map to the schema foundation
-- [x] Expose the foundation plan through framework database exports
-- [x] Add tests for section order and required table coverage
-- [x] Add framework-owned route manifest helpers for internal, external, and public HTTP surfaces
-- [x] Version internal and external routes under canonical `v1` paths with legacy path compatibility
-- [x] Add a public bootstrap route and public `v1` health alias
-- [x] Attach surface, version, auth, summary, and legacy-path metadata to HTTP route definitions
-- [x] Add tests for versioned route assemblies and legacy matching behavior
+- [x] Add a dedicated interactive GitHub helper under `apps/cli`
+- [x] Support dirty repository commit flow with stage-all and commit prompts
+- [x] Detect in-progress git operations and block unsafe helper execution
+- [x] Fetch upstream state and offer pull-rebase before push when the branch is behind
+- [x] Support first-push upstream setup and normal push flow from one command
+- [x] Expose root scripts for source and built server helper execution
+- [x] Add tests for helper parsing and push-target logic
+- [x] Update ASSIST docs to reflect the new CLI helper surface
 
 ### Validation Note
 
@@ -40,7 +32,7 @@
 
 ### Reference
 
-`#11`
+`#12`
 
 ### Title
 

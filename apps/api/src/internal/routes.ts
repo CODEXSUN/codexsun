@@ -1,7 +1,7 @@
 import type { AppSuite } from "../../../framework/src/application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../../framework/src/application/workspace-baseline.js"
-import { defineInternalRoute } from "../../../framework/src/runtime/http"
-import type { HttpRouteDefinition } from "../../../framework/src/runtime/http"
+import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
+import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
 export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [

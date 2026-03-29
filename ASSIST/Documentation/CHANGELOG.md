@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#11] 2026-03-29 - CLI GitHub helper baseline
+
+- added a dedicated interactive GitHub helper under `apps/cli` for commit, pull-rebase, and push flow
+- exposed the helper through `npm run github` and `npm run github:server`
+- added helper tests for git status parsing, ahead/behind parsing, and push-target selection
+- updated ASSIST docs so CLI operational guidance matches the live repository
+
 ### [#10] 2026-03-29 - ASSIST reconciliation and framework baseline layers
 
 - reconciled ASSIST docs with the live `apps/` tree, current commands, and active shared UI state

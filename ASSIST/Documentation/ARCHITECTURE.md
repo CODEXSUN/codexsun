@@ -150,6 +150,11 @@ UI does not own app-specific business workflows.
 
 `apps/cli` owns operational commands, diagnostics, and release helpers when those helpers actually exist in the repository.
 
+Current helper surface:
+
+1. interactive GitHub commit and push helper: `npm run github`
+2. built server-side GitHub helper: `npm run github:server`
+
 ## Runtime Model
 
 Current active runtime:

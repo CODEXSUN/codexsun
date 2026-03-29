@@ -9,7 +9,7 @@
 5. Implement the smallest safe increment
 6. Validate the affected areas with `typecheck`, `lint`, `test`, and `build` when they apply to the change
 7. Update docs and changelog in the same change set with the same reference
-8. Use the repository's actual scripts and standard git commands; do not depend on helper tooling that is absent from `package.json`
+8. Use the repository's actual scripts and standard git commands; the interactive GitHub workflow helper is available as `npm run github`
 
 ## Repository Rules
 
