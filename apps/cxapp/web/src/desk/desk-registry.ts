@@ -78,6 +78,16 @@ const frameworkServices: DeskServiceDefinition[] = [
   },
 ]
 
+const appPriorityOrder = [
+  "ecommerce",
+  "billing",
+  "frappe",
+  "site",
+  "task",
+  "tally",
+  "core",
+] as const
+
 function getAppReadiness(app: AppManifest): DeskAppDefinition["readiness"] {
   if (app.id === "cxapp") {
     return "active"
@@ -216,8 +226,27 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
 }
 
 export function createDeskState(appSuite: AppSuite) {
+  const sortedApps = [...appSuite.apps].sort((left, right) => {
+    const leftPriority = appPriorityOrder.indexOf(left.id as (typeof appPriorityOrder)[number])
+    const rightPriority = appPriorityOrder.indexOf(right.id as (typeof appPriorityOrder)[number])
+
+    if (leftPriority !== -1 || rightPriority !== -1) {
+      if (leftPriority === -1) {
+        return 1
+      }
+
+      if (rightPriority === -1) {
+        return -1
+      }
+
+      return leftPriority - rightPriority
+    }
+
+    return left.name.localeCompare(right.name)
+  })
+
   return {
-    apps: appSuite.apps.map((app) => toDeskApp(app)),
+    apps: sortedApps.map((app) => toDeskApp(app)),
     services: frameworkServices,
   }
 }

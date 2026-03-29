@@ -46,7 +46,7 @@ export function DashboardPage({
 
   return (
     <div className="space-y-3">
-      <Card className="mesh-panel overflow-hidden">
+      <Card className="mesh-panel gap-0 overflow-hidden py-0">
         <CardHeader className="border-b border-border/60 px-5 py-5 md:px-6 md:py-6">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
             <Badge className="px-4 py-1.5">

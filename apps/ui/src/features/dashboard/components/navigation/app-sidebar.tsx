@@ -1,7 +1,6 @@
 import { Cog, Home, RefreshCcw } from "lucide-react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
-import { Badge } from "@/components/ui/badge"
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +25,7 @@ export function AppSidebar() {
   const { apps, brand, currentApp, links, services, user } = useDashboardShell()
   const location = useLocation()
   const { open } = useSidebar()
+  const showDeskGroup = location.pathname === links.dashboard
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -57,44 +57,96 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Desk</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === links.dashboard}
-                >
-                  <NavLink to={links.dashboard}>
-                    <Home className="size-4" />
-                    {open ? <span>Application Desk</span> : null}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {apps.map((app) => (
-                <SidebarMenuItem key={app.id}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isRouteActive(location.pathname, app.route)}
-                  >
-                    <NavLink to={app.route}>
-                      <app.icon className="size-4" />
-                      {open ? <span>{app.name}</span> : null}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {showDeskGroup ? (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Desk</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === links.dashboard}
+                    >
+                      <NavLink to={links.dashboard}>
+                        <Home className="size-4" />
+                        {open ? <span>Application Desk</span> : null}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {apps.map((app) => (
+                    <SidebarMenuItem key={app.id}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isRouteActive(location.pathname, app.route)}
+                      >
+                        <NavLink to={app.route}>
+                          <app.icon className="size-4" />
+                          {open ? <span>{app.name}</span> : null}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Framework</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isRouteActive(location.pathname, links.settings)}
+                    >
+                      <NavLink to={links.settings}>
+                        <Cog className="size-4" />
+                        {open ? <span>Settings</span> : null}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isRouteActive(location.pathname, links.systemUpdate)}
+                    >
+                      <NavLink to={links.systemUpdate}>
+                        <RefreshCcw className="size-4" />
+                        {open ? <span>System Update</span> : null}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {services.map((service) => (
+                    <SidebarMenuItem key={service.id}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={links.systemUpdate}>
+                          <service.icon className="size-4" />
+                          {open ? <span>{service.name}</span> : null}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        ) : null}
 
         {currentApp ? (
           <SidebarGroup>
             <SidebarGroupLabel>{currentApp.name}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {currentApp.menuGroups.flatMap((group) => group.items).map((item) => (
+                {[
+                  ...currentApp.menuGroups.flatMap((group) => group.items),
+                  {
+                    id: `${currentApp.id}-settings`,
+                    name: "Settings",
+                    route: links.settings,
+                    icon: Cog,
+                  },
+                ].map((item) => (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
                       asChild
@@ -111,64 +163,6 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ) : null}
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Framework</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isRouteActive(location.pathname, links.settings)}
-                >
-                  <NavLink to={links.settings}>
-                    <Cog className="size-4" />
-                    {open ? <span>Settings</span> : null}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isRouteActive(location.pathname, links.systemUpdate)}
-                >
-                  <NavLink to={links.systemUpdate}>
-                    <RefreshCcw className="size-4" />
-                    {open ? <span>System Update</span> : null}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-            {open ? (
-              <div className="mt-3 space-y-2 rounded-2xl border border-sidebar-border bg-background/70 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Runtime services
-                </p>
-                <div className="space-y-2">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-3 py-2"
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <service.icon className="size-4 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {service.name}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {service.summary}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline">{service.readiness}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>

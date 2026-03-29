@@ -39,6 +39,7 @@ export function AppHeader() {
     notifications,
     unreadCount,
   } = useDashboardShell()
+  const switchableApps = apps.filter((app) => app.id !== "cxapp")
 
   return (
     <header className="sticky top-0 z-20 h-16 border-b border-border/60 bg-background/85 backdrop-blur">
@@ -55,7 +56,7 @@ export function AppHeader() {
                   ) : (
                     <Home className="size-4" />
                   )}
-                  <span className="truncate">{currentApp?.name ?? "Framework"}</span>
+                  <span className="truncate">{currentApp?.name ?? "Application"}</span>
                   <ChevronDown className="size-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -68,7 +69,7 @@ export function AppHeader() {
                     <span className="flex-1">Dashboard</span>
                   </Link>
                 </DropdownMenuItem>
-                {apps.map((app) => (
+                {switchableApps.map((app) => (
                   <DropdownMenuItem key={app.id} asChild>
                     <Link to={app.route} className="flex items-center gap-2">
                       <app.icon className="size-4" />

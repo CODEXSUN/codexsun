@@ -48,14 +48,20 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
 
   return (
     <div className="space-y-3">
-      <Card className="mesh-panel overflow-hidden">
-        <CardHeader className="relative overflow-hidden border-b border-border/60 px-5 py-5 md:px-6 md:py-6">
+      <Card className="mesh-panel gap-0 overflow-hidden border-border/60 py-0 shadow-sm">
+        <CardHeader className="relative overflow-hidden px-5 py-5 md:px-6 md:py-6">
           <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${app.accentClassName}`} />
-          <div className="relative flex items-start justify-between gap-4">
-            <Badge variant={readinessTone[app.readiness]} className="px-4 py-1.5">
+          <div className="relative flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <Badge
+              variant={readinessTone[app.readiness]}
+              className="px-4 py-1.5"
+            >
               {app.badge}
             </Badge>
-            <Badge variant="outline" className="border-border/80 bg-background/90 px-4 py-1.5 text-sm font-semibold tracking-[0.16em] text-foreground shadow-sm">
+            <Badge
+              variant="outline"
+              className="max-w-full border-border/80 bg-background/90 px-3 py-1.5 text-left text-xs font-semibold tracking-[0.1em] text-foreground shadow-sm sm:shrink-0 sm:px-4 sm:text-sm sm:tracking-[0.16em]"
+            >
               Signed in as {user.displayName} ({user.actorType})
             </Badge>
           </div>
