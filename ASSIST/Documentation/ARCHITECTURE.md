@@ -50,12 +50,12 @@ apps/<app>/
 
 Rules:
 
-1. `src` is the backend and composition surface.
-2. `web` is the frontend surface.
-3. `database/migration` is for app-owned migration files or tracked placeholders.
-4. `database/seeder` is for app-owned seeders or tracked placeholders.
-5. `helper` is for app-local helper exports.
-6. `shared` is for app-local shared contracts and workspace metadata.
+1. `src` is the backend and composition surface
+2. `web` is the frontend surface
+3. `database/migration` is for app-owned migration files or tracked placeholders
+4. `database/seeder` is for app-owned seeders or tracked placeholders
+5. `helper` is for app-local helper exports
+6. `shared` is for app-local shared contracts and workspace metadata
 
 ## Ownership Model
 
@@ -69,6 +69,7 @@ Rules:
 4. HTTP host and route assembly
 5. reusable platform contracts
 6. app suite registration
+7. machine-readable workspace and host baseline metadata
 
 Framework must remain business-agnostic.
 
@@ -81,7 +82,8 @@ CxApp owns:
 1. the active frontend entry app
 2. the active server entry wrapper
 3. the suite-facing shell and layouts
-4. the operator-facing interface for composed apps
+4. the routed auth pages and shell handoff
+5. the operator-facing interface for composed apps
 
 Framework remains underneath CxApp as the reusable runtime.
 
@@ -114,16 +116,15 @@ Rules:
 
 UI owns:
 
-1. shared CSS
+1. shared CSS and tokens
 2. reusable primitives
 3. reusable layout blocks
 4. neutral UX building blocks
+5. shared desk shell presentation
+6. shared auth layout presentation
+7. design-system docs presentation and catalog components
 
-UI does not own app-specific workflow screens.
-
-Current rule:
-
-1. dormant app-specific code under `apps/ui/src/features` is out of active build scope until it is moved into the correct app boundary
+UI does not own app-specific business workflows.
 
 ### Billing
 
@@ -147,7 +148,7 @@ Current rule:
 
 ### CLI
 
-`apps/cli` owns operational commands, diagnostics, and release helpers.
+`apps/cli` owns operational commands, diagnostics, and release helpers when those helpers actually exist in the repository.
 
 ## Runtime Model
 
@@ -161,6 +162,13 @@ Current active runtime:
 6. config runtime: `apps/framework/src/runtime/config`
 7. database runtime: `apps/framework/src/runtime/database`
 8. HTTP runtime: `apps/framework/src/runtime/http`
+
+Current framework route surfaces:
+
+1. health: `/health`
+2. internal app registry: `/internal/apps`
+3. internal workspace baseline: `/internal/baseline`
+4. external app registry: `/api/apps`
 
 ## App Suite Model
 
@@ -181,7 +189,7 @@ Current registered suite surfaces:
 11. tally
 12. cli
 
-Every manifest now carries workspace metadata so framework and CxApp can inspect app roots without filesystem guessing.
+Every manifest carries workspace metadata so framework and CxApp can inspect app roots without filesystem guessing.
 
 ## Database Model
 
@@ -210,6 +218,18 @@ Current active outputs:
 1. web build: `build/app/cxapp/web`
 2. server build: `build/app/cxapp/server`
 
+## Testing Model
+
+Current automated tests live under the root `tests/` folder.
+
+Active coverage today includes:
+
+1. app suite registration
+2. workspace structure normalization
+3. runtime config loading
+4. runtime database switching
+5. workspace baseline assembly and route exposure
+
 ## Current State
 
 Implemented now:
@@ -220,15 +240,18 @@ Implemented now:
 4. manifest-level suite registration with workspace metadata
 5. internal and external API route split
 6. MariaDB / SQLite / PostgreSQL runtime switching
-7. root tests that validate suite registration and workspace structure
+7. shared desk shell and grouped app navigation from `apps/ui`
+8. shared auth layouts and auth page presentation through `apps/ui`
+9. shared design-system docs and routeable component catalog in the `ui` app
+10. root tests that validate suite registration, workspace structure, and framework runtime/baseline behavior
 
 Still future work:
 
 1. real domain modules inside each standalone app
 2. app-owned migrations and seeders beyond placeholders
 3. real connector execution flows
-4. Electron desktop runtime
-5. production auth, permissions, and audit flows
+4. production auth, permissions, and audit flows
+5. Electron desktop runtime
 
 ## Boundary Rules
 

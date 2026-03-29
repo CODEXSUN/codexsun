@@ -5,29 +5,32 @@ This file maps the active planning guides to their purpose and current implement
 ## Plan Map
 
 1. [Plan-1](./Plan-1.md) - Workspace, Hosts, And Assembly Baseline
-   Current state: rewritten for the real `apps/` architecture.
-   Done: framework, UI, CLI, docs, and database/migration assembly rules are now documented for the current repo model.
+   Current state: active and implemented as documentation plus a machine-readable framework baseline surface.
+   Done: standardized app shape, active host entries, and the internal baseline route are documented and wired.
 
 2. [Plan-2](./Plan-2.md) - Module Naming And Boundary Rules
    Current state: substantially implemented.
-   Done: `framework` and `ui` boundaries are active, and shared presentation is extracted into `apps/ui`.
+   Done: framework, ui, and app boundaries are active, and shared presentation is extracted into `apps/ui`.
 
 3. [Plan-3](./Plan-3.md) - Build, Plugin, And Release Workflow
-   Current state: mostly implemented.
-   Done: shared build roots, lockstep versioning, changelog discipline, and `githelper` workflow are active.
+   Current state: partially implemented.
+   Done: shared build roots, lockstep versioning, and changelog discipline are active.
+   Remaining: real release automation and module packaging workflow.
 
 4. [Plan-4](./Plan-4.md) - Database Table Structure And Fields
-   Current state: first implementation increment is active.
-   Done: framework database schema sections, ordered migration sections, migration runner wiring, and SQLite smoke-test path are established from this plan.
+   Current state: planned direction with runtime config and driver switching in place.
+   Done: framework database runtime and driver switching exist.
+   Remaining: ordered schema sections, ordered migration sections, and app-owned migrations beyond placeholders.
 
 5. [Plan-5](./Plan-5.md) - Framework API Boundary And Integration Foundation
-   Current state: active and partially implemented in the framework boundary.
-   Done: the plan now targets the real `apps/framework` runtime, and the first HTTP and integration foundation batch is the next implementation slice.
+   Current state: first boundary split is active.
+   Done: internal and external route surfaces exist.
+   Remaining: public route namespace, request-context policy, API client/token models, idempotency, and webhook persistence.
 
 6. [Plan-6](./Plan-6.md) - Company-Centric Control Foundation
    Current state: planned but not implemented.
-   Done: company-root control direction is documented, but the implementation batch has not started yet.
+   Done: company-root direction is documented.
 
 7. [Plan-7](./Plan-7.md) - Workspace Desk, UI Scope, And Module Routing
-   Current state: active for the current framework and UI cleanup batch.
-   Done: the plan now targets the real `apps/framework` desk shell, shared `apps/ui` design-system scope, and module-grouped route ownership.
+   Current state: active and partially implemented.
+   Done: desk shell, grouped navigation, auth layouts, and UI docs routing now exist through `cxapp` and `apps/ui`.

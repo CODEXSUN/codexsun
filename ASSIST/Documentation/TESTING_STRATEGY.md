@@ -1,54 +1,75 @@
 # Testing Strategy
 
-This document outlines the testing conventions and requirements for the Codexsun ERP platform, especially given the "high-risk" nature of financial boundaries like billing and eCommerce.
+This document outlines the current testing conventions for Codexsun.
 
 ## Global Structure
 
-All tests (Unit, Integration, and End-to-End) reside in the `Test/` directory located at the root of the repository. The folder structure strictly mirrors the `apps/` bounded context layout to maintain clear separation of concerns.
+All automated tests currently live under the root `tests/` directory.
+
+The structure mirrors the active repository boundaries:
 
 ```text
-Test/
-├── .env.test             # Dedicated testing environment variables isolated from prod/dev
-├── framework/            # E2E & unit tests for core runtime, DB, config
-├── core/                 # E2E & unit tests for shared business masters
-├── ecommerce/            # E2E tests for product pipelines, checkout, profile
-├── billing/              # E2E tests for accounting, tax, vouchers
-├── task/                 # E2E tests for workflow and task management
-├── desktop/              # E2E tests for Electron Shell/IPC and main window
-└── ...
+tests/
+  apps/
+  api/
+  framework/
 ```
 
-## Environment Configuration
+Current examples:
 
-E2E testing is strictly tied to a `.env.test` file to ensure tests do not pollute production or local development databases. 
+1. `tests/apps/workspace-structure.test.ts`
+2. `tests/framework/application/app-suite.test.ts`
+3. `tests/framework/runtime/config.test.ts`
+4. `tests/framework/runtime/database.test.ts`
 
-1. Tests must read from `.env.test`.
-2. Provide fallback mocks if external variables are missing.
-3. The DB string in `.env.test` MUST target a safe sandbox/test database.
+## Current Test Scope
+
+Automated coverage is currently focused on structural and runtime foundation checks:
+
+1. app suite registration
+2. standardized app folder structure
+3. environment loading
+4. database driver switching
+5. workspace and host baseline assembly
 
 ## Running Tests
 
-We use unified command interfaces to trigger E2E tests for modules.
+Run the current automated suite with:
 
-### Run tests globally
-To execute the entire suite across all applications:
 ```bash
-npm run test:e2e
+npm run test
 ```
 
-### Run module-specific tests
-To run an E2E test suite for a specific boundary:
+For repository-wide validation, use:
+
 ```bash
-npm run test:e2e -- --project=ecommerce
-npm run test:e2e -- --project=billing
-npm run test:e2e -- --project=framework
-npm run test:e2e -- --project=desktop
+npm run typecheck
+npm run lint
+npm run test
+npm run build
 ```
 
-*Note: For E2E frameworks like Playwright or Cypress, ensure your test database is seeded properly using `npm run test:seed` before running.*
+## Current Reality
+
+What exists now:
+
+1. Node test runner based tests under `tests/**/*.test.ts`
+2. foundation-level runtime checks
+3. structural guardrails for the `apps/` model
+
+What does not exist yet:
+
+1. dedicated `.env.test` handling
+2. Playwright or Cypress E2E suites
+3. Electron runtime tests
+4. app-level business workflow coverage for billing, ecommerce, or task
 
 ## High-Risk Boundaries
 
-In modules like `billing`, `ecommerce`, and `auth` (within `framework`):
-1. **Mock External Calls**: Avoid executing real merchant APIs or Stripe payments. Use sandbox mode and mock external adapters.
-2. **Reversibility Tests**: Run explicit E2E tests enforcing audit-trail completeness for financial writes. Every voucher creation must be verified alongside its corresponding reversal/cancellation rule.
+When those modules are implemented, the first higher-rigor targets should be:
+
+1. framework auth and permission boundaries
+2. accounting, balancing, and reversal logic
+3. stock-affecting workflows
+4. ecommerce order and payment state transitions
+5. connector retries, idempotency, and audit traces

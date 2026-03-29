@@ -4,23 +4,21 @@
 
 ### Reference
 
-`#9`
+`#10`
 
 ### Title
 
-`CxApp isolated workspace baseline and per-app folder normalization`
+`ASSIST reconciliation and Plan-1 workspace baseline surface`
 
 ### Scope Checklist
 
-- [x] Remove legacy `apps/frontend` and `apps/server` ownership from the active architecture
-- [x] Keep framework as the reusable runtime and composition root
-- [x] Make `apps/cxapp` the active product shell for frontend and server entry wrappers
-- [x] Normalize every app to `src`, `web`, `database/migration`, `database/seeder`, `helper`, and `shared`
-- [x] Add workspace metadata to app manifests so suite composition can inspect app roots explicitly
-- [x] Keep API routes split between `apps/api/src/internal` and `apps/api/src/external`
-- [x] Keep `apps/ui` focused on shared UI scope and remove dormant feature folders from the active build path
-- [x] Add root tests for standardized app structure
-- [x] Update ASSIST architecture, overview, setup, planning, and changelog files
+- [x] Move ASSIST tracking from the old `#9` normalization batch to the current repository state
+- [x] Remove stale ASSIST references to `githelper`, `version:bump`, `Test/`, and retired migration/layout assumptions
+- [x] Update architecture, overview, setup, testing, contributing, and planning docs to match the live repo
+- [x] Record the current shared UI state: desk shell, auth layouts, and design-system docs surface
+- [x] Implement a machine-readable workspace and host baseline in the framework boundary
+- [x] Expose that baseline through the internal API surface
+- [x] Add tests for the baseline assembly and route payload
 
 ### Validation Note
 
@@ -29,22 +27,20 @@
 - [x] `npm run test`
 - [x] `npm run build`
 
-Validation note: the repo now runs with `cxapp` as the active shell, framework as the reusable runtime, every app follows the same isolated folder shape, and root validation passes.
-
 ## Next Batch
 
 ### Reference
 
-`#10`
+`#11`
 
 ### Title
 
-`Domain modules, app-owned migrations, and real suite routes`
+`Domain modules, app-owned migrations, and production auth groundwork`
 
 ### Scope Checklist
 
 - [ ] start real domain modules in `core`, `billing`, `ecommerce`, and `task`
-- [ ] replace placeholder app shells with real routes and providers
+- [ ] replace placeholder app shells with app-owned providers and domain routes
 - [ ] begin app-owned migrations and seeders beyond tracked placeholders
 - [ ] deepen connector execution flow for `frappe` and `tally`
-- [ ] start the Electron and offline delivery path on top of the existing SQLite runtime
+- [ ] replace mock auth flow with framework-owned auth services and permission boundaries

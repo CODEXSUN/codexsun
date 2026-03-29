@@ -1,6 +1,11 @@
-import { Cog, Home, RefreshCcw } from "lucide-react"
+import { ChevronRight, Cog, Home, RefreshCcw } from "lucide-react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   Sidebar,
   SidebarContent,
@@ -12,13 +17,128 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { NavUser } from "@/features/dashboard/components/navigation/nav-user"
+import type { DashboardAppDefinition } from "@/features/dashboard/types"
 
 function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
+}
+
+function UiAppMenu({
+  app,
+  open,
+  pathname,
+}: {
+  app: DashboardAppDefinition
+  open: boolean
+  pathname: string
+}) {
+  if (!open) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {app.modules.map((item) => (
+              <SidebarMenuItem key={item.id}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isRouteActive(pathname, item.route)}
+                  tooltip={item.name}
+                >
+                  <NavLink to={item.route}>
+                    <item.icon className="size-4" />
+                    <span className="sr-only">{item.name}</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    )
+  }
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {app.menuGroups.map((group) => {
+            const GroupIcon = group.items[0]?.icon
+            const hasChildren = group.items.length > 1
+            const isGroupActive = group.items.some((item) =>
+              isRouteActive(pathname, item.route)
+            )
+
+            if (!hasChildren) {
+              const item = group.items[0]
+
+              if (!item) {
+                return null
+              }
+
+              return (
+                <SidebarMenuItem key={group.id}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isRouteActive(pathname, item.route)}
+                  >
+                    <NavLink to={item.route}>
+                      <item.icon className="size-4" />
+                      <span>{item.name}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            }
+
+            return (
+              <Collapsible
+                key={group.id}
+                defaultOpen={isGroupActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      isActive={isGroupActive}
+                      className="pr-2"
+                    >
+                      {GroupIcon ? <GroupIcon className="size-4" /> : null}
+                      <span>{group.label}</span>
+                      <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {group.items.map((item) => (
+                        <SidebarMenuSubItem key={item.id}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isRouteActive(pathname, item.route)}
+                          >
+                            <NavLink to={item.route}>
+                              <span>{item.name}</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            )
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
 }
 
 export function AppSidebar() {
@@ -134,34 +254,71 @@ export function AppSidebar() {
         ) : null}
 
         {currentApp ? (
-          <SidebarGroup>
-            <SidebarGroupLabel>{currentApp.name}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {[
-                  ...currentApp.menuGroups.flatMap((group) => group.items),
-                  {
-                    id: `${currentApp.id}-settings`,
-                    name: "Settings",
-                    route: links.settings,
-                    icon: Cog,
-                  },
-                ].map((item) => (
-                  <SidebarMenuItem key={item.id}>
+          <>
+            {currentApp.id === "ui" ? (
+              <UiAppMenu
+                app={currentApp}
+                open={open}
+                pathname={location.pathname}
+              />
+            ) : (
+              currentApp.menuGroups.map((group) => (
+                <SidebarGroup key={group.id}>
+                  <SidebarGroupLabel>
+                    {group.route ? (
+                      <NavLink
+                        to={group.route}
+                        className={`transition hover:text-foreground ${
+                          isRouteActive(location.pathname, group.route)
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {group.label}
+                      </NavLink>
+                    ) : (
+                      group.label
+                    )}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {group.items.map((item) => (
+                        <SidebarMenuItem key={item.id}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isRouteActive(location.pathname, item.route)}
+                          >
+                            <NavLink to={item.route}>
+                              <item.icon className="size-4" />
+                              {open ? <span>{item.name}</span> : null}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              ))
+            )}
+            <SidebarGroup>
+              <SidebarGroupLabel>Application</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
-                      isActive={isRouteActive(location.pathname, item.route)}
+                      isActive={isRouteActive(location.pathname, links.settings)}
                     >
-                      <NavLink to={item.route}>
-                        <item.icon className="size-4" />
-                        {open ? <span>{item.name}</span> : null}
+                      <NavLink to={links.settings}>
+                        <Cog className="size-4" />
+                        {open ? <span>Settings</span> : null}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         ) : null}
       </SidebarContent>
 

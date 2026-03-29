@@ -16,13 +16,14 @@ The repository currently runs with this model:
 
 1. `apps/framework` is the reusable composition and runtime layer
 2. `apps/cxapp` is the active product shell for both frontend and server entry wrappers
-3. every app now follows the same `src`, `web`, `database`, `helper`, and `shared` structure
+3. every app follows the same `src`, `web`, `database`, `helper`, and `shared` structure
 4. `apps/api` owns split internal and external route definitions
-5. `apps/ui` remains the shared design system surface
-6. active build outputs now target `build/app/cxapp/web` and `build/app/cxapp/server`
-7. MariaDB is the current live primary database target
-8. SQLite is reserved for offline and Electron paths
-9. PostgreSQL remains an optional analytics path
+5. `apps/ui` is the active shared design-system, auth-layout, and desk-shell surface
+6. the `ui` app doubles as a routed design-system docs workspace with category browsing and component detail pages
+7. active build outputs target `build/app/cxapp/web` and `build/app/cxapp/server`
+8. MariaDB is the current live primary database target
+9. SQLite is reserved for offline and future desktop paths
+10. PostgreSQL remains an optional analytics path
 
 ## Suite Shape
 
@@ -47,7 +48,7 @@ Current app roots:
 2. cxapp is the operator-facing suite interface, not the runtime owner
 3. core stays shared and business-common
 4. api ownership stays explicit and split by surface
-5. ui stays shared and presentation-focused
+5. ui stays shared and presentation-focused even when it powers auth, desk, and docs surfaces
 6. apps stay isolated even when composed together
 7. documentation and planning must track the real repository state
 

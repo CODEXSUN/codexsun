@@ -69,8 +69,8 @@ Every app folder must keep the same baseline shape:
 5. Keep internal API routes under `apps/api/src/internal`.
 6. Keep external API routes under `apps/api/src/external`.
 7. Keep shared masters in `apps/core`.
-8. Keep shared UI in `apps/ui`; do not move app-specific screens back into the shared UI package.
-9. Treat dormant or incomplete app-specific code under `apps/ui/src/features` as out of active build scope until it is moved to the correct app boundary.
+8. Keep shared UI in `apps/ui`; do not move app-specific business screens back into the shared UI package.
+9. Shared `apps/ui/src/features/*` code is allowed only for neutral cross-app surfaces such as dashboard shell presentation or design-system docs.
 10. Keep MariaDB as the default live transactional database, SQLite as the offline desktop option, and PostgreSQL as the optional analytics path.
 11. Keep build outputs under `build/app/<app>/<target>` and reserve `build/module/<module>/<target>` for future modules.
 12. Update docs, task tracking, planning, and changelog in the same batch as architecture changes.

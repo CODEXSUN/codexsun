@@ -4,50 +4,40 @@
 
 ### Reference
 
-`#9`
+`#10`
 
 ### Goal
 
-Keep framework as the reusable runtime, promote `cxapp` into the active suite shell, and normalize every app into one isolated folder model.
+Bring the ASSIST documentation back in sync with the live repository, then make `Plan-1` executable by adding a real workspace and host baseline surface inside the framework and internal API boundary.
 
 ### Scope
 
-- `apps/framework`
-- `apps/cxapp`
-- `apps/core`
-- `apps/api`
-- `apps/site`
-- `apps/ui`
-- `apps/billing`
-- `apps/ecommerce`
-- `apps/task`
-- `apps/frappe`
-- `apps/tally`
-- `apps/cli`
 - `ASSIST/Documentation`
+- `ASSIST/Discipline`
 - `ASSIST/Execution`
+- `ASSIST/Planning`
+- `apps/framework/src/application`
+- `apps/api/src/internal`
+- `tests/framework`
+- `tests/api`
 
 ### Canonical Decisions
 
-- framework remains the reusable composition and runtime layer
-- cxapp owns the active web and server entry wrappers
-- every app keeps `src`, `web`, `database`, `helper`, and `shared`
-- app manifests carry workspace metadata for explicit suite crawling
-- api routes stay split between internal and external surfaces
-- ui stays shared and excludes dormant app-specific feature code from the active build path
-- MariaDB remains the live primary database target
-- SQLite remains the offline and desktop option
-- PostgreSQL remains the optional analytics path
+- framework remains the reusable runtime, composition root, and host assembly layer
+- `cxapp` remains the active suite-facing shell for web and server entry wrappers
+- `apps/ui` is now an active shared layer for desk navigation, auth layouts, and a design-system docs surface
+- ASSIST documentation must describe only what is actually implemented in the repo
+- release and version guidance must not reference tooling that is absent from `package.json`
+- the first `Plan-1` implementation slice is a machine-readable baseline surface, not a large new runtime subsystem
 
 ### Execution Plan
 
-1. remove the stale frontend/server ownership from the active app structure
-2. normalize each app folder into the same isolated structure
-3. wire workspace metadata into manifests and suite registration
-4. keep `cxapp` as the active frontend and server wrapper while framework remains reusable underneath
-5. add tests that verify the standardized structure
-6. update ASSIST docs to match the real repository
-7. validate typecheck, lint, test, and build
+1. update the active reference, task, planning, and changelog files for the new batch
+2. rewrite stale ASSIST docs so they match the actual app tree, commands, testing paths, and shared UI scope
+3. add a framework-owned workspace and host baseline builder under the application layer
+4. expose the baseline through the internal API route surface
+5. add tests for the baseline builder and route payload
+6. validate typecheck, lint, test, and build
 
 ### Validation Plan
 
@@ -63,11 +53,8 @@ Keep framework as the reusable runtime, promote `cxapp` into the active suite sh
 - [x] `npm run test`
 - [x] `npm run build`
 
-Validation note: the normalized multi-app structure is in place, `cxapp` is the active shell, framework remains the runtime root, and the full root validation set passes.
-
 ### Risks And Follow-Up
 
-- most app folders are still structural scaffolds and not full domain implementations yet
-- `database/migration` and `database/seeder` are placeholders until app-owned data layers are introduced
-- dormant app-specific code under `apps/ui/src/features` still needs to be moved into the correct app boundaries instead of staying quarantined
-- connector, auth, and audit-sensitive flows still need production-grade implementation
+- many app roots are still structural or UI-level scaffolds rather than real business modules
+- auth, permissions, and request safety remain mock or partial outside the host/config baseline
+- plugin delivery and release automation are documented as future work, not current tooling

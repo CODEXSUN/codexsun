@@ -1,0 +1,67 @@
+import { CardTitle } from "@/components/ui/card"
+import type { DocsEntry } from "@/features/docs/data/catalog"
+import { CopyCodeButton } from "@/features/docs/components/copy-code-button"
+import { ViewCodeDialog } from "@/features/docs/components/view-code-dialog"
+
+export function DocsEntryCard({
+  entry,
+  showHeader = true,
+}: {
+  entry: DocsEntry
+  showHeader?: boolean
+}) {
+  const EntryIcon = entry.icon
+
+  return (
+    <div id={entry.id} className="space-y-5">
+      {showHeader ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl border border-border/70 bg-background">
+                <EntryIcon className="size-5" />
+              </div>
+              <div>
+                <CardTitle>{entry.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">{entry.description}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {entry.examples.length} variants
+          </div>
+        </div>
+      ) : null}
+      <div className="grid gap-4 xl:grid-cols-2">
+        {entry.examples.map((example, index) => (
+          <div
+            key={example.id}
+            className="overflow-hidden rounded-[1.25rem] border border-border/70 bg-background"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span className="text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")}.
+                </span>
+                <span>{example.title}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <CopyCodeButton code={example.code} iconOnly />
+                <ViewCodeDialog
+                  code={example.code}
+                  title={`${entry.name} - ${example.title}`}
+                  description={entry.description}
+                />
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="rounded-[1rem] border border-border/70 bg-background p-5">
+                {example.preview}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

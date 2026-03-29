@@ -1,5 +1,7 @@
 import * as React from "react"
 
+import { cn } from "@/lib/utils"
+
 type CollapsibleContextValue = {
   open: boolean
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -21,13 +23,22 @@ function useCollapsibleContext() {
 
 function Collapsible({
   children,
+  className,
   defaultOpen = false,
-}: React.PropsWithChildren<{ asChild?: boolean; defaultOpen?: boolean }>) {
+}: React.PropsWithChildren<{
+  asChild?: boolean
+  className?: string
+  defaultOpen?: boolean
+}>) {
   const [open, setOpen] = React.useState(defaultOpen)
 
   return (
     <CollapsibleContext.Provider value={{ open, setOpen }}>
-      <div data-slot="collapsible" data-state={open ? "open" : "closed"}>
+      <div
+        data-slot="collapsible"
+        data-state={open ? "open" : "closed"}
+        className={className}
+      >
         {children}
       </div>
     </CollapsibleContext.Provider>
@@ -35,6 +46,8 @@ function Collapsible({
 }
 
 function CollapsibleTrigger({
+  asChild = false,
+  className,
   children,
   ...props
 }: React.ComponentProps<"button"> & { asChild?: boolean }) {
@@ -47,11 +60,29 @@ function CollapsibleTrigger({
     }
   }
 
+  if (asChild && React.isValidElement(children)) {
+    const child = children as React.ReactElement<{
+      className?: string
+      onClick?: React.MouseEventHandler<HTMLElement>
+    }>
+
+    return React.cloneElement(child, {
+      className: cn(className, child.props.className),
+      onClick: (event: React.MouseEvent<HTMLElement>) => {
+        child.props.onClick?.(event)
+        if (!event.defaultPrevented) {
+          setOpen((value) => !value)
+        }
+      },
+    })
+  }
+
   return (
     <button
       type="button"
       data-slot="collapsible-trigger"
       data-state={open ? "open" : "closed"}
+      className={className}
       {...props}
       onClick={handleClick}
     >

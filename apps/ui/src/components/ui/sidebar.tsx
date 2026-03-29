@@ -309,7 +309,7 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sidebar-menu-sub"
-      className={cn("mt-1 space-y-1 pl-4", className)}
+      className={cn("mt-2 ml-4 space-y-1 border-l border-sidebar-border pl-3", className)}
       {...props}
     />
   )

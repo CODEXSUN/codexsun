@@ -6,9 +6,9 @@ This file defines the current repository workflow for:
 
 1. shared build outputs
 2. standalone app delivery
-3. plugin or connector module delivery
-4. semantic version bump flow
-5. commit and release automation
+3. future plugin or connector module delivery
+4. semantic versioning
+5. commit and release discipline
 
 ## Shared Build Layout
 
@@ -31,38 +31,19 @@ Rule:
 2. plugin or connector modules build under `build/module`
 3. source trees should not become permanent homes for release artifacts
 
-## Standalone App Rule
+## Current Reality
 
-A standalone app is independently shippable.
+Implemented now:
 
-Examples:
+1. the repo builds the active `cxapp` web and server outputs
+2. versioning is still manual
+3. changelog and reference discipline are active
 
-1. `framework`
-2. `billing`
-3. `task`
+Not implemented yet:
 
-Rule:
-
-1. standalone apps own routes, business delivery, and packaging
-2. standalone apps may consume framework contracts
-3. standalone apps must not hide plugin behavior inside undocumented imports
-
-## Plugin Module Rule
-
-A plugin module extends an app or platform through explicit contracts.
-
-Examples:
-
-1. `frappe`
-2. future Zoho connector
-3. future Tally connector
-
-Rule:
-
-1. plugin modules must expose a manifest
-2. plugin modules must declare a runtime target
-3. plugin modules must build under `build/module/<module>`
-4. plugin modules must not bypass framework contracts to mutate unrelated app internals
+1. release helper scripts
+2. automatic version bump tooling
+3. actual module packaging under `build/module/*`
 
 ## Version Rule
 
@@ -77,7 +58,7 @@ Rule:
 
 1. package files use numeric semver
 2. changelog version headings and git tags use the `v-` prefix
-3. version changes happen through the CLI helper instead of ad hoc file edits
+3. version changes must be deliberate and documented in the same batch
 
 ## Reference Rule
 
@@ -90,26 +71,15 @@ Apply it in:
 3. `ASSIST/Documentation/CHANGELOG.md`
 4. git commit subjects
 
-Format:
+## Manual Release Flow
 
-1. `#3`
-2. `### [#3] YYYY-MM-DD - Title`
-3. `#3 feat(scope): summary`
-
-## Githelper Flow
-
-Use these commands:
+Use this sequence until release automation exists:
 
 ```bash
-npm run githelper -- check
-npm run version:bump -- --type patch
-npm run githelper -- commit --ref 3 --type chore --scope repo --summary "establish release governance"
-npm run githelper -- release --ref 3
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+git commit -m "#10 chore(repo): summary"
+git tag -a v-0.0.1 -m "v-0.0.1"
 ```
-
-Rule:
-
-1. `check` validates the current version, build roots, remote, branch, and working tree
-2. `version:bump` updates lockstep package versions and changelog version state
-3. `commit` stages all changes, syncs references, ensures a changelog entry exists, and creates the formatted commit
-4. `release` creates the annotated `v-` tag from a clean working tree

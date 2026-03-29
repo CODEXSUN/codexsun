@@ -23,6 +23,7 @@ export type DashboardMenuGroup = {
   id: string
   label: string
   shared: boolean
+  route?: string
   items: DashboardMenuItem[]
 }
 

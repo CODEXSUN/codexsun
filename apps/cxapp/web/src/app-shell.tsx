@@ -16,8 +16,10 @@ import type { DashboardUser } from "@/features/dashboard/types"
 
 import { DeskProvider } from "./desk/desk-provider"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
+import { ForgotPasswordPage } from "./pages/forgot-password-page"
 import HomePage from "./pages/home"
 import { LoginPage } from "./pages/login-page"
+import { RequestAccessPage } from "./pages/request-access-page"
 
 const container = createFrameworkBrowserContainer()
 const appSuite = container.resolve<AppSuite>(FRAMEWORK_TOKENS.appSuite)
@@ -103,6 +105,8 @@ function AppShell() {
               />
             }
           />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/request-access" element={<RequestAccessPage />} />
           <Route
             path="/dashboard"
             element={

@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#10] 2026-03-29 - ASSIST reconciliation and workspace baseline
+
+- reconciled ASSIST docs with the live `apps/` tree, current commands, and active shared UI state
+- removed stale references to non-existent `githelper`, `version:bump`, and `Test/` workflows
+- documented the current `cxapp` auth shell and `ui` design-system docs surface
+- added a framework-owned machine-readable workspace and host baseline and exposed it through the internal API boundary
+
 ### [#9] 2026-03-29 - CxApp isolated workspace baseline
 
 - promoted `apps/cxapp` into the active frontend and server wrapper while keeping framework reusable underneath

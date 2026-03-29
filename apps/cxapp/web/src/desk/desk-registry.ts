@@ -16,9 +16,11 @@ import {
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
+import { docsCategories, docsEntries } from "@/features/docs/data/catalog"
 import type {
   DashboardAppDefinition,
   DashboardLocationMeta,
+  DashboardMenuGroup,
   DashboardServiceDefinition,
   DashboardWorkspaceLink,
 } from "@/features/dashboard/types"
@@ -130,6 +132,26 @@ function getAppBadge(app: AppManifest) {
 
 function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
   const root = `/dashboard/apps/${app.id}`
+
+  if (app.id === "ui") {
+    return [
+      {
+        id: `${app.id}-overview`,
+        name: "Overview",
+        route: root,
+        summary: "Browse the design system by category.",
+        icon: LayoutDashboard,
+      },
+      ...docsEntries.map((entry) => ({
+        id: `${app.id}-${entry.id}`,
+        name: entry.name,
+        route: `${root}/${entry.id}`,
+        summary: entry.description,
+        icon: entry.icon,
+      })),
+    ]
+  }
+
   const modules: DashboardWorkspaceLink[] = [
     {
       id: `${app.id}-overview`,
@@ -188,8 +210,52 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
   return modules
 }
 
+function createUiMenuGroups(
+  app: AppManifest,
+  modules: DashboardWorkspaceLink[]
+): DashboardMenuGroup[] {
+  const root = `/dashboard/apps/${app.id}`
+  const overviewItem = modules.find((item) => item.route === root) ?? null
+
+  return [
+    ...(overviewItem
+      ? [
+          {
+            id: `${app.id}-overview-group`,
+            label: "Overview",
+            shared: true,
+            route: root,
+            items: [overviewItem],
+          },
+        ]
+      : []),
+    ...docsCategories.map((category) => ({
+      id: `${app.id}-${category.id}-group`,
+      label: category.name,
+      shared: false,
+      route: `${root}/${category.items[0]}`,
+      items: category.items
+        .map((entryId) =>
+          modules.find((item) => item.route === `${root}/${entryId}`) ?? null
+        )
+        .filter((item): item is DashboardWorkspaceLink => item !== null),
+    })),
+  ]
+}
+
 function toDeskApp(app: AppManifest): DeskAppDefinition {
   const modules = createWorkspaceModules(app)
+  const menuGroups =
+    app.id === "ui"
+      ? createUiMenuGroups(app, modules)
+      : [
+          {
+            id: `${app.id}-workspace`,
+            label: app.name,
+            shared: false,
+            items: modules,
+          },
+        ]
 
   return {
     id: app.id,
@@ -213,14 +279,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
       seederRoot: app.workspace.seederRoot,
     },
     modules,
-    menuGroups: [
-      {
-        id: `${app.id}-workspace`,
-        label: app.name,
-        shared: false,
-        items: modules,
-      },
-    ],
+    menuGroups,
     quickActions: modules.slice(0, 3),
   }
 }
