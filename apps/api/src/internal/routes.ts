@@ -1,13 +1,13 @@
 import type { AppSuite } from "../../../framework/src/application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../../framework/src/application/workspace-baseline.js"
-import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/route-types.js"
+import { defineInternalRoute } from "../../../framework/src/runtime/http"
+import type { HttpRouteDefinition } from "../../../framework/src/runtime/http"
 
 export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
-    {
-      method: "GET",
-      path: "/internal/apps",
-      visibility: "internal",
+    defineInternalRoute("/apps", {
+      legacyPaths: ["/internal/apps"],
+      summary: "Internal suite registry for first-party shells and tools.",
       handler: () => ({
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
@@ -17,11 +17,10 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
           apps: appSuite.apps,
         }),
       }),
-    },
-    {
-      method: "GET",
-      path: "/internal/baseline",
-      visibility: "internal",
+    }),
+    defineInternalRoute("/baseline", {
+      legacyPaths: ["/internal/baseline"],
+      summary: "Workspace and host baseline for first-party diagnostics.",
       handler: () => ({
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
@@ -30,6 +29,6 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
           baseline: createWorkspaceHostBaseline(appSuite),
         }),
       }),
-    },
+    }),
   ]
 }

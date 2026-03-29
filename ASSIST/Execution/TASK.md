@@ -8,7 +8,7 @@
 
 ### Title
 
-`ASSIST reconciliation and Plan-1 workspace baseline surface`
+`ASSIST reconciliation, Plan-1 baseline, Plan-4 foundation metadata, and Plan-5 HTTP routing`
 
 ### Scope Checklist
 
@@ -19,6 +19,15 @@
 - [x] Implement a machine-readable workspace and host baseline in the framework boundary
 - [x] Expose that baseline through the internal API surface
 - [x] Add tests for the baseline assembly and route payload
+- [x] Add ordered framework database foundation section definitions
+- [x] Add ordered platform migration section definitions that map to the schema foundation
+- [x] Expose the foundation plan through framework database exports
+- [x] Add tests for section order and required table coverage
+- [x] Add framework-owned route manifest helpers for internal, external, and public HTTP surfaces
+- [x] Version internal and external routes under canonical `v1` paths with legacy path compatibility
+- [x] Add a public bootstrap route and public `v1` health alias
+- [x] Attach surface, version, auth, summary, and legacy-path metadata to HTTP route definitions
+- [x] Add tests for versioned route assemblies and legacy matching behavior
 
 ### Validation Note
 

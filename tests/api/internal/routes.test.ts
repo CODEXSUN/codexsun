@@ -6,12 +6,20 @@ import { createAppSuite } from "../../../apps/framework/src/application/app-suit
 
 test("internal baseline route exposes the machine-readable workspace host baseline", () => {
   const route = createInternalApiRoutes(createAppSuite()).find(
-    (candidate) => candidate.path === "/internal/baseline"
+    (candidate) => candidate.path === "/internal/v1/baseline"
   )
 
   assert.ok(route)
 
-  const response = route.handler({ appSuite: createAppSuite() })
+  const response = route.handler({
+    appSuite: createAppSuite(),
+    route: {
+      auth: route.auth,
+      path: route.path,
+      surface: route.surface,
+      version: route.version,
+    },
+  })
 
   assert.ok(!(response instanceof Promise))
 

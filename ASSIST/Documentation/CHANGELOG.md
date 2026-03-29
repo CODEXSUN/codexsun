@@ -8,12 +8,14 @@
 
 ## v-0.0.1
 
-### [#10] 2026-03-29 - ASSIST reconciliation and workspace baseline
+### [#10] 2026-03-29 - ASSIST reconciliation and framework baseline layers
 
 - reconciled ASSIST docs with the live `apps/` tree, current commands, and active shared UI state
 - removed stale references to non-existent `githelper`, `version:bump`, and `Test/` workflows
 - documented the current `cxapp` auth shell and `ui` design-system docs surface
 - added a framework-owned machine-readable workspace and host baseline and exposed it through the internal API boundary
+- started `Plan-4` with ordered framework database foundation sections and matching platform migration-section metadata
+- implemented the first `Plan-5` HTTP slice with route manifest helpers, canonical `v1` internal and external routes, a public bootstrap route, and legacy path compatibility
 
 ### [#9] 2026-03-29 - CxApp isolated workspace baseline
 

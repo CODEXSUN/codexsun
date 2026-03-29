@@ -13,6 +13,7 @@ import { FRAMEWORK_TOKENS } from "../di/tokens.js"
 import type { ServerConfig } from "../runtime/config/index.js"
 import type { RuntimeDatabases } from "../runtime/database/index.js"
 import {
+  createRequestContext,
   matchHttpRoute,
   type HttpRouteDefinition,
 } from "../runtime/http/index.js"
@@ -113,10 +114,13 @@ async function resolveResponse(
   const matchedRoute = matchHttpRoute(httpRoutes, method, urlPath)
 
   if (matchedRoute) {
-    return matchedRoute.handler({ appSuite })
+    return matchedRoute.handler({
+      appSuite,
+      route: createRequestContext(matchedRoute, appSuite).route,
+    })
   }
 
-  if (urlPath === "/health") {
+  if (urlPath === "/health" || urlPath === "/public/v1/health") {
     return json({
       app: appName,
       status: "ok",
@@ -133,6 +137,10 @@ async function resolveResponse(
       cloudflareEnabled,
       suite: appSuite.apps.map((app: AppSuite["apps"][number]) => app.id),
       database: databases.metadata,
+      route: {
+        surface: "public",
+        version: "v1",
+      },
     })
   }
 

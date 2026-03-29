@@ -6,6 +6,7 @@ import {
   MousePointerClick,
   PencilRuler,
   RectangleHorizontal,
+  Table as TableIcon,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,6 +20,17 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { DataTableDemo } from "../components/data-table-demo"
 
 export type DocsExample = {
   id: string
@@ -77,6 +89,20 @@ export const docsCategories: DocsCategory[] = [
     ),
   },
   {
+    id: "data",
+    name: "Data Display",
+    description: "Components for rendering and organizing structured information.",
+    items: ["table"],
+    preview: (
+      <div className="mx-auto flex h-32 w-full max-w-[15rem] flex-col items-center justify-center gap-2 rounded-[1.25rem] border border-border/70 bg-background/90 p-4">
+        <div className="h-2 w-full rounded-full bg-muted" />
+        <div className="h-2 w-5/6 rounded-full bg-muted" />
+        <div className="h-2 w-full rounded-full bg-muted" />
+        <div className="h-2 w-4/6 rounded-full bg-muted" />
+      </div>
+    ),
+  },
+  {
     id: "surfaces",
     name: "Surfaces",
     description: "Containers and identity elements for system UI.",
@@ -103,6 +129,369 @@ export const docsCategories: DocsCategory[] = [
 ]
 
 export const docsEntries: DocsEntry[] = [
+  {
+    id: "table",
+    name: "Table",
+    description: "Responsive table component for displaying tabular data.",
+    category: "data",
+    icon: TableIcon,
+    examples: [
+      {
+        id: "default",
+        title: "Default",
+        code: `import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+
+const invoices = [
+  { invoice: "INV001", paymentStatus: "Paid", totalAmount: "$250.00", paymentMethod: "Credit Card" },
+  { invoice: "INV002", paymentStatus: "Pending", totalAmount: "$150.00", paymentMethod: "PayPal" },
+  { invoice: "INV003", paymentStatus: "Unpaid", totalAmount: "$350.00", paymentMethod: "Bank Transfer" },
+  { invoice: "INV004", paymentStatus: "Paid", totalAmount: "$450.00", paymentMethod: "Credit Card" },
+  { invoice: "INV005", paymentStatus: "Paid", totalAmount: "$550.00", paymentMethod: "PayPal" },
+  { invoice: "INV006", paymentStatus: "Pending", totalAmount: "$200.00", paymentMethod: "Bank Transfer" },
+  { invoice: "INV007", paymentStatus: "Unpaid", totalAmount: "$300.00", paymentMethod: "Credit Card" },
+]
+
+export function Example() {
+  return (
+    <Table>
+      <TableCaption>A list of your recent invoices.</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[100px]">Invoice</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Method</TableHead>
+          <TableHead className="text-right">Amount</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {invoices.map((invoice) => (
+          <TableRow key={invoice.invoice}>
+            <TableCell className="font-medium">{invoice.invoice}</TableCell>
+            <TableCell>{invoice.paymentStatus}</TableCell>
+            <TableCell>{invoice.paymentMethod}</TableCell>
+            <TableCell className="text-right">{invoice.totalAmount}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+      <TableFooter>
+        <TableRow>
+          <TableCell colSpan={3}>Total</TableCell>
+          <TableCell className="text-right">$2,500.00</TableCell>
+        </TableRow>
+      </TableFooter>
+    </Table>
+  )
+}`,
+        preview: (
+          <Table>
+            <TableCaption>A list of your recent invoices.</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Invoice</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { invoice: "INV001", paymentStatus: "Paid", totalAmount: "$250.00", paymentMethod: "Credit Card" },
+                { invoice: "INV002", paymentStatus: "Pending", totalAmount: "$150.00", paymentMethod: "PayPal" },
+                { invoice: "INV003", paymentStatus: "Unpaid", totalAmount: "$350.00", paymentMethod: "Bank Transfer" },
+                { invoice: "INV004", paymentStatus: "Paid", totalAmount: "$450.00", paymentMethod: "Credit Card" },
+                { invoice: "INV005", paymentStatus: "Paid", totalAmount: "$550.00", paymentMethod: "PayPal" },
+                { invoice: "INV006", paymentStatus: "Pending", totalAmount: "$200.00", paymentMethod: "Bank Transfer" },
+                { invoice: "INV007", paymentStatus: "Unpaid", totalAmount: "$300.00", paymentMethod: "Credit Card" },
+              ].map((invoice) => (
+                <TableRow key={invoice.invoice}>
+                  <TableCell className="font-medium">{invoice.invoice}</TableCell>
+                  <TableCell>{invoice.paymentStatus}</TableCell>
+                  <TableCell>{invoice.paymentMethod}</TableCell>
+                  <TableCell className="text-right">{invoice.totalAmount}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={3}>Total</TableCell>
+                <TableCell className="text-right">$2,500.00</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        ),
+      },
+      {
+        id: "bordered",
+        title: "Bordered",
+        code: `import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+
+const invoices = [
+  { invoice: "INV001", paymentStatus: "Paid", totalAmount: "$250.00", paymentMethod: "Credit Card" },
+  { invoice: "INV002", paymentStatus: "Pending", totalAmount: "$150.00", paymentMethod: "PayPal" },
+  { invoice: "INV003", paymentStatus: "Unpaid", totalAmount: "$350.00", paymentMethod: "Bank Transfer" },
+  { invoice: "INV004", paymentStatus: "Paid", totalAmount: "$450.00", paymentMethod: "Credit Card" },
+  { invoice: "INV005", paymentStatus: "Paid", totalAmount: "$550.00", paymentMethod: "PayPal" },
+  { invoice: "INV006", paymentStatus: "Pending", totalAmount: "$200.00", paymentMethod: "Bank Transfer" },
+  { invoice: "INV007", paymentStatus: "Unpaid", totalAmount: "$300.00", paymentMethod: "Credit Card" },
+]
+
+export function Example() {
+  return (
+    <div className="rounded-md border">
+      <Table className="[&_td]:border-r [&_th]:border-r [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0">
+        <TableCaption className="mb-4">A list of your recent invoices.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[100px]">Invoice</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Method</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((invoice) => (
+            <TableRow key={invoice.invoice}>
+              <TableCell className="font-medium">{invoice.invoice}</TableCell>
+              <TableCell>{invoice.paymentStatus}</TableCell>
+              <TableCell>{invoice.paymentMethod}</TableCell>
+              <TableCell className="text-right">{invoice.totalAmount}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell colSpan={3}>Total</TableCell>
+            <TableCell className="text-right">$2,500.00</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
+  )
+}`,
+        preview: (
+          <div className="rounded-md border">
+            <Table className="[&_td]:border-r [&_th]:border-r [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0">
+              <TableCaption className="mb-4">A list of your recent invoices.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Invoice</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { invoice: "INV001", paymentStatus: "Paid", totalAmount: "$250.00", paymentMethod: "Credit Card" },
+                  { invoice: "INV002", paymentStatus: "Pending", totalAmount: "$150.00", paymentMethod: "PayPal" },
+                  { invoice: "INV003", paymentStatus: "Unpaid", totalAmount: "$350.00", paymentMethod: "Bank Transfer" },
+                  { invoice: "INV004", paymentStatus: "Paid", totalAmount: "$450.00", paymentMethod: "Credit Card" },
+                  { invoice: "INV005", paymentStatus: "Paid", totalAmount: "$550.00", paymentMethod: "PayPal" },
+                  { invoice: "INV006", paymentStatus: "Pending", totalAmount: "$200.00", paymentMethod: "Bank Transfer" },
+                  { invoice: "INV007", paymentStatus: "Unpaid", totalAmount: "$300.00", paymentMethod: "Credit Card" },
+                ].map((invoice) => (
+                  <TableRow key={invoice.invoice}>
+                    <TableCell className="font-medium">{invoice.invoice}</TableCell>
+                    <TableCell>{invoice.paymentStatus}</TableCell>
+                    <TableCell>{invoice.paymentMethod}</TableCell>
+                    <TableCell className="text-right">{invoice.totalAmount}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={3}>Total</TableCell>
+                  <TableCell className="text-right">$2,500.00</TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
+        ),
+      },
+      {
+        id: "striped-rows",
+        title: "Striped rows",
+        code: `import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+
+const products = [
+  { id: "101", name: "Wireless Headphones", category: "Electronics", price: "59.99", rating: "4.5" },
+  { id: "102", name: "Yoga Mat", category: "Sports & Fitness", price: "25", rating: "4.8" },
+  { id: "103", name: "Coffee Maker", category: "Home Appliances", price: "80", rating: "4.2" },
+  { id: "104", name: "Running Shoes", category: "Sportswear", price: "70", rating: "4.6" },
+]
+
+export function Example() {
+  return (
+    <div className="border border-t-0 border-x-0">
+      <Table className="[&_tbody_tr:nth-child(even)]:bg-muted/50">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[100px]">ID</TableHead>
+            <TableHead>Product Name</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Price (USD)</TableHead>
+            <TableHead>Rating</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow key={product.id}>
+              <TableCell className="font-medium">{product.id}</TableCell>
+              <TableCell>{product.name}</TableCell>
+              <TableCell>{product.category}</TableCell>
+              <TableCell>{product.price}</TableCell>
+              <TableCell>{product.rating}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}`,
+        preview: (
+          <div className="border border-t-0 border-x-0">
+            <Table className="[&_tbody_tr:nth-child(even)]:bg-muted/50">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price (USD)</TableHead>
+                  <TableHead>Rating</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { id: "101", name: "Wireless Headphones", category: "Electronics", price: "59.99", rating: "4.5" },
+                  { id: "102", name: "Yoga Mat", category: "Sports & Fitness", price: "25", rating: "4.8" },
+                  { id: "103", name: "Coffee Maker", category: "Home Appliances", price: "80", rating: "4.2" },
+                  { id: "104", name: "Running Shoes", category: "Sportswear", price: "70", rating: "4.6" },
+                ].map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.id}</TableCell>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.price}</TableCell>
+                    <TableCell>{product.rating}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ),
+      },
+      {
+        id: "rounded-corners",
+        title: "Rounded corners",
+        code: `import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+
+const products = [
+  { id: "101", name: "Wireless Headphones", category: "Electronics", price: "59.99", rating: "4.5" },
+  { id: "102", name: "Yoga Mat", category: "Sports & Fitness", price: "25", rating: "4.8" },
+  { id: "103", name: "Coffee Maker", category: "Home Appliances", price: "80", rating: "4.2" },
+  { id: "104", name: "Running Shoes", category: "Sportswear", price: "70", rating: "4.6" },
+]
+
+export function Example() {
+  return (
+    <div className="overflow-hidden rounded-xl border">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/30">
+            <TableHead className="w-[100px]">ID</TableHead>
+            <TableHead>Product Name</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Price (USD)</TableHead>
+            <TableHead>Rating</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow key={product.id}>
+              <TableCell className="font-medium">{product.id}</TableCell>
+              <TableCell>{product.name}</TableCell>
+              <TableCell>{product.category}</TableCell>
+              <TableCell>{product.price}</TableCell>
+              <TableCell>{product.rating}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}`,
+        preview: (
+          <div className="overflow-hidden rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price (USD)</TableHead>
+                  <TableHead>Rating</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { id: "101", name: "Wireless Headphones", category: "Electronics", price: "59.99", rating: "4.5" },
+                  { id: "102", name: "Yoga Mat", category: "Sports & Fitness", price: "25", rating: "4.8" },
+                  { id: "103", name: "Coffee Maker", category: "Home Appliances", price: "80", rating: "4.2" },
+                  { id: "104", name: "Running Shoes", category: "Sportswear", price: "70", rating: "4.6" },
+                ].map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.id}</TableCell>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.price}</TableCell>
+                    <TableCell>{product.rating}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ),
+      },
+      {
+        id: "data-table",
+        title: "Data Table",
+        code: `import { DataTableDemo } from "@/features/docs/components/data-table-demo"\n\nexport function Example() {\n  return <DataTableDemo />\n}`,
+        preview: <DataTableDemo />,
+      },
+    ],
+  },
   {
     id: "button",
     name: "Button",

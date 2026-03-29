@@ -1,12 +1,12 @@
 import type { AppSuite } from "../../../framework/src/application/app-manifest.js"
+import { defineExternalRoute } from "../../../framework/src/runtime/http/route-manifest.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/route-types.js"
 
 export function createExternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
-    {
-      method: "GET",
-      path: "/api/apps",
-      visibility: "external",
+    defineExternalRoute("/apps", {
+      legacyPaths: ["/api/apps"],
+      summary: "External app registry for public and partner-facing consumption.",
       handler: () => ({
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
@@ -25,6 +25,6 @@ export function createExternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
           })),
         }),
       }),
-    },
+    }),
   ]
 }

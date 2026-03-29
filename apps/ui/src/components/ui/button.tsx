@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -43,6 +44,8 @@ const buttonVariants = cva(
 type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    nativeButton?: boolean
+    render?: React.ReactElement
   }
 
 function Button({
@@ -51,9 +54,29 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  nativeButton = true,
+  render,
   ...props
 }: ButtonProps) {
   const resolvedClassName = cn(buttonVariants({ variant, size, className }))
+
+  if (React.isValidElement(render)) {
+    const renderedChild = render as React.ReactElement<{
+      className?: string
+      children?: React.ReactNode
+      "data-slot"?: string
+    }>
+
+    return React.cloneElement(
+      renderedChild,
+      {
+        "data-slot": "button",
+        className: cn(resolvedClassName, renderedChild.props.className),
+        ...props,
+      },
+      children ?? renderedChild.props.children
+    )
+  }
 
   if (asChild && React.isValidElement(children)) {
     const child = children as React.ReactElement<{ className?: string }>
@@ -66,6 +89,7 @@ function Button({
   return (
     <button
       data-slot="button"
+      type={nativeButton ? props.type ?? "button" : undefined}
       className={resolvedClassName}
       {...props}
     >
@@ -74,4 +98,4 @@ function Button({
   )
 }
 
-export { Button }
+export { Button, buttonVariants }
