@@ -4,7 +4,8 @@ import assert from "node:assert/strict"
 import {
   formatCommitMessage,
   inferPushTarget,
-  parseLatestReferenceNumber,
+  parseCliOptions,
+  parseLatestReference,
   parseAheadBehind,
   parseGitStatusPorcelain,
 } from "../../apps/cli/src/github-helper.ts"
@@ -42,8 +43,8 @@ test("inferPushTarget sets upstream on first push", () => {
   ])
 })
 
-test("parseLatestReferenceNumber reads the latest changelog heading", () => {
-  const referenceNumber = parseLatestReferenceNumber(
+test("parseLatestReference reads the latest changelog heading and title", () => {
+  const reference = parseLatestReference(
     [
       "## v-0.0.1",
       "",
@@ -53,19 +54,36 @@ test("parseLatestReferenceNumber reads the latest changelog heading", () => {
     ].join("\n")
   )
 
-  assert.equal(referenceNumber, 11)
+  assert.deepEqual(reference, {
+    number: 11,
+    title: "Current batch",
+  })
 })
 
 test("formatCommitMessage prefixes the current reference number", () => {
   assert.equal(
     formatCommitMessage(11, "feat(cli): add github helper"),
-    "#11 feat(cli): add github helper"
+    "#11 - feat(cli): add github helper"
   )
 })
 
 test("formatCommitMessage normalizes an already-prefixed message body", () => {
   assert.equal(
-    formatCommitMessage(11, "#4 fix(cli): normalize helper"),
-    "#11 fix(cli): normalize helper"
+    formatCommitMessage(11, "#4 - fix(cli): normalize helper"),
+    "#11 - fix(cli): normalize helper"
   )
+})
+
+test("parseCliOptions enables auto mode and reads a message flag", () => {
+  assert.deepEqual(parseCliOptions(["--yes", "--message", "feat(cli): ship helper"]), {
+    yes: true,
+    messageBody: "feat(cli): ship helper",
+  })
+})
+
+test("parseCliOptions treats positional args as message body", () => {
+  assert.deepEqual(parseCliOptions(["--yes", "docs(cli):", "update", "usage"]), {
+    yes: true,
+    messageBody: "docs(cli): update usage",
+  })
 })

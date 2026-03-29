@@ -20,6 +20,11 @@ export type AheadBehind = {
   behind: number
 }
 
+export type ChangelogReference = {
+  number: number
+  title: string
+}
+
 type GitExecutionResult = {
   ok: boolean
   stdout: string
@@ -35,6 +40,11 @@ type GitRepositoryState = {
   status: GitStatusSummary
   aheadBehind: AheadBehind
   operation: string | null
+}
+
+export type GitHubHelperOptions = {
+  yes: boolean
+  messageBody: string | null
 }
 
 function trimTrailingNewline(value: string): string {
@@ -102,12 +112,16 @@ export function inferPushTarget(
   return ["push", "-u", remoteName, branch]
 }
 
-export function parseLatestReferenceNumber(changelogContent: string): number {
-  const matches = [...changelogContent.matchAll(/### \[#(\d+)\]/g)]
-  const latestReference = matches[0]?.[1]
+export function parseLatestReference(changelogContent: string): ChangelogReference {
+  const match = changelogContent.match(
+    /### \[#(\d+)\]\s+\d{4}-\d{2}-\d{2}\s+-\s+(.+)/
+  )
 
-  if (!latestReference) {
-    throw new Error("Could not determine the latest changelog reference number.")
+  const latestReference = match?.[1]
+  const latestTitle = match?.[2]?.trim()
+
+  if (!latestReference || !latestTitle) {
+    throw new Error("Could not determine the latest changelog reference entry.")
   }
 
   const parsedReference = Number.parseInt(latestReference, 10)
@@ -116,17 +130,65 @@ export function parseLatestReferenceNumber(changelogContent: string): number {
     throw new Error("The changelog reference number is invalid.")
   }
 
-  return parsedReference
+  return {
+    number: parsedReference,
+    title: latestTitle,
+  }
 }
 
 export function formatCommitMessage(referenceNumber: number, message: string): string {
-  const normalizedMessage = message.trim().replace(/^#\d+\s+/, "")
+  const normalizedMessage = message
+    .trim()
+    .replace(/^#\d+\s*-\s*/, "")
+    .replace(/^#\d+\s+/, "")
 
   if (!normalizedMessage) {
     throw new Error("Commit message body is required.")
   }
 
-  return `#${referenceNumber} ${normalizedMessage}`
+  return `#${referenceNumber} - ${normalizedMessage}`
+}
+
+export function parseCliOptions(argv: string[]): GitHubHelperOptions {
+  const options: GitHubHelperOptions = {
+    yes: false,
+    messageBody: null,
+  }
+
+  const messageParts: string[] = []
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index]
+
+    if (argument === undefined) {
+      continue
+    }
+
+    if (argument === "--yes" || argument === "-y") {
+      options.yes = true
+      continue
+    }
+
+    if (argument === "--message" || argument === "-m") {
+      const nextArgument = argv[index + 1]
+
+      if (!nextArgument) {
+        throw new Error("The --message option requires a value.")
+      }
+
+      options.messageBody = nextArgument.trim()
+      index += 1
+      continue
+    }
+
+    messageParts.push(argument)
+  }
+
+  if (!options.messageBody && messageParts.length > 0) {
+    options.messageBody = messageParts.join(" ").trim()
+  }
+
+  return options
 }
 
 function describeAheadBehind(aheadBehind: AheadBehind): string {
@@ -196,7 +258,7 @@ function getChangelogPath(rootDir: string): string {
   return join(rootDir, "ASSIST", "Documentation", "CHANGELOG.md")
 }
 
-function getCurrentReferenceNumber(rootDir: string): number {
+function getCurrentReference(rootDir: string): ChangelogReference {
   const changelogPath = getChangelogPath(rootDir)
 
   if (!existsSync(changelogPath)) {
@@ -205,7 +267,7 @@ function getCurrentReferenceNumber(rootDir: string): number {
 
   const changelogContent = readFileSync(changelogPath, "utf8")
 
-  return parseLatestReferenceNumber(changelogContent)
+  return parseLatestReference(changelogContent)
 }
 
 function detectGitOperation(gitDir: string): string | null {
@@ -302,8 +364,14 @@ function printRepositoryState(state: GitRepositoryState): void {
 async function promptYesNo(
   rl: ReturnType<typeof createInterface>,
   label: string,
-  defaultValue = true
+  defaultValue = true,
+  autoYes = false
 ): Promise<boolean> {
+  if (autoYes) {
+    output.write(`${label}${defaultValue ? " [Y/n] " : " [y/N] "}y\n`)
+    return true
+  }
+
   const suffix = defaultValue ? " [Y/n] " : " [y/N] "
   const answer = (await rl.question(`${label}${suffix}`)).trim().toLowerCase()
 
@@ -314,15 +382,27 @@ async function promptYesNo(
   return answer === "y" || answer === "yes"
 }
 
-async function promptRequired(
+async function promptWithDefault(
   rl: ReturnType<typeof createInterface>,
-  label: string
+  label: string,
+  defaultValue: string,
+  predefinedValue: string | null = null
 ): Promise<string> {
-  while (true) {
-    const answer = (await rl.question(`${label}: `)).trim()
+  if (predefinedValue && predefinedValue.trim()) {
+    output.write(`${label} [${defaultValue}]: ${predefinedValue.trim()}\n`)
+    return predefinedValue.trim()
+  }
 
-    if (answer) {
-      return answer
+  while (true) {
+    const answer = await rl.question(`${label} [${defaultValue}]: `)
+    const normalizedAnswer = answer.trim()
+
+    if (normalizedAnswer) {
+      return normalizedAnswer
+    }
+
+    if (defaultValue.trim()) {
+      return defaultValue.trim()
     }
 
     output.write("A value is required.\n")
@@ -331,7 +411,8 @@ async function promptRequired(
 
 async function createCommitIfNeeded(
   state: GitRepositoryState,
-  rl: ReturnType<typeof createInterface>
+  rl: ReturnType<typeof createInterface>,
+  options: GitHubHelperOptions
 ): Promise<void> {
   if (!state.status.hasChanges) {
     return
@@ -340,19 +421,22 @@ async function createCommitIfNeeded(
   const shouldCommit = await promptYesNo(
     rl,
     "The repository has uncommitted changes. Stage all changes and create a commit?",
-    true
+    true,
+    options.yes
   )
 
   if (!shouldCommit) {
     throw new Error("Commit and push cancelled because the repository is dirty.")
   }
 
-  const referenceNumber = getCurrentReferenceNumber(state.rootDir)
-  const messageBody = await promptRequired(
+  const reference = getCurrentReference(state.rootDir)
+  const messageBody = await promptWithDefault(
     rl,
-    `Commit message body for #${referenceNumber}`
+    `Commit message body for #${reference.number} -`,
+    reference.title,
+    options.messageBody
   )
-  const message = formatCommitMessage(referenceNumber, messageBody)
+  const message = formatCommitMessage(reference.number, messageBody)
 
   output.write(`Commit subject: ${message}\n`)
 
@@ -379,7 +463,8 @@ async function createCommitIfNeeded(
 
 async function rebaseIfNeeded(
   state: GitRepositoryState,
-  rl: ReturnType<typeof createInterface>
+  rl: ReturnType<typeof createInterface>,
+  options: GitHubHelperOptions
 ): Promise<void> {
   if (!state.upstream || state.aheadBehind.behind === 0) {
     return
@@ -388,7 +473,8 @@ async function rebaseIfNeeded(
   const shouldRebase = await promptYesNo(
     rl,
     `The branch is ${describeAheadBehind(state.aheadBehind)}. Pull and rebase before push?`,
-    true
+    true,
+    options.yes
   )
 
   if (!shouldRebase) {
@@ -415,13 +501,15 @@ async function rebaseIfNeeded(
 
 async function pushBranch(
   state: GitRepositoryState,
-  rl: ReturnType<typeof createInterface>
+  rl: ReturnType<typeof createInterface>,
+  options: GitHubHelperOptions
 ): Promise<void> {
   const pushArgs = inferPushTarget(state.branch, state.upstream, state.remoteName)
   const shouldPush = await promptYesNo(
     rl,
     `Push branch ${state.branch} now?`,
-    true
+    true,
+    options.yes
   )
 
   if (!shouldPush) {
@@ -437,7 +525,10 @@ async function pushBranch(
   output.write("Push completed successfully.\n")
 }
 
-export async function runGitHubHelper(cwd = process.cwd()): Promise<number> {
+export async function runGitHubHelper(
+  cwd = process.cwd(),
+  options: GitHubHelperOptions = { yes: false, messageBody: null }
+): Promise<number> {
   const rl = createInterface({ input, output })
 
   try {
@@ -454,11 +545,11 @@ export async function runGitHubHelper(cwd = process.cwd()): Promise<number> {
       )
     }
 
-    await createCommitIfNeeded(state, rl)
+    await createCommitIfNeeded(state, rl, options)
     state = await inspectRepository(state.rootDir)
-    await rebaseIfNeeded(state, rl)
+    await rebaseIfNeeded(state, rl, options)
     state = await inspectRepository(state.rootDir)
-    await pushBranch(state, rl)
+    await pushBranch(state, rl, options)
 
     output.write("\nGitHub helper finished successfully.\n")
     return 0
@@ -476,6 +567,6 @@ const isDirectExecution =
   import.meta.url === pathToFileURL(process.argv[1]).href
 
 if (isDirectExecution) {
-  const exitCode = await runGitHubHelper()
+  const exitCode = await runGitHubHelper(process.cwd(), parseCliOptions(process.argv.slice(2)))
   process.exit(exitCode)
 }

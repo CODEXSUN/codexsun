@@ -4,7 +4,7 @@
 
 - Current package version: `0.0.1`
 - Current release tag: `v-0.0.1`
-- Reference format: `#<number>`
+- Reference format: `#<number>`w
 
 ## v-0.0.1
 
