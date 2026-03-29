@@ -21,8 +21,8 @@ Use this split:
 
 Examples:
 
-1. `build/app/framework/web`
-2. `build/app/cli`
+1. `build/app/cxapp/web`
+2. `build/app/cxapp/server`
 3. `build/module/frappe/server`
 
 Rule:

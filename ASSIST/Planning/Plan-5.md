@@ -28,7 +28,7 @@ This batch must also close the first scaling gaps around API contract ownership,
 - `ASSIST/Documentation`
 - `apps/framework/src/runtime/http`
 - `apps/framework/src/runtime/database`
-- `apps/docs/framework`
+- `ASSIST/Documentation`
 
 ## Canonical Decisions
 
@@ -58,7 +58,7 @@ This batch must also close the first scaling gaps around API contract ownership,
 4. Add ordered schema section files for API clients, API secrets, token scopes, access tokens, token-scope assignment, idempotency keys, webhook subscriptions, webhook deliveries, and API request logs.
 5. Add matching ordered migration section files under the platform migration module so the new tables remain grouped but scalable.
 6. Extend the platform foundation layer plan to include the API boundary and integration foundation.
-7. Publish public framework docs for the HTTP boundary and integration database ownership under `apps/docs/framework`.
+7. Publish public framework docs for the HTTP boundary and integration database ownership under `ASSIST/Documentation`.
 8. Validate typecheck, build, migration listing, SQLite smoke migration execution, and repository workflow checks.
 
 ## Validation Plan
@@ -72,8 +72,7 @@ This batch must also close the first scaling gaps around API contract ownership,
 
 ## Validation Status
 
-- Passed: framework-specific typecheck, framework build, migration listing, SQLite smoke testing, and SQLite migrate/down validation now pass.
-- Blocked: root `npm run typecheck` still fails in the existing `apps/ui` package because that package contains unrelated unresolved Next-specific and strict-type issues outside this batch.
+- Passed: the current root `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` baseline now passes after the shared UI scope was tightened.
 
 ## Risks And Follow-Up
 

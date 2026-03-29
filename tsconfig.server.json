@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./apps/ui/src/*"],
+      "@ui/*": ["./apps/ui/src/*"],
+      "@framework/*": ["./apps/framework/src/*"],
+      "@cxapp/*": ["./apps/cxapp/*"],
+      "@site/*": ["./apps/site/*"],
+      "@core/*": ["./apps/core/*"],
+      "@api/*": ["./apps/api/*"],
+      "@billing/*": ["./apps/billing/*"],
+      "@ecommerce/*": ["./apps/ecommerce/*"],
+      "@task/*": ["./apps/task/*"],
+      "@frappe/*": ["./apps/frappe/*"],
+      "@tally/*": ["./apps/tally/*"],
+      "@cli/*": ["./apps/cli/*"]
+    },
+    "outDir": "./build/app/cxapp/server",
+    "rootDir": "./apps",
+    "sourceMap": true
+  },
+  "include": [
+    "apps/framework/src/**/*.ts",
+    "apps/*/src/**/*.ts",
+    "apps/*/helper/**/*.ts",
+    "apps/*/shared/**/*.ts"
+  ]
+}

@@ -17,20 +17,24 @@ Use this file when adding:
 Implemented roots today:
 
 1. `apps/framework`
-2. `apps/ui`
-3. `apps/cli`
-4. `apps/docs`
+2. `apps/cxapp`
+3. `apps/core`
+4. `apps/api`
+5. `apps/site`
+6. `apps/ui`
+7. `apps/billing`
+8. `apps/ecommerce`
+9. `apps/task`
+10. `apps/frappe`
+11. `apps/tally`
+12. `apps/cli`
 
 Planned roots next:
 
-1. `apps/core`
-2. `apps/billing`
-3. `apps/ecommerce`
-4. `apps/task`
-5. `apps/frappe`
-6. `apps/site`
-7. `apps/orekso`
-8. `apps/mcp`
+1. client-specific modules
+2. real desktop runtime packages
+3. future CRM boundaries
+4. future docs application packaging if needed
 
 ## Responsibility Split
 
@@ -76,16 +80,9 @@ It owns:
 3. future environment checks
 4. future database and deployment control commands if they must be repository-wide
 
-### Docs
+### Documentation
 
-`apps/docs` owns public module and package documentation.
-
-It must document:
-
-1. module ownership
-2. build and usage instructions
-3. migration workflow rules
-4. package redistribution notes
+`ASSIST/Documentation` is the active written documentation surface until a dedicated docs app is introduced.
 
 ### Future Business Apps
 
@@ -155,21 +152,6 @@ Rule:
 1. CLI tasks must stay operational and explicit
 2. repository workflow logic belongs here instead of hidden scripts
 
-### Docs Assembly
-
-Current shape:
-
-```text
-apps/docs/
-  framework/
-  ui/
-```
-
-Rule:
-
-1. every new shared package or framework module needs public docs here
-2. do not hide public usage rules only inside `ASSIST`
-
 ## Database And Migration Assembly
 
 Framework owns the platform-foundation database layer.
@@ -200,12 +182,11 @@ Rules:
 
 Current main commands:
 
-1. `npm run dev:framework`
+1. `npm run dev`
 2. `npm run build`
-3. `npm run db:migration:list`
-4. `npm run db:migrate`
-5. `npm run db:test:migrations`
-6. `npm run githelper -- check`
+3. `npm run lint`
+4. `npm run test`
+5. `npm run typecheck`
 
 ## Extension Order
 
@@ -224,8 +205,9 @@ Use these commands after architecture or database changes:
 
 ```bash
 npm run typecheck
+npm run lint
+npm run test
 npm run build
-npm run db:test:migrations
 ```
 
-If they pass, the current workspace and database baseline are structurally valid.
+If they pass, the current workspace baseline is structurally valid.

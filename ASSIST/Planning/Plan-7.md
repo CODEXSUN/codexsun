@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Rewrite the desk and workspace plan for the real repository shape, with `apps/framework` consuming a single shared design system from `apps/ui`.
+Rewrite the desk and workspace plan for the real repository shape, with `apps/cxapp` consuming a single shared design system from `apps/ui` on top of the framework runtime.
 
 ## Goal
 
@@ -10,13 +10,12 @@ Implement a framework-driven desk shell that is cleanly modular, backed by share
 
 ## Scope
 
-- `apps/framework/src/app`
+- `apps/cxapp/web`
 - `apps/ui/src/components/ui`
 - `apps/ui/src/components/ux`
 - `apps/ui/src/theme`
 - `apps/ui/src/types`
-- `apps/docs/framework`
-- `apps/docs/ui`
+- `ASSIST/Documentation`
 - `ASSIST/Documentation`
 - `ASSIST/Execution`
 
@@ -32,7 +31,7 @@ Implement a framework-driven desk shell that is cleanly modular, backed by share
 ## Assumptions
 
 - The existing sidebar primitives in `apps/ui/src/components/ui/sidebar.tsx` remain the base desk primitive layer.
-- The framework browser entry remains the active host for the first desk implementation batch.
+- The CxApp browser entry remains the active host for the first desk implementation batch.
 - SaaS-first hosted delivery remains the fastest way to stabilize routing, permissions, theming, and data boundaries.
 - Additional apps such as billing, ecommerce, and task will eventually consume the same shared desk and design-system pieces.
 
@@ -41,13 +40,13 @@ Implement a framework-driven desk shell that is cleanly modular, backed by share
 1. Move shared desk shell and dashboard presentation patterns into `apps/ui/src/components/ux`.
 2. Tighten `apps/ui` so the public design-system build and typecheck scope only includes stable shared package files.
 3. Remove duplicate or accidental shared-package files from the public scope and record the design-system boundary in docs.
-4. Refactor `apps/framework` to consume shared desk components from `@codexsun/ui` instead of owning desk presentation locally.
+4. Refactor `apps/cxapp` to consume shared desk components from `apps/ui` instead of owning shared desk presentation locally.
 5. Split framework route files by module under `apps/framework/src/app/modules/<module>`.
 6. Add route metadata so the shared desk shell can resolve page title, summary, and future permission or navigation state.
 7. Build the first framework workspace pages for Overview, System, Data, Integrations, and Deployment.
 8. Add a frontend-only login page, protected dashboard route flow, and local-session placeholder until the backend auth host lands.
 9. Keep the initial framework workspace explicitly MVP-scoped and SaaS-first.
-10. Document design-system scope, desk ownership, route grouping rules, and the current frontend flow in both `ASSIST` and `apps/docs`.
+10. Document design-system scope, desk ownership, route grouping rules, and the current frontend flow in `ASSIST`.
 11. Validate package typecheck, framework typecheck, shared UI build, framework build, and root workspace checks.
 
 ## Validation Plan

@@ -17,17 +17,17 @@
 
 ## App Rules
 
-1. `apps/core` owns shared business masters and reusable business-common flows.
-2. `apps/ecommerce` owns ecommerce workflows.
-3. `apps/billing` owns accounting, inventory, billing, and reporting workflows.
-4. `apps/site` owns static presentation only.
-5. `apps/ui` owns reusable UI primitives.
-6. `apps/docs` owns unified written documentation.
-7. `apps/cli` owns operational control commands.
-8. `apps/orekso` owns the local-first ai assistance.
+1. `apps/cxapp` owns the active suite-facing product shell.
+2. `apps/core` owns shared business masters and reusable business-common flows.
+3. `apps/api` owns internal and external route definitions.
+4. `apps/ecommerce` owns ecommerce workflows.
+5. `apps/billing` owns accounting, inventory, billing, and reporting workflows.
+6. `apps/site` owns static presentation only.
+7. `apps/ui` owns reusable UI primitives and shared UX building blocks.
+8. `apps/cli` owns operational control commands.
 9. `apps/task` owns enterprise task workflows.
-10. `apps/frappe` owns frappe integration boundaries.
-11. `apps/mcp` owns the model context protocol layer.
+10. `apps/frappe` owns Frappe integration boundaries.
+11. `apps/tally` owns Tally integration boundaries.
 
 ## Backend Rules
 

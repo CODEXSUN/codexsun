@@ -21,8 +21,34 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./apps/ui/src/*"],
-      "@frontend/*": ["./apps/frontend/*"]
+      "@ui/*": ["./apps/ui/src/*"],
+      "@framework/*": ["./apps/framework/src/*"],
+      "@cxapp/*": ["./apps/cxapp/*"],
+      "@site/*": ["./apps/site/*"],
+      "@core/*": ["./apps/core/*"],
+      "@api/*": ["./apps/api/*"],
+      "@billing/*": ["./apps/billing/*"],
+      "@ecommerce/*": ["./apps/ecommerce/*"],
+      "@task/*": ["./apps/task/*"],
+      "@frappe/*": ["./apps/frappe/*"],
+      "@tally/*": ["./apps/tally/*"],
+      "@cli/*": ["./apps/cli/*"]
     }
   },
-  "include": ["apps/frontend", "apps/ui/src", "vite.config.ts"]
+  "include": [
+    "apps/framework/src/application/**/*.ts",
+    "apps/framework/src/di/browser-container.ts",
+    "apps/framework/src/di/service-container.ts",
+    "apps/framework/src/di/tokens.ts",
+    "apps/*/web/**/*.ts",
+    "apps/*/web/**/*.tsx",
+    "apps/*/src/app-manifest.ts",
+    "apps/*/helper/**/*.ts",
+    "apps/*/shared/**/*.ts",
+    "apps/ui/src/app-manifest.ts",
+    "apps/ui/src/assets/**/*",
+    "apps/ui/src/components/**/*",
+    "apps/ui/src/lib/**/*",
+    "vite.config.ts"
+  ]
 }
