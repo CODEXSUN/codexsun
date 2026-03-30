@@ -4,45 +4,48 @@
 
 ### Reference
 
-`#12`
+`#13`
 
 ### Goal
 
-Import the copied UI component set into the shared UI docs system, keep the implementation inside `apps/ui`, and extend the docs catalog, side menu, and templates overview without changing broader app boundaries.
+Take the imported `core` and `ecommerce` source slices, adapt them to current app ownership, and expose a real backend-fed go-live baseline through the live `cxapp` desk without absorbing the foreign temp runtime.
 
 ### Scope
 
 - `ASSIST/Execution`
 - `ASSIST/Documentation/CHANGELOG.md`
-- `eslint.config.js`
-- `package.json`
-- `apps/ui/src`
-- `apps/ui/web`
+- `apps/core/shared`
+- `apps/core/src`
+- `apps/core/web`
+- `apps/ecommerce/shared`
+- `apps/ecommerce/src`
+- `apps/ecommerce/web`
+- `apps/api/src`
+- `apps/framework/src/runtime/http`
+- `apps/cxapp/web/src`
+- `vite.config.ts`
 
 ### Canonical Decisions
 
-- imported UI docs content must stay inside `apps/ui` and remain presentation-only
-- the existing docs shell, catalog model, and component ownership stay intact; imported content adapts to the system instead of replacing it
-- shared compatibility shims are allowed when they support docs-only imported content without leaking app-specific behavior into `apps/ui`
-- docs entries should stay tied to real component demos and raw code templates so the catalog can be extracted later without content rewrites
-- project-level component naming and default variant selection should live in source-controlled governance data so both docs and future agent work read the same defaults
-- the canonical source for known component defaults should be a dedicated file rather than browser-only preview state
-- imported UI variants should live under a reusable component-registry feature, with docs acting only as a consumer
-- reusable multi-component compositions should live under `component-registry/blocks` so auth and form pages can scale without docs-only duplication
+- imported temp code must be split by current ownership, not copied by old folder names
+- `apps/core` should take shared masters, shared setup metadata, reusable shared contracts, and its own app-native services
+- `apps/ecommerce` should take catalog, storefront, order, customer, and pricing contracts under its own boundary even if temp grouped some source elsewhere
+- imported temp API code cannot be copied because it targets a different runtime; app-native services must be rewritten against the current framework and api boundary
+- the current HTTP route model must be extended once, centrally, so app routes can read request context without adding one-off hacks
+- the live `cxapp` desk remains the active operator-facing shell, so imported app sections should be surfaced there first
+- the shared design system stays in `apps/ui`; app-specific workspace structure belongs inside the app boundaries and desk wiring
+- until app-owned migrations land, backend data should stay seed-backed and clearly represented as such rather than pretending to be database-complete
 
 ### Execution Plan
 
-1. read the imported `temp` component files and the existing `apps/ui` docs implementation
-2. copy the imported docs demo sources into a docs-owned registry under `apps/ui`
-3. add the missing shared UI primitives and compatibility shims required by the imported demos
-4. generate the expanded docs catalog from the imported component metadata
-5. add templates presentation, overview surfacing, and side-menu links in the docs shell
-6. update ASSIST task, planning, and changelog entries for this batch
-7. validate typecheck, lint, test, and build
-8. add a governed UI workspace channel for component defaults, reusable blocks, and build-readiness coverage
-9. extract canonical component defaults into a dedicated source-controlled file and point AI rules at it
-10. move docs-owned registry/catalog assets into a reusable component-registry structure and leave docs as a thin presentation layer
-11. rename the imported `customized` registry naming to `variants`, add a reusable `blocks` registry, and seed it with login page variants
+1. audit `temp/core` and `temp/ecommerce` against the current repository boundaries
+2. copy the first shared-contract slice from `temp/core/shared` into `apps/core/shared`
+3. add app-native `core` services and internal routes for bootstrap, companies, contacts, and common modules
+4. move the ecommerce shared-contract slice into `apps/ecommerce/shared`
+5. add app-native `ecommerce` services and routes for catalog, storefront, orders, customers, and pricing settings
+6. adapt the shared desk to render app-owned `core` and `ecommerce` workspace sections with backend-fed data
+7. update ASSIST task, planning, and changelog entries for this batch
+8. validate typecheck, lint, test, and build
 
 ### Validation Plan
 
@@ -54,16 +57,13 @@ Import the copied UI component set into the shared UI docs system, keep the impl
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npm run lint`
+- [x] `npm run lint` (same existing imported table warnings only)
 - [x] `npm run build`
-- [ ] `npm run test` (`tests/framework/runtime/config.test.ts` fails against local `.env` host values)
+- [ ] `npm run test` (`tests/framework/runtime/config.test.ts` still fails against local `.env` host values)
 
 ### Risks And Follow-Up
 
-- the imported docs registry currently leans on compatibility shims and lint overrides because the temp package targets a slightly different primitive contract
-- the resulting docs page now carries a very large component catalog, so future follow-up may need route splitting or lazy loading
-- project defaults are currently source-controlled rather than browser-persisted, which keeps agent/code alignment correct but leaves in-browser editing for a later step
-- docs preview overrides may exist for UI exploration, but agent/build decisions must come from the source-controlled defaults file
-- the component registry still uses a large generated catalog file, so future follow-up should reduce duplication between variant metadata and preview/code wiring
-- the new blocks registry is reusable across projects, but it should keep growing by approved block variants instead of app-local copied page fragments
+- the current `core` and `ecommerce` backend slices are seed-backed rather than database-backed, so create and update flows remain out of scope for this batch
+- `temp/ecommerce/web` is much larger than the current app boundary can absorb safely in one move, so the broader marketing, portal, and designer surfaces still need staged adoption
+- imported temp API code still targets a different runtime layout and must not be copied into framework or api blindly
 - the existing framework config test is environment-sensitive and still needs isolation from local `.env` state

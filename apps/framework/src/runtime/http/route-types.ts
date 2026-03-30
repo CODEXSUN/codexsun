@@ -1,4 +1,5 @@
 import type { AppSuite } from "../../application/app-manifest.js"
+import type { RuntimeDatabases } from "../database/index.js"
 
 export type HttpRouteSurface = "internal" | "external" | "public"
 export type HttpRouteVersion = "v1"
@@ -10,6 +11,19 @@ export type HttpRouteResponse = {
   body: string
 }
 
+export type HttpRouteRequestContext = {
+  method: HttpRouteDefinition["method"]
+  pathname: string
+  url: URL
+}
+
+export type HttpRouteHandlerContext = {
+  appSuite: AppSuite
+  databases: RuntimeDatabases
+  request: HttpRouteRequestContext
+  route: Pick<HttpRouteDefinition, "auth" | "path" | "surface" | "version">
+}
+
 export type HttpRouteDefinition = {
   auth: HttpRouteAuth
   legacyPaths?: string[]
@@ -18,5 +32,7 @@ export type HttpRouteDefinition = {
   summary: string
   surface: HttpRouteSurface
   version: HttpRouteVersion
-  handler: (context: { appSuite: AppSuite; route: Pick<HttpRouteDefinition, "auth" | "path" | "surface" | "version"> }) => Promise<HttpRouteResponse> | HttpRouteResponse
+  handler: (
+    context: HttpRouteHandlerContext
+  ) => Promise<HttpRouteResponse> | HttpRouteResponse
 }

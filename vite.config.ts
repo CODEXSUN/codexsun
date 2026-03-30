@@ -20,7 +20,9 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       allowedHosts,
       proxy: {
+        "/internal": `http://localhost:${backendPort}`,
         "/api": `http://localhost:${backendPort}`,
+        "/public": `http://localhost:${backendPort}`,
         "/health": `http://localhost:${backendPort}`,
       },
     },

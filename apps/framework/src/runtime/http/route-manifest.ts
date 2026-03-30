@@ -1,13 +1,25 @@
 import type { AppSuite } from "../../application/app-manifest.js"
 
-import type { HttpRouteDefinition, HttpRouteResponse } from "./route-types.js"
+import type {
+  HttpRouteDefinition,
+  HttpRouteHandlerContext,
+  HttpRouteRequestContext,
+  HttpRouteResponse,
+} from "./route-types.js"
+import type { RuntimeDatabases } from "../database/index.js"
 
 export function createRequestContext(
   route: Pick<HttpRouteDefinition, "auth" | "path" | "surface" | "version">,
-  appSuite: AppSuite
-) {
+  appSuite: AppSuite,
+  runtime: {
+    databases: RuntimeDatabases
+    request: HttpRouteRequestContext
+  }
+): HttpRouteHandlerContext {
   return {
     appSuite,
+    databases: runtime.databases,
+    request: runtime.request,
     route,
   }
 }

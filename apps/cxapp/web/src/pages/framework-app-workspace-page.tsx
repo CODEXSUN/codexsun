@@ -12,6 +12,8 @@ import {
   DesignSystemDefaultsPage,
   DesignSystemReadinessPage,
 } from "@/features/design-system/pages/design-system-workbench-page"
+import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
+import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
 import { useDesk } from "../desk/desk-provider"
@@ -98,6 +100,13 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
     ? docsEntry.description
     : uiSection?.description ??
       "Browse reusable shadcn-based components by category, preview variants, and copy install-ready code."
+  const coreWorkspaceContent =
+    app.id === "core" ? <CoreWorkspaceSection sectionId={sectionId} /> : null
+  const ecommerceWorkspaceContent =
+    app.id === "ecommerce" ? (
+      <EcommerceWorkspaceSection sectionId={sectionId} />
+    ) : null
+  const customWorkspaceContent = coreWorkspaceContent ?? ecommerceWorkspaceContent
 
   return (
     <div className="space-y-3">
@@ -155,102 +164,108 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
               </div>
             </CardHeader>
           </Card>
-          <Card>
-            <CardContent className="grid gap-3 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
-              {app.modules.map((item) => {
-                const ItemIcon = item.icon
+          {customWorkspaceContent ? (
+            customWorkspaceContent
+          ) : (
+            <>
+              <Card>
+                <CardContent className="grid gap-3 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
+                  {app.modules.map((item) => {
+                    const ItemIcon = item.icon
 
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.route}
-                    className="rounded-[1rem] border border-border/70 bg-card/70 p-4 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-foreground">{item.name}</p>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p>
-                      </div>
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
-                        <ItemIcon className="size-5 text-accent" />
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </CardContent>
-          </Card>
+                    return (
+                      <Link
+                        key={item.id}
+                        to={item.route}
+                        className="rounded-[1rem] border border-border/70 bg-card/70 p-4 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-foreground">{item.name}</p>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+                          </div>
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                            <ItemIcon className="size-5 text-accent" />
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardContent className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
-              <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Active section
-                </p>
-                <p className="text-lg font-semibold text-foreground">
-                  {activeModule?.name ?? "Overview"}
-                </p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {activeModule?.summary ?? app.workspaceSummary}
-                </p>
-              </div>
-              <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Frontend root
-                </p>
-                <p className="font-mono text-xs text-foreground">
-                  {app.workspacePaths.frontendRoot}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Shell, routes, and view composition for this app.
-                </p>
-              </div>
-              <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Backend root
-                </p>
-                <p className="font-mono text-xs text-foreground">
-                  {app.workspacePaths.backendRoot}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Manifests, runtime hooks, and backend composition for this app.
-                </p>
-              </div>
-              <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Shared root
-                </p>
-                <p className="font-mono text-xs text-foreground">
-                  {app.workspacePaths.sharedRoot}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  App-local contracts and shared helper surfaces.
-                </p>
-              </div>
-              <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Migration root
-                </p>
-                <p className="font-mono text-xs text-foreground">
-                  {app.workspacePaths.migrationRoot}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ordered schema work will deepen here as the app evolves.
-                </p>
-              </div>
-              <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Seeder root
-                </p>
-                <p className="font-mono text-xs text-foreground">
-                  {app.workspacePaths.seederRoot}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Test and bootstrap data can stay local to the app boundary.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardContent className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
+                  <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Active section
+                    </p>
+                    <p className="text-lg font-semibold text-foreground">
+                      {activeModule?.name ?? "Overview"}
+                    </p>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      {activeModule?.summary ?? app.workspaceSummary}
+                    </p>
+                  </div>
+                  <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Frontend root
+                    </p>
+                    <p className="font-mono text-xs text-foreground">
+                      {app.workspacePaths.frontendRoot}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Shell, routes, and view composition for this app.
+                    </p>
+                  </div>
+                  <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Backend root
+                    </p>
+                    <p className="font-mono text-xs text-foreground">
+                      {app.workspacePaths.backendRoot}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Manifests, runtime hooks, and backend composition for this app.
+                    </p>
+                  </div>
+                  <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Shared root
+                    </p>
+                    <p className="font-mono text-xs text-foreground">
+                      {app.workspacePaths.sharedRoot}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      App-local contracts and shared helper surfaces.
+                    </p>
+                  </div>
+                  <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Migration root
+                    </p>
+                    <p className="font-mono text-xs text-foreground">
+                      {app.workspacePaths.migrationRoot}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Ordered schema work will deepen here as the app evolves.
+                    </p>
+                  </div>
+                  <div className="space-y-2 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Seeder root
+                    </p>
+                    <p className="font-mono text-xs text-foreground">
+                      {app.workspacePaths.seederRoot}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Test and bootstrap data can stay local to the app boundary.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>

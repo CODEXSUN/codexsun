@@ -4,24 +4,23 @@
 
 ### Reference
 
-`#12`
+`#13`
 
 ### Title
 
-`UI docs catalog expansion and imported component registry`
+`Core backend wiring and ecommerce go-live seed baseline`
 
 ### Scope Checklist
 
-- [x] Read the imported UI files under `temp` and map them into `apps/ui`
-- [x] Add missing shared UI primitives needed by the imported docs demos
-- [x] Port the imported component demos into the UI docs surface without changing app ownership boundaries
-- [x] Expand the docs component catalog, overview cards, and side menu with the imported components
-- [x] Add a docs templates section and surface imported template metadata in the UI app
-- [x] Add compatibility shims and lint scope updates needed for the imported docs registry
-- [x] Add source-controlled design-system defaults, reusable blocks, and build-readiness channels to the UI workspace
-- [x] Move project component defaults into a dedicated source-controlled file for agent and build reference
-- [x] Move the imported variant source from docs-owned registry paths into a reusable component-registry feature
-- [x] Split the reusable component-registry into `variants` and `blocks`, and add auth login page block variants
+- [x] Audit `temp/core` and `temp/ecommerce` against the current `apps/core` and `apps/ecommerce` boundaries
+- [x] Move the first shared-contract slice from `temp/core` into `apps/core/shared`
+- [x] Add native route context support so API handlers can read request data and runtime resources
+- [x] Adapt imported core workspace sections to the current `/dashboard/apps/core/*` routing structure
+- [x] Wire core app-owned sections into the `cxapp` desk with backend-fed section views
+- [x] Move the ecommerce shared-contract slice into `apps/ecommerce/shared`
+- [x] Wire ecommerce backend services and routes through the current framework and api boundaries
+- [x] Adapt ecommerce workspace sections to the current `/dashboard/apps/ecommerce/*` routing structure
+- [x] Surface live catalog, storefront, order, customer, and pricing sections inside the shared desk
 - [x] Update ASSIST task, planning, and changelog entries for this batch
 
 ### Validation Note
@@ -35,16 +34,15 @@
 
 ### Reference
 
-`#13`
+`#14`
 
 ### Title
 
-`Domain modules, app-owned migrations, and production auth groundwork`
+`Database-backed core and ecommerce migration follow-up`
 
 ### Scope Checklist
 
-- [ ] start real domain modules in `core`, `billing`, `ecommerce`, and `task`
-- [ ] replace placeholder app shells with app-owned providers and domain routes
-- [ ] begin app-owned migrations and seeders beyond tracked placeholders
-- [ ] deepen connector execution flow for `frappe` and `tally`
-- [ ] replace mock auth flow with framework-owned auth services and permission boundaries
+- [ ] replace seed-backed core repositories with app-owned database-backed repositories and migrations
+- [ ] replace seed-backed ecommerce repositories with app-owned database-backed repositories and migrations
+- [ ] add write flows for create and update operations where the current desk is read-only
+- [ ] isolate framework config tests from local `.env` overrides so validation is stable across machines

@@ -1,5 +1,6 @@
 import type { AppSuite } from "../../application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../application/workspace-baseline.js"
+import { getStorefrontCatalog } from "../../../../ecommerce/src/services/product-service.js"
 
 import { definePublicRoute } from "./route-manifest.js"
 import type { HttpRouteDefinition } from "./route-types.js"
@@ -24,6 +25,15 @@ export function createPublicHttpRoutes(appSuite: AppSuite): HttpRouteDefinition[
             apps: "/api/v1/apps",
           },
         }),
+      }),
+    }),
+    definePublicRoute("/storefront/catalog", {
+      legacyPaths: ["/public/storefront/catalog"],
+      summary: "Public storefront catalog projection for commerce-facing surfaces.",
+      handler: () => ({
+        statusCode: 200,
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify(getStorefrontCatalog()),
       }),
     }),
   ]

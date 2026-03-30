@@ -15,10 +15,13 @@ import {
   Settings2,
   Server,
   TerminalSquare,
+  Users,
   Workflow,
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
+import { coreWorkspaceItems } from "@core/shared"
+import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { docsCategories, docsEntries } from "@/features/component-registry/data/catalog"
 import type {
   DashboardAppDefinition,
@@ -133,58 +136,11 @@ function getAppBadge(app: AppManifest) {
   return "Business app"
 }
 
-function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
-  const root = `/dashboard/apps/${app.id}`
-
-  if (app.id === "ui") {
-    return [
-      {
-        id: `${app.id}-overview`,
-        name: "Overview",
-        route: root,
-        summary: "Browse the design system by category.",
-        icon: LayoutDashboard,
-      },
-      {
-        id: `${app.id}-design-settings`,
-        name: "Design Settings",
-        route: `${root}/design-settings`,
-        summary: "Set project default component names, aliases, and default variants.",
-        icon: Settings2,
-      },
-      {
-        id: `${app.id}-blocks`,
-        name: "Blocks",
-        route: `${root}/blocks`,
-        summary: "Use combined multi-component blocks for common application flows.",
-        icon: ClipboardList,
-        matchRoutes: [`${root}/form-blocks`],
-      },
-      {
-        id: `${app.id}-build-readiness`,
-        name: "Build Readiness",
-        route: `${root}/build-readiness`,
-        summary: "Confirm the core component channels needed to build applications are present.",
-        icon: PackageCheck,
-      },
-      ...docsEntries.map((entry) => ({
-        id: `${app.id}-${entry.id}`,
-        name: entry.name,
-        route: `${root}/${entry.id}`,
-        summary: entry.description,
-        icon: entry.icon,
-      })),
-    ]
-  }
-
+function createTechnicalWorkspaceModules(
+  app: AppManifest,
+  root: string
+): DashboardWorkspaceLink[] {
   const modules: DashboardWorkspaceLink[] = [
-    {
-      id: `${app.id}-overview`,
-      name: "Overview",
-      route: root,
-      summary: app.description,
-      icon: LayoutDashboard,
-    },
     {
       id: `${app.id}-backend`,
       name: "Backend",
@@ -235,6 +191,106 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
   return modules
 }
 
+function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
+  const root = `/dashboard/apps/${app.id}`
+
+  if (app.id === "ui") {
+    return [
+      {
+        id: `${app.id}-overview`,
+        name: "Overview",
+        route: root,
+        summary: "Browse the design system by category.",
+        icon: LayoutDashboard,
+      },
+      {
+        id: `${app.id}-design-settings`,
+        name: "Design Settings",
+        route: `${root}/design-settings`,
+        summary: "Set project default component names, aliases, and default variants.",
+        icon: Settings2,
+      },
+      {
+        id: `${app.id}-blocks`,
+        name: "Blocks",
+        route: `${root}/blocks`,
+        summary: "Use combined multi-component blocks for common application flows.",
+        icon: ClipboardList,
+        matchRoutes: [`${root}/form-blocks`],
+      },
+      {
+        id: `${app.id}-build-readiness`,
+        name: "Build Readiness",
+        route: `${root}/build-readiness`,
+        summary: "Confirm the core component channels needed to build applications are present.",
+        icon: PackageCheck,
+      },
+      ...docsEntries.map((entry) => ({
+        id: `${app.id}-${entry.id}`,
+        name: entry.name,
+        route: `${root}/${entry.id}`,
+        summary: entry.description,
+        icon: entry.icon,
+      })),
+    ]
+  }
+
+  if (app.id === "core") {
+    const coreWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      companies: Building2,
+      contacts: Users,
+      "common-modules": Blocks,
+      setup: Cog,
+      "core-settings": Settings2,
+    }
+
+    return [
+      ...coreWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: coreWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
+  if (app.id === "ecommerce") {
+    const ecommerceWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      catalog: PackageCheck,
+      storefront: MonitorSmartphone,
+      orders: ReceiptText,
+      customers: Users,
+      settings: Settings2,
+    }
+
+    return [
+      ...ecommerceWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: ecommerceWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
+  return [
+    {
+      id: `${app.id}-overview`,
+      name: "Overview",
+      route: root,
+      summary: app.description,
+      icon: LayoutDashboard,
+    },
+    ...createTechnicalWorkspaceModules(app, root),
+  ]
+}
+
 function createUiMenuGroups(
   app: AppManifest,
   modules: DashboardWorkspaceLink[]
@@ -275,6 +331,69 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
   const menuGroups =
     app.id === "ui"
       ? createUiMenuGroups(app, modules)
+      : app.id === "core"
+        ? [
+            {
+              id: `${app.id}-foundation`,
+              label: "Core",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                  `/dashboard/apps/${app.id}/companies`,
+                  `/dashboard/apps/${app.id}/contacts`,
+                  `/dashboard/apps/${app.id}/common-modules`,
+                  `/dashboard/apps/${app.id}/setup`,
+                  `/dashboard/apps/${app.id}/core-settings`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
+      : app.id === "ecommerce"
+        ? [
+            {
+              id: `${app.id}-commerce`,
+              label: "Commerce",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                  `/dashboard/apps/${app.id}/catalog`,
+                  `/dashboard/apps/${app.id}/storefront`,
+                  `/dashboard/apps/${app.id}/orders`,
+                  `/dashboard/apps/${app.id}/customers`,
+                  `/dashboard/apps/${app.id}/settings`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
       : [
           {
             id: `${app.id}-workspace`,

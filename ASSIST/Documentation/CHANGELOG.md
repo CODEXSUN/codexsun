@@ -8,6 +8,17 @@
 
 ## v-0.0.1
 
+### [#13] 2026-03-30 - Core backend wiring and ecommerce go-live seed baseline
+
+- audited the imported `temp/core` and `temp/ecommerce` trees against the current app ownership boundaries before copying anything
+- moved the first shared-contract slice from `temp/core` into `apps/core/shared` as app-owned workspace metadata, shared module definitions, and shared Zod schemas
+- extended the current HTTP route context once so app-native route handlers can read request data and runtime resources without importing the foreign temp runtime
+- added app-native `core` backend services and internal routes for bootstrap, companies, contacts, and common module registries
+- moved the ecommerce shared contracts into `apps/ecommerce/shared` and added app-native services for catalog, storefront, orders, customers, and pricing settings
+- adapted both `core` and `ecommerce` workspace sections to the current `/dashboard/apps/<app>/*` route structure and rendered them inside the shared `cxapp` desk
+- exposed a public storefront catalog route and updated local dev proxying so the live workspace can preview public commerce data through the current server
+- kept the current go-live baseline honest by using explicit seed-backed backend data until app-owned database migrations and write flows land
+
 ### [#12] 2026-03-30 - UI docs catalog expansion and imported component registry
 
 - imported the copied UI component demo set from `temp` into `apps/ui` as a docs-owned registry

@@ -77,7 +77,7 @@ function renderWelcomePage(appName: string) {
 
 async function resolveResponse(
   urlPath: string,
-  method: string,
+  method: "GET" | "HEAD",
   context: {
     appDomain: string
     appHost: string
@@ -91,6 +91,7 @@ async function resolveResponse(
     frontendHttpPort: number
     frontendHttpsPort: number
     httpRoutes: HttpRouteDefinition[]
+    requestUrl: URL
     tlsEnabled: boolean
     webRoot: string
   }
@@ -108,16 +109,23 @@ async function resolveResponse(
     frontendHttpPort,
     frontendHttpsPort,
     httpRoutes,
+    requestUrl,
     tlsEnabled,
     webRoot,
   } = context
   const matchedRoute = matchHttpRoute(httpRoutes, method, urlPath)
 
   if (matchedRoute) {
-    return matchedRoute.handler({
-      appSuite,
-      route: createRequestContext(matchedRoute, appSuite).route,
-    })
+    return matchedRoute.handler(
+      createRequestContext(matchedRoute, appSuite, {
+        databases,
+        request: {
+          method,
+          pathname: urlPath,
+          url: requestUrl,
+        },
+      })
+    )
   }
 
   if (urlPath === "/health" || urlPath === "/public/v1/health") {
@@ -226,7 +234,10 @@ export function startFrameworkServer(cwd = process.cwd()) {
     )
 
     try {
-      const resolved = await resolveResponse(requestUrl.pathname, request.method, {
+      const resolved = await resolveResponse(
+        requestUrl.pathname,
+        request.method as "GET" | "HEAD",
+        {
         appDomain,
         appHost,
         appHttpPort,
@@ -239,9 +250,11 @@ export function startFrameworkServer(cwd = process.cwd()) {
         frontendHttpPort,
         frontendHttpsPort,
         httpRoutes,
+        requestUrl,
         tlsEnabled,
         webRoot,
-      })
+      }
+      )
 
       response.writeHead(resolved.statusCode, resolved.headers)
 
