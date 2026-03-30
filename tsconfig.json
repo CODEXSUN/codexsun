@@ -32,7 +32,9 @@
       "@task/*": ["./apps/task/*"],
       "@frappe/*": ["./apps/frappe/*"],
       "@tally/*": ["./apps/tally/*"],
-      "@cli/*": ["./apps/cli/*"]
+      "@cli/*": ["./apps/cli/*"],
+      "next/image": ["./apps/ui/src/compat/next-image.tsx"],
+      "next/link": ["./apps/ui/src/compat/next-link.tsx"]
     }
   },
   "include": [
@@ -50,5 +52,8 @@
     "apps/ui/src/components/**/*",
     "apps/ui/src/lib/**/*",
     "vite.config.ts"
+  ],
+  "exclude": [
+    "apps/ui/src/registry/**/*"
   ]
 }

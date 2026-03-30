@@ -4,38 +4,39 @@
 
 ### Reference
 
-`#11`
+`#12`
 
 ### Goal
 
-Add a dedicated interactive GitHub helper under `apps/cli`, expose it through root scripts, and update ASSIST documentation so the operational workflow reflects the live helper surface.
+Import the copied UI component set into the shared UI docs system, keep the implementation inside `apps/ui`, and extend the docs catalog, side menu, and templates overview without changing broader app boundaries.
 
 ### Scope
 
-- `ASSIST/Documentation`
 - `ASSIST/Execution`
-- `apps/cli/src`
-- `apps/cli/helper`
+- `ASSIST/Documentation/CHANGELOG.md`
+- `eslint.config.js`
 - `package.json`
-- `tests/cli`
+- `apps/ui/src`
+- `apps/ui/web`
 
 ### Canonical Decisions
 
-- ASSIST documentation must describe only what is actually implemented in the repo
-- `apps/cli` owns interactive operational helper commands that remain business-agnostic
-- the GitHub helper must stay native to Node and standard git commands
-- the helper may assist commit, pull-rebase, and push, but it must not hide unresolved merge or rebase states
+- imported UI docs content must stay inside `apps/ui` and remain presentation-only
+- the existing docs shell, catalog model, and component ownership stay intact; imported content adapts to the system instead of replacing it
+- shared compatibility shims are allowed when they support docs-only imported content without leaking app-specific behavior into `apps/ui`
+- docs entries should stay tied to real component demos and raw code templates so the catalog can be extracted later without content rewrites
+- project-level component naming and default variant selection should live in source-controlled governance data so both docs and future agent work read the same defaults
 
 ### Execution Plan
 
-1. add a dedicated interactive helper under `apps/cli/src`
-2. implement repository inspection, dirty-state commit flow, and in-progress git-operation blocking
-3. add upstream fetch, behind/diverged detection, and interactive pull-rebase handling
-4. add single-command push support for both tracked and first-push branches
-5. expose root source and built helper scripts in `package.json`
-6. add helper parsing and push-target tests under `tests/cli`
-7. update architecture, contributing, task, planning, and changelog docs to reflect the new helper
-8. validate typecheck, lint, test, and build
+1. read the imported `temp` component files and the existing `apps/ui` docs implementation
+2. copy the imported docs demo sources into a docs-owned registry under `apps/ui`
+3. add the missing shared UI primitives and compatibility shims required by the imported demos
+4. generate the expanded docs catalog from the imported component metadata
+5. add templates presentation, overview surfacing, and side-menu links in the docs shell
+6. update ASSIST task, planning, and changelog entries for this batch
+7. validate typecheck, lint, test, and build
+8. add a governed UI workspace channel for component defaults, combined form blocks, and build-readiness coverage
 
 ### Validation Plan
 
@@ -48,11 +49,12 @@ Add a dedicated interactive GitHub helper under `apps/cli`, expose it through ro
 
 - [x] `npm run typecheck`
 - [x] `npm run lint`
-- [x] `npm run test`
 - [x] `npm run build`
+- [ ] `npm run test` (`tests/framework/runtime/config.test.ts` fails against local `.env` host values)
 
 ### Risks And Follow-Up
 
-- the helper intentionally stages all changes as one commit when the repo is dirty; it is not a replacement for selective staging workflows
-- complex conflict resolution still stays manual if git pull-rebase cannot complete cleanly
-- release tags and formal release discipline remain separate from this helper
+- the imported docs registry currently leans on compatibility shims and lint overrides because the temp package targets a slightly different primitive contract
+- the resulting docs page now carries a very large component catalog, so future follow-up may need route splitting or lazy loading
+- project defaults are currently source-controlled rather than browser-persisted, which keeps agent/code alignment correct but leaves in-browser editing for a later step
+- the existing framework config test is environment-sensitive and still needs isolation from local `.env` state

@@ -39,6 +39,8 @@ export default defineConfig(({ mode }) => {
         '@frappe': path.resolve(__dirname, './apps/frappe'),
         '@tally': path.resolve(__dirname, './apps/tally'),
         '@cli': path.resolve(__dirname, './apps/cli'),
+        'next/image': path.resolve(__dirname, './apps/ui/src/compat/next-image.tsx'),
+        'next/link': path.resolve(__dirname, './apps/ui/src/compat/next-link.tsx'),
       },
     },
     build: {

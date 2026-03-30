@@ -1,0 +1,23 @@
+// @ts-nocheck
+import { BadgeCheckIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+export default function AvatarDemo() {
+  return (
+    <div className="flex items-start gap-3">
+      <Avatar className="size-9">
+        <AvatarImage alt="@codexsun" src="https://github.com/codexsun.png" />
+        <AvatarFallback>CN</AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1 font-semibold leading-none tracking-tight">
+          codexsun{" "}
+          <BadgeCheckIcon className="size-4.5 fill-blue-500 text-white" />
+        </div>
+        <span className="text-muted-foreground text-sm leading-none">
+          I own a computer
+        </span>
+      </div>
+    </div>
+  );
+}

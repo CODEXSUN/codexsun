@@ -7,6 +7,7 @@ import {
   docsCategories,
   docsEntries,
   docsStats,
+  docsTemplates,
 } from "@/features/docs/data/catalog"
 import { DocsBrowser } from "@/features/docs/components/docs-browser"
 
@@ -30,6 +31,38 @@ export function DocsPage() {
               </div>
 
               <nav className="space-y-5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      System
+                    </p>
+                    <Badge variant="outline">3</Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <a
+                      href="#design-settings"
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                    >
+                      <span>Design Settings</span>
+                      <ArrowUpRight className="size-4 text-muted-foreground" />
+                    </a>
+                    <a
+                      href="#form-blocks"
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                    >
+                      <span>Form Blocks</span>
+                      <ArrowUpRight className="size-4 text-muted-foreground" />
+                    </a>
+                    <a
+                      href="#build-readiness"
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                    >
+                      <span>Build Readiness</span>
+                      <ArrowUpRight className="size-4 text-muted-foreground" />
+                    </a>
+                  </div>
+                </div>
+
                 {docsCategories.map((category) => (
                   <div key={category.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
@@ -60,6 +93,22 @@ export function DocsPage() {
                     </div>
                   </div>
                 ))}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Templates
+                    </p>
+                    <Badge variant="outline">{docsTemplates.length}</Badge>
+                  </div>
+                  <a
+                    href="#templates"
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                  >
+                    <span>Docs Templates</span>
+                    <ArrowUpRight className="size-4 text-muted-foreground" />
+                  </a>
+                </div>
               </nav>
             </CardContent>
           </Card>
@@ -100,8 +149,9 @@ export function DocsPage() {
                   Publishing
                 </p>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Keep the docs tied to real component imports, sample code, and live previews
-                  so this surface can be extracted later without rewriting the content model.
+                  Keep the docs tied to real component imports, sample code, live previews,
+                  and template metadata so this surface stays extractable without rewriting the
+                  content model.
                 </p>
               </CardContent>
             </Card>

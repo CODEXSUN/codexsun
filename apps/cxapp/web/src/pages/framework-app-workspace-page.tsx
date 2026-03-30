@@ -7,6 +7,11 @@ import { DocsPageHeader } from "@/features/docs/components/docs-page-header"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { DocsBrowser } from "@/features/docs/components/docs-browser"
 import { docsEntries } from "@/features/docs/data/catalog"
+import {
+  DesignSystemBlocksPage,
+  DesignSystemDefaultsPage,
+  DesignSystemReadinessPage,
+} from "@/features/design-system/pages/design-system-workbench-page"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
 import { useDesk } from "../desk/desk-provider"
@@ -17,6 +22,27 @@ const readinessTone = {
   scaffold: "outline",
   preview: "outline",
   planned: "ghost",
+} as const
+
+const uiWorkspaceSections = {
+  "build-readiness": {
+    description:
+      "Confirm the component channels required for application delivery are present and aligned.",
+    render: () => <DesignSystemReadinessPage />,
+    title: "Build readiness",
+  },
+  "design-settings": {
+    description:
+      "Project-wide default component names, aliases, and default variants used across implementation work.",
+    render: () => <DesignSystemDefaultsPage />,
+    title: "Design settings",
+  },
+  "form-blocks": {
+    description:
+      "Reusable blocks that combine multiple governed components for common application forms.",
+    render: () => <DesignSystemBlocksPage />,
+    title: "Form blocks",
+  },
 } as const
 
 export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
@@ -51,14 +77,21 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
       matchesDeskRoute(location.pathname, item.route)
     ) ?? app.modules[0]
   const isUiWorkspace = app.id === "ui"
-  const docsEntry =
+  const uiSection =
     isUiWorkspace && sectionId
+      ? uiWorkspaceSections[sectionId as keyof typeof uiWorkspaceSections] ?? null
+      : null
+  const docsEntry =
+    isUiWorkspace && sectionId && !uiSection
       ? docsEntries.find((entry) => entry.id === sectionId) ?? null
       : null
-  const uiTitle = docsEntry ? docsEntry.name : "Design system"
+  const uiTitle = docsEntry
+    ? docsEntry.name
+    : uiSection?.title ?? "Design system"
   const uiDescription = docsEntry
     ? docsEntry.description
-    : "Browse reusable shadcn-based components by category, preview variants, and copy install-ready code."
+    : uiSection?.description ??
+      "Browse reusable shadcn-based components by category, preview variants, and copy install-ready code."
 
   return (
     <div className="space-y-3">
@@ -79,6 +112,8 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
           />
           {docsEntry ? (
             <DocsEntryCard entry={docsEntry} showHeader={false} />
+          ) : uiSection ? (
+            uiSection.render()
           ) : (
             <DocsBrowser basePath={app.route} showHeader={false} />
           )}

@@ -1,0 +1,42 @@
+// @ts-nocheck
+import { ChevronsRight, Component, Home, Route } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+const BreadcrumbsWithIconAndLabel = () => {
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="#">
+            <Home className="h-4 w-4" />
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator>
+          <ChevronsRight />
+        </BreadcrumbSeparator>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="#/components">
+            <Component className="mr-1 inline h-4 w-4" /> Components
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator>
+          <ChevronsRight />
+        </BreadcrumbSeparator>
+        <BreadcrumbItem>
+          <BreadcrumbPage>
+            <Route className="mr-1 inline h-4 w-4" /> Breadcrumb
+          </BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+};
+
+export default BreadcrumbsWithIconAndLabel;

@@ -2,6 +2,8 @@ import { CardTitle } from "@/components/ui/card"
 import type { DocsEntry } from "@/features/docs/data/catalog"
 import { CopyCodeButton } from "@/features/docs/components/copy-code-button"
 import { ViewCodeDialog } from "@/features/docs/components/view-code-dialog"
+import { Badge } from "@/components/ui/badge"
+import { getDesignSystemComponentDefault } from "@/features/design-system/data/component-governance"
 
 export function DocsEntryCard({
   entry,
@@ -11,6 +13,7 @@ export function DocsEntryCard({
   showHeader?: boolean
 }) {
   const EntryIcon = entry.icon
+  const componentDefault = getDesignSystemComponentDefault(entry.id)
 
   return (
     <div id={entry.id} className="space-y-5">
@@ -26,6 +29,16 @@ export function DocsEntryCard({
                 <p className="text-sm text-muted-foreground">{entry.description}</p>
               </div>
             </div>
+            {componentDefault ? (
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">
+                  Code name: {componentDefault.applicationName}
+                </Badge>
+                <Badge variant="outline">
+                  Default: {componentDefault.defaultExampleTitle}
+                </Badge>
+              </div>
+            ) : null}
           </div>
           <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {entry.examples.length} variants
@@ -33,17 +46,24 @@ export function DocsEntryCard({
         </div>
       ) : null}
       <div className="grid gap-4 xl:grid-cols-2">
-        {entry.examples.map((example, index) => (
+        {entry.examples.map((example, index) => {
+          const isProjectDefault =
+            componentDefault?.defaultExampleId === example.id
+
+          return (
           <div
             key={example.id}
             className="overflow-hidden rounded-[1.25rem] border border-border/70 bg-background"
           >
             <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
                 <span className="text-muted-foreground">
                   {String(index + 1).padStart(2, "0")}.
                 </span>
                 <span>{example.title}</span>
+                {isProjectDefault ? (
+                  <Badge variant="outline">Project default</Badge>
+                ) : null}
               </div>
               <div className="flex items-center gap-1">
                 <CopyCodeButton code={example.code} iconOnly />
@@ -60,7 +80,8 @@ export function DocsEntryCard({
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

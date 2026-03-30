@@ -2,11 +2,19 @@ import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { DocsEntryCard } from "@/features/docs/components/docs-entry-card"
+import { DocsTemplatesSection } from "@/features/docs/components/docs-templates-section"
+import { DesignSystemOverviewSections } from "@/features/design-system/components/design-system-overview-sections"
+import {
+  DesignSystemBlocksPage,
+  DesignSystemDefaultsPage,
+  DesignSystemReadinessPage,
+} from "@/features/design-system/pages/design-system-workbench-page"
 import {
   docsCategories,
   docsEntries,
+  docsTemplates,
 } from "@/features/docs/data/catalog"
-import { DocsEntryCard } from "@/features/docs/components/docs-entry-card"
 
 type DocsBrowserProps = {
   basePath?: string
@@ -18,6 +26,7 @@ export function DocsBrowser({
   showHeader = true,
 }: DocsBrowserProps) {
   const totalBlocks = docsEntries.length
+  const totalTemplates = docsTemplates.length
   const categoryCards = (
     <div className="grid gap-4 xl:grid-cols-2">
       {docsCategories.map((category) => (
@@ -37,7 +46,7 @@ export function DocsBrowser({
                   {category.description}
                 </p>
               </div>
-              <Badge variant="outline">{category.items.length} blocks</Badge>
+              <Badge variant="outline">{category.items.length} components</Badge>
             </div>
           </Link>
         ) : (
@@ -56,7 +65,7 @@ export function DocsBrowser({
                   {category.description}
                 </p>
               </div>
-              <Badge variant="outline">{category.items.length} blocks</Badge>
+              <Badge variant="outline">{category.items.length} components</Badge>
             </div>
           </a>
         )
@@ -66,6 +75,8 @@ export function DocsBrowser({
 
   return (
     <div className="space-y-5">
+      <DesignSystemOverviewSections basePath={basePath} />
+
       {showHeader ? (
         <Card className="gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
           <CardContent className="space-y-5 px-5 py-6 md:px-6">
@@ -74,7 +85,7 @@ export function DocsBrowser({
                 Browse by Category
               </h2>
               <p className="text-sm text-muted-foreground">
-                {docsCategories.length} categories - {totalBlocks} components total
+                {docsCategories.length} categories - {totalBlocks} components - {totalTemplates} templates
               </p>
             </div>
             {categoryCards}
@@ -83,15 +94,23 @@ export function DocsBrowser({
       ) : (
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
-            {docsCategories.length} categories - {totalBlocks} components total
+            {docsCategories.length} categories - {totalBlocks} components - {totalTemplates} templates
           </p>
           {categoryCards}
         </div>
       )}
 
-      {basePath ? null : docsEntries.map((entry) => (
-        <DocsEntryCard key={entry.id} entry={entry} />
-      ))}
+      {basePath ? null : (
+        <>
+          <DesignSystemDefaultsPage />
+          <DesignSystemBlocksPage />
+          <DesignSystemReadinessPage />
+          {docsEntries.map((entry) => (
+            <DocsEntryCard key={entry.id} entry={entry} />
+          ))}
+          <DocsTemplatesSection />
+        </>
+      )}
     </div>
   )
 }

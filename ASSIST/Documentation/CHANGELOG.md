@@ -8,6 +8,15 @@
 
 ## v-0.0.1
 
+### [#12] 2026-03-30 - UI docs catalog expansion and imported component registry
+
+- imported the copied UI component demo set from `temp` into `apps/ui` as a docs-owned registry
+- added missing shared UI primitives plus lightweight Next compatibility shims required by the imported demos
+- expanded the docs catalog, overview cards, and side navigation to surface the imported component groups
+- added a templates section to the docs workspace so component docs and template metadata now live in one UI app surface
+- added a source-controlled design-system governance layer for project default component names, default variants, combined form blocks, and application build-readiness coverage
+- updated validation and lint scope so the imported docs registry can coexist with the existing shared system
+
 ### [#11] 2026-03-29 - CLI GitHub helper baseline
 
 - added a dedicated interactive GitHub helper under `apps/cli` for commit, pull-rebase, and push flow

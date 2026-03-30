@@ -3,13 +3,16 @@ import {
   Blocks,
   Building2,
   Cable,
+  ClipboardList,
   Cog,
   Database,
   Globe,
+  PackageCheck,
   LayoutDashboard,
   MonitorSmartphone,
   PlugZap,
   ReceiptText,
+  Settings2,
   Server,
   TerminalSquare,
   Workflow,
@@ -142,6 +145,27 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         summary: "Browse the design system by category.",
         icon: LayoutDashboard,
       },
+      {
+        id: `${app.id}-design-settings`,
+        name: "Design Settings",
+        route: `${root}/design-settings`,
+        summary: "Set project default component names, aliases, and default variants.",
+        icon: Settings2,
+      },
+      {
+        id: `${app.id}-form-blocks`,
+        name: "Form Blocks",
+        route: `${root}/form-blocks`,
+        summary: "Use combined multi-component blocks for common application forms.",
+        icon: ClipboardList,
+      },
+      {
+        id: `${app.id}-build-readiness`,
+        name: "Build Readiness",
+        route: `${root}/build-readiness`,
+        summary: "Confirm the core component channels needed to build applications are present.",
+        icon: PackageCheck,
+      },
       ...docsEntries.map((entry) => ({
         id: `${app.id}-${entry.id}`,
         name: entry.name,
@@ -215,20 +239,22 @@ function createUiMenuGroups(
   modules: DashboardWorkspaceLink[]
 ): DashboardMenuGroup[] {
   const root = `/dashboard/apps/${app.id}`
-  const overviewItem = modules.find((item) => item.route === root) ?? null
 
   return [
-    ...(overviewItem
-      ? [
-          {
-            id: `${app.id}-overview-group`,
-            label: "Overview",
-            shared: true,
-            route: root,
-            items: [overviewItem],
-          },
-        ]
-      : []),
+    {
+      id: `${app.id}-system-group`,
+      label: "System",
+      shared: true,
+      route: root,
+      items: modules.filter((item) =>
+        [
+          root,
+          `${root}/design-settings`,
+          `${root}/form-blocks`,
+          `${root}/build-readiness`,
+        ].includes(item.route)
+      ),
+    },
     ...docsCategories.map((category) => ({
       id: `${app.id}-${category.id}-group`,
       label: category.name,
