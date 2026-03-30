@@ -13,7 +13,7 @@ import { DocsBrowser } from "@/docs/components/docs-browser"
 
 export function DocsPage() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.08),_transparent_28%),linear-gradient(180deg,_#fafaf9_0%,_#f5f5f4_100%)]">
+    <div className="theme-shell min-h-screen">
       <div className="mx-auto grid w-full max-w-[1600px] gap-6 px-4 py-6 lg:grid-cols-[260px_minmax(0,1fr)_280px] lg:px-6">
         <aside className="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
           <Card className="h-full gap-0 overflow-hidden border-border/70 bg-card/90 py-0 shadow-sm">

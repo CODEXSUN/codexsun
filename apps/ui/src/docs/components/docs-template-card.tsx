@@ -13,7 +13,7 @@ export function DocsTemplateCard({
   return (
     <Card className="overflow-hidden border-border/70 bg-card/90 py-0 shadow-sm">
       <CardContent className="space-y-5 px-5 py-5">
-        <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-[linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(245,245,244,0.88)_100%)] p-5">
+        <div className="theme-preview-surface rounded-[1.5rem] border border-dashed border-border/70 p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
               <Badge variant="outline">{template.category.name}</Badge>

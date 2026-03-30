@@ -36,7 +36,7 @@ export function DocsBrowser({
             to={`${basePath}/${category.items[0]}`}
             className="group overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/90 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
           >
-            <div className="flex min-h-52 items-center justify-center border-b border-border/60 bg-[linear-gradient(180deg,_rgba(255,255,255,0.9)_0%,_rgba(245,245,244,0.75)_100%)] px-5 py-6">
+            <div className="theme-preview-surface flex min-h-52 items-center justify-center border-b border-border/60 px-5 py-6">
               {category.preview}
             </div>
             <div className="flex items-center justify-between gap-3 px-5 py-4">
@@ -55,7 +55,7 @@ export function DocsBrowser({
             href={`#${category.items[0]}`}
             className="group overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/90 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
           >
-            <div className="flex min-h-52 items-center justify-center border-b border-border/60 bg-[linear-gradient(180deg,_rgba(255,255,255,0.9)_0%,_rgba(245,245,244,0.75)_100%)] px-5 py-6">
+            <div className="theme-preview-surface flex min-h-52 items-center justify-center border-b border-border/60 px-5 py-6">
               {category.preview}
             </div>
             <div className="flex items-center justify-between gap-3 px-5 py-4">

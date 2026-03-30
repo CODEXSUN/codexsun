@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator"
 
 export default function LoginPage01() {
   return (
-    <div className="grid gap-4 rounded-[1.5rem] border border-border/70 bg-[linear-gradient(135deg,_rgba(255,255,255,0.96)_0%,_rgba(245,245,244,0.9)_100%)] p-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+    <div className="theme-preview-surface grid gap-4 rounded-[1.5rem] border border-border/70 p-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
       <div className="flex min-h-[320px] flex-col justify-between rounded-[1.25rem] border border-border/70 bg-card/80 p-5">
         <div className="space-y-3">
           <Badge variant="outline">Codexsun Workspace</Badge>

@@ -10,7 +10,7 @@ type WebLayoutProps = {
 
 function WebLayout({ children, appCount }: WebLayoutProps) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.06),_transparent_32%),linear-gradient(180deg,_#fafaf9_0%,_#f5f5f4_100%)] text-foreground">
+    <div className="theme-shell min-h-screen text-foreground">
       <PublicTopbar />
       {children}
       <PublicFooter appCount={appCount} />

@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 
 export default function LoginPage02() {
   return (
-    <div className="grid gap-4 rounded-[1.5rem] border border-border/70 bg-[linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(245,245,244,0.86)_100%)] p-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+    <div className="theme-preview-surface grid gap-4 rounded-[1.5rem] border border-border/70 p-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
       <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
         <CardContent className="space-y-5 p-6">
           <div className="space-y-1">

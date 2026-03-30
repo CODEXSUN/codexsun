@@ -85,6 +85,48 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --surface-card: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--card) 96%, var(--primary) 4%) 0%,
+    color-mix(in oklab, var(--card) 90%, var(--secondary) 10%) 100%
+  );
+  --surface-raised: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--background) 92%, var(--primary) 8%) 0%,
+    color-mix(in oklab, var(--background) 84%, var(--secondary) 16%) 100%
+  );
+  --surface-spotlight: radial-gradient(circle at top, color-mix(in oklab, var(--primary) 16%, transparent) 0%, transparent 34%);
+  --surface-canvas: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--background) 92%, var(--primary) 8%) 0%,
+    color-mix(in oklab, var(--background) 88%, var(--secondary) 12%) 100%
+  );
+  --surface-panel: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--card) 94%, var(--primary) 6%) 0%,
+    color-mix(in oklab, var(--card) 88%, var(--secondary) 12%) 100%
+  );
+  --auth-shell: radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 18%, transparent) 0%, transparent 30%),
+    radial-gradient(circle at top right, color-mix(in oklab, var(--secondary) 20%, transparent) 0%, transparent 32%),
+    radial-gradient(circle at bottom left, color-mix(in oklab, var(--accent) 18%, transparent) 0%, transparent 28%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 96%, var(--primary) 4%) 0%,
+      color-mix(in oklab, var(--background) 90%, var(--secondary) 10%) 100%
+    );
+  --auth-shell-desktop: radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 24%, transparent) 0%, transparent 30%),
+    radial-gradient(circle at top right, color-mix(in oklab, var(--secondary) 24%, transparent) 0%, transparent 32%),
+    radial-gradient(circle at bottom left, color-mix(in oklab, var(--accent) 20%, transparent) 0%, transparent 28%),
+    radial-gradient(circle at bottom right, color-mix(in oklab, var(--chart-2) 16%, transparent) 0%, transparent 32%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 94%, var(--primary) 6%) 0%,
+      color-mix(in oklab, var(--background) 86%, var(--secondary) 14%) 100%
+    );
+  --code-background: oklch(0.18 0.01 260);
+  --code-foreground: oklch(0.96 0.01 255);
+  --code-muted: oklch(0.72 0.02 255);
+  --code-border: oklch(0.3 0.01 255);
 }
 
 .dark {
@@ -119,6 +161,48 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --surface-card: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--card) 88%, var(--primary) 12%) 0%,
+    color-mix(in oklab, var(--card) 78%, var(--secondary) 22%) 100%
+  );
+  --surface-raised: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--background) 90%, var(--primary) 10%) 0%,
+    color-mix(in oklab, var(--background) 80%, var(--secondary) 20%) 100%
+  );
+  --surface-spotlight: radial-gradient(circle at top, color-mix(in oklab, var(--primary) 22%, transparent) 0%, transparent 38%);
+  --surface-canvas: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--background) 92%, var(--primary) 8%) 0%,
+    color-mix(in oklab, var(--background) 84%, var(--secondary) 16%) 100%
+  );
+  --surface-panel: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--card) 88%, var(--primary) 12%) 0%,
+    color-mix(in oklab, var(--card) 80%, var(--secondary) 20%) 100%
+  );
+  --auth-shell: radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 22%, transparent) 0%, transparent 30%),
+    radial-gradient(circle at top right, color-mix(in oklab, var(--secondary) 22%, transparent) 0%, transparent 32%),
+    radial-gradient(circle at bottom left, color-mix(in oklab, var(--accent) 18%, transparent) 0%, transparent 28%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 94%, var(--primary) 6%) 0%,
+      color-mix(in oklab, var(--background) 86%, var(--secondary) 14%) 100%
+    );
+  --auth-shell-desktop: radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 26%, transparent) 0%, transparent 30%),
+    radial-gradient(circle at top right, color-mix(in oklab, var(--secondary) 26%, transparent) 0%, transparent 32%),
+    radial-gradient(circle at bottom left, color-mix(in oklab, var(--accent) 20%, transparent) 0%, transparent 28%),
+    radial-gradient(circle at bottom right, color-mix(in oklab, var(--chart-2) 18%, transparent) 0%, transparent 32%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 92%, var(--primary) 8%) 0%,
+      color-mix(in oklab, var(--background) 82%, var(--secondary) 18%) 100%
+    );
+  --code-background: oklch(0.22 0.012 258);
+  --code-foreground: oklch(0.96 0.01 255);
+  --code-muted: oklch(0.75 0.018 255);
+  --code-border: oklch(0.34 0.015 255);
 }
 
 @layer base {
@@ -130,5 +214,46 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  .mesh-panel {
+    background: var(--surface-spotlight), var(--surface-panel);
+  }
+
+  .theme-shell {
+    background: var(--surface-spotlight), var(--surface-canvas);
+  }
+
+  .theme-panel-surface {
+    background: var(--surface-panel);
+  }
+
+  .theme-preview-surface {
+    background: var(--surface-card);
+  }
+
+  .theme-auth-shell {
+    background: var(--auth-shell);
+  }
+
+  .theme-auth-shell-desktop {
+    background: var(--auth-shell-desktop);
+  }
+
+  .theme-raised-surface {
+    background: var(--surface-raised);
+  }
+
+  .theme-code-surface {
+    background: var(--code-background);
+    color: var(--code-foreground);
+    border-color: var(--code-border);
+  }
+
+  .theme-code-surface-muted {
+    border-color: var(--code-border);
+    color: var(--code-muted);
   }
 }

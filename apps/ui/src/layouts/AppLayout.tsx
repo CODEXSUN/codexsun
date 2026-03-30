@@ -13,7 +13,7 @@ function AppLayout({ children }: AppLayoutProps) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.06),_transparent_30%),linear-gradient(180deg,_#fafaf9_0%,_#f5f5f4_100%)]">
+        <div className="theme-shell min-h-screen">
           <AppHeader />
           <main className="mx-auto w-full max-w-7xl px-4 py-4 md:px-6 md:py-6">
             {children}

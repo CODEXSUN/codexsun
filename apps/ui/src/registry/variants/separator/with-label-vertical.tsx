@@ -31,7 +31,7 @@ export default function VerticalSeparatorWithLabel() {
           </div>
           <div className="relative my-4 flex items-center justify-center overflow-hidden">
             <Separator />
-            <div className="border bg-white p-2 text-center text-sm">OR</div>
+            <div className="border bg-background p-2 text-center text-sm">OR</div>
             <Separator />
           </div>
           <div className="grid w-full gap-2">

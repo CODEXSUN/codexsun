@@ -29,7 +29,7 @@ export function AppWorkspacePreview({
   ]
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.05),_transparent_38%),linear-gradient(180deg,_#fafaf9_0%,_#f5f5f4_100%)] px-6 py-8 text-foreground lg:px-10">
+    <main className="theme-shell min-h-screen px-6 py-8 text-foreground lg:px-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <Card className="border border-border/70 bg-background/90 shadow-sm backdrop-blur">
           <CardHeader className="space-y-3">

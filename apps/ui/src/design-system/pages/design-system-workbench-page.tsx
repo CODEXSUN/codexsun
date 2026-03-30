@@ -357,7 +357,7 @@ export function DesignSystemBlocksPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-[1.5rem] border border-border/70 bg-[linear-gradient(180deg,_rgba(255,255,255,0.9)_0%,_rgba(245,245,244,0.75)_100%)] p-4">
+                        <div className="theme-preview-surface rounded-[1.5rem] border border-border/70 p-4">
                           {block.preview}
                         </div>
                       </CardContent>

@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#18] 2026-03-30 - Theme-oriented UI surfaces and loader polish
+
+- expanded the shared UI token layer so primary, secondary, accent, muted, sidebar, chart, preview, auth, and code surfaces respond consistently across light and dark themes
+- replaced hardcoded shell and docs gradients with shared theme surface classes across the `ui` workspace, docs pages, auth layouts, previews, and the `cxapp` public shell
+- aligned shared slider, separator, and auth block preview surfaces with theme-aware background tokens instead of fixed white fills
+- updated the global loader concern so its main center circle and rotating rings derive from active theme tokens rather than separate hardcoded light and dark color paths
+- mirrored the active theme surface utilities into the secondary UI stylesheet so future imports do not drift from the current theme system behavior
+
 ### [#17] 2026-03-30 - Local database bootstrap and auth hardening
 
 - switched the checked-in local bootstrap to SQLite so the backend host, migrations, seeders, and frontend auth flow start without requiring a local MariaDB instance

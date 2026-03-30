@@ -54,7 +54,7 @@ export default function SliderShapeDemo() {
         max={100}
         rangeClassName="bg-green-500"
         step={1}
-        thumbClassName="rounded-none bg-white"
+        thumbClassName="rounded-none bg-background"
         trackClassName="h-2 rounded-none"
       />
       <Slider
@@ -62,7 +62,7 @@ export default function SliderShapeDemo() {
         max={100}
         rangeClassName="bg-indigo-500"
         step={1}
-        thumbClassName="rounded-[2px] bg-white"
+        thumbClassName="rounded-[2px] bg-background"
         trackClassName="h-2 rounded-[2px]"
       />
       <Slider
@@ -70,7 +70,7 @@ export default function SliderShapeDemo() {
         max={100}
         rangeClassName="bg-rose-500"
         step={1}
-        thumbClassName="bg-white"
+        thumbClassName="bg-background"
         trackClassName="h-2"
       />
     </div>

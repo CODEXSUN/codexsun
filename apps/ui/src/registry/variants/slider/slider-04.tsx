@@ -54,21 +54,21 @@ export default function SliderColorDemo() {
         max={100}
         rangeClassName="bg-green-500"
         step={1}
-        thumbClassName="bg-white"
+        thumbClassName="bg-background"
       />
       <Slider
         defaultValue={[50]}
         max={100}
         rangeClassName="bg-indigo-500"
         step={1}
-        thumbClassName="bg-white"
+        thumbClassName="bg-background"
       />
       <Slider
         defaultValue={[50]}
         max={100}
         rangeClassName="bg-rose-500"
         step={1}
-        thumbClassName="bg-white"
+        thumbClassName="bg-background"
       />
     </div>
   );
