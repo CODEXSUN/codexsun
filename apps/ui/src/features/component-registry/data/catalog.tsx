@@ -538,6 +538,8 @@ import SpinnerSpinner10 from "@/features/component-registry/registry/variants/sp
 import SpinnerSpinner10Code from "@/features/component-registry/registry/variants/spinner/spinner-10.tsx?raw"
 import SpinnerSpinner11 from "@/features/component-registry/registry/variants/spinner/spinner-11"
 import SpinnerSpinner11Code from "@/features/component-registry/registry/variants/spinner/spinner-11.tsx?raw"
+import GlobalLoaderGlobalLoader01 from "@/features/component-registry/registry/variants/global-loader/global-loader-01"
+import GlobalLoaderGlobalLoader01Code from "@/features/component-registry/registry/variants/global-loader/global-loader-01.tsx?raw"
 import SwitchSwitch01 from "@/features/component-registry/registry/variants/switch/switch-01"
 import SwitchSwitch01Code from "@/features/component-registry/registry/variants/switch/switch-01.tsx?raw"
 import SwitchSwitch02 from "@/features/component-registry/registry/variants/switch/switch-02"
@@ -610,6 +612,8 @@ import TabsTabs17 from "@/features/component-registry/registry/variants/tabs/tab
 import TabsTabs17Code from "@/features/component-registry/registry/variants/tabs/tabs-17.tsx?raw"
 import TabsTabs18 from "@/features/component-registry/registry/variants/tabs/tabs-18"
 import TabsTabs18Code from "@/features/component-registry/registry/variants/tabs/tabs-18.tsx?raw"
+import TabsTabs19 from "@/features/component-registry/registry/variants/tabs/tabs-19"
+import TabsTabs19Code from "@/features/component-registry/registry/variants/tabs/tabs-19.tsx?raw"
 import TextareaTextarea01 from "@/features/component-registry/registry/variants/textarea/textarea-01"
 import TextareaTextarea01Code from "@/features/component-registry/registry/variants/textarea/textarea-01.tsx?raw"
 import TextareaTextarea02 from "@/features/component-registry/registry/variants/textarea/textarea-02"
@@ -718,8 +722,8 @@ export const docsCategories: DocsCategory[] = [
     id: "feedback",
     name: "Feedback",
     description: "Status, disclosure, progress, and guidance surfaces.",
-    items: ["accordion","alert","alert-dialog","collapsible","progress","spinner","tooltip"],
-    preview: <CategoryPreview label="Feedback" count={7} />,
+    items: ["accordion","alert","alert-dialog","collapsible","progress","spinner","global-loader","tooltip"],
+    preview: <CategoryPreview label="Feedback" count={8} />,
   },
   {
     id: "surfaces",
@@ -2449,6 +2453,21 @@ export const docsEntries: DocsEntry[] = [
     ],
   },
   {
+    id: "global-loader",
+    name: "Global Loader",
+    description: "Application-scale loading feedback for boot, auth restore, and route-level suspense.",
+    category: "feedback",
+    icon: LoaderCircle,
+    examples: [
+      {
+        id: "global-loader-01",
+        title: "Workspace restore",
+        code: GlobalLoaderGlobalLoader01Code,
+        preview: <GlobalLoaderGlobalLoader01 />,
+      },
+    ],
+  },
+  {
     id: "switch",
     name: "Switch",
     description: "Imported Switch variants adapted into the Codexsun UI docs system.",
@@ -2688,6 +2707,12 @@ export const docsEntries: DocsEntry[] = [
         title: "Animated Content",
         code: TabsTabs18Code,
         preview: <TabsTabs18 />,
+      },
+      {
+        id: "tabs-19",
+        title: "Animated Workspace Tabs",
+        code: TabsTabs19Code,
+        preview: <TabsTabs19 />,
       },
     ],
   },

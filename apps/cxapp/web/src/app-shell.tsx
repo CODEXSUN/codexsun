@@ -9,6 +9,7 @@ import {
 import type { AppSuite } from "@framework/application/app-manifest"
 import { createFrameworkBrowserContainer } from "@framework/di/browser-container"
 import { FRAMEWORK_TOKENS } from "@framework/di/tokens"
+import { GlobalLoader } from "@/components/ui/global-loader"
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
 import { ProjectDefaultsProvider } from "@/features/design-system/context/project-defaults-provider"
 import AdminLayout from "@/layouts/AdminLayout"
@@ -61,9 +62,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (auth.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        Restoring your session.
-      </div>
+      <GlobalLoader size="md" label="M" />
     )
   }
 

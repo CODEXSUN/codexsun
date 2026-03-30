@@ -24,6 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import { EcommerceWorkspaceTabs } from "./components/ecommerce-workspace-tabs"
+
 type ResourceState<T> = {
   data: T | null
   error: string | null
@@ -614,20 +616,17 @@ function SettingsSection() {
 }
 
 export function EcommerceWorkspaceSection({ sectionId }: { sectionId?: string }) {
-  switch (sectionId ?? "overview") {
-    case "catalog":
-      return <CatalogSection />
-    case "storefront":
-      return <StorefrontSection />
-    case "orders":
-      return <OrdersSection />
-    case "customers":
-      return <CustomersSection />
-    case "settings":
-      return <SettingsSection />
-    case "overview":
-      return <OverviewSection />
-    default:
-      return null
-  }
+  return (
+    <EcommerceWorkspaceTabs
+      sectionId={sectionId}
+      sections={{
+        overview: <OverviewSection />,
+        catalog: <CatalogSection />,
+        storefront: <StorefrontSection />,
+        orders: <OrdersSection />,
+        customers: <CustomersSection />,
+        settings: <SettingsSection />,
+      }}
+    />
+  )
 }
