@@ -45,6 +45,7 @@ import {
 import {
   AuthRepository,
   type ContactVerificationRecord,
+  type StoredAuthUser,
 } from "../repositories/auth-repository.js"
 import { MailboxService } from "./mailbox-service.js"
 
@@ -359,6 +360,7 @@ export class AuthService {
     return this.createEmailOtp({
       email: storedUser.user.email,
       displayName: storedUser.user.displayName,
+      actorType: storedUser.user.actorType,
       purpose: "password_reset",
       templateCode: "password_reset_otp",
       responseSchema: authPasswordResetRequestResponseSchema,
@@ -426,6 +428,7 @@ export class AuthService {
     return this.createEmailOtp({
       email: storedUser.user.email,
       displayName: storedUser.user.displayName,
+      actorType: storedUser.user.actorType,
       purpose: "account_recovery",
       templateCode: "account_recovery_otp",
       responseSchema: authAccountRecoveryRequestResponseSchema,
@@ -529,6 +532,7 @@ export class AuthService {
   }>(input: {
     email: string
     displayName: string
+    actorType: ActorType
     purpose: "password_reset" | "account_recovery"
     templateCode: "password_reset_otp" | "account_recovery_otp"
     responseSchema: { parse: (value: unknown) => TResponse }
@@ -540,7 +544,7 @@ export class AuthService {
 
     await this.repository.deactivatePendingContactVerifications({
       purpose: input.purpose,
-      actorType: "staff",
+      actorType: input.actorType,
       channel: "email",
       destination: input.email,
     })
@@ -548,7 +552,7 @@ export class AuthService {
     const verification = await this.repository.createContactVerification({
       id: randomUUID(),
       purpose: input.purpose,
-      actorType: "staff",
+      actorType: input.actorType,
       channel: "email",
       destination: input.email,
       otpHash: await hashPassword(otp),
@@ -630,7 +634,7 @@ export class AuthService {
     }
   }
 
-  private async findSingleUserByEmail(email: string) {
+  private async findSingleUserByEmail(email: string): Promise<StoredAuthUser> {
     const normalizedEmail = email.trim().toLowerCase()
     const storedUsers = await this.repository.findByEmail(normalizedEmail)
 
@@ -642,7 +646,7 @@ export class AuthService {
       )
     }
 
-    return storedUsers[0]
+    return storedUsers[0]!
   }
 
   private normalizePhoneNumber(value: string) {

@@ -14,7 +14,8 @@ import { ProjectDefaultsProvider } from "@/features/design-system/context/projec
 import AdminLayout from "@/layouts/AdminLayout"
 import type { DashboardUser } from "@/features/dashboard/types"
 
-import { AuthProvider, useAuth } from "./auth/auth-provider"
+import { useAuth } from "./auth/auth-context"
+import { AuthProvider } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"

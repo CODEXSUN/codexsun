@@ -70,6 +70,7 @@ Rules:
 5. reusable platform contracts
 6. app suite registration
 7. machine-readable workspace and host baseline metadata
+8. reusable auth/runtime primitives such as hashing, JWT signing, SMTP transport, and request parsing
 
 Framework must remain business-agnostic.
 
@@ -84,6 +85,7 @@ CxApp owns:
 3. the suite-facing shell and layouts
 4. the routed auth pages and shell handoff
 5. the operator-facing interface for composed apps
+6. browser-side auth session persistence for the active suite shell
 
 Framework remains underneath CxApp as the reusable runtime.
 
@@ -95,6 +97,7 @@ Framework remains underneath CxApp as the reusable runtime.
 2. contacts
 3. setup
 4. reusable ERP-common contracts
+5. app-owned auth, sessions, roles, permissions, and mailbox foundations
 
 ### API
 
@@ -105,6 +108,7 @@ Rules:
 1. internal routes live under `apps/api/src/internal`
 2. external routes live under `apps/api/src/external`
 3. transport ownership stays here; domain logic does not
+4. auth routes follow the same split: public login and recovery flows stay external, admin and operator auth management stays internal
 
 ### Site
 
@@ -177,6 +181,8 @@ Current framework route surfaces:
 2. internal app registry: `/internal/apps`
 3. internal workspace baseline: `/internal/baseline`
 4. external app registry: `/api/apps`
+5. external auth surface: `/api/v1/auth/*`
+6. protected core auth and mailbox surfaces: `/internal/v1/core/auth/*` and `/internal/v1/core/mailbox/*`
 
 ## App Suite Model
 
@@ -239,6 +245,8 @@ Active coverage today includes:
 3. runtime config loading
 4. runtime database switching
 5. workspace baseline assembly and route exposure
+6. database execution workflow for app-owned migrations and seeders
+7. auth lifecycle flows such as seeded login, OTP registration, password reset, recovery, and session revocation
 
 ## Current State
 
@@ -255,14 +263,16 @@ Implemented now:
 9. shared design-system docs and routeable component catalog in the `ui` app
 10. app-owned `core` and `ecommerce` migrations and seeders executed through the framework runtime and CLI helper
 11. `core` and `ecommerce` services reading seeded database tables instead of bypassing the database with in-memory seed arrays
-12. root tests that validate suite registration, workspace structure, framework runtime behavior, and database process execution
+12. app-owned `core` auth, session, OTP, role, permission, and mailbox storage with external and internal API surfaces
+13. active `cxapp` auth pages using the live auth API and persisted browser sessions instead of placeholder-only local state
+14. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, and auth lifecycle behavior
 
 Still future work:
 
 1. real domain modules inside each standalone app
 2. richer relational schemas and write flows beyond the current module-payload baseline
 3. real connector execution flows
-4. production auth, permissions, and audit flows
+4. auth hardening such as refresh-token rotation, MFA, rate limiting, richer admin UX, and deeper audit flows
 5. Electron desktop runtime
 
 ## Boundary Rules
@@ -273,3 +283,4 @@ Still future work:
 4. api must stay route-focused
 5. connectors must stay isolated in their app boundaries
 6. CxApp may orchestrate apps, but it must not erase app ownership boundaries
+7. framework may host reusable auth primitives, but auth domain rules, tables, and mailbox records stay app-owned

@@ -1,7 +1,4 @@
 import { randomBytes, scrypt as nodeScrypt, timingSafeEqual } from "node:crypto"
-import { promisify } from "node:util"
-
-const scrypt = promisify(nodeScrypt)
 
 const passwordAlgorithm = "scrypt"
 const passwordKeyLength = 64
@@ -35,11 +32,11 @@ function splitPasswordHash(hash: string) {
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("base64url")
-  const derivedKey = (await scrypt(password, salt, passwordKeyLength, {
+  const derivedKey = await deriveKey(password, salt, {
     N: passwordWorkFactor,
     r: passwordBlockSize,
     p: passwordParallelization,
-  })) as Buffer
+  })
 
   return [
     passwordAlgorithm,
@@ -53,15 +50,42 @@ export async function hashPassword(password: string) {
 
 export async function verifyPassword(password: string, passwordHash: string) {
   const parsed = splitPasswordHash(passwordHash)
-  const derivedKey = (await scrypt(password, parsed.salt, passwordKeyLength, {
+  const derivedKey = await deriveKey(password, parsed.salt, {
     N: parsed.workFactor,
     r: parsed.blockSize,
     p: parsed.parallelization,
-  })) as Buffer
+  })
   const storedDigest = Buffer.from(parsed.digest, "base64url")
 
   return (
     storedDigest.length === derivedKey.length &&
     timingSafeEqual(storedDigest, derivedKey)
   )
+}
+
+function deriveKey(
+  password: string,
+  salt: string,
+  options: {
+    N: number
+    r: number
+    p: number
+  }
+) {
+  return new Promise<Buffer>((resolve, reject) => {
+    nodeScrypt(
+      password,
+      salt,
+      passwordKeyLength,
+      options,
+      (error, derivedKey) => {
+        if (error) {
+          reject(error)
+          return
+        }
+
+        resolve(derivedKey as Buffer)
+      }
+    )
+  })
 }

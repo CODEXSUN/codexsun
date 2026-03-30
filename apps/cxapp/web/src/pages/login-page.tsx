@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import AuthLayout from "@/layouts/AuthLayout"
 
-import { useAuth } from "../auth/auth-provider"
 import { HttpError } from "../auth/auth-api"
+import { useAuth } from "../auth/auth-context"
 
 export function LoginPage() {
   const auth = useAuth()

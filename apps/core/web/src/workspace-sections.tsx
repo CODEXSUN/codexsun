@@ -12,6 +12,7 @@ import {
   type CompanyListResponse,
   type ContactListResponse,
 } from "@core/shared"
+import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +32,14 @@ type ResourceState<T> = {
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(path)
+  const accessToken = getStoredAccessToken()
+  const response = await fetch(path, {
+    headers: accessToken
+      ? {
+          authorization: `Bearer ${accessToken}`,
+        }
+      : undefined,
+  })
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}.`)

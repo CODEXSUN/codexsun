@@ -4,43 +4,43 @@
 
 ### Reference
 
-`#14`
+`#15`
 
 ### Title
 
-`App-owned core and ecommerce database migrations and seeders`
+`App-owned auth, sessions, mailbox, and cxapp auth flows`
 
 ### Scope Checklist
 
-- [x] add a framework-owned migration and seeder execution runtime that consumes app-owned database modules
-- [x] create individual `core` migration files and individual `core` seeder files in the native `apps/core/database/*` folders
-- [x] create individual `ecommerce` migration files and individual `ecommerce` seeder files in the native `apps/ecommerce/database/*` folders
-- [x] connect app-owned migration and seeder indexes to a central framework registry and CLI commands
-- [x] switch `core` services and routes from in-memory seed files to seeded database reads
-- [x] switch `ecommerce` services and routes from in-memory seed files to seeded database reads
-- [x] prepare the registered database modules on framework server startup so runtime reads use migrated and seeded tables
-- [x] add database process tests for registry order, migration execution, seeder execution, and service reads
-- [x] Update ASSIST task, planning, and changelog entries for this batch
+- [x] add app-owned `core` auth and mailbox schemas, migrations, and seeders for users, roles, permissions, sessions, OTP verifications, mailbox templates, and message logs
+- [x] add reusable framework auth support for JWT signing, password hashing, SMTP delivery, request body parsing, and auth-related config keys without moving business ownership into framework
+- [x] add app-owned `core` repositories and services for login, registration OTP, password reset, account recovery, sessions, and mailbox template/message handling
+- [x] expose external auth routes and protected internal core mailbox/auth routes through `apps/api`
+- [x] connect `cxapp` auth pages and browser session state to the live auth API so login, request-access, forgot-password, and logout flows are end-to-end
+- [x] protect internal `core` and `ecommerce` workspace data routes behind bearer-authenticated sessions
+- [x] normalize framework env resolution and runtime error handling so auth and config tests are stable across machines
+- [x] add auth lifecycle tests that cover seeded login, OTP registration, password reset, recovery, and session revocation
+- [x] update ASSIST task, planning, architecture, setup, and changelog entries for this batch
 
 ### Validation Note
 
 - [x] `npm run typecheck`
 - [x] `npm run lint`
 - [x] `npm run build`
-- [ ] `npm run test` (`tests/framework/runtime/config.test.ts` still fails because local `.env` values override the expected test host)
+- [x] `npm run test`
 
 ## Next Batch
 
 ### Reference
 
-`#15`
+`#16`
 
 ### Title
 
-`Database write flows and config test isolation`
+`Domain write flows and auth hardening`
 
 ### Scope Checklist
 
-- [ ] add write flows for create and update operations where the current desk is read-only
-- [ ] normalize the database payload tables into richer relational structures where the current module snapshots are too coarse
-- [ ] isolate framework config tests from local `.env` overrides so validation is stable across machines
+- [ ] add write flows for create and update operations where the current desk is still read-only
+- [ ] normalize the current module payload tables into richer relational structures where the baseline schema is still coarse
+- [ ] add refresh-token rotation, rate limiting, stronger audit trails, and admin-facing auth management surfaces beyond the current baseline

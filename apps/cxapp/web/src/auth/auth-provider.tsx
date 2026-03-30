@@ -1,62 +1,19 @@
 import {
-  createContext,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
-
-import type {
-  AuthAccountRecoveryRequestPayload,
-  AuthAccountRecoveryRestorePayload,
-  AuthLoginPayload,
-  AuthPasswordResetConfirmPayload,
-  AuthPasswordResetRequestPayload,
-  AuthRegisterOtpRequestPayload,
-  AuthRegisterOtpVerifyPayload,
-  AuthRegisterPayload,
-  AuthTokenResponse,
-  AuthUser,
-} from "@core/shared"
+import type { AuthTokenResponse } from "@core/shared"
 
 import * as authApi from "./auth-api"
+import { AuthContext, type AuthContextValue } from "./auth-context"
 import {
   clearStoredAuthSession,
   persistStoredAuthSession,
   readStoredAuthSession,
   type StoredAuthSession,
 } from "./session-storage"
-
-type AuthContextValue = {
-  isLoading: boolean
-  isAuthenticated: boolean
-  session: StoredAuthSession | null
-  user: AuthUser | null
-  login: (payload: AuthLoginPayload) => Promise<AuthTokenResponse>
-  logout: () => Promise<void>
-  requestRegisterOtp: (
-    payload: AuthRegisterOtpRequestPayload
-  ) => ReturnType<typeof authApi.requestRegisterOtp>
-  verifyRegisterOtp: (
-    payload: AuthRegisterOtpVerifyPayload
-  ) => ReturnType<typeof authApi.verifyRegisterOtp>
-  register: (payload: AuthRegisterPayload) => Promise<AuthTokenResponse>
-  requestPasswordResetOtp: (
-    payload: AuthPasswordResetRequestPayload
-  ) => ReturnType<typeof authApi.requestPasswordResetOtp>
-  confirmPasswordReset: (
-    payload: AuthPasswordResetConfirmPayload
-  ) => ReturnType<typeof authApi.confirmPasswordReset>
-  requestAccountRecoveryOtp: (
-    payload: AuthAccountRecoveryRequestPayload
-  ) => ReturnType<typeof authApi.requestAccountRecoveryOtp>
-  restoreAccount: (
-    payload: AuthAccountRecoveryRestorePayload
-  ) => ReturnType<typeof authApi.restoreAccount>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 function toStoredSession(response: AuthTokenResponse): StoredAuthSession {
   return {
@@ -159,14 +116,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider.")
-  }
-
-  return context
 }

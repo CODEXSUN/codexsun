@@ -186,7 +186,7 @@ export class MailboxRepository {
     const rows = await asQueryDatabase(this.database)
       .selectFrom(coreTableNames.mailboxMessages)
       .selectAll()
-      .orderBy("created_at desc")
+      .orderBy("created_at", "desc")
       .execute()
 
     return Promise.all(rows.map((row) => this.mapMessageSummary(row)))

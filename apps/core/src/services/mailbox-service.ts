@@ -137,12 +137,10 @@ export class MailboxService {
   ) {
     const resolved = await this.resolveMessageContent(input)
     const fromEmail =
-      input.fromEmail ?? this.config.notifications.email.fromEmail ?? null
+      input.fromEmail ??
+      this.config.notifications.email.fromEmail ??
+      `noreply@${this.config.appDomain}`
     const fromName = input.fromName ?? this.config.notifications.email.fromName
-
-    if (!fromEmail) {
-      throw new ApplicationError("Outgoing email sender is not configured.", {}, 500)
-    }
 
     const recipients = [
       ...input.to.map((recipient) => ({

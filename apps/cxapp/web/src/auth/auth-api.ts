@@ -18,13 +18,18 @@ import type {
 } from "@core/shared"
 
 export class HttpError extends Error {
+  readonly statusCode: number
+  readonly context?: unknown
+
   constructor(
     message: string,
-    readonly statusCode: number,
-    readonly context?: unknown
+    statusCode: number,
+    context?: unknown
   ) {
     super(message)
     this.name = "HttpError"
+    this.statusCode = statusCode
+    this.context = context
   }
 }
 

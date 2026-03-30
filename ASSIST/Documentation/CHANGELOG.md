@@ -4,9 +4,19 @@
 
 - Current package version: `0.0.1`
 - Current release tag: `v-0.0.1`
-- Reference format: `#<number>`w
+- Reference format: `#<number>`
 
 ## v-0.0.1
+
+### [#15] 2026-03-30 - App-owned auth, sessions, mailbox, and cxapp auth flows
+
+- added reusable framework auth primitives for JSON request parsing, runtime config access, application error handling, password hashing, JWT signing, and SMTP delivery without moving auth business ownership into framework
+- created app-owned `core` auth and mailbox schemas, migrations, and seeders for users, roles, permissions, sessions, OTP verifications, mailbox templates, and outbound message logs
+- implemented `core` repositories and services for login, registration OTP, password reset, account recovery, bearer-session validation, mailbox template management, and message delivery/history
+- exposed external auth routes and protected internal auth/mailbox routes through `apps/api`, then applied bearer-auth protection to the existing internal `core` and `ecommerce` workspace data routes
+- connected `cxapp` auth pages and browser session persistence to the live auth API so login, request-access registration, forgot-password, recovery, and logout are end-to-end instead of local-only UI placeholders
+- fixed framework env resolution so test-specific environment values win over local `.env` overrides and validation is stable across machines
+- added auth lifecycle coverage that verifies seeded login, OTP registration, password reset, account recovery, customer-role OTP handling, and session revocation against the real database-backed services
 
 ### [#14] 2026-03-30 - App-owned core and ecommerce database migrations and seeders
 

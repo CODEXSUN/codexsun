@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import AuthLayout from "@/layouts/AuthLayout"
 
 import { HttpError } from "../auth/auth-api"
-import { useAuth } from "../auth/auth-provider"
+import { useAuth } from "../auth/auth-context"
 
 const stepLabels = ["Details", "OTP", "Password"] as const
 

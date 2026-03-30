@@ -4,47 +4,52 @@
 
 ### Reference
 
-`#14`
+`#15`
 
 ### Goal
 
-Move `core` and `ecommerce` from seed-file reads to app-owned database migrations and seeders, while keeping migration ownership in the native app folders and the execution workflow inside the reusable framework runtime.
+Add an app-owned auth baseline that uses `core` for auth and mailbox data ownership, `api` for route exposure, `cxapp` for the routed auth frontend, and `framework` only for reusable runtime primitives such as config, hashing, JWT, SMTP, and request parsing.
 
 ### Scope
 
 - `ASSIST/Execution`
 - `ASSIST/Documentation/CHANGELOG.md`
-- `apps/framework/src/runtime/database`
-- `apps/framework/src/server`
-- `apps/cli/src`
-- `apps/core/database`
-- `apps/core/src`
-- `apps/ecommerce/database`
-- `apps/ecommerce/src`
-- `apps/api/src`
-- `tests/framework/runtime`
-- `ASSIST/AI_RULES.md`
 - `ASSIST/Documentation/ARCHITECTURE.md`
 - `ASSIST/Documentation/SETUP_AND_RUN.md`
+- `apps/framework/src/runtime/config`
+- `apps/framework/src/runtime/errors`
+- `apps/framework/src/runtime/http`
+- `apps/framework/src/runtime/notifications`
+- `apps/framework/src/runtime/security`
+- `apps/framework/src/server`
+- `apps/core/shared`
+- `apps/core/database`
+- `apps/core/src`
+- `apps/api/src`
+- `apps/cxapp/web/src`
+- `apps/ecommerce/web/src`
+- `tests/core`
+- `tests/framework/runtime`
+- `ASSIST/AI_RULES.md`
 
 ### Canonical Decisions
 
-- migration and seeder files must stay in `apps/<app>/database/*`, not inside framework or api
-- framework should execute app-owned migrations and seeders through one reusable runtime path
-- app services should read the seeded database tables rather than bypassing them with in-memory data once the migration path exists
-- `core` and `ecommerce` need individual module files so future apps can follow the same pattern without adding monolithic migration bundles
-- the first database-backed step should keep table design simple and explicit so the workflow is proven before deeper relational normalization
+- auth users, sessions, OTP records, mailbox templates, and message logs belong to `apps/core`, not `apps/framework`
+- framework may provide reusable auth/runtime primitives, but it must not own auth business rules or auth persistence
+- `apps/api` should stay route-only, with external auth flows and internal admin flows separated into their existing route partitions
+- `apps/cxapp` should call the live auth API and own browser session persistence instead of simulating auth locally
+- the first auth baseline should be database-backed, session-backed, and test-covered, but still documented honestly as a baseline rather than a production-hardened identity platform
 
 ### Execution Plan
 
-1. add a framework database execution runtime and registry for app-owned migrations and seeders
-2. create native `core` migration and seeder files for bootstrap, companies, contacts, and common modules
-3. create native `ecommerce` migration and seeder files for pricing settings, products, storefront, orders, and customers
-4. wire app database modules into framework startup and CLI commands
-5. switch app services and API routes to read from seeded database tables
-6. add runtime tests for registry order, execution, and DB-backed service reads
-7. update ASSIST docs for the new database workflow
-8. validate typecheck, lint, test, and build
+1. extend framework config and HTTP runtime so JSON auth routes, runtime config access, hashing, JWT, and SMTP are available through one reusable path
+2. add app-owned `core` schemas, migrations, and seeders for auth, sessions, OTP verification, and mailbox storage
+3. implement `core` repositories and services for auth/session/mailbox logic
+4. expose external auth routes and protected internal mailbox/auth routes through `apps/api`
+5. replace `cxapp` placeholder auth flow with live API-backed session restore, login, registration OTP, password reset, and account recovery
+6. protect internal `core` and `ecommerce` workspace fetches with the new bearer session flow
+7. add auth lifecycle tests and confirm the framework config test now behaves consistently across machines
+8. update ASSIST docs and validate typecheck, lint, test, and build
 
 ### Validation Plan
 
@@ -57,11 +62,11 @@ Move `core` and `ecommerce` from seed-file reads to app-owned database migration
 
 - [x] `npm run typecheck`
 - [x] `npm run lint` (same existing imported table warnings only)
+- [x] `npm run test`
 - [x] `npm run build`
-- [ ] `npm run test` (`tests/framework/runtime/config.test.ts` still fails against local `.env` host values)
 
 ### Risks And Follow-Up
 
-- the current database layer stores validated module payloads in simple app-owned JSON tables, which is good for baseline adoption but not yet the final relational shape for every domain
-- the framework config test is still environment-sensitive and remains the only failing automated test
-- create and update flows remain out of scope for this batch because this work focused on read-side migration and seeder infrastructure first
+- the current auth baseline uses access tokens backed by DB sessions, but it does not yet include refresh tokens, rate limiting, MFA, or deep audit workflows
+- mailbox admin behavior is exposed through API routes and storage, but the richer operator-facing management UI is still future work
+- some domain modules remain read-oriented; this batch focused on auth/session/mailbox foundation and live frontend adoption, not every downstream write workflow

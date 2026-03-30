@@ -6,6 +6,7 @@ import { createServer as createHttpsServer } from "node:https"
 import type { Socket } from "node:net"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
+import { ZodError } from "zod"
 
 import type { AppSuite } from "../application/app-manifest.js"
 import { createFrameworkServerContainer } from "../di/server-container.js"
@@ -344,6 +345,21 @@ export async function startFrameworkServer(cwd = process.cwd()) {
           JSON.stringify({
             error: error.message,
             context: error.context,
+          })
+        )
+        return
+      }
+
+      if (error instanceof ZodError) {
+        response.writeHead(400, {
+          "content-type": "application/json; charset=utf-8",
+        })
+        response.end(
+          JSON.stringify({
+            error: "Invalid request payload.",
+            context: {
+              issues: error.issues,
+            },
           })
         )
         return

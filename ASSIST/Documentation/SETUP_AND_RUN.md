@@ -58,6 +58,18 @@ Important keys:
 28. `ANALYTICS_DB_PASSWORD`
 29. `ANALYTICS_DB_NAME`
 30. `ANALYTICS_DB_SSL`
+31. `JWT_SECRET`
+32. `JWT_EXPIRES_IN_SECONDS`
+33. `AUTH_OTP_DEBUG`
+34. `AUTH_OTP_EXPIRY_MINUTES`
+35. `SUPER_ADMIN_EMAILS`
+36. `SMTP_HOST`
+37. `SMTP_PORT`
+38. `SMTP_SECURE`
+39. `SMTP_USER`
+40. `SMTP_PASS`
+41. `SMTP_FROM_EMAIL`
+42. `SMTP_FROM_NAME`
 
 ## Main Commands
 
@@ -84,6 +96,9 @@ Current useful host endpoints:
 3. `/internal/apps` exposes the internal suite registry
 4. `/internal/baseline` exposes the machine-readable workspace and host baseline
 5. `/api/apps` exposes a trimmed external app registry surface
+6. `/api/v1/auth/*` exposes login, registration OTP, password reset, account recovery, session lookup, and logout
+7. `/internal/v1/core/auth/*` exposes protected auth admin routes
+8. `/internal/v1/core/mailbox/*` exposes protected mailbox template and message routes
 
 ## Notes
 
@@ -94,3 +109,6 @@ Current useful host endpoints:
 5. the shared `ui` layer powers the dashboard shell, auth layouts, and design-system docs surface
 6. framework server startup now prepares the registered app-owned migrations and seeders before serving routes
 7. use `npm run db:prepare` to run the same migration and seeder workflow without starting the server
+8. `apps/cxapp/web` now uses the live auth API for login, request access, password reset, recovery, and logout instead of placeholder-only local auth state
+9. when `AUTH_OTP_DEBUG=true`, OTP responses include a `debugOtp` value so local end-to-end auth setup can be tested without a live mail provider
+10. SMTP delivery is enabled only when `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` are configured; otherwise mailbox sends fall back to stored debug records for local development

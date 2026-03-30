@@ -52,7 +52,7 @@ Every app folder must keep the same baseline shape:
 
 1. `framework` owns runtime infrastructure, DI, config, database runtime, HTTP host wiring, and app composition.
 2. `cxapp` is the main suite-facing product shell and owns the active frontend and server entry wrappers.
-3. `core` owns shared business masters and reusable ERP-common foundations.
+3. `core` owns shared business masters, suite auth and mailbox foundations, and reusable ERP-common foundations.
 4. `api` owns only route definitions and contracts, split into internal and external surfaces.
 5. `site` owns static and presentation-only public surfaces.
 6. `ui` owns the reusable design system, shared styles, and neutral UX building blocks.
@@ -82,6 +82,8 @@ Every app folder must keep the same baseline shape:
 15. Use one reference number across task tracking, planning, changelog, and commit subjects for the same batch.
 16. Keep scaffolds honest; do not present placeholders as completed domain behavior.
 17. Keep migration and seeder execution inside `apps/framework/src/runtime/database`; do not scatter ad hoc table bootstrapping across routes, services, or web code.
+18. Keep framework auth support limited to reusable primitives such as config, hashing, JWT signing, SMTP transport, and request parsing; keep auth users, sessions, OTP records, mailbox templates, and auth business logic inside the owning app such as `apps/core`.
+19. Keep suite-facing auth pages and browser session persistence in `apps/cxapp`; do not move routed auth workflows into `apps/ui`.
 
 ## Implementation Style
 
@@ -98,6 +100,7 @@ Every app folder must keep the same baseline shape:
 4. Do not bypass framework runtime and start hidden hosts from app code.
 5. Do not create app-local build output folders outside the shared `build/` root.
 6. Do not claim connector, accounting, or auth flows are production-ready when they are only scaffolded.
+7. Do not move auth domain tables, mailbox storage, or role/permission rules into `apps/framework`; those stay app-owned even when framework provides the runtime plumbing.
 
 ## Delivery Pattern
 

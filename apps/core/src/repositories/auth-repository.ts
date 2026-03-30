@@ -97,7 +97,7 @@ export class AuthRepository {
     const rows = await asQueryDatabase(this.database)
       .selectFrom(coreTableNames.authSessions)
       .selectAll()
-      .orderBy("created_at desc")
+      .orderBy("created_at", "desc")
       .execute()
 
     return rows.map((row) =>
