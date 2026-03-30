@@ -1,15 +1,30 @@
+import type { Kysely } from "kysely"
+
+import { listJsonStorePayloads } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
   commerceOrderListResponseSchema,
   commerceOrderWorkflowListResponseSchema,
   type CommerceOrderListResponse,
+  type CommerceOrderWorkflow,
   type CommerceOrderWorkflowListResponse,
 } from "../../shared/index.js"
 
-import { orderWorkflows } from "../data/ecommerce-seed.js"
+import { ecommerceTableNames } from "../../database/table-names.js"
 
-export function listOrderSummaries(): CommerceOrderListResponse {
+async function getOrderWorkflows(database: Kysely<unknown>) {
+  return listJsonStorePayloads<CommerceOrderWorkflow>(
+    database,
+    ecommerceTableNames.orderWorkflows
+  )
+}
+
+export async function listOrderSummaries(
+  database: Kysely<unknown>
+): Promise<CommerceOrderListResponse> {
+  const workflows = await getOrderWorkflows(database)
+
   return commerceOrderListResponseSchema.parse({
-    items: orderWorkflows.map((workflow) => ({
+    items: workflows.map((workflow) => ({
       orderId: workflow.order.id,
       orderNumber: workflow.order.orderNumber,
       customerName: `${workflow.order.firstName} ${workflow.order.lastName}`.trim(),
@@ -24,8 +39,12 @@ export function listOrderSummaries(): CommerceOrderListResponse {
   })
 }
 
-export function listOrderWorkflows(): CommerceOrderWorkflowListResponse {
+export async function listOrderWorkflows(
+  database: Kysely<unknown>
+): Promise<CommerceOrderWorkflowListResponse> {
+  const items = await getOrderWorkflows(database)
+
   return commerceOrderWorkflowListResponseSchema.parse({
-    items: orderWorkflows,
+    items,
   })
 }

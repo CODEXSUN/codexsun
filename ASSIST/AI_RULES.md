@@ -46,6 +46,7 @@ Every app folder must keep the same baseline shape:
 4. `database/seeder` for app-owned seeders or placeholders
 5. `helper` for app-local helper exports
 6. `shared` for app-local shared contracts and workspace metadata
+7. when an app owns persistent data, keep individual migration files in `apps/<app>/database/migration`, individual seeder files in `apps/<app>/database/seeder`, and register them through a server-side entry such as `apps/<app>/src/database-module.ts`
 
 ## Ownership Rules
 
@@ -80,6 +81,7 @@ Every app folder must keep the same baseline shape:
 14. Update docs, task tracking, planning, and changelog in the same batch as architecture changes.
 15. Use one reference number across task tracking, planning, changelog, and commit subjects for the same batch.
 16. Keep scaffolds honest; do not present placeholders as completed domain behavior.
+17. Keep migration and seeder execution inside `apps/framework/src/runtime/database`; do not scatter ad hoc table bootstrapping across routes, services, or web code.
 
 ## Implementation Style
 

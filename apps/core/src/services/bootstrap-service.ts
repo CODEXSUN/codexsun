@@ -1,7 +1,21 @@
+import type { Kysely } from "kysely"
+
+import { getFirstJsonStorePayload } from "../../../framework/src/runtime/database/process/json-store.js"
 import { bootstrapSnapshotSchema, type BootstrapSnapshot } from "../../shared/index.js"
 
-import { bootstrapSnapshot } from "../data/core-seed.js"
+import { coreTableNames } from "../../database/table-names.js"
 
-export function getBootstrapSnapshot(): BootstrapSnapshot {
-  return bootstrapSnapshotSchema.parse(bootstrapSnapshot)
+export async function getBootstrapSnapshot(
+  database: Kysely<unknown>
+): Promise<BootstrapSnapshot> {
+  const snapshot = await getFirstJsonStorePayload<BootstrapSnapshot>(
+    database,
+    coreTableNames.bootstrapSnapshots
+  )
+
+  if (!snapshot) {
+    throw new Error("Core bootstrap snapshot has not been seeded yet.")
+  }
+
+  return bootstrapSnapshotSchema.parse(snapshot)
 }

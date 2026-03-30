@@ -4,47 +4,46 @@
 
 ### Reference
 
-`#13`
+`#14`
 
 ### Goal
 
-Take the imported `core` and `ecommerce` source slices, adapt them to current app ownership, and expose a real backend-fed go-live baseline through the live `cxapp` desk without absorbing the foreign temp runtime.
+Move `core` and `ecommerce` from seed-file reads to app-owned database migrations and seeders, while keeping migration ownership in the native app folders and the execution workflow inside the reusable framework runtime.
 
 ### Scope
 
 - `ASSIST/Execution`
 - `ASSIST/Documentation/CHANGELOG.md`
-- `apps/core/shared`
+- `apps/framework/src/runtime/database`
+- `apps/framework/src/server`
+- `apps/cli/src`
+- `apps/core/database`
 - `apps/core/src`
-- `apps/core/web`
-- `apps/ecommerce/shared`
+- `apps/ecommerce/database`
 - `apps/ecommerce/src`
-- `apps/ecommerce/web`
 - `apps/api/src`
-- `apps/framework/src/runtime/http`
-- `apps/cxapp/web/src`
-- `vite.config.ts`
+- `tests/framework/runtime`
+- `ASSIST/AI_RULES.md`
+- `ASSIST/Documentation/ARCHITECTURE.md`
+- `ASSIST/Documentation/SETUP_AND_RUN.md`
 
 ### Canonical Decisions
 
-- imported temp code must be split by current ownership, not copied by old folder names
-- `apps/core` should take shared masters, shared setup metadata, reusable shared contracts, and its own app-native services
-- `apps/ecommerce` should take catalog, storefront, order, customer, and pricing contracts under its own boundary even if temp grouped some source elsewhere
-- imported temp API code cannot be copied because it targets a different runtime; app-native services must be rewritten against the current framework and api boundary
-- the current HTTP route model must be extended once, centrally, so app routes can read request context without adding one-off hacks
-- the live `cxapp` desk remains the active operator-facing shell, so imported app sections should be surfaced there first
-- the shared design system stays in `apps/ui`; app-specific workspace structure belongs inside the app boundaries and desk wiring
-- until app-owned migrations land, backend data should stay seed-backed and clearly represented as such rather than pretending to be database-complete
+- migration and seeder files must stay in `apps/<app>/database/*`, not inside framework or api
+- framework should execute app-owned migrations and seeders through one reusable runtime path
+- app services should read the seeded database tables rather than bypassing them with in-memory data once the migration path exists
+- `core` and `ecommerce` need individual module files so future apps can follow the same pattern without adding monolithic migration bundles
+- the first database-backed step should keep table design simple and explicit so the workflow is proven before deeper relational normalization
 
 ### Execution Plan
 
-1. audit `temp/core` and `temp/ecommerce` against the current repository boundaries
-2. copy the first shared-contract slice from `temp/core/shared` into `apps/core/shared`
-3. add app-native `core` services and internal routes for bootstrap, companies, contacts, and common modules
-4. move the ecommerce shared-contract slice into `apps/ecommerce/shared`
-5. add app-native `ecommerce` services and routes for catalog, storefront, orders, customers, and pricing settings
-6. adapt the shared desk to render app-owned `core` and `ecommerce` workspace sections with backend-fed data
-7. update ASSIST task, planning, and changelog entries for this batch
+1. add a framework database execution runtime and registry for app-owned migrations and seeders
+2. create native `core` migration and seeder files for bootstrap, companies, contacts, and common modules
+3. create native `ecommerce` migration and seeder files for pricing settings, products, storefront, orders, and customers
+4. wire app database modules into framework startup and CLI commands
+5. switch app services and API routes to read from seeded database tables
+6. add runtime tests for registry order, execution, and DB-backed service reads
+7. update ASSIST docs for the new database workflow
 8. validate typecheck, lint, test, and build
 
 ### Validation Plan
@@ -63,7 +62,6 @@ Take the imported `core` and `ecommerce` source slices, adapt them to current ap
 
 ### Risks And Follow-Up
 
-- the current `core` and `ecommerce` backend slices are seed-backed rather than database-backed, so create and update flows remain out of scope for this batch
-- `temp/ecommerce/web` is much larger than the current app boundary can absorb safely in one move, so the broader marketing, portal, and designer surfaces still need staged adoption
-- imported temp API code still targets a different runtime layout and must not be copied into framework or api blindly
-- the existing framework config test is environment-sensitive and still needs isolation from local `.env` state
+- the current database layer stores validated module payloads in simple app-owned JSON tables, which is good for baseline adoption but not yet the final relational shape for every domain
+- the framework config test is still environment-sensitive and remains the only failing automated test
+- create and update flows remain out of scope for this batch because this work focused on read-side migration and seeder infrastructure first

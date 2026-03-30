@@ -4,23 +4,22 @@
 
 ### Reference
 
-`#13`
+`#14`
 
 ### Title
 
-`Core backend wiring and ecommerce go-live seed baseline`
+`App-owned core and ecommerce database migrations and seeders`
 
 ### Scope Checklist
 
-- [x] Audit `temp/core` and `temp/ecommerce` against the current `apps/core` and `apps/ecommerce` boundaries
-- [x] Move the first shared-contract slice from `temp/core` into `apps/core/shared`
-- [x] Add native route context support so API handlers can read request data and runtime resources
-- [x] Adapt imported core workspace sections to the current `/dashboard/apps/core/*` routing structure
-- [x] Wire core app-owned sections into the `cxapp` desk with backend-fed section views
-- [x] Move the ecommerce shared-contract slice into `apps/ecommerce/shared`
-- [x] Wire ecommerce backend services and routes through the current framework and api boundaries
-- [x] Adapt ecommerce workspace sections to the current `/dashboard/apps/ecommerce/*` routing structure
-- [x] Surface live catalog, storefront, order, customer, and pricing sections inside the shared desk
+- [x] add a framework-owned migration and seeder execution runtime that consumes app-owned database modules
+- [x] create individual `core` migration files and individual `core` seeder files in the native `apps/core/database/*` folders
+- [x] create individual `ecommerce` migration files and individual `ecommerce` seeder files in the native `apps/ecommerce/database/*` folders
+- [x] connect app-owned migration and seeder indexes to a central framework registry and CLI commands
+- [x] switch `core` services and routes from in-memory seed files to seeded database reads
+- [x] switch `ecommerce` services and routes from in-memory seed files to seeded database reads
+- [x] prepare the registered database modules on framework server startup so runtime reads use migrated and seeded tables
+- [x] add database process tests for registry order, migration execution, seeder execution, and service reads
 - [x] Update ASSIST task, planning, and changelog entries for this batch
 
 ### Validation Note
@@ -34,15 +33,14 @@
 
 ### Reference
 
-`#14`
+`#15`
 
 ### Title
 
-`Database-backed core and ecommerce migration follow-up`
+`Database write flows and config test isolation`
 
 ### Scope Checklist
 
-- [ ] replace seed-backed core repositories with app-owned database-backed repositories and migrations
-- [ ] replace seed-backed ecommerce repositories with app-owned database-backed repositories and migrations
 - [ ] add write flows for create and update operations where the current desk is read-only
+- [ ] normalize the database payload tables into richer relational structures where the current module snapshots are too coarse
 - [ ] isolate framework config tests from local `.env` overrides so validation is stable across machines

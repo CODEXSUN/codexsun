@@ -67,6 +67,10 @@ npm run dev:server
 npm run typecheck
 npm run lint
 npm run test
+npm run db:prepare
+npm run db:migrate
+npm run db:seed
+npm run db:status
 npm run build
 npm run start
 ```
@@ -88,3 +92,5 @@ Current useful host endpoints:
 3. `apps/api` stays route-only and split into `src/internal` and `src/external`
 4. every app carries its own `src`, `web`, `database`, `helper`, and `shared` structure
 5. the shared `ui` layer powers the dashboard shell, auth layouts, and design-system docs surface
+6. framework server startup now prepares the registered app-owned migrations and seeders before serving routes
+7. use `npm run db:prepare` to run the same migration and seeder workflow without starting the server

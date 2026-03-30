@@ -154,6 +154,9 @@ Current helper surface:
 
 1. interactive GitHub commit and push helper: `npm run github`
 2. built server-side GitHub helper: `npm run github:server`
+3. database prepare command: `npm run db:prepare`
+4. database migrate command: `npm run db:migrate`
+5. database seed command: `npm run db:seed`
 
 ## Runtime Model
 
@@ -207,8 +210,10 @@ Current database direction:
 Rules:
 
 1. framework owns the live runtime driver switching
-2. app-local `database/migration` and `database/seeder` folders exist for isolated ownership as apps deepen
-3. stock, accounting, tax, and audit-sensitive writes must stay explicit and traceable
+2. framework owns migration and seeder execution, ledger tracking, and registry composition
+3. each app owns its individual migration files under `database/migration` and individual seeder files under `database/seeder`
+4. app database modules should be exposed through server-side entry points such as `apps/<app>/src/database-module.ts`
+5. stock, accounting, tax, and audit-sensitive writes must stay explicit and traceable
 
 ## Build Model
 
@@ -248,12 +253,14 @@ Implemented now:
 7. shared desk shell and grouped app navigation from `apps/ui`
 8. shared auth layouts and auth page presentation through `apps/ui`
 9. shared design-system docs and routeable component catalog in the `ui` app
-10. root tests that validate suite registration, workspace structure, and framework runtime/baseline behavior
+10. app-owned `core` and `ecommerce` migrations and seeders executed through the framework runtime and CLI helper
+11. `core` and `ecommerce` services reading seeded database tables instead of bypassing the database with in-memory seed arrays
+12. root tests that validate suite registration, workspace structure, framework runtime behavior, and database process execution
 
 Still future work:
 
 1. real domain modules inside each standalone app
-2. app-owned migrations and seeders beyond placeholders
+2. richer relational schemas and write flows beyond the current module-payload baseline
 3. real connector execution flows
 4. production auth, permissions, and audit flows
 5. Electron desktop runtime

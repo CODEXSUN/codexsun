@@ -11,7 +11,10 @@ import type { AppSuite } from "../application/app-manifest.js"
 import { createFrameworkServerContainer } from "../di/server-container.js"
 import { FRAMEWORK_TOKENS } from "../di/tokens.js"
 import type { ServerConfig } from "../runtime/config/index.js"
-import type { RuntimeDatabases } from "../runtime/database/index.js"
+import {
+  prepareApplicationDatabase,
+  type RuntimeDatabases,
+} from "../runtime/database/index.js"
 import {
   createRequestContext,
   matchHttpRoute,
@@ -177,7 +180,7 @@ async function resolveResponse(
   }
 }
 
-export function startFrameworkServer(cwd = process.cwd()) {
+export async function startFrameworkServer(cwd = process.cwd()) {
   const container = createFrameworkServerContainer(cwd)
   const config = container.resolve<ServerConfig>(FRAMEWORK_TOKENS.config)
   const databases = container.resolve<RuntimeDatabases>(FRAMEWORK_TOKENS.databases)
@@ -200,6 +203,13 @@ export function startFrameworkServer(cwd = process.cwd()) {
     tlsKeyPath,
     webRoot,
   } = config
+
+  try {
+    await prepareApplicationDatabase(databases, { logger: console })
+  } catch (error) {
+    await databases.destroy()
+    throw error
+  }
 
   type ListenerServer =
     | ReturnType<typeof createHttpServer>
@@ -238,22 +248,22 @@ export function startFrameworkServer(cwd = process.cwd()) {
         requestUrl.pathname,
         request.method as "GET" | "HEAD",
         {
-        appDomain,
-        appHost,
-        appHttpPort,
-        appHttpsPort,
-        appName,
-        appSuite,
-        cloudflareEnabled,
-        databases,
-        frontendDomain,
-        frontendHttpPort,
-        frontendHttpsPort,
-        httpRoutes,
-        requestUrl,
-        tlsEnabled,
-        webRoot,
-      }
+          appDomain,
+          appHost,
+          appHttpPort,
+          appHttpsPort,
+          appName,
+          appSuite,
+          cloudflareEnabled,
+          databases,
+          frontendDomain,
+          frontendHttpPort,
+          frontendHttpsPort,
+          httpRoutes,
+          requestUrl,
+          tlsEnabled,
+          webRoot,
+        }
       )
 
       response.writeHead(resolved.statusCode, resolved.headers)
@@ -434,5 +444,5 @@ export function startFrameworkServer(cwd = process.cwd()) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startFrameworkServer()
+  void startFrameworkServer()
 }

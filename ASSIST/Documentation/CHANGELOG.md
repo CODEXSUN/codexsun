@@ -8,6 +8,16 @@
 
 ## v-0.0.1
 
+### [#14] 2026-03-30 - App-owned core and ecommerce database migrations and seeders
+
+- added a framework-owned migration and seeder execution runtime that discovers app-owned database modules and records applied work in system ledger tables
+- created individual `core` migration files and individual `core` seeder files under `apps/core/database/*` for bootstrap, companies, contacts, and common modules
+- created individual `ecommerce` migration files and individual `ecommerce` seeder files under `apps/ecommerce/database/*` for pricing settings, products, storefront, orders, and customers
+- added server-side app database module entry points and a CLI database helper so the registered migrations and seeders are reachable through one consistent workflow
+- switched `core` and `ecommerce` services and routes from direct in-memory seed reads to seeded database reads
+- prepared registered migrations and seeders on framework server startup so live routes and workspace pages read migrated and seeded data
+- added runtime tests that verify registry order, migration execution, seeder execution, and DB-backed service reads for the current `core` and `ecommerce` baseline
+
 ### [#13] 2026-03-30 - Core backend wiring and ecommerce go-live seed baseline
 
 - audited the imported `temp/core` and `temp/ecommerce` trees against the current app ownership boundaries before copying anything

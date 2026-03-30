@@ -30,10 +30,10 @@ export function createPublicHttpRoutes(appSuite: AppSuite): HttpRouteDefinition[
     definePublicRoute("/storefront/catalog", {
       legacyPaths: ["/public/storefront/catalog"],
       summary: "Public storefront catalog projection for commerce-facing surfaces.",
-      handler: () => ({
+      handler: async ({ databases }) => ({
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify(getStorefrontCatalog()),
+        body: JSON.stringify(await getStorefrontCatalog(databases.primary)),
       }),
     }),
   ]

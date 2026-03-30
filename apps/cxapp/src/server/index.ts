@@ -7,5 +7,5 @@ export function startCxAppServer(cwd = process.cwd()) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startCxAppServer()
+  void startCxAppServer()
 }

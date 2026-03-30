@@ -12,37 +12,44 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/products", {
       legacyPaths: ["/internal/ecommerce/products"],
       summary: "Internal commerce catalog list for admin and merchandising surfaces.",
-      handler: () => jsonResponse(listProducts()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listProducts(databases.primary)),
     }),
     defineInternalRoute("/ecommerce/storefront/catalog", {
       legacyPaths: ["/internal/ecommerce/storefront/catalog"],
       summary: "Internal storefront projection used by commerce preview surfaces.",
-      handler: () => jsonResponse(getStorefrontCatalog()),
+      handler: async ({ databases }) =>
+        jsonResponse(await getStorefrontCatalog(databases.primary)),
     }),
     defineInternalRoute("/ecommerce/orders", {
       legacyPaths: ["/internal/ecommerce/orders"],
       summary: "Commerce order summaries for operations views.",
-      handler: () => jsonResponse(listOrderSummaries()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listOrderSummaries(databases.primary)),
     }),
     defineInternalRoute("/ecommerce/order-workflows", {
       legacyPaths: ["/internal/ecommerce/order-workflows"],
       summary: "Commerce order workflows with shipment and invoice state.",
-      handler: () => jsonResponse(listOrderWorkflows()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listOrderWorkflows(databases.primary)),
     }),
     defineInternalRoute("/ecommerce/customers", {
       legacyPaths: ["/internal/ecommerce/customers"],
       summary: "Commerce customer helpdesk summaries for support and retention views.",
-      handler: () => jsonResponse(listCustomerSummaries()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listCustomerSummaries(databases.primary)),
     }),
     defineInternalRoute("/ecommerce/customer-details", {
       legacyPaths: ["/internal/ecommerce/customer-details"],
       summary: "Commerce customer helpdesk detail records including issues and orders.",
-      handler: () => jsonResponse(listCustomerDetails()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listCustomerDetails(databases.primary)),
     }),
     defineInternalRoute("/ecommerce/settings/pricing", {
       legacyPaths: ["/internal/ecommerce/settings/pricing"],
       summary: "Commerce pricing defaults used by catalog and operations tooling.",
-      handler: () => jsonResponse(getEcommercePricingSettings()),
+      handler: async ({ databases }) =>
+        jsonResponse(await getEcommercePricingSettings(databases.primary)),
     }),
   ]
 }

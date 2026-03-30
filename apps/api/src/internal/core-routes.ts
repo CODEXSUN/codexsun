@@ -16,32 +16,37 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/core/bootstrap", {
       legacyPaths: ["/internal/core/bootstrap"],
       summary: "Core bootstrap mission, channels, and readiness snapshot.",
-      handler: () => jsonResponse(getBootstrapSnapshot()),
+      handler: async ({ databases }) =>
+        jsonResponse(await getBootstrapSnapshot(databases.primary)),
     }),
     defineInternalRoute("/core/companies", {
       legacyPaths: ["/internal/core/companies"],
       summary: "Core company list used by shared organization setup surfaces.",
-      handler: () => jsonResponse(listCompanies()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listCompanies(databases.primary)),
     }),
     defineInternalRoute("/core/contacts", {
       legacyPaths: ["/internal/core/contacts"],
       summary: "Core contact list used by shared party and master-data surfaces.",
-      handler: () => jsonResponse(listContacts()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listContacts(databases.primary)),
     }),
     defineInternalRoute("/core/common-modules/metadata", {
       legacyPaths: ["/internal/core/common-modules/metadata"],
       summary: "Common module metadata registry for shared masters.",
-      handler: () => jsonResponse(listCommonModuleMetadata()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listCommonModuleMetadata(databases.primary)),
     }),
     defineInternalRoute("/core/common-modules/summary", {
       legacyPaths: ["/internal/core/common-modules/summary"],
       summary: "Common module counts for workspace readiness and overview use.",
-      handler: () => jsonResponse(listCommonModuleSummaries()),
+      handler: async ({ databases }) =>
+        jsonResponse(await listCommonModuleSummaries(databases.primary)),
     }),
     defineInternalRoute("/core/common-modules/items", {
       legacyPaths: ["/internal/core/common-modules/items"],
       summary: "Common module items for a selected shared master key.",
-      handler: ({ request }) => {
+      handler: async ({ databases, request }) => {
         const moduleKey = request.url.searchParams.get("module")
         const parsedKey = commonModuleKeySchema.safeParse(moduleKey)
 
@@ -49,7 +54,12 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
           return badRequestResponse("A valid common module key is required.")
         }
 
-        return jsonResponse(listCommonModuleItems(parsedKey.data as CommonModuleKey))
+        return jsonResponse(
+          await listCommonModuleItems(
+            databases.primary,
+            parsedKey.data as CommonModuleKey
+          )
+        )
       },
     }),
   ]
