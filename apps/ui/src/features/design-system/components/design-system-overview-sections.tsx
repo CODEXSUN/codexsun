@@ -17,11 +17,11 @@ const overviewSections = [
     name: "Design Settings",
   },
   {
-    description: "Combined blocks for common forms and repeated application patterns.",
-    href: "form-blocks",
+    description: "Combined blocks for common flows and repeated application patterns.",
+    href: "blocks",
     icon: ClipboardList,
-    id: "form-blocks",
-    name: "Form Blocks",
+    id: "blocks",
+    name: "Blocks",
   },
   {
     description: "Checklist coverage for the core components needed to build product screens.",

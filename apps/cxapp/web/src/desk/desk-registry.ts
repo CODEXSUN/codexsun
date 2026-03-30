@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
-import { docsCategories, docsEntries } from "@/features/docs/data/catalog"
+import { docsCategories, docsEntries } from "@/features/component-registry/data/catalog"
 import type {
   DashboardAppDefinition,
   DashboardLocationMeta,
@@ -153,11 +153,12 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         icon: Settings2,
       },
       {
-        id: `${app.id}-form-blocks`,
-        name: "Form Blocks",
-        route: `${root}/form-blocks`,
-        summary: "Use combined multi-component blocks for common application forms.",
+        id: `${app.id}-blocks`,
+        name: "Blocks",
+        route: `${root}/blocks`,
+        summary: "Use combined multi-component blocks for common application flows.",
         icon: ClipboardList,
+        matchRoutes: [`${root}/form-blocks`],
       },
       {
         id: `${app.id}-build-readiness`,
@@ -250,7 +251,7 @@ function createUiMenuGroups(
         [
           root,
           `${root}/design-settings`,
-          `${root}/form-blocks`,
+          `${root}/blocks`,
           `${root}/build-readiness`,
         ].includes(item.route)
       ),
@@ -452,3 +453,4 @@ export function resolveDeskLocation(
     app,
   }
 }
+

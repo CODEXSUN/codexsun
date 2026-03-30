@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-export default function AlertDialogWithCustomizedHeader() {
+export default function AlertDialogWithDismissibleHeader() {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>

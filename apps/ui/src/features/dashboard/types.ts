@@ -13,6 +13,7 @@ export type DashboardWorkspaceLink = {
   route: string
   summary: string
   icon: LucideIcon
+  matchRoutes?: string[]
 }
 
 export type DashboardMenuItem = DashboardWorkspaceLink & {

@@ -1,8 +1,10 @@
 import { CardTitle } from "@/components/ui/card"
-import type { DocsEntry } from "@/features/docs/data/catalog"
+import type { DocsEntry } from "@/features/component-registry/data/catalog"
 import { CopyCodeButton } from "@/features/docs/components/copy-code-button"
 import { ViewCodeDialog } from "@/features/docs/components/view-code-dialog"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useProjectDefaults } from "@/features/design-system/context/project-defaults-provider"
 import { getDesignSystemComponentDefault } from "@/features/design-system/data/component-governance"
 
 export function DocsEntryCard({
@@ -13,7 +15,13 @@ export function DocsEntryCard({
   showHeader?: boolean
 }) {
   const EntryIcon = entry.icon
-  const componentDefault = getDesignSystemComponentDefault(entry.id)
+  const baselineDefault = getDesignSystemComponentDefault(entry.id)
+  const {
+    clearPreviewDefault,
+    getResolvedDefault,
+    setPreviewDefault,
+  } = useProjectDefaults()
+  const componentDefault = getResolvedDefault(entry.id)
 
   return (
     <div id={entry.id} className="space-y-5">
@@ -35,8 +43,11 @@ export function DocsEntryCard({
                   Code name: {componentDefault.applicationName}
                 </Badge>
                 <Badge variant="outline">
-                  Default: {componentDefault.defaultExampleTitle}
+                  Default: {componentDefault.activeDefaultExampleTitle}
                 </Badge>
+                {componentDefault.isOverridden ? (
+                  <Badge>Preview override</Badge>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -48,7 +59,9 @@ export function DocsEntryCard({
       <div className="grid gap-4 xl:grid-cols-2">
         {entry.examples.map((example, index) => {
           const isProjectDefault =
-            componentDefault?.defaultExampleId === example.id
+            componentDefault?.activeDefaultExampleId === example.id
+          const isSourceDefault =
+            baselineDefault?.defaultExampleId === example.id
 
           return (
           <div
@@ -62,7 +75,14 @@ export function DocsEntryCard({
                 </span>
                 <span>{example.title}</span>
                 {isProjectDefault ? (
-                  <Badge variant="outline">Project default</Badge>
+                  <Badge variant="outline">
+                    {componentDefault?.isOverridden
+                      ? "Active preview default"
+                      : "Project default"}
+                  </Badge>
+                ) : null}
+                {!isProjectDefault && isSourceDefault ? (
+                  <Badge variant="outline">Source default</Badge>
                 ) : null}
               </div>
               <div className="flex items-center gap-1">
@@ -78,6 +98,26 @@ export function DocsEntryCard({
               <div className="rounded-[1rem] border border-border/70 bg-background p-5">
                 {example.preview}
               </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  variant={isProjectDefault ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setPreviewDefault(entry.id, example.id)}
+                >
+                  {isProjectDefault
+                    ? "Selected as active default"
+                    : "Use as project default"}
+                </Button>
+                {componentDefault?.isOverridden && isProjectDefault ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => clearPreviewDefault(entry.id)}
+                  >
+                    Restore source default
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
           )
@@ -86,3 +126,4 @@ export function DocsEntryCard({
     </div>
   )
 }
+

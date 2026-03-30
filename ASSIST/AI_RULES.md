@@ -16,6 +16,8 @@ Before making changes, read:
 6. `ASSIST/Execution/TASK.md`
 7. `ASSIST/Execution/PLANNING.md`
 8. the relevant guide under `ASSIST/Planning`
+9. `apps/ui/src/features/design-system/data/project-defaults.ts` when the task touches known shared UI components or page composition
+10. `apps/ui/src/features/component-registry` when the task touches shared component variants or reusable blocks
 
 ## Current Repository Model
 
@@ -71,11 +73,13 @@ Every app folder must keep the same baseline shape:
 7. Keep shared masters in `apps/core`.
 8. Keep shared UI in `apps/ui`; do not move app-specific business screens back into the shared UI package.
 9. Shared `apps/ui/src/features/*` code is allowed only for neutral cross-app surfaces such as dashboard shell presentation or design-system docs.
-10. Keep MariaDB as the default live transactional database, SQLite as the offline desktop option, and PostgreSQL as the optional analytics path.
-11. Keep build outputs under `build/app/<app>/<target>` and reserve `build/module/<module>/<target>` for future modules.
-12. Update docs, task tracking, planning, and changelog in the same batch as architecture changes.
-13. Use one reference number across task tracking, planning, changelog, and commit subjects for the same batch.
-14. Keep scaffolds honest; do not present placeholders as completed domain behavior.
+10. For known shared UI components, use `apps/ui/src/features/design-system/data/project-defaults.ts` as the project source of truth for component names and default variants.
+11. For reusable shared UI compositions, source them from `apps/ui/src/features/component-registry/blocks` rather than recreating page fragments inside docs or app shells.
+12. Keep MariaDB as the default live transactional database, SQLite as the offline desktop option, and PostgreSQL as the optional analytics path.
+13. Keep build outputs under `build/app/<app>/<target>` and reserve `build/module/<module>/<target>` for future modules.
+14. Update docs, task tracking, planning, and changelog in the same batch as architecture changes.
+15. Use one reference number across task tracking, planning, changelog, and commit subjects for the same batch.
+16. Keep scaffolds honest; do not present placeholders as completed domain behavior.
 
 ## Implementation Style
 
@@ -99,6 +103,7 @@ Every app folder must keep the same baseline shape:
 2. Record the active reference in `ASSIST/Execution/TASK.md`.
 3. Record scope, assumptions, and validation in `ASSIST/Execution/PLANNING.md`.
 4. Implement the smallest boundary-correct change.
-5. Run `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` when relevant.
-6. Update docs and changelog in the same batch.
-7. Report what changed, what remains, and any residual risks.
+5. When building with known design-system components, resolve the component name and default variant from `apps/ui/src/features/design-system/data/project-defaults.ts` before writing UI code, and prefer `apps/ui/src/features/component-registry/blocks` for reusable multi-component page sections.
+6. Run `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` when relevant.
+7. Update docs and changelog in the same batch.
+8. Report what changed, what remains, and any residual risks.

@@ -22,7 +22,8 @@ export default defineConfig([
   },
   {
     files: [
-      'apps/ui/src/features/docs/registry/**/*.{ts,tsx}',
+      'apps/ui/src/features/component-registry/registry/**/*.{ts,tsx}',
+      'apps/ui/src/features/component-registry/data/**/*.{ts,tsx}',
       'apps/ui/src/features/docs/data/**/*.{ts,tsx}',
       'apps/ui/src/components/ui/badge.tsx',
       'apps/ui/src/components/ui/button-group.tsx',

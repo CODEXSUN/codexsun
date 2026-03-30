@@ -8,7 +8,7 @@ import {
   docsEntries,
   docsStats,
   docsTemplates,
-} from "@/features/docs/data/catalog"
+} from "@/features/component-registry/data/catalog"
 import { DocsBrowser } from "@/features/docs/components/docs-browser"
 
 export function DocsPage() {
@@ -47,10 +47,10 @@ export function DocsPage() {
                       <ArrowUpRight className="size-4 text-muted-foreground" />
                     </a>
                     <a
-                      href="#form-blocks"
+                      href="#blocks"
                       className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-muted"
                     >
-                      <span>Form Blocks</span>
+                      <span>Blocks</span>
                       <ArrowUpRight className="size-4 text-muted-foreground" />
                     </a>
                     <a
@@ -161,3 +161,4 @@ export function DocsPage() {
     </div>
   )
 }
+

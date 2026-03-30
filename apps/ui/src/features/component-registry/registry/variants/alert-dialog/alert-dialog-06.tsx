@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-export default function AlertDialogWithCustomizedFooter() {
+export default function AlertDialogWithActionFooter() {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>

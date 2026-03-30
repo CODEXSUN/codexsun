@@ -4,7 +4,7 @@ import { DocsTemplateCard } from "@/features/docs/components/docs-template-card"
 import {
   docsTemplateCategories,
   docsTemplates,
-} from "@/features/docs/data/catalog"
+} from "@/features/component-registry/data/catalog"
 
 export function DocsTemplatesSection() {
   return (
@@ -44,3 +44,4 @@ export function DocsTemplatesSection() {
     </div>
   )
 }
+

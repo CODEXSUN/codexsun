@@ -70,7 +70,7 @@ export default function NavigationMenuWithDropdown() {
                       codexsun UI Blocks
                     </div>
                     <p className="text-muted-foreground text-sm leading-tight">
-                      Collection of customized codexsun UI blocks and components
+                      Collection of curated Codexsun UI blocks and component variants
                     </p>
                   </Link>
                 </NavigationMenuLink>

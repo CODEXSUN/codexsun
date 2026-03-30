@@ -35,7 +35,7 @@ export default function AlertDialogInfo() {
           <div className="mt-6! flex flex-wrap gap-2">
             <Badge variant="outline">Faster Performance</Badge>
             <Badge variant="outline">Advanced Blocks</Badge>
-            <Badge variant="outline">Customized Components</Badge>
+            <Badge variant="outline">Component Variants</Badge>
             <Badge variant="outline">UI Revamp</Badge>
             <Badge variant="outline">Security Improvements</Badge>
             <Badge variant="outline">Other Improvements</Badge>

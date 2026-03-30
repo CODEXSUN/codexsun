@@ -6,7 +6,7 @@ import { DocsEntryCard } from "@/features/docs/components/docs-entry-card"
 import { DocsPageHeader } from "@/features/docs/components/docs-page-header"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { DocsBrowser } from "@/features/docs/components/docs-browser"
-import { docsEntries } from "@/features/docs/data/catalog"
+import { docsEntries } from "@/features/component-registry/data/catalog"
 import {
   DesignSystemBlocksPage,
   DesignSystemDefaultsPage,
@@ -37,11 +37,17 @@ const uiWorkspaceSections = {
     render: () => <DesignSystemDefaultsPage />,
     title: "Design settings",
   },
+  blocks: {
+    description:
+      "Reusable blocks that combine multiple governed components for common application flows.",
+    render: () => <DesignSystemBlocksPage />,
+    title: "Blocks",
+  },
   "form-blocks": {
     description:
-      "Reusable blocks that combine multiple governed components for common application forms.",
+      "Reusable blocks that combine multiple governed components for common application flows.",
     render: () => <DesignSystemBlocksPage />,
-    title: "Form blocks",
+    title: "Blocks",
   },
 } as const
 
@@ -74,7 +80,7 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
 
   const activeModule =
     app.modules.find((item) =>
-      matchesDeskRoute(location.pathname, item.route)
+      matchesDeskRoute(location.pathname, item.route, item.matchRoutes)
     ) ?? app.modules[0]
   const isUiWorkspace = app.id === "ui"
   const uiSection =
@@ -250,3 +256,4 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
     </div>
   )
 }
+

@@ -22,7 +22,7 @@ const ProductCard = () => {
       </CardContent>
 
       <CardFooter className="mt-6">
-        <Button className="/blocks">
+        <Button className="gap-2">
           Explore Blocks <ArrowRight />
         </Button>
       </CardFooter>

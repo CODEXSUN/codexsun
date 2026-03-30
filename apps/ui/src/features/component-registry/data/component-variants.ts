@@ -1,4 +1,4 @@
-export const customizedComponents = {
+export const componentVariants = {
   accordion: [
     { title: "Default", type: "accordion", name: "accordion-01" },
     { title: "Outline", type: "accordion", name: "accordion-02" },
@@ -67,12 +67,12 @@ export const customizedComponents = {
       name: "alert-dialog-04",
     },
     {
-      title: "Customized Header",
+      title: "Dismissible Header",
       type: "alert-dialog",
       name: "alert-dialog-05",
     },
     {
-      title: "Customized Footer",
+      title: "Action Footer",
       type: "alert-dialog",
       name: "alert-dialog-06",
     },

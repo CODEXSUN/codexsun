@@ -13,19 +13,19 @@ const items = [
       "No, codexsun UI Blocks is not an alternative to codexsun UI. It actually complements codexsun UI.",
   },
   {
-    title: "How can I use the customized components in my project?",
+    title: "How can I use the component variants in my project?",
     content:
-      "You can use the customized components by previewing them on our platform, copying the provided code, and pasting it directly into your project. This allows for quick implementation without extensive coding.",
+      "You can use the component variants by previewing them on our platform, copying the provided code, and pasting it directly into your project. This allows for quick implementation without extensive coding.",
   },
   {
-    title: "What types of customized components are available?",
+    title: "What types of component variants are available?",
     content:
-      "Our collection includes various customized codexsun UI components designed for flexibility and style, such as buttons, inputs, accordions, tabs, cards, etc., allowing you to create a unique look for your application.",
+      "Our collection includes various Codexsun UI component variants designed for flexibility and style, such as buttons, inputs, accordions, tabs, and cards, allowing you to create a consistent look for your application.",
   },
   {
-    title: "Does the customized component support dark mode?",
+    title: "Do the component variants support dark mode?",
     content:
-      "Yes, all customized components are designed to look good in both light and dark modes.",
+      "Yes, all component variants are designed to look good in both light and dark modes.",
   },
   {
     title: "Can I modify the codexsun UI components after copying them?",
@@ -34,7 +34,7 @@ const items = [
   },
 ];
 
-export function CustomizedComponentsFAQ() {
+export function ComponentVariantsFAQ() {
   return (
     <>
       <p className="mb-3 font-semibold text-foreground/80 uppercase tracking-tight">

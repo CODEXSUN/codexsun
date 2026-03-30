@@ -14,7 +14,7 @@ import {
   docsCategories,
   docsEntries,
   docsTemplates,
-} from "@/features/docs/data/catalog"
+} from "@/features/component-registry/data/catalog"
 
 type DocsBrowserProps = {
   basePath?: string
@@ -114,3 +114,4 @@ export function DocsBrowser({
     </div>
   )
 }
+

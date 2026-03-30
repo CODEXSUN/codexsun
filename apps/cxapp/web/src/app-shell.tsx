@@ -11,6 +11,7 @@ import type { AppSuite } from "@framework/application/app-manifest"
 import { createFrameworkBrowserContainer } from "@framework/di/browser-container"
 import { FRAMEWORK_TOKENS } from "@framework/di/tokens"
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
+import { ProjectDefaultsProvider } from "@/features/design-system/context/project-defaults-provider"
 import AdminLayout from "@/layouts/AdminLayout"
 import type { DashboardUser } from "@/features/dashboard/types"
 
@@ -80,14 +81,15 @@ function AppShell() {
 
   return (
     <BrowserRouter>
-      <DeskProvider
-        appSuite={appSuite}
-        user={user}
-        onLogout={() => {
-          setUser(guestUser)
-        }}
-      >
-        <Routes>
+      <ProjectDefaultsProvider>
+        <DeskProvider
+          appSuite={appSuite}
+          user={user}
+          onLogout={() => {
+            setUser(guestUser)
+          }}
+        >
+          <Routes>
           <Route path="/" element={<HomePage appSuite={appSuite} />} />
           <Route
             path="/login"
@@ -174,8 +176,9 @@ function AppShell() {
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </DeskProvider>
+          </Routes>
+        </DeskProvider>
+      </ProjectDefaultsProvider>
     </BrowserRouter>
   )
 }

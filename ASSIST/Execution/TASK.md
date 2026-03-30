@@ -18,7 +18,10 @@
 - [x] Expand the docs component catalog, overview cards, and side menu with the imported components
 - [x] Add a docs templates section and surface imported template metadata in the UI app
 - [x] Add compatibility shims and lint scope updates needed for the imported docs registry
-- [x] Add source-controlled design-system defaults, combined form blocks, and build-readiness channels to the UI workspace
+- [x] Add source-controlled design-system defaults, reusable blocks, and build-readiness channels to the UI workspace
+- [x] Move project component defaults into a dedicated source-controlled file for agent and build reference
+- [x] Move the imported variant source from docs-owned registry paths into a reusable component-registry feature
+- [x] Split the reusable component-registry into `variants` and `blocks`, and add auth login page block variants
 - [x] Update ASSIST task, planning, and changelog entries for this batch
 
 ### Validation Note

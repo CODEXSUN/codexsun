@@ -14,7 +14,10 @@
 - added missing shared UI primitives plus lightweight Next compatibility shims required by the imported demos
 - expanded the docs catalog, overview cards, and side navigation to surface the imported component groups
 - added a templates section to the docs workspace so component docs and template metadata now live in one UI app surface
-- added a source-controlled design-system governance layer for project default component names, default variants, combined form blocks, and application build-readiness coverage
+- added a source-controlled design-system governance layer for project default component names, default variants, reusable blocks, and application build-readiness coverage
+- extracted project component defaults into a dedicated design-system defaults file and pointed AI workflow guidance at that source of truth
+- moved the imported variant source out of docs-owned paths into a reusable `component-registry` feature so future projects can consume the same structure without docs coupling
+- renamed the imported registry ownership to `variants`, added a reusable `blocks` channel, and seeded it with login page block variants
 - updated validation and lint scope so the imported docs registry can coexist with the existing shared system
 
 ### [#11] 2026-03-29 - CLI GitHub helper baseline
