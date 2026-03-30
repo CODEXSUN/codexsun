@@ -1,10 +1,10 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { DocsTemplateCard } from "@/features/docs/components/docs-template-card"
+import { DocsTemplateCard } from "@/docs/components/docs-template-card"
 import {
   docsTemplateCategories,
   docsTemplates,
-} from "@/features/component-registry/data/catalog"
+} from "@/registry/data/catalog"
 
 export function DocsTemplatesSection() {
   return (

@@ -5,7 +5,7 @@ import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import {
   AnimatedTabs,
   type AnimatedContentTab,
-} from "@/components/ui/animated-tabs"
+} from "@/registry/concerns/navigation/animated-tabs"
 
 export function EcommerceWorkspaceTabs({
   sectionId,

@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { CopyCodeButton } from "@/features/docs/components/copy-code-button"
+import { CopyCodeButton } from "@/docs/components/copy-code-button"
 
 type ViewCodeDialogProps = {
   code: string

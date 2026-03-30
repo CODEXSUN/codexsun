@@ -1,17 +1,17 @@
 import type { ReactNode } from "react"
 
-import LoginPage01 from "@/features/component-registry/blocks/auth/login-page-01"
-import LoginPage01Code from "@/features/component-registry/blocks/auth/login-page-01.tsx?raw"
-import LoginPage02 from "@/features/component-registry/blocks/auth/login-page-02"
-import LoginPage02Code from "@/features/component-registry/blocks/auth/login-page-02.tsx?raw"
-import SignInPanel01 from "@/features/component-registry/blocks/auth/sign-in-panel-01"
-import SignInPanel01Code from "@/features/component-registry/blocks/auth/sign-in-panel-01.tsx?raw"
-import FilterToolbar01 from "@/features/component-registry/blocks/data/filter-toolbar-01"
-import FilterToolbar01Code from "@/features/component-registry/blocks/data/filter-toolbar-01.tsx?raw"
-import ProfileSettingsForm01 from "@/features/component-registry/blocks/forms/profile-settings-form-01"
-import ProfileSettingsForm01Code from "@/features/component-registry/blocks/forms/profile-settings-form-01.tsx?raw"
-import SupportRequestForm01 from "@/features/component-registry/blocks/forms/support-request-form-01"
-import SupportRequestForm01Code from "@/features/component-registry/blocks/forms/support-request-form-01.tsx?raw"
+import LoginPage01 from "@/registry/blocks/auth/login-page-01"
+import LoginPage01Code from "@/registry/blocks/auth/login-page-01.tsx?raw"
+import LoginPage02 from "@/registry/blocks/auth/login-page-02"
+import LoginPage02Code from "@/registry/blocks/auth/login-page-02.tsx?raw"
+import SignInPanel01 from "@/registry/blocks/auth/sign-in-panel-01"
+import SignInPanel01Code from "@/registry/blocks/auth/sign-in-panel-01.tsx?raw"
+import FilterToolbar01 from "@/registry/blocks/data/filter-toolbar-01"
+import FilterToolbar01Code from "@/registry/blocks/data/filter-toolbar-01.tsx?raw"
+import ProfileSettingsForm01 from "@/registry/blocks/forms/profile-settings-form-01"
+import ProfileSettingsForm01Code from "@/registry/blocks/forms/profile-settings-form-01.tsx?raw"
+import SupportRequestForm01 from "@/registry/blocks/forms/support-request-form-01"
+import SupportRequestForm01Code from "@/registry/blocks/forms/support-request-form-01.tsx?raw"
 
 export const registryBlockCategories = [
   {
@@ -130,3 +130,4 @@ export const registryBlocksByCategory = registryBlockCategories.map((category) =
   ...category,
   items: registryBlocks.filter((block) => block.category === category.id),
 }))
+

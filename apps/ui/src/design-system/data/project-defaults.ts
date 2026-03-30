@@ -198,7 +198,7 @@ export const projectDesignSystemDefaults: Record<
   },
   tabs: {
     applicationName: "contained",
-    defaultExampleId: "tabs-05",
+    defaultExampleId: "tabs-20",
     aliases: ["box"],
     usage: "Segmented content within a single page or workspace.",
     notes:

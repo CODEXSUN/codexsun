@@ -2,14 +2,14 @@ import { ArrowUpRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { DocsPageHeader } from "@/features/docs/components/docs-page-header"
+import { DocsPageHeader } from "@/docs/components/docs-page-header"
 import {
   docsCategories,
   docsEntries,
   docsStats,
   docsTemplates,
-} from "@/features/component-registry/data/catalog"
-import { DocsBrowser } from "@/features/docs/components/docs-browser"
+} from "@/registry/data/catalog"
+import { DocsBrowser } from "@/docs/components/docs-browser"
 
 export function DocsPage() {
   return (

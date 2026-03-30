@@ -23,7 +23,7 @@ import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
 import { coreWorkspaceItems } from "@core/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
-import { docsCategories, docsEntries } from "@/features/component-registry/data/catalog"
+import { docsCategories, docsEntries } from "@/registry/data/catalog"
 import type {
   DashboardAppDefinition,
   DashboardLocationMeta,

@@ -2,16 +2,16 @@ import { Link, useLocation, useParams } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { DocsEntryCard } from "@/features/docs/components/docs-entry-card"
-import { DocsPageHeader } from "@/features/docs/components/docs-page-header"
+import { DocsEntryCard } from "@/docs/components/docs-entry-card"
+import { DocsPageHeader } from "@/docs/components/docs-page-header"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
-import { DocsBrowser } from "@/features/docs/components/docs-browser"
-import { docsEntries } from "@/features/component-registry/data/catalog"
+import { DocsBrowser } from "@/docs/components/docs-browser"
+import { docsEntries } from "@/registry/data/catalog"
 import {
   DesignSystemBlocksPage,
   DesignSystemDefaultsPage,
   DesignSystemReadinessPage,
-} from "@/features/design-system/pages/design-system-workbench-page"
+} from "@/design-system/pages/design-system-workbench-page"
 import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"

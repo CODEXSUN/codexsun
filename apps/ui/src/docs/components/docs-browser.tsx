@@ -2,19 +2,19 @@ import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { DocsEntryCard } from "@/features/docs/components/docs-entry-card"
-import { DocsTemplatesSection } from "@/features/docs/components/docs-templates-section"
-import { DesignSystemOverviewSections } from "@/features/design-system/components/design-system-overview-sections"
+import { DocsEntryCard } from "@/docs/components/docs-entry-card"
+import { DocsTemplatesSection } from "@/docs/components/docs-templates-section"
+import { DesignSystemOverviewSections } from "@/design-system/components/design-system-overview-sections"
 import {
   DesignSystemBlocksPage,
   DesignSystemDefaultsPage,
   DesignSystemReadinessPage,
-} from "@/features/design-system/pages/design-system-workbench-page"
+} from "@/design-system/pages/design-system-workbench-page"
 import {
   docsCategories,
   docsEntries,
   docsTemplates,
-} from "@/features/component-registry/data/catalog"
+} from "@/registry/data/catalog"
 
 type DocsBrowserProps = {
   basePath?: string

@@ -21,9 +21,9 @@ import {
 import {
   registryBlocksByCategory,
   registryBlockCategories,
-} from "@/features/component-registry/data/blocks"
-import { CopyCodeButton } from "@/features/docs/components/copy-code-button"
-import { ViewCodeDialog } from "@/features/docs/components/view-code-dialog"
+} from "@/registry/data/blocks"
+import { CopyCodeButton } from "@/docs/components/copy-code-button"
+import { ViewCodeDialog } from "@/docs/components/view-code-dialog"
 import { useProjectDefaults } from "../context/project-defaults-provider"
 import {
   applicationBuildCoverage,

@@ -1,5 +1,5 @@
-import { docsEntries } from "../../component-registry/data/catalog"
-import type { DocsEntry } from "../../component-registry/data/catalog"
+import { docsEntries } from "../../registry/data/catalog"
+import type { DocsEntry } from "../../registry/data/catalog"
 import { projectDesignSystemDefaults } from "./project-defaults"
 
 export type DesignSystemComponentDefault = {

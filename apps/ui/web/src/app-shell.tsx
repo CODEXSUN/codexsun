@@ -1,4 +1,4 @@
-import { DocsPage } from "@/features/docs/pages/docs-page"
+import { DocsPage } from "@/docs/pages/docs-page"
 
 function UiAppShell() {
   return <DocsPage />

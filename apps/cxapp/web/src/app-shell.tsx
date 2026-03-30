@@ -9,9 +9,9 @@ import {
 import type { AppSuite } from "@framework/application/app-manifest"
 import { createFrameworkBrowserContainer } from "@framework/di/browser-container"
 import { FRAMEWORK_TOKENS } from "@framework/di/tokens"
-import { GlobalLoader } from "@/components/ui/global-loader"
+import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
-import { ProjectDefaultsProvider } from "@/features/design-system/context/project-defaults-provider"
+import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider"
 import AdminLayout from "@/layouts/AdminLayout"
 import type { DashboardUser } from "@/features/dashboard/types"
 

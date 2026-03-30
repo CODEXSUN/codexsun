@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   AnimatedTabs,
   type AnimatedContentTab,
-} from "@/components/ui/animated-tabs"
+} from "@/registry/concerns/navigation/animated-tabs"
 
 const tabs: AnimatedContentTab[] = [
   {
@@ -69,6 +69,6 @@ const tabs: AnimatedContentTab[] = [
   },
 ]
 
-export default function Tabs19() {
+export default function Tabs20() {
   return <AnimatedTabs tabs={tabs} defaultTabValue="overview" />
 }

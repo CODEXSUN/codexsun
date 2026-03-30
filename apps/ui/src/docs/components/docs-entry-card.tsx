@@ -1,11 +1,11 @@
 import { CardTitle } from "@/components/ui/card"
-import type { DocsEntry } from "@/features/component-registry/data/catalog"
-import { CopyCodeButton } from "@/features/docs/components/copy-code-button"
-import { ViewCodeDialog } from "@/features/docs/components/view-code-dialog"
+import type { DocsEntry } from "@/registry/data/catalog"
+import { CopyCodeButton } from "@/docs/components/copy-code-button"
+import { ViewCodeDialog } from "@/docs/components/view-code-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useProjectDefaults } from "@/features/design-system/context/project-defaults-provider"
-import { getDesignSystemComponentDefault } from "@/features/design-system/data/component-governance"
+import { useProjectDefaults } from "@/design-system/context/project-defaults-provider"
+import { getDesignSystemComponentDefault } from "@/design-system/data/component-governance"
 
 export function DocsEntryCard({
   entry,
