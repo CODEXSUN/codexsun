@@ -99,6 +99,7 @@ Current useful host endpoints:
 6. `/api/v1/auth/*` exposes login, registration OTP, password reset, account recovery, session lookup, and logout
 7. `/internal/v1/core/auth/*` exposes protected auth admin routes
 8. `/internal/v1/core/mailbox/*` exposes protected mailbox template and message routes
+9. `/internal/v1/frappe/*` exposes protected ERPNext connector settings, todo, item, sync-log, and purchase receipt routes
 
 ## Notes
 
@@ -112,3 +113,4 @@ Current useful host endpoints:
 8. `apps/cxapp/web` now uses the live auth API for login, request access, password reset, recovery, and logout instead of placeholder-only local auth state
 9. when `AUTH_OTP_DEBUG=true`, OTP responses include a `debugOtp` value so local end-to-end auth setup can be tested without a live mail provider
 10. SMTP delivery is enabled only when `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` are configured; otherwise mailbox sends fall back to stored debug records for local development
+11. the app-owned `frappe` connector baseline is database-backed and available in the shared desk under `/dashboard/apps/frappe`

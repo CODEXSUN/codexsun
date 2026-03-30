@@ -14,6 +14,10 @@ import { listCustomerDetails } from "../../../apps/ecommerce/src/services/custom
 import { listOrderWorkflows } from "../../../apps/ecommerce/src/services/order-service.js"
 import { getStorefrontCatalog, listProducts } from "../../../apps/ecommerce/src/services/product-service.js"
 import { getEcommercePricingSettings } from "../../../apps/ecommerce/src/services/settings-service.js"
+import { listFrappeItems } from "../../../apps/frappe/src/services/item-service.js"
+import { listFrappePurchaseReceipts } from "../../../apps/frappe/src/services/purchase-receipt-service.js"
+import { readFrappeSettings } from "../../../apps/frappe/src/services/settings-service.js"
+import { listFrappeTodos } from "../../../apps/frappe/src/services/todo-service.js"
 import { ecommerceTableNames } from "../../../apps/ecommerce/database/table-names.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
 import {
@@ -44,6 +48,11 @@ test("registered database processes stay ordered by app and module", () => {
       "ecommerce:storefront:03-storefront",
       "ecommerce:orders:04-orders",
       "ecommerce:customers:05-customers",
+      "frappe:settings:01-settings",
+      "frappe:todos:02-todos",
+      "frappe:items:03-items",
+      "frappe:purchase-receipts:04-purchase-receipts",
+      "frappe:item-sync-logs:05-item-product-sync-logs",
     ]
   )
 
@@ -61,11 +70,16 @@ test("registered database processes stay ordered by app and module", () => {
       "ecommerce:storefront:03-storefront",
       "ecommerce:orders:04-orders",
       "ecommerce:customers:05-customers",
+      "frappe:settings:01-settings",
+      "frappe:todos:02-todos",
+      "frappe:items:03-items",
+      "frappe:purchase-receipts:04-purchase-receipts",
+      "frappe:item-sync-logs:05-item-product-sync-logs",
     ]
   )
 })
 
-test("database prepare applies app-owned migrations and seeders for core and ecommerce", async () => {
+test("database prepare applies app-owned migrations and seeders for core, ecommerce, and frappe", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-db-prepare-"))
 
   try {
@@ -135,6 +149,25 @@ test("database prepare applies app-owned migrations and seeders for core and eco
       const orderWorkflows = await listOrderWorkflows(runtime.primary)
       const customerDetails = await listCustomerDetails(runtime.primary)
       const pricingSettings = await getEcommercePricingSettings(runtime.primary)
+      const adminUser = {
+        id: "auth-user:platform-admin",
+        email: "admin@codexsun.local",
+        phoneNumber: "9999999999",
+        displayName: "Platform Admin",
+        actorType: "admin" as const,
+        isSuperAdmin: true,
+        avatarUrl: null,
+        isActive: true,
+        organizationName: "Codexsun",
+        roles: [],
+        permissions: [],
+        createdAt: "2026-03-30T00:00:00.000Z",
+        updatedAt: "2026-03-30T00:00:00.000Z",
+      }
+      const frappeSettings = await readFrappeSettings(runtime.primary, adminUser)
+      const frappeTodos = await listFrappeTodos(runtime.primary, adminUser)
+      const frappeItems = await listFrappeItems(runtime.primary, adminUser)
+      const frappeReceipts = await listFrappePurchaseReceipts(runtime.primary, adminUser)
 
       assert.equal(companies.items.length, 2)
       assert.equal(contacts.items.length, 3)
@@ -144,6 +177,10 @@ test("database prepare applies app-owned migrations and seeders for core and eco
       assert.equal(orderWorkflows.items.length, 2)
       assert.equal(customerDetails.items.length, 2)
       assert.equal(pricingSettings.settings.purchaseToSellPercent, 22)
+      assert.equal(frappeSettings.settings.defaultCompany, "Codexsun Trading Pvt Ltd")
+      assert.equal(frappeTodos.todos.items.length, 3)
+      assert.equal(frappeItems.manager.items.length, 3)
+      assert.equal(frappeReceipts.manager.items.length, 2)
     } finally {
       await runtime.destroy()
     }

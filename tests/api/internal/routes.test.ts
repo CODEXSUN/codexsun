@@ -37,3 +37,14 @@ test("internal baseline route exposes the machine-readable workspace host baseli
   assert.equal(payload.baseline.framework.id, "framework")
   assert.ok(payload.baseline.apps.some((app) => app.id === "ui"))
 })
+
+test("internal route registry includes the frappe connector endpoints", () => {
+  const routes = createInternalApiRoutes(createAppSuite())
+  const routePaths = routes.map((route) => `${route.method} ${route.path}`)
+
+  assert.ok(routePaths.includes("GET /internal/v1/frappe/settings"))
+  assert.ok(routePaths.includes("GET /internal/v1/frappe/todos"))
+  assert.ok(routePaths.includes("GET /internal/v1/frappe/items"))
+  assert.ok(routePaths.includes("POST /internal/v1/frappe/items/sync-products"))
+  assert.ok(routePaths.includes("GET /internal/v1/frappe/purchase-receipts"))
+})

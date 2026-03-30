@@ -14,6 +14,7 @@ import {
 } from "@/features/design-system/pages/design-system-workbench-page"
 import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
+import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
 import { useDesk } from "../desk/desk-provider"
@@ -106,7 +107,10 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
     app.id === "ecommerce" ? (
       <EcommerceWorkspaceSection sectionId={sectionId} />
     ) : null
-  const customWorkspaceContent = coreWorkspaceContent ?? ecommerceWorkspaceContent
+  const frappeWorkspaceContent =
+    app.id === "frappe" ? <FrappeWorkspaceSection sectionId={sectionId} /> : null
+  const customWorkspaceContent =
+    coreWorkspaceContent ?? ecommerceWorkspaceContent ?? frappeWorkspaceContent
 
   return (
     <div className="space-y-3">

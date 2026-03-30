@@ -4,22 +4,21 @@
 
 ### Reference
 
-`#15`
+`#16`
 
 ### Title
 
-`App-owned auth, sessions, mailbox, and cxapp auth flows`
+`App-owned frappe connector baseline and ecommerce sync adoption`
 
 ### Scope Checklist
 
-- [x] add app-owned `core` auth and mailbox schemas, migrations, and seeders for users, roles, permissions, sessions, OTP verifications, mailbox templates, and message logs
-- [x] add reusable framework auth support for JWT signing, password hashing, SMTP delivery, request body parsing, and auth-related config keys without moving business ownership into framework
-- [x] add app-owned `core` repositories and services for login, registration OTP, password reset, account recovery, sessions, and mailbox template/message handling
-- [x] expose external auth routes and protected internal core mailbox/auth routes through `apps/api`
-- [x] connect `cxapp` auth pages and browser session state to the live auth API so login, request-access, forgot-password, and logout flows are end-to-end
-- [x] protect internal `core` and `ecommerce` workspace data routes behind bearer-authenticated sessions
-- [x] normalize framework env resolution and runtime error handling so auth and config tests are stable across machines
-- [x] add auth lifecycle tests that cover seeded login, OTP registration, password reset, recovery, and session revocation
+- [x] add app-owned `frappe` shared contracts, workspace metadata, migrations, and seeders for connector settings, todo snapshots, item snapshots, purchase receipt snapshots, and item sync logs
+- [x] register the `frappe` database module through the framework runtime without moving connector ownership into `apps/framework`
+- [x] add app-owned `frappe` services for settings, todos, items, purchase receipts, and ecommerce sync orchestration
+- [x] expose protected internal `frappe` routes through `apps/api`
+- [x] add an app-owned `frappe` workspace in the shared desk with overview, connection, todo, item, and purchase receipt sections
+- [x] add a narrow ecommerce product admin write path so the connector can project item syncs into ecommerce without moving commerce ownership into `frappe`
+- [x] add connector tests that cover database registration, route exposure, settings save, item sync, and purchase receipt sync
 - [x] update ASSIST task, planning, architecture, setup, and changelog entries for this batch
 
 ### Validation Note
@@ -33,7 +32,7 @@
 
 ### Reference
 
-`#16`
+`#17`
 
 ### Title
 

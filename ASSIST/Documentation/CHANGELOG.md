@@ -8,6 +8,16 @@
 
 ## v-0.0.1
 
+### [#16] 2026-03-30 - App-owned frappe connector baseline and ecommerce sync adoption
+
+- moved the temp-derived ERPNext connector contracts into app-owned `apps/frappe/shared`, including settings, todo, item, purchase receipt, and sync-log schemas plus workspace metadata
+- added app-owned `frappe` migrations, seeders, seed data, and database-module registration so the connector persists its own settings and snapshot tables through the shared framework database runtime
+- implemented `frappe` services for settings save and verification, todo snapshot management, item snapshot management, purchase receipt management, and ecommerce sync orchestration
+- exposed protected internal `frappe` routes through `apps/api` and registered them in the shared internal route assembly
+- added a narrow app-owned ecommerce product admin write path so Frappe item sync can create and update products without moving product ownership into the connector app
+- adapted the connector UI into the shared desk through `apps/frappe/web` and `apps/cxapp/web`, with overview, connection, todo, item, and purchase receipt workspace sections
+- added connector coverage for route registration, database registration, settings save, item sync, and purchase receipt sync
+
 ### [#15] 2026-03-30 - App-owned auth, sessions, mailbox, and cxapp auth flows
 
 - added reusable framework auth primitives for JSON request parsing, runtime config access, application error handling, password hashing, JWT signing, and SMTP delivery without moving auth business ownership into framework

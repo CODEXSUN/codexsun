@@ -144,7 +144,7 @@ UI does not own app-specific business workflows.
 
 ### Frappe
 
-`apps/frappe` owns Frappe-specific integration contracts and connector logic.
+`apps/frappe` owns ERPNext-specific settings, snapshot storage, connector contracts, and sync orchestration.
 
 ### Tally
 
@@ -247,6 +247,7 @@ Active coverage today includes:
 5. workspace baseline assembly and route exposure
 6. database execution workflow for app-owned migrations and seeders
 7. auth lifecycle flows such as seeded login, OTP registration, password reset, recovery, and session revocation
+8. Frappe connector flows such as settings save, item sync, purchase receipt sync, and route registration
 
 ## Current State
 
@@ -265,13 +266,14 @@ Implemented now:
 11. `core` and `ecommerce` services reading seeded database tables instead of bypassing the database with in-memory seed arrays
 12. app-owned `core` auth, session, OTP, role, permission, and mailbox storage with external and internal API surfaces
 13. active `cxapp` auth pages using the live auth API and persisted browser sessions instead of placeholder-only local state
-14. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, and auth lifecycle behavior
+14. app-owned `frappe` connector settings, todo snapshots, item snapshots, purchase receipt snapshots, internal routes, and desk workspace sections
+15. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, and Frappe connector sync behavior
 
 Still future work:
 
 1. real domain modules inside each standalone app
 2. richer relational schemas and write flows beyond the current module-payload baseline
-3. real connector execution flows
+3. richer connector execution flows such as webhooks, job queues, and deeper bidirectional reconciliation
 4. auth hardening such as refresh-token rotation, MFA, rate limiting, richer admin UX, and deeper audit flows
 5. Electron desktop runtime
 

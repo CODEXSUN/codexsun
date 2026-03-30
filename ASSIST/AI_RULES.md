@@ -59,7 +59,7 @@ Every app folder must keep the same baseline shape:
 7. `billing` owns accounting, inventory, vouchers, and reporting behavior.
 8. `ecommerce` owns storefront, catalog, checkout, and customer commerce flows.
 9. `task` owns task, workspace, and team workflow behavior.
-10. `frappe` owns Frappe-specific integration boundaries.
+10. `frappe` owns ERPNext-specific settings, snapshot storage, and connector sync orchestration.
 11. `tally` owns Tally-specific integration boundaries.
 12. `cli` owns operational commands, diagnostics, and release helpers.
 
@@ -84,6 +84,7 @@ Every app folder must keep the same baseline shape:
 17. Keep migration and seeder execution inside `apps/framework/src/runtime/database`; do not scatter ad hoc table bootstrapping across routes, services, or web code.
 18. Keep framework auth support limited to reusable primitives such as config, hashing, JWT signing, SMTP transport, and request parsing; keep auth users, sessions, OTP records, mailbox templates, and auth business logic inside the owning app such as `apps/core`.
 19. Keep suite-facing auth pages and browser session persistence in `apps/cxapp`; do not move routed auth workflows into `apps/ui`.
+20. Keep ERPNext connection settings, todo/item/receipt snapshots, and connector sync logs inside `apps/frappe`; if the connector needs to project into another app such as `ecommerce`, add a narrow app-owned service in the target app instead of writing across boundaries ad hoc.
 
 ## Implementation Style
 

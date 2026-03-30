@@ -6,6 +6,7 @@ import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/in
 import { createCoreAuthInternalRoutes } from "./core-auth-routes.js"
 import { createCoreInternalRoutes } from "./core-routes.js"
 import { createEcommerceInternalRoutes } from "./ecommerce-routes.js"
+import { createFrappeInternalRoutes } from "./frappe-routes.js"
 
 export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
@@ -37,5 +38,6 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
     ...createCoreInternalRoutes(),
     ...createCoreAuthInternalRoutes(),
     ...createEcommerceInternalRoutes(),
+    ...createFrappeInternalRoutes(),
   ]
 }

@@ -22,6 +22,7 @@ import {
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
 import { coreWorkspaceItems } from "@core/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
+import { frappeWorkspaceItems } from "@frappe/shared"
 import { docsCategories, docsEntries } from "@/features/component-registry/data/catalog"
 import type {
   DashboardAppDefinition,
@@ -279,6 +280,27 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "frappe") {
+    const frappeWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      connection: PlugZap,
+      todos: ClipboardList,
+      items: PackageCheck,
+      "purchase-receipts": ReceiptText,
+    }
+
+    return [
+      ...frappeWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: frappeWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -376,6 +398,37 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/orders`,
                   `/dashboard/apps/${app.id}/customers`,
                   `/dashboard/apps/${app.id}/settings`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
+      : app.id === "frappe"
+        ? [
+            {
+              id: `${app.id}-connector`,
+              label: "Connector",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                  `/dashboard/apps/${app.id}/connection`,
+                  `/dashboard/apps/${app.id}/todos`,
+                  `/dashboard/apps/${app.id}/items`,
+                  `/dashboard/apps/${app.id}/purchase-receipts`,
                 ].includes(item.route)
               ),
             },

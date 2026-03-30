@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#15`
+`#16`
 
 ### Goal
 
-Add an app-owned auth baseline that uses `core` for auth and mailbox data ownership, `api` for route exposure, `cxapp` for the routed auth frontend, and `framework` only for reusable runtime primitives such as config, hashing, JWT, SMTP, and request parsing.
+Add an app-owned Frappe connector baseline that keeps ERPNext settings, snapshots, and sync orchestration inside `apps/frappe`, uses `apps/api` only for protected route exposure, keeps `apps/ecommerce` as the owner of commerce records, and uses `apps/framework` only for reusable runtime plumbing.
 
 ### Scope
 
@@ -16,39 +16,37 @@ Add an app-owned auth baseline that uses `core` for auth and mailbox data owners
 - `ASSIST/Documentation/CHANGELOG.md`
 - `ASSIST/Documentation/ARCHITECTURE.md`
 - `ASSIST/Documentation/SETUP_AND_RUN.md`
-- `apps/framework/src/runtime/config`
-- `apps/framework/src/runtime/errors`
-- `apps/framework/src/runtime/http`
-- `apps/framework/src/runtime/notifications`
-- `apps/framework/src/runtime/security`
-- `apps/framework/src/server`
-- `apps/core/shared`
-- `apps/core/database`
-- `apps/core/src`
+- `apps/framework/src/runtime/database`
+- `apps/framework/src/application`
 - `apps/api/src`
 - `apps/cxapp/web/src`
-- `apps/ecommerce/web/src`
-- `tests/core`
+- `apps/frappe/shared`
+- `apps/frappe/database`
+- `apps/frappe/src`
+- `apps/frappe/web/src`
+- `apps/ecommerce/src`
+- `tests/api`
+- `tests/frappe`
 - `tests/framework/runtime`
 - `ASSIST/AI_RULES.md`
 
 ### Canonical Decisions
 
-- auth users, sessions, OTP records, mailbox templates, and message logs belong to `apps/core`, not `apps/framework`
-- framework may provide reusable auth/runtime primitives, but it must not own auth business rules or auth persistence
-- `apps/api` should stay route-only, with external auth flows and internal admin flows separated into their existing route partitions
-- `apps/cxapp` should call the live auth API and own browser session persistence instead of simulating auth locally
-- the first auth baseline should be database-backed, session-backed, and test-covered, but still documented honestly as a baseline rather than a production-hardened identity platform
+- ERPNext settings, todo snapshots, item snapshots, purchase receipt snapshots, and connector sync logs belong to `apps/frappe`, not `apps/framework` or `apps/ecommerce`
+- `apps/ecommerce` remains the owner of products and storefront projection, so Frappe may only use a narrow app-owned write service there instead of writing tables ad hoc
+- `apps/api` should stay route-only, with the new `frappe` endpoints mounted under the protected internal surface
+- `apps/cxapp` should render the Frappe workspace through the shared desk route model instead of importing temp-only pages or route structures
+- the first Frappe baseline should be database-backed, desk-visible, sync-capable, and test-covered, but still documented honestly as a baseline connector rather than a complete ERPNext integration platform
 
 ### Execution Plan
 
-1. extend framework config and HTTP runtime so JSON auth routes, runtime config access, hashing, JWT, and SMTP are available through one reusable path
-2. add app-owned `core` schemas, migrations, and seeders for auth, sessions, OTP verification, and mailbox storage
-3. implement `core` repositories and services for auth/session/mailbox logic
-4. expose external auth routes and protected internal mailbox/auth routes through `apps/api`
-5. replace `cxapp` placeholder auth flow with live API-backed session restore, login, registration OTP, password reset, and account recovery
-6. protect internal `core` and `ecommerce` workspace fetches with the new bearer session flow
-7. add auth lifecycle tests and confirm the framework config test now behaves consistently across machines
+1. move the Frappe contracts and temp-derived connector data into app-owned `apps/frappe/shared`, `apps/frappe/database`, and `apps/frappe/src`
+2. register `frappe` database migrations and seeders through the framework runtime
+3. implement `frappe` services for settings, todos, items, receipts, and ecommerce sync orchestration
+4. expose protected internal `frappe` routes through `apps/api`
+5. adapt the connector UI into the shared desk pattern through `apps/frappe/web` and `apps/cxapp/web`
+6. add a narrow ecommerce product admin write path for item sync
+7. add route, database, and connector sync tests
 8. update ASSIST docs and validate typecheck, lint, test, and build
 
 ### Validation Plan
@@ -67,6 +65,6 @@ Add an app-owned auth baseline that uses `core` for auth and mailbox data owners
 
 ### Risks And Follow-Up
 
-- the current auth baseline uses access tokens backed by DB sessions, but it does not yet include refresh tokens, rate limiting, MFA, or deep audit workflows
-- mailbox admin behavior is exposed through API routes and storage, but the richer operator-facing management UI is still future work
-- some domain modules remain read-oriented; this batch focused on auth/session/mailbox foundation and live frontend adoption, not every downstream write workflow
+- the connector still uses app-owned snapshot tables and baseline sync logic rather than a full ERPNext webhook, job queue, or bidirectional reconciliation model
+- connection secrets are stored in the Frappe app database table for now; stronger secret-management rules can come later if the deployment model requires them
+- some broader business modules remain read-oriented; this batch focused on the Frappe connector boundary and its ecommerce sync adoption, not every remaining downstream write workflow

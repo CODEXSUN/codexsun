@@ -1,5 +1,6 @@
 import { coreDatabaseModule } from "../../../../../core/src/database-module.js"
 import { ecommerceDatabaseModule } from "../../../../../ecommerce/src/database-module.js"
+import { frappeDatabaseModule } from "../../../../../frappe/src/database-module.js"
 
 import { frameworkDatabaseMigrations } from "./migrations/index.js"
 import {
@@ -21,6 +22,7 @@ export const registeredDatabaseModules: AppDatabaseModule[] = [
   frameworkDatabaseModule,
   coreDatabaseModule,
   ecommerceDatabaseModule,
+  frappeDatabaseModule,
 ].sort((left, right) => left.order - right.order || left.appId.localeCompare(right.appId))
 
 export function listRegisteredDatabaseMigrations() {

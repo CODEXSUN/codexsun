@@ -8,11 +8,12 @@ export const frappeAppManifest: AppManifest = {
   description:
     "Standalone connector boundary for Frappe data contracts and bidirectional ERP integrations.",
   standalone: true,
-  dependencies: ["framework", "api", "core"],
+  dependencies: ["framework", "api", "core", "ecommerce"],
   workspace: frappeAppWorkspace,
   surfaces: {
     internalApi: true,
-    externalApi: true,
+    externalApi: false,
+    web: true,
     connector: true,
   },
 }
