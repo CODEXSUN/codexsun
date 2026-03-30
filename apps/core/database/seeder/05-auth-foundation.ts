@@ -80,7 +80,7 @@ export const coreAuthFoundationSeeder = defineDatabaseSeeder({
         password_hash: await hashPassword(user.password),
         avatar_url: user.avatarUrl,
         organization_name: user.organizationName,
-        is_super_admin: user.actorType === "admin" ? 1 : 0,
+        is_super_admin: user.isSuperAdmin ? 1 : 0,
         is_active: user.isActive ? 1 : 0,
         created_at: user.createdAt,
         updated_at: user.updatedAt,

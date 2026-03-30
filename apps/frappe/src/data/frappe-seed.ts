@@ -38,7 +38,7 @@ export const frappeTodos: FrappeTodo[] = [
     priority: "High",
     dueDate: "2026-04-01",
     allocatedTo: "operator@codexsun.local",
-    owner: "admin@codexsun.local",
+    owner: "sundar@sundar.com",
     modifiedAt: timestamp,
   }),
   frappeTodoSchema.parse({
@@ -48,7 +48,7 @@ export const frappeTodos: FrappeTodo[] = [
     priority: "Medium",
     dueDate: "2026-04-03",
     allocatedTo: "operator@codexsun.local",
-    owner: "admin@codexsun.local",
+    owner: "sundar@sundar.com",
     modifiedAt: timestamp,
   }),
   frappeTodoSchema.parse({
@@ -57,8 +57,8 @@ export const frappeTodos: FrappeTodo[] = [
     status: "Closed",
     priority: "Low",
     dueDate: "2026-03-29",
-    allocatedTo: "admin@codexsun.local",
-    owner: "admin@codexsun.local",
+    allocatedTo: "sundar@sundar.com",
+    owner: "sundar@sundar.com",
     modifiedAt: timestamp,
   }),
 ]

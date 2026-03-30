@@ -114,3 +114,4 @@ Current useful host endpoints:
 9. when `AUTH_OTP_DEBUG=true`, OTP responses include a `debugOtp` value so local end-to-end auth setup can be tested without a live mail provider
 10. SMTP delivery is enabled only when `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` are configured; otherwise mailbox sends fall back to stored debug records for local development
 11. the app-owned `frappe` connector baseline is database-backed and available in the shared desk under `/dashboard/apps/frappe`
+12. the checked-in local `.env` now uses `DB_DRIVER=sqlite` so the backend and frontend auth flow can boot without a local MariaDB instance; switch it back to `mariadb` when validating the live transactional path

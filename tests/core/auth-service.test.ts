@@ -36,8 +36,8 @@ test("auth service supports seeded login, otp registration, password reset, reco
 
       const adminLogin = await authService.login(
         {
-          email: "admin@codexsun.local",
-          password: "Admin@12345",
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
         },
         {
           ipAddress: "127.0.0.1",
@@ -46,10 +46,11 @@ test("auth service supports seeded login, otp registration, password reset, reco
       )
 
       assert.equal(adminLogin.user.actorType, "admin")
+      assert.equal(adminLogin.user.isSuperAdmin, true)
       assert.ok(adminLogin.accessToken.length > 20)
       assert.equal(
         (await authService.getAuthenticatedUser(adminLogin.accessToken)).email,
-        "admin@codexsun.local"
+        "sundar@sundar.com"
       )
 
       await authService.logout(adminLogin.accessToken)

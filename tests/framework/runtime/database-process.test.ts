@@ -132,6 +132,11 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
         .selectFrom(ecommerceTableNames.products)
         .select(["id"])
         .execute()
+      const seededSuperAdmin = await queryDatabase
+        .selectFrom(coreTableNames.authUsers)
+        .select(["email", "is_super_admin"])
+        .where("id", "=", "auth-user:platform-admin")
+        .executeTakeFirst()
 
       assert.equal(
         appliedMigrations.length,
@@ -140,6 +145,8 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
       assert.equal(appliedSeeders.length, listRegisteredDatabaseSeeders().length)
       assert.equal(companyRows.length, 2)
       assert.equal(productRows.length, 3)
+      assert.equal(seededSuperAdmin?.email, "sundar@sundar.com")
+      assert.equal(Number(seededSuperAdmin?.is_super_admin ?? 0), 1)
 
       const companies = await listCompanies(runtime.primary)
       const contacts = await listContacts(runtime.primary)
@@ -151,9 +158,9 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
       const pricingSettings = await getEcommercePricingSettings(runtime.primary)
       const adminUser = {
         id: "auth-user:platform-admin",
-        email: "admin@codexsun.local",
+        email: "sundar@sundar.com",
         phoneNumber: "9999999999",
-        displayName: "Platform Admin",
+        displayName: "Sundar",
         actorType: "admin" as const,
         isSuperAdmin: true,
         avatarUrl: null,

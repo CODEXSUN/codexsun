@@ -26,6 +26,7 @@ test("server config reads domain, port, db driver, and offline flags from .env",
         "DB_PORT=3306",
         "DB_NAME=codexsun",
         "DB_USER=root",
+        "SUPER_ADMIN_EMAILS= SUNDAR@SUNDAR.COM , admin@example.com ",
         "OFFLINE_SUPPORT_ENABLED=true",
         "SQLITE_FILE=storage/desktop/offline.sqlite",
       ].join("\n")
@@ -38,6 +39,10 @@ test("server config reads domain, port, db driver, and offline flags from .env",
     assert.equal(config.appHttpsPort, 3443)
     assert.equal(config.frontendDomain, "app.example.test")
     assert.equal(config.database.driver, "mariadb")
+    assert.deepEqual(config.auth.superAdminEmails, [
+      "sundar@sundar.com",
+      "admin@example.com",
+    ])
     assert.equal(config.offline.enabled, true)
     assert.match(config.offline.sqliteFile, /offline\.sqlite$/)
   } finally {

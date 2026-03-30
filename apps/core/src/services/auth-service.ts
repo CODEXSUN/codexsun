@@ -67,7 +67,9 @@ export class AuthService {
   ) {}
 
   async listUsers() {
-    const items = (await this.repository.listUsers()).map((entry) => entry.user)
+    const items = (await this.repository.listUsers()).map((entry) =>
+      this.applyConfiguredSuperAdminAccess(entry.user)
+    )
     return authUserListResponseSchema.parse({
       items,
     } satisfies AuthUserListResponse)
@@ -332,7 +334,7 @@ export class AuthService {
 
     await this.repository.markSessionSeen(session.id)
 
-    return storedUser.user
+    return this.applyConfiguredSuperAdminAccess(storedUser.user)
   }
 
   async logout(token: string) {
@@ -486,6 +488,7 @@ export class AuthService {
       userAgent: null,
     }
   ) {
+    const normalizedUser = this.applyConfiguredSuperAdminAccess(user)
     const sessionId = randomUUID()
     const tokenId = randomUUID()
     const expiresInSeconds = this.config.security.jwtExpiresInSeconds
@@ -503,14 +506,14 @@ export class AuthService {
 
     const accessToken = signJwt(
       {
-        email: user.email,
-        actorType: user.actorType,
+        email: normalizedUser.email,
+        actorType: normalizedUser.actorType,
         sid: sessionId,
         jti: tokenId,
       },
       {
         secret: this.config.security.jwtSecret,
-        subject: user.id,
+        subject: normalizedUser.id,
         expiresInSeconds,
       }
     )
@@ -521,8 +524,23 @@ export class AuthService {
       expiresInSeconds,
       expiresAt,
       sessionId,
-      user,
+      user: normalizedUser,
     } satisfies AuthTokenResponse)
+  }
+
+  private applyConfiguredSuperAdminAccess(user: AuthUser): AuthUser {
+    if (user.isSuperAdmin) {
+      return user
+    }
+
+    if (!this.config.auth.superAdminEmails.includes(user.email.toLowerCase())) {
+      return user
+    }
+
+    return {
+      ...user,
+      isSuperAdmin: true,
+    }
   }
 
   private async createEmailOtp<TResponse extends {

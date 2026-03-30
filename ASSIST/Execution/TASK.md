@@ -4,39 +4,37 @@
 
 ### Reference
 
-`#16`
+`#17`
 
 ### Title
 
-`App-owned frappe connector baseline and ecommerce sync adoption`
+`Local database bootstrap and auth hardening`
 
 ### Scope Checklist
 
-- [x] add app-owned `frappe` shared contracts, workspace metadata, migrations, and seeders for connector settings, todo snapshots, item snapshots, purchase receipt snapshots, and item sync logs
-- [x] register the `frappe` database module through the framework runtime without moving connector ownership into `apps/framework`
-- [x] add app-owned `frappe` services for settings, todos, items, purchase receipts, and ecommerce sync orchestration
-- [x] expose protected internal `frappe` routes through `apps/api`
-- [x] add an app-owned `frappe` workspace in the shared desk with overview, connection, todo, item, and purchase receipt sections
-- [x] add a narrow ecommerce product admin write path so the connector can project item syncs into ecommerce without moving commerce ownership into `frappe`
-- [x] add connector tests that cover database registration, route exposure, settings save, item sync, and purchase receipt sync
-- [x] update ASSIST task, planning, architecture, setup, and changelog entries for this batch
+- [x] switch the checked-in local runtime bootstrap from unavailable MariaDB to local SQLite so backend startup and frontend auth work deterministically
+- [x] seed the requested first auth user as `Sundar <sundar@sundar.com>` with password `Kalarani1@@` and super-admin access
+- [x] harden auth super-admin resolution and database client connection timeouts for clearer local failures
+- [x] add regression coverage for seeded super-admin bootstrap and normalized super-admin env parsing
+- [x] update ASSIST task, planning, setup, and changelog entries for this batch
 
 ### Validation Note
 
 - [x] `npm run typecheck`
-- [x] `npm run lint`
-- [x] `npm run build`
+- [x] `npm run lint` (same existing React Compiler warnings in imported table variants only)
 - [x] `npm run test`
+- [x] `npm run db:prepare`
+- [x] verify seeded login through `/api/v1/auth/login`
 
 ## Next Batch
 
 ### Reference
 
-`#17`
+`#18`
 
 ### Title
 
-`Domain write flows and auth hardening`
+`Remaining domain write flows`
 
 ### Scope Checklist
 

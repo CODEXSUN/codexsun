@@ -3,7 +3,7 @@ import path from "node:path"
 
 import Database from "better-sqlite3"
 import { Kysely, MysqlDialect, PostgresDialect, SqliteDialect, sql } from "kysely"
-import mariadb from "mysql2/promise"
+import mariadb from "mysql2"
 import pg from "pg"
 
 import type { ServerConfig } from "../config/index.js"
@@ -45,6 +45,7 @@ function createPrimaryDatabase(config: ServerConfig) {
             user: database.user,
             password: database.password,
             ssl: database.ssl ? { rejectUnauthorized: false } : undefined,
+            connectionTimeoutMillis: 5_000,
             max: 10,
           }),
         }),
@@ -60,8 +61,10 @@ function createPrimaryDatabase(config: ServerConfig) {
             user: database.user,
             password: database.password,
             ssl: database.ssl ? {} : undefined,
+            connectTimeout: 5_000,
             connectionLimit: 10,
             enableKeepAlive: true,
+            waitForConnections: true,
           }),
         }),
       })
@@ -82,6 +85,7 @@ function createAnalyticsDatabase(config: ServerConfig) {
         user: config.analytics.user,
         password: config.analytics.password,
         ssl: config.analytics.ssl ? { rejectUnauthorized: false } : undefined,
+        connectionTimeoutMillis: 5_000,
         max: 5,
       }),
     }),

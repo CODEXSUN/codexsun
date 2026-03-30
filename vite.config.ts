@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const frontendHost = env.FRONTEND_HOST || "0.0.0.0"
   const frontendPort = Number(env.FRONTEND_HTTP_PORT || 5173)
   const backendPort = Number(env.APP_HTTP_PORT || env.APP_PORT || 3000)
+  const backendProxyHost = env.APP_PROXY_HOST || "127.0.0.1"
   const allowedHosts = [env.FRONTEND_DOMAIN, env.APP_DOMAIN].filter(Boolean)
 
   return {
@@ -20,10 +21,10 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       allowedHosts,
       proxy: {
-        "/internal": `http://localhost:${backendPort}`,
-        "/api": `http://localhost:${backendPort}`,
-        "/public": `http://localhost:${backendPort}`,
-        "/health": `http://localhost:${backendPort}`,
+        "/internal": `http://${backendProxyHost}:${backendPort}`,
+        "/api": `http://${backendProxyHost}:${backendPort}`,
+        "/public": `http://${backendProxyHost}:${backendPort}`,
+        "/health": `http://${backendProxyHost}:${backendPort}`,
       },
     },
     resolve: {

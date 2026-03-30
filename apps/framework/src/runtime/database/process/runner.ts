@@ -31,11 +31,11 @@ async function ensureProcessLedgerTable(
   await asQueryDatabase(database).schema
     .createTable(tableName)
     .ifNotExists()
-    .addColumn("id", "text", (column) => column.primaryKey())
-    .addColumn("app_id", "text", (column) => column.notNull())
-    .addColumn("module_key", "text", (column) => column.notNull())
-    .addColumn("name", "text", (column) => column.notNull())
-    .addColumn("applied_at", "text", (column) => column.notNull())
+    .addColumn("id", "varchar(191)", (column) => column.primaryKey())
+    .addColumn("app_id", "varchar(100)", (column) => column.notNull())
+    .addColumn("module_key", "varchar(100)", (column) => column.notNull())
+    .addColumn("name", "varchar(255)", (column) => column.notNull())
+    .addColumn("applied_at", "varchar(40)", (column) => column.notNull())
     .execute()
 }
 

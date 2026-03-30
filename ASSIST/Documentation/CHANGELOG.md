@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#17] 2026-03-30 - Local database bootstrap and auth hardening
+
+- switched the checked-in local bootstrap to SQLite so the backend host, migrations, seeders, and frontend auth flow start without requiring a local MariaDB instance
+- replaced the default seeded admin login with the requested first user `Sundar <sundar@sundar.com>` using password `Kalarani1@@` and explicit super-admin access
+- hardened auth user normalization so configured `SUPER_ADMIN_EMAILS` still elevate trusted operators even if the stored row is not flagged
+- added faster connection timeouts for MariaDB and PostgreSQL client pools so unavailable network databases fail more clearly during startup
+- expanded regression coverage for seeded super-admin bootstrap, seeded login, and normalized super-admin env parsing
+
 ### [#16] 2026-03-30 - App-owned frappe connector baseline and ecommerce sync adoption
 
 - moved the temp-derived ERPNext connector contracts into app-owned `apps/frappe/shared`, including settings, todo, item, purchase receipt, and sync-log schemas plus workspace metadata

@@ -31,14 +31,14 @@ export async function ensureJsonStoreTable(
   await asQueryDatabase(database).schema
     .createTable(tableName)
     .ifNotExists()
-    .addColumn("id", "text", (column) => column.primaryKey())
-    .addColumn("module_key", "text")
+    .addColumn("id", "varchar(191)", (column) => column.primaryKey())
+    .addColumn("module_key", "varchar(100)")
     .addColumn("sort_order", "integer", (column) =>
       column.notNull().defaultTo(0)
     )
     .addColumn("payload", "text", (column) => column.notNull())
-    .addColumn("created_at", "text", (column) => column.notNull())
-    .addColumn("updated_at", "text", (column) => column.notNull())
+    .addColumn("created_at", "varchar(40)", (column) => column.notNull())
+    .addColumn("updated_at", "varchar(40)", (column) => column.notNull())
     .execute()
 }
 
