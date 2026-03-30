@@ -10,44 +10,74 @@ import { defineInternalRoute } from "../../../framework/src/runtime/http/index.j
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
 import { badRequestResponse, jsonResponse } from "../shared/http-responses.js"
+import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createCoreInternalRoutes(): HttpRouteDefinition[] {
   return [
     defineInternalRoute("/core/bootstrap", {
       legacyPaths: ["/internal/core/bootstrap"],
       summary: "Core bootstrap mission, channels, and readiness snapshot.",
-      handler: async ({ databases }) =>
-        jsonResponse(await getBootstrapSnapshot(databases.primary)),
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await getBootstrapSnapshot(context.databases.primary))
+      },
     }),
     defineInternalRoute("/core/companies", {
       legacyPaths: ["/internal/core/companies"],
       summary: "Core company list used by shared organization setup surfaces.",
-      handler: async ({ databases }) =>
-        jsonResponse(await listCompanies(databases.primary)),
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listCompanies(context.databases.primary))
+      },
     }),
     defineInternalRoute("/core/contacts", {
       legacyPaths: ["/internal/core/contacts"],
       summary: "Core contact list used by shared party and master-data surfaces.",
-      handler: async ({ databases }) =>
-        jsonResponse(await listContacts(databases.primary)),
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listContacts(context.databases.primary))
+      },
     }),
     defineInternalRoute("/core/common-modules/metadata", {
       legacyPaths: ["/internal/core/common-modules/metadata"],
       summary: "Common module metadata registry for shared masters.",
-      handler: async ({ databases }) =>
-        jsonResponse(await listCommonModuleMetadata(databases.primary)),
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listCommonModuleMetadata(context.databases.primary))
+      },
     }),
     defineInternalRoute("/core/common-modules/summary", {
       legacyPaths: ["/internal/core/common-modules/summary"],
       summary: "Common module counts for workspace readiness and overview use.",
-      handler: async ({ databases }) =>
-        jsonResponse(await listCommonModuleSummaries(databases.primary)),
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listCommonModuleSummaries(context.databases.primary))
+      },
     }),
     defineInternalRoute("/core/common-modules/items", {
       legacyPaths: ["/internal/core/common-modules/items"],
       summary: "Common module items for a selected shared master key.",
-      handler: async ({ databases, request }) => {
-        const moduleKey = request.url.searchParams.get("module")
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        const moduleKey = context.request.url.searchParams.get("module")
         const parsedKey = commonModuleKeySchema.safeParse(moduleKey)
 
         if (!parsedKey.success) {
@@ -56,7 +86,7 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await listCommonModuleItems(
-            databases.primary,
+            context.databases.primary,
             parsedKey.data as CommonModuleKey
           )
         )

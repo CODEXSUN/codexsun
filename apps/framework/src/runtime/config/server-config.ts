@@ -43,6 +43,27 @@ export type ServerConfig = {
     password?: string
     ssl: boolean
   }
+  security: {
+    jwtSecret: string
+    jwtExpiresInSeconds: number
+  }
+  auth: {
+    otpDebug: boolean
+    otpExpiryMinutes: number
+    superAdminEmails: string[]
+  }
+  notifications: {
+    email: {
+      enabled: boolean
+      host: string
+      port: number
+      secure: boolean
+      user?: string
+      password?: string
+      fromEmail?: string
+      fromName: string
+    }
+  }
 }
 
 export function getServerConfig(cwd = process.cwd()): ServerConfig {
@@ -50,6 +71,17 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
   const tlsEnabled = readBoolean(env.TLS_ENABLED, false)
   const sqliteFile = path.resolve(cwd, env.SQLITE_FILE ?? "storage/desktop/codexsun.sqlite")
   const analyticsEnabled = readBoolean(env.ANALYTICS_DB_ENABLED, false)
+  const superAdminEmails = Array.from(
+    new Set(
+      (env.SUPER_ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  )
+  const smtpUser = env.SMTP_USER?.trim() || undefined
+  const smtpPassword = env.SMTP_PASS?.trim() || undefined
+  const smtpFromEmail = env.SMTP_FROM_EMAIL?.trim() || undefined
 
   return {
     appName: env.APP_NAME ?? "codexsun",
@@ -95,6 +127,38 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
       user: env.ANALYTICS_DB_USER,
       password: env.ANALYTICS_DB_PASSWORD,
       ssl: readBoolean(env.ANALYTICS_DB_SSL, false),
+    },
+    security: {
+      jwtSecret:
+        env.JWT_SECRET?.trim() && env.JWT_SECRET.trim().length >= 16
+          ? env.JWT_SECRET.trim()
+          : "codexsun-development-jwt-secret",
+      jwtExpiresInSeconds: readNumber(
+        env.JWT_EXPIRES_IN_SECONDS,
+        28_800,
+        "JWT_EXPIRES_IN_SECONDS"
+      ),
+    },
+    auth: {
+      otpDebug: readBoolean(env.AUTH_OTP_DEBUG, true),
+      otpExpiryMinutes: readNumber(
+        env.AUTH_OTP_EXPIRY_MINUTES,
+        10,
+        "AUTH_OTP_EXPIRY_MINUTES"
+      ),
+      superAdminEmails,
+    },
+    notifications: {
+      email: {
+        enabled: Boolean(smtpUser && smtpPassword && smtpFromEmail),
+        host: env.SMTP_HOST?.trim() || "smtp.gmail.com",
+        port: readNumber(env.SMTP_PORT, 465, "SMTP_PORT"),
+        secure: readBoolean(env.SMTP_SECURE, true),
+        user: smtpUser,
+        password: smtpPassword,
+        fromEmail: smtpFromEmail,
+        fromName: env.SMTP_FROM_NAME?.trim() || "codexsun",
+      },
     },
   }
 }

@@ -1,4 +1,5 @@
 import type { AppSuite } from "../../application/app-manifest.js"
+import type { ServerConfig } from "../config/index.js"
 
 import type {
   HttpRouteDefinition,
@@ -12,12 +13,14 @@ export function createRequestContext(
   route: Pick<HttpRouteDefinition, "auth" | "path" | "surface" | "version">,
   appSuite: AppSuite,
   runtime: {
+    config: ServerConfig
     databases: RuntimeDatabases
     request: HttpRouteRequestContext
   }
 ): HttpRouteHandlerContext {
   return {
     appSuite,
+    config: runtime.config,
     databases: runtime.databases,
     request: runtime.request,
     route,

@@ -6,39 +6,43 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import AuthLayout from "@/layouts/AuthLayout"
 
-type LoginPageProps = {
-  onLogin: (payload: {
-    actorType: "platform-admin" | "operator"
-    displayName: string
-    email: string
-    isSuperAdmin: boolean
-  }) => void
-}
+import { useAuth } from "../auth/auth-provider"
+import { HttpError } from "../auth/auth-api"
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage() {
+  const auth = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const variant = searchParams.get("variant") === "desktop" ? "desktop" : "web"
   const next = searchParams.get("next")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
 
-    const normalizedEmail = email.trim().toLowerCase()
-    const isSuperAdmin =
-      normalizedEmail.startsWith("admin@") || normalizedEmail.includes("admin")
-    const actorType = isSuperAdmin ? "platform-admin" : "operator"
+    try {
+      const response = await auth.login({
+        email: email.trim().toLowerCase(),
+        password,
+      })
+      const isAdmin =
+        response.user.isSuperAdmin || response.user.actorType === "admin"
 
-    onLogin({
-      actorType,
-      displayName: isSuperAdmin ? "Admin Operator" : "Workspace Operator",
-      email: normalizedEmail,
-      isSuperAdmin,
-    })
-
-    void navigate(next ?? (isSuperAdmin ? "/dashboard/admin" : "/dashboard"))
+      void navigate(next ?? (isAdmin ? "/dashboard/admin" : "/dashboard"))
+    } catch (nextError) {
+      setError(
+        nextError instanceof HttpError
+          ? nextError.message
+          : "Unable to sign in right now."
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -90,8 +94,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               }}
             />
           </div>
+          {error ? (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
           <Button type="submit" size="lg" className="mt-2 w-full gap-2">
-            Login
+            {isSubmitting ? "Signing in..." : "Login"}
             <ArrowRight className="size-4" />
           </Button>
         </form>

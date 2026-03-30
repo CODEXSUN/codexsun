@@ -1,15 +1,22 @@
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import AuthLayout from "@/layouts/AuthLayout"
 
+import { HttpError } from "../auth/auth-api"
+import { useAuth } from "../auth/auth-provider"
+
 const stepLabels = ["Details", "OTP", "Password"] as const
 
 export function RequestAccessPage() {
+  const auth = useAuth()
+  const navigate = useNavigate()
   const [step, setStep] = useState(1)
+  const [verificationId, setVerificationId] = useState<string | null>(null)
+  const [debugOtp, setDebugOtp] = useState<string | null>(null)
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -19,24 +26,128 @@ export function RequestAccessPage() {
     confirmPassword: "",
   })
   const [submitted, setSubmitted] = useState(false)
-
-  function goNext() {
-    setStep((current) => Math.min(current + 1, 3))
-  }
+  const [error, setError] = useState<string | null>(null)
+  const [isWorking, setIsWorking] = useState(false)
 
   function goBack() {
+    setError(null)
     setStep((current) => Math.max(current - 1, 1))
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function handleRetryOtp() {
+    setError(null)
+    setIsWorking(true)
 
-    if (step < 3) {
-      goNext()
+    try {
+      const response = await auth.requestRegisterOtp({
+        channel: "email",
+        destination: form.email.trim().toLowerCase(),
+      })
+      setVerificationId(response.verificationId)
+      setDebugOtp(response.debugOtp)
+    } catch (nextError) {
+      setError(
+        nextError instanceof HttpError
+          ? nextError.message
+          : "Unable to send OTP right now."
+      )
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError(null)
+
+    if (step === 1) {
+      setIsWorking(true)
+
+      try {
+        const response = await auth.requestRegisterOtp({
+          channel: "email",
+          destination: form.email.trim().toLowerCase(),
+        })
+        setVerificationId(response.verificationId)
+        setDebugOtp(response.debugOtp)
+        setStep(2)
+      } catch (nextError) {
+        setError(
+          nextError instanceof HttpError
+            ? nextError.message
+            : "Unable to send OTP right now."
+        )
+      } finally {
+        setIsWorking(false)
+      }
+
       return
     }
 
-    setSubmitted(true)
+    if (step === 2) {
+      if (!verificationId) {
+        setError("Start again and request a new OTP.")
+        return
+      }
+
+      setIsWorking(true)
+
+      try {
+        await auth.verifyRegisterOtp({
+          verificationId,
+          otp: form.otp.trim(),
+        })
+        setStep(3)
+      } catch (nextError) {
+        setError(
+          nextError instanceof HttpError
+            ? nextError.message
+            : "Unable to verify OTP right now."
+        )
+      } finally {
+        setIsWorking(false)
+      }
+
+      return
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError("Password confirmation does not match.")
+      return
+    }
+
+    if (!verificationId) {
+      setError("Start again and request a new OTP.")
+      return
+    }
+
+    setIsWorking(true)
+
+    try {
+      const response = await auth.register({
+        email: form.email.trim().toLowerCase(),
+        phoneNumber: form.mobile.trim(),
+        password: form.password,
+        displayName: form.name.trim(),
+        actorType: "staff",
+        emailVerificationId: verificationId,
+        organizationName: "codexsun",
+      })
+      const isAdmin =
+        response.user.isSuperAdmin || response.user.actorType === "admin"
+      setSubmitted(true)
+      window.setTimeout(() => {
+        void navigate(isAdmin ? "/dashboard/admin" : "/dashboard")
+      }, 900)
+    } catch (nextError) {
+      setError(
+        nextError instanceof HttpError
+          ? nextError.message
+          : "Unable to complete registration right now."
+      )
+    } finally {
+      setIsWorking(false)
+    }
   }
 
   return (
@@ -51,8 +162,8 @@ export function RequestAccessPage() {
         <div className="flex items-center justify-between gap-2 px-1">
           {stepLabels.map((label, index) => {
             const stepNumber = index + 1
-            const isComplete = step > stepNumber
-            const isCurrent = step === stepNumber
+            const isComplete = step > stepNumber || submitted
+            const isCurrent = step === stepNumber && !submitted
 
             return (
               <div key={label} className="flex min-w-0 flex-1 items-center gap-2">
@@ -80,7 +191,7 @@ export function RequestAccessPage() {
 
         {submitted ? (
           <div className="min-h-[19rem] rounded-[1.5rem] border border-border/70 bg-muted/50 px-4 py-5 text-sm leading-6 text-muted-foreground">
-            Account registration staged for{" "}
+            Account registration completed for{" "}
             <span className="font-medium text-foreground">{form.email}</span>.
           </div>
         ) : (
@@ -146,7 +257,7 @@ export function RequestAccessPage() {
                         {form.email || "name@example.com"}
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm">
+                    <Button type="button" variant="outline" size="sm" onClick={() => void handleRetryOtp()}>
                       Retry OTP
                     </Button>
                   </div>
@@ -166,10 +277,12 @@ export function RequestAccessPage() {
                         }))
                       }}
                     />
+                    {debugOtp ? (
+                      <p className="text-xs text-muted-foreground">
+                        Debug OTP: <span className="font-medium text-foreground">{debugOtp}</span>
+                      </p>
+                    ) : null}
                   </div>
-                  <Button type="button" className="w-full" onClick={goNext}>
-                    Verify email OTP
-                  </Button>
                 </div>
               ) : null}
 
@@ -213,6 +326,12 @@ export function RequestAccessPage() {
               ) : null}
             </div>
 
+            {error ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
+
             <div className="flex items-center justify-between gap-3">
               {step > 1 ? (
                 <Button type="button" variant="outline" size="lg" className="gap-2 rounded-full" onClick={goBack}>
@@ -225,21 +344,21 @@ export function RequestAccessPage() {
 
               {step === 1 ? (
                 <Button type="submit" size="lg" className="gap-2 rounded-full">
-                  Continue to send OTP
+                  {isWorking ? "Sending OTP..." : "Continue to send OTP"}
                   <ArrowRight className="size-4" />
                 </Button>
               ) : null}
 
               {step === 2 ? (
                 <Button type="submit" size="lg" className="gap-2 rounded-full">
-                  Continue
+                  {isWorking ? "Verifying OTP..." : "Continue"}
                   <ArrowRight className="size-4" />
                 </Button>
               ) : null}
 
               {step === 3 ? (
                 <Button type="submit" size="lg" className="gap-2 rounded-full">
-                  Register
+                  {isWorking ? "Registering..." : "Register"}
                   <ArrowRight className="size-4" />
                 </Button>
               ) : null}

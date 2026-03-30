@@ -15,6 +15,7 @@ import {
   prepareApplicationDatabase,
   type RuntimeDatabases,
 } from "../runtime/database/index.js"
+import { ApplicationError } from "../runtime/errors/application-error.js"
 import {
   createRequestContext,
   matchHttpRoute,
@@ -80,8 +81,9 @@ function renderWelcomePage(appName: string) {
 
 async function resolveResponse(
   urlPath: string,
-  method: "GET" | "HEAD",
+  method: HttpRouteDefinition["method"],
   context: {
+    config: ServerConfig
     appDomain: string
     appHost: string
     appHttpPort: number
@@ -94,12 +96,15 @@ async function resolveResponse(
     frontendHttpPort: number
     frontendHttpsPort: number
     httpRoutes: HttpRouteDefinition[]
+    requestBody: string | null
+    requestHeaders: IncomingMessage["headers"]
     requestUrl: URL
     tlsEnabled: boolean
     webRoot: string
   }
 ) {
   const {
+    config,
     appDomain,
     appHost,
     appHttpPort,
@@ -112,17 +117,36 @@ async function resolveResponse(
     frontendHttpPort,
     frontendHttpsPort,
     httpRoutes,
+    requestBody,
+    requestHeaders,
     requestUrl,
     tlsEnabled,
     webRoot,
   } = context
   const matchedRoute = matchHttpRoute(httpRoutes, method, urlPath)
+  const contentTypeHeader = requestHeaders["content-type"]
+  const contentType = Array.isArray(contentTypeHeader)
+    ? contentTypeHeader[0]
+    : contentTypeHeader
+  let jsonBody: unknown | null = null
+
+  if (requestBody && contentType?.includes("application/json")) {
+    try {
+      jsonBody = JSON.parse(requestBody)
+    } catch {
+      throw new ApplicationError("Invalid JSON request body.", {}, 400)
+    }
+  }
 
   if (matchedRoute) {
     return matchedRoute.handler(
       createRequestContext(matchedRoute, appSuite, {
+        config,
         databases,
         request: {
+          bodyText: requestBody,
+          headers: requestHeaders,
+          jsonBody,
           method,
           pathname: urlPath,
           url: requestUrl,
@@ -180,6 +204,28 @@ async function resolveResponse(
   }
 }
 
+async function readRequestBody(request: IncomingMessage) {
+  const chunks: Buffer[] = []
+  let size = 0
+
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    size += buffer.length
+
+    if (size > 1_048_576) {
+      throw new ApplicationError("Request body exceeds 1 MB limit.", {}, 413)
+    }
+
+    chunks.push(buffer)
+  }
+
+  if (chunks.length === 0) {
+    return null
+  }
+
+  return Buffer.concat(chunks).toString("utf8")
+}
+
 export async function startFrameworkServer(cwd = process.cwd()) {
   const container = createFrameworkServerContainer(cwd)
   const config = container.resolve<ServerConfig>(FRAMEWORK_TOKENS.config)
@@ -232,7 +278,14 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       return
     }
 
-    if (request.method !== "GET" && request.method !== "HEAD") {
+    if (
+      request.method !== "GET" &&
+      request.method !== "HEAD" &&
+      request.method !== "POST" &&
+      request.method !== "PATCH" &&
+      request.method !== "PUT" &&
+      request.method !== "DELETE"
+    ) {
       response.writeHead(405, { "content-type": "application/json; charset=utf-8" })
       response.end(JSON.stringify({ message: "Method not allowed" }))
       return
@@ -244,10 +297,16 @@ export async function startFrameworkServer(cwd = process.cwd()) {
     )
 
     try {
+      const requestBody =
+        request.method === "GET" || request.method === "HEAD"
+          ? null
+          : await readRequestBody(request)
+
       const resolved = await resolveResponse(
         requestUrl.pathname,
-        request.method as "GET" | "HEAD",
+        request.method as HttpRouteDefinition["method"],
         {
+          config,
           appDomain,
           appHost,
           appHttpPort,
@@ -260,6 +319,8 @@ export async function startFrameworkServer(cwd = process.cwd()) {
           frontendHttpPort,
           frontendHttpsPort,
           httpRoutes,
+          requestBody,
+          requestHeaders: request.headers,
           requestUrl,
           tlsEnabled,
           webRoot,
@@ -275,11 +336,26 @@ export async function startFrameworkServer(cwd = process.cwd()) {
 
       response.end(resolved.body)
     } catch (error) {
+      if (error instanceof ApplicationError) {
+        response.writeHead(error.statusCode, {
+          "content-type": "application/json; charset=utf-8",
+        })
+        response.end(
+          JSON.stringify({
+            error: error.message,
+            context: error.context,
+          })
+        )
+        return
+      }
+
       response.writeHead(500, { "content-type": "application/json; charset=utf-8" })
       response.end(
         JSON.stringify({
-          message: "Internal server error",
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: "Internal server error",
+          context: {
+            detail: error instanceof Error ? error.message : "Unknown error",
+          },
         })
       )
     }

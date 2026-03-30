@@ -2,6 +2,8 @@ import type { AppSuite } from "../../../framework/src/application/app-manifest.j
 import { defineExternalRoute } from "../../../framework/src/runtime/http/route-manifest.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/route-types.js"
 
+import { createAuthExternalRoutes } from "./auth-routes.js"
+
 export function createExternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
     defineExternalRoute("/apps", {
@@ -26,5 +28,6 @@ export function createExternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
         }),
       }),
     }),
+    ...createAuthExternalRoutes(),
   ]
 }

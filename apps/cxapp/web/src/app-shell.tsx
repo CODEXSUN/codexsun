@@ -1,4 +1,3 @@
-import { useState } from "react"
 import {
   BrowserRouter,
   Navigate,
@@ -15,6 +14,7 @@ import { ProjectDefaultsProvider } from "@/features/design-system/context/projec
 import AdminLayout from "@/layouts/AdminLayout"
 import type { DashboardUser } from "@/features/dashboard/types"
 
+import { AuthProvider, useAuth } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
@@ -54,16 +54,19 @@ function FrameworkUtilityPage({
   )
 }
 
-function ProtectedRoute({
-  children,
-  isAuthenticated,
-}: {
-  children: React.ReactNode
-  isAuthenticated: boolean
-}) {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation()
+  const auth = useAuth()
 
-  if (!isAuthenticated) {
+  if (auth.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Restoring your session.
+      </div>
+    )
+  }
+
+  if (!auth.isAuthenticated) {
     return (
       <Navigate
         to={`/login?next=${encodeURIComponent(location.pathname)}`}
@@ -75,44 +78,36 @@ function ProtectedRoute({
   return children
 }
 
-function AppShell() {
-  const [user, setUser] = useState<DashboardUser>(guestUser)
-  const isAuthenticated = user.actorType !== "guest"
+function AuthenticatedAppShell() {
+  const auth = useAuth()
+  const user: DashboardUser = auth.user
+    ? {
+        displayName: auth.user.displayName,
+        email: auth.user.email,
+        avatarUrl: auth.user.avatarUrl,
+        actorType: auth.user.actorType,
+        isSuperAdmin: auth.user.isSuperAdmin,
+      }
+    : guestUser
 
   return (
-    <BrowserRouter>
-      <ProjectDefaultsProvider>
-        <DeskProvider
-          appSuite={appSuite}
-          user={user}
-          onLogout={() => {
-            setUser(guestUser)
-          }}
-        >
-          <Routes>
+    <ProjectDefaultsProvider>
+      <DeskProvider
+        appSuite={appSuite}
+        user={user}
+        onLogout={() => {
+          void auth.logout()
+        }}
+      >
+        <Routes>
           <Route path="/" element={<HomePage appSuite={appSuite} />} />
-          <Route
-            path="/login"
-            element={
-              <LoginPage
-                onLogin={({ actorType, displayName, email, isSuperAdmin }) => {
-                  setUser({
-                    displayName,
-                    email,
-                    avatarUrl: null,
-                    actorType,
-                    isSuperAdmin,
-                  })
-                }}
-              />
-            }
-          />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/request-access" element={<RequestAccessPage />} />
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProtectedRoute>
                 <AdminLayout>
                   <DashboardPage />
                 </AdminLayout>
@@ -122,7 +117,7 @@ function AppShell() {
           <Route
             path="/dashboard/admin"
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProtectedRoute>
                 <AdminLayout>
                   <DashboardPage variant="admin" />
                 </AdminLayout>
@@ -132,7 +127,7 @@ function AppShell() {
           <Route
             path="/dashboard/settings"
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProtectedRoute>
                 <AdminLayout>
                   <FrameworkUtilityPage
                     title="Settings"
@@ -145,7 +140,7 @@ function AppShell() {
           <Route
             path="/dashboard/system-update"
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProtectedRoute>
                 <AdminLayout>
                   <FrameworkUtilityPage
                     title="System Update"
@@ -158,7 +153,7 @@ function AppShell() {
           <Route
             path="/dashboard/apps/:appId"
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProtectedRoute>
                 <AdminLayout>
                   <FrameworkAppWorkspacePage />
                 </AdminLayout>
@@ -168,7 +163,7 @@ function AppShell() {
           <Route
             path="/dashboard/apps/:appId/:sectionId"
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProtectedRoute>
                 <AdminLayout>
                   <FrameworkAppWorkspacePage />
                 </AdminLayout>
@@ -176,9 +171,18 @@ function AppShell() {
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </DeskProvider>
-      </ProjectDefaultsProvider>
+        </Routes>
+      </DeskProvider>
+    </ProjectDefaultsProvider>
+  )
+}
+
+function AppShell() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AuthenticatedAppShell />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
