@@ -33,7 +33,7 @@ export function DocsBrowser({
         basePath ? (
           <Link
             key={category.id}
-            to={`${basePath}/${category.items[0]}`}
+            to={`${basePath}/components-${category.id}`}
             className="group overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/90 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
           >
             <div className="theme-preview-surface flex min-h-52 items-center justify-center border-b border-border/60 px-5 py-6">

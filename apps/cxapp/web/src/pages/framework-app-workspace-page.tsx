@@ -6,10 +6,16 @@ import { DocsEntryCard } from "@/docs/components/docs-entry-card"
 import { DocsPageHeader } from "@/docs/components/docs-page-header"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { DocsBrowser } from "@/docs/components/docs-browser"
-import { docsEntries } from "@/registry/data/catalog"
+import { docsCategories, docsEntries } from "@/registry/data/catalog"
+import { registryBlockCategories } from "@/registry/data/blocks"
+import { docsTemplateCategories } from "@/docs/data/templates"
+import { registryPageCategories, registryPages } from "@/registry/data/pages"
 import {
+  DesignSystemComponentsPage,
   DesignSystemBlocksPage,
   DesignSystemDefaultsPage,
+  DesignSystemPageEntryPage,
+  DesignSystemPagesPage,
   DesignSystemReadinessPage,
 } from "@/design-system/pages/design-system-workbench-page"
 import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
@@ -53,7 +59,74 @@ const uiWorkspaceSections = {
     render: () => <DesignSystemBlocksPage />,
     title: "Blocks",
   },
+  components: {
+    description:
+      "Governed component variants grouped by category and kept separate from blocks and full pages.",
+    render: () => <DesignSystemComponentsPage />,
+    title: "Components",
+  },
+  pages: {
+    description:
+      "Full-page design systems and starter variants kept separate from primitive components and blocks.",
+    render: () => <DesignSystemPagesPage />,
+    title: "Pages",
+  },
 } as const
+
+const uiCategorySections = Object.fromEntries(
+  docsCategories.map((category) => [
+    `components-${category.id}`,
+    {
+      description: category.description,
+      render: () => <DesignSystemComponentsPage categoryId={category.id} />,
+      title: category.name,
+    },
+  ])
+)
+
+const uiBlockSections = Object.fromEntries(
+  registryBlockCategories.map((category) => [
+    `blocks-${category.id}`,
+    {
+      description: category.description,
+      render: () => <DesignSystemBlocksPage categoryId={category.id} />,
+      title: category.name,
+    },
+  ])
+)
+
+const uiPageSections = Object.fromEntries(
+  registryPageCategories.map((category) => [
+    `pages-${category.id}`,
+    {
+      description: category.description,
+      render: () => <DesignSystemPagesPage pageCategoryId={category.id} />,
+      title: category.name,
+    },
+  ])
+)
+
+const uiTemplateSections = Object.fromEntries(
+  docsTemplateCategories.map((category) => [
+    `pages-template-${category.slug}`,
+    {
+      description: `${category.name} page variants and starters.`,
+      render: () => <DesignSystemPagesPage categorySlug={category.slug} />,
+      title: category.name,
+    },
+  ])
+)
+
+const uiPageEntrySections = Object.fromEntries(
+  registryPages.map((page) => [
+    `pages-entry-${page.id}`,
+    {
+      description: page.description,
+      render: () => <DesignSystemPageEntryPage pageId={page.id} />,
+      title: page.name,
+    },
+  ])
+)
 
 export function FrameworkAppWorkspacePage({
   appId,
@@ -97,7 +170,13 @@ export function FrameworkAppWorkspacePage({
   const isUiWorkspace = app.id === "ui"
   const uiSection =
     isUiWorkspace && sectionId
-      ? uiWorkspaceSections[sectionId as keyof typeof uiWorkspaceSections] ?? null
+      ? uiWorkspaceSections[sectionId as keyof typeof uiWorkspaceSections] ??
+        uiCategorySections[sectionId as keyof typeof uiCategorySections] ??
+        uiBlockSections[sectionId as keyof typeof uiBlockSections] ??
+        uiPageSections[sectionId as keyof typeof uiPageSections] ??
+        uiPageEntrySections[sectionId as keyof typeof uiPageEntrySections] ??
+        uiTemplateSections[sectionId as keyof typeof uiTemplateSections] ??
+        null
       : null
   const docsEntry =
     isUiWorkspace && sectionId && !uiSection

@@ -13,7 +13,7 @@ test("billing workspace loads after login and exposes voucher/report screens", a
   await expect(page.getByText("Accounts Overview")).toBeVisible()
   await expect(page.getByText("Billing Menu")).toBeVisible()
 
-  await page.getByRole("link", { name: /Voucher Register/i }).click()
+  await page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Voucher Register", exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard\/billing\/voucher-register$/)
   await expect(page.getByText("Posted vouchers", { exact: true })).toBeVisible()
   await expect(page.getByText("Post Voucher", { exact: true })).toBeVisible()

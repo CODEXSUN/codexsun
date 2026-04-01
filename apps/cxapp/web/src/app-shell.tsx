@@ -244,6 +244,46 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/credit-note"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="credit-note" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/debit-note"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="debit-note" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/stock"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="stock" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/statements"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="statements" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/day-book"
             element={
               <ProtectedRoute>

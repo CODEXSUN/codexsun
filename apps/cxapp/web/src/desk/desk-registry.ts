@@ -9,6 +9,7 @@ import {
   Globe,
   PackageCheck,
   LayoutDashboard,
+  LineChart,
   MonitorSmartphone,
   PlugZap,
   ReceiptText,
@@ -17,14 +18,18 @@ import {
   TerminalSquare,
   Users,
   Workflow,
+  Warehouse,
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
-import { billingVoucherModules, billingWorkspaceItems } from "@billing/shared"
+import { billingWorkspaceItems } from "@billing/shared"
 import { coreWorkspaceItems } from "@core/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
-import { docsCategories, docsEntries } from "@/registry/data/catalog"
+import { docsCategories } from "@/registry/data/catalog"
+import { registryBlockCategories } from "@/registry/data/blocks"
+import { docsTemplateCategories } from "@/docs/data/templates"
+import { registryPageCategories, registryPages } from "@/registry/data/pages"
 import type {
   DashboardAppDefinition,
   DashboardLocationMeta,
@@ -202,8 +207,15 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         id: `${app.id}-overview`,
         name: "Overview",
         route: root,
-        summary: "Browse the design system by category.",
+        summary: "Browse the UI system through component, block, and full-page channels.",
         icon: LayoutDashboard,
+      },
+      {
+        id: `${app.id}-components`,
+        name: "Components",
+        route: `${root}/components`,
+        summary: "Governed component variants grouped by category.",
+        icon: Blocks,
       },
       {
         id: `${app.id}-design-settings`,
@@ -221,18 +233,54 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         matchRoutes: [`${root}/form-blocks`],
       },
       {
+        id: `${app.id}-pages`,
+        name: "Pages",
+        route: `${root}/pages`,
+        summary: "Full page design-system variants and starter templates.",
+        icon: MonitorSmartphone,
+      },
+      {
         id: `${app.id}-build-readiness`,
         name: "Build Readiness",
         route: `${root}/build-readiness`,
         summary: "Confirm the core component channels needed to build applications are present.",
         icon: PackageCheck,
       },
-      ...docsEntries.map((entry) => ({
-        id: `${app.id}-${entry.id}`,
-        name: entry.name,
-        route: `${root}/${entry.id}`,
-        summary: entry.description,
-        icon: entry.icon,
+      ...docsCategories.map((category) => ({
+        id: `${app.id}-components-${category.id}`,
+        name: category.name,
+        route: `${root}/components-${category.id}`,
+        summary: category.description,
+        icon: Blocks,
+        matchRoutes: category.items.map((entryId) => `${root}/${entryId}`),
+      })),
+      ...registryBlockCategories.map((category) => ({
+        id: `${app.id}-blocks-${category.id}`,
+        name: category.name,
+        route: `${root}/blocks-${category.id}`,
+        summary: category.description,
+        icon: ClipboardList,
+      })),
+      ...docsTemplateCategories.map((category) => ({
+        id: `${app.id}-pages-template-${category.slug}`,
+        name: `${category.name} Templates`,
+        route: `${root}/pages-template-${category.slug}`,
+        summary: `${category.name} imported starter templates.`,
+        icon: MonitorSmartphone,
+      })),
+      ...registryPageCategories.map((category) => ({
+        id: `${app.id}-pages-${category.id}`,
+        name: category.name,
+        route: `${root}/pages-${category.id}`,
+        summary: category.description,
+        icon: MonitorSmartphone,
+      })),
+      ...registryPages.map((page) => ({
+        id: `${app.id}-pages-entry-${page.id}`,
+        name: page.name,
+        route: `${root}/pages-entry-${page.id}`,
+        summary: page.summary,
+        icon: MonitorSmartphone,
       })),
     ]
   }
@@ -313,8 +361,16 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       "purchase-vouchers": ReceiptText,
       "contra-vouchers": ReceiptText,
       "journal-vouchers": ReceiptText,
+      "credit-note": ReceiptText,
+      "debit-note": ReceiptText,
+      stock: Warehouse,
+      statements: ClipboardList,
       "day-book": ClipboardList,
       "double-entry": Workflow,
+      "trial-balance": LineChart,
+      "profit-and-loss": LineChart,
+      "balance-sheet": LineChart,
+      "bill-outstanding": LineChart,
     }
 
     return [
@@ -357,22 +413,48 @@ function createUiMenuGroups(
         [
           root,
           `${root}/design-settings`,
-          `${root}/blocks`,
           `${root}/build-readiness`,
         ].includes(item.route)
       ),
     },
-    ...docsCategories.map((category) => ({
-      id: `${app.id}-${category.id}-group`,
-      label: category.name,
+    {
+      id: `${app.id}-components-group`,
+      label: "Components",
       shared: false,
-      route: `${root}/${category.items[0]}`,
-      items: category.items
-        .map((entryId) =>
-          modules.find((item) => item.route === `${root}/${entryId}`) ?? null
-        )
-        .filter((item): item is DashboardWorkspaceLink => item !== null),
-    })),
+      route: `${root}/components`,
+      items: modules.filter((item) =>
+        [
+          `${root}/components`,
+          ...docsCategories.map((category) => `${root}/components-${category.id}`),
+        ].includes(item.route)
+      ),
+    },
+    {
+      id: `${app.id}-blocks-group`,
+      label: "Blocks",
+      shared: false,
+      route: `${root}/blocks`,
+      items: modules.filter((item) =>
+        [
+          `${root}/blocks`,
+          ...registryBlockCategories.map((category) => `${root}/blocks-${category.id}`),
+        ].includes(item.route)
+      ),
+    },
+    {
+      id: `${app.id}-pages-group`,
+      label: "Pages",
+      shared: false,
+      route: `${root}/pages`,
+      items: modules.filter((item) =>
+        [
+          `${root}/pages`,
+          ...registryPageCategories.map((category) => `${root}/pages-${category.id}`),
+          ...registryPages.map((page) => `${root}/pages-entry-${page.id}`),
+          ...docsTemplateCategories.map((category) => `${root}/pages-template-${category.slug}`),
+        ].includes(item.route)
+      ),
+    },
   ]
 }
 
@@ -478,15 +560,64 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
       : app.id === "billing"
         ? [
             {
-              id: `${app.id}-accounts`,
-              label: "Accounts",
-              shared: false,
+              id: `${app.id}-system`,
+              label: "System",
+              shared: true,
               items: modules.filter((item) =>
                 [
                   `/dashboard/billing`,
                   `/dashboard/billing/chart-of-accounts`,
                   `/dashboard/billing/voucher-register`,
-                  ...billingVoucherModules.map((module) => module.route),
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-vouchers`,
+              label: "Vouchers",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing/sales-vouchers`,
+                  `/dashboard/billing/purchase-vouchers`,
+                  `/dashboard/billing/payment-vouchers`,
+                  `/dashboard/billing/receipt-vouchers`,
+                  `/dashboard/billing/journal-vouchers`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-accounts`,
+              label: "Accounts",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing/contra-vouchers`,
+                  `/dashboard/billing/credit-note`,
+                  `/dashboard/billing/debit-note`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-inventory`,
+              label: "Inventory",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing/stock`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-reports`,
+              label: "Reports",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing/statements`,
+                  `/dashboard/billing/profit-and-loss`,
+                  `/dashboard/billing/balance-sheet`,
+                  `/dashboard/billing/trial-balance`,
+                  `/dashboard/billing/bill-outstanding`,
                   `/dashboard/billing/day-book`,
                   `/dashboard/billing/double-entry`,
                 ].includes(item.route)

@@ -5,6 +5,9 @@ import type {
   BillingAccountingReports,
   BillingAccountingReportsResponse,
   BillingLedger,
+  BillingLedgerGroup,
+  BillingLedgerGroupListResponse,
+  BillingLedgerGroupResponse,
   BillingLedgerListResponse,
   BillingLedgerResponse,
   BillingVoucher,
@@ -19,6 +22,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -29,10 +40,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { CommonList } from "@/components/blocks/master-list"
 
 type ResourceState = {
   error: string | null
   isLoading: boolean
+  ledgerGroups: BillingLedgerGroup[]
   ledgers: BillingLedger[]
   reports: BillingAccountingReports
   vouchers: BillingVoucher[]
@@ -92,12 +105,22 @@ type LedgerFormState = {
   nature: "asset" | "liability" | "income" | "expense"
 }
 
+type LedgerGroupFormState = {
+  description: string
+  name: string
+}
+
 const defaultLedgerForm: LedgerFormState = {
   closingAmount: "0",
   closingSide: "debit",
   group: "",
   name: "",
   nature: "asset",
+}
+
+const defaultLedgerGroupForm: LedgerGroupFormState = {
+  description: "",
+  name: "",
 }
 
 type VoucherFormState = {
@@ -1145,59 +1168,199 @@ function OverviewSection({
   )
 }
 
-function ChartOfAccountsSection({ ledgers }: { ledgers: BillingLedger[] }) {
+function ChartOfAccountsSection({
+  form,
+  formError,
+  groups,
+  isCreateDialogOpen,
+  isSaving,
+  onChange,
+  onCreate,
+  onOpenChange,
+}: {
+  form: LedgerGroupFormState
+  formError: string | null
+  groups: BillingLedgerGroup[]
+  isCreateDialogOpen: boolean
+  isSaving: boolean
+  onChange: (field: keyof LedgerGroupFormState, value: string) => void
+  onCreate: () => void
+  onOpenChange: (open: boolean) => void
+}) {
+  const [searchValue, setSearchValue] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const normalizedSearch = searchValue.trim().toLowerCase()
+  const filteredGroups = groups.filter((group) => {
+    const matchesSearch =
+      normalizedSearch.length === 0 ||
+      [group.name, group.description]
+        .some((value) => value.toLowerCase().includes(normalizedSearch))
+
+    return matchesSearch
+  })
+  const totalRecords = filteredGroups.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedGroups = filteredGroups.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  )
+
   return (
     <SectionShell
-      title="Chart Of Accounts"
-      description="Ledger master list aligned to a Tally-style operational accounting setup."
+      title="Ledger Groups"
+      description="Group-first accounting setup for billing, aligned to a Tally-style chart structure."
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Ledger masters</CardTitle>
-          <CardDescription>
-            Create and maintain billing ledger masters from dedicated upsert pages.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link to="/dashboard/billing/chart-of-accounts/new">New ledger</Link>
-          </Button>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ledger</TableHead>
-                <TableHead>Group</TableHead>
-                <TableHead>Nature</TableHead>
-                <TableHead>Closing</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ledgers.map((ledger) => (
-                <TableRow key={ledger.id}>
-                  <TableCell className="font-medium">{ledger.name}</TableCell>
-                  <TableCell>{ledger.group}</TableCell>
-                  <TableCell className="capitalize">{ledger.nature}</TableCell>
-                  <TableCell>
-                    {formatAmount(ledger.closingAmount)} {ledger.closingSide === "debit" ? "Dr" : "Cr"}
-                  </TableCell>
-                  <TableCell>
-                    <Button asChild size="sm" variant="outline">
-                      <Link to={`/dashboard/billing/chart-of-accounts/${encodeURIComponent(ledger.id)}/edit`}>
-                        Edit
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <CommonList
+        header={{
+          pageTitle: "Ledger Groups",
+          pageDescription:
+            "Create and review billing ledger groups from one compact operational list. This screen is now group-first, and ledger-group creation happens in a popup form.",
+          addLabel: "New Group",
+          onAddClick: () => onOpenChange(true),
+        }}
+        search={{
+          value: searchValue,
+          onChange: (value) => {
+            setSearchValue(value)
+            setCurrentPage(1)
+          },
+          placeholder: "Search ledger groups",
+        }}
+        table={{
+          columns: [
+            {
+              id: "serial",
+              header: "Sl.No",
+              cell: (group) =>
+                (safeCurrentPage - 1) * pageSize +
+                paginatedGroups.findIndex((entry) => entry.id === group.id) +
+                1,
+              className: "w-12 min-w-12 px-2 text-center",
+              headerClassName: "w-12 min-w-12 px-2 text-center",
+              sticky: "left",
+            },
+            {
+              id: "name",
+              header: "Ledger Group",
+              sortable: true,
+              accessor: (group) => group.name,
+              cell: (group) => (
+                <div>
+                  <p className="font-medium text-foreground">{group.name}</p>
+                  <p className="text-sm text-muted-foreground">{group.id}</p>
+                </div>
+              ),
+            },
+            {
+              id: "description",
+              header: "Description",
+              sortable: true,
+              accessor: (group) => group.description,
+              cell: (group) =>
+                group.description.trim().length > 0 ? (
+                  group.description
+                ) : (
+                  <span className="text-muted-foreground">No description</span>
+                ),
+            },
+            {
+              id: "linked-ledgers",
+              header: "Linked Ledgers",
+              sortable: true,
+              accessor: (group) => group.linkedLedgerCount,
+              cell: (group) => (
+                <Badge variant="outline">
+                  {group.linkedLedgerCount} ledger{group.linkedLedgerCount === 1 ? "" : "s"}
+                </Badge>
+              ),
+            },
+          ],
+          data: paginatedGroups,
+          emptyMessage: "No ledger groups found.",
+          rowKey: (group) => group.id,
+        }}
+        footer={{
+          content: (
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Total groups: <span className="font-medium text-foreground">{totalRecords}</span>
+              </span>
+              <span>
+                Linked ledgers:{" "}
+                <span className="font-medium text-foreground">
+                  {filteredGroups.reduce((total, group) => total + group.linkedLedgerCount, 0)}
+                </span>
+              </span>
+            </div>
+          ),
+        }}
+        pagination={{
+          currentPage: safeCurrentPage,
+          pageSize,
+          totalRecords,
+          onPageChange: setCurrentPage,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize)
+            setCurrentPage(1)
+          },
+          pageSizeOptions: [10, 20, 50],
+        }}
+      />
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Create Ledger Group</DialogTitle>
+            <DialogDescription>
+              Add a new billing ledger group. This flow currently supports create only.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="ledger-group-name">
+                Group name
+              </label>
+              <Input
+                id="ledger-group-name"
+                value={form.name}
+                onChange={(event) => onChange("name", event.target.value)}
+                placeholder="Sundry Debtors"
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor="ledger-group-description"
+              >
+                Description
+              </label>
+              <Textarea
+                id="ledger-group-description"
+                value={form.description}
+                onChange={(event) => onChange("description", event.target.value)}
+                placeholder="Optional setup note for this billing group."
+                rows={4}
+              />
+            </div>
+            {formError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={onCreate} disabled={isSaving}>
+              {isSaving ? "Creating..." : "Create group"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SectionShell>
   )
 }
@@ -1536,6 +1699,202 @@ function VoucherModuleSection({
               )
             })
           )}
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+function CreditNoteSection({ vouchers }: { vouchers: BillingVoucher[] }) {
+  const creditNotes = vouchers.filter((voucher) => voucher.type === "sales")
+
+  return (
+    <SectionShell
+      title="Credit Note"
+      description="Customer-facing adjustment page for sales returns, post-sale discounts, and receivable corrections."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Reference base"
+          value={creditNotes.length}
+          hint="Current sales vouchers available as credit-note reference candidates."
+        />
+        <MetricCard
+          label="Adjustment style"
+          value="Sales return"
+          hint="Keep credit-note posting aligned to customer-side reductions."
+        />
+        <MetricCard
+          label="Posting mode"
+          value="Prepared"
+          hint="Dedicated credit-note posting flow can layer on this page next."
+        />
+        <MetricCard
+          label="GST path"
+          value="Aware"
+          hint="This page is intended to align with GST reversal and return handling."
+        />
+      </div>
+      <StateCard message="Credit note page is connected and ready for a dedicated posting flow. Current references come from the sales book." />
+    </SectionShell>
+  )
+}
+
+function DebitNoteSection({ vouchers }: { vouchers: BillingVoucher[] }) {
+  const debitNotes = vouchers.filter((voucher) => voucher.type === "purchase")
+
+  return (
+    <SectionShell
+      title="Debit Note"
+      description="Supplier-facing adjustment page for purchase returns, upward corrections, and payable-side adjustments."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Reference base"
+          value={debitNotes.length}
+          hint="Current purchase vouchers available as debit-note reference candidates."
+        />
+        <MetricCard
+          label="Adjustment style"
+          value="Purchase return"
+          hint="Keep debit-note posting aligned to supplier-side corrections."
+        />
+        <MetricCard
+          label="Posting mode"
+          value="Prepared"
+          hint="Dedicated debit-note posting flow can be layered here next."
+        />
+        <MetricCard
+          label="GST path"
+          value="Aware"
+          hint="This page is intended to align with input-tax reversals and supplier adjustments."
+        />
+      </div>
+      <StateCard message="Debit note page is connected and ready for a dedicated posting flow. Current references come from the purchase book." />
+    </SectionShell>
+  )
+}
+
+function StockSection({ ledgers }: { ledgers: BillingLedger[] }) {
+  const stockLedgers = ledgers.filter((ledger) =>
+    ["stock", "purchase", "direct"].some((value) =>
+      ledger.group.toLowerCase().includes(value)
+    )
+  )
+
+  return (
+    <SectionShell
+      title="Stock"
+      description="Inventory-facing page for stock-linked ledgers, valuation hooks, and future item-level stock books."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Stock-linked groups"
+          value={new Set(stockLedgers.map((ledger) => ledger.group)).size}
+          hint="Groups currently aligned to stock, purchase, and direct cost treatment."
+        />
+        <MetricCard
+          label="Visible ledgers"
+          value={stockLedgers.length}
+          hint="Ledgers currently acting as inventory-side references in the books."
+        />
+        <MetricCard
+          label="Valuation mode"
+          value="Prepared"
+          hint="This page is ready for stock item, godown, and valuation extensions."
+        />
+        <MetricCard
+          label="Inventory scope"
+          value="Billing"
+          hint="Designed to bridge current accounting books with later inventory masters."
+        />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Stock-linked ledgers</CardTitle>
+          <CardDescription>
+            Current accounting ledgers that can anchor the next inventory layer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {stockLedgers.map((ledger) => (
+            <div
+              key={ledger.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+            >
+              <div>
+                <p className="font-medium text-foreground">{ledger.name}</p>
+                <p className="text-sm text-muted-foreground">{ledger.group}</p>
+              </div>
+              <Badge variant="outline" className="capitalize">
+                {ledger.nature}
+              </Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+function StatementsSection({
+  reports,
+  vouchers,
+}: {
+  reports: BillingAccountingReports
+  vouchers: BillingVoucher[]
+}) {
+  const recentVouchers = [...vouchers].slice(0, 5)
+
+  return (
+    <SectionShell
+      title="Statements"
+      description="Running business statements across receivables, payables, and recent book movement."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Receivable statement"
+          value={formatAmount(reports.outstanding.receivableTotal)}
+          hint="Current receivable-side statement value from posted bills."
+        />
+        <MetricCard
+          label="Payable statement"
+          value={formatAmount(reports.outstanding.payableTotal)}
+          hint="Current payable-side statement value from posted bills."
+        />
+        <MetricCard
+          label="Open bills"
+          value={reports.outstanding.items.length}
+          hint="Outstanding bill references contributing to statement balances."
+        />
+        <MetricCard
+          label="Recent entries"
+          value={recentVouchers.length}
+          hint="Recent vouchers included in the statement snapshot below."
+        />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent statement movement</CardTitle>
+          <CardDescription>
+            Recent voucher activity that would feed customer, supplier, and account statements.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {recentVouchers.map((voucher) => (
+            <div
+              key={voucher.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+            >
+              <div>
+                <p className="font-medium text-foreground">{voucher.voucherNumber}</p>
+                <p className="text-sm text-muted-foreground">
+                  {voucher.counterparty} • {titleFromVoucherType(voucher.type)}
+                </p>
+              </div>
+              <Badge variant="outline">{voucher.date}</Badge>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </SectionShell>
@@ -1917,6 +2276,7 @@ export function BillingWorkspaceSection({
   const [state, setState] = useState<ResourceState>({
     error: null,
     isLoading: true,
+    ledgerGroups: [],
     ledgers: [],
     reports: createEmptyReports(),
     vouchers: [],
@@ -1924,6 +2284,8 @@ export function BillingWorkspaceSection({
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null)
   const [form, setForm] = useState<VoucherFormState>(defaultVoucherForm)
   const [ledgerForm, setLedgerForm] = useState<LedgerFormState>(defaultLedgerForm)
+  const [ledgerGroupForm, setLedgerGroupForm] = useState<LedgerGroupFormState>(defaultLedgerGroupForm)
+  const [isLedgerGroupDialogOpen, setIsLedgerGroupDialogOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -1931,7 +2293,8 @@ export function BillingWorkspaceSection({
     setState((current) => ({ ...current, error: null, isLoading: true }))
 
     try {
-      const [ledgerResponse, voucherResponse, reportsResponse] = await Promise.all([
+      const [ledgerGroupResponse, ledgerResponse, voucherResponse, reportsResponse] = await Promise.all([
+        request<BillingLedgerGroupListResponse>("/internal/v1/billing/ledger-groups"),
         request<BillingLedgerListResponse>("/internal/v1/billing/ledgers"),
         request<BillingVoucherListResponse>("/internal/v1/billing/vouchers"),
         request<BillingAccountingReportsResponse>("/internal/v1/billing/reports"),
@@ -1940,6 +2303,7 @@ export function BillingWorkspaceSection({
       setState({
         error: null,
         isLoading: false,
+        ledgerGroups: ledgerGroupResponse.items,
         ledgers: ledgerResponse.items,
         reports: reportsResponse.item,
         vouchers: voucherResponse.items,
@@ -1948,6 +2312,7 @@ export function BillingWorkspaceSection({
       setState({
         error: error instanceof Error ? error.message : "Failed to load billing workspace.",
         isLoading: false,
+        ledgerGroups: [],
         ledgers: [],
         reports: createEmptyReports(),
         vouchers: [],
@@ -2132,6 +2497,13 @@ export function BillingWorkspaceSection({
     }))
   }
 
+  function handleLedgerGroupChange(field: keyof LedgerGroupFormState, value: string) {
+    setLedgerGroupForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
   function buildPayload(): BillingVoucherUpsertPayload {
     const gstModeEnabled = form.gst.enabled && ["sales", "purchase"].includes(form.type)
 
@@ -2306,6 +2678,31 @@ export function BillingWorkspaceSection({
     }
   }
 
+  async function handleLedgerGroupCreate() {
+    setFormError(null)
+    setIsSaving(true)
+
+    try {
+      await request<BillingLedgerGroupResponse>("/internal/v1/billing/ledger-groups", {
+        method: "POST",
+        body: JSON.stringify({
+          name: ledgerGroupForm.name,
+          description: ledgerGroupForm.description,
+        }),
+      })
+
+      await loadResources()
+      setLedgerGroupForm(defaultLedgerGroupForm)
+      setIsLedgerGroupDialogOpen(false)
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to create ledger group."
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (state.isLoading) {
     return <StateCard message="Loading billing workspace." />
   }
@@ -2316,7 +2713,24 @@ export function BillingWorkspaceSection({
 
   switch (sectionId ?? "overview") {
     case "chart-of-accounts":
-      return <ChartOfAccountsSection ledgers={state.ledgers} />
+      return (
+        <ChartOfAccountsSection
+          form={ledgerGroupForm}
+          formError={formError}
+          groups={state.ledgerGroups}
+          isCreateDialogOpen={isLedgerGroupDialogOpen}
+          isSaving={isSaving}
+          onChange={handleLedgerGroupChange}
+          onCreate={handleLedgerGroupCreate}
+          onOpenChange={(open) => {
+            setIsLedgerGroupDialogOpen(open)
+            if (!open) {
+              setFormError(null)
+              setLedgerGroupForm(defaultLedgerGroupForm)
+            }
+          }}
+        />
+      )
     case "chart-of-accounts-upsert":
       return (
         <ChartOfAccountsUpsertSection
@@ -2405,6 +2819,14 @@ export function BillingWorkspaceSection({
           vouchers={state.vouchers}
         />
       )
+    case "credit-note":
+      return <CreditNoteSection vouchers={state.vouchers} />
+    case "debit-note":
+      return <DebitNoteSection vouchers={state.vouchers} />
+    case "stock":
+      return <StockSection ledgers={state.ledgers} />
+    case "statements":
+      return <StatementsSection reports={state.reports} vouchers={state.vouchers} />
     case "day-book":
       return <DayBookSection vouchers={state.vouchers} />
     case "double-entry":

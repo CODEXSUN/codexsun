@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import {
+  ArrowLeft,
   Blocks,
   CheckCircle2,
   ClipboardList,
@@ -22,6 +23,13 @@ import {
   registryBlocksByCategory,
   registryBlockCategories,
 } from "@/registry/data/blocks"
+import { docsCategories, docsEntries } from "@/registry/data/catalog"
+import {
+  registryPages,
+  registryPageCategories,
+  registryPagesByCategory,
+} from "@/registry/data/pages"
+import { DocsTemplatesSectionContent } from "@/docs/components/docs-templates-section"
 import { CopyCodeButton } from "@/docs/components/copy-code-button"
 import { ViewCodeDialog } from "@/docs/components/view-code-dialog"
 import { useProjectDefaults } from "../context/project-defaults-provider"
@@ -260,7 +268,22 @@ export function DesignSystemDefaultsPage() {
   )
 }
 
-export function DesignSystemBlocksPage() {
+export function DesignSystemBlocksPage({
+  categoryId,
+}: {
+  categoryId?: (typeof registryBlockCategories)[number]["id"]
+} = {}) {
+  return <DesignSystemBlocksContent categoryId={categoryId} />
+}
+
+export function DesignSystemBlocksContent({
+  categoryId,
+}: {
+  categoryId?: (typeof registryBlockCategories)[number]["id"]
+}) {
+  const visibleCategories = categoryId
+    ? registryBlocksByCategory.filter((category) => category.id === categoryId)
+    : registryBlocksByCategory
   const totalBlockCount = registryBlocksByCategory.reduce(
     (count, category) => count + category.items.length,
     0
@@ -299,7 +322,7 @@ export function DesignSystemBlocksPage() {
             </div>
           </div>
           <div className="space-y-6">
-            {registryBlocksByCategory.map((category) => (
+            {visibleCategories.map((category) => (
               <div key={category.id} className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
@@ -367,6 +390,272 @@ export function DesignSystemBlocksPage() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export function DesignSystemComponentsPage({
+  categoryId,
+}: {
+  categoryId?: (typeof docsCategories)[number]["id"]
+}) {
+  const visibleCategories = categoryId
+    ? docsCategories.filter((category) => category.id === categoryId)
+    : docsCategories
+  const visibleEntries = categoryId
+    ? docsEntries.filter((entry) => entry.category === categoryId)
+    : docsEntries
+
+  return (
+    <div id="components" className="space-y-5">
+      <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
+        <CardContent className="space-y-4 px-5 py-6 md:px-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Components
+              </p>
+              <CardTitle>Component Design System</CardTitle>
+              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                Govern the component layer separately from blocks and full-page systems.
+                This track covers the current component library and its variant sets.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">
+                {docsEntries.length} component{docsEntries.length === 1 ? "" : "s"}
+              </Badge>
+              <Badge variant="outline">
+                {docsCategories.length} categories
+              </Badge>
+            </div>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {visibleCategories.map((category) => (
+              <Card key={category.id} className="overflow-hidden border-border/70 py-0 shadow-sm">
+                <CardContent className="space-y-3 px-5 py-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-foreground">{category.name}</p>
+                    <Badge variant="outline">{category.items.length} items</Badge>
+                  </div>
+                  <p className="text-sm leading-6 text-muted-foreground">{category.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        {visibleEntries.map((entry) => (
+          <Link
+            key={entry.id}
+            to={`/dashboard/apps/ui/${entry.id}`}
+            className="group overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/90 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
+          >
+            <div className="space-y-4 px-5 py-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl border border-border/70 bg-background">
+                    <entry.icon className="size-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{entry.name}</p>
+                    <p className="text-sm text-muted-foreground">{entry.description}</p>
+                  </div>
+                </div>
+                <Badge variant="outline">
+                  {entry.examples.length} variant{entry.examples.length === 1 ? "" : "s"}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {entry.examples.slice(0, 4).map((example) => (
+                  <Badge key={example.id} variant="secondary">
+                    {example.title}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function DesignSystemPagesPage({
+  pageCategoryId,
+  categorySlug,
+}: {
+  pageCategoryId?: (typeof registryPageCategories)[number]["id"]
+  categorySlug?: string
+}) {
+  const visiblePageCategories = pageCategoryId
+    ? registryPagesByCategory.filter((category) => category.id === pageCategoryId)
+    : registryPagesByCategory
+
+  return (
+    <div id="pages" className="space-y-5">
+      <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
+        <CardContent className="space-y-4 px-5 py-6 md:px-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Pages
+              </p>
+              <CardTitle>Full Page Design System</CardTitle>
+              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                Full-page starters and larger page-level variants live in their own
+                channel so page systems do not get mixed into primitive components or reusable blocks.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">Page variants</Badge>
+              {pageCategoryId ? <Badge variant="outline">{pageCategoryId}</Badge> : null}
+              {categorySlug ? <Badge variant="outline">{categorySlug}</Badge> : null}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
+        <CardContent className="space-y-5 px-5 py-6 md:px-6">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Page Variants
+            </p>
+            <CardTitle>Page Catalog</CardTitle>
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+              Full-page registry patterns and operational page systems kept separate from
+              blocks, each with its own dedicated preview page.
+            </p>
+          </div>
+          <div className="space-y-6">
+            {visiblePageCategories.map((category) => (
+              <div key={category.id} className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-lg font-semibold text-foreground">{category.name}</p>
+                    <p className="text-sm text-muted-foreground">{category.description}</p>
+                  </div>
+                  <Badge variant="outline">
+                    {category.items.length} page{category.items.length === 1 ? "" : "s"}
+                  </Badge>
+                </div>
+                <div className="grid gap-4">
+                  {category.items.map((page) => (
+                    <Card
+                      key={page.id}
+                      className="overflow-hidden border-border/70 py-0 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40"
+                    >
+                      <CardContent className="grid gap-5 px-5 py-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-lg font-semibold text-foreground">{page.name}</p>
+                              <Badge variant="secondary">Dedicated page</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{page.summary}</p>
+                            <p className="text-sm leading-6 text-muted-foreground">
+                              {page.description}
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                              Included components
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {page.componentIds.map((componentId) => (
+                                <Badge key={componentId} variant="outline">
+                                  {componentId}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <Link
+                            to={`/dashboard/apps/ui/pages-entry-${page.id}`}
+                            className="inline-flex text-sm font-medium text-primary hover:underline"
+                          >
+                            Open full page preview
+                          </Link>
+                        </div>
+                        <div className="theme-preview-surface overflow-hidden rounded-[1.5rem] border border-border/70 p-4">
+                          {page.preview}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <DocsTemplatesSectionContent categorySlug={categorySlug} />
+    </div>
+  )
+}
+
+export function DesignSystemPageEntryPage({
+  pageId,
+}: {
+  pageId: string
+}) {
+  const page = registryPages.find((entry) => entry.id === pageId) ?? null
+
+  if (!page) {
+    return null
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
+        <CardContent className="space-y-4 px-5 py-6 md:px-6">
+          <Link
+            to="/dashboard/apps/ui/pages"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            <ArrowLeft className="size-4" />
+            Back to pages
+          </Link>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Page Entry
+              </p>
+              <CardTitle>{page.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">{page.summary}</p>
+              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                {page.description}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              <CopyCodeButton code={page.code} iconOnly />
+              <ViewCodeDialog
+                code={page.code}
+                title={page.name}
+                description={page.summary}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">{page.category}</Badge>
+            <Badge variant="outline">{page.componentIds.length} components</Badge>
+            {page.componentIds.map((componentId) => (
+              <Badge key={componentId} variant="outline">
+                {componentId}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
+        <CardContent className="theme-preview-surface overflow-hidden px-5 py-6 md:px-6">
+          {page.preview}
         </CardContent>
       </Card>
     </div>

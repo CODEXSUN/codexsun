@@ -2,6 +2,7 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
+import { createBillingLedgerGroup, listBillingLedgerGroups } from "../../../billing/src/services/ledger-group-service.js"
 import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
 import { getBillingAccountingReports } from "../../../billing/src/services/reporting-service.js"
 import { billingVoucherTypeSchema } from "../../../billing/shared/index.js"
@@ -19,6 +20,16 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(await listBillingLedgers(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/billing/ledger-groups", {
+      summary: "List billing ledger groups for the chart and master setup.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listBillingLedgerGroups(context.databases.primary))
       },
     }),
     defineInternalRoute("/billing/ledger", {
@@ -48,6 +59,24 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await createBillingLedger(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/ledger-groups", {
+      method: "POST",
+      summary: "Create a billing ledger group master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createBillingLedgerGroup(
             context.databases.primary,
             user,
             context.request.jsonBody

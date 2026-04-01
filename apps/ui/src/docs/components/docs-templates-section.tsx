@@ -7,6 +7,21 @@ import {
 } from "@/registry/data/catalog"
 
 export function DocsTemplatesSection() {
+  return <DocsTemplatesSectionContent />
+}
+
+export function DocsTemplatesSectionContent({
+  categorySlug,
+}: {
+  categorySlug?: string
+}) {
+  const visibleTemplates = categorySlug
+    ? docsTemplates.filter((template) => template.category.slug === categorySlug)
+    : docsTemplates
+  const visibleCategories = categorySlug
+    ? docsTemplateCategories.filter((category) => category.slug === categorySlug)
+    : docsTemplateCategories
+
   return (
     <div id="templates" className="space-y-5">
       <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
@@ -26,7 +41,7 @@ export function DocsTemplatesSection() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {docsTemplateCategories.map((category) => (
+              {visibleCategories.map((category) => (
                 <Badge key={category.slug} variant="outline">
                   {category.name}
                 </Badge>
@@ -35,7 +50,7 @@ export function DocsTemplatesSection() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            {docsTemplates.map((template) => (
+            {visibleTemplates.map((template) => (
               <DocsTemplateCard key={template.slug} template={template} />
             ))}
           </div>

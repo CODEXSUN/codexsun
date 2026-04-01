@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom"
 import {
+  AppWindow,
+  Blocks,
   ClipboardList,
   PackageCheck,
   Settings2,
@@ -9,6 +11,13 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 
 const overviewSections = [
+  {
+    description: "Variant-driven component system covering the current 27 governed components.",
+    href: "components",
+    icon: Blocks,
+    id: "components",
+    name: "Components",
+  },
   {
     description: "Project component names, aliases, and default variants.",
     href: "design-settings",
@@ -22,6 +31,13 @@ const overviewSections = [
     icon: ClipboardList,
     id: "blocks",
     name: "Blocks",
+  },
+  {
+    description: "Full page design system variants and starter templates kept separate from blocks.",
+    href: "pages",
+    icon: AppWindow,
+    id: "pages",
+    name: "Pages",
   },
   {
     description: "Checklist coverage for the core components needed to build product screens.",

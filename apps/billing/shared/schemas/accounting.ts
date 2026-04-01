@@ -20,12 +20,24 @@ export const billingLedgerSchema = z.object({
   closingAmount: z.number().nonnegative(),
 })
 
+export const billingLedgerGroupSchema = z.object({
+  id: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  description: z.string().trim(),
+  linkedLedgerCount: z.number().int().nonnegative(),
+})
+
 export const billingLedgerUpsertPayloadSchema = z.object({
   name: z.string().trim().min(1),
   group: z.string().trim().min(1),
   nature: z.enum(["asset", "liability", "income", "expense"]),
   closingSide: billingEntrySideSchema,
   closingAmount: z.number().nonnegative(),
+})
+
+export const billingLedgerGroupUpsertPayloadSchema = z.object({
+  name: z.string().trim().min(1),
+  description: z.string().trim().default(""),
 })
 
 export const billingVoucherLineSchema = z.object({
@@ -181,6 +193,10 @@ export const billingLedgerListResponseSchema = z.object({
   items: z.array(billingLedgerSchema),
 })
 
+export const billingLedgerGroupListResponseSchema = z.object({
+  items: z.array(billingLedgerGroupSchema),
+})
+
 export const billingVoucherListResponseSchema = z.object({
   items: z.array(billingVoucherSchema),
 })
@@ -191,6 +207,10 @@ export const billingVoucherResponseSchema = z.object({
 
 export const billingLedgerResponseSchema = z.object({
   item: billingLedgerSchema,
+})
+
+export const billingLedgerGroupResponseSchema = z.object({
+  item: billingLedgerGroupSchema,
 })
 
 export const billingTrialBalanceItemSchema = z.object({
@@ -274,8 +294,12 @@ export const billingAccountingReportsResponseSchema = z.object({
 export type BillingVoucherType = z.infer<typeof billingVoucherTypeSchema>
 export type BillingEntrySide = z.infer<typeof billingEntrySideSchema>
 export type BillingLedger = z.infer<typeof billingLedgerSchema>
+export type BillingLedgerGroup = z.infer<typeof billingLedgerGroupSchema>
 export type BillingLedgerUpsertPayload = z.infer<
   typeof billingLedgerUpsertPayloadSchema
+>
+export type BillingLedgerGroupUpsertPayload = z.infer<
+  typeof billingLedgerGroupUpsertPayloadSchema
 >
 export type BillingVoucherLine = z.infer<typeof billingVoucherLineSchema>
 export type BillingVoucherGst = z.infer<typeof billingVoucherGstSchema>
@@ -300,7 +324,13 @@ export type BillingVoucherBillAllocationPayload = z.infer<
 export type BillingLedgerListResponse = z.infer<
   typeof billingLedgerListResponseSchema
 >
+export type BillingLedgerGroupListResponse = z.infer<
+  typeof billingLedgerGroupListResponseSchema
+>
 export type BillingLedgerResponse = z.infer<typeof billingLedgerResponseSchema>
+export type BillingLedgerGroupResponse = z.infer<
+  typeof billingLedgerGroupResponseSchema
+>
 export type BillingVoucherListResponse = z.infer<
   typeof billingVoucherListResponseSchema
 >

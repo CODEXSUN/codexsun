@@ -62,8 +62,10 @@ test("internal route registry includes the billing voucher and report endpoints"
   const routes = createInternalApiRoutes(createAppSuite())
   const routePaths = routes.map((route) => `${route.method} ${route.path}`)
 
+  assert.ok(routePaths.includes("GET /internal/v1/billing/ledger-groups"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/ledgers"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/ledger"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/ledger-groups"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/ledgers"))
   assert.ok(routePaths.includes("PATCH /internal/v1/billing/ledger"))
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/ledger"))
@@ -75,7 +77,7 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
 })
 
-test("authenticated billing internal routes return vouchers, reports, and accept voucher posting", async () => {
+test("authenticated billing internal routes return groups, vouchers, reports, and accept voucher posting", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-routes-"))
 
   try {
@@ -109,6 +111,12 @@ test("authenticated billing internal routes return vouchers, reports, and accept
       const listRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/vouchers"
       )
+      const groupListRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/ledger-groups"
+      )
+      const groupCreateRoute = routes.find(
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/ledger-groups"
+      )
       const reportsRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/reports"
       )
@@ -116,9 +124,72 @@ test("authenticated billing internal routes return vouchers, reports, and accept
         (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/vouchers"
       )
 
+      assert.ok(groupListRoute)
+      assert.ok(groupCreateRoute)
       assert.ok(listRoute)
       assert.ok(reportsRoute)
       assert.ok(createRoute)
+
+      const groupListResponse = await groupListRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/billing/ledger-groups",
+          url: new URL("http://localhost/internal/v1/billing/ledger-groups"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: groupListRoute.auth,
+          path: groupListRoute.path,
+          surface: groupListRoute.surface,
+          version: groupListRoute.version,
+        },
+      })
+
+      const groupListPayload = JSON.parse(groupListResponse.body) as {
+        items: Array<{ id: string; name: string }>
+      }
+
+      assert.equal(groupListResponse.statusCode, 200)
+      assert.ok(groupListPayload.items.length >= 1)
+
+      const groupCreateResponse = await groupCreateRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/ledger-groups",
+          url: new URL("http://localhost/internal/v1/billing/ledger-groups"),
+          headers,
+          bodyText: JSON.stringify({
+            name: "Loans & Advances",
+            description: "Temporary group for route coverage.",
+          }),
+          jsonBody: {
+            name: "Loans & Advances",
+            description: "Temporary group for route coverage.",
+          },
+        },
+        route: {
+          auth: groupCreateRoute.auth,
+          path: groupCreateRoute.path,
+          surface: groupCreateRoute.surface,
+          version: groupCreateRoute.version,
+        },
+      })
+
+      const groupCreatedPayload = JSON.parse(groupCreateResponse.body) as {
+        item: { name: string; linkedLedgerCount: number }
+      }
+
+      assert.equal(groupCreateResponse.statusCode, 201)
+      assert.equal(groupCreatedPayload.item.name, "Loans & Advances")
+      assert.equal(groupCreatedPayload.item.linkedLedgerCount, 0)
 
       const listResponse = await listRoute.handler({
         appSuite,

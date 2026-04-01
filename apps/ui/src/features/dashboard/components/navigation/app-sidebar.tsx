@@ -30,12 +30,14 @@ function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
 }
 
-function UiAppMenu({
+function GroupedAppMenu({
   app,
+  groupLabel,
   open,
   pathname,
 }: {
   app: DashboardAppDefinition
+  groupLabel: string
   open: boolean
   pathname: string
 }) {
@@ -66,7 +68,7 @@ function UiAppMenu({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {app.menuGroups.map((group) => {
@@ -255,51 +257,12 @@ export function AppSidebar() {
 
         {currentApp ? (
           <>
-            {currentApp.id === "ui" ? (
-              <UiAppMenu
-                app={currentApp}
-                open={open}
-                pathname={location.pathname}
-              />
-            ) : (
-              currentApp.menuGroups.map((group) => (
-                <SidebarGroup key={group.id}>
-                  <SidebarGroupLabel>
-                    {group.route ? (
-                      <NavLink
-                        to={group.route}
-                        className={`transition hover:text-foreground ${
-                          isRouteActive(location.pathname, group.route)
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {group.label}
-                      </NavLink>
-                    ) : (
-                      group.label
-                    )}
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {group.items.map((item) => (
-                        <SidebarMenuItem key={item.id}>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={isRouteActive(location.pathname, item.route)}
-                          >
-                            <NavLink to={item.route}>
-                              <item.icon className="size-4" />
-                              {open ? <span>{item.name}</span> : null}
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              ))
-            )}
+            <GroupedAppMenu
+              app={currentApp}
+              groupLabel={currentApp.id === "ui" ? "Platform" : "Workspace"}
+              open={open}
+              pathname={location.pathname}
+            />
             <SidebarGroup>
               <SidebarGroupLabel>Application</SidebarGroupLabel>
               <SidebarGroupContent>
