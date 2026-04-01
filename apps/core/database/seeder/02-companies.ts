@@ -1,4 +1,4 @@
-import { replaceJsonStoreRecords } from "../../../framework/src/runtime/database/process/json-store.js"
+import { replaceJsonStoreRecords } from "../../../framework/src/runtime/database"
 import { defineDatabaseSeeder } from "../../../framework/src/runtime/database/process/types.js"
 
 import { companies } from "../../src/data/core-seed.js"

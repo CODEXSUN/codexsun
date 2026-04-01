@@ -13,6 +13,7 @@ import {
   DesignSystemReadinessPage,
 } from "@/design-system/pages/design-system-workbench-page"
 import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
+import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
 
@@ -54,14 +55,20 @@ const uiWorkspaceSections = {
   },
 } as const
 
-export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
+export function FrameworkAppWorkspacePage({
+  appId,
+  sectionId: forcedSectionId,
+}: {
+  appId?: string
+  sectionId?: string
+}) {
   const location = useLocation()
   const params = useParams()
   const { user } = useDashboardShell()
   const { getApp } = useDesk()
   const resolvedAppId = appId ?? params.appId
   const app = resolvedAppId ? getApp(resolvedAppId) : null
-  const sectionId = params.sectionId
+  const sectionId = forcedSectionId ?? params.sectionId
 
   if (!app) {
     return (
@@ -103,6 +110,8 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
       "Browse reusable shadcn-based components by category, preview variants, and copy install-ready code."
   const coreWorkspaceContent =
     app.id === "core" ? <CoreWorkspaceSection sectionId={sectionId} /> : null
+  const billingWorkspaceContent =
+    app.id === "billing" ? <BillingWorkspaceSection sectionId={sectionId} /> : null
   const ecommerceWorkspaceContent =
     app.id === "ecommerce" ? (
       <EcommerceWorkspaceSection sectionId={sectionId} />
@@ -110,7 +119,10 @@ export function FrameworkAppWorkspacePage({ appId }: { appId?: string }) {
   const frappeWorkspaceContent =
     app.id === "frappe" ? <FrappeWorkspaceSection sectionId={sectionId} /> : null
   const customWorkspaceContent =
-    coreWorkspaceContent ?? ecommerceWorkspaceContent ?? frappeWorkspaceContent
+    coreWorkspaceContent ??
+    billingWorkspaceContent ??
+    ecommerceWorkspaceContent ??
+    frappeWorkspaceContent
 
   return (
     <div className="space-y-3">

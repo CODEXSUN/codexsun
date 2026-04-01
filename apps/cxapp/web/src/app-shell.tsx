@@ -18,6 +18,8 @@ import type { DashboardUser } from "@/features/dashboard/types"
 import { useAuth } from "./auth/auth-context"
 import { AuthProvider } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
+import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
+import { BillingWorkspacePage } from "./pages/billing-workspace-page"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
 import HomePage from "./pages/home"
@@ -146,6 +148,116 @@ function AuthenticatedAppShell() {
                     title="System Update"
                     description="Build health, deployment checkpoints, and future update controls will live here once the release workflow grows beyond the current scaffold."
                   />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingWorkspacePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/chart-of-accounts"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="chart-of-accounts" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/voucher-register"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="voucher-register" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/payment-vouchers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="payment-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/receipt-vouchers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="receipt-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-vouchers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="sales-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/purchase-vouchers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="purchase-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/contra-vouchers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="contra-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/journal-vouchers"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="journal-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/day-book"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="day-book" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/double-entry"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="double-entry" />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -1,0 +1,119 @@
+import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
+import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
+import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
+import { listBillingLedgers } from "../../../billing/src/services/ledger-service.js"
+import { billingVoucherTypeSchema } from "../../../billing/shared/index.js"
+
+import { jsonResponse } from "../shared/http-responses.js"
+import { requireAuthenticatedUser } from "../shared/session.js"
+
+export function createBillingInternalRoutes(): HttpRouteDefinition[] {
+  return [
+    defineInternalRoute("/billing/ledgers", {
+      summary: "List billing ledgers used by the posting engine.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listBillingLedgers(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/billing/vouchers", {
+      summary: "List billing vouchers with double-entry lines.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const typeParam = context.request.url.searchParams.get("type")
+
+        return jsonResponse(
+          await listBillingVouchers(
+            context.databases.primary,
+            user,
+            typeParam ? billingVoucherTypeSchema.parse(typeParam) : undefined
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher", {
+      summary: "Read one billing voucher by id.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingVoucher(context.databases.primary, user, voucherId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/vouchers", {
+      method: "POST",
+      summary: "Create and post a billing voucher.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createBillingVoucher(
+            context.databases.primary,
+            user,
+            context.config,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher", {
+      method: "PATCH",
+      summary: "Update a billing voucher and revalidate posting balance.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingVoucher(
+            context.databases.primary,
+            user,
+            context.config,
+            voucherId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher", {
+      method: "DELETE",
+      summary: "Delete a billing voucher.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteBillingVoucher(context.databases.primary, user, voucherId)
+        )
+      },
+    }),
+  ]
+}

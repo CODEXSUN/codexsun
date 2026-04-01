@@ -64,6 +64,32 @@ export type ServerConfig = {
       fromName: string
     }
   }
+  billing: {
+    compliance: {
+      financialYearStartMonth: number
+      financialYearStartDay: number
+      eInvoice: {
+        enabled: boolean
+        mode: "mock" | "live"
+        baseUrl?: string
+        username?: string
+        password?: string
+        clientId?: string
+        clientSecret?: string
+        gstin?: string
+      }
+      eWayBill: {
+        enabled: boolean
+        mode: "mock" | "live"
+        baseUrl?: string
+        username?: string
+        password?: string
+        clientId?: string
+        clientSecret?: string
+        gstin?: string
+      }
+    }
+  }
 }
 
 export function getServerConfig(cwd = process.cwd()): ServerConfig {
@@ -158,6 +184,40 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         password: smtpPassword,
         fromEmail: smtpFromEmail,
         fromName: env.SMTP_FROM_NAME?.trim() || "codexsun",
+      },
+    },
+    billing: {
+      compliance: {
+        financialYearStartMonth: readNumber(
+          env.BILLING_FINANCIAL_YEAR_START_MONTH,
+          4,
+          "BILLING_FINANCIAL_YEAR_START_MONTH"
+        ),
+        financialYearStartDay: readNumber(
+          env.BILLING_FINANCIAL_YEAR_START_DAY,
+          1,
+          "BILLING_FINANCIAL_YEAR_START_DAY"
+        ),
+        eInvoice: {
+          enabled: readBoolean(env.BILLING_EINVOICE_ENABLED, false),
+          mode: (env.BILLING_EINVOICE_MODE as "mock" | "live" | undefined) ?? "mock",
+          baseUrl: env.BILLING_EINVOICE_BASE_URL?.trim() || undefined,
+          username: env.BILLING_EINVOICE_USERNAME?.trim() || undefined,
+          password: env.BILLING_EINVOICE_PASSWORD?.trim() || undefined,
+          clientId: env.BILLING_EINVOICE_CLIENT_ID?.trim() || undefined,
+          clientSecret: env.BILLING_EINVOICE_CLIENT_SECRET?.trim() || undefined,
+          gstin: env.BILLING_EINVOICE_GSTIN?.trim() || undefined,
+        },
+        eWayBill: {
+          enabled: readBoolean(env.BILLING_EWAYBILL_ENABLED, false),
+          mode: (env.BILLING_EWAYBILL_MODE as "mock" | "live" | undefined) ?? "mock",
+          baseUrl: env.BILLING_EWAYBILL_BASE_URL?.trim() || undefined,
+          username: env.BILLING_EWAYBILL_USERNAME?.trim() || undefined,
+          password: env.BILLING_EWAYBILL_PASSWORD?.trim() || undefined,
+          clientId: env.BILLING_EWAYBILL_CLIENT_ID?.trim() || undefined,
+          clientSecret: env.BILLING_EWAYBILL_CLIENT_SECRET?.trim() || undefined,
+          gstin: env.BILLING_EWAYBILL_GSTIN?.trim() || undefined,
+        },
       },
     },
   }

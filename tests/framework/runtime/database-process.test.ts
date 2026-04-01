@@ -13,6 +13,9 @@ import {
 import { listCommonModuleSummaries } from "../../../apps/core/src/services/common-module-service.js"
 import { listCompanies } from "../../../apps/core/src/services/company-service.js"
 import { listContacts } from "../../../apps/core/src/services/contact-service.js"
+import { billingTableNames } from "../../../apps/billing/database/table-names.js"
+import { listBillingLedgers } from "../../../apps/billing/src/services/ledger-service.js"
+import { listBillingVouchers } from "../../../apps/billing/src/services/voucher-service.js"
 import { listCustomerDetails } from "../../../apps/ecommerce/src/services/customer-service.js"
 import { listOrderWorkflows } from "../../../apps/ecommerce/src/services/order-service.js"
 import { getStorefrontCatalog, listProducts } from "../../../apps/ecommerce/src/services/product-service.js"
@@ -46,7 +49,6 @@ test("registered database processes stay ordered by app and module", () => {
       "core:auth:05-auth-foundation",
       "core:auth:06-auth-sessions",
       "core:mailbox:07-mailbox",
-      "core:common-modules:08-common-module-tables",
       "ecommerce:pricing-settings:01-pricing-settings",
       "ecommerce:products:02-products",
       "ecommerce:storefront:03-storefront",
@@ -69,7 +71,6 @@ test("registered database processes stay ordered by app and module", () => {
       "core:common-modules:04-common-modules",
       "core:auth:05-auth-foundation",
       "core:mailbox:06-mailbox",
-      "core:common-modules:07-common-module-tables",
       "ecommerce:pricing-settings:01-pricing-settings",
       "ecommerce:products:02-products",
       "ecommerce:storefront:03-storefront",
@@ -84,7 +85,7 @@ test("registered database processes stay ordered by app and module", () => {
   )
 })
 
-test("database prepare applies app-owned migrations and seeders for core, ecommerce, and frappe", async () => {
+test("database prepare applies app-owned migrations and seeders for core, billing, ecommerce, and frappe", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-db-prepare-"))
 
   try {
@@ -141,6 +142,10 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
         .selectFrom(ecommerceTableNames.products)
         .select(["id"])
         .execute()
+      const billingVoucherRows = await queryDatabase
+        .selectFrom(billingTableNames.vouchers)
+        .select(["id"])
+        .execute()
       const seededSuperAdmin = await queryDatabase
         .selectFrom(coreTableNames.authUsers)
         .select(["email", "is_super_admin"])
@@ -153,6 +158,7 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
       )
       assert.equal(appliedSeeders.length, listRegisteredDatabaseSeeders().length)
       assert.equal(companyRows.length, 2)
+      assert.equal(billingVoucherRows.length, 6)
       assert.equal(commonCategoryRows.length, 3)
       assert.equal(productRows.length, 3)
       assert.equal(seededSuperAdmin?.email, "sundar@sundar.com")
@@ -181,6 +187,16 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
         createdAt: "2026-03-30T00:00:00.000Z",
         updatedAt: "2026-03-30T00:00:00.000Z",
       }
+      const companies = await listCompanies(runtime.primary)
+      const contacts = await listContacts(runtime.primary)
+      const billingLedgers = await listBillingLedgers(runtime.primary)
+      const billingVouchers = await listBillingVouchers(runtime.primary, adminUser)
+      const commonModuleSummary = await listCommonModuleSummaries(runtime.primary)
+      const products = await listProducts(runtime.primary)
+      const storefrontCatalog = await getStorefrontCatalog(runtime.primary)
+      const orderWorkflows = await listOrderWorkflows(runtime.primary)
+      const customerDetails = await listCustomerDetails(runtime.primary)
+      const pricingSettings = await getEcommercePricingSettings(runtime.primary)
       const frappeSettings = await readFrappeSettings(runtime.primary, adminUser)
       const frappeTodos = await listFrappeTodos(runtime.primary, adminUser)
       const frappeItems = await listFrappeItems(runtime.primary, adminUser)
@@ -188,6 +204,8 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
 
       assert.equal(companies.items.length, 2)
       assert.equal(contacts.items.length, 3)
+      assert.equal(billingLedgers.items.length, 14)
+      assert.equal(billingVouchers.items.length, 6)
       assert.ok(commonModuleSummary.items.length >= 20)
       assert.equal(products.items.length, 3)
       assert.equal(storefrontCatalog.products.length, 3)

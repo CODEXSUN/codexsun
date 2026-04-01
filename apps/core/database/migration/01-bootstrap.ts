@@ -1,4 +1,4 @@
-import { ensureJsonStoreTable } from "../../../framework/src/runtime/database/process/json-store.js"
+import { ensureJsonStoreTable } from "../../../framework/src/runtime/database"
 import { defineDatabaseMigration } from "../../../framework/src/runtime/database/process/types.js"
 
 import { coreTableNames } from "../table-names.js"

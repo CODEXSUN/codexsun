@@ -1,0 +1,61 @@
+import type { BillingVoucherType } from "./schemas/accounting.js"
+
+export interface BillingVoucherModule {
+  id: BillingVoucherType
+  name: string
+  route: string
+  summary: string
+  workflowHint: string
+  desktopIntent: string
+}
+
+export const billingVoucherModules: BillingVoucherModule[] = [
+  {
+    id: "payment",
+    name: "Payment Vouchers",
+    route: "/dashboard/billing/payment-vouchers",
+    summary: "Outgoing settlements from cash or bank against suppliers, expenses, and adjustments.",
+    workflowHint: "Credit cash or bank and debit the target liability or expense ledger.",
+    desktopIntent: "Optimized for fast bank and cash payment entry with keyboard-first posting flow.",
+  },
+  {
+    id: "receipt",
+    name: "Receipt Vouchers",
+    route: "/dashboard/billing/receipt-vouchers",
+    summary: "Incoming collections against debtors, advances, and other receivable-led flows.",
+    workflowHint: "Debit cash or bank and credit the debtor or source ledger being settled.",
+    desktopIntent: "Supports cashier-style receipt entry and backoffice bank receipt review.",
+  },
+  {
+    id: "sales",
+    name: "Sales Vouchers",
+    route: "/dashboard/billing/sales-vouchers",
+    summary: "Revenue posting for credit and cash sales with ledger-first accounting control.",
+    workflowHint: "Debit debtor or cash/bank and credit sales and related output ledgers.",
+    desktopIntent: "Prepared for invoice-style desktop entry with item, tax, and narration expansion.",
+  },
+  {
+    id: "purchase",
+    name: "Purchase Vouchers",
+    route: "/dashboard/billing/purchase-vouchers",
+    summary: "Supplier bills, expense capture, and inventory-linked purchase accounting.",
+    workflowHint: "Debit purchase or stock-linked ledgers and credit the supplier or payment source.",
+    desktopIntent: "Prepared for purchase bill entry with stock, tax, and bill reference panels.",
+  },
+  {
+    id: "contra",
+    name: "Contra Vouchers",
+    route: "/dashboard/billing/contra-vouchers",
+    summary: "Cash-to-bank and bank-to-bank transfers without revenue or expense impact.",
+    workflowHint: "Move value strictly between cash and bank ledgers while keeping totals equal.",
+    desktopIntent: "Prepared for quick internal fund transfer entry across cash and bank books.",
+  },
+  {
+    id: "journal",
+    name: "Journal Vouchers",
+    route: "/dashboard/billing/journal-vouchers",
+    summary: "Adjustments, accruals, reclassifications, and non-cash accounting corrections.",
+    workflowHint: "Use manual debit and credit lines for pure accounting adjustments.",
+    desktopIntent: "Prepared for accountant-style adjustment entry and month-end closing workflow.",
+  },
+]

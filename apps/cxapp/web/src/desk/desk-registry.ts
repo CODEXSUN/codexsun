@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
+import { billingVoucherModules, billingWorkspaceItems } from "@billing/shared"
 import { coreWorkspaceItems } from "@core/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
@@ -301,6 +302,33 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "billing") {
+    const billingWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      "chart-of-accounts": Building2,
+      "voucher-register": ReceiptText,
+      "payment-vouchers": ReceiptText,
+      "receipt-vouchers": ReceiptText,
+      "sales-vouchers": ReceiptText,
+      "purchase-vouchers": ReceiptText,
+      "contra-vouchers": ReceiptText,
+      "journal-vouchers": ReceiptText,
+      "day-book": ClipboardList,
+      "double-entry": Workflow,
+    }
+
+    return [
+      ...billingWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: billingWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -447,6 +475,38 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               ),
             },
           ]
+      : app.id === "billing"
+        ? [
+            {
+              id: `${app.id}-accounts`,
+              label: "Accounts",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing`,
+                  `/dashboard/billing/chart-of-accounts`,
+                  `/dashboard/billing/voucher-register`,
+                  ...billingVoucherModules.map((module) => module.route),
+                  `/dashboard/billing/day-book`,
+                  `/dashboard/billing/double-entry`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
       : [
           {
             id: `${app.id}-workspace`,
@@ -460,7 +520,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
     id: app.id,
     name: app.name,
     summary: app.description,
-    route: `/dashboard/apps/${app.id}`,
+    route: app.id === "billing" ? "/dashboard/billing" : `/dashboard/apps/${app.id}`,
     icon: appIconMap[app.id] ?? Blocks,
     badge: getAppBadge(app),
     readiness: getAppReadiness(app),

@@ -3,6 +3,7 @@ import { createWorkspaceHostBaseline } from "../../../framework/src/application/
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
+import { createBillingInternalRoutes } from "./billing-routes.js"
 import { createCoreAuthInternalRoutes } from "./core-auth-routes.js"
 import { createCoreInternalRoutes } from "./core-routes.js"
 import { createEcommerceInternalRoutes } from "./ecommerce-routes.js"
@@ -37,6 +38,7 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
     }),
     ...createCoreInternalRoutes(),
     ...createCoreAuthInternalRoutes(),
+    ...createBillingInternalRoutes(),
     ...createEcommerceInternalRoutes(),
     ...createFrappeInternalRoutes(),
   ]
