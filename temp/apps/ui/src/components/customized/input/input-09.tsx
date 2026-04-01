@@ -1,0 +1,19 @@
+import { Input } from "@ui/registry/ui/input";
+import { Label } from "@ui/registry/ui/label";
+
+export default function InputWithErrorMessageDemo() {
+  return (
+    <div className="w-full max-w-xs space-y-2">
+      <Label className="text-destructive" htmlFor="email-address">
+        Email Address
+      </Label>
+      <Input
+        className="border-destructive focus-visible:border-destructive/70 focus-visible:ring-destructive/25"
+        id="email-address"
+        placeholder="Email"
+        type="email"
+      />
+      <p className="text-[0.8rem] text-destructive">This email is invalid.</p>
+    </div>
+  );
+}

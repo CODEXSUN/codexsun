@@ -4,6 +4,7 @@ import { coreContactsSeeder } from "./03-contacts.js"
 import { coreCommonModulesSeeder } from "./04-common-modules.js"
 import { coreAuthFoundationSeeder } from "./05-auth-foundation.js"
 import { coreMailboxSeeder } from "./06-mailbox.js"
+import { coreCommonModuleTablesSeeder } from "./07-common-module-tables.js"
 
 export const coreDatabaseSeeders = [
   coreBootstrapSeeder,
@@ -12,4 +13,5 @@ export const coreDatabaseSeeders = [
   coreCommonModulesSeeder,
   coreAuthFoundationSeeder,
   coreMailboxSeeder,
+  coreCommonModuleTablesSeeder,
 ]

@@ -1,0 +1,46 @@
+import { cn } from "@ui/lib/utils";
+import { buttonVariants } from "@ui/registry/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@ui/registry/ui/pagination";
+
+export default function PaginationWithPrimaryButton() {
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious href="#" />
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationLink href="#">1</PaginationLink>
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationLink
+            className={cn(
+              "shadow-none! hover:text-primary-foreground! dark:bg-primary dark:hover:bg-primary/90",
+              buttonVariants({
+                variant: "default",
+                size: "icon",
+              })
+            )}
+            href="#"
+            isActive
+          >
+            2
+          </PaginationLink>
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationLink href="#">3</PaginationLink>
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationNext href="#" />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}

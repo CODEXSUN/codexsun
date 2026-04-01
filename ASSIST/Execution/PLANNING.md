@@ -4,42 +4,36 @@
 
 ### Reference
 
-`#17`
+`#19`
 
 ### Goal
 
-Restore a working local frontend and backend bootstrap by using deterministic SQLite startup, seed the requested first super-admin user, and add auth/database hardening so database failures are clearer and the seeded login path stays covered.
+Replace the legacy JSON-store common-module persistence with physical shared master tables copied from the temp source so the real project owns explicit common-table migrations, seeders, and service reads.
 
 ### Scope
 
 - `ASSIST/Execution`
 - `ASSIST/Documentation/CHANGELOG.md`
-- `ASSIST/Documentation/SETUP_AND_RUN.md`
-- `.env`
-- `.env.sample`
 - `apps/framework/src/runtime/database`
 - `apps/core/src`
 - `apps/core/database`
-- `apps/frappe/src`
-- `tests/core`
 - `tests/framework/runtime`
-- `ASSIST/AI_RULES.md`
 
 ### Canonical Decisions
 
-- MariaDB remains the primary live transactional database direction, but the checked-in local development bootstrap should use SQLite when the local machine does not provide MariaDB
-- the first seeded auth user should be the requested `Sundar` super-admin account and should remain login-tested through the app-owned auth service
-- super-admin resolution should respect both seeded database flags and the configured `SUPER_ADMIN_EMAILS` list
-- database clients should fail faster on unreachable network databases instead of hanging during local startup
+- the temp copy is the source for the 25 physical common tables and their metadata shape
+- the real project should add a new migration and seeder pair instead of mutating already-applied process IDs in place
+- common-module metadata should come from source-controlled definitions, while record rows should come from the new physical tables
+- legacy JSON-store common-module tables can remain in place for compatibility, but active reads should switch to the physical tables
 
 ### Execution Plan
 
-1. switch the checked-in local env bootstrap to SQLite and add super-admin env configuration
-2. replace the default seeded admin account with the requested `Sundar` super-admin credentials
-3. harden auth super-admin resolution and network database client connection timeouts
-4. update regression tests for seeded login, seeded super-admin rows, and normalized super-admin env parsing
-5. run database prepare, test, typecheck, and lint validation
-6. verify the login API with the seeded credentials
+1. add the temp-derived common table name registry and shared common-module definitions
+2. add a new `core` migration to create one physical table per common module
+3. add a new `core` seeder to populate those tables with the shared sample records
+4. switch the common-module service to source-controlled metadata plus physical-table reads
+5. update runtime tests to cover the new migration and seeded table presence
+6. run typecheck, lint, test, and database prepare, then record unrelated existing lint failures
 7. update ASSIST docs and changelog
 
 ### Validation Plan
@@ -48,17 +42,15 @@ Restore a working local frontend and backend bootstrap by using deterministic SQ
 - Run `npm run lint`
 - Run `npm run test`
 - Run `npm run db:prepare`
-- Verify `/api/v1/auth/login` with the seeded credentials
 
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npm run lint` (same existing React Compiler warnings in imported table variants only)
+- [ ] `npm run lint` (fails on existing `apps/ui` registry/doc files already carrying unrelated issues)
 - [x] `npm run test`
 - [x] `npm run db:prepare`
-- [x] verify `/api/v1/auth/login`
 
 ### Risks And Follow-Up
 
-- live MariaDB deployments still need explicit MariaDB configuration; this batch only makes the checked-in local path deterministic and failure behavior clearer
-- super-admin escalation through `SUPER_ADMIN_EMAILS` is deployment-controlled, so that list should stay tightly scoped to trusted operators
+- existing databases that already applied the old JSON-store common-module migration will retain those legacy tables until a later cleanup batch removes them
+- the current contacts and companies still reference common master IDs semantically rather than through database-enforced foreign keys

@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#19] 2026-03-31 - Physical common module tables
+
+- copied the temp common-module table inventory into the real `core` database contract as 25 explicit shared table names
+- added a new app-owned `core` migration that creates one physical table per common module while leaving the legacy JSON-store migration IDs intact for compatibility
+- added a new app-owned `core` seeder that populates the physical common tables with shared sample master records used by the current suite
+- switched the `core` common-module service from generic JSON-store reads to source-controlled metadata plus direct physical-table queries
+- updated the database-process regression test to cover the new migration and seeded common table presence
+
 ### [#18] 2026-03-30 - Theme-oriented UI surfaces and loader polish
 
 - expanded the shared UI token layer so primary, secondary, accent, muted, sidebar, chart, preview, auth, and code surfaces respond consistently across light and dark themes

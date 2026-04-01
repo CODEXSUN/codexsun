@@ -6,7 +6,10 @@ import test from "node:test"
 
 import type { Kysely } from "kysely"
 
-import { coreTableNames } from "../../../apps/core/database/table-names.js"
+import {
+  commonModuleTableNames,
+  coreTableNames,
+} from "../../../apps/core/database/table-names.js"
 import { listCommonModuleSummaries } from "../../../apps/core/src/services/common-module-service.js"
 import { listCompanies } from "../../../apps/core/src/services/company-service.js"
 import { listContacts } from "../../../apps/core/src/services/contact-service.js"
@@ -43,6 +46,7 @@ test("registered database processes stay ordered by app and module", () => {
       "core:auth:05-auth-foundation",
       "core:auth:06-auth-sessions",
       "core:mailbox:07-mailbox",
+      "core:common-modules:08-common-module-tables",
       "ecommerce:pricing-settings:01-pricing-settings",
       "ecommerce:products:02-products",
       "ecommerce:storefront:03-storefront",
@@ -65,6 +69,7 @@ test("registered database processes stay ordered by app and module", () => {
       "core:common-modules:04-common-modules",
       "core:auth:05-auth-foundation",
       "core:mailbox:06-mailbox",
+      "core:common-modules:07-common-module-tables",
       "ecommerce:pricing-settings:01-pricing-settings",
       "ecommerce:products:02-products",
       "ecommerce:storefront:03-storefront",
@@ -128,6 +133,10 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
         .selectFrom(coreTableNames.companies)
         .select(["id"])
         .execute()
+      const commonCategoryRows = await queryDatabase
+        .selectFrom(commonModuleTableNames.productCategories)
+        .select(["id"])
+        .execute()
       const productRows = await queryDatabase
         .selectFrom(ecommerceTableNames.products)
         .select(["id"])
@@ -144,6 +153,7 @@ test("database prepare applies app-owned migrations and seeders for core, ecomme
       )
       assert.equal(appliedSeeders.length, listRegisteredDatabaseSeeders().length)
       assert.equal(companyRows.length, 2)
+      assert.equal(commonCategoryRows.length, 3)
       assert.equal(productRows.length, 3)
       assert.equal(seededSuperAdmin?.email, "sundar@sundar.com")
       assert.equal(Number(seededSuperAdmin?.is_super_admin ?? 0), 1)

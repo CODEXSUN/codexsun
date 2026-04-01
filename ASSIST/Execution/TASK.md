@@ -4,33 +4,33 @@
 
 ### Reference
 
-`#17`
+`#19`
 
 ### Title
 
-`Local database bootstrap and auth hardening`
+`Physical common module tables`
 
 ### Scope Checklist
 
-- [x] switch the checked-in local runtime bootstrap from unavailable MariaDB to local SQLite so backend startup and frontend auth work deterministically
-- [x] seed the requested first auth user as `Sundar <sundar@sundar.com>` with password `Kalarani1@@` and super-admin access
-- [x] harden auth super-admin resolution and database client connection timeouts for clearer local failures
-- [x] add regression coverage for seeded super-admin bootstrap and normalized super-admin env parsing
-- [x] update ASSIST task, planning, setup, and changelog entries for this batch
+- [x] copy the temp common-module table inventory into the real `core` app database contract
+- [x] add an app-owned migration that creates physical common tables without bypassing the framework database runtime
+- [x] add an app-owned seeder that populates the physical common tables with the shared sample records
+- [x] switch the core common-module service from the legacy JSON-store tables to the physical common tables
+- [x] run validation for typecheck, test, and database prepare
+- [x] record the existing unrelated lint failures in `apps/ui`
 
 ### Validation Note
 
 - [x] `npm run typecheck`
-- [x] `npm run lint` (same existing React Compiler warnings in imported table variants only)
+- [ ] `npm run lint` (fails on existing `apps/ui` registry and docs issues unrelated to this batch)
 - [x] `npm run test`
 - [x] `npm run db:prepare`
-- [x] verify seeded login through `/api/v1/auth/login`
 
 ## Next Batch
 
 ### Reference
 
-`#18`
+`#20`
 
 ### Title
 

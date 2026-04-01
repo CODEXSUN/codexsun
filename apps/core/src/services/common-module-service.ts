@@ -1,6 +1,5 @@
 import type { Kysely } from "kysely"
 
-import { listJsonStorePayloads } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
   commonModuleItemSchema,
   commonModuleKeySchema,
@@ -15,44 +14,83 @@ import {
   type CommonModuleSummaryListResponse,
 } from "../../shared/index.js"
 
-import { coreTableNames } from "../../database/table-names.js"
+import {
+  getCommonModuleDefinition,
+  listCommonModuleDefinitions,
+  toCommonModuleMetadata,
+} from "../common-modules/definitions.js"
+import { asQueryDatabase } from "../data/query-database.js"
 
-async function getCommonModuleMetadata(
-  database: Kysely<unknown>
-): Promise<CommonModuleMetadata[]> {
-  return listJsonStorePayloads<CommonModuleMetadata>(
-    database,
-    coreTableNames.commonModuleMetadata
-  )
+type CommonModuleRow = {
+  id: string
+  is_active: number | boolean
+  created_at: string
+  updated_at: string
+  [key: string]: unknown
 }
 
 async function getCommonModuleItems(
   database: Kysely<unknown>,
   moduleKey: CommonModuleKey
 ): Promise<CommonModuleItem[]> {
-  const items = await listJsonStorePayloads<CommonModuleItem>(
-    database,
-    coreTableNames.commonModuleItems,
-    moduleKey
-  )
+  const definition = getCommonModuleDefinition(moduleKey)
+  const rows = await asQueryDatabase(database)
+    .selectFrom(definition.tableName)
+    .selectAll()
+    .orderBy(definition.defaultSortKey as never)
+    .orderBy("created_at")
+    .execute() as CommonModuleRow[]
 
-  return items.map((item) => commonModuleItemSchema.parse(item))
+  return rows.map((row) => {
+    const item: Record<string, unknown> = {
+      id: row.id,
+      isActive: Boolean(row.is_active),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }
+
+    for (const column of definition.columns) {
+      const value = row[column.key]
+
+      if (column.type === "boolean") {
+        item[column.key] = Boolean(value)
+        continue
+      }
+
+      if (column.type === "number") {
+        item[column.key] =
+          value === null || value === undefined
+            ? null
+            : typeof value === "number"
+              ? value
+              : Number(value)
+        continue
+      }
+
+      item[column.key] = value ?? null
+    }
+
+    return commonModuleItemSchema.parse(item)
+  })
 }
 
 export async function listCommonModuleMetadata(
   database: Kysely<unknown>
 ): Promise<CommonModuleMetadataListResponse> {
-  const modules = await getCommonModuleMetadata(database)
-
+  void database
   return commonModuleMetadataListResponseSchema.parse({
-    modules,
+    modules: listCommonModuleDefinitions().map((definition) =>
+      toCommonModuleMetadata(definition)
+    ) satisfies CommonModuleMetadata[],
   })
 }
 
 export async function listCommonModuleSummaries(
   database: Kysely<unknown>
 ): Promise<CommonModuleSummaryListResponse> {
-  const modules = await getCommonModuleMetadata(database)
+  const modules = listCommonModuleDefinitions().map((definition) =>
+    toCommonModuleMetadata(definition)
+  )
 
   return commonModuleSummaryListResponseSchema.parse({
     items: await Promise.all(

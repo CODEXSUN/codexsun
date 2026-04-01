@@ -1,0 +1,14 @@
+"use client";
+
+import { cn } from "@ui/lib/utils";
+
+export const Logo = ({ className, ...props }: React.ComponentProps<"img">) => {
+  return (
+    <img
+      alt="logo"
+      className={cn("h-7 w-7", className)}
+      src="/images/android-chrome-192x192.png"
+      {...props}
+    />
+  );
+};

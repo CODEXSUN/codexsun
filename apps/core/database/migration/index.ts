@@ -5,6 +5,7 @@ import { coreCommonModulesMigration } from "./04-common-modules.js"
 import { coreAuthFoundationMigration } from "./05-auth-foundation.js"
 import { coreAuthSessionsMigration } from "./06-auth-sessions.js"
 import { coreMailboxMigration } from "./07-mailbox.js"
+import { coreCommonModuleTablesMigration } from "./08-common-module-tables.js"
 
 export const coreDatabaseMigrations = [
   coreBootstrapMigration,
@@ -14,4 +15,5 @@ export const coreDatabaseMigrations = [
   coreAuthFoundationMigration,
   coreAuthSessionsMigration,
   coreMailboxMigration,
+  coreCommonModuleTablesMigration,
 ]

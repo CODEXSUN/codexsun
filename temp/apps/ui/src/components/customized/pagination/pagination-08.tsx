@@ -1,0 +1,51 @@
+import { cn } from "@ui/lib/utils";
+import { buttonVariants } from "@ui/registry/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@ui/registry/ui/pagination";
+
+const pages = [1, 2, 3];
+
+export default function PaginationTabs() {
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious className="border" href="#" />
+        </PaginationItem>
+
+        {pages.map((page) => {
+          const isActive = page === 2;
+
+          return (
+            <PaginationItem key={page}>
+              <PaginationLink
+                className={cn({
+                  [buttonVariants({
+                    variant: "default",
+                    className:
+                      "shadow-none! hover:text-primary-foreground! dark:bg-primary dark:hover:bg-primary/90",
+                  })]: isActive,
+                  border: !isActive,
+                })}
+                href={`#${page}`}
+                isActive={page === 2}
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          );
+        })}
+
+        <PaginationItem>
+          <PaginationNext className="border" href="#" />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}

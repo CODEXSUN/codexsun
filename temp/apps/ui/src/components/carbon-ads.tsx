@@ -1,0 +1,33 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { type HTMLAttributes, useEffect, useRef } from "react";
+import { refreshCarbonAd } from "@ui/lib/carbon-ad";
+
+export default function CarbonAd({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  const mounted = useRef(false);
+  const reference = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!reference.current) return;
+
+    reference.current.innerHTML = "";
+    const s = document.createElement("script");
+    s.id = "_carbonads_js";
+    s.src =
+      "//cdn.carbonads.com/carbon.js?serve=CW7ILKQL&placement=wwwcodexsunui-blockscom";
+    reference.current.appendChild(s);
+
+    if (mounted.current) {
+      refreshCarbonAd();
+    }
+
+    mounted.current = true;
+  }, [pathname]);
+
+  return <div className={className} ref={reference} {...props} />;
+}
