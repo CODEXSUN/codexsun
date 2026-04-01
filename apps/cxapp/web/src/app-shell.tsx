@@ -20,6 +20,7 @@ import { AuthProvider } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
 import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
 import { BillingWorkspacePage } from "./pages/billing-workspace-page"
+import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
 import HomePage from "./pages/home"
@@ -258,6 +259,66 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="double-entry" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/chart-of-accounts/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingLedgerFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/chart-of-accounts/:ledgerId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingLedgerFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/trial-balance"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="trial-balance" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/profit-and-loss"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="profit-and-loss" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/balance-sheet"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="balance-sheet" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/bill-outstanding"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="bill-outstanding" />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -57,9 +57,11 @@ const uiWorkspaceSections = {
 
 export function FrameworkAppWorkspacePage({
   appId,
+  ledgerId,
   sectionId: forcedSectionId,
 }: {
   appId?: string
+  ledgerId?: string
   sectionId?: string
 }) {
   const location = useLocation()
@@ -111,7 +113,9 @@ export function FrameworkAppWorkspacePage({
   const coreWorkspaceContent =
     app.id === "core" ? <CoreWorkspaceSection sectionId={sectionId} /> : null
   const billingWorkspaceContent =
-    app.id === "billing" ? <BillingWorkspaceSection sectionId={sectionId} /> : null
+    app.id === "billing" ? (
+      <BillingWorkspaceSection ledgerId={ledgerId} sectionId={sectionId} />
+    ) : null
   const ecommerceWorkspaceContent =
     app.id === "ecommerce" ? (
       <EcommerceWorkspaceSection sectionId={sectionId} />

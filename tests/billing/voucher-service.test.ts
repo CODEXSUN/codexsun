@@ -238,3 +238,187 @@ test("billing voucher service posts balanced vouchers and supports update/delete
     rmSync(tempRoot, { recursive: true, force: true })
   }
 })
+
+test("billing voucher service validates financial year rollover, auto numbering, bill allocation totals, and mock integrations", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-parameters-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.eInvoice.enabled = true
+    config.billing.compliance.eWayBill.enabled = true
+    config.billing.compliance.eInvoice.mode = "mock"
+    config.billing.compliance.eWayBill.mode = "mock"
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const fyBoundaryVoucher = await createBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        {
+          voucherNumber: "",
+          type: "sales",
+          date: "2026-03-31",
+          counterparty: "Boundary Retail",
+          narration: "Financial year boundary sales invoice.",
+          lines: [],
+          billAllocations: [],
+          gst: {
+            supplyType: "inter",
+            placeOfSupply: "TN",
+            partyGstin: "33ABCDE1234F1Z8",
+            hsnOrSac: "6205",
+            taxableAmount: 100000,
+            taxRate: 18,
+            taxableLedgerId: "ledger-sales",
+            partyLedgerId: "ledger-sundry-debtors",
+          },
+          transport: {
+            distanceKm: 420,
+            vehicleNumber: "TN09CD4321",
+            transporterId: "TRANS900",
+          },
+          generateEInvoice: true,
+          generateEWayBill: true,
+        }
+      )
+
+      assert.equal(fyBoundaryVoucher.item.financialYear.code, "FY2025-26")
+      assert.equal(fyBoundaryVoucher.item.financialYear.startDate, "2025-04-01")
+      assert.equal(fyBoundaryVoucher.item.financialYear.endDate, "2026-03-31")
+      assert.match(fyBoundaryVoucher.item.voucherNumber, /^SAL-2025-26-\d{3}$/)
+      assert.equal(fyBoundaryVoucher.item.gst?.igstAmount, 18000)
+      assert.equal(fyBoundaryVoucher.item.gst?.cgstAmount, 0)
+      assert.equal(fyBoundaryVoucher.item.eInvoice.status, "generated")
+      assert.equal(fyBoundaryVoucher.item.eWayBill.status, "generated")
+      assert.equal(fyBoundaryVoucher.item.eInvoice.irn !== null, true)
+      assert.equal(fyBoundaryVoucher.item.eWayBill.ewayBillNo !== null, true)
+
+      const fyNextVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        type: "journal",
+        date: "2026-04-01",
+        counterparty: "Year Opening",
+        narration: "New year adjustment entry.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 12000,
+            note: "Expense booked.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 12000,
+            note: "Liability recognized.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(fyNextVoucher.item.financialYear.code, "FY2026-27")
+      assert.match(fyNextVoucher.item.voucherNumber, /^JRN-2026-27-\d{3}$/)
+
+      await assert.rejects(
+        () =>
+          createBillingVoucher(runtime.primary, adminUser, config, {
+            voucherNumber: "RCPT-2026-555",
+            type: "receipt",
+            date: "2026-04-03",
+            counterparty: "Mismatch Allocation",
+            narration: "Receipt with wrong bill total.",
+            lines: [
+              {
+                ledgerId: "ledger-hdfc",
+                side: "debit",
+                amount: 12000,
+                note: "Bank receipt.",
+              },
+              {
+                ledgerId: "ledger-sundry-debtors",
+                side: "credit",
+                amount: 12000,
+                note: "Receivable settled.",
+              },
+            ],
+            billAllocations: [
+              {
+                referenceType: "against_ref",
+                referenceNumber: "SAL-2026-001",
+                referenceDate: "2026-03-24",
+                dueDate: "2026-04-10",
+                amount: 8000,
+                note: "Bad partial allocation",
+              },
+            ],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 400 &&
+          error.message.includes("allocation total")
+      )
+
+      await assert.rejects(
+        () =>
+          createBillingVoucher(runtime.primary, adminUser, config, {
+            voucherNumber: "JRN-2026-404",
+            type: "journal",
+            date: "2026-04-03",
+            counterparty: "Invalid Journal Ref",
+            narration: "Journal should not accept bill refs.",
+            lines: [
+              {
+                ledgerId: "ledger-rent",
+                side: "debit",
+                amount: 5000,
+                note: "Expense booked.",
+              },
+              {
+                ledgerId: "ledger-sundry-creditors",
+                side: "credit",
+                amount: 5000,
+                note: "Liability booked.",
+              },
+            ],
+            billAllocations: [
+              {
+                referenceType: "new_ref",
+                referenceNumber: "REF-001",
+                referenceDate: "2026-04-03",
+                dueDate: "2026-04-30",
+                amount: 5000,
+                note: "Should fail",
+              },
+            ],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 400 &&
+          error.message.includes("supported only for payment and receipt")
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})

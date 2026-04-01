@@ -20,6 +20,14 @@ export const billingLedgerSchema = z.object({
   closingAmount: z.number().nonnegative(),
 })
 
+export const billingLedgerUpsertPayloadSchema = z.object({
+  name: z.string().trim().min(1),
+  group: z.string().trim().min(1),
+  nature: z.enum(["asset", "liability", "income", "expense"]),
+  closingSide: billingEntrySideSchema,
+  closingAmount: z.number().nonnegative(),
+})
+
 export const billingVoucherLineSchema = z.object({
   id: z.string().trim().min(1),
   ledgerId: z.string().trim().min(1),
@@ -181,9 +189,94 @@ export const billingVoucherResponseSchema = z.object({
   item: billingVoucherSchema,
 })
 
+export const billingLedgerResponseSchema = z.object({
+  item: billingLedgerSchema,
+})
+
+export const billingTrialBalanceItemSchema = z.object({
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  group: z.string().trim().min(1),
+  nature: z.enum(["asset", "liability", "income", "expense"]),
+  openingSide: billingEntrySideSchema,
+  openingAmount: z.number().nonnegative(),
+  debitAmount: z.number().nonnegative(),
+  creditAmount: z.number().nonnegative(),
+  closingSide: billingEntrySideSchema,
+  closingAmount: z.number().nonnegative(),
+})
+
+export const billingTrialBalanceSchema = z.object({
+  items: z.array(billingTrialBalanceItemSchema),
+  debitTotal: z.number().nonnegative(),
+  creditTotal: z.number().nonnegative(),
+})
+
+export const billingProfitAndLossEntrySchema = z.object({
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  group: z.string().trim().min(1),
+  amount: z.number().nonnegative(),
+})
+
+export const billingProfitAndLossSchema = z.object({
+  incomeItems: z.array(billingProfitAndLossEntrySchema),
+  expenseItems: z.array(billingProfitAndLossEntrySchema),
+  totalIncome: z.number().nonnegative(),
+  totalExpense: z.number().nonnegative(),
+  netProfit: z.number().nonnegative(),
+  netLoss: z.number().nonnegative(),
+})
+
+export const billingBalanceSheetEntrySchema = z.object({
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  group: z.string().trim().min(1),
+  amount: z.number().nonnegative(),
+})
+
+export const billingBalanceSheetSchema = z.object({
+  assetItems: z.array(billingBalanceSheetEntrySchema),
+  liabilityItems: z.array(billingBalanceSheetEntrySchema),
+  totalAssets: z.number().nonnegative(),
+  totalLiabilities: z.number().nonnegative(),
+  balanceGap: z.number().nonnegative(),
+})
+
+export const billingOutstandingItemSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["sales", "purchase"]),
+  date: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  originalAmount: z.number().positive(),
+  settledAmount: z.number().nonnegative(),
+  outstandingAmount: z.number().nonnegative(),
+})
+
+export const billingOutstandingSummarySchema = z.object({
+  receivableTotal: z.number().nonnegative(),
+  payableTotal: z.number().nonnegative(),
+  items: z.array(billingOutstandingItemSchema),
+})
+
+export const billingAccountingReportsSchema = z.object({
+  trialBalance: billingTrialBalanceSchema,
+  profitAndLoss: billingProfitAndLossSchema,
+  balanceSheet: billingBalanceSheetSchema,
+  outstanding: billingOutstandingSummarySchema,
+})
+
+export const billingAccountingReportsResponseSchema = z.object({
+  item: billingAccountingReportsSchema,
+})
+
 export type BillingVoucherType = z.infer<typeof billingVoucherTypeSchema>
 export type BillingEntrySide = z.infer<typeof billingEntrySideSchema>
 export type BillingLedger = z.infer<typeof billingLedgerSchema>
+export type BillingLedgerUpsertPayload = z.infer<
+  typeof billingLedgerUpsertPayloadSchema
+>
 export type BillingVoucherLine = z.infer<typeof billingVoucherLineSchema>
 export type BillingVoucherGst = z.infer<typeof billingVoucherGstSchema>
 export type BillingVoucherBillAllocation = z.infer<
@@ -207,7 +300,28 @@ export type BillingVoucherBillAllocationPayload = z.infer<
 export type BillingLedgerListResponse = z.infer<
   typeof billingLedgerListResponseSchema
 >
+export type BillingLedgerResponse = z.infer<typeof billingLedgerResponseSchema>
 export type BillingVoucherListResponse = z.infer<
   typeof billingVoucherListResponseSchema
 >
 export type BillingVoucherResponse = z.infer<typeof billingVoucherResponseSchema>
+export type BillingTrialBalanceItem = z.infer<typeof billingTrialBalanceItemSchema>
+export type BillingTrialBalance = z.infer<typeof billingTrialBalanceSchema>
+export type BillingProfitAndLossEntry = z.infer<
+  typeof billingProfitAndLossEntrySchema
+>
+export type BillingProfitAndLoss = z.infer<typeof billingProfitAndLossSchema>
+export type BillingBalanceSheetEntry = z.infer<
+  typeof billingBalanceSheetEntrySchema
+>
+export type BillingBalanceSheet = z.infer<typeof billingBalanceSheetSchema>
+export type BillingOutstandingItem = z.infer<typeof billingOutstandingItemSchema>
+export type BillingOutstandingSummary = z.infer<
+  typeof billingOutstandingSummarySchema
+>
+export type BillingAccountingReports = z.infer<
+  typeof billingAccountingReportsSchema
+>
+export type BillingAccountingReportsResponse = z.infer<
+  typeof billingAccountingReportsResponseSchema
+>

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 import type {
+  BillingAccountingReports,
+  BillingAccountingReportsResponse,
   BillingLedger,
   BillingLedgerListResponse,
+  BillingLedgerResponse,
   BillingVoucher,
   BillingVoucherListResponse,
   BillingVoucherResponse,
@@ -31,7 +34,38 @@ type ResourceState = {
   error: string | null
   isLoading: boolean
   ledgers: BillingLedger[]
+  reports: BillingAccountingReports
   vouchers: BillingVoucher[]
+}
+
+function createEmptyReports(): BillingAccountingReports {
+  return {
+    trialBalance: {
+      items: [],
+      debitTotal: 0,
+      creditTotal: 0,
+    },
+    profitAndLoss: {
+      incomeItems: [],
+      expenseItems: [],
+      totalIncome: 0,
+      totalExpense: 0,
+      netProfit: 0,
+      netLoss: 0,
+    },
+    balanceSheet: {
+      assetItems: [],
+      liabilityItems: [],
+      totalAssets: 0,
+      totalLiabilities: 0,
+      balanceGap: 0,
+    },
+    outstanding: {
+      receivableTotal: 0,
+      payableTotal: 0,
+      items: [],
+    },
+  }
 }
 
 type VoucherFormLine = {
@@ -48,6 +82,22 @@ type VoucherBillAllocationForm = {
   referenceDate: string
   referenceNumber: string
   referenceType: "new_ref" | "against_ref" | "on_account"
+}
+
+type LedgerFormState = {
+  closingAmount: string
+  closingSide: "debit" | "credit"
+  group: string
+  name: string
+  nature: "asset" | "liability" | "income" | "expense"
+}
+
+const defaultLedgerForm: LedgerFormState = {
+  closingAmount: "0",
+  closingSide: "debit",
+  group: "",
+  name: "",
+  nature: "asset",
 }
 
 type VoucherFormState = {
@@ -249,6 +299,20 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
     narration: voucher.narration,
     type: voucher.type,
     voucherNumber: voucher.voucherNumber,
+  }
+}
+
+function toLedgerForm(ledger?: BillingLedger | null): LedgerFormState {
+  if (!ledger) {
+    return defaultLedgerForm
+  }
+
+  return {
+    closingAmount: String(ledger.closingAmount),
+    closingSide: ledger.closingSide,
+    group: ledger.group,
+    name: ledger.name,
+    nature: ledger.nature,
   }
 }
 
@@ -1085,8 +1149,21 @@ function ChartOfAccountsSection({ ledgers }: { ledgers: BillingLedger[] }) {
   return (
     <SectionShell
       title="Chart Of Accounts"
-      description="Ledger groups and closing balances aligned to a Tally-style operational accounting setup."
+      description="Ledger master list aligned to a Tally-style operational accounting setup."
     >
+      <Card>
+        <CardHeader>
+          <CardTitle>Ledger masters</CardTitle>
+          <CardDescription>
+            Create and maintain billing ledger masters from dedicated upsert pages.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link to="/dashboard/billing/chart-of-accounts/new">New ledger</Link>
+          </Button>
+        </CardContent>
+      </Card>
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -1096,6 +1173,7 @@ function ChartOfAccountsSection({ ledgers }: { ledgers: BillingLedger[] }) {
                 <TableHead>Group</TableHead>
                 <TableHead>Nature</TableHead>
                 <TableHead>Closing</TableHead>
+                <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1107,10 +1185,138 @@ function ChartOfAccountsSection({ ledgers }: { ledgers: BillingLedger[] }) {
                   <TableCell>
                     {formatAmount(ledger.closingAmount)} {ledger.closingSide === "debit" ? "Dr" : "Cr"}
                   </TableCell>
+                  <TableCell>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={`/dashboard/billing/chart-of-accounts/${encodeURIComponent(ledger.id)}/edit`}>
+                        Edit
+                      </Link>
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+function ChartOfAccountsUpsertSection({
+  form,
+  formError,
+  isSaving,
+  isEditing,
+  onChange,
+  onDelete,
+  onSave,
+}: {
+  form: LedgerFormState
+  formError: string | null
+  isSaving: boolean
+  isEditing: boolean
+  onChange: (field: keyof LedgerFormState, value: string) => void
+  onDelete: () => void
+  onSave: () => void
+}) {
+  return (
+    <SectionShell
+      title={isEditing ? "Edit Ledger" : "New Ledger"}
+      description="Master form for chart-of-accounts entries used across voucher posting and reports."
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle>{isEditing ? "Update ledger master" : "Create ledger master"}</CardTitle>
+          <CardDescription>
+            Define ledger identity, grouping, balance nature, and opening closing position.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="ledger-name">
+                Ledger name
+              </label>
+              <Input
+                id="ledger-name"
+                value={form.name}
+                onChange={(event) => onChange("name", event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="ledger-group">
+                Group
+              </label>
+              <Input
+                id="ledger-group"
+                value={form.group}
+                onChange={(event) => onChange("group", event.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="ledger-nature">
+                Nature
+              </label>
+              <select
+                id="ledger-nature"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.nature}
+                onChange={(event) => onChange("nature", event.target.value)}
+              >
+                <option value="asset">Asset</option>
+                <option value="liability">Liability</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="ledger-closing-side">
+                Closing side
+              </label>
+              <select
+                id="ledger-closing-side"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.closingSide}
+                onChange={(event) => onChange("closingSide", event.target.value)}
+              >
+                <option value="debit">Debit</option>
+                <option value="credit">Credit</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="ledger-closing-amount">
+                Closing amount
+              </label>
+              <Input
+                id="ledger-closing-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.closingAmount}
+                onChange={(event) => onChange("closingAmount", event.target.value)}
+              />
+            </div>
+          </div>
+          {formError ? (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {formError}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" onClick={onSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : isEditing ? "Update ledger" : "Create ledger"}
+            </Button>
+            <Button asChild type="button" variant="outline" disabled={isSaving}>
+              <Link to="/dashboard/billing/chart-of-accounts">Back to ledger list</Link>
+            </Button>
+            {isEditing ? (
+              <Button type="button" variant="destructive" onClick={onDelete} disabled={isSaving}>
+                Delete ledger
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </SectionShell>
@@ -1430,15 +1636,294 @@ function DoubleEntrySection({ vouchers }: { vouchers: BillingVoucher[] }) {
   )
 }
 
-export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
+function TrialBalanceSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="Trial Balance"
+      description="Ledger-wise opening, movement, and closing balances derived from posted vouchers."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Debit closing"
+          value={formatAmount(reports.trialBalance.debitTotal)}
+          hint="Total closing debit balances across the current books."
+        />
+        <MetricCard
+          label="Credit closing"
+          value={formatAmount(reports.trialBalance.creditTotal)}
+          hint="Total closing credit balances across the current books."
+        />
+        <MetricCard
+          label="Ledgers"
+          value={reports.trialBalance.items.length}
+          hint="Every billing ledger contributes to this derived balance view."
+        />
+        <MetricCard
+          label="Gap"
+          value={formatAmount(
+            Math.abs(reports.trialBalance.debitTotal - reports.trialBalance.creditTotal)
+          )}
+          hint="Any difference here indicates incomplete opening equity or unsupported books."
+        />
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Ledger</TableHead>
+                <TableHead>Group</TableHead>
+                <TableHead>Opening</TableHead>
+                <TableHead>Dr</TableHead>
+                <TableHead>Cr</TableHead>
+                <TableHead>Closing</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.trialBalance.items.map((item) => (
+                <TableRow key={item.ledgerId}>
+                  <TableCell className="font-medium">{item.ledgerName}</TableCell>
+                  <TableCell>{item.group}</TableCell>
+                  <TableCell>
+                    {formatAmount(item.openingAmount)} {item.openingSide === "debit" ? "Dr" : "Cr"}
+                  </TableCell>
+                  <TableCell>{formatAmount(item.debitAmount)}</TableCell>
+                  <TableCell>{formatAmount(item.creditAmount)}</TableCell>
+                  <TableCell>
+                    {formatAmount(item.closingAmount)} {item.closingSide === "debit" ? "Dr" : "Cr"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+function ProfitAndLossSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="Profit & Loss"
+      description="Income and expense statement built from posted ledgers and voucher movements."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Total income"
+          value={formatAmount(reports.profitAndLoss.totalIncome)}
+          hint="Income-ledger closings contributing to the current period statement."
+        />
+        <MetricCard
+          label="Total expense"
+          value={formatAmount(reports.profitAndLoss.totalExpense)}
+          hint="Expense-ledger closings contributing to the current period statement."
+        />
+        <MetricCard
+          label="Net profit"
+          value={formatAmount(reports.profitAndLoss.netProfit)}
+          hint="Shown when income exceeds expense."
+        />
+        <MetricCard
+          label="Net loss"
+          value={formatAmount(reports.profitAndLoss.netLoss)}
+          hint="Shown when expense exceeds income."
+        />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Income</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {reports.profitAndLoss.incomeItems.map((item) => (
+              <div
+                key={item.ledgerId}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{item.ledgerName}</p>
+                  <p className="text-sm text-muted-foreground">{item.group}</p>
+                </div>
+                <p className="font-medium text-foreground">{formatAmount(item.amount)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Expenses</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {reports.profitAndLoss.expenseItems.map((item) => (
+              <div
+                key={item.ledgerId}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{item.ledgerName}</p>
+                  <p className="text-sm text-muted-foreground">{item.group}</p>
+                </div>
+                <p className="font-medium text-foreground">{formatAmount(item.amount)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </SectionShell>
+  )
+}
+
+function BalanceSheetSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="Balance Sheet"
+      description="Asset and liability view with current period earnings carried into the statement."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <MetricCard
+          label="Assets"
+          value={formatAmount(reports.balanceSheet.totalAssets)}
+          hint="Asset-side closing balances including any current period loss carry."
+        />
+        <MetricCard
+          label="Liabilities"
+          value={formatAmount(reports.balanceSheet.totalLiabilities)}
+          hint="Liability-side closing balances including current period profit carry."
+        />
+        <MetricCard
+          label="Balance gap"
+          value={formatAmount(reports.balanceSheet.balanceGap)}
+          hint="A non-zero gap usually means capital/opening equity is not modeled yet."
+        />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Assets</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {reports.balanceSheet.assetItems.map((item) => (
+              <div
+                key={item.ledgerId}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{item.ledgerName}</p>
+                  <p className="text-sm text-muted-foreground">{item.group}</p>
+                </div>
+                <p className="font-medium text-foreground">{formatAmount(item.amount)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Liabilities</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {reports.balanceSheet.liabilityItems.map((item) => (
+              <div
+                key={item.ledgerId}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{item.ledgerName}</p>
+                  <p className="text-sm text-muted-foreground">{item.group}</p>
+                </div>
+                <p className="font-medium text-foreground">{formatAmount(item.amount)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </SectionShell>
+  )
+}
+
+function BillOutstandingSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="Bill Outstanding"
+      description="Bill-wise receivable and payable view derived from sales, purchase, receipt, and payment vouchers."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Receivables"
+          value={formatAmount(reports.outstanding.receivableTotal)}
+          hint="Open sales bills after receipt adjustments."
+        />
+        <MetricCard
+          label="Payables"
+          value={formatAmount(reports.outstanding.payableTotal)}
+          hint="Open purchase bills after payment adjustments."
+        />
+        <MetricCard
+          label="Open bills"
+          value={reports.outstanding.items.length}
+          hint="Each item tracks original, settled, and outstanding values."
+        />
+        <MetricCard
+          label="Net exposure"
+          value={formatAmount(
+            Math.abs(reports.outstanding.receivableTotal - reports.outstanding.payableTotal)
+          )}
+          hint="Difference between current receivables and payables."
+        />
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Voucher</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Counterparty</TableHead>
+                <TableHead>Original</TableHead>
+                <TableHead>Settled</TableHead>
+                <TableHead>Outstanding</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.outstanding.items.map((item) => (
+                <TableRow key={item.voucherId}>
+                  <TableCell className="font-medium">
+                    {item.voucherNumber}
+                    <p className="text-sm text-muted-foreground">{item.date}</p>
+                  </TableCell>
+                  <TableCell className="capitalize">{item.voucherType}</TableCell>
+                  <TableCell>{item.counterparty}</TableCell>
+                  <TableCell>{formatAmount(item.originalAmount)}</TableCell>
+                  <TableCell>{formatAmount(item.settledAmount)}</TableCell>
+                  <TableCell>{formatAmount(item.outstandingAmount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+export function BillingWorkspaceSection({
+  ledgerId,
+  sectionId,
+}: {
+  ledgerId?: string
+  sectionId?: string
+}) {
+  const navigate = useNavigate()
   const [state, setState] = useState<ResourceState>({
     error: null,
     isLoading: true,
     ledgers: [],
+    reports: createEmptyReports(),
     vouchers: [],
   })
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null)
   const [form, setForm] = useState<VoucherFormState>(defaultVoucherForm)
+  const [ledgerForm, setLedgerForm] = useState<LedgerFormState>(defaultLedgerForm)
   const [formError, setFormError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -1446,15 +1931,17 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
     setState((current) => ({ ...current, error: null, isLoading: true }))
 
     try {
-      const [ledgerResponse, voucherResponse] = await Promise.all([
+      const [ledgerResponse, voucherResponse, reportsResponse] = await Promise.all([
         request<BillingLedgerListResponse>("/internal/v1/billing/ledgers"),
         request<BillingVoucherListResponse>("/internal/v1/billing/vouchers"),
+        request<BillingAccountingReportsResponse>("/internal/v1/billing/reports"),
       ])
 
       setState({
         error: null,
         isLoading: false,
         ledgers: ledgerResponse.items,
+        reports: reportsResponse.item,
         vouchers: voucherResponse.items,
       })
     } catch (error) {
@@ -1462,6 +1949,7 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
         error: error instanceof Error ? error.message : "Failed to load billing workspace.",
         isLoading: false,
         ledgers: [],
+        reports: createEmptyReports(),
         vouchers: [],
       })
     }
@@ -1473,6 +1961,17 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
 
   const selectedVoucher =
     state.vouchers.find((voucher) => voucher.id === selectedVoucherId) ?? null
+  const selectedLedger =
+    state.ledgers.find((ledger) => ledger.id === ledgerId) ?? null
+
+  useEffect(() => {
+    if ((sectionId ?? "overview") !== "chart-of-accounts-upsert") {
+      return
+    }
+
+    setLedgerForm(toLedgerForm(selectedLedger))
+    setFormError(null)
+  }, [sectionId, selectedLedger])
 
   function resetForm() {
     setSelectedVoucherId(null)
@@ -1621,6 +2120,18 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
     }))
   }
 
+  function handleLedgerChange(field: keyof LedgerFormState, value: string) {
+    setLedgerForm((current) => ({
+      ...current,
+      [field]:
+        field === "nature"
+          ? (value as LedgerFormState["nature"])
+          : field === "closingSide"
+            ? (value as LedgerFormState["closingSide"])
+            : value,
+    }))
+  }
+
   function buildPayload(): BillingVoucherUpsertPayload {
     const gstModeEnabled = form.gst.enabled && ["sales", "purchase"].includes(form.type)
 
@@ -1730,6 +2241,71 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
     }
   }
 
+  async function handleLedgerSave() {
+    setFormError(null)
+    setIsSaving(true)
+
+    try {
+      const payload = {
+        name: ledgerForm.name,
+        group: ledgerForm.group,
+        nature: ledgerForm.nature,
+        closingSide: ledgerForm.closingSide,
+        closingAmount: Number(ledgerForm.closingAmount),
+      }
+
+      if (selectedLedger) {
+        await request<BillingLedgerResponse>(
+          `/internal/v1/billing/ledger?id=${encodeURIComponent(selectedLedger.id)}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          }
+        )
+      } else {
+        await request<BillingLedgerResponse>("/internal/v1/billing/ledgers", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+      }
+
+      await loadResources()
+      void navigate("/dashboard/billing/chart-of-accounts")
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to save billing ledger."
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleLedgerDelete() {
+    if (!selectedLedger) {
+      return
+    }
+
+    setFormError(null)
+    setIsSaving(true)
+
+    try {
+      await request<{ deleted: true; id: string }>(
+        `/internal/v1/billing/ledger?id=${encodeURIComponent(selectedLedger.id)}`,
+        {
+          method: "DELETE",
+        }
+      )
+      await loadResources()
+      void navigate("/dashboard/billing/chart-of-accounts")
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to delete billing ledger."
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (state.isLoading) {
     return <StateCard message="Loading billing workspace." />
   }
@@ -1741,6 +2317,18 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
   switch (sectionId ?? "overview") {
     case "chart-of-accounts":
       return <ChartOfAccountsSection ledgers={state.ledgers} />
+    case "chart-of-accounts-upsert":
+      return (
+        <ChartOfAccountsUpsertSection
+          form={ledgerForm}
+          formError={formError}
+          isEditing={selectedLedger !== null}
+          isSaving={isSaving}
+          onChange={handleLedgerChange}
+          onDelete={handleLedgerDelete}
+          onSave={handleLedgerSave}
+        />
+      )
     case "voucher-register":
       return (
         <VoucherRegisterSection
@@ -1821,6 +2409,14 @@ export function BillingWorkspaceSection({ sectionId }: { sectionId?: string }) {
       return <DayBookSection vouchers={state.vouchers} />
     case "double-entry":
       return <DoubleEntrySection vouchers={state.vouchers} />
+    case "trial-balance":
+      return <TrialBalanceSection reports={state.reports} />
+    case "profit-and-loss":
+      return <ProfitAndLossSection reports={state.reports} />
+    case "balance-sheet":
+      return <BalanceSheetSection reports={state.reports} />
+    case "bill-outstanding":
+      return <BillOutstandingSection reports={state.reports} />
     case "overview":
       return <OverviewSection ledgers={state.ledgers} vouchers={state.vouchers} />
     default:

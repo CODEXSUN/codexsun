@@ -44,4 +44,28 @@ export const billingWorkspaceItems: BillingWorkspaceItem[] = [
     route: "/dashboard/billing/double-entry",
     summary: "Per-voucher debit and credit inspection with balancing checks and posting notes.",
   },
+  {
+    id: "trial-balance",
+    name: "Trial Balance",
+    route: "/dashboard/billing/trial-balance",
+    summary: "Ledger-wise opening, movement, and closing balance view derived from posted books.",
+  },
+  {
+    id: "profit-and-loss",
+    name: "Profit & Loss",
+    route: "/dashboard/billing/profit-and-loss",
+    summary: "Income and expense statement generated from the current posted accounting books.",
+  },
+  {
+    id: "balance-sheet",
+    name: "Balance Sheet",
+    route: "/dashboard/billing/balance-sheet",
+    summary: "Assets and liabilities view with current period earnings carried into the books.",
+  },
+  {
+    id: "bill-outstanding",
+    name: "Bill Outstanding",
+    route: "/dashboard/billing/bill-outstanding",
+    summary: "Receivable and payable bills with bill-wise settlement impact from receipts and payments.",
+  },
 ]

@@ -14,6 +14,10 @@ export function BillingVoucherSectionPage({
     | "journal-vouchers"
     | "day-book"
     | "double-entry"
+    | "trial-balance"
+    | "profit-and-loss"
+    | "balance-sheet"
+    | "bill-outstanding"
 }) {
   return <FrameworkAppWorkspacePage appId="billing" sectionId={sectionId} />
 }

@@ -2,7 +2,8 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
-import { listBillingLedgers } from "../../../billing/src/services/ledger-service.js"
+import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
+import { getBillingAccountingReports } from "../../../billing/src/services/reporting-service.js"
 import { billingVoucherTypeSchema } from "../../../billing/shared/index.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
@@ -20,6 +21,82 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(await listBillingLedgers(context.databases.primary))
       },
     }),
+    defineInternalRoute("/billing/ledger", {
+      summary: "Read one billing ledger by id.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const ledgerId = context.request.url.searchParams.get("id")
+
+        if (!ledgerId) {
+          throw new ApplicationError("Billing ledger id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingLedger(context.databases.primary, user, ledgerId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/ledgers", {
+      method: "POST",
+      summary: "Create a billing ledger master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createBillingLedger(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/ledger", {
+      method: "PATCH",
+      summary: "Update a billing ledger master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const ledgerId = context.request.url.searchParams.get("id")
+
+        if (!ledgerId) {
+          throw new ApplicationError("Billing ledger id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingLedger(
+            context.databases.primary,
+            user,
+            ledgerId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/ledger", {
+      method: "DELETE",
+      summary: "Delete a billing ledger master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const ledgerId = context.request.url.searchParams.get("id")
+
+        if (!ledgerId) {
+          throw new ApplicationError("Billing ledger id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteBillingLedger(context.databases.primary, user, ledgerId)
+        )
+      },
+    }),
     defineInternalRoute("/billing/vouchers", {
       summary: "List billing vouchers with double-entry lines.",
       handler: async (context) => {
@@ -34,6 +111,18 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
             user,
             typeParam ? billingVoucherTypeSchema.parse(typeParam) : undefined
           )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/reports", {
+      summary: "Return billing-derived accounts reports from posted vouchers and ledgers.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await getBillingAccountingReports(context.databases.primary, user)
         )
       },
     }),
