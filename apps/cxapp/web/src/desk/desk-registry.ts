@@ -383,6 +383,13 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         route: item.route,
         summary: item.summary,
         icon: billingWorkspaceIconMap[item.id] ?? Blocks,
+        matchRoutes:
+          item.id === "sales-vouchers"
+            ? [
+                "/dashboard/billing/sales-vouchers/new",
+                "/dashboard/billing/sales-vouchers/:voucherId/edit",
+              ]
+            : undefined,
       })),
       ...createTechnicalWorkspaceModules(app, root),
     ]

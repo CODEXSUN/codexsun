@@ -9,8 +9,10 @@ import {
   billingVoucherEInvoiceSchema,
   billingVoucherEWayBillSchema,
   billingLedgerSchema,
+  billingSalesInvoiceSchema,
   billingVoucherGstSchema,
   billingVoucherListResponseSchema,
+  billingVoucherMasterTypeSchema,
   billingVoucherResponseSchema,
   billingVoucherSchema,
   billingVoucherUpsertPayloadSchema,
@@ -37,6 +39,14 @@ import {
 
 async function readLedgers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.ledgers, billingLedgerSchema)
+}
+
+async function readVoucherTypes(database: Kysely<unknown>) {
+  return listStorePayloads(
+    database,
+    billingTableNames.voucherTypes,
+    billingVoucherMasterTypeSchema
+  )
 }
 
 async function readVouchers(database: Kysely<unknown>) {
@@ -69,6 +79,15 @@ function getVoucherTotals(voucher: Pick<BillingVoucher, "lines">) {
 
 function roundCurrency(value: number) {
   return Number(value.toFixed(2))
+}
+
+function summarizeHsnOrSac(items: Array<{ hsnOrSac: string }>) {
+  const uniqueValues = [...new Set(items.map((item) => item.hsnOrSac.trim()).filter(Boolean))]
+  if (uniqueValues.length === 1) {
+    return uniqueValues[0] ?? "MIXED"
+  }
+
+  return "MIXED"
 }
 
 function getRequiredTaxLedgerIds(
@@ -235,6 +254,110 @@ function buildAutoPostedGst(
   }
 }
 
+function buildSalesInvoice(
+  salesPayload: NonNullable<ReturnType<typeof billingVoucherUpsertPayloadSchema.parse>["sales"]>,
+  voucherTypeMap: Map<string, Awaited<ReturnType<typeof readVoucherTypes>>[number]>,
+  ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>
+) {
+  const voucherType = voucherTypeMap.get(salesPayload.voucherTypeId)
+
+  if (!voucherType) {
+    throw new ApplicationError(
+      "Sales voucher type could not be found.",
+      { voucherTypeId: salesPayload.voucherTypeId },
+      400
+    )
+  }
+
+  if (voucherType.postingType !== "sales") {
+    throw new ApplicationError(
+      "Selected voucher type is not configured for sales posting.",
+      { voucherTypeId: voucherType.id, postingType: voucherType.postingType },
+      400
+    )
+  }
+
+  const salesLedger = ledgerMap.get(voucherType.ledgerId)
+  const customerLedger = ledgerMap.get(salesPayload.customerLedgerId)
+
+  if (!salesLedger) {
+    throw new ApplicationError(
+      "Sales ledger could not be found for the selected voucher type.",
+      { ledgerId: voucherType.ledgerId },
+      400
+    )
+  }
+
+  if (!customerLedger) {
+    throw new ApplicationError(
+      "Customer ledger could not be found.",
+      { ledgerId: salesPayload.customerLedgerId },
+      400
+    )
+  }
+
+  const items = salesPayload.items.map((item) => {
+    const amount = roundCurrency(item.quantity * item.rate)
+
+    return {
+      id: `sales-item:${randomUUID()}`,
+      itemName: item.itemName,
+      description: item.description,
+      hsnOrSac: item.hsnOrSac,
+      quantity: item.quantity,
+      unit: item.unit,
+      rate: item.rate,
+      amount,
+    }
+  })
+
+  const subtotal = roundCurrency(items.reduce((sum, item) => sum + item.amount, 0))
+  const totalQuantity = roundCurrency(
+    items.reduce((sum, item) => sum + item.quantity, 0)
+  )
+  const taxAmount = roundCurrency((subtotal * salesPayload.taxRate) / 100)
+  const grandTotal = roundCurrency(subtotal + taxAmount)
+
+  const sales = billingSalesInvoiceSchema.parse({
+    voucherTypeId: voucherType.id,
+    voucherTypeName: voucherType.name,
+    ledgerId: salesLedger.id,
+    ledgerName: salesLedger.name,
+    customerLedgerId: customerLedger.id,
+    customerLedgerName: customerLedger.name,
+    billToName: salesPayload.billToName,
+    billToAddress: salesPayload.billToAddress,
+    shipToName: salesPayload.shipToName,
+    shipToAddress: salesPayload.shipToAddress,
+    dueDate: salesPayload.dueDate,
+    referenceNumber: salesPayload.referenceNumber,
+    supplyType: salesPayload.supplyType,
+    placeOfSupply: salesPayload.placeOfSupply,
+    partyGstin: salesPayload.partyGstin,
+    taxRate: salesPayload.taxRate,
+    subtotal,
+    totalQuantity,
+    taxAmount,
+    grandTotal,
+    items,
+  })
+
+  return {
+    counterparty: sales.billToName,
+    gstPayload: {
+      supplyType: sales.supplyType,
+      placeOfSupply: sales.placeOfSupply,
+      partyGstin: sales.partyGstin,
+      hsnOrSac: summarizeHsnOrSac(sales.items),
+      taxableAmount: sales.subtotal,
+      taxRate: sales.taxRate,
+      taxableLedgerId: sales.ledgerId,
+      partyLedgerId: sales.customerLedgerId,
+    },
+    sales,
+  }
+}
+
 async function buildVoucherRecord(
   database: Kysely<unknown>,
   user: AuthUser,
@@ -246,7 +369,9 @@ async function buildVoucherRecord(
 
   const parsedPayload = billingVoucherUpsertPayloadSchema.parse(payload)
   const ledgers = await readLedgers(database)
+  const voucherTypes = await readVoucherTypes(database)
   const ledgerMap = new Map(ledgers.map((ledger) => [ledger.id, ledger]))
+  const voucherTypeMap = new Map(voucherTypes.map((type) => [type.id, type]))
   const normalizedVoucherNumber = parsedPayload.voucherNumber.trim().toLowerCase()
   const existingVouchers = await readVouchers(database)
   const duplicateVoucher = existingVouchers.find(
@@ -291,12 +416,17 @@ async function buildVoucherRecord(
     }
   })
 
+  const salesInvoice =
+    parsedPayload.type === "sales" && parsedPayload.sales !== null
+      ? buildSalesInvoice(parsedPayload.sales, voucherTypeMap, ledgerMap)
+      : null
+  const derivedGstPayload = salesInvoice?.gstPayload ?? parsedPayload.gst
   const autoPosted =
-    parsedPayload.gst !== null
-      ? buildAutoPostedGst(parsedPayload.type, parsedPayload.gst, ledgerMap)
+    derivedGstPayload !== null
+      ? buildAutoPostedGst(parsedPayload.type, derivedGstPayload, ledgerMap)
       : null
 
-  if (parsedPayload.gst === null && normalizedManualLines.length < 2) {
+  if (derivedGstPayload === null && normalizedManualLines.length < 2) {
     throw new ApplicationError(
       "At least two voucher lines are required for non-GST vouchers.",
       {},
@@ -306,6 +436,15 @@ async function buildVoucherRecord(
 
   const lines = autoPosted?.lines ?? normalizedManualLines
   const gst = autoPosted?.gst ?? null
+  const counterparty = salesInvoice?.counterparty ?? parsedPayload.counterparty.trim()
+
+  if (!counterparty) {
+    throw new ApplicationError(
+      "Counterparty is required.",
+      { type: parsedPayload.type },
+      400
+    )
+  }
   const settlementAmount =
     lines.find((line) =>
       parsedPayload.type === "receipt"
@@ -366,10 +505,14 @@ async function buildVoucherRecord(
     voucherNumber,
     type: parsedPayload.type,
     date: parsedPayload.date,
-    counterparty: parsedPayload.counterparty,
+    counterparty,
     narration: parsedPayload.narration,
     lines,
     gst,
+    sales:
+      parsedPayload.type === "sales"
+        ? salesInvoice?.sales ?? existing?.sales ?? null
+        : null,
     financialYear,
     billAllocations: parsedPayload.billAllocations.map((allocation) => ({
       id:

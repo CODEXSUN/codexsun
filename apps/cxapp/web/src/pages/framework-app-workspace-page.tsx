@@ -132,11 +132,13 @@ export function FrameworkAppWorkspacePage({
   appId,
   categoryId,
   ledgerId,
+  voucherId,
   sectionId: forcedSectionId,
 }: {
   appId?: string
   categoryId?: string
   ledgerId?: string
+  voucherId?: string
   sectionId?: string
 }) {
   const location = useLocation()
@@ -209,6 +211,7 @@ export function FrameworkAppWorkspacePage({
       <BillingWorkspaceSection
         categoryId={categoryId}
         ledgerId={ledgerId}
+        voucherId={voucherId}
         sectionId={sectionId}
       />
     ) : null
@@ -233,6 +236,14 @@ export function FrameworkAppWorkspacePage({
       "voucher-groups",
       "voucher-types",
       "voucher-register",
+      "payment-vouchers",
+      "payment-vouchers-upsert",
+      "receipt-vouchers",
+      "receipt-vouchers-upsert",
+      "sales-vouchers",
+      "sales-vouchers-upsert",
+      "purchase-vouchers",
+      "purchase-vouchers-upsert",
     ].includes(sectionId ?? "overview")
 
   return (

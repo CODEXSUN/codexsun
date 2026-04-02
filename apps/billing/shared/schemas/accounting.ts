@@ -164,6 +164,41 @@ export const billingVoucherEWayBillSchema = z.object({
   errorMessage: z.string().trim().nullable(),
 })
 
+export const billingSalesInvoiceItemSchema = z.object({
+  id: z.string().trim().min(1),
+  itemName: z.string().trim().min(1),
+  description: z.string().trim(),
+  hsnOrSac: z.string().trim().min(1),
+  quantity: z.number().positive(),
+  unit: z.string().trim().min(1),
+  rate: z.number().positive(),
+  amount: z.number().positive(),
+})
+
+export const billingSalesInvoiceSchema = z.object({
+  voucherTypeId: z.string().trim().min(1),
+  voucherTypeName: z.string().trim().min(1),
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  customerLedgerId: z.string().trim().min(1),
+  customerLedgerName: z.string().trim().min(1),
+  billToName: z.string().trim().min(1),
+  billToAddress: z.string().trim().min(1),
+  shipToName: z.string().trim().nullable(),
+  shipToAddress: z.string().trim().nullable(),
+  dueDate: z.string().trim().nullable(),
+  referenceNumber: z.string().trim().nullable(),
+  supplyType: billingGstSupplyTypeSchema,
+  placeOfSupply: z.string().trim().min(1),
+  partyGstin: z.string().trim().nullable(),
+  taxRate: z.number().positive().max(100),
+  subtotal: z.number().positive(),
+  totalQuantity: z.number().positive(),
+  taxAmount: z.number().nonnegative(),
+  grandTotal: z.number().positive(),
+  items: z.array(billingSalesInvoiceItemSchema).min(1),
+})
+
 export const billingVoucherSchema = z.object({
   id: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
@@ -173,6 +208,7 @@ export const billingVoucherSchema = z.object({
   narration: z.string().trim(),
   lines: z.array(billingVoucherLineSchema).min(2),
   gst: billingVoucherGstSchema.nullable(),
+  sales: billingSalesInvoiceSchema.nullable().default(null),
   financialYear: billingVoucherFinancialYearSchema,
   billAllocations: z.array(billingVoucherBillAllocationSchema),
   eInvoice: billingVoucherEInvoiceSchema,
@@ -215,16 +251,42 @@ export const billingVoucherTransportPayloadSchema = z.object({
   transporterId: z.string().trim().min(1).nullable().default(null),
 })
 
+export const billingSalesInvoiceItemPayloadSchema = z.object({
+  itemName: z.string().trim().min(1),
+  description: z.string().trim().default(""),
+  hsnOrSac: z.string().trim().min(1),
+  quantity: z.number().positive(),
+  unit: z.string().trim().min(1),
+  rate: z.number().positive(),
+})
+
+export const billingSalesInvoicePayloadSchema = z.object({
+  voucherTypeId: z.string().trim().min(1),
+  customerLedgerId: z.string().trim().min(1),
+  billToName: z.string().trim().min(1),
+  billToAddress: z.string().trim().min(1),
+  shipToName: z.string().trim().nullable().default(null),
+  shipToAddress: z.string().trim().nullable().default(null),
+  dueDate: z.string().trim().nullable().default(null),
+  referenceNumber: z.string().trim().nullable().default(null),
+  supplyType: billingGstSupplyTypeSchema,
+  placeOfSupply: z.string().trim().min(1),
+  partyGstin: z.string().trim().nullable().default(null),
+  taxRate: z.number().positive().max(100),
+  items: z.array(billingSalesInvoiceItemPayloadSchema).min(1),
+})
+
 export const billingVoucherUpsertPayloadSchema = z.object({
   voucherNumber: z.string().trim().default(""),
   type: billingVoucherTypeSchema,
   date: z.string().trim().min(1),
-  counterparty: z.string().trim().min(1),
+  counterparty: z.string().trim().default(""),
   narration: z.string().trim(),
   lines: z.array(billingVoucherUpsertLinePayloadSchema).default([]),
   gst: billingVoucherGstPayloadSchema.nullable().default(null),
   billAllocations: z.array(billingVoucherBillAllocationPayloadSchema).default([]),
   transport: billingVoucherTransportPayloadSchema.nullable().default(null),
+  sales: billingSalesInvoicePayloadSchema.nullable().default(null),
   generateEInvoice: z.boolean().default(false),
   generateEWayBill: z.boolean().default(false),
 })
@@ -375,9 +437,14 @@ export type BillingVoucherFinancialYear = z.infer<
 >
 export type BillingVoucherEInvoice = z.infer<typeof billingVoucherEInvoiceSchema>
 export type BillingVoucherEWayBill = z.infer<typeof billingVoucherEWayBillSchema>
+export type BillingSalesInvoiceItem = z.infer<typeof billingSalesInvoiceItemSchema>
+export type BillingSalesInvoice = z.infer<typeof billingSalesInvoiceSchema>
 export type BillingVoucher = z.infer<typeof billingVoucherSchema>
 export type BillingVoucherUpsertPayload = z.infer<
   typeof billingVoucherUpsertPayloadSchema
+>
+export type BillingSalesInvoicePayload = z.infer<
+  typeof billingSalesInvoicePayloadSchema
 >
 export type BillingVoucherGstPayload = z.infer<
   typeof billingVoucherGstPayloadSchema

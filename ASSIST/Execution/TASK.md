@@ -4,40 +4,46 @@
 
 ### Reference
 
-`#19`
+`#20`
 
 ### Title
 
-`Physical common module tables`
+`Billing account master alignment and support docs`
 
 ### Scope Checklist
 
-- [x] copy the temp common-module table inventory into the real `core` app database contract
-- [x] add an app-owned migration that creates physical common tables without bypassing the framework database runtime
-- [x] add an app-owned seeder that populates the physical common tables with the shared sample records
-- [x] switch the core common-module service from the legacy JSON-store tables to the physical common tables
-- [x] run validation for typecheck, test, and database prepare
-- [x] record the existing unrelated lint failures in `apps/ui`
+- [x] replace billing ledger groups with reusable billing categories and map ledgers to categories
+- [x] add billing voucher-group and voucher-type masters with a strict `category -> ledger -> voucher type` chain and `voucher group -> voucher type` classification
+- [x] convert billing category, ledger, voucher-group, voucher-type, and voucher-register screens to popup upsert flows in the shared `CommonList` tone
+- [x] align billing side navigation, grouped menus, route titles, and support docs with the UI workspace navigation model
+- [x] add lookup-style autocomplete behavior where billing master and voucher forms need record selection
+- [x] add a real sales invoice workflow with item-table posting and voucher-type-ledger alignment instead of only the generic voucher dialog
+- [x] move sales, purchase, payment, and receipt into route-based master-list and standalone upsert pages instead of popup voucher CRUD
+- [x] cover the new billing services and internal routes with targeted tests and verify the updated billing workspace renders without the previous invalid-payload failure
 
 ### Validation Note
 
-- [x] `npm run typecheck`
-- [ ] `npm run lint` (fails on existing `apps/ui` registry and docs issues unrelated to this batch)
-- [x] `npm run test`
-- [x] `npm run db:prepare`
+- [x] `npx.cmd tsc --noEmit --pretty false`
+- [x] `npx.cmd tsx --test tests/billing/category-service.test.ts tests/billing/ledger-service.test.ts tests/billing/voucher-master-service.test.ts tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+- [x] `npx.cmd tsx --test tests/billing/voucher-service.test.ts`
+- [x] targeted runtime verification against the local desktop billing database for categories, ledgers, voucher groups, voucher types, vouchers, and reports
+- [ ] full `npm run lint`
+- [ ] full `npm run test`
+- [ ] full `npm run build`
 
 ## Next Batch
 
 ### Reference
 
-`#20`
+`#21`
 
 ### Title
 
-`Remaining domain write flows`
+`Billing voucher operational forms and compliance reports`
 
 ### Scope Checklist
 
-- [ ] add write flows for create and update operations where the current desk is still read-only
-- [ ] normalize the current module payload tables into richer relational structures where the baseline schema is still coarse
-- [ ] add refresh-token rotation, rate limiting, stronger audit trails, and admin-facing auth management surfaces beyond the current baseline
+- [ ] connect voucher-type masters directly into the voucher entry workflow so operational posting uses the finalized billing master chain
+- [ ] extend the new route-based voucher pages so purchase gets the same invoice-style item-table experience now used by sales
+- [ ] expand statutory and operational billing reports beyond the current baseline support screens
+- [ ] add broader UI and Playwright coverage for popup master CRUD and voucher entry flows

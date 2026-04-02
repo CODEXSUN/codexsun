@@ -62,7 +62,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
-import { CommonList } from "@/components/blocks/master-list"
+import { CommonList, MasterList } from "@/components/blocks/master-list"
 
 type ResourceState = {
   error: string | null
@@ -119,6 +119,31 @@ type VoucherBillAllocationForm = {
   referenceDate: string
   referenceNumber: string
   referenceType: "new_ref" | "against_ref" | "on_account"
+}
+
+type SalesItemForm = {
+  description: string
+  hsnOrSac: string
+  itemName: string
+  quantity: string
+  rate: string
+  unit: string
+}
+
+type SalesFormState = {
+  billToAddress: string
+  billToName: string
+  customerLedgerId: string
+  dueDate: string
+  partyGstin: string
+  placeOfSupply: string
+  referenceNumber: string
+  shipToAddress: string
+  shipToName: string
+  supplyType: "intra" | "inter"
+  taxRate: string
+  items: SalesItemForm[]
+  voucherTypeId: string
 }
 
 type LedgerFormState = {
@@ -205,40 +230,76 @@ type VoucherFormState = {
   }
   lines: VoucherFormLine[]
   narration: string
+  sales: SalesFormState
   type: BillingVoucherType
   voucherNumber: string
 }
 
-const defaultVoucherForm: VoucherFormState = {
-  billAllocations: [],
-  counterparty: "",
-  date: "2026-04-01",
-  generateEInvoice: false,
-  generateEWayBill: false,
-  gst: {
-    enabled: false,
-    hsnOrSac: "",
-    partyGstin: "",
-    partyLedgerId: "",
-    placeOfSupply: "KA",
-    supplyType: "intra",
-    taxRate: "18",
-    taxableAmount: "",
-    taxableLedgerId: "",
-  },
-  transport: {
-    distanceKm: "",
-    enabled: false,
-    transporterId: "",
-    vehicleNumber: "",
-  },
-  lines: [
-    { amount: "", ledgerId: "", note: "", side: "debit" },
-    { amount: "", ledgerId: "", note: "", side: "credit" },
-  ],
-  narration: "",
-  type: "journal",
-  voucherNumber: "",
+const defaultSalesItem: SalesItemForm = {
+  description: "",
+  hsnOrSac: "",
+  itemName: "",
+  quantity: "1",
+  rate: "",
+  unit: "Nos",
+}
+
+const defaultSalesForm: SalesFormState = {
+  billToAddress: "",
+  billToName: "",
+  customerLedgerId: "",
+  dueDate: "",
+  partyGstin: "",
+  placeOfSupply: "KA",
+  referenceNumber: "",
+  shipToAddress: "",
+  shipToName: "",
+  supplyType: "intra",
+  taxRate: "18",
+  items: [{ ...defaultSalesItem }],
+  voucherTypeId: "",
+}
+
+function createDefaultSalesForm(): SalesFormState {
+  return {
+    ...defaultSalesForm,
+    items: [{ ...defaultSalesItem }],
+  }
+}
+
+function createDefaultVoucherForm(): VoucherFormState {
+  return {
+    billAllocations: [],
+    counterparty: "",
+    date: "2026-04-01",
+    generateEInvoice: false,
+    generateEWayBill: false,
+    gst: {
+      enabled: false,
+      hsnOrSac: "",
+      partyGstin: "",
+      partyLedgerId: "",
+      placeOfSupply: "KA",
+      supplyType: "intra",
+      taxRate: "18",
+      taxableAmount: "",
+      taxableLedgerId: "",
+    },
+    transport: {
+      distanceKm: "",
+      enabled: false,
+      transporterId: "",
+      vehicleNumber: "",
+    },
+    lines: [
+      { amount: "", ledgerId: "", note: "", side: "debit" },
+      { amount: "", ledgerId: "", note: "", side: "credit" },
+    ],
+    narration: "",
+    sales: createDefaultSalesForm(),
+    type: "journal",
+    voucherNumber: "",
+  }
 }
 
 class HttpError extends Error {
@@ -257,6 +318,32 @@ function formatAmount(amount: number) {
     maximumFractionDigits: 0,
     style: "currency",
   }).format(amount)
+}
+
+function parsePositiveDecimal(value: string) {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 0
+}
+
+function getSalesItemAmount(item: SalesItemForm) {
+  return parsePositiveDecimal(item.quantity) * parsePositiveDecimal(item.rate)
+}
+
+function getSalesSummary(sales: SalesFormState) {
+  const subtotal = sales.items.reduce((sum, item) => sum + getSalesItemAmount(item), 0)
+  const totalQuantity = sales.items.reduce(
+    (sum, item) => sum + parsePositiveDecimal(item.quantity),
+    0
+  )
+  const taxRate = parsePositiveDecimal(sales.taxRate)
+  const taxAmount = subtotal * (taxRate / 100)
+
+  return {
+    grandTotal: subtotal + taxAmount,
+    subtotal,
+    taxAmount,
+    totalQuantity,
+  }
 }
 
 function toStatusLabel(status: BillingVoucher["eInvoice"]["status"]) {
@@ -377,6 +464,30 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
       side: line.side,
     })),
     narration: voucher.narration,
+    sales: voucher.sales
+      ? {
+          billToAddress: voucher.sales.billToAddress,
+          billToName: voucher.sales.billToName,
+          customerLedgerId: voucher.sales.customerLedgerId,
+          dueDate: voucher.sales.dueDate ?? "",
+          partyGstin: voucher.sales.partyGstin ?? "",
+          placeOfSupply: voucher.sales.placeOfSupply,
+          referenceNumber: voucher.sales.referenceNumber ?? "",
+          shipToAddress: voucher.sales.shipToAddress ?? "",
+          shipToName: voucher.sales.shipToName ?? "",
+          supplyType: voucher.sales.supplyType,
+          taxRate: String(voucher.sales.taxRate),
+          items: voucher.sales.items.map((item) => ({
+            description: item.description,
+            hsnOrSac: item.hsnOrSac,
+            itemName: item.itemName,
+            quantity: String(item.quantity),
+            rate: String(item.rate),
+            unit: item.unit,
+          })),
+          voucherTypeId: voucher.sales.voucherTypeId,
+        }
+      : createDefaultSalesForm(),
     type: voucher.type,
     voucherNumber: voucher.voucherNumber,
   }
@@ -1159,6 +1270,933 @@ function VoucherEditor({
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function SalesInvoiceEditor({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onChange,
+  onDelete,
+  onReset,
+  onSave,
+  onSalesItemChange,
+  onSalesItemCreate,
+  onSalesItemRemove,
+  selectedVoucher,
+  voucherTypes,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onReset: () => void
+  onSave: () => void
+  onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
+  onSalesItemCreate: () => void
+  onSalesItemRemove: (index: number) => void
+  selectedVoucher: BillingVoucher | null
+  voucherTypes: BillingVoucherMasterType[]
+}) {
+  const salesVoucherTypes = voucherTypes.filter(
+    (voucherType) => voucherType.postingType === "sales" && voucherType.deletedAt === null
+  )
+  const salesSummary = getSalesSummary(form.sales)
+  const selectedCustomerLedger =
+    ledgers.find((ledger) => ledger.id === form.sales.customerLedgerId) ?? null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{selectedVoucher ? "Update sales invoice" : "Create sales invoice"}</CardTitle>
+        <CardDescription>
+          Capture customer invoice details, select the sales voucher type, and post item-table totals into double-entry and GST automatically.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-voucher-number">
+              Invoice number
+            </label>
+            <Input
+              id="sales-voucher-number"
+              value={form.voucherNumber}
+              onChange={(event) => onChange("voucherNumber", event.target.value)}
+              placeholder="Leave blank for FY auto numbering"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-date">
+              Invoice date
+            </label>
+            <Input
+              id="sales-date"
+              type="date"
+              value={form.date}
+              onChange={(event) => onChange("date", event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Voucher type</label>
+            <AutocompleteLookupField
+              emptyLabel="Select sales type"
+              onChange={(nextValue) => onChange("salesVoucherTypeId", nextValue)}
+              options={salesVoucherTypes.map((voucherType) => ({
+                value: voucherType.id,
+                label: voucherType.name,
+              }))}
+              searchPlaceholder="Search sales voucher type"
+              value={form.sales.voucherTypeId}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Customer ledger</label>
+            <AutocompleteLookupField
+              emptyLabel="Select customer ledger"
+              onChange={(nextValue) => {
+                const nextLedger = ledgers.find((ledger) => ledger.id === nextValue) ?? null
+                onChange("salesCustomerLedgerId", nextValue)
+                if (!form.sales.billToName && nextLedger) {
+                  onChange("salesBillToName", nextLedger.name)
+                }
+              }}
+              options={ledgers.map((ledger) => ({
+                value: ledger.id,
+                label: `${ledger.name} (${ledger.categoryName})`,
+              }))}
+              searchPlaceholder="Search customer ledger"
+              value={form.sales.customerLedgerId}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-bill-to-name">
+              Bill to name
+            </label>
+            <Input
+              id="sales-bill-to-name"
+              value={form.sales.billToName}
+              onChange={(event) => onChange("salesBillToName", event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-reference-number">
+              Reference number
+            </label>
+            <Input
+              id="sales-reference-number"
+              value={form.sales.referenceNumber}
+              onChange={(event) => onChange("salesReferenceNumber", event.target.value)}
+              placeholder="PO / customer ref"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-due-date">
+              Due date
+            </label>
+            <Input
+              id="sales-due-date"
+              type="date"
+              value={form.sales.dueDate}
+              onChange={(event) => onChange("salesDueDate", event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-party-gstin">
+              Customer GSTIN
+            </label>
+            <Input
+              id="sales-party-gstin"
+              value={form.sales.partyGstin}
+              onChange={(event) => onChange("salesPartyGstin", event.target.value)}
+              placeholder="29ABCDE1234F1Z5"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-place-of-supply">
+              Place of supply
+            </label>
+            <Input
+              id="sales-place-of-supply"
+              value={form.sales.placeOfSupply}
+              onChange={(event) => onChange("salesPlaceOfSupply", event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Supply type</label>
+            <RadioGroup
+              value={form.sales.supplyType}
+              onValueChange={(nextValue) => onChange("salesSupplyType", nextValue)}
+              className="flex h-10 items-center gap-6 rounded-md border border-input bg-background px-3"
+            >
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <RadioGroupItem value="intra" />
+                Intra-state
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <RadioGroupItem value="inter" />
+                Inter-state
+              </label>
+            </RadioGroup>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-tax-rate">
+              GST rate %
+            </label>
+            <Input
+              id="sales-tax-rate"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.sales.taxRate}
+              onChange={(event) => onChange("salesTaxRate", event.target.value)}
+            />
+          </div>
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Customer account
+            </p>
+            <p className="mt-2 text-sm font-medium text-foreground">
+              {selectedCustomerLedger?.name ?? "Not selected"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {selectedCustomerLedger?.categoryName ?? "Choose the receivable ledger to debit."}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-bill-to-address">
+              Bill to address
+            </label>
+            <Textarea
+              id="sales-bill-to-address"
+              value={form.sales.billToAddress}
+              onChange={(event) => onChange("salesBillToAddress", event.target.value)}
+              placeholder="Customer billing address"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="sales-ship-to-address">
+              Ship to address
+            </label>
+            <Textarea
+              id="sales-ship-to-address"
+              value={form.sales.shipToAddress}
+              onChange={(event) => onChange("salesShipToAddress", event.target.value)}
+              placeholder="Dispatch or delivery address"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-foreground">Sales items</p>
+              <p className="text-sm text-muted-foreground">
+                Add invoice lines as sale sub-items. Tax and posting totals are derived from this table.
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={onSalesItemCreate}>
+              Add item
+            </Button>
+          </div>
+          <div className="overflow-x-auto rounded-[1rem] border border-border/70">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12 text-center">#</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead>HSN/SAC</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-28">Qty</TableHead>
+                  <TableHead className="w-24">Unit</TableHead>
+                  <TableHead className="w-32">Rate</TableHead>
+                  <TableHead className="w-32 text-right">Amount</TableHead>
+                  <TableHead className="w-20 text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {form.sales.items.map((item, index) => (
+                  <TableRow key={`sales-item:${index}`}>
+                    <TableCell className="text-center text-sm text-muted-foreground">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.itemName}
+                        onChange={(event) =>
+                          onSalesItemChange(index, "itemName", event.target.value)
+                        }
+                        placeholder="Item name"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.hsnOrSac}
+                        onChange={(event) =>
+                          onSalesItemChange(index, "hsnOrSac", event.target.value)
+                        }
+                        placeholder="6204"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.description}
+                        onChange={(event) =>
+                          onSalesItemChange(index, "description", event.target.value)
+                        }
+                        placeholder="Item description"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.quantity}
+                        onChange={(event) =>
+                          onSalesItemChange(index, "quantity", event.target.value)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.unit}
+                        onChange={(event) =>
+                          onSalesItemChange(index, "unit", event.target.value)
+                        }
+                        placeholder="Nos"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.rate}
+                        onChange={(event) =>
+                          onSalesItemChange(index, "rate", event.target.value)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-foreground">
+                      {formatAmount(getSalesItemAmount(item))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onSalesItemRemove(index)}
+                      >
+                        Remove
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Quantity
+            </p>
+            <p className="mt-2 text-xl font-semibold text-foreground">
+              {salesSummary.totalQuantity.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Subtotal
+            </p>
+            <p className="mt-2 text-xl font-semibold text-foreground">
+              {formatAmount(salesSummary.subtotal)}
+            </p>
+          </div>
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              GST total
+            </p>
+            <p className="mt-2 text-xl font-semibold text-foreground">
+              {formatAmount(salesSummary.taxAmount)}
+            </p>
+          </div>
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Invoice total
+            </p>
+            <p className="mt-2 text-xl font-semibold text-foreground">
+              {formatAmount(salesSummary.grandTotal)}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-[1rem] border border-border/70 bg-card/70 p-4 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={form.generateEInvoice}
+              onChange={(event) =>
+                onChange("generateEInvoice", event.target.checked ? "true" : "false")
+              }
+            />
+            Generate e-invoice record
+          </label>
+          <label className="flex items-center gap-2 rounded-[1rem] border border-border/70 bg-card/70 p-4 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={form.generateEWayBill}
+              onChange={(event) =>
+                onChange("generateEWayBill", event.target.checked ? "true" : "false")
+              }
+            />
+            Generate e-way bill record
+          </label>
+        </div>
+
+        {form.generateEWayBill ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            <Input
+              type="number"
+              min="1"
+              value={form.transport.distanceKm}
+              onChange={(event) => onChange("transportDistanceKm", event.target.value)}
+              placeholder="Distance in KM"
+            />
+            <Input
+              value={form.transport.vehicleNumber}
+              onChange={(event) => onChange("transportVehicleNumber", event.target.value)}
+              placeholder="Vehicle number"
+            />
+            <Input
+              value={form.transport.transporterId}
+              onChange={(event) => onChange("transportTransporterId", event.target.value)}
+              placeholder="Transporter id"
+            />
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground" htmlFor="sales-narration">
+            Narration
+          </label>
+          <Textarea
+            id="sales-narration"
+            value={form.narration}
+            onChange={(event) => onChange("narration", event.target.value)}
+            placeholder="Optional invoice note"
+          />
+        </div>
+
+        {formError ? (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {formError}
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" onClick={onSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : selectedVoucher ? "Update sales invoice" : "Post sales invoice"}
+          </Button>
+          <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
+            New invoice
+          </Button>
+          {selectedVoucher ? (
+            <Button type="button" variant="destructive" onClick={onDelete} disabled={isSaving}>
+              Delete invoice
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function getVoucherInvoiceAmount(voucher: BillingVoucher) {
+  if (voucher.sales) {
+    return voucher.sales.grandTotal
+  }
+  if (voucher.gst) {
+    return voucher.gst.invoiceAmount
+  }
+
+  return getVoucherTotals(voucher).debit
+}
+
+function getVoucherModuleLabel(moduleId: BillingVoucherType) {
+  switch (moduleId) {
+    case "payment":
+      return {
+        addLabel: "New Payment Voucher",
+        amountLabel: "Amount",
+        emptyMessage: "No payment vouchers found.",
+        pageDescription: "Create and maintain outgoing payment vouchers with bill settlement and double-entry posting.",
+        pageTitle: "Payment",
+      }
+    case "receipt":
+      return {
+        addLabel: "New Receipt Voucher",
+        amountLabel: "Amount",
+        emptyMessage: "No receipt vouchers found.",
+        pageDescription: "Create and maintain incoming receipt vouchers with customer settlement and collection posting.",
+        pageTitle: "Receipt",
+      }
+    case "purchase":
+      return {
+        addLabel: "New Purchase Voucher",
+        amountLabel: "Invoice Total",
+        emptyMessage: "No purchase vouchers found.",
+        pageDescription: "Create and maintain purchase vouchers with GST-aware posting and supplier-side liability impact.",
+        pageTitle: "Purchase",
+      }
+    default:
+      return {
+        addLabel: "New Voucher",
+        amountLabel: "Amount",
+        emptyMessage: "No vouchers found.",
+        pageDescription: "Create and maintain vouchers.",
+        pageTitle: titleFromVoucherType(moduleId),
+      }
+  }
+}
+
+function SalesVoucherSection({
+  onCreate,
+  onEdit,
+  onSelectVoucher,
+  vouchers,
+}: {
+  onCreate: () => void
+  onEdit: (voucherId: string) => void
+  onSelectVoucher: (voucher: BillingVoucher) => void
+  vouchers: BillingVoucher[]
+}) {
+  const [searchValue, setSearchValue] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const salesVouchers = vouchers.filter((voucher) => voucher.type === "sales")
+  const normalizedSearch = searchValue.trim().toLowerCase()
+  const filteredVouchers = salesVouchers.filter((voucher) =>
+    [
+      voucher.voucherNumber,
+      voucher.counterparty,
+      voucher.sales?.voucherTypeName ?? "",
+      voucher.sales?.referenceNumber ?? "",
+      voucher.date,
+    ].some((value) => value.toLowerCase().includes(normalizedSearch))
+  )
+  const totalRecords = filteredVouchers.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedVouchers = filteredVouchers.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  )
+
+  return (
+    <>
+      <MasterList
+        header={{
+          pageTitle: "Sales",
+          pageDescription:
+            "Create and maintain customer invoices with voucher type alignment, GST-ready totals, and item-table posting.",
+          addLabel: "New Sales Invoice",
+          onAddClick: onCreate,
+        }}
+        search={{
+          value: searchValue,
+          onChange: (value) => {
+            setSearchValue(value)
+            setCurrentPage(1)
+          },
+          placeholder: "Search sales invoices",
+        }}
+        table={{
+          columns: [
+            {
+              id: "serial",
+              header: "Sl.No",
+              cell: (voucher) =>
+                (safeCurrentPage - 1) * pageSize +
+                paginatedVouchers.findIndex((entry) => entry.id === voucher.id) +
+                1,
+              className: "w-12 min-w-12 px-2 text-center",
+              headerClassName: "w-12 min-w-12 px-2 text-center",
+              sticky: "left",
+            },
+            {
+              id: "voucherNumber",
+              header: "Invoice",
+              sortable: true,
+              accessor: (voucher) => voucher.voucherNumber,
+              cell: (voucher) => (
+                <div>
+                  <p className="font-medium text-foreground">{voucher.voucherNumber}</p>
+                  <p className="text-xs text-muted-foreground">{voucher.date}</p>
+                </div>
+              ),
+            },
+            {
+              id: "voucherType",
+              header: "Sales Type",
+              sortable: true,
+              accessor: (voucher) => voucher.sales?.voucherTypeName ?? "Sales",
+              cell: (voucher) => voucher.sales?.voucherTypeName ?? "Sales",
+            },
+            {
+              id: "customer",
+              header: "Customer",
+              sortable: true,
+              accessor: (voucher) => voucher.counterparty,
+              cell: (voucher) => voucher.counterparty,
+            },
+            {
+              id: "items",
+              header: "Items",
+              sortable: true,
+              accessor: (voucher) => voucher.sales?.items.length ?? 0,
+              cell: (voucher) => voucher.sales?.items.length ?? 0,
+            },
+            {
+              id: "amount",
+              header: "Invoice Total",
+              sortable: true,
+              accessor: (voucher) => getVoucherInvoiceAmount(voucher),
+              cell: (voucher) => formatAmount(getVoucherInvoiceAmount(voucher)),
+            },
+            {
+              id: "actions",
+              header: "Actions",
+              cell: (voucher) => (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full">
+                      <MoreHorizontalIcon className="size-4" />
+                      <span className="sr-only">Open sales invoice actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem className="gap-2" onSelect={() => {
+                    onSelectVoucher(voucher)
+                    onEdit(voucher.id)
+                  }}>
+                      <PencilLineIcon className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ),
+              className: "w-20 min-w-20 text-right",
+              headerClassName: "w-20 min-w-20 text-right",
+            },
+          ],
+          data: paginatedVouchers,
+          emptyMessage: "No sales invoices found.",
+          rowKey: (voucher) => voucher.id,
+        }}
+        footer={{
+          content: (
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Total invoices: <span className="font-medium text-foreground">{totalRecords}</span>
+              </span>
+            </div>
+          ),
+        }}
+        pagination={{
+          currentPage: safeCurrentPage,
+          pageSize,
+          totalRecords,
+          onPageChange: setCurrentPage,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize)
+            setCurrentPage(1)
+          },
+          pageSizeOptions: [10, 20, 50, 100, 200, 500],
+        }}
+      />
+    </>
+  )
+}
+
+function SalesVoucherUpsertSection({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onChange,
+  onDelete,
+  onReset,
+  onSalesItemChange,
+  onSalesItemCreate,
+  onSalesItemRemove,
+  onSave,
+  selectedVoucher,
+  voucherTypes,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onReset: () => void
+  onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
+  onSalesItemCreate: () => void
+  onSalesItemRemove: (index: number) => void
+  onSave: () => void
+  selectedVoucher: BillingVoucher | null
+  voucherTypes: BillingVoucherMasterType[]
+}) {
+  return (
+    <div className="space-y-4">
+      <SalesInvoiceEditor
+        form={form}
+        formError={formError}
+        isSaving={isSaving}
+        ledgers={ledgers}
+        onChange={onChange}
+        onDelete={onDelete}
+        onReset={onReset}
+        onSave={onSave}
+        onSalesItemChange={onSalesItemChange}
+        onSalesItemCreate={onSalesItemCreate}
+        onSalesItemRemove={onSalesItemRemove}
+        selectedVoucher={selectedVoucher}
+        voucherTypes={voucherTypes}
+      />
+      {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+    </div>
+  )
+}
+
+function VoucherModuleListSection({
+  moduleId,
+  onCreate,
+  onEdit,
+  onSelectVoucher,
+  vouchers,
+}: {
+  moduleId: "payment" | "receipt" | "purchase"
+  onCreate: () => void
+  onEdit: (voucherId: string) => void
+  onSelectVoucher: (voucher: BillingVoucher) => void
+  vouchers: BillingVoucher[]
+}) {
+  const [searchValue, setSearchValue] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const labels = getVoucherModuleLabel(moduleId)
+  const filteredByType = vouchers.filter((voucher) => voucher.type === moduleId)
+  const normalizedSearch = searchValue.trim().toLowerCase()
+  const filteredVouchers = filteredByType.filter((voucher) =>
+    [
+      voucher.voucherNumber,
+      voucher.counterparty,
+      voucher.narration,
+      voucher.date,
+    ].some((value) => value.toLowerCase().includes(normalizedSearch))
+  )
+  const totalRecords = filteredVouchers.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedVouchers = filteredVouchers.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  )
+
+  return (
+    <MasterList
+      header={{
+        pageTitle: labels.pageTitle,
+        pageDescription: labels.pageDescription,
+        addLabel: labels.addLabel,
+        onAddClick: onCreate,
+      }}
+      search={{
+        value: searchValue,
+        onChange: (value) => {
+          setSearchValue(value)
+          setCurrentPage(1)
+        },
+        placeholder: `Search ${labels.pageTitle.toLowerCase()} vouchers`,
+      }}
+      table={{
+        columns: [
+          {
+            id: "serial",
+            header: "Sl.No",
+            cell: (voucher) =>
+              (safeCurrentPage - 1) * pageSize +
+              paginatedVouchers.findIndex((entry) => entry.id === voucher.id) +
+              1,
+            className: "w-12 min-w-12 px-2 text-center",
+            headerClassName: "w-12 min-w-12 px-2 text-center",
+            sticky: "left",
+          },
+          {
+            id: "voucherNumber",
+            header: "Voucher",
+            sortable: true,
+            accessor: (voucher) => voucher.voucherNumber,
+            cell: (voucher) => (
+              <div>
+                <p className="font-medium text-foreground">{voucher.voucherNumber}</p>
+                <p className="text-xs text-muted-foreground">{voucher.date}</p>
+              </div>
+            ),
+          },
+          {
+            id: "counterparty",
+            header: "Counterparty",
+            sortable: true,
+            accessor: (voucher) => voucher.counterparty,
+            cell: (voucher) => voucher.counterparty,
+          },
+          {
+            id: "narration",
+            header: "Narration",
+            sortable: true,
+            accessor: (voucher) => voucher.narration,
+            cell: (voucher) => voucher.narration || "—",
+          },
+          {
+            id: "amount",
+            header: labels.amountLabel,
+            sortable: true,
+            accessor: (voucher) => getVoucherInvoiceAmount(voucher),
+            cell: (voucher) => formatAmount(getVoucherInvoiceAmount(voucher)),
+          },
+          {
+            id: "actions",
+            header: "Actions",
+            cell: (voucher) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full">
+                    <MoreHorizontalIcon className="size-4" />
+                    <span className="sr-only">Open voucher actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem className="gap-2" onSelect={() => {
+                    onSelectVoucher(voucher)
+                    onEdit(voucher.id)
+                  }}>
+                    <PencilLineIcon className="size-4" />
+                    Edit
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+            className: "w-20 min-w-20 text-right",
+            headerClassName: "w-20 min-w-20 text-right",
+          },
+        ],
+        data: paginatedVouchers,
+        emptyMessage: labels.emptyMessage,
+        rowKey: (voucher) => voucher.id,
+      }}
+      footer={{
+        content: (
+          <div className="flex flex-wrap items-center gap-4">
+            <span>
+              Total vouchers: <span className="font-medium text-foreground">{totalRecords}</span>
+            </span>
+          </div>
+        ),
+      }}
+      pagination={{
+        currentPage: safeCurrentPage,
+        pageSize,
+        totalRecords,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: (nextPageSize) => {
+          setPageSize(nextPageSize)
+          setCurrentPage(1)
+        },
+        pageSizeOptions: [10, 20, 50, 100, 200, 500],
+      }}
+    />
+  )
+}
+
+function VoucherModuleUpsertSection({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onBillAllocationChange,
+  onBillAllocationCreate,
+  onBillAllocationRemove,
+  onChange,
+  onDelete,
+  onLineChange,
+  onLineCreate,
+  onLineRemove,
+  onReset,
+  onSave,
+  selectedVoucher,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onBillAllocationChange: (
+    index: number,
+    field: keyof VoucherBillAllocationForm,
+    value: string
+  ) => void
+  onBillAllocationCreate: () => void
+  onBillAllocationRemove: (index: number) => void
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onLineChange: (
+    index: number,
+    field: keyof VoucherFormLine,
+    value: string
+  ) => void
+  onLineCreate: () => void
+  onLineRemove: (index: number) => void
+  onReset: () => void
+  onSave: () => void
+  selectedVoucher: BillingVoucher | null
+}) {
+  return (
+    <div className="space-y-4">
+      <VoucherEditor
+        form={form}
+        formError={formError}
+        isSaving={isSaving}
+        ledgers={ledgers}
+        onChange={onChange}
+        onDelete={onDelete}
+        onBillAllocationChange={onBillAllocationChange}
+        onBillAllocationCreate={onBillAllocationCreate}
+        onBillAllocationRemove={onBillAllocationRemove}
+        onLineChange={onLineChange}
+        onLineCreate={onLineCreate}
+        onLineRemove={onLineRemove}
+        onReset={onReset}
+        onSave={onSave}
+        selectedVoucher={selectedVoucher}
+      />
+      {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+    </div>
   )
 }
 
@@ -2568,6 +3606,7 @@ function VoucherRegisterSection({
   isDialogOpen,
   isSaving,
   ledgers,
+  voucherTypes,
   onChange,
   onCreate,
   onDelete,
@@ -2579,6 +3618,9 @@ function VoucherRegisterSection({
   onLineRemove,
   onOpenChange,
   onReset,
+  onSalesItemChange,
+  onSalesItemCreate,
+  onSalesItemRemove,
   onSave,
   onSelectVoucher,
   selectedVoucher,
@@ -2589,6 +3631,7 @@ function VoucherRegisterSection({
   isDialogOpen: boolean
   isSaving: boolean
   ledgers: BillingLedger[]
+  voucherTypes: BillingVoucherMasterType[]
   onChange: (field: string, value: string) => void
   onCreate: () => void
   onDelete: () => void
@@ -2608,6 +3651,9 @@ function VoucherRegisterSection({
   onLineRemove: (index: number) => void
   onOpenChange: (open: boolean) => void
   onReset: () => void
+  onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
+  onSalesItemCreate: () => void
+  onSalesItemRemove: (index: number) => void
   onSave: () => void
   onSelectVoucher: (voucher: BillingVoucher) => void
   selectedVoucher: BillingVoucher | null
@@ -2769,23 +3815,41 @@ function VoucherRegisterSection({
               Post and maintain payment, receipt, sales, purchase, contra, and journal vouchers with double-entry controls.
             </DialogDescription>
           </DialogHeader>
-          <VoucherEditor
-            form={form}
-            formError={formError}
-            isSaving={isSaving}
-            ledgers={ledgers}
-            onChange={onChange}
-            onDelete={onDelete}
-            onBillAllocationChange={onBillAllocationChange}
-            onBillAllocationCreate={onBillAllocationCreate}
-            onBillAllocationRemove={onBillAllocationRemove}
-            onLineChange={onLineChange}
-            onLineCreate={onLineCreate}
-            onLineRemove={onLineRemove}
-            onReset={onReset}
-            onSave={onSave}
-            selectedVoucher={selectedVoucher}
-          />
+          {form.type === "sales" ? (
+            <SalesInvoiceEditor
+              form={form}
+              formError={formError}
+              isSaving={isSaving}
+              ledgers={ledgers}
+              onChange={onChange}
+              onDelete={onDelete}
+              onReset={onReset}
+              onSave={onSave}
+              onSalesItemChange={onSalesItemChange}
+              onSalesItemCreate={onSalesItemCreate}
+              onSalesItemRemove={onSalesItemRemove}
+              selectedVoucher={selectedVoucher}
+              voucherTypes={voucherTypes}
+            />
+          ) : (
+            <VoucherEditor
+              form={form}
+              formError={formError}
+              isSaving={isSaving}
+              ledgers={ledgers}
+              onChange={onChange}
+              onDelete={onDelete}
+              onBillAllocationChange={onBillAllocationChange}
+              onBillAllocationCreate={onBillAllocationCreate}
+              onBillAllocationRemove={onBillAllocationRemove}
+              onLineChange={onLineChange}
+              onLineCreate={onLineCreate}
+              onLineRemove={onLineRemove}
+              onReset={onReset}
+              onSave={onSave}
+              selectedVoucher={selectedVoucher}
+            />
+          )}
           {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
         </DialogContent>
       </Dialog>
@@ -3533,10 +4597,12 @@ function BillOutstandingSection({ reports }: { reports: BillingAccountingReports
 export function BillingWorkspaceSection({
   categoryId,
   ledgerId,
+  voucherId,
   sectionId,
 }: {
   categoryId?: string
   ledgerId?: string
+  voucherId?: string
   sectionId?: string
 }) {
   const navigate = useNavigate()
@@ -3555,7 +4621,7 @@ export function BillingWorkspaceSection({
   const [editingLedgerId, setEditingLedgerId] = useState<string | null>(null)
   const [editingVoucherGroupId, setEditingVoucherGroupId] = useState<string | null>(null)
   const [editingVoucherTypeId, setEditingVoucherTypeId] = useState<string | null>(null)
-  const [form, setForm] = useState<VoucherFormState>(defaultVoucherForm)
+  const [form, setForm] = useState<VoucherFormState>(() => createDefaultVoucherForm())
   const [ledgerForm, setLedgerForm] = useState<LedgerFormState>(defaultLedgerForm)
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(defaultCategoryForm)
   const [voucherGroupForm, setVoucherGroupForm] = useState<VoucherGroupFormState>(defaultVoucherGroupForm)
@@ -3619,6 +4685,8 @@ export function BillingWorkspaceSection({
     null
   const selectedLedger =
     state.ledgers.find((ledger) => ledger.id === ledgerId) ?? null
+  const routeVoucher =
+    state.vouchers.find((voucher) => voucher.id === voucherId) ?? null
   const activeLedger =
     state.ledgers.find((ledger) => ledger.id === editingLedgerId) ??
     selectedLedger ??
@@ -3657,9 +4725,55 @@ export function BillingWorkspaceSection({
     setEditingCategoryId(activeCategory?.id ?? null)
   }, [activeCategory, sectionId])
 
+  useEffect(() => {
+    if ((sectionId ?? "overview") !== "sales-vouchers-upsert") {
+      return
+    }
+
+    if (routeVoucher && routeVoucher.type === "sales") {
+      setSelectedVoucherId(routeVoucher.id)
+      setForm(toVoucherForm(routeVoucher))
+    } else {
+      setSelectedVoucherId(null)
+      setForm({
+        ...createDefaultVoucherForm(),
+        type: "sales",
+      })
+    }
+
+    setFormError(null)
+  }, [routeVoucher, sectionId])
+
+  useEffect(() => {
+    const currentSection = sectionId ?? "overview"
+    const moduleBySection = {
+      "payment-vouchers-upsert": "payment",
+      "purchase-vouchers-upsert": "purchase",
+      "receipt-vouchers-upsert": "receipt",
+    } as const
+    const moduleId = moduleBySection[currentSection as keyof typeof moduleBySection]
+
+    if (!moduleId) {
+      return
+    }
+
+    if (routeVoucher && routeVoucher.type === moduleId) {
+      setSelectedVoucherId(routeVoucher.id)
+      setForm(toVoucherForm(routeVoucher))
+    } else {
+      setSelectedVoucherId(null)
+      setForm({
+        ...createDefaultVoucherForm(),
+        type: moduleId,
+      })
+    }
+
+    setFormError(null)
+  }, [routeVoucher, sectionId])
+
   function resetForm() {
     setSelectedVoucherId(null)
-    setForm(defaultVoucherForm)
+    setForm(createDefaultVoucherForm())
     setFormError(null)
   }
 
@@ -3676,11 +4790,21 @@ export function BillingWorkspaceSection({
         case "counterparty":
         case "date":
         case "narration":
-        case "type":
         case "voucherNumber":
           return {
             ...current,
             [field]: value,
+          }
+        case "type":
+          return {
+            ...current,
+            type: value as BillingVoucherType,
+            sales:
+              value === "sales"
+                ? current.sales.items.length > 0
+                  ? current.sales
+                  : createDefaultSalesForm()
+                : current.sales,
           }
         case "gst":
           return {
@@ -3732,6 +4856,40 @@ export function BillingWorkspaceSection({
           return { ...current, transport: { ...current.transport, vehicleNumber: value } }
         case "transportTransporterId":
           return { ...current, transport: { ...current.transport, transporterId: value } }
+        case "salesVoucherTypeId":
+          return { ...current, sales: { ...current.sales, voucherTypeId: value } }
+        case "salesCustomerLedgerId":
+          return { ...current, sales: { ...current.sales, customerLedgerId: value } }
+        case "salesBillToName":
+          return {
+            ...current,
+            counterparty: value,
+            sales: { ...current.sales, billToName: value },
+          }
+        case "salesBillToAddress":
+          return { ...current, sales: { ...current.sales, billToAddress: value } }
+        case "salesShipToName":
+          return { ...current, sales: { ...current.sales, shipToName: value } }
+        case "salesShipToAddress":
+          return { ...current, sales: { ...current.sales, shipToAddress: value } }
+        case "salesReferenceNumber":
+          return { ...current, sales: { ...current.sales, referenceNumber: value } }
+        case "salesDueDate":
+          return { ...current, sales: { ...current.sales, dueDate: value } }
+        case "salesPartyGstin":
+          return { ...current, sales: { ...current.sales, partyGstin: value } }
+        case "salesPlaceOfSupply":
+          return { ...current, sales: { ...current.sales, placeOfSupply: value } }
+        case "salesSupplyType":
+          return {
+            ...current,
+            sales: {
+              ...current.sales,
+              supplyType: value === "inter" ? "inter" : "intra",
+            },
+          }
+        case "salesTaxRate":
+          return { ...current, sales: { ...current.sales, taxRate: value } }
         default:
           return current
       }
@@ -3805,6 +4963,45 @@ export function BillingWorkspaceSection({
     }))
   }
 
+  function handleSalesItemChange(
+    index: number,
+    field: keyof SalesItemForm,
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      sales: {
+        ...current.sales,
+        items: current.sales.items.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }))
+  }
+
+  function handleSalesItemCreate() {
+    setForm((current) => ({
+      ...current,
+      sales: {
+        ...current.sales,
+        items: [...current.sales.items, { ...defaultSalesItem }],
+      },
+    }))
+  }
+
+  function handleSalesItemRemove(index: number) {
+    setForm((current) => ({
+      ...current,
+      sales: {
+        ...current.sales,
+        items:
+          current.sales.items.length <= 1
+            ? [{ ...defaultSalesItem }]
+            : current.sales.items.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }))
+  }
+
   function handleLedgerChange(field: keyof LedgerFormState, value: string) {
     setLedgerForm((current) => ({
       ...current,
@@ -3845,13 +5042,15 @@ export function BillingWorkspaceSection({
   }
 
   function buildPayload(): BillingVoucherUpsertPayload {
-    const gstModeEnabled = form.gst.enabled && ["sales", "purchase"].includes(form.type)
+    const salesModeEnabled = form.type === "sales"
+    const gstModeEnabled =
+      salesModeEnabled || (form.gst.enabled && ["sales", "purchase"].includes(form.type))
 
     return {
       voucherNumber: form.voucherNumber,
       type: form.type,
       date: form.date,
-      counterparty: form.counterparty,
+      counterparty: salesModeEnabled ? form.sales.billToName : form.counterparty,
       narration: form.narration,
       lines: gstModeEnabled
         ? []
@@ -3869,7 +5068,9 @@ export function BillingWorkspaceSection({
         amount: Number(allocation.amount),
         note: allocation.note,
       })),
-      gst: gstModeEnabled
+      gst: salesModeEnabled
+        ? null
+        : gstModeEnabled
         ? {
             supplyType: form.gst.supplyType,
             placeOfSupply: form.gst.placeOfSupply,
@@ -3879,6 +5080,30 @@ export function BillingWorkspaceSection({
             taxRate: Number(form.gst.taxRate),
             taxableLedgerId: form.gst.taxableLedgerId,
             partyLedgerId: form.gst.partyLedgerId,
+          }
+        : null,
+      sales: salesModeEnabled
+        ? {
+            voucherTypeId: form.sales.voucherTypeId,
+            customerLedgerId: form.sales.customerLedgerId,
+            billToName: form.sales.billToName,
+            billToAddress: form.sales.billToAddress,
+            shipToName: form.sales.shipToName.trim() || null,
+            shipToAddress: form.sales.shipToAddress.trim() || null,
+            dueDate: form.sales.dueDate || null,
+            referenceNumber: form.sales.referenceNumber.trim() || null,
+            supplyType: form.sales.supplyType,
+            placeOfSupply: form.sales.placeOfSupply,
+            partyGstin: form.sales.partyGstin.trim() || null,
+            taxRate: Number(form.sales.taxRate),
+            items: form.sales.items.map((item) => ({
+              itemName: item.itemName,
+              description: item.description,
+              hsnOrSac: item.hsnOrSac,
+              quantity: Number(item.quantity),
+              unit: item.unit,
+              rate: Number(item.rate),
+            })),
           }
         : null,
       transport:
@@ -3918,7 +5143,19 @@ export function BillingWorkspaceSection({
 
       await loadResources()
       resetForm()
-      setIsVoucherDialogOpen(false)
+      const currentSection = sectionId ?? "overview"
+      const upsertRedirectMap = {
+        "payment-vouchers-upsert": "/dashboard/billing/payment-vouchers",
+        "purchase-vouchers-upsert": "/dashboard/billing/purchase-vouchers",
+        "receipt-vouchers-upsert": "/dashboard/billing/receipt-vouchers",
+        "sales-vouchers-upsert": "/dashboard/billing/sales-vouchers",
+      } as const
+
+      if (currentSection in upsertRedirectMap) {
+        void navigate(upsertRedirectMap[currentSection as keyof typeof upsertRedirectMap])
+      } else {
+        setIsVoucherDialogOpen(false)
+      }
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : "Failed to save billing voucher."
@@ -3945,7 +5182,19 @@ export function BillingWorkspaceSection({
       )
       await loadResources()
       resetForm()
-      setIsVoucherDialogOpen(false)
+      const currentSection = sectionId ?? "overview"
+      const upsertRedirectMap = {
+        "payment-vouchers-upsert": "/dashboard/billing/payment-vouchers",
+        "purchase-vouchers-upsert": "/dashboard/billing/purchase-vouchers",
+        "receipt-vouchers-upsert": "/dashboard/billing/receipt-vouchers",
+        "sales-vouchers-upsert": "/dashboard/billing/sales-vouchers",
+      } as const
+
+      if (currentSection in upsertRedirectMap) {
+        void navigate(upsertRedirectMap[currentSection as keyof typeof upsertRedirectMap])
+      } else {
+        setIsVoucherDialogOpen(false)
+      }
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : "Failed to delete billing voucher."
@@ -4509,6 +5758,7 @@ export function BillingWorkspaceSection({
           isDialogOpen={isVoucherDialogOpen}
           isSaving={isSaving}
           ledgers={state.ledgers}
+          voucherTypes={state.voucherTypes}
           onChange={handleChange}
           onCreate={() => {
             resetForm()
@@ -4528,6 +5778,9 @@ export function BillingWorkspaceSection({
             }
           }}
           onReset={resetForm}
+          onSalesItemChange={handleSalesItemChange}
+          onSalesItemCreate={handleSalesItemCreate}
+          onSalesItemRemove={handleSalesItemRemove}
           onSave={handleSave}
           onSelectVoucher={handleSelectVoucher}
           selectedVoucher={selectedVoucher}
@@ -4536,38 +5789,147 @@ export function BillingWorkspaceSection({
       )
     case "payment-vouchers":
       return (
-        <VoucherModuleSection
-          ledgers={state.ledgers}
+        <VoucherModuleListSection
           moduleId="payment"
+          onCreate={() => {
+            void navigate("/dashboard/billing/payment-vouchers/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/payment-vouchers/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
           onSelectVoucher={handleSelectVoucher}
           vouchers={state.vouchers}
+        />
+      )
+    case "payment-vouchers-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/payment-vouchers/new")
+          }}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
         />
       )
     case "receipt-vouchers":
       return (
-        <VoucherModuleSection
-          ledgers={state.ledgers}
+        <VoucherModuleListSection
           moduleId="receipt"
+          onCreate={() => {
+            void navigate("/dashboard/billing/receipt-vouchers/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/receipt-vouchers/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
           onSelectVoucher={handleSelectVoucher}
           vouchers={state.vouchers}
+        />
+      )
+    case "receipt-vouchers-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/receipt-vouchers/new")
+          }}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
         />
       )
     case "sales-vouchers":
       return (
-        <VoucherModuleSection
-          ledgers={state.ledgers}
-          moduleId="sales"
+        <SalesVoucherSection
+          onCreate={() => {
+            void navigate("/dashboard/billing/sales-vouchers/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/sales-vouchers/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
           onSelectVoucher={handleSelectVoucher}
           vouchers={state.vouchers}
         />
       )
+    case "sales-vouchers-upsert":
+      return (
+        <SalesVoucherUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/sales-vouchers/new")
+          }}
+          onSalesItemChange={handleSalesItemChange}
+          onSalesItemCreate={handleSalesItemCreate}
+          onSalesItemRemove={handleSalesItemRemove}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
+          voucherTypes={state.voucherTypes}
+        />
+      )
     case "purchase-vouchers":
       return (
-        <VoucherModuleSection
-          ledgers={state.ledgers}
+        <VoucherModuleListSection
           moduleId="purchase"
+          onCreate={() => {
+            void navigate("/dashboard/billing/purchase-vouchers/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/purchase-vouchers/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
           onSelectVoucher={handleSelectVoucher}
           vouchers={state.vouchers}
+        />
+      )
+    case "purchase-vouchers-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/purchase-vouchers/new")
+          }}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
         />
       )
     case "contra-vouchers":

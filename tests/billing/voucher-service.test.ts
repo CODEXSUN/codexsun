@@ -180,6 +180,62 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       assert.equal(gstSales.item.lines[0]?.side, "debit")
       assert.equal(gstSales.item.lines[0]?.amount, 56000)
 
+      const invoiceSales = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-100",
+        type: "sales",
+        date: "2026-04-02",
+        counterparty: "",
+        narration: "Invoice-style sales voucher with item rows.",
+        lines: [],
+        billAllocations: [],
+        gst: null,
+        sales: {
+          voucherTypeId: "voucher-type-fabric-sales",
+          customerLedgerId: "ledger-sundry-debtors",
+          billToName: "Nila Textiles",
+          billToAddress: "15 Market Road, Bengaluru",
+          shipToName: "Nila Textiles DC",
+          shipToAddress: "Dock 2, Peenya, Bengaluru",
+          dueDate: "2026-04-12",
+          referenceNumber: "PO-1182",
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          taxRate: 5,
+          items: [
+            {
+              itemName: "Cotton Fabric Roll",
+              description: "Dyed cotton export quality",
+              hsnOrSac: "5208",
+              quantity: 20,
+              unit: "Roll",
+              rate: 1500,
+            },
+            {
+              itemName: "Linen Fabric Roll",
+              description: "Premium linen batch",
+              hsnOrSac: "5309",
+              quantity: 10,
+              unit: "Roll",
+              rate: 2200,
+            },
+          ],
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(invoiceSales.item.counterparty, "Nila Textiles")
+      assert.equal(invoiceSales.item.sales?.voucherTypeName, "Fabric Sales")
+      assert.equal(invoiceSales.item.sales?.items.length, 2)
+      assert.equal(invoiceSales.item.sales?.subtotal, 52000)
+      assert.equal(invoiceSales.item.sales?.taxAmount, 2600)
+      assert.equal(invoiceSales.item.sales?.grandTotal, 54600)
+      assert.equal(invoiceSales.item.gst?.taxableLedgerId, "ledger-sales")
+      assert.equal(invoiceSales.item.gst?.partyLedgerId, "ledger-sundry-debtors")
+      assert.equal(invoiceSales.item.lines[0]?.amount, 54600)
+
       await assert.rejects(
         () =>
           createBillingVoucher(runtime.primary, adminUser, config, {

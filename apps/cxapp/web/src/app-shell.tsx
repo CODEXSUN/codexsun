@@ -22,6 +22,10 @@ import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
 import { BillingWorkspacePage } from "./pages/billing-workspace-page"
 import { BillingCategoryFormPage } from "./pages/billing-category-form-page"
 import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
+import { BillingPaymentFormPage } from "./pages/billing-payment-form-page"
+import { BillingPurchaseFormPage } from "./pages/billing-purchase-form-page"
+import { BillingReceiptFormPage } from "./pages/billing-receipt-form-page"
+import { BillingSalesFormPage } from "./pages/billing-sales-form-page"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
 import HomePage from "./pages/home"
@@ -215,11 +219,51 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/payment-vouchers/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingPaymentFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/payment-vouchers/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingPaymentFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/receipt-vouchers"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="receipt-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/receipt-vouchers/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingReceiptFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/receipt-vouchers/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingReceiptFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -245,6 +289,26 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/purchase-vouchers/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingPurchaseFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/purchase-vouchers/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingPurchaseFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/contra-vouchers"
             element={
               <ProtectedRoute>
@@ -260,6 +324,26 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="journal-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-vouchers/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingSalesFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-vouchers/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingSalesFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
