@@ -122,7 +122,7 @@ type SortState = {
   direction: SortDirection
 }
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50]
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200, 500]
 
 function getStickyClass(sticky?: "left" | "right", surface: "header" | "body" = "body") {
   const backgroundClass =
@@ -331,7 +331,7 @@ export function MasterList<TData>({
       </section>
 
       {showSearchSection ? (
-        <section className="bg-card">
+        <section className="bg-transparent">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-md">
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -339,7 +339,7 @@ export function MasterList<TData>({
                 value={search?.value ?? ""}
                 onChange={(event) => search?.onChange(event.target.value)}
                 placeholder={search?.placeholder ?? "Search records"}
-                className="h-10 rounded-md pr-3 pl-9"
+                className="h-10 rounded-md border-border bg-white pr-3 pl-9"
               />
             </div>
 
@@ -347,7 +347,11 @@ export function MasterList<TData>({
               {filters?.options && filters.options.length > 0 ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" className="gap-2 rounded-md">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2 rounded-md bg-transparent"
+                    >
                       <FunnelIcon className="size-4" />
                       <span>{filters.buttonLabel ?? "Filters"}</span>
                     </Button>
@@ -389,7 +393,11 @@ export function MasterList<TData>({
               {table.columns.length > 1 ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" className="gap-2 rounded-md">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2 rounded-md bg-transparent"
+                    >
                       <SlidersHorizontalIcon className="size-4" />
                       <span>Columns</span>
                     </Button>

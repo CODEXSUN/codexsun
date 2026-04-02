@@ -32,19 +32,19 @@ test("ui workspace separates components, blocks, and pages into dedicated lanes"
 
   await page.goto("/dashboard/apps/ui/pages-entry-common-list-01")
   await expect(page.getByText("Page Entry")).toBeVisible()
-  await expect(page.locator("h1, h2, h3").filter({ hasText: "Support Queue Page" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Support Queue Page" }).nth(1)).toBeVisible()
   await expect(page.getByText("Back to pages")).toBeVisible()
   await expect(page.getByLabel(/Open actions for/i).first()).toBeVisible()
 
   await page.goto("/dashboard/apps/ui/pages-entry-master-list-01")
   await expect(page.getByText("Page Entry")).toBeVisible()
-  await expect(page.locator("h1, h2, h3").filter({ hasText: "Ledger Master Page" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ledger Master Page" }).nth(1)).toBeVisible()
   await expect(page.getByText("Back to pages")).toBeVisible()
   await expect(page.getByLabel(/Open actions for/i).first()).toBeVisible()
 
   await page.goto("/dashboard/apps/ui/pages-entry-master-list-selectable-01")
   await expect(page.getByText("Page Entry")).toBeVisible()
-  await expect(page.locator("h1, h2, h3").filter({ hasText: "Bulk Ledger Management Page" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Bulk Ledger Management Page" }).nth(1)).toBeVisible()
   await expect(page.getByLabel("Select all visible masters")).toBeVisible()
   await expect(page.getByText("Column visibility:")).toBeVisible()
   await expect(page.getByLabel(/Open actions for/i).first()).toBeVisible()

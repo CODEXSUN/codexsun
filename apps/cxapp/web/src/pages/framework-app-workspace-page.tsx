@@ -130,10 +130,12 @@ const uiPageEntrySections = Object.fromEntries(
 
 export function FrameworkAppWorkspacePage({
   appId,
+  categoryId,
   ledgerId,
   sectionId: forcedSectionId,
 }: {
   appId?: string
+  categoryId?: string
   ledgerId?: string
   sectionId?: string
 }) {
@@ -164,9 +166,20 @@ export function FrameworkAppWorkspacePage({
   }
 
   const activeModule =
-    app.modules.find((item) =>
-      matchesDeskRoute(location.pathname, item.route, item.matchRoutes)
-    ) ?? app.modules[0]
+    [...app.modules]
+      .filter((item) => matchesDeskRoute(location.pathname, item.route, item.matchRoutes))
+      .sort((left, right) => {
+        const leftLength = Math.max(
+          left.route.length,
+          ...(left.matchRoutes ?? []).map((route) => route.length)
+        )
+        const rightLength = Math.max(
+          right.route.length,
+          ...(right.matchRoutes ?? []).map((route) => route.length)
+        )
+
+        return rightLength - leftLength
+      })[0] ?? app.modules[0]
   const isUiWorkspace = app.id === "ui"
   const uiSection =
     isUiWorkspace && sectionId
@@ -193,7 +206,11 @@ export function FrameworkAppWorkspacePage({
     app.id === "core" ? <CoreWorkspaceSection sectionId={sectionId} /> : null
   const billingWorkspaceContent =
     app.id === "billing" ? (
-      <BillingWorkspaceSection ledgerId={ledgerId} sectionId={sectionId} />
+      <BillingWorkspaceSection
+        categoryId={categoryId}
+        ledgerId={ledgerId}
+        sectionId={sectionId}
+      />
     ) : null
   const ecommerceWorkspaceContent =
     app.id === "ecommerce" ? (
@@ -206,6 +223,17 @@ export function FrameworkAppWorkspacePage({
     billingWorkspaceContent ??
     ecommerceWorkspaceContent ??
     frappeWorkspaceContent
+  const hideWorkspaceHero =
+    app.id === "billing" &&
+    [
+      "categories",
+      "categories-upsert",
+      "chart-of-accounts",
+      "chart-of-accounts-upsert",
+      "voucher-groups",
+      "voucher-types",
+      "voucher-register",
+    ].includes(sectionId ?? "overview")
 
   return (
     <div className="space-y-3">
@@ -234,35 +262,37 @@ export function FrameworkAppWorkspacePage({
         </>
       ) : (
         <>
-          <Card className="mesh-panel gap-0 overflow-hidden border-border/60 py-0 shadow-sm">
-            <CardHeader className="relative overflow-hidden px-5 py-5 md:px-6 md:py-6">
-              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${app.accentClassName}`} />
-              <div className="relative flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <Badge
-                  variant={readinessTone[app.readiness]}
-                  className="px-4 py-1.5"
-                >
-                  {app.badge}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="max-w-full border-border/80 bg-background/90 px-3 py-1.5 text-left text-xs font-semibold tracking-[0.1em] text-foreground shadow-sm sm:shrink-0 sm:px-4 sm:text-sm sm:tracking-[0.16em]"
-                >
-                  Signed in as {user.displayName} ({user.actorType})
-                </Badge>
-              </div>
-              <div className="relative mt-3 max-w-3xl space-y-2">
-                <div>
-                  <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                    {app.workspaceTitle}
-                  </h1>
-                  <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    {app.workspaceSummary}
-                  </p>
+          {hideWorkspaceHero ? null : (
+            <Card className="mesh-panel gap-0 overflow-hidden border-border/60 py-0 shadow-sm">
+              <CardHeader className="relative overflow-hidden px-5 py-5 md:px-6 md:py-6">
+                <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${app.accentClassName}`} />
+                <div className="relative flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <Badge
+                    variant={readinessTone[app.readiness]}
+                    className="px-4 py-1.5"
+                  >
+                    {app.badge}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="max-w-full border-border/80 bg-background/90 px-3 py-1.5 text-left text-xs font-semibold tracking-[0.1em] text-foreground shadow-sm sm:shrink-0 sm:px-4 sm:text-sm sm:tracking-[0.16em]"
+                  >
+                    Signed in as {user.displayName} ({user.actorType})
+                  </Badge>
                 </div>
-              </div>
-            </CardHeader>
-          </Card>
+                <div className="relative mt-3 max-w-3xl space-y-2">
+                  <div>
+                    <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                      {app.workspaceTitle}
+                    </h1>
+                    <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
+                      {app.workspaceSummary}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
           {customWorkspaceContent ? (
             customWorkspaceContent
           ) : (

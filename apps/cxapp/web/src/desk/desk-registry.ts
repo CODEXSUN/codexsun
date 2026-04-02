@@ -352,8 +352,10 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
 
   if (app.id === "billing") {
     const billingWorkspaceIconMap: Record<string, LucideIcon> = {
-      overview: LayoutDashboard,
       "chart-of-accounts": Building2,
+      categories: Building2,
+      "voucher-groups": Blocks,
+      "voucher-types": ReceiptText,
       "voucher-register": ReceiptText,
       "payment-vouchers": ReceiptText,
       "receipt-vouchers": ReceiptText,
@@ -371,6 +373,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       "profit-and-loss": LineChart,
       "balance-sheet": LineChart,
       "bill-outstanding": LineChart,
+      "support-ledger-guide": ClipboardList,
     }
 
     return [
@@ -565,8 +568,19 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               shared: true,
               items: modules.filter((item) =>
                 [
-                  `/dashboard/billing`,
+                  `/dashboard/billing/categories`,
                   `/dashboard/billing/chart-of-accounts`,
+                  `/dashboard/billing/voucher-groups`,
+                  `/dashboard/billing/voucher-types`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-books`,
+              label: "Books",
+              shared: false,
+              items: modules.filter((item) =>
+                [
                   `/dashboard/billing/voucher-register`,
                 ].includes(item.route)
               ),
@@ -634,6 +648,16 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/web`,
                   `/dashboard/apps/${app.id}/api`,
                   `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-support`,
+              label: "Support",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing/support/ledger-guide`,
                 ].includes(item.route)
               ),
             },
@@ -720,6 +744,23 @@ export function matchesDeskRoute(
   )
 }
 
+function getBestRouteMatch<T extends { route: string; matchRoutes?: string[] }>(
+  items: T[],
+  pathname: string
+) {
+  return [...items]
+    .filter((item) => matchesDeskRoute(pathname, item.route, item.matchRoutes))
+    .sort((left, right) => {
+      const leftLength = Math.max(left.route.length, ...(left.matchRoutes ?? []).map((route) => route.length))
+      const rightLength = Math.max(
+        right.route.length,
+        ...(right.matchRoutes ?? []).map((route) => route.length)
+      )
+
+      return rightLength - leftLength
+    })[0] ?? null
+}
+
 export function getDeskApp(apps: DeskAppDefinition[], appId: string) {
   return apps.find((app) => app.id === appId) ?? null
 }
@@ -799,11 +840,10 @@ export function resolveDeskLocation(
     }
   }
 
-  const activeMenuItem =
-    app.menuGroups
-      .flatMap((group) => group.items)
-      .find((item) => matchesDeskRoute(pathname, item.route, item.matchRoutes)) ??
-    null
+  const activeMenuItem = getBestRouteMatch(
+    app.menuGroups.flatMap((group) => group.items),
+    pathname
+  )
   const isAppRoot = pathname === app.route || pathname === `${app.route}/`
 
   return {

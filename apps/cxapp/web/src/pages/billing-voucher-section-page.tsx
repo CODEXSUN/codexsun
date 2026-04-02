@@ -4,7 +4,11 @@ export function BillingVoucherSectionPage({
   sectionId,
 }: {
   sectionId:
+    | "categories"
+    | "categories-upsert"
     | "chart-of-accounts"
+    | "voucher-groups"
+    | "voucher-types"
     | "voucher-register"
     | "payment-vouchers"
     | "receipt-vouchers"
@@ -22,6 +26,7 @@ export function BillingVoucherSectionPage({
     | "profit-and-loss"
     | "balance-sheet"
     | "bill-outstanding"
+    | "support-ledger-guide"
 }) {
   return <FrameworkAppWorkspacePage appId="billing" sectionId={sectionId} />
 }

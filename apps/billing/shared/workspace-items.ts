@@ -7,16 +7,28 @@ export interface BillingWorkspaceItem {
 
 export const billingWorkspaceItems: BillingWorkspaceItem[] = [
   {
-    id: "overview",
-    name: "Accounts Overview",
-    route: "/dashboard/billing",
-    summary: "Tally-style accounting overview with books, voucher mix, and period balance health.",
+    id: "categories",
+    name: "Category",
+    route: "/dashboard/billing/categories",
+    summary: "Category masters used to organize ledger groups and accounting structure.",
   },
   {
     id: "chart-of-accounts",
-    name: "Chart Of Accounts",
+    name: "Ledger",
     route: "/dashboard/billing/chart-of-accounts",
-    summary: "Primary ledgers, groups, and balance positions used for double-entry posting.",
+    summary: "Ledger masters with category mapping, subgroup structure, and closing balances.",
+  },
+  {
+    id: "voucher-groups",
+    name: "Voucher Group",
+    route: "/dashboard/billing/voucher-groups",
+    summary: "Voucher group masters that map operational lanes like sales and purchase into billing setup.",
+  },
+  {
+    id: "voucher-types",
+    name: "Voucher Type",
+    route: "/dashboard/billing/voucher-types",
+    summary: "Voucher type masters such as fabric sales and garment purchase mapped under voucher groups.",
   },
   {
     id: "sales-vouchers",
@@ -119,5 +131,11 @@ export const billingWorkspaceItems: BillingWorkspaceItem[] = [
     name: "Bill Outstanding",
     route: "/dashboard/billing/bill-outstanding",
     summary: "Receivable and payable bills with bill-wise settlement impact from receipts and payments.",
+  },
+  {
+    id: "support-ledger-guide",
+    name: "Ledger Guide",
+    route: "/dashboard/billing/support/ledger-guide",
+    summary: "Usage guide for setting up categories, ledgers, voucher groups, and voucher types in the right accounting order.",
   },
 ]

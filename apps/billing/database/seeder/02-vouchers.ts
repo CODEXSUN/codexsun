@@ -6,11 +6,11 @@ import { billingVouchers } from "../../src/data/billing-seed.js"
 import { billingTableNames } from "../table-names.js"
 
 export const billingVouchersSeeder = defineDatabaseSeeder({
-  id: "billing:vouchers:02-vouchers",
+  id: "billing:vouchers:03-vouchers",
   appId: "billing",
   moduleKey: "vouchers",
   name: "Seed billing vouchers",
-  order: 20,
+  order: 30,
   run: async ({ database }) => {
     await replaceJsonStoreRecords(
       database,

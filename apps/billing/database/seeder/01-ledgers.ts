@@ -6,11 +6,11 @@ import { billingLedgers } from "../../src/data/billing-seed.js"
 import { billingTableNames } from "../table-names.js"
 
 export const billingLedgersSeeder = defineDatabaseSeeder({
-  id: "billing:ledgers:01-ledgers",
+  id: "billing:ledgers:02-ledgers",
   appId: "billing",
   moduleKey: "ledgers",
   name: "Seed billing ledgers",
-  order: 10,
+  order: 20,
   run: async ({ database }) => {
     await replaceJsonStoreRecords(
       database,

@@ -1,9 +1,56 @@
-import type { BillingLedger, BillingVoucher } from "../../shared/index.js"
+import type {
+  BillingCategory,
+  BillingLedger,
+  BillingVoucher,
+  BillingVoucherGroup,
+  BillingVoucherMasterType,
+} from "../../shared/index.js"
+
+export const billingCategories: BillingCategory[] = [
+  {
+    id: "category-assets",
+    name: "Assets",
+    nature: "asset",
+    description:
+      "Fixed Assets, Current Assets, Bank Accounts, Cash-in-Hand, and Investments. Examples: Furniture, SBI Bank, Cash, Mutual Funds.",
+    linkedLedgerCount: 0,
+    deletedAt: null,
+  },
+  {
+    id: "category-liabilities",
+    name: "Liabilities",
+    nature: "liability",
+    description:
+      "Capital Account, Loans (Liability), Current Liabilities, and Sundry Creditors. Examples: Partner's Capital, Bank Loan, Supplier A/c.",
+    linkedLedgerCount: 0,
+    deletedAt: null,
+  },
+  {
+    id: "category-income",
+    name: "Income",
+    nature: "income",
+    description:
+      "Sales Accounts, Direct Income, and Indirect Income. Examples: Goods Sales, Service Fees, Interest Received.",
+    linkedLedgerCount: 0,
+    deletedAt: null,
+  },
+  {
+    id: "category-expenses",
+    name: "Expenses",
+    nature: "expense",
+    description:
+      "Purchase Accounts, Direct Expenses, and Indirect Expenses. Examples: Raw Material Purchase, Wages, Office Rent.",
+    linkedLedgerCount: 0,
+    deletedAt: null,
+  },
+]
 
 export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-cash",
     name: "Cash-in-Hand",
+    categoryId: "category-assets",
+    categoryName: "Assets",
     group: "Cash-in-Hand",
     nature: "asset",
     closingSide: "debit",
@@ -12,6 +59,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-hdfc",
     name: "HDFC Current Account",
+    categoryId: "category-assets",
+    categoryName: "Assets",
     group: "Bank Accounts",
     nature: "asset",
     closingSide: "debit",
@@ -20,6 +69,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-sundry-debtors",
     name: "Sundry Debtors",
+    categoryId: "category-assets",
+    categoryName: "Assets",
     group: "Current Assets",
     nature: "asset",
     closingSide: "debit",
@@ -28,6 +79,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-sundry-creditors",
     name: "Sundry Creditors",
+    categoryId: "category-liabilities",
+    categoryName: "Liabilities",
     group: "Current Liabilities",
     nature: "liability",
     closingSide: "credit",
@@ -36,6 +89,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-sales",
     name: "Sales Account",
+    categoryId: "category-income",
+    categoryName: "Income",
     group: "Sales Accounts",
     nature: "income",
     closingSide: "credit",
@@ -44,6 +99,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-purchase",
     name: "Purchase Account",
+    categoryId: "category-expenses",
+    categoryName: "Expenses",
     group: "Purchase Accounts",
     nature: "expense",
     closingSide: "debit",
@@ -52,6 +109,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-rent",
     name: "Office Rent",
+    categoryId: "category-expenses",
+    categoryName: "Expenses",
     group: "Indirect Expenses",
     nature: "expense",
     closingSide: "debit",
@@ -60,6 +119,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-freight",
     name: "Freight Charges",
+    categoryId: "category-expenses",
+    categoryName: "Expenses",
     group: "Direct Expenses",
     nature: "expense",
     closingSide: "debit",
@@ -68,6 +129,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-output-cgst",
     name: "Output CGST",
+    categoryId: "category-liabilities",
+    categoryName: "Liabilities",
     group: "Duties & Taxes",
     nature: "liability",
     closingSide: "credit",
@@ -76,6 +139,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-output-sgst",
     name: "Output SGST",
+    categoryId: "category-liabilities",
+    categoryName: "Liabilities",
     group: "Duties & Taxes",
     nature: "liability",
     closingSide: "credit",
@@ -84,6 +149,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-output-igst",
     name: "Output IGST",
+    categoryId: "category-liabilities",
+    categoryName: "Liabilities",
     group: "Duties & Taxes",
     nature: "liability",
     closingSide: "credit",
@@ -92,6 +159,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-input-cgst",
     name: "Input CGST",
+    categoryId: "category-assets",
+    categoryName: "Assets",
     group: "Duties & Taxes",
     nature: "asset",
     closingSide: "debit",
@@ -100,6 +169,8 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-input-sgst",
     name: "Input SGST",
+    categoryId: "category-assets",
+    categoryName: "Assets",
     group: "Duties & Taxes",
     nature: "asset",
     closingSide: "debit",
@@ -108,10 +179,124 @@ export const billingLedgers: BillingLedger[] = [
   {
     id: "ledger-input-igst",
     name: "Input IGST",
+    categoryId: "category-assets",
+    categoryName: "Assets",
     group: "Duties & Taxes",
     nature: "asset",
     closingSide: "debit",
     closingAmount: 31890,
+  },
+]
+
+export const billingVoucherGroups: BillingVoucherGroup[] = [
+  {
+    id: "voucher-group-sales",
+    name: "Sales",
+    description: "Voucher group for sales-side commercial flows and revenue posting lanes.",
+    linkedVoucherTypeCount: 0,
+    deletedAt: null,
+  },
+  {
+    id: "voucher-group-purchase",
+    name: "Purchase",
+    description: "Voucher group for purchase-side commercial flows and cost booking lanes.",
+    linkedVoucherTypeCount: 0,
+    deletedAt: null,
+  },
+  {
+    id: "voucher-group-receipt",
+    name: "Receipt",
+    description: "Voucher group for incoming collections, customer receipts, and settlement lanes.",
+    linkedVoucherTypeCount: 0,
+    deletedAt: null,
+  },
+  {
+    id: "voucher-group-payment",
+    name: "Payment",
+    description: "Voucher group for outgoing payments, supplier settlements, and disbursement lanes.",
+    linkedVoucherTypeCount: 0,
+    deletedAt: null,
+  },
+]
+
+export const billingVoucherMasterTypes: BillingVoucherMasterType[] = [
+  {
+    id: "voucher-type-fabric-sales",
+    name: "Fabric Sales",
+    categoryId: "category-income",
+    categoryName: "Income",
+    ledgerId: "ledger-sales",
+    ledgerName: "Sales Account",
+    voucherGroupId: "voucher-group-sales",
+    voucherGroupName: "Sales",
+    postingType: "sales",
+    description: "Sales type for fabric invoices and textile revenue posting.",
+    deletedAt: null,
+  },
+  {
+    id: "voucher-type-garment-sales",
+    name: "Garment Sales",
+    categoryId: "category-income",
+    categoryName: "Income",
+    ledgerId: "ledger-sales",
+    ledgerName: "Sales Account",
+    voucherGroupId: "voucher-group-sales",
+    voucherGroupName: "Sales",
+    postingType: "sales",
+    description: "Sales type for finished garment invoices and apparel revenue posting.",
+    deletedAt: null,
+  },
+  {
+    id: "voucher-type-accessories-sales",
+    name: "Accessories Sales",
+    categoryId: "category-income",
+    categoryName: "Income",
+    ledgerId: "ledger-sales",
+    ledgerName: "Sales Account",
+    voucherGroupId: "voucher-group-sales",
+    voucherGroupName: "Sales",
+    postingType: "sales",
+    description: "Sales type for accessories invoices and add-on merchandise revenue posting.",
+    deletedAt: null,
+  },
+  {
+    id: "voucher-type-fabric-purchase",
+    name: "Fabric Purchase",
+    categoryId: "category-expenses",
+    categoryName: "Expenses",
+    ledgerId: "ledger-purchase",
+    ledgerName: "Purchase Account",
+    voucherGroupId: "voucher-group-purchase",
+    voucherGroupName: "Purchase",
+    postingType: "purchase",
+    description: "Purchase type for fabric procurement and material cost booking.",
+    deletedAt: null,
+  },
+  {
+    id: "voucher-type-garment-purchase",
+    name: "Garment Purchase",
+    categoryId: "category-expenses",
+    categoryName: "Expenses",
+    ledgerId: "ledger-purchase",
+    ledgerName: "Purchase Account",
+    voucherGroupId: "voucher-group-purchase",
+    voucherGroupName: "Purchase",
+    postingType: "purchase",
+    description: "Purchase type for finished garments sourced for resale or fulfillment.",
+    deletedAt: null,
+  },
+  {
+    id: "voucher-type-accessories-purchase",
+    name: "Accessories Purchase",
+    categoryId: "category-expenses",
+    categoryName: "Expenses",
+    ledgerId: "ledger-purchase",
+    ledgerName: "Purchase Account",
+    voucherGroupId: "voucher-group-purchase",
+    voucherGroupName: "Purchase",
+    postingType: "purchase",
+    description: "Purchase type for accessories sourcing and related cost booking.",
+    deletedAt: null,
   },
 ]
 

@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
+import { createBillingCategory } from "../../apps/billing/src/services/category-service.js"
 import {
   createBillingLedger,
   deleteBillingLedger,
@@ -50,6 +51,7 @@ test("billing ledger service supports create, read, update, and guarded delete",
 
       const created = await createBillingLedger(runtime.primary, adminUser, {
         name: "Salary Payable",
+        categoryId: "category-liabilities",
         group: "Current Liabilities",
         nature: "liability",
         closingSide: "credit",
@@ -63,6 +65,7 @@ test("billing ledger service supports create, read, update, and guarded delete",
 
       const updated = await updateBillingLedger(runtime.primary, adminUser, created.item.id, {
         name: "Salary Payable",
+        categoryId: "category-liabilities",
         group: "Current Liabilities",
         nature: "liability",
         closingSide: "credit",
@@ -84,6 +87,57 @@ test("billing ledger service supports create, read, update, and guarded delete",
 
       const deleted = await deleteBillingLedger(runtime.primary, adminUser, created.item.id)
       assert.equal(deleted.deleted, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing ledger service updates ledgers even when categories were created from persisted store shape", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-ledger-category-shape-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const createdCategory = await createBillingCategory(runtime.primary, adminUser, {
+        name: "Custom Category",
+        description: "Created through the category popup flow.",
+      })
+
+      const createdLedger = await createBillingLedger(runtime.primary, adminUser, {
+        name: "Custom Ledger",
+        categoryId: createdCategory.item.id,
+        group: "Custom Category",
+        nature: "asset",
+        closingSide: "debit",
+        closingAmount: 10,
+      })
+
+      const updatedLedger = await updateBillingLedger(
+        runtime.primary,
+        adminUser,
+        createdLedger.item.id,
+        {
+          name: "Custom Ledger",
+          categoryId: createdCategory.item.id,
+          group: "Custom Category",
+          nature: "asset",
+          closingSide: "debit",
+          closingAmount: 20,
+        }
+      )
+
+      assert.equal(updatedLedger.item.closingAmount, 20)
     } finally {
       await runtime.destroy()
     }

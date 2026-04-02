@@ -62,10 +62,24 @@ test("internal route registry includes the billing voucher and report endpoints"
   const routes = createInternalApiRoutes(createAppSuite())
   const routePaths = routes.map((route) => `${route.method} ${route.path}`)
 
-  assert.ok(routePaths.includes("GET /internal/v1/billing/ledger-groups"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/categories"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/category"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/ledgers"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/ledger"))
-  assert.ok(routePaths.includes("POST /internal/v1/billing/ledger-groups"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/voucher-groups"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/voucher-types"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/categories"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher-groups"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher-types"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/billing/category"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/billing/voucher-group"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/billing/voucher-type"))
+  assert.ok(routePaths.includes("DELETE /internal/v1/billing/category"))
+  assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher-group"))
+  assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher-type"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/category/restore"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher-group/restore"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher-type/restore"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/ledgers"))
   assert.ok(routePaths.includes("PATCH /internal/v1/billing/ledger"))
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/ledger"))
@@ -77,7 +91,7 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
 })
 
-test("authenticated billing internal routes return groups, vouchers, reports, and accept voucher posting", async () => {
+test("authenticated billing internal routes return categories, vouchers, reports, and accept voucher posting", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-routes-"))
 
   try {
@@ -111,11 +125,23 @@ test("authenticated billing internal routes return groups, vouchers, reports, an
       const listRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/vouchers"
       )
-      const groupListRoute = routes.find(
-        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/ledger-groups"
+      const categoryListRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/categories"
       )
-      const groupCreateRoute = routes.find(
-        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/ledger-groups"
+      const categoryCreateRoute = routes.find(
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/categories"
+      )
+      const categoryReadRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/category"
+      )
+      const categoryUpdateRoute = routes.find(
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/billing/category"
+      )
+      const categoryDeleteRoute = routes.find(
+        (candidate) => candidate.method === "DELETE" && candidate.path === "/internal/v1/billing/category"
+      )
+      const categoryRestoreRoute = routes.find(
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/category/restore"
       )
       const reportsRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/reports"
@@ -124,72 +150,201 @@ test("authenticated billing internal routes return groups, vouchers, reports, an
         (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/vouchers"
       )
 
-      assert.ok(groupListRoute)
-      assert.ok(groupCreateRoute)
+      assert.ok(categoryListRoute)
+      assert.ok(categoryCreateRoute)
+      assert.ok(categoryReadRoute)
+      assert.ok(categoryUpdateRoute)
+      assert.ok(categoryDeleteRoute)
+      assert.ok(categoryRestoreRoute)
       assert.ok(listRoute)
       assert.ok(reportsRoute)
       assert.ok(createRoute)
 
-      const groupListResponse = await groupListRoute.handler({
+      const categoryListResponse = await categoryListRoute.handler({
         appSuite,
         config,
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/billing/ledger-groups",
-          url: new URL("http://localhost/internal/v1/billing/ledger-groups"),
+          pathname: "/internal/v1/billing/categories",
+          url: new URL("http://localhost/internal/v1/billing/categories"),
           headers,
           bodyText: null,
           jsonBody: null,
         },
         route: {
-          auth: groupListRoute.auth,
-          path: groupListRoute.path,
-          surface: groupListRoute.surface,
-          version: groupListRoute.version,
+          auth: categoryListRoute.auth,
+          path: categoryListRoute.path,
+          surface: categoryListRoute.surface,
+          version: categoryListRoute.version,
         },
       })
 
-      const groupListPayload = JSON.parse(groupListResponse.body) as {
+      const categoryListPayload = JSON.parse(categoryListResponse.body) as {
         items: Array<{ id: string; name: string }>
       }
 
-      assert.equal(groupListResponse.statusCode, 200)
-      assert.ok(groupListPayload.items.length >= 1)
+      assert.equal(categoryListResponse.statusCode, 200)
+      assert.ok(categoryListPayload.items.length >= 1)
+      const assetsCategory = categoryListPayload.items.find((item) => item.name === "Assets")
 
-      const groupCreateResponse = await groupCreateRoute.handler({
+      assert.ok(assetsCategory)
+
+      const categoryCreateResponse = await categoryCreateRoute.handler({
         appSuite,
         config,
         databases: runtime,
         request: {
           method: "POST",
-          pathname: "/internal/v1/billing/ledger-groups",
-          url: new URL("http://localhost/internal/v1/billing/ledger-groups"),
+          pathname: "/internal/v1/billing/categories",
+          url: new URL("http://localhost/internal/v1/billing/categories"),
           headers,
           bodyText: JSON.stringify({
-            name: "Loans & Advances",
-            description: "Temporary group for route coverage.",
+            name: "Custom Bucket",
+            description: "Temporary category for route coverage.",
           }),
           jsonBody: {
-            name: "Loans & Advances",
-            description: "Temporary group for route coverage.",
+            name: "Custom Bucket",
+            description: "Temporary category for route coverage.",
           },
         },
         route: {
-          auth: groupCreateRoute.auth,
-          path: groupCreateRoute.path,
-          surface: groupCreateRoute.surface,
-          version: groupCreateRoute.version,
+          auth: categoryCreateRoute.auth,
+          path: categoryCreateRoute.path,
+          surface: categoryCreateRoute.surface,
+          version: categoryCreateRoute.version,
         },
       })
 
-      const groupCreatedPayload = JSON.parse(groupCreateResponse.body) as {
-        item: { name: string; linkedLedgerCount: number }
+      const categoryCreatedPayload = JSON.parse(categoryCreateResponse.body) as {
+        item: { id: string; name: string; nature: string | null }
       }
 
-      assert.equal(groupCreateResponse.statusCode, 201)
-      assert.equal(groupCreatedPayload.item.name, "Loans & Advances")
-      assert.equal(groupCreatedPayload.item.linkedLedgerCount, 0)
+      assert.equal(categoryCreateResponse.statusCode, 201)
+      assert.equal(categoryCreatedPayload.item.name, "Custom Bucket")
+      assert.equal(categoryCreatedPayload.item.nature, null)
+
+      const categoryReadResponse = await categoryReadRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/billing/category",
+          url: new URL(
+            `http://localhost/internal/v1/billing/category?id=${encodeURIComponent(assetsCategory.id)}`
+          ),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: categoryReadRoute.auth,
+          path: categoryReadRoute.path,
+          surface: categoryReadRoute.surface,
+          version: categoryReadRoute.version,
+        },
+      })
+
+      const categoryReadPayload = JSON.parse(categoryReadResponse.body) as {
+        item: { id: string; description: string; name: string }
+      }
+
+      assert.equal(categoryReadResponse.statusCode, 200)
+      assert.equal(categoryReadPayload.item.id, assetsCategory.id)
+      assert.equal(categoryReadPayload.item.name, "Assets")
+
+      const categoryUpdateResponse = await categoryUpdateRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/billing/category",
+          url: new URL(
+            `http://localhost/internal/v1/billing/category?id=${encodeURIComponent(assetsCategory.id)}`
+          ),
+          headers,
+          bodyText: JSON.stringify({
+            name: "Assets",
+            description: "Updated category from route coverage.",
+          }),
+          jsonBody: {
+            name: "Assets",
+            description: "Updated category from route coverage.",
+          },
+        },
+        route: {
+          auth: categoryUpdateRoute.auth,
+          path: categoryUpdateRoute.path,
+          surface: categoryUpdateRoute.surface,
+          version: categoryUpdateRoute.version,
+        },
+      })
+
+      const categoryUpdatedPayload = JSON.parse(categoryUpdateResponse.body) as {
+        item: { description: string; name: string }
+      }
+
+      assert.equal(categoryUpdateResponse.statusCode, 200)
+      assert.equal(categoryUpdatedPayload.item.name, "Assets")
+      assert.equal(
+        categoryUpdatedPayload.item.description,
+        "Updated category from route coverage."
+      )
+
+      const categoryDeleteResponse = await categoryDeleteRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "DELETE",
+          pathname: "/internal/v1/billing/category",
+          url: new URL(
+            `http://localhost/internal/v1/billing/category?id=${encodeURIComponent(assetsCategory.id)}`
+          ),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: categoryDeleteRoute.auth,
+          path: categoryDeleteRoute.path,
+          surface: categoryDeleteRoute.surface,
+          version: categoryDeleteRoute.version,
+        },
+      })
+
+      assert.equal(categoryDeleteResponse.statusCode, 200)
+
+      const categoryRestoreResponse = await categoryRestoreRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/category/restore",
+          url: new URL(
+            `http://localhost/internal/v1/billing/category/restore?id=${encodeURIComponent(assetsCategory.id)}`
+          ),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: categoryRestoreRoute.auth,
+          path: categoryRestoreRoute.path,
+          surface: categoryRestoreRoute.surface,
+          version: categoryRestoreRoute.version,
+        },
+      })
+
+      const categoryRestoredPayload = JSON.parse(categoryRestoreResponse.body) as {
+        item: { deletedAt: string | null }
+      }
+
+      assert.equal(categoryRestoreResponse.statusCode, 200)
+      assert.equal(categoryRestoredPayload.item.deletedAt, null)
 
       const listResponse = await listRoute.handler({
         appSuite,

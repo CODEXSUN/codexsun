@@ -20,6 +20,7 @@ import { AuthProvider } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
 import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
 import { BillingWorkspacePage } from "./pages/billing-workspace-page"
+import { BillingCategoryFormPage } from "./pages/billing-category-form-page"
 import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
@@ -184,6 +185,26 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/voucher-groups"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="voucher-groups" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/voucher-types"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="voucher-types" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/payment-vouchers"
             element={
               <ProtectedRoute>
@@ -239,6 +260,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="journal-vouchers" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/categories"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="categories" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/categories/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingCategoryFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/categories/:categoryId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingCategoryFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -359,6 +410,16 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="bill-outstanding" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/support/ledger-guide"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="support-ledger-guide" />
                 </AdminLayout>
               </ProtectedRoute>
             }

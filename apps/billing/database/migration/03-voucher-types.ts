@@ -3,13 +3,13 @@ import { defineDatabaseMigration } from "../../../framework/src/runtime/database
 
 import { billingTableNames } from "../table-names.js"
 
-export const billingLedgersMigration = defineDatabaseMigration({
-  id: "billing:ledgers:02-ledgers",
+export const billingVoucherTypesMigration = defineDatabaseMigration({
+  id: "billing:voucher-types:03-voucher-types",
   appId: "billing",
-  moduleKey: "ledgers",
-  name: "Create billing ledger table",
-  order: 20,
+  moduleKey: "voucher-types",
+  name: "Create billing voucher type table",
+  order: 26,
   up: async ({ database }) => {
-    await ensureJsonStoreTable(database, billingTableNames.ledgers)
+    await ensureJsonStoreTable(database, billingTableNames.voucherTypes)
   },
 })

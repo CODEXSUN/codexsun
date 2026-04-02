@@ -2,8 +2,10 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
-import { createBillingLedgerGroup, listBillingLedgerGroups } from "../../../billing/src/services/ledger-group-service.js"
+import { createBillingCategory, deleteBillingCategory, getBillingCategory, listBillingCategories, restoreBillingCategory, updateBillingCategory } from "../../../billing/src/services/category-service.js"
 import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
+import { createBillingVoucherGroup, deleteBillingVoucherGroup, listBillingVoucherGroups, restoreBillingVoucherGroup, updateBillingVoucherGroup } from "../../../billing/src/services/voucher-group-service.js"
+import { createBillingVoucherType, deleteBillingVoucherType, listBillingVoucherTypes, restoreBillingVoucherType, updateBillingVoucherType } from "../../../billing/src/services/voucher-type-service.js"
 import { getBillingAccountingReports } from "../../../billing/src/services/reporting-service.js"
 import { billingVoucherTypeSchema } from "../../../billing/shared/index.js"
 
@@ -22,14 +24,51 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(await listBillingLedgers(context.databases.primary))
       },
     }),
-    defineInternalRoute("/billing/ledger-groups", {
-      summary: "List billing ledger groups for the chart and master setup.",
+    defineInternalRoute("/billing/categories", {
+      summary: "List billing categories for the chart and master setup.",
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
         })
 
-        return jsonResponse(await listBillingLedgerGroups(context.databases.primary))
+        return jsonResponse(await listBillingCategories(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/billing/voucher-groups", {
+      summary: "List billing voucher groups for system setup.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listBillingVoucherGroups(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/billing/voucher-types", {
+      summary: "List billing voucher types for voucher classification setup.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listBillingVoucherTypes(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/billing/category", {
+      summary: "Read one billing category by id.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const categoryId = context.request.url.searchParams.get("id")
+
+        if (!categoryId) {
+          throw new ApplicationError("Billing category id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingCategory(context.databases.primary, user, categoryId)
+        )
       },
     }),
     defineInternalRoute("/billing/ledger", {
@@ -67,21 +106,234 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
-    defineInternalRoute("/billing/ledger-groups", {
+    defineInternalRoute("/billing/categories", {
       method: "POST",
-      summary: "Create a billing ledger group master.",
+      summary: "Create a billing category master.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
         })
 
         return jsonResponse(
-          await createBillingLedgerGroup(
+          await createBillingCategory(
             context.databases.primary,
             user,
             context.request.jsonBody
           ),
           201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-groups", {
+      method: "POST",
+      summary: "Create a billing voucher group master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createBillingVoucherGroup(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-types", {
+      method: "POST",
+      summary: "Create a billing voucher type master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createBillingVoucherType(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/category", {
+      method: "PATCH",
+      summary: "Update a billing category master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const categoryId = context.request.url.searchParams.get("id")
+
+        if (!categoryId) {
+          throw new ApplicationError("Billing category id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingCategory(
+            context.databases.primary,
+            user,
+            categoryId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/category", {
+      method: "DELETE",
+      summary: "Soft delete a billing category master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const categoryId = context.request.url.searchParams.get("id")
+
+        if (!categoryId) {
+          throw new ApplicationError("Billing category id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteBillingCategory(context.databases.primary, user, categoryId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/category/restore", {
+      method: "POST",
+      summary: "Restore a soft-deleted billing category master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const categoryId = context.request.url.searchParams.get("id")
+
+        if (!categoryId) {
+          throw new ApplicationError("Billing category id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await restoreBillingCategory(context.databases.primary, user, categoryId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-group", {
+      method: "PATCH",
+      summary: "Update a billing voucher group master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherGroupId = context.request.url.searchParams.get("id")
+
+        if (!voucherGroupId) {
+          throw new ApplicationError("Billing voucher group id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingVoucherGroup(
+            context.databases.primary,
+            user,
+            voucherGroupId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-group", {
+      method: "DELETE",
+      summary: "Soft delete a billing voucher group master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherGroupId = context.request.url.searchParams.get("id")
+
+        if (!voucherGroupId) {
+          throw new ApplicationError("Billing voucher group id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteBillingVoucherGroup(context.databases.primary, user, voucherGroupId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-group/restore", {
+      method: "POST",
+      summary: "Restore a soft-deleted billing voucher group master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherGroupId = context.request.url.searchParams.get("id")
+
+        if (!voucherGroupId) {
+          throw new ApplicationError("Billing voucher group id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await restoreBillingVoucherGroup(context.databases.primary, user, voucherGroupId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-type", {
+      method: "PATCH",
+      summary: "Update a billing voucher type master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherTypeId = context.request.url.searchParams.get("id")
+
+        if (!voucherTypeId) {
+          throw new ApplicationError("Billing voucher type id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingVoucherType(
+            context.databases.primary,
+            user,
+            voucherTypeId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-type", {
+      method: "DELETE",
+      summary: "Soft delete a billing voucher type master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherTypeId = context.request.url.searchParams.get("id")
+
+        if (!voucherTypeId) {
+          throw new ApplicationError("Billing voucher type id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteBillingVoucherType(context.databases.primary, user, voucherTypeId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher-type/restore", {
+      method: "POST",
+      summary: "Restore a soft-deleted billing voucher type master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherTypeId = context.request.url.searchParams.get("id")
+
+        if (!voucherTypeId) {
+          throw new ApplicationError("Billing voucher type id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await restoreBillingVoucherType(context.databases.primary, user, voucherTypeId)
         )
       },
     }),

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import {
+  billingCategorySchema,
   billingLedgerListResponseSchema,
   billingLedgerResponseSchema,
   billingLedgerSchema,
@@ -21,6 +22,14 @@ import {
   replaceStorePayloads,
 } from "./store.js"
 
+const storedBillingCategorySchema = billingCategorySchema.pick({
+  deletedAt: true,
+  description: true,
+  id: true,
+  name: true,
+  nature: true,
+})
+
 export async function listBillingLedgers(database: Kysely<unknown>) {
   const items = await listStorePayloads(
     database,
@@ -35,6 +44,14 @@ export async function listBillingLedgers(database: Kysely<unknown>) {
 
 async function readLedgers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.ledgers, billingLedgerSchema)
+}
+
+async function readCategories(database: Kysely<unknown>) {
+  return listStorePayloads(
+    database,
+    billingTableNames.categories,
+    storedBillingCategorySchema
+  )
 }
 
 async function readVouchers(database: Kysely<unknown>) {
@@ -70,7 +87,10 @@ export async function createBillingLedger(
   assertBillingViewer(user)
 
   const parsedPayload = billingLedgerUpsertPayloadSchema.parse(payload)
-  const items = await readLedgers(database)
+  const [items, categories] = await Promise.all([
+    readLedgers(database),
+    readCategories(database),
+  ])
   const duplicate = items.find(
     (item) => item.name.trim().toLowerCase() === parsedPayload.name.trim().toLowerCase()
   )
@@ -79,8 +99,35 @@ export async function createBillingLedger(
     throw new ApplicationError("Ledger name already exists.", { name: parsedPayload.name }, 409)
   }
 
+  const category = categories.find((item) => item.id === parsedPayload.categoryId)
+
+  if (!category) {
+    throw new ApplicationError(
+      "Billing category could not be found.",
+      { categoryId: parsedPayload.categoryId },
+      404
+    )
+  }
+
+  if (category.deletedAt) {
+    throw new ApplicationError(
+      "Billing category is deleted and cannot be used for new ledgers.",
+      { categoryId: parsedPayload.categoryId },
+      409
+    )
+  }
+
+  if (category.nature !== null && category.nature !== parsedPayload.nature) {
+    throw new ApplicationError(
+      "Ledger nature must match the selected billing category.",
+      { categoryId: parsedPayload.categoryId, nature: parsedPayload.nature },
+      400
+    )
+  }
+
   const item = billingLedgerSchema.parse({
     id: `ledger:${randomUUID()}`,
+    categoryName: category.name,
     ...parsedPayload,
   })
 
@@ -109,7 +156,10 @@ export async function updateBillingLedger(
   assertBillingViewer(user)
 
   const parsedPayload = billingLedgerUpsertPayloadSchema.parse(payload)
-  const items = await readLedgers(database)
+  const [items, categories] = await Promise.all([
+    readLedgers(database),
+    readCategories(database),
+  ])
   const existing = items.find((item) => item.id === ledgerId)
 
   if (!existing) {
@@ -126,8 +176,35 @@ export async function updateBillingLedger(
     throw new ApplicationError("Ledger name already exists.", { name: parsedPayload.name }, 409)
   }
 
+  const category = categories.find((item) => item.id === parsedPayload.categoryId)
+
+  if (!category) {
+    throw new ApplicationError(
+      "Billing category could not be found.",
+      { categoryId: parsedPayload.categoryId },
+      404
+    )
+  }
+
+  if (category.deletedAt) {
+    throw new ApplicationError(
+      "Billing category is deleted and cannot be used for ledgers.",
+      { categoryId: parsedPayload.categoryId },
+      409
+    )
+  }
+
+  if (category.nature !== null && category.nature !== parsedPayload.nature) {
+    throw new ApplicationError(
+      "Ledger nature must match the selected billing category.",
+      { categoryId: parsedPayload.categoryId, nature: parsedPayload.nature },
+      400
+    )
+  }
+
   const item = billingLedgerSchema.parse({
     id: existing.id,
+    categoryName: category.name,
     ...parsedPayload,
   })
 

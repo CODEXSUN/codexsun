@@ -4,11 +4,11 @@ import { defineDatabaseMigration } from "../../../framework/src/runtime/database
 import { billingTableNames } from "../table-names.js"
 
 export const billingVouchersMigration = defineDatabaseMigration({
-  id: "billing:vouchers:02-vouchers",
+  id: "billing:vouchers:03-vouchers",
   appId: "billing",
   moduleKey: "vouchers",
   name: "Create billing voucher table",
-  order: 20,
+  order: 30,
   up: async ({ database }) => {
     await ensureJsonStoreTable(database, billingTableNames.vouchers)
   },
