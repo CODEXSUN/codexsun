@@ -20,6 +20,7 @@ import { AuthProvider } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
 import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
 import { BillingWorkspacePage } from "./pages/billing-workspace-page"
+import { CoreContactFormPage } from "./pages/core-contact-form-page"
 import { BillingCategoryFormPage } from "./pages/billing-category-form-page"
 import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
 import { BillingPaymentFormPage } from "./pages/billing-payment-form-page"
@@ -514,6 +515,26 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <FrameworkAppWorkspacePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/contacts/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreContactFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/contacts/:contactId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreContactFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

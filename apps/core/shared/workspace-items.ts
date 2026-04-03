@@ -1,3 +1,5 @@
+import { coreCommonModuleMenuItems } from "./common-module-navigation.js"
+
 export interface CoreWorkspaceItem {
   id: string
   name: string
@@ -30,6 +32,7 @@ export const coreWorkspaceItems: CoreWorkspaceItem[] = [
     route: "/dashboard/apps/core/common-modules",
     summary: "Geography and reusable master data shared across apps.",
   },
+  ...coreCommonModuleMenuItems,
   {
     id: "setup",
     name: "Setup",

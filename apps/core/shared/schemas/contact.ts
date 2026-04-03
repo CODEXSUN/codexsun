@@ -79,7 +79,9 @@ export const contactGstDetailSchema = z.object({
 export const contactSummarySchema = z.object({
   id: z.string().min(1),
   uuid: z.string().min(1),
-  contactTypeId: z.string().min(1),
+  contactTypeId: z.string().trim().min(1).nullable().default(null),
+  ledgerId: z.string().trim().min(1).nullable().default(null),
+  ledgerName: z.string().trim().min(1).nullable().default(null),
   name: z.string().min(1),
   legalName: z.string().nullable(),
   pan: z.string().nullable(),
@@ -148,7 +150,8 @@ export const contactGstDetailInputSchema = z.object({
 
 export const contactUpsertPayloadSchema = z
   .object({
-    contactTypeId: z.string().trim().min(1),
+    ledgerId: z.string().trim().min(1).nullable().default(null),
+    ledgerName: z.string().trim().min(1).nullable().default(null),
     name: z.string().trim().min(2),
     legalName: dashString,
     pan: dashString,
@@ -168,11 +171,11 @@ export const contactUpsertPayloadSchema = z
     gstDetails: z.array(contactGstDetailInputSchema).default([]),
   })
   .superRefine((value, context) => {
-    if (value.contactTypeId === "contact-type:company" && value.gstin === "-") {
+    if (Boolean(value.ledgerId) !== Boolean(value.ledgerName)) {
       context.addIssue({
         code: "custom",
-        path: ["gstin"],
-        message: "GSTIN is required for company contacts.",
+        path: ["ledgerId"],
+        message: "Ledger id and ledger name must be provided together.",
       })
     }
   })

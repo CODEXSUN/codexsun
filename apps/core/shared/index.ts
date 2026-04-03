@@ -3,6 +3,7 @@ import { defineAppWorkspace } from "../../framework/src/application/app-workspac
 export const coreAppWorkspace = defineAppWorkspace("core", "Core")
 
 export * from "./workspace-items.js"
+export * from "./common-module-navigation.js"
 export * from "./config/navigation.js"
 export * from "./domain/module-registry.js"
 export * from "./domain/platform.js"

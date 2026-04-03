@@ -1,29 +1,43 @@
 import type { LucideIcon } from "lucide-react"
 import {
   Blocks,
+  BadgePercent,
+  Boxes,
   Building2,
   Cable,
   ClipboardList,
   Cog,
+  ContactRound,
   Database,
+  Flag,
   Globe,
+  Landmark,
   PackageCheck,
+  Package,
+  Palette,
   LayoutDashboard,
   LineChart,
+  MapPin,
   MonitorSmartphone,
   PlugZap,
   ReceiptText,
+  Ruler,
+  Scale,
   Settings2,
   Server,
+  ShieldCheck,
+  Sparkles,
   TerminalSquare,
+  Truck,
   Users,
+  Wallet,
   Workflow,
   Warehouse,
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
 import { billingWorkspaceItems } from "@billing/shared"
-import { coreWorkspaceItems } from "@core/shared"
+import { coreCommonModuleMenuGroups, coreWorkspaceItems } from "@core/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
 import { docsCategories } from "@/registry/data/catalog"
@@ -291,6 +305,31 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       companies: Building2,
       contacts: Users,
       "common-modules": Blocks,
+      "common-countries": Flag,
+      "common-states": MapPin,
+      "common-districts": Building2,
+      "common-cities": Landmark,
+      "common-pincodes": MapPin,
+      "common-contactGroups": ContactRound,
+      "common-contactTypes": ShieldCheck,
+      "common-productGroups": Boxes,
+      "common-productCategories": PackageCheck,
+      "common-productTypes": Package,
+      "common-brands": Building2,
+      "common-colours": Palette,
+      "common-sizes": Ruler,
+      "common-styles": Package,
+      "common-units": Scale,
+      "common-hsnCodes": BadgePercent,
+      "common-taxes": BadgePercent,
+      "common-warehouses": Warehouse,
+      "common-transports": Truck,
+      "common-destinations": MapPin,
+      "common-orderTypes": Package,
+      "common-currencies": Wallet,
+      "common-paymentTerms": Wallet,
+      "common-storefrontTemplates": Sparkles,
+      "common-sliderThemes": Palette,
       setup: Cog,
       "core-settings": Settings2,
     }
@@ -302,6 +341,13 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         route: item.route,
         summary: item.summary,
         icon: coreWorkspaceIconMap[item.id] ?? Blocks,
+        matchRoutes:
+          item.id === "contacts"
+            ? [
+                "/dashboard/apps/core/contacts/new",
+                "/dashboard/apps/core/contacts/:contactId/edit",
+              ]
+            : undefined,
       })),
       ...createTechnicalWorkspaceModules(app, root),
     ]
@@ -644,6 +690,14 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 ].includes(item.route)
               ),
             },
+            ...coreCommonModuleMenuGroups.map((group) => ({
+              id: `${app.id}-${group.id}`,
+              label: group.label,
+              shared: false,
+              items: modules.filter((item) =>
+                group.items.some((groupItem) => groupItem.route === item.route)
+              ),
+            })),
             {
               id: `${app.id}-workspace`,
               label: "Workspace",

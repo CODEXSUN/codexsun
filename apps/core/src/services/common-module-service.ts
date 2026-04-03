@@ -29,17 +29,42 @@ type CommonModuleRow = {
   [key: string]: unknown
 }
 
+function isMissingCommonModuleTableError(error: unknown, tableName: string) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const message = error.message.toLowerCase()
+  const normalizedTableName = tableName.toLowerCase()
+
+  return (
+    (message.includes("no such table") && message.includes(normalizedTableName)) ||
+    (message.includes("doesn't exist") && message.includes(normalizedTableName)) ||
+    (message.includes("does not exist") && message.includes(normalizedTableName))
+  )
+}
+
 async function getCommonModuleItems(
   database: Kysely<unknown>,
   moduleKey: CommonModuleKey
 ): Promise<CommonModuleItem[]> {
   const definition = getCommonModuleDefinition(moduleKey)
-  const rows = await asQueryDatabase(database)
-    .selectFrom(definition.tableName)
-    .selectAll()
-    .orderBy(definition.defaultSortKey as never)
-    .orderBy("created_at")
-    .execute() as CommonModuleRow[]
+  let rows: CommonModuleRow[]
+
+  try {
+    rows = await asQueryDatabase(database)
+      .selectFrom(definition.tableName)
+      .selectAll()
+      .orderBy(definition.defaultSortKey as never)
+      .orderBy("created_at")
+      .execute() as CommonModuleRow[]
+  } catch (error) {
+    if (isMissingCommonModuleTableError(error, definition.tableName)) {
+      return []
+    }
+
+    throw error
+  }
 
   return rows.map((row) => {
     const item: Record<string, unknown> = {

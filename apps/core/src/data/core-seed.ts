@@ -299,7 +299,9 @@ export const contacts: Contact[] = [
   contactSchema.parse({
     id: "contact:maya-rao",
     uuid: "d261d26f-55bc-4a4e-a8ab-8d3c9f1a7b11",
-    contactTypeId: "contact-type:customer",
+    contactTypeId: null,
+    ledgerId: "ledger-sundry-debtors",
+    ledgerName: "Sundry Debtors",
     name: "Maya Rao",
     legalName: null,
     pan: null,
@@ -365,7 +367,9 @@ export const contacts: Contact[] = [
   contactSchema.parse({
     id: "contact:northwind-textiles",
     uuid: "af6e2e72-7b2d-4a7c-b1a5-11c7e6aa5530",
-    contactTypeId: "contact-type:supplier",
+    contactTypeId: null,
+    ledgerId: "ledger-sundry-creditors",
+    ledgerName: "Sundry Creditors",
     name: "Northwind Textiles",
     legalName: "Northwind Textiles LLP",
     pan: "AABCN1234D",
@@ -456,7 +460,9 @@ export const contacts: Contact[] = [
   contactSchema.parse({
     id: "contact:swift-drop",
     uuid: "25782363-d9ef-4a57-94e4-c83c696a65a4",
-    contactTypeId: "contact-type:partner",
+    contactTypeId: null,
+    ledgerId: null,
+    ledgerName: null,
     name: "Swift Drop Logistics",
     legalName: "Swift Drop Logistics Private Limited",
     pan: "AAACS4321P",

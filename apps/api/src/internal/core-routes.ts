@@ -5,7 +5,8 @@ import {
 import { getBootstrapSnapshot } from "../../../core/src/services/bootstrap-service.js"
 import { listCommonModuleItems, listCommonModuleMetadata, listCommonModuleSummaries } from "../../../core/src/services/common-module-service.js"
 import { listCompanies } from "../../../core/src/services/company-service.js"
-import { listContacts } from "../../../core/src/services/contact-service.js"
+import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import { createContact, deleteContact, getContact, listContacts, updateContact } from "../../../core/src/services/contact-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
@@ -45,6 +46,76 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(await listContacts(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/core/contact", {
+      summary: "Read one core contact by id.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const contactId = context.request.url.searchParams.get("id")
+
+        if (!contactId) {
+          throw new ApplicationError("Contact id is required.", {}, 400)
+        }
+
+        return jsonResponse(await getContact(context.databases.primary, user, contactId))
+      },
+    }),
+    defineInternalRoute("/core/contacts", {
+      method: "POST",
+      summary: "Create a core contact master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createContact(context.databases.primary, user, context.request.jsonBody),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/core/contact", {
+      method: "PATCH",
+      summary: "Update a core contact master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const contactId = context.request.url.searchParams.get("id")
+
+        if (!contactId) {
+          throw new ApplicationError("Contact id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateContact(
+            context.databases.primary,
+            user,
+            contactId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/core/contact", {
+      method: "DELETE",
+      summary: "Delete a core contact master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const contactId = context.request.url.searchParams.get("id")
+
+        if (!contactId) {
+          throw new ApplicationError("Contact id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteContact(context.databases.primary, user, contactId)
+        )
       },
     }),
     defineInternalRoute("/core/common-modules/metadata", {

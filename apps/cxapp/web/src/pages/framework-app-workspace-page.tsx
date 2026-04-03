@@ -131,12 +131,14 @@ const uiPageEntrySections = Object.fromEntries(
 export function FrameworkAppWorkspacePage({
   appId,
   categoryId,
+  contactId,
   ledgerId,
   voucherId,
   sectionId: forcedSectionId,
 }: {
   appId?: string
   categoryId?: string
+  contactId?: string
   ledgerId?: string
   voucherId?: string
   sectionId?: string
@@ -205,7 +207,9 @@ export function FrameworkAppWorkspacePage({
     : uiSection?.description ??
       "Browse reusable shadcn-based components by category, preview variants, and copy install-ready code."
   const coreWorkspaceContent =
-    app.id === "core" ? <CoreWorkspaceSection sectionId={sectionId} /> : null
+    app.id === "core" ? (
+      <CoreWorkspaceSection contactId={contactId} sectionId={sectionId} />
+    ) : null
   const billingWorkspaceContent =
     app.id === "billing" ? (
       <BillingWorkspaceSection
@@ -227,24 +231,30 @@ export function FrameworkAppWorkspacePage({
     ecommerceWorkspaceContent ??
     frappeWorkspaceContent
   const hideWorkspaceHero =
-    app.id === "billing" &&
-    [
-      "categories",
-      "categories-upsert",
-      "chart-of-accounts",
-      "chart-of-accounts-upsert",
-      "voucher-groups",
-      "voucher-types",
-      "voucher-register",
-      "payment-vouchers",
-      "payment-vouchers-upsert",
-      "receipt-vouchers",
-      "receipt-vouchers-upsert",
-      "sales-vouchers",
-      "sales-vouchers-upsert",
-      "purchase-vouchers",
-      "purchase-vouchers-upsert",
-    ].includes(sectionId ?? "overview")
+    (
+      app.id === "billing" &&
+      [
+        "categories",
+        "categories-upsert",
+        "chart-of-accounts",
+        "chart-of-accounts-upsert",
+        "voucher-groups",
+        "voucher-types",
+        "voucher-register",
+        "payment-vouchers",
+        "payment-vouchers-upsert",
+        "receipt-vouchers",
+        "receipt-vouchers-upsert",
+        "sales-vouchers",
+        "sales-vouchers-upsert",
+        "purchase-vouchers",
+        "purchase-vouchers-upsert",
+      ].includes(sectionId ?? "overview")
+    ) ||
+    (
+      app.id === "core" &&
+      ["contacts", "contacts-upsert"].includes(sectionId ?? "overview")
+    )
 
   return (
     <div className="space-y-3">
