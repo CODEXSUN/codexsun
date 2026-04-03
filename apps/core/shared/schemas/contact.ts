@@ -1,30 +1,14 @@
 import { z } from "zod"
-
-const dashString = z
-  .string()
-  .trim()
-  .nullish()
-  .transform((value) => value?.trim() || "-")
-const defaultUnknownId = z
-  .string()
-  .trim()
-  .nullish()
-  .transform((value) => value?.trim() || "1")
+import {
+  dashStringField,
+  sharedAddressFields,
+  sharedAddressInputFields,
+} from "./address-book.js"
 
 export const contactAddressSchema = z.object({
   id: z.string().min(1),
   contactId: z.string().min(1),
-  addressType: z.string().min(1),
-  addressLine1: z.string().min(1),
-  addressLine2: z.string().nullable(),
-  cityId: z.string().nullable(),
-  stateId: z.string().nullable(),
-  countryId: z.string().nullable(),
-  pincodeId: z.string().nullable(),
-  latitude: z.number().nullable(),
-  longitude: z.number().nullable(),
-  isDefault: z.boolean(),
-  isActive: z.boolean(),
+  ...sharedAddressFields,
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })
@@ -109,60 +93,52 @@ export const contactSchema = contactSummarySchema.extend({
 })
 
 export const contactAddressInputSchema = z.object({
-  addressType: dashString,
-  addressLine1: dashString,
-  addressLine2: dashString,
-  cityId: defaultUnknownId,
-  stateId: defaultUnknownId,
-  countryId: defaultUnknownId,
-  pincodeId: defaultUnknownId,
-  latitude: z.number().finite().nullable().optional().default(null),
-  longitude: z.number().finite().nullable().optional().default(null),
-  isDefault: z.boolean().optional().default(false),
+  ...sharedAddressInputFields,
 })
 
 export const contactEmailInputSchema = z.object({
-  email: dashString,
-  emailType: dashString,
+  email: dashStringField,
+  emailType: dashStringField,
   isPrimary: z.boolean().optional().default(false),
 })
 
 export const contactPhoneInputSchema = z.object({
-  phoneNumber: dashString,
-  phoneType: dashString,
+  phoneNumber: dashStringField,
+  phoneType: dashStringField,
   isPrimary: z.boolean().optional().default(false),
 })
 
 export const contactBankAccountInputSchema = z.object({
-  bankName: dashString,
-  accountNumber: dashString,
-  accountHolderName: dashString,
-  ifsc: dashString,
-  branch: dashString,
+  bankName: dashStringField,
+  accountNumber: dashStringField,
+  accountHolderName: dashStringField,
+  ifsc: dashStringField,
+  branch: dashStringField,
   isPrimary: z.boolean().optional().default(false),
 })
 
 export const contactGstDetailInputSchema = z.object({
-  gstin: dashString,
-  state: dashString,
+  gstin: dashStringField,
+  state: dashStringField,
   isDefault: z.boolean().optional().default(false),
 })
 
 export const contactUpsertPayloadSchema = z
   .object({
+    contactTypeId: z.string().trim().min(1).nullable().default(null),
     ledgerId: z.string().trim().min(1).nullable().default(null),
     ledgerName: z.string().trim().min(1).nullable().default(null),
     name: z.string().trim().min(2),
-    legalName: dashString,
-    pan: dashString,
-    gstin: dashString,
-    msmeType: dashString,
-    msmeNo: dashString,
+    legalName: dashStringField,
+    pan: dashStringField,
+    gstin: dashStringField,
+    msmeType: dashStringField,
+    msmeNo: dashStringField,
     openingBalance: z.number().finite().default(0),
-    balanceType: dashString,
+    balanceType: dashStringField,
     creditLimit: z.number().finite().default(0),
-    website: dashString,
-    description: dashString,
+    website: dashStringField,
+    description: dashStringField,
     isActive: z.boolean().optional().default(true),
     addresses: z.array(contactAddressInputSchema).default([]),
     emails: z.array(contactEmailInputSchema).default([]),

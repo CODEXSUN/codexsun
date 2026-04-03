@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
+import { ActivityStatusBadge } from "@/features/status/activity-status"
 import {
   Table,
   TableBody,
@@ -2481,9 +2483,10 @@ function ChartOfAccountsSection({
               sortable: true,
               accessor: (category) => (category.deletedAt ? "deleted" : "active"),
               cell: (category) => (
-                <Badge variant={category.deletedAt ? "outline" : "secondary"}>
-                  {category.deletedAt ? "Deleted" : "Active"}
-                </Badge>
+                <ActivityStatusBadge
+                  active={!category.deletedAt}
+                  inactiveLabel="Deleted"
+                />
               ),
             },
             {
@@ -4706,6 +4709,7 @@ export function BillingWorkspaceSection({
   const [isVoucherDialogOpen, setIsVoucherDialogOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  useGlobalLoading(state.isLoading)
 
   async function loadResources() {
     setState((current) => ({ ...current, error: null, isLoading: true }))
@@ -5574,7 +5578,7 @@ export function BillingWorkspaceSection({
   }
 
   if (state.isLoading) {
-    return <StateCard message="Loading billing workspace." />
+    return null
   }
 
   if (state.error) {

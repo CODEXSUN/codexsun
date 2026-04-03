@@ -46,6 +46,7 @@ export const coreCommonModuleMenuGroups: CoreCommonModuleMenuGroup[] = [
     items: [
       defineCommonModuleItem("contactGroups", "Contact Groups", "Contact segmentation for customers, vendors, and partners."),
       defineCommonModuleItem("contactTypes", "Contact Types", "Contact roles and identity types."),
+      defineCommonModuleItem("addressTypes", "Address Types", "Reusable address-book types like billing, shipping, office, and branch."),
     ],
   },
   {

@@ -109,6 +109,14 @@ export const projectDesignSystemDefaults: Record<
     usage: "Single-line text, numeric, and file entry across the application.",
     notes: "Adornments are allowed, but the base field stays the project default.",
   },
+  lookup: {
+    applicationName: "autocomplete",
+    defaultExampleId: "lookup-01",
+    aliases: ["search-lookup", "reference-picker"],
+    usage: "Database-backed reference picking with inline search and create-new affordance.",
+    notes:
+      "Use lookup for searchable master references where plain select becomes too dense.",
+  },
   "input-otp": {
     applicationName: "otp",
     defaultExampleId: "input-otp-01",

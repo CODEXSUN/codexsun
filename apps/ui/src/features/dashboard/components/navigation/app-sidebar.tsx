@@ -197,7 +197,7 @@ export function AppSidebar() {
             <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background shadow-sm">
               <img
                 src="/logo.svg"
-                alt="codexsun"
+                alt={brand.name}
                 className="size-6 object-contain"
               />
             </div>

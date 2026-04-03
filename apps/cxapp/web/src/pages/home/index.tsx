@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import type { AppSuite } from "@framework/application/app-manifest"
 
 import { Button } from "@/components/ui/button"
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 
 import PublicShell from "../../layouts/public-shell"
 import WorkspaceShell from "../../layouts/workspace-shell"
@@ -13,17 +14,18 @@ type HomePageProps = {
 }
 
 function HomePage({ appSuite }: HomePageProps) {
+  const { brand } = useRuntimeBrand()
+
   return (
     <PublicShell appCount={appSuite.apps.length}>
       <WorkspaceShell
-        eyebrow="codexsun"
+        eyebrow={brand?.brandName ?? "codexsun"}
         title="Business software, made to work together."
       >
         <section className="max-w-3xl space-y-6 lg:col-span-2">
           <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            Codexsun delivers online shopping ecommerce, CRM, HRMS, accounts,
-            and integrations in one connected platform. This framework desk
-            opens every workspace from one shared shell.
+            {brand?.shortAbout ??
+              `${brand?.brandName ?? "Codexsun"} delivers online shopping ecommerce, CRM, HRMS, accounts, and integrations in one connected platform. This framework desk opens every workspace from one shared shell.`}
           </p>
 
           <div className="flex flex-wrap gap-3">

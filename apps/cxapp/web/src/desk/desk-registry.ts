@@ -528,7 +528,6 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               items: modules.filter((item) =>
                 [
                   `/dashboard/apps/${app.id}`,
-                  `/dashboard/apps/${app.id}/companies`,
                   `/dashboard/apps/${app.id}/contacts`,
                 ].includes(item.route)
               ),
@@ -560,6 +559,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               shared: false,
               items: modules.filter((item) =>
                 [
+                  `/dashboard/apps/${app.id}/companies`,
                   `/dashboard/apps/${app.id}/setup`,
                   `/dashboard/apps/${app.id}/core-settings`,
                 ].includes(item.route)

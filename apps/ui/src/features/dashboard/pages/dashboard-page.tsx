@@ -2,6 +2,7 @@ import { ArrowUpRight, Plus, Search, Bell, UserRoundSearch, SunMedium } from 'lu
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useRuntimeBrand } from '@/features/branding/runtime-brand-provider'
 import { useDashboardShell } from '@/features/dashboard/dashboard-shell'
 
 export function DashboardPage({
@@ -10,6 +11,7 @@ export function DashboardPage({
   variant?: 'workspace' | 'admin'
 }) {
   const { apps, links, services, user } = useDashboardShell()
+  const { brand } = useRuntimeBrand()
   const isAdminVariant = variant === 'admin'
   const adminQuickActions = [
     {
@@ -65,7 +67,8 @@ export function DashboardPage({
                 Business software, made to work together.
               </h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Codexsun delivers online shopping ecommerce, CRM, HRMS, accounts, and integrations in one connected platform. This framework desk opens every workspace from one shared shell.
+                {brand?.shortAbout ??
+                  `${brand?.brandName ?? 'Codexsun'} delivers online shopping ecommerce, CRM, HRMS, accounts, and integrations in one connected platform. This framework desk opens every workspace from one shared shell.`}
               </p>
             </div>
           </div>

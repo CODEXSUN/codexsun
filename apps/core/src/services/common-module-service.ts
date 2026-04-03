@@ -36,6 +36,8 @@ type CommonModuleRow = {
   [key: string]: unknown
 }
 
+const defaultCommonModuleRecordId = "1"
+
 function normalizeBooleanValue(value: unknown) {
   if (typeof value === "boolean") {
     return value
@@ -166,6 +168,46 @@ async function ensureReferencedItemExists(
 
   if (!existingRow) {
     throw new ApplicationError(`${columnLabel} references an unknown ${definition.label} record.`, {}, 400)
+  }
+}
+
+async function ensureCommonModuleItemIsNotReferenced(
+  database: Kysely<unknown>,
+  definition: CommonModuleDefinition,
+  itemId: string
+) {
+  for (const referencingDefinition of listCommonModuleDefinitions()) {
+    for (const column of referencingDefinition.columns) {
+      if (column.referenceModule !== definition.key) {
+        continue
+      }
+
+      try {
+        const dependentRow = await asQueryDatabase(database)
+          .selectFrom(referencingDefinition.tableName)
+          .select("id")
+          .where(column.key as never, "=", itemId)
+          .executeTakeFirst()
+
+        if (dependentRow) {
+          throw new ApplicationError(
+            `${definition.label} record cannot be deleted because it is referenced by ${referencingDefinition.label}. Remove dependent records first.`,
+            {},
+            409
+          )
+        }
+      } catch (error) {
+        if (error instanceof ApplicationError) {
+          throw error
+        }
+
+        if (isMissingCommonModuleTableError(error, referencingDefinition.tableName)) {
+          continue
+        }
+
+        throw error
+      }
+    }
   }
 }
 
@@ -384,6 +426,16 @@ export async function deleteCommonModuleItem(
   if (!existingRow) {
     throw new ApplicationError(`${definition.label} record not found.`, {}, 404)
   }
+
+  if (itemId === defaultCommonModuleRecordId) {
+    throw new ApplicationError(
+      `${definition.label} default record cannot be deleted.`,
+      {},
+      409
+    )
+  }
+
+  await ensureCommonModuleItemIsNotReferenced(database, definition, itemId)
 
   await asQueryDatabase(database)
     .deleteFrom(definition.tableName)

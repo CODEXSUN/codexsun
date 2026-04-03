@@ -1,7 +1,11 @@
 import { replaceJsonStoreRecords } from "../../../framework/src/runtime/database/process/json-store.js"
 import { defineDatabaseSeeder } from "../../../framework/src/runtime/database/process/types.js"
 
-import { commonModuleItemsByKey, commonModuleMetadata } from "../../src/data/core-seed.js"
+import {
+  listCommonModuleDefinitions,
+  toCommonModuleMetadata,
+} from "../../src/common-modules/definitions.js"
+import { commonModuleItemsByKey } from "../../src/common-modules/seed-data.js"
 import type { CommonModuleKey } from "../../shared/index.js"
 
 import { coreTableNames } from "../table-names.js"
@@ -13,6 +17,10 @@ export const coreCommonModulesSeeder = defineDatabaseSeeder({
   name: "Seed core common module metadata and items",
   order: 40,
   run: async ({ database }) => {
+    const commonModuleMetadata = listCommonModuleDefinitions().map((definition) =>
+      toCommonModuleMetadata(definition)
+    )
+
     await replaceJsonStoreRecords(
       database,
       coreTableNames.commonModuleMetadata,
@@ -33,7 +41,7 @@ export const coreCommonModulesSeeder = defineDatabaseSeeder({
         >
       ).flatMap(([moduleKey, items]) =>
         items.map((item, index) => ({
-          id: item.id,
+          id: `${moduleKey}:${item.id}`,
           moduleKey,
           sortOrder: index + 1,
           payload: item,

@@ -5,6 +5,7 @@ import type { AppSuite } from "@framework/application/app-manifest"
 import {
   DashboardShellProvider,
 } from "@/features/dashboard/dashboard-shell"
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import type { DashboardNotification, DashboardUser } from "@/features/dashboard/types"
 
 import {
@@ -48,6 +49,7 @@ export function DeskProvider({
   children: ReactNode
 }) {
   const location = useLocation()
+  const { brand } = useRuntimeBrand()
   const { apps, services } = useMemo(() => createDeskState(appSuite), [appSuite])
   const notifications = useMemo(() => createInitialNotifications(apps), [apps])
   const currentApp = findDeskAppByPathname(apps, location.pathname)
@@ -70,8 +72,8 @@ export function DeskProvider({
         systemUpdate: "/dashboard/system-update",
       }}
       brand={{
-        name: appSuite.framework.name,
-        tagline: "Framework runtime with CxApp shell",
+        name: brand?.brandName ?? appSuite.framework.name,
+        tagline: brand?.tagline ?? "Framework runtime with CxApp shell",
       }}
     >
       <DeskContext.Provider

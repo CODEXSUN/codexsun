@@ -8,6 +8,7 @@ const commonModuleKeys = [
   "pincodes",
   "contactGroups",
   "contactTypes",
+  "addressTypes",
   "productGroups",
   "productCategories",
   "productTypes",

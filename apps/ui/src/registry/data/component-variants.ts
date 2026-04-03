@@ -316,6 +316,7 @@ export const componentVariants = {
     { title: "File input", type: "input", name: "input-11" },
     { title: "Dropzone", type: "input", name: "input-12" },
   ],
+  lookup: [{ title: "Autocomplete", type: "lookup", name: "lookup-01" }],
   "input-otp": [
     { title: "Default", type: "input-otp", name: "input-otp-01" },
     {

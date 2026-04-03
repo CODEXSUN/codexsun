@@ -31,6 +31,33 @@ const legacyContactTypeLedgerMap = {
   },
 } as const
 
+function normalizeLegacyAddressTypeId(value: unknown) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  switch (value.trim().toLowerCase()) {
+    case "billing":
+      return "address-type:billing"
+    case "shipping":
+      return "address-type:shipping"
+    case "office":
+    case "head-office":
+    case "head_office":
+      return "address-type:office"
+    case "branch":
+    case "warehouse":
+    case "hub":
+    case "studio":
+      return "address-type:branch"
+    case "home":
+    case "primary":
+      return "address-type:primary-1"
+    default:
+      return null
+  }
+}
+
 function normalizeContact(contact: Contact) {
   const legacyLedger =
     contact.contactTypeId &&
@@ -45,6 +72,12 @@ function normalizeContact(contact: Contact) {
     contactTypeId: contact.contactTypeId ?? null,
     ledgerId: contact.ledgerId ?? legacyLedger?.ledgerId ?? null,
     ledgerName: contact.ledgerName ?? legacyLedger?.ledgerName ?? null,
+    addresses: (contact.addresses ?? []).map((address) => ({
+      ...address,
+      addressTypeId:
+        address.addressTypeId ?? normalizeLegacyAddressTypeId((address as { addressType?: unknown }).addressType),
+      districtId: address.districtId ?? null,
+    })),
   })
 }
 
@@ -92,7 +125,7 @@ function buildContactRecord(
   return contactSchema.parse({
     id: existing?.id ?? `contact:${randomUUID()}`,
     uuid: existing?.uuid ?? randomUUID(),
-    contactTypeId: null,
+    contactTypeId: payload.contactTypeId === "1" ? null : payload.contactTypeId,
     ledgerId: payload.ledgerId,
     ledgerName: payload.ledgerName,
     name: payload.name,
@@ -114,10 +147,11 @@ function buildContactRecord(
     addresses: payload.addresses.map((item, index) => ({
       id: existing?.addresses[index]?.id ?? `contact-address:${randomUUID()}`,
       contactId: existing?.id ?? "pending",
-      addressType: item.addressType,
+      addressTypeId: item.addressTypeId === "1" ? null : item.addressTypeId,
       addressLine1: item.addressLine1,
       addressLine2: item.addressLine2 === "-" ? null : item.addressLine2,
       cityId: item.cityId === "1" ? null : item.cityId,
+      districtId: item.districtId === "1" ? null : item.districtId,
       stateId: item.stateId === "1" ? null : item.stateId,
       countryId: item.countryId === "1" ? null : item.countryId,
       pincodeId: item.pincodeId === "1" ? null : item.pincodeId,

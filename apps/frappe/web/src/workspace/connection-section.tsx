@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import {
   getFrappeSettings,
@@ -34,6 +35,7 @@ export function FrappeConnectionSection() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  useGlobalLoading(isLoading)
 
   useEffect(() => {
     if (!user.isSuperAdmin) {
@@ -84,7 +86,7 @@ export function FrappeConnectionSection() {
   }
 
   if (isLoading) {
-    return <StateCard message="Loading ERPNext connection settings." />
+    return null
   }
 
   async function handleSave() {

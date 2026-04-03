@@ -326,6 +326,8 @@ import DropdownMenuDropdownMenu07 from "@/registry/variants/dropdown-menu/dropdo
 import DropdownMenuDropdownMenu07Code from "@/registry/variants/dropdown-menu/dropdown-menu-07.tsx?raw"
 import DropdownMenuDropdownMenu08 from "@/registry/variants/dropdown-menu/dropdown-menu-08"
 import DropdownMenuDropdownMenu08Code from "@/registry/variants/dropdown-menu/dropdown-menu-08.tsx?raw"
+import DropdownMenuDropdownMenu09 from "@/registry/variants/dropdown-menu/dropdown-menu-09"
+import DropdownMenuDropdownMenu09Code from "@/registry/variants/dropdown-menu/dropdown-menu-09.tsx?raw"
 import InputInput01 from "@/registry/variants/input/input-01"
 import InputInput01Code from "@/registry/variants/input/input-01.tsx?raw"
 import InputInput02 from "@/registry/variants/input/input-02"
@@ -350,6 +352,8 @@ import InputInput11 from "@/registry/variants/input/input-11"
 import InputInput11Code from "@/registry/variants/input/input-11.tsx?raw"
 import InputInput12 from "@/registry/variants/input/input-12"
 import InputInput12Code from "@/registry/variants/input/input-12.tsx?raw"
+import LookupLookup01 from "@/registry/variants/lookup/lookup-01"
+import LookupLookup01Code from "@/registry/variants/lookup/lookup-01.tsx?raw"
 import InputOtpInputOtp01 from "@/registry/variants/input-otp/input-otp-01"
 import InputOtpInputOtp01Code from "@/registry/variants/input-otp/input-otp-01.tsx?raw"
 import InputOtpInputOtp02 from "@/registry/variants/input-otp/input-otp-02"
@@ -1724,6 +1728,12 @@ export const docsEntries: DocsEntry[] = [
         code: DropdownMenuDropdownMenu08Code,
         preview: <DropdownMenuDropdownMenu08 />,
       },
+      {
+        id: "dropdown-menu-09",
+        title: "Table Row Actions",
+        code: DropdownMenuDropdownMenu09Code,
+        preview: <DropdownMenuDropdownMenu09 />,
+      },
     ],
   },
   {
@@ -1804,6 +1814,21 @@ export const docsEntries: DocsEntry[] = [
         title: "Dropzone",
         code: InputInput12Code,
         preview: <InputInput12 />,
+      },
+    ],
+  },
+  {
+    id: "lookup",
+    name: "Lookup",
+    description: "Searchable reference picker variants used for master-linked forms.",
+    category: "forms",
+    icon: ChevronsUpDown,
+    examples: [
+      {
+        id: "lookup-01",
+        title: "Autocomplete",
+        code: LookupLookup01Code,
+        preview: <LookupLookup01 />,
       },
     ],
   },

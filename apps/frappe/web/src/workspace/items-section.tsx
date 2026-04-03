@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import {
   createFrappeItem,
@@ -56,6 +57,7 @@ export function FrappeItemsSection() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  useGlobalLoading(isLoading)
 
   async function loadItemsAndLogs() {
     setIsLoading(true)
@@ -183,7 +185,7 @@ export function FrappeItemsSection() {
   }
 
   if (isLoading) {
-    return <StateCard message="Loading Frappe item manager." />
+    return null
   }
 
   const syncedCount = items.filter((item) => item.isSyncedToProduct).length

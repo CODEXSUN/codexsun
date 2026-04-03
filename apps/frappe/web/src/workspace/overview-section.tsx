@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import type { FrappeItem, FrappePurchaseReceipt, FrappeSettings, FrappeTodo } from "@frappe/shared"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import {
   getFrappeSettings,
@@ -29,6 +30,7 @@ export function FrappeOverviewSection() {
     error: null,
     isLoading: true,
   })
+  useGlobalLoading(state.isLoading)
 
   useEffect(() => {
     let cancelled = false
@@ -79,7 +81,7 @@ export function FrappeOverviewSection() {
   }, [user.isSuperAdmin])
 
   if (state.isLoading) {
-    return <StateCard message="Loading Frappe overview." />
+    return null
   }
 
   if (state.error) {

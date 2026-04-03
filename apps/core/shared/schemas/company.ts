@@ -1,15 +1,9 @@
 import { z } from "zod"
-
-const dashString = z
-  .string()
-  .trim()
-  .nullish()
-  .transform((value) => value?.trim() || "-")
-const defaultUnknownId = z
-  .string()
-  .trim()
-  .nullish()
-  .transform((value) => value?.trim() || "1")
+import {
+  dashStringField,
+  sharedAddressFields,
+  sharedAddressInputFields,
+} from "./address-book.js"
 
 export const companyLogoSchema = z.object({
   id: z.string().min(1),
@@ -24,17 +18,7 @@ export const companyLogoSchema = z.object({
 export const companyAddressSchema = z.object({
   id: z.string().min(1),
   companyId: z.string().min(1),
-  addressType: z.string().min(1),
-  addressLine1: z.string().min(1),
-  addressLine2: z.string().nullable(),
-  cityId: z.string().nullable(),
-  stateId: z.string().nullable(),
-  countryId: z.string().nullable(),
-  pincodeId: z.string().nullable(),
-  latitude: z.number().nullable(),
-  longitude: z.number().nullable(),
-  isDefault: z.boolean(),
-  isActive: z.boolean(),
+  ...sharedAddressFields,
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })
@@ -79,6 +63,8 @@ export const companySummarySchema = z.object({
   name: z.string().min(1),
   legalName: z.string().nullable(),
   tagline: z.string().nullable(),
+  shortAbout: z.string().nullable(),
+  longAbout: z.string().nullable(),
   registrationNumber: z.string().nullable(),
   pan: z.string().nullable(),
   financialYearStart: z.string().nullable(),
@@ -91,6 +77,7 @@ export const companySummarySchema = z.object({
   youtubeUrl: z.string().nullable(),
   primaryEmail: z.string().nullable(),
   primaryPhone: z.string().nullable(),
+  isPrimary: z.boolean(),
   isActive: z.boolean(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -110,58 +97,71 @@ export const companyLogoInputSchema = z.object({
 })
 
 export const companyAddressInputSchema = z.object({
-  addressType: dashString,
-  addressLine1: dashString,
-  addressLine2: dashString,
-  cityId: defaultUnknownId,
-  stateId: defaultUnknownId,
-  countryId: defaultUnknownId,
-  pincodeId: defaultUnknownId,
-  latitude: z.number().finite().nullable().optional().default(null),
-  longitude: z.number().finite().nullable().optional().default(null),
-  isDefault: z.boolean().optional().default(false),
+  ...sharedAddressInputFields,
 })
 
 export const companyEmailInputSchema = z.object({
-  email: dashString,
-  emailType: dashString,
+  email: dashStringField,
+  emailType: dashStringField,
 })
 
 export const companyPhoneInputSchema = z.object({
-  phoneNumber: dashString,
-  phoneType: dashString,
+  phoneNumber: dashStringField,
+  phoneType: dashStringField,
   isPrimary: z.boolean().optional().default(false),
 })
 
 export const companyBankAccountInputSchema = z.object({
-  bankName: dashString,
-  accountNumber: dashString,
-  accountHolderName: dashString,
-  ifsc: dashString,
-  branch: dashString,
+  bankName: dashStringField,
+  accountNumber: dashStringField,
+  accountHolderName: dashStringField,
+  ifsc: dashStringField,
+  branch: dashStringField,
   isPrimary: z.boolean().optional().default(false),
 })
 
 export const companyUpsertPayloadSchema = z.object({
   name: z.string().trim().min(2),
-  legalName: dashString,
-  tagline: dashString,
-  registrationNumber: dashString,
-  pan: dashString,
-  financialYearStart: dashString,
-  booksStart: dashString,
-  website: dashString,
-  description: dashString,
-  facebookUrl: dashString,
-  twitterUrl: dashString,
-  instagramUrl: dashString,
-  youtubeUrl: dashString,
+  legalName: dashStringField,
+  tagline: dashStringField,
+  shortAbout: dashStringField,
+  longAbout: dashStringField,
+  registrationNumber: dashStringField,
+  pan: dashStringField,
+  financialYearStart: dashStringField,
+  booksStart: dashStringField,
+  website: dashStringField,
+  description: dashStringField,
+  facebookUrl: dashStringField,
+  twitterUrl: dashStringField,
+  instagramUrl: dashStringField,
+  youtubeUrl: dashStringField,
+  isPrimary: z.boolean().optional().default(false),
   isActive: z.boolean().optional().default(true),
   logos: z.array(companyLogoInputSchema).default([]),
   addresses: z.array(companyAddressInputSchema).default([]),
   emails: z.array(companyEmailInputSchema).default([]),
   phones: z.array(companyPhoneInputSchema).default([]),
   bankAccounts: z.array(companyBankAccountInputSchema).default([]),
+})
+
+export const companyBrandProfileSchema = z.object({
+  companyId: z.string().min(1),
+  brandName: z.string().min(1),
+  legalName: z.string().nullable(),
+  tagline: z.string().nullable(),
+  shortAbout: z.string().nullable(),
+  longAbout: z.string().nullable(),
+  website: z.string().nullable(),
+  primaryEmail: z.string().nullable(),
+  primaryPhone: z.string().nullable(),
+  logoUrl: z.string().nullable(),
+  addressLine1: z.string().nullable(),
+  addressLine2: z.string().nullable(),
+})
+
+export const companyBrandProfileResponseSchema = z.object({
+  item: companyBrandProfileSchema,
 })
 
 export const companyListResponseSchema = z.object({
@@ -187,3 +187,5 @@ export type CompanyBankAccountInput = z.infer<typeof companyBankAccountInputSche
 export type CompanyUpsertPayload = z.infer<typeof companyUpsertPayloadSchema>
 export type CompanyListResponse = z.infer<typeof companyListResponseSchema>
 export type CompanyResponse = z.infer<typeof companyResponseSchema>
+export type CompanyBrandProfile = z.infer<typeof companyBrandProfileSchema>
+export type CompanyBrandProfileResponse = z.infer<typeof companyBrandProfileResponseSchema>

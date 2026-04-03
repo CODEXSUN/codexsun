@@ -12,6 +12,7 @@ import {
   listCommonModuleSummaries,
   updateCommonModuleItem,
 } from "../../apps/core/src/services/common-module-service.js"
+import { ApplicationError } from "../../apps/framework/src/runtime/errors/application-error.js"
 import { commonModuleTableNames } from "../../apps/core/database/table-names.js"
 import { asQueryDatabase } from "../../apps/core/src/data/query-database.js"
 import { getServerConfig } from "../../apps/framework/src/runtime/config/index.js"
@@ -92,6 +93,84 @@ test("common module service supports create, update, read, and delete against ph
 
       const countries = await listCommonModuleItems(runtime.primary, "countries")
       assert.equal(countries.items.some((item) => item.id === created.item.id), false)
+      assert.equal(countries.items[0]?.id, "1")
+      assert.equal(countries.items[0]?.name, "-")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("common module service keeps the seeded default record protected from deletion", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-common-modules-default-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await assert.rejects(
+        () => deleteCommonModuleItem(runtime.primary, "countries", "1"),
+        (error: unknown) => {
+          assert.ok(error instanceof ApplicationError)
+          assert.equal(error.statusCode, 409)
+          assert.match(error.message, /default record cannot be deleted/i)
+          return true
+        }
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("common module service blocks deleting referenced shared master records", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-common-modules-references-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const country = await createCommonModuleItem(runtime.primary, "countries", {
+        code: "SG",
+        name: "Singapore",
+        phone_code: "+65",
+        isActive: true,
+      })
+
+      await createCommonModuleItem(runtime.primary, "states", {
+        country_id: country.item.id,
+        code: "SG-01",
+        name: "Central",
+        isActive: true,
+      })
+
+      await assert.rejects(
+        () => deleteCommonModuleItem(runtime.primary, "countries", country.item.id),
+        (error: unknown) => {
+          assert.ok(error instanceof ApplicationError)
+          assert.equal(error.statusCode, 409)
+          assert.match(error.message, /referenced by States/i)
+          return true
+        }
+      )
     } finally {
       await runtime.destroy()
     }

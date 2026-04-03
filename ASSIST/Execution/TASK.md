@@ -8,7 +8,7 @@
 
 ### Title
 
-`Core common module list alignment`
+`Core master UX alignment and runtime branding`
 
 ### Scope Checklist
 
@@ -17,6 +17,9 @@
 - [x] align the core sidebar so common masters appear under a grouped `Common` branch with subgroup lanes matching the requested layout
 - [x] add the missing internal core common-module CRUD routes and focused coverage for the new service and route behavior
 - [x] add shared active or inactive dropdown filters with clear-to-all behavior on common and master list pages that expose record status
+- [x] align contact and company list, show, and upsert flows with the requested shared master UX patterns
+- [x] add shared row action menus, lookup docs variants, and master-list docs references in the UI registry
+- [x] map the primary company profile into shared shell branding, public footer, and company content surfaces
 - [x] keep ASSIST tracking and changelog aligned with the shipped core common-module workspace change
 
 ### Validation Note

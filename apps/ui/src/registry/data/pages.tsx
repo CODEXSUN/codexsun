@@ -4,6 +4,8 @@ import CommonList01 from "@/registry/blocks/data/common-list-01"
 import CommonList01Code from "@/registry/blocks/data/common-list-01.tsx?raw"
 import MasterList01 from "@/registry/blocks/data/master-list-01"
 import MasterList01Code from "@/registry/blocks/data/master-list-01.tsx?raw"
+import MasterList02 from "@/registry/blocks/data/master-list-02"
+import MasterList02Code from "@/registry/blocks/data/master-list-02.tsx?raw"
 import MasterListSelectable01 from "@/registry/blocks/data/master-list-selectable-01"
 import MasterListSelectable01Code from "@/registry/blocks/data/master-list-selectable-01.tsx?raw"
 
@@ -52,6 +54,18 @@ export const registryPages: RegistryPage[] = [
     componentIds: ["badge", "button", "dropdown-menu", "input", "pagination", "table"],
     code: MasterList01Code,
     preview: <MasterList01 />,
+  },
+  {
+    id: "master-list-02",
+    name: "Common Master Form Page",
+    summary:
+      "Common master workspace with popup upsert form, searchable lookup fields, and row-level restore or deactivate actions.",
+    description:
+      "Use for shared reference tables like cities, address types, units, and other setup lists that need create or edit in a modal instead of route navigation.",
+    category: "application-pages",
+    componentIds: ["button", "dropdown-menu", "input", "lookup", "pagination", "table"],
+    code: MasterList02Code,
+    preview: <MasterList02 />,
   },
   {
     id: "master-list-selectable-01",

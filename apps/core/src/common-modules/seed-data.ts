@@ -5,6 +5,7 @@ import {
 } from "../../shared/index.js"
 
 const timestamp = "2026-03-30T09:00:00.000Z"
+const defaultRecordId = "1"
 
 function defineItem(
   id: string,
@@ -19,7 +20,7 @@ function defineItem(
   })
 }
 
-export const commonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]> = {
+const baseCommonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]> = {
   countries: [
     defineItem("country:india", {
       code: "IN",
@@ -110,6 +111,38 @@ export const commonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]>
       code: "partner",
       name: "Partner",
       description: "Shared service or logistics partner.",
+    }),
+  ],
+  addressTypes: [
+    defineItem("address-type:billing", {
+      code: "billing",
+      name: "Billing",
+      description: "Billing and invoice address.",
+    }),
+    defineItem("address-type:shipping", {
+      code: "shipping",
+      name: "Shipping",
+      description: "Shipping and delivery address.",
+    }),
+    defineItem("address-type:office", {
+      code: "office",
+      name: "Office",
+      description: "Office or business address.",
+    }),
+    defineItem("address-type:branch", {
+      code: "branch",
+      name: "Branch",
+      description: "Branch or outlet address.",
+    }),
+    defineItem("address-type:primary-1", {
+      code: "primary-1",
+      name: "Primary 1",
+      description: "Primary address slot one.",
+    }),
+    defineItem("address-type:primary-2", {
+      code: "primary-2",
+      name: "Primary 2",
+      description: "Primary address slot two.",
     }),
   ],
   productGroups: [
@@ -402,3 +435,100 @@ export const commonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]>
     }),
   ],
 }
+
+const defaultCommonModuleRows: Record<CommonModuleKey, Record<string, string | number | boolean | null>> = {
+  countries: { code: "-", name: "-", phone_code: "-" },
+  states: { country_id: defaultRecordId, code: "-", name: "-" },
+  districts: { state_id: defaultRecordId, code: "-", name: "-" },
+  cities: { state_id: defaultRecordId, district_id: defaultRecordId, code: "-", name: "-" },
+  pincodes: {
+    country_id: defaultRecordId,
+    state_id: defaultRecordId,
+    district_id: defaultRecordId,
+    city_id: defaultRecordId,
+    code: "-",
+    area_name: "-",
+  },
+  contactGroups: { code: "-", name: "-", description: "-" },
+  contactTypes: { code: "-", name: "-", description: "-" },
+  addressTypes: { code: "-", name: "-", description: "-" },
+  productGroups: { code: "-", name: "-", description: "-" },
+  productCategories: {
+    code: "-",
+    name: "-",
+    description: "-",
+    image: "-",
+    position_order: 0,
+    show_on_storefront_top_menu: false,
+    show_on_storefront_catalog: false,
+  },
+  productTypes: { code: "-", name: "-", description: "-" },
+  units: { code: "-", name: "-", symbol: "-", description: "-" },
+  hsnCodes: { code: "-", name: "-", description: "-" },
+  taxes: { code: "-", name: "-", tax_type: "-", rate_percent: 0, description: "-" },
+  brands: { code: "-", name: "-", description: "-" },
+  colours: { code: "-", name: "-", hex_code: "-", description: "-" },
+  sizes: { code: "-", name: "-", sort_order: 0, description: "-" },
+  currencies: { code: "-", name: "-", symbol: "-", decimal_places: 0 },
+  orderTypes: { code: "-", name: "-", description: "-" },
+  styles: { code: "-", name: "-", description: "-" },
+  transports: { code: "-", name: "-", description: "-" },
+  warehouses: {
+    code: "-",
+    name: "-",
+    country_id: defaultRecordId,
+    state_id: defaultRecordId,
+    district_id: defaultRecordId,
+    city_id: defaultRecordId,
+    pincode_id: defaultRecordId,
+    address_line1: "-",
+    address_line2: "-",
+    description: "-",
+  },
+  destinations: { code: "-", name: "-", description: "-" },
+  paymentTerms: { code: "-", name: "-", due_days: 0, description: "-" },
+  storefrontTemplates: {
+    code: "-",
+    name: "-",
+    sort_order: 0,
+    badge_text: "-",
+    title: "-",
+    description: "-",
+    cta_primary_label: "-",
+    cta_primary_href: "-",
+    cta_secondary_label: "-",
+    cta_secondary_href: "-",
+    icon_key: "-",
+    theme_key: "-",
+  },
+  sliderThemes: {
+    code: "-",
+    name: "-",
+    sort_order: 0,
+    add_to_cart_label: "-",
+    view_details_label: "-",
+    background_from: "-",
+    background_via: "-",
+    background_to: "-",
+    text_color: "-",
+    muted_text_color: "-",
+    badge_background: "-",
+    badge_text_color: "-",
+    primary_button_background: "-",
+    primary_button_text_color: "-",
+    secondary_button_background: "-",
+    secondary_button_text_color: "-",
+    nav_background: "-",
+    nav_text_color: "-",
+  },
+}
+
+export const commonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]> =
+  Object.fromEntries(
+    (Object.entries(baseCommonModuleItemsByKey) as Array<[CommonModuleKey, CommonModuleItem[]]>).map(
+      ([moduleKey, items]) => [
+        moduleKey,
+        [defineItem(defaultRecordId, defaultCommonModuleRows[moduleKey]), ...items],
+      ]
+    )
+  ) as Record<CommonModuleKey, CommonModuleItem[]>

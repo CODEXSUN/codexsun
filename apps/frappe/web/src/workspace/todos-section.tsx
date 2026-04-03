@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import {
   createFrappeTodo,
@@ -51,6 +52,7 @@ export function FrappeTodosSection() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  useGlobalLoading(isLoading)
 
   async function loadTodos() {
     setIsLoading(true)
@@ -122,7 +124,7 @@ export function FrappeTodosSection() {
   }
 
   if (isLoading) {
-    return <StateCard message="Loading Frappe ToDo snapshots." />
+    return null
   }
 
   const openCount = items.filter((item) => item.status === "Open").length

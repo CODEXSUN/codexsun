@@ -15,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import {
   Table,
   TableBody,
@@ -55,6 +56,7 @@ function useJsonResource<T>(path: string): ResourceState<T> {
     error: null,
     isLoading: true,
   })
+  useGlobalLoading(state.isLoading)
 
   useEffect(() => {
     let cancelled = false
@@ -156,6 +158,7 @@ function OverviewSection() {
     error: null,
     isLoading: true,
   })
+  useGlobalLoading(state.isLoading)
 
   useEffect(() => {
     let cancelled = false
@@ -205,7 +208,7 @@ function OverviewSection() {
   }, [])
 
   if (state.isLoading) {
-    return <StateCard message="Loading commerce overview." />
+    return null
   }
 
   if (!state.products || !state.orders || !state.customers || !state.settings || state.error) {
@@ -250,7 +253,7 @@ function CatalogSection() {
     useJsonResource<ProductListResponse>("/internal/v1/ecommerce/products")
 
   if (isLoading) {
-    return <StateCard message="Loading catalog." />
+    return null
   }
 
   if (error || !data) {
@@ -316,7 +319,7 @@ function StorefrontSection() {
     useJsonResource<StorefrontCatalogResponse>("/public/v1/storefront/catalog")
 
   if (isLoading) {
-    return <StateCard message="Loading storefront projection." />
+    return null
   }
 
   if (error || !data) {
@@ -399,7 +402,7 @@ function OrdersSection() {
   )
 
   if (workflows.isLoading) {
-    return <StateCard message="Loading order workflows." />
+    return null
   }
 
   if (workflows.error || !workflows.data) {
@@ -469,7 +472,7 @@ function CustomersSection() {
   )
 
   if (customers.isLoading) {
-    return <StateCard message="Loading customer helpdesk records." />
+    return null
   }
 
   if (customers.error || !customers.data) {
@@ -544,7 +547,7 @@ function SettingsSection() {
   )
 
   if (pricing.isLoading || dependencies.isLoading) {
-    return <StateCard message="Loading commerce settings." />
+    return null
   }
 
   if (pricing.error || dependencies.error || !pricing.data || !dependencies.data) {

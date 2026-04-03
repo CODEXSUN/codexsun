@@ -125,6 +125,7 @@ export const applicationBuildChannels: DesignSystemBuildChannel[] = [
     summary: "Core capture controls for data entry, verification, and settings.",
     requiredComponentIds: [
       "input",
+      "lookup",
       "textarea",
       "select",
       "checkbox",

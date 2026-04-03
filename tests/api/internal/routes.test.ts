@@ -102,6 +102,10 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("POST /internal/v1/core/common-modules/items"))
   assert.ok(routePaths.includes("PATCH /internal/v1/core/common-modules/item"))
   assert.ok(routePaths.includes("DELETE /internal/v1/core/common-modules/item"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/company"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/companies"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/core/company"))
+  assert.ok(routePaths.includes("DELETE /internal/v1/core/company"))
 })
 
 test("authenticated core common-module routes list and mutate shared master records", async () => {
@@ -327,6 +331,150 @@ test("authenticated core common-module routes list and mutate shared master reco
       assert.equal(deleteResponse.statusCode, 200)
       assert.equal(deletePayload.deleted, true)
       assert.equal(deletePayload.id, createdPayload.item.id)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("authenticated core common-module delete route blocks referenced records", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-common-module-delete-guard-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const createRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/core/common-modules/items"
+      )
+      const deleteRoute = routes.find(
+        (candidate) =>
+          candidate.method === "DELETE" && candidate.path === "/internal/v1/core/common-modules/item"
+      )
+
+      assert.ok(createRoute)
+      assert.ok(deleteRoute)
+
+      const createCountryResponse = await createRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/common-modules/items",
+          url: new URL("http://localhost/internal/v1/core/common-modules/items?module=countries"),
+          headers,
+          bodyText: JSON.stringify({
+            code: "SG",
+            name: "Singapore",
+            phone_code: "+65",
+            isActive: true,
+          }),
+          jsonBody: {
+            code: "SG",
+            name: "Singapore",
+            phone_code: "+65",
+            isActive: true,
+          },
+        },
+        route: {
+          auth: createRoute.auth,
+          path: createRoute.path,
+          surface: createRoute.surface,
+          version: createRoute.version,
+        },
+      })
+
+      const createdCountryPayload = JSON.parse(createCountryResponse.body) as {
+        item: { id: string }
+      }
+
+      await createRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/common-modules/items",
+          url: new URL("http://localhost/internal/v1/core/common-modules/items?module=states"),
+          headers,
+          bodyText: JSON.stringify({
+            country_id: createdCountryPayload.item.id,
+            code: "SG-01",
+            name: "Central",
+            isActive: true,
+          }),
+          jsonBody: {
+            country_id: createdCountryPayload.item.id,
+            code: "SG-01",
+            name: "Central",
+            isActive: true,
+          },
+        },
+        route: {
+          auth: createRoute.auth,
+          path: createRoute.path,
+          surface: createRoute.surface,
+          version: createRoute.version,
+        },
+      })
+
+      await assert.rejects(
+        () =>
+          deleteRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "DELETE",
+              pathname: "/internal/v1/core/common-modules/item",
+              url: new URL(
+                `http://localhost/internal/v1/core/common-modules/item?module=countries&id=${encodeURIComponent(createdCountryPayload.item.id)}`
+              ),
+              headers,
+              bodyText: null,
+              jsonBody: null,
+            },
+            route: {
+              auth: deleteRoute.auth,
+              path: deleteRoute.path,
+              surface: deleteRoute.surface,
+              version: deleteRoute.version,
+            },
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof Error)
+          assert.match(error.message, /referenced by States/i)
+          return true
+        }
+      )
     } finally {
       await runtime.destroy()
     }

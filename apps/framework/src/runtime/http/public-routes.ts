@@ -1,5 +1,6 @@
 import type { AppSuite } from "../../application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../application/workspace-baseline.js"
+import { getPrimaryCompanyBrandProfile } from "../../../../core/src/services/company-service.js"
 import { getStorefrontCatalog } from "../../../../ecommerce/src/services/product-service.js"
 
 import { definePublicRoute } from "./route-manifest.js"
@@ -34,6 +35,14 @@ export function createPublicHttpRoutes(appSuite: AppSuite): HttpRouteDefinition[
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify(await getStorefrontCatalog(databases.primary)),
+      }),
+    }),
+    definePublicRoute("/brand-profile", {
+      summary: "Public primary company brand profile for shell and storefront surfaces.",
+      handler: async ({ databases }) => ({
+        statusCode: 200,
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify(await getPrimaryCompanyBrandProfile(databases.primary)),
       }),
     }),
   ]

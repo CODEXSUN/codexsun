@@ -97,10 +97,11 @@ test("core contact service supports create update and delete CRUD with linked le
         isActive: true,
         addresses: [
           {
-            addressType: "primary",
+            addressTypeId: null,
             addressLine1: "12 Market Street",
             addressLine2: "",
             cityId: null,
+            districtId: null,
             stateId: null,
             countryId: null,
             pincodeId: null,

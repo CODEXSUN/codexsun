@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import {
   listFrappePurchaseReceipts,
@@ -42,6 +43,7 @@ export function FrappePurchaseReceiptsSection() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
+  useGlobalLoading(isLoading)
 
   async function loadReceipts() {
     setIsLoading(true)
@@ -121,7 +123,7 @@ export function FrappePurchaseReceiptsSection() {
   }
 
   if (isLoading) {
-    return <StateCard message="Loading purchase receipt snapshots." />
+    return null
   }
 
   const syncedCount = items.filter((item) => item.isSyncedLocally).length

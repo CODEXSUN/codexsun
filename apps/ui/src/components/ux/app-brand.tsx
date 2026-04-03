@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import { cn } from "@/lib/utils"
 
 type AppBrandProps = {
@@ -13,6 +14,8 @@ export function AppBrand({
   href = "/",
   className,
 }: AppBrandProps) {
+  const { brand } = useRuntimeBrand()
+
   return (
     <Link
       to={href}
@@ -20,15 +23,15 @@ export function AppBrand({
     >
       <img
         src="/logo.svg"
-        alt="Codexsun logo"
+        alt={`${brand?.brandName ?? "Codexsun"} logo`}
         className={cn("w-auto shrink-0", compact ? "h-10" : "h-12")}
       />
       <div className="min-w-0">
         <p className="font-heading text-lg font-semibold tracking-tight">
-          codexsun
+          {brand?.brandName ?? "codexsun"}
         </p>
         <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-          Enterprise application suite
+          {brand?.tagline ?? "Enterprise application suite"}
         </p>
       </div>
     </Link>

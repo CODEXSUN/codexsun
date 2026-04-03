@@ -11,6 +11,7 @@ import { createFrameworkBrowserContainer } from "@framework/di/browser-container
 import { FRAMEWORK_TOKENS } from "@framework/di/tokens"
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
+import { RuntimeBrandProvider } from "@/features/branding/runtime-brand-provider"
 import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider"
 import AdminLayout from "@/layouts/AdminLayout"
 import type { DashboardUser } from "@/features/dashboard/types"
@@ -20,6 +21,9 @@ import { AuthProvider } from "./auth/auth-provider"
 import { DeskProvider } from "./desk/desk-provider"
 import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
 import { BillingWorkspacePage } from "./pages/billing-workspace-page"
+import { CoreCompanyDetailPage } from "./pages/core-company-detail-page"
+import { CoreCompanyFormPage } from "./pages/core-company-form-page"
+import { CoreContactDetailPage } from "./pages/core-contact-detail-page"
 import { CoreContactFormPage } from "./pages/core-contact-form-page"
 import { BillingCategoryFormPage } from "./pages/billing-category-form-page"
 import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
@@ -100,15 +104,16 @@ function AuthenticatedAppShell() {
     : guestUser
 
   return (
-    <ProjectDefaultsProvider>
-      <DeskProvider
-        appSuite={appSuite}
-        user={user}
-        onLogout={() => {
-          void auth.logout()
-        }}
-      >
-        <Routes>
+    <RuntimeBrandProvider>
+      <ProjectDefaultsProvider>
+        <DeskProvider
+          appSuite={appSuite}
+          user={user}
+          onLogout={() => {
+            void auth.logout()
+          }}
+        >
+          <Routes>
           <Route path="/" element={<HomePage appSuite={appSuite} />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -520,6 +525,46 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/apps/core/companies/:companyId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreCompanyDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/companies/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreCompanyFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/companies/:companyId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreCompanyFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/contacts/:contactId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreContactDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/apps/core/contacts/new"
             element={
               <ProtectedRoute>
@@ -550,9 +595,10 @@ function AuthenticatedAppShell() {
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </DeskProvider>
-    </ProjectDefaultsProvider>
+          </Routes>
+        </DeskProvider>
+      </ProjectDefaultsProvider>
+    </RuntimeBrandProvider>
   )
 }
 
