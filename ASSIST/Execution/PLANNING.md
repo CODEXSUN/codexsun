@@ -4,68 +4,65 @@
 
 ### Reference
 
-`#20`
+`#21`
 
 ### Goal
 
-Finalize the billing account master model and workspace UX so billing categories, ledgers, voucher groups, voucher types, voucher CRUD, and support guidance all align to one strict accounting structure.
+Align the core common-module workspace with the billing-style master UX so shared masters open as grouped sidebar lists with popup upsert flows instead of one generic preview screen.
 
 ### Scope
 
 - `ASSIST/Execution`
 - `ASSIST/Documentation/CHANGELOG.md`
-- `apps/billing/src`
-- `apps/billing/shared`
-- `apps/billing/database`
-- `apps/billing/web`
 - `apps/api/src/internal`
+- `apps/core/src`
+- `apps/core/shared`
+- `apps/core/web`
 - `apps/cxapp/web`
-- `apps/ui/src/components/blocks`
-- `tests/billing`
+- `apps/ui/src/features/dashboard`
+- `ASSIST/Documentation/CHANGELOG.md`
+- `tests/core`
 - `tests/api/internal`
-- `tests/e2e`
 
 ### Canonical Decisions
 
-- billing account masters should separate accounting structure from operational classification through `category -> ledger -> voucher type` and `voucher group -> voucher type`
-- billing master CRUD should use shared list and popup patterns instead of one-off pages where the workflow is list-first
-- billing commercial voucher modules should graduate from popup CRUD into route-based list and upsert pages once the operator flow becomes document-centric
-- billing route labels and sidebar groups should resolve from the most specific workspace item so breadcrumbs stay page-specific
-- lookup-style record selection should follow the temp ecommerce autocomplete interaction model when billing operators pick categories, ledgers, and voucher-group-linked masters
-- support guidance for the finalized billing model should live inside the billing workspace, not as detached docs only
+- shared masters in `apps/core` should use one generic CRUD path and dynamic UI rendering instead of hardcoding one page per module
+- common-module list pages should reuse the shared `CommonList` interaction tone already established in billing
+- common-module upsert should stay popup-based for list-first masters rather than introducing standalone routes for every shared registry
+- the core sidebar should expose the requested `Common` subgroup layout without moving the actual master ownership out of `apps/core`
+- reference-module fields should resolve by lookup in the popup form so dependent masters such as states, cities, pincodes, and warehouses remain editable from one consistent pattern
 
 ### Execution Plan
 
-1. replace ledger-group storage and UI with billing categories and seed the default top-level accounting buckets
-2. add billing voucher-group and voucher-type masters, then enforce the strict chain between category, ledger, and voucher type
-3. convert billing master and voucher pages to the shared `CommonList` tone with popup upsert flows and grouped sidebar navigation
-4. align billing lookups, breadcrumbs, support pages, and route metadata with the updated master model
-5. add the first document-style sales invoice page with item-table entry while keeping double-entry and GST posting derived from the billing masters
-6. move sales, purchase, payment, and receipt from popup voucher CRUD into route-based list and standalone upsert pages
-7. fix compatibility issues against the existing local billing database, including mixed-shape stored records
-8. run targeted typecheck and billing-focused tests, plus local runtime verification against the desktop database
-9. update ASSIST execution and changelog records to reflect the completed billing batch
+1. add generic common-module create, update, and delete service operations over the physical core master tables
+2. expose the new core common-module CRUD routes through the internal API boundary
+3. replace the current generic core common-module preview UI with module-specific list pages that render metadata-driven columns and popup forms
+4. fetch and resolve reference-module lookups so dependent core masters show labels instead of raw ids and can be edited from the same dialog pattern
+5. reorganize the core desk menu into a grouped `Common` branch with requested subgroup lanes such as Location, Product, Contacts, Order, and Others
+6. hide the generic workspace hero on list-first common-module pages so the page layout matches the requested billing-style references
+7. add shared status dropdown filtering to common and master list screens that already expose active or deleted state
+8. run focused typecheck and targeted route/service tests for the new core common-module flow
+9. update ASSIST execution tracking and changelog entries for the shipped batch
 
 ### Validation Plan
 
 - Run `npx.cmd tsc --noEmit --pretty false`
-- Run `npx.cmd tsx --test tests/billing/category-service.test.ts tests/billing/ledger-service.test.ts tests/billing/voucher-master-service.test.ts tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
-- Verify billing service health against the local desktop database for categories, ledgers, voucher groups, voucher types, vouchers, and reports
-- Run targeted Playwright coverage where selectors and server state remain current
+- Run `npx.cmd tsx --test tests/core/common-module-service.test.ts tests/api/internal/routes.test.ts`
+- Verify the core workspace renders common-module list pages and popup upsert flows against the local SQLite-backed runtime
+- Run targeted UI validation for nested common-menu navigation and dependent lookup fields
 
 ### Validation Status
 
 - [x] `npx.cmd tsc --noEmit --pretty false`
-- [x] `npx.cmd tsx --test tests/billing/category-service.test.ts tests/billing/ledger-service.test.ts tests/billing/voucher-master-service.test.ts tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
-- [x] `npx.cmd tsx --test tests/billing/voucher-service.test.ts`
-- [x] local desktop database verification for billing categories, ledgers, voucher groups, voucher types, vouchers, and reports
-- [ ] Playwright coverage remains partial because some existing browser selectors and reused server state were stale during the last runs
+- [x] `npx.cmd tsx --test tests/core/common-module-service.test.ts tests/api/internal/routes.test.ts`
+- [ ] runtime verification for nested core common navigation, common-module lists, and popup upsert flows
+- [ ] browser-level coverage is still manual for this batch unless targeted selectors are added
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
 - [ ] full `npm run build`
 
 ### Risks And Follow-Up
 
-- older persisted billing voucher-type rows can still exist without the full newer field set, so compatibility parsing must remain tolerant until a cleanup migration normalizes them
-- voucher posting and reporting now align to the finalized masters, but purchase still needs the same richer invoice-style item-table experience now introduced for sales
-- browser-level verification still lags the current billing UI shape because the older Playwright selectors and reusable server state need cleanup
+- metadata-driven common-module forms must stay aligned with the physical table definitions, so new columns later need both backend and UI metadata to remain in sync
+- dependent reference lookups can become dense for modules like pincodes and warehouses, so follow-up may be needed if operators need cascading filters beyond simple searchable pickers
+- full browser automation does not yet cover the new nested sidebar and popup CRUD flow, so regression confidence stays strongest at the targeted service and route level

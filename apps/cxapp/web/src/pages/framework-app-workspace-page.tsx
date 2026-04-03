@@ -253,7 +253,10 @@ export function FrameworkAppWorkspacePage({
     ) ||
     (
       app.id === "core" &&
-      ["contacts", "contacts-upsert"].includes(sectionId ?? "overview")
+      (
+        ["contacts", "contacts-upsert", "common-modules"].includes(sectionId ?? "overview") ||
+        (sectionId ?? "").startsWith("common-")
+      )
     )
 
   return (

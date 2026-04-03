@@ -3,7 +3,15 @@ import {
   type CommonModuleKey,
 } from "../../../core/shared/index.js"
 import { getBootstrapSnapshot } from "../../../core/src/services/bootstrap-service.js"
-import { listCommonModuleItems, listCommonModuleMetadata, listCommonModuleSummaries } from "../../../core/src/services/common-module-service.js"
+import {
+  createCommonModuleItem,
+  deleteCommonModuleItem,
+  getCommonModuleItem,
+  listCommonModuleItems,
+  listCommonModuleMetadata,
+  listCommonModuleSummaries,
+  updateCommonModuleItem,
+} from "../../../core/src/services/common-module-service.js"
 import { listCompanies } from "../../../core/src/services/company-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { createContact, deleteContact, getContact, listContacts, updateContact } from "../../../core/src/services/contact-service.js"
@@ -160,6 +168,98 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
             context.databases.primary,
             parsedKey.data as CommonModuleKey
           )
+        )
+      },
+    }),
+    defineInternalRoute("/core/common-modules/item", {
+      summary: "Read one common module record by module key and id.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        const moduleKey = context.request.url.searchParams.get("module")
+        const itemId = context.request.url.searchParams.get("id")
+        const parsedKey = commonModuleKeySchema.safeParse(moduleKey)
+
+        if (!parsedKey.success || !itemId) {
+          return badRequestResponse("A valid common module key and record id are required.")
+        }
+
+        return jsonResponse(
+          await getCommonModuleItem(context.databases.primary, parsedKey.data, itemId)
+        )
+      },
+    }),
+    defineInternalRoute("/core/common-modules/items", {
+      method: "POST",
+      summary: "Create one common module record for the selected shared master key.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        const moduleKey = context.request.url.searchParams.get("module")
+        const parsedKey = commonModuleKeySchema.safeParse(moduleKey)
+
+        if (!parsedKey.success) {
+          return badRequestResponse("A valid common module key is required.")
+        }
+
+        return jsonResponse(
+          await createCommonModuleItem(
+            context.databases.primary,
+            parsedKey.data,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/core/common-modules/item", {
+      method: "PATCH",
+      summary: "Update one common module record for the selected shared master key.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        const moduleKey = context.request.url.searchParams.get("module")
+        const itemId = context.request.url.searchParams.get("id")
+        const parsedKey = commonModuleKeySchema.safeParse(moduleKey)
+
+        if (!parsedKey.success || !itemId) {
+          return badRequestResponse("A valid common module key and record id are required.")
+        }
+
+        return jsonResponse(
+          await updateCommonModuleItem(
+            context.databases.primary,
+            parsedKey.data,
+            itemId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/core/common-modules/item", {
+      method: "DELETE",
+      summary: "Delete one common module record for the selected shared master key.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        const moduleKey = context.request.url.searchParams.get("module")
+        const itemId = context.request.url.searchParams.get("id")
+        const parsedKey = commonModuleKeySchema.safeParse(moduleKey)
+
+        if (!parsedKey.success || !itemId) {
+          return badRequestResponse("A valid common module key and record id are required.")
+        }
+
+        return jsonResponse(
+          await deleteCommonModuleItem(context.databases.primary, parsedKey.data, itemId)
         )
       },
     }),

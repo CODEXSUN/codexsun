@@ -4,29 +4,25 @@
 
 ### Reference
 
-`#20`
+`#21`
 
 ### Title
 
-`Billing account master alignment and support docs`
+`Core common module list alignment`
 
 ### Scope Checklist
 
-- [x] replace billing ledger groups with reusable billing categories and map ledgers to categories
-- [x] add billing voucher-group and voucher-type masters with a strict `category -> ledger -> voucher type` chain and `voucher group -> voucher type` classification
-- [x] convert billing category, ledger, voucher-group, voucher-type, and voucher-register screens to popup upsert flows in the shared `CommonList` tone
-- [x] align billing side navigation, grouped menus, route titles, and support docs with the UI workspace navigation model
-- [x] add lookup-style autocomplete behavior where billing master and voucher forms need record selection
-- [x] add a real sales invoice workflow with item-table posting and voucher-type-ledger alignment instead of only the generic voucher dialog
-- [x] move sales, purchase, payment, and receipt into route-based master-list and standalone upsert pages instead of popup voucher CRUD
-- [x] cover the new billing services and internal routes with targeted tests and verify the updated billing workspace renders without the previous invalid-payload failure
+- [x] convert core common modules from the generic preview page into module-specific list pages in the billing `CommonList` tone
+- [x] add popup upsert flows for shared core common modules with generic create and update handling
+- [x] align the core sidebar so common masters appear under a grouped `Common` branch with subgroup lanes matching the requested layout
+- [x] add the missing internal core common-module CRUD routes and focused coverage for the new service and route behavior
+- [x] add shared active or inactive dropdown filters with clear-to-all behavior on common and master list pages that expose record status
+- [x] keep ASSIST tracking and changelog aligned with the shipped core common-module workspace change
 
 ### Validation Note
 
 - [x] `npx.cmd tsc --noEmit --pretty false`
-- [x] `npx.cmd tsx --test tests/billing/category-service.test.ts tests/billing/ledger-service.test.ts tests/billing/voucher-master-service.test.ts tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
-- [x] `npx.cmd tsx --test tests/billing/voucher-service.test.ts`
-- [x] targeted runtime verification against the local desktop billing database for categories, ledgers, voucher groups, voucher types, vouchers, and reports
+- [x] `npx.cmd tsx --test tests/core/common-module-service.test.ts tests/api/internal/routes.test.ts`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
 - [ ] full `npm run build`
@@ -35,7 +31,7 @@
 
 ### Reference
 
-`#21`
+`#22`
 
 ### Title
 

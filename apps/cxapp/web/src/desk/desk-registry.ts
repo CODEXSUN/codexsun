@@ -530,7 +530,36 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}`,
                   `/dashboard/apps/${app.id}/companies`,
                   `/dashboard/apps/${app.id}/contacts`,
-                  `/dashboard/apps/${app.id}/common-modules`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-common`,
+              label: "Common",
+              shared: false,
+              route: `/dashboard/apps/${app.id}/common-modules`,
+              items: coreCommonModuleMenuGroups.map((group) => {
+                const firstRoute = group.items[0]?.route ?? `/dashboard/apps/${app.id}/common-modules`
+                const firstItem = modules.find((item) => item.route === firstRoute)
+
+                return {
+                  id: `${app.id}-common-${group.id}`,
+                  name: group.label,
+                  route: firstRoute,
+                  summary: `${group.label} common masters in the core workspace.`,
+                  icon: firstItem?.icon ?? Blocks,
+                  children: modules.filter((item) =>
+                    group.items.some((groupItem) => groupItem.route === item.route)
+                  ),
+                }
+              }),
+            },
+            {
+              id: `${app.id}-settings`,
+              label: "Settings",
+              shared: false,
+              items: modules.filter((item) =>
+                [
                   `/dashboard/apps/${app.id}/setup`,
                   `/dashboard/apps/${app.id}/core-settings`,
                 ].includes(item.route)

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
-import { CheckIcon, ChevronsUpDownIcon, MoreHorizontalIcon, PencilLineIcon } from "lucide-react"
+import { CheckIcon, ChevronsUpDownIcon, MoreHorizontalIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
 
 import {
   coreCommonModuleMenuGroups,
@@ -10,9 +10,11 @@ import {
   navigationSections,
   productModules,
   type BootstrapSnapshot,
+  type CommonModuleMetadata,
   type CommonModuleItem,
   type CommonModuleKey,
   type CommonModuleMetadataListResponse,
+  type CommonModuleRecordResponse,
   type CommonModuleSummaryListResponse,
   type CompanyListResponse,
   type Contact,
@@ -22,10 +24,17 @@ import {
 import type { BillingLedgerListResponse } from "@billing/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { MasterList } from "@/components/blocks/master-list"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +84,12 @@ type LookupOption = {
   value: string
 }
 
+type CommonModuleFormState = Record<string, string | boolean>
+
+type CommonModuleReferenceMap = Partial<Record<CommonModuleKey, CommonModuleItem[]>>
+
+type StatusFilterValue = "all" | "active" | "inactive"
+
 const defaultContactForm: ContactFormState = {
   addressLine1: "",
   addressLine2: "",
@@ -93,6 +108,58 @@ const defaultContactForm: ContactFormState = {
   primaryEmail: "",
   primaryPhone: "",
   website: "",
+}
+
+function matchesStatusFilter(statusFilter: StatusFilterValue, isActive: boolean) {
+  if (statusFilter === "all") {
+    return true
+  }
+
+  return statusFilter === "active" ? isActive : !isActive
+}
+
+function buildStatusFilters(
+  statusFilter: StatusFilterValue,
+  onChange: (value: StatusFilterValue) => void
+) {
+  return {
+    options: [
+      {
+        key: "all",
+        label: "All records",
+        isActive: statusFilter === "all",
+        onSelect: () => onChange("all"),
+      },
+      {
+        key: "active",
+        label: "Active only",
+        isActive: statusFilter === "active",
+        onSelect: () => onChange("active"),
+      },
+      {
+        key: "inactive",
+        label: "Inactive only",
+        isActive: statusFilter === "inactive",
+        onSelect: () => onChange("inactive"),
+      },
+    ],
+    activeFilters:
+      statusFilter === "all"
+        ? []
+        : [
+            {
+              key: "status",
+              label: "Status",
+              value: statusFilter === "active" ? "Active only" : "Inactive only",
+            },
+          ],
+    onRemoveFilter: (key: string) => {
+      if (key === "status") {
+        onChange("all")
+      }
+    },
+    onClearAllFilters: () => onChange("all"),
+  }
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -121,6 +188,99 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T
+}
+
+function toSingularLabel(label: string) {
+  if (label.endsWith("ies")) {
+    return `${label.slice(0, -3)}y`
+  }
+
+  if (label.endsWith("s")) {
+    return label.slice(0, -1)
+  }
+
+  return label
+}
+
+function getCommonModulePrimaryText(item: CommonModuleItem) {
+  for (const candidateKey of ["name", "title", "code", "area_name"] as const) {
+    const value = item[candidateKey]
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value
+    }
+  }
+
+  return item.id
+}
+
+function getCommonModuleOptionLabel(item: CommonModuleItem) {
+  const primaryText = getCommonModulePrimaryText(item)
+  const code = typeof item.code === "string" ? item.code.trim() : ""
+
+  if (code.length > 0 && code !== primaryText) {
+    return `${primaryText} (${code})`
+  }
+
+  return primaryText
+}
+
+function normalizeCommonModuleFormValue(value: unknown) {
+  if (typeof value === "boolean") {
+    return value
+  }
+
+  if (value === null || value === undefined) {
+    return ""
+  }
+
+  return String(value)
+}
+
+function toCommonModuleFormState(
+  metadata: CommonModuleMetadata,
+  item?: CommonModuleItem | null
+): CommonModuleFormState {
+  const formState: CommonModuleFormState = {
+    isActive: item?.isActive ?? true,
+  }
+
+  for (const column of metadata.columns) {
+    formState[column.key] = normalizeCommonModuleFormValue(item?.[column.key])
+  }
+
+  return formState
+}
+
+function formatCommonModuleCellValue(
+  item: CommonModuleItem,
+  column: CommonModuleMetadata["columns"][number],
+  references: CommonModuleReferenceMap
+) {
+  const value = item[column.key]
+
+  if (column.referenceModule) {
+    const referenceItem =
+      references[column.referenceModule]?.find((entry) => entry.id === value) ?? null
+    return referenceItem ? getCommonModuleOptionLabel(referenceItem) : "Not linked"
+  }
+
+  if (column.type === "boolean") {
+    return (
+      <Badge variant={value ? "secondary" : "outline"}>
+        {value ? "Yes" : "No"}
+      </Badge>
+    )
+  }
+
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? value.toString() : value.toFixed(2)
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value
+  }
+
+  return <span className="text-muted-foreground">-</span>
 }
 
 function useJsonResource<T>(path: string | null): ResourceState<T> {
@@ -471,6 +631,7 @@ function ContactsSection({
 }) {
   const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const { data, error, isLoading } =
@@ -485,15 +646,17 @@ function ContactsSection({
   }
 
   const normalizedSearch = searchValue.trim().toLowerCase()
-  const filteredContacts = data.items.filter((contact) =>
-    [
+  const filteredContacts = data.items.filter((contact) => {
+    const matchesSearch = [
       contact.name,
       contact.ledgerName ?? "",
       contact.primaryEmail ?? "",
       contact.primaryPhone ?? "",
       contact.description ?? "",
     ].some((value) => value.toLowerCase().includes(normalizedSearch))
-  )
+
+    return matchesSearch && matchesStatusFilter(statusFilter, contact.isActive)
+  })
   const totalRecords = filteredContacts.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -519,6 +682,10 @@ function ContactsSection({
         },
         placeholder: "Search contacts",
       }}
+      filters={buildStatusFilters(statusFilter, (value) => {
+        setStatusFilter(value)
+        setCurrentPage(1)
+      })}
       table={{
         columns: [
           {
@@ -1234,24 +1401,122 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
   const summaries = useJsonResource<CommonModuleSummaryListResponse>(
     "/internal/v1/core/common-modules/summary"
   )
-  const [selectedModule, setSelectedModule] = useState<CommonModuleKey>(
-    moduleKey ?? "productCategories"
-  )
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [referenceState, setReferenceState] = useState<{
+    data: CommonModuleReferenceMap
+    error: string | null
+    isLoading: boolean
+  }>({
+    data: {},
+    error: null,
+    isLoading: false,
+  })
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [activeItem, setActiveItem] = useState<CommonModuleItem | null>(null)
+  const [form, setForm] = useState<CommonModuleFormState>({ isActive: true })
+  const [formError, setFormError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const items = useJsonResource<{ module: CommonModuleKey; items: CommonModuleItem[] }>(
-    `/internal/v1/core/common-modules/items?module=${selectedModule}`
+    moduleKey ? `/internal/v1/core/common-modules/items?module=${moduleKey}&refresh=${refreshKey}` : null
   )
 
+  const metadataData = metadata.data
+  const summariesData = summaries.data
+  const itemsData = items.data
+  const activeMetadata =
+    moduleKey && metadataData
+      ? metadataData.modules.find((module) => module.key === moduleKey) ?? null
+      : null
+  const selectedMenuItem = moduleKey
+    ? coreCommonModuleMenuGroups.flatMap((group) => group.items).find((item) => item.key === moduleKey) ?? null
+    : null
+  const selectedSummary =
+    moduleKey && summariesData
+      ? summariesData.items.find((item) => item.key === moduleKey) ?? null
+      : null
+
   useEffect(() => {
-    if (moduleKey) {
-      setSelectedModule(moduleKey)
+    if (!activeMetadata) {
+      setReferenceState({ data: {}, error: null, isLoading: false })
+      return
     }
-  }, [moduleKey])
+
+    const referenceModules = Array.from(
+      new Set(
+        activeMetadata.columns
+          .map((column) => column.referenceModule)
+          .filter((value): value is CommonModuleKey => Boolean(value))
+      )
+    )
+
+    if (referenceModules.length === 0) {
+      setReferenceState({ data: {}, error: null, isLoading: false })
+      return
+    }
+
+    let cancelled = false
+
+    async function loadReferenceModules() {
+      setReferenceState({ data: {}, error: null, isLoading: true })
+
+      try {
+        const referenceItems = await Promise.all(
+          referenceModules.map(async (referenceModule) => {
+            const response = await requestJson<{ module: CommonModuleKey; items: CommonModuleItem[] }>(
+              `/internal/v1/core/common-modules/items?module=${referenceModule}`
+            )
+            return [referenceModule, response.items] as const
+          })
+        )
+
+        if (!cancelled) {
+          setReferenceState({
+            data: Object.fromEntries(referenceItems) as CommonModuleReferenceMap,
+            error: null,
+            isLoading: false,
+          })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setReferenceState({
+            data: {},
+            error: error instanceof Error ? error.message : "Failed to load lookup records.",
+            isLoading: false,
+          })
+        }
+      }
+    }
+
+    void loadReferenceModules()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeMetadata])
+
+  useEffect(() => {
+    if (!activeMetadata) {
+      return
+    }
+
+    setForm(toCommonModuleFormState(activeMetadata))
+    setActiveItem(null)
+    setDialogOpen(false)
+    setFormError(null)
+    setSearchValue("")
+    setStatusFilter("all")
+    setCurrentPage(1)
+  }, [activeMetadata])
 
   if (metadata.isLoading || summaries.isLoading) {
     return <StateCard message="Loading common modules." />
   }
 
-  if (metadata.error || summaries.error || !metadata.data || !summaries.data) {
+  if (metadata.error || summaries.error || !metadataData || !summariesData) {
     return (
       <StateCard
         message={metadata.error ?? summaries.error ?? "Common module data is unavailable."}
@@ -1259,119 +1524,424 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
     )
   }
 
-  const selectedMetadata =
-    metadata.data.modules.find((module) => module.key === selectedModule) ?? null
+  if (!moduleKey) {
+    return (
+      <SectionShell
+        title="Common Modules"
+        description="Shared master registries kept in core for cross-app dependency management."
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {summariesData.items.slice(0, 8).map((item) => (
+            <MetricCard
+              key={item.key}
+              label={item.label}
+              value={item.itemCount}
+              hint={`${item.activeCount} active records in the shared registry.`}
+            />
+          ))}
+        </div>
 
-  return (
-    <SectionShell
-      title="Common Modules"
-      description="Shared master registries kept in core for cross-app dependency management."
-    >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {summaries.data.items.slice(0, 8).map((item) => (
-          <MetricCard
-            key={item.key}
-            label={item.label}
-            value={item.itemCount}
-            hint={`${item.activeCount} active records in the shared registry.`}
-          />
-        ))}
-      </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {coreCommonModuleMenuGroups.map((group) => (
+            <Card key={group.id}>
+              <CardHeader>
+                <CardTitle>{group.label}</CardTitle>
+                <CardDescription>
+                  Shared core masters grouped for the operational sidebar layout.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                {group.items.map((item) => {
+                  const summary = summariesData.items.find((entry) => entry.key === item.key)
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Module Preview</CardTitle>
-          <CardDescription>
-            Review columns and sample records for a selected shared master.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            {coreCommonModuleMenuGroups.map((group) => (
-              <div key={group.id} className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {group.label}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {group.items.map((item) => (
-                    <button
+                  return (
+                    <a
                       key={item.id}
-                      type="button"
-                      onClick={() => setSelectedModule(item.key)}
-                      className={cn(
-                        "rounded-full border border-border/70 px-3 py-1.5 text-sm transition hover:border-accent/40",
-                        selectedModule === item.key
-                          ? "border-accent/60 bg-accent/10 text-foreground"
-                          : undefined
-                      )}
+                      href={item.route}
+                      className="rounded-xl border border-border/70 bg-card/70 p-4 transition hover:border-accent/40 hover:bg-card"
                     >
-                      {item.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {selectedMetadata ? (
-            <Accordion type="single" collapsible defaultValue="columns">
-              <AccordionItem value="columns">
-                <AccordionTrigger>Columns for {selectedMetadata.label}</AccordionTrigger>
-                <AccordionContent className="space-y-2">
-                  {selectedMetadata.columns.map((column) => (
-                    <div
-                      key={column.key}
-                      className="rounded-xl border border-border/70 bg-card/70 p-3 text-sm"
-                    >
-                      <p className="font-medium text-foreground">{column.label}</p>
-                      <p className="text-muted-foreground">
-                        {column.key} · {column.type}
-                        {column.referenceModule ? ` · ${column.referenceModule}` : ""}
+                      <p className="font-medium text-foreground">{item.name}</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+                      <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                        {summary?.itemCount ?? 0} records
                       </p>
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          ) : null}
-
-          {items.isLoading ? (
-            <StateCard message="Loading module items." />
-          ) : items.error || !items.data ? (
-            <StateCard message={items.error ?? "Module items are unavailable."} />
-          ) : (
-            <Card className="border border-border/70 shadow-none">
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Record</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.data.items.slice(0, 6).map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="text-sm text-muted-foreground">
-                          <pre className="whitespace-pre-wrap font-mono text-xs">
-                            {JSON.stringify(item, null, 2)}
-                          </pre>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={item.isActive ? "default" : "outline"}>
-                            {item.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </a>
+                  )
+                })}
               </CardContent>
             </Card>
-          )}
-        </CardContent>
-      </Card>
-    </SectionShell>
+          ))}
+        </div>
+      </SectionShell>
+    )
+  }
+
+  if (!activeMetadata) {
+    return <StateCard message="Common module metadata is unavailable." />
+  }
+
+  if (items.isLoading || referenceState.isLoading) {
+    return <StateCard message={`Loading ${activeMetadata.label.toLowerCase()}.`} />
+  }
+
+  if (items.error || !itemsData) {
+    return <StateCard message={items.error ?? "Module items are unavailable."} />
+  }
+
+  if (referenceState.error) {
+    return <StateCard message={referenceState.error} />
+  }
+
+  const resolvedMetadata = activeMetadata
+  const normalizedSearch = searchValue.trim().toLowerCase()
+  const filteredItems = itemsData.items.filter((item) => {
+    const matchesSearch = [
+      getCommonModulePrimaryText(item),
+      ...resolvedMetadata.columns.map((column) => {
+        const value = item[column.key]
+
+        if (column.referenceModule) {
+          const referenceItem =
+            referenceState.data[column.referenceModule]?.find((entry) => entry.id === value) ?? null
+          return referenceItem ? getCommonModuleOptionLabel(referenceItem) : ""
+        }
+
+        return value == null ? "" : String(value)
+      }),
+    ].some((value) => value.toLowerCase().includes(normalizedSearch))
+
+    return matchesSearch && matchesStatusFilter(statusFilter, item.isActive)
+  })
+  const totalRecords = filteredItems.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedItems = filteredItems.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  )
+  const singularLabel = toSingularLabel(resolvedMetadata.label)
+  const visibleColumns = resolvedMetadata.columns.slice(0, 4)
+
+  function handleFormChange(field: string, value: string | boolean) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  function openCreateDialog() {
+    setActiveItem(null)
+    setForm(toCommonModuleFormState(resolvedMetadata))
+    setFormError(null)
+    setDialogOpen(true)
+  }
+
+  function openEditDialog(item: CommonModuleItem) {
+    setActiveItem(item)
+    setForm(toCommonModuleFormState(resolvedMetadata, item))
+    setFormError(null)
+    setDialogOpen(true)
+  }
+
+  async function handleSave() {
+    setFormError(null)
+    setIsSaving(true)
+
+    try {
+      const payload = Object.fromEntries(
+        resolvedMetadata.columns.map((column) => [column.key, form[column.key]])
+      )
+
+      if (activeItem) {
+        await requestJson<CommonModuleRecordResponse>(
+          `/internal/v1/core/common-modules/item?module=${moduleKey}&id=${encodeURIComponent(activeItem.id)}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              ...payload,
+              isActive: Boolean(form.isActive),
+            }),
+          }
+        )
+      } else {
+        await requestJson<CommonModuleRecordResponse>(
+          `/internal/v1/core/common-modules/items?module=${moduleKey}`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              ...payload,
+              isActive: Boolean(form.isActive),
+            }),
+          }
+        )
+      }
+
+      setDialogOpen(false)
+      setActiveItem(null)
+      setRefreshKey((current) => current + 1)
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : `Failed to save ${singularLabel.toLowerCase()}.`
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDelete(itemId: string) {
+    setFormError(null)
+
+    try {
+      await requestJson<{ deleted: true; id: string }>(
+        `/internal/v1/core/common-modules/item?module=${moduleKey}&id=${encodeURIComponent(itemId)}`,
+        {
+          method: "DELETE",
+        }
+      )
+      setRefreshKey((current) => current + 1)
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : `Failed to delete ${singularLabel.toLowerCase()}.`
+      )
+    }
+  }
+
+  return (
+    <>
+      <MasterList
+        header={{
+          pageTitle: resolvedMetadata.label,
+          pageDescription:
+            selectedMenuItem?.summary ??
+            `${resolvedMetadata.label} shared master records maintained in the core workspace.`,
+          addLabel: `New ${singularLabel}`,
+          onAddClick: openCreateDialog,
+        }}
+        search={{
+          value: searchValue,
+          onChange: (value) => {
+            setSearchValue(value)
+            setCurrentPage(1)
+          },
+          placeholder: `Search ${resolvedMetadata.label.toLowerCase()}`,
+        }}
+        filters={buildStatusFilters(statusFilter, (value) => {
+          setStatusFilter(value)
+          setCurrentPage(1)
+        })}
+        table={{
+          columns: [
+            {
+              id: "serial",
+              header: "Sl.No",
+              cell: (item) =>
+                (safeCurrentPage - 1) * pageSize +
+                paginatedItems.findIndex((entry) => entry.id === item.id) +
+                1,
+              className: "w-12 min-w-12 px-2 text-center",
+              headerClassName: "w-12 min-w-12 px-2 text-center",
+              sticky: "left",
+            },
+            ...visibleColumns.map((column) => ({
+              id: column.key,
+              header: column.label,
+              sortable: true,
+              accessor: (item: CommonModuleItem) => {
+                const value = item[column.key]
+
+                if (column.referenceModule) {
+                  const referenceItem =
+                    referenceState.data[column.referenceModule]?.find((entry) => entry.id === value) ?? null
+                  return referenceItem ? getCommonModuleOptionLabel(referenceItem) : ""
+                }
+
+                return typeof value === "boolean" ? (value ? "yes" : "no") : value
+              },
+              cell: (item: CommonModuleItem) =>
+                formatCommonModuleCellValue(item, column, referenceState.data),
+            })),
+            {
+              id: "status",
+              header: "Status",
+              sortable: true,
+              accessor: (item: CommonModuleItem) => (item.isActive ? "active" : "inactive"),
+              cell: (item: CommonModuleItem) => (
+                <Badge variant={item.isActive ? "secondary" : "outline"}>
+                  {item.isActive ? "Active" : "Inactive"}
+                </Badge>
+              ),
+            },
+            {
+              id: "actions",
+              header: "Actions",
+              cell: (item: CommonModuleItem) => (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full">
+                      <MoreHorizontalIcon className="size-4" />
+                      <span className="sr-only">Open common module actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem className="gap-2" onSelect={() => openEditDialog(item)}>
+                      <PencilLineIcon className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2 text-destructive focus:text-destructive"
+                      onSelect={() => {
+                        void handleDelete(item.id)
+                      }}
+                    >
+                      <Trash2Icon className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ),
+              className: "w-20 min-w-20 text-right",
+              headerClassName: "w-20 min-w-20 text-right",
+            },
+          ],
+          data: paginatedItems,
+          emptyMessage: `No ${resolvedMetadata.label.toLowerCase()} found.`,
+          rowKey: (item) => item.id,
+        }}
+        footer={{
+          content: (
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Total records: <span className="font-medium text-foreground">{totalRecords}</span>
+              </span>
+              <span>
+                Active records:{" "}
+                <span className="font-medium text-foreground">
+                  {filteredItems.filter((item) => item.isActive).length}
+                </span>
+              </span>
+              {selectedSummary ? (
+                <span>
+                  Seeded baseline:{" "}
+                  <span className="font-medium text-foreground">{selectedSummary.itemCount}</span>
+                </span>
+              ) : null}
+            </div>
+          ),
+        }}
+        pagination={{
+          currentPage: safeCurrentPage,
+          pageSize,
+          totalRecords,
+          onPageChange: setCurrentPage,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize)
+            setCurrentPage(1)
+          },
+          pageSizeOptions: [10, 20, 50, 100, 200, 500],
+        }}
+      />
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(nextOpen) => {
+          setDialogOpen(nextOpen)
+          if (!nextOpen) {
+            setFormError(null)
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {activeItem ? `Update ${singularLabel}` : `Create ${singularLabel}`}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedMenuItem?.summary ??
+                `Maintain ${resolvedMetadata.label.toLowerCase()} from the shared core workspace.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {resolvedMetadata.columns.map((column) => {
+              const value = form[column.key]
+              const isDescriptionField =
+                column.key.includes("description") || column.key.includes("address")
+
+              return (
+                <div key={column.key} className="space-y-2">
+                  <label className="text-sm font-medium text-foreground" htmlFor={`common-module-${column.key}`}>
+                    {column.label}
+                  </label>
+                  {column.referenceModule ? (
+                    <AutocompleteLookupField
+                      value={typeof value === "string" ? value : ""}
+                      onChange={(nextValue) => handleFormChange(column.key, nextValue)}
+                      options={(referenceState.data[column.referenceModule] ?? []).map((item) => ({
+                        label: getCommonModuleOptionLabel(item),
+                        value: item.id,
+                      }))}
+                      placeholder={`Search ${column.label.toLowerCase()}`}
+                      allowEmptyOption={column.nullable}
+                      emptyOptionLabel={column.nullable ? "Not linked" : "Select option"}
+                    />
+                  ) : column.type === "boolean" ? (
+                    <label className="flex items-center gap-3 rounded-xl border border-border/70 px-3 py-2">
+                      <input
+                        id={`common-module-${column.key}`}
+                        type="checkbox"
+                        checked={Boolean(value)}
+                        onChange={(event) => handleFormChange(column.key, event.target.checked)}
+                      />
+                      <span className="text-sm text-foreground">{column.label}</span>
+                    </label>
+                  ) : isDescriptionField ? (
+                    <Textarea
+                      id={`common-module-${column.key}`}
+                      value={typeof value === "string" ? value : ""}
+                      onChange={(event) => handleFormChange(column.key, event.target.value)}
+                      rows={4}
+                    />
+                  ) : (
+                    <Input
+                      id={`common-module-${column.key}`}
+                      type={column.type === "number" ? "number" : "text"}
+                      step={column.type === "number" ? "any" : undefined}
+                      value={typeof value === "string" ? value : ""}
+                      onChange={(event) => handleFormChange(column.key, event.target.value)}
+                    />
+                  )}
+                </div>
+              )
+            })}
+
+            <label className="flex items-center gap-3 rounded-xl border border-border/70 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={Boolean(form.isActive)}
+                onChange={(event) => handleFormChange("isActive", event.target.checked)}
+              />
+              <span className="text-sm text-foreground">Active</span>
+            </label>
+
+            {formError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void handleSave()} disabled={isSaving}>
+              {isSaving
+                ? "Saving..."
+                : activeItem
+                  ? `Update ${singularLabel}`
+                  : `Create ${singularLabel}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

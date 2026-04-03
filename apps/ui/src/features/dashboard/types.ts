@@ -18,6 +18,7 @@ export type DashboardWorkspaceLink = {
 
 export type DashboardMenuItem = DashboardWorkspaceLink & {
   matchRoutes?: string[]
+  children?: DashboardMenuItem[]
 }
 
 export type DashboardMenuGroup = {

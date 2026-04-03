@@ -8,6 +8,15 @@
 
 ## v-0.0.1
 
+### [#21] 2026-04-03 - Core common module list alignment
+
+- replaced the generic core common-module preview screen with module-specific list pages in the shared `CommonList` tone
+- added generic internal core common-module create, update, and delete support over the physical shared master tables
+- introduced popup upsert flows for core common modules, including lookup-based reference selection for dependent masters such as state, city, pincode, and warehouse records
+- reorganized the core desk navigation so shared masters live under a grouped `Common` branch with requested subgroup lanes aligned to the billing-style workspace pattern
+- hid the oversized workspace hero on list-first core common-module screens so the resulting layout matches the requested operational list presentation
+- added shared `All records`, `Active only`, and `Inactive only` dropdown filters with clear-to-all behavior on status-aware common and billing master lists
+
 ### [#20] 2026-04-02 - Billing account master alignment and support docs
 
 - replaced billing ledger groups with app-owned billing categories, seeded top-level accounting buckets, and mapped billing ledgers to the new category structure

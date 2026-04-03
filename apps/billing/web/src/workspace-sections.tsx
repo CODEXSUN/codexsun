@@ -75,6 +75,60 @@ type ResourceState = {
   vouchers: BillingVoucher[]
 }
 
+type StatusFilterValue = "all" | "active" | "inactive"
+
+function matchesStatusFilter(statusFilter: StatusFilterValue, isActive: boolean) {
+  if (statusFilter === "all") {
+    return true
+  }
+
+  return statusFilter === "active" ? isActive : !isActive
+}
+
+function buildStatusFilters(
+  statusFilter: StatusFilterValue,
+  onChange: (value: StatusFilterValue) => void
+) {
+  return {
+    options: [
+      {
+        key: "all",
+        label: "All records",
+        isActive: statusFilter === "all",
+        onSelect: () => onChange("all"),
+      },
+      {
+        key: "active",
+        label: "Active only",
+        isActive: statusFilter === "active",
+        onSelect: () => onChange("active"),
+      },
+      {
+        key: "inactive",
+        label: "Inactive only",
+        isActive: statusFilter === "inactive",
+        onSelect: () => onChange("inactive"),
+      },
+    ],
+    activeFilters:
+      statusFilter === "all"
+        ? []
+        : [
+            {
+              key: "status",
+              label: "Status",
+              value: statusFilter === "active" ? "Active only" : "Inactive only",
+            },
+          ],
+    onRemoveFilter: (key: string) => {
+      if (key === "status") {
+        onChange("all")
+      }
+    },
+    onClearAllFilters: () => onChange("all"),
+  }
+}
+
 function createEmptyReports(): BillingAccountingReports {
   return {
     trialBalance: {
@@ -2331,6 +2385,7 @@ function ChartOfAccountsSection({
   onSave: () => void
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
 
@@ -2341,7 +2396,7 @@ function ChartOfAccountsSection({
       [category.name, category.description]
         .some((value) => value.toLowerCase().includes(normalizedSearch))
 
-    return matchesSearch
+    return matchesSearch && matchesStatusFilter(statusFilter, !category.deletedAt)
   })
   const totalRecords = filteredCategories.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -2369,6 +2424,10 @@ function ChartOfAccountsSection({
           },
           placeholder: "Search billing categories",
         }}
+        filters={buildStatusFilters(statusFilter, (value) => {
+          setStatusFilter(value)
+          setCurrentPage(1)
+        })}
         table={{
           columns: [
             {
@@ -3199,14 +3258,17 @@ function VoucherGroupMasterSection({
   onSave: () => void
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const normalizedSearch = searchValue.trim().toLowerCase()
-  const filteredGroups = groups.filter((group) =>
-    [group.name, group.description].some((value) =>
+  const filteredGroups = groups.filter((group) => {
+    const matchesSearch = [group.name, group.description].some((value) =>
       value.toLowerCase().includes(normalizedSearch)
     )
-  )
+
+    return matchesSearch && matchesStatusFilter(statusFilter, !group.deletedAt)
+  })
   const totalRecords = filteredGroups.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -3233,6 +3295,10 @@ function VoucherGroupMasterSection({
           },
           placeholder: "Search voucher groups",
         }}
+        filters={buildStatusFilters(statusFilter, (value) => {
+          setStatusFilter(value)
+          setCurrentPage(1)
+        })}
         table={{
           columns: [
             {
@@ -3388,14 +3454,17 @@ function VoucherTypeMasterSection({
   types: BillingVoucherMasterType[]
 }) {
   const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const normalizedSearch = searchValue.trim().toLowerCase()
-  const filteredTypes = types.filter((type) =>
-    [type.name, type.voucherGroupName, type.description].some((value) =>
+  const filteredTypes = types.filter((type) => {
+    const matchesSearch = [type.name, type.voucherGroupName, type.description].some((value) =>
       value.toLowerCase().includes(normalizedSearch)
     )
-  )
+
+    return matchesSearch && matchesStatusFilter(statusFilter, !type.deletedAt)
+  })
   const totalRecords = filteredTypes.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -3425,6 +3494,10 @@ function VoucherTypeMasterSection({
           },
           placeholder: "Search voucher types",
         }}
+        filters={buildStatusFilters(statusFilter, (value) => {
+          setStatusFilter(value)
+          setCurrentPage(1)
+        })}
         table={{
           columns: [
             {

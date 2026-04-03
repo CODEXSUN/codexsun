@@ -30,6 +30,10 @@ function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
 }
 
+function isMenuItemActive(pathname: string, item: DashboardAppDefinition["menuGroups"][number]["items"][number]) {
+  return isRouteActive(pathname, item.route) || item.children?.some((child) => isRouteActive(pathname, child.route)) || false
+}
+
 function GroupedAppMenu({
   app,
   groupLabel,
@@ -121,14 +125,47 @@ function GroupedAppMenu({
                     <SidebarMenuSub>
                       {group.items.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isRouteActive(pathname, item.route)}
-                          >
-                            <NavLink to={item.route}>
-                              <span>{item.name}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
+                          {item.children && item.children.length > 0 ? (
+                            <Collapsible
+                              defaultOpen={item.children.some((child) =>
+                                isRouteActive(pathname, child.route)
+                              )}
+                              className="group/collapsible"
+                            >
+                              <CollapsibleTrigger asChild>
+                                <SidebarMenuSubButton isActive={isMenuItemActive(pathname, item)}>
+                                  <span>{item.name}</span>
+                                  <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                </SidebarMenuSubButton>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="mt-2 ml-4 space-y-1 border-l border-sidebar-border pl-3">
+                                  {item.children.map((child) => (
+                                    <NavLink
+                                      key={child.id}
+                                      to={child.route}
+                                      className={({ isActive }) =>
+                                        isActive || isRouteActive(pathname, child.route)
+                                          ? "flex rounded-lg px-3 py-1.5 text-sm font-medium text-sidebar-accent-foreground bg-sidebar-accent"
+                                          : "flex rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                      }
+                                    >
+                                      <span>{child.name}</span>
+                                    </NavLink>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ) : (
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isRouteActive(pathname, item.route)}
+                            >
+                              <NavLink to={item.route}>
+                                <span>{item.name}</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          )}
                         </SidebarMenuSubItem>
                       ))}
                     </SidebarMenuSub>

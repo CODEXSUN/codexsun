@@ -91,6 +91,250 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
 })
 
+test("internal route registry includes the core common-module CRUD endpoints", () => {
+  const routes = createInternalApiRoutes(createAppSuite())
+  const routePaths = routes.map((route) => `${route.method} ${route.path}`)
+
+  assert.ok(routePaths.includes("GET /internal/v1/core/common-modules/metadata"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/common-modules/summary"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/common-modules/items"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/common-modules/item"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/common-modules/items"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/core/common-modules/item"))
+  assert.ok(routePaths.includes("DELETE /internal/v1/core/common-modules/item"))
+})
+
+test("authenticated core common-module routes list and mutate shared master records", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-common-module-routes-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const listRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/core/common-modules/items"
+      )
+      const createRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/core/common-modules/items"
+      )
+      const readRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/core/common-modules/item"
+      )
+      const updateRoute = routes.find(
+        (candidate) =>
+          candidate.method === "PATCH" && candidate.path === "/internal/v1/core/common-modules/item"
+      )
+      const deleteRoute = routes.find(
+        (candidate) =>
+          candidate.method === "DELETE" && candidate.path === "/internal/v1/core/common-modules/item"
+      )
+
+      assert.ok(listRoute)
+      assert.ok(createRoute)
+      assert.ok(readRoute)
+      assert.ok(updateRoute)
+      assert.ok(deleteRoute)
+
+      const listResponse = await listRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/common-modules/items",
+          url: new URL("http://localhost/internal/v1/core/common-modules/items?module=countries"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: listRoute.auth,
+          path: listRoute.path,
+          surface: listRoute.surface,
+          version: listRoute.version,
+        },
+      })
+
+      const listedPayload = JSON.parse(listResponse.body) as {
+        module: string
+        items: Array<{ id: string; name: string }>
+      }
+
+      assert.equal(listResponse.statusCode, 200)
+      assert.equal(listedPayload.module, "countries")
+      assert.ok(listedPayload.items.some((item) => item.name === "India"))
+
+      const createResponse = await createRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/common-modules/items",
+          url: new URL("http://localhost/internal/v1/core/common-modules/items?module=countries"),
+          headers,
+          bodyText: JSON.stringify({
+            code: "SG",
+            name: "Singapore",
+            phone_code: "+65",
+            isActive: true,
+          }),
+          jsonBody: {
+            code: "SG",
+            name: "Singapore",
+            phone_code: "+65",
+            isActive: true,
+          },
+        },
+        route: {
+          auth: createRoute.auth,
+          path: createRoute.path,
+          surface: createRoute.surface,
+          version: createRoute.version,
+        },
+      })
+
+      const createdPayload = JSON.parse(createResponse.body) as {
+        item: { id: string; code: string; name: string }
+      }
+
+      assert.equal(createResponse.statusCode, 201)
+      assert.equal(createdPayload.item.name, "Singapore")
+
+      const readResponse = await readRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/common-modules/item",
+          url: new URL(
+            `http://localhost/internal/v1/core/common-modules/item?module=countries&id=${encodeURIComponent(createdPayload.item.id)}`
+          ),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readRoute.auth,
+          path: readRoute.path,
+          surface: readRoute.surface,
+          version: readRoute.version,
+        },
+      })
+
+      const readPayload = JSON.parse(readResponse.body) as {
+        item: { code: string; name: string }
+      }
+
+      assert.equal(readResponse.statusCode, 200)
+      assert.equal(readPayload.item.code, "SG")
+
+      const updateResponse = await updateRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/core/common-modules/item",
+          url: new URL(
+            `http://localhost/internal/v1/core/common-modules/item?module=countries&id=${encodeURIComponent(createdPayload.item.id)}`
+          ),
+          headers,
+          bodyText: JSON.stringify({
+            code: "SG",
+            name: "Singapore HQ",
+            phone_code: "+65",
+            isActive: false,
+          }),
+          jsonBody: {
+            code: "SG",
+            name: "Singapore HQ",
+            phone_code: "+65",
+            isActive: false,
+          },
+        },
+        route: {
+          auth: updateRoute.auth,
+          path: updateRoute.path,
+          surface: updateRoute.surface,
+          version: updateRoute.version,
+        },
+      })
+
+      const updatedPayload = JSON.parse(updateResponse.body) as {
+        item: { isActive: boolean; name: string }
+      }
+
+      assert.equal(updateResponse.statusCode, 200)
+      assert.equal(updatedPayload.item.name, "Singapore HQ")
+      assert.equal(updatedPayload.item.isActive, false)
+
+      const deleteResponse = await deleteRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "DELETE",
+          pathname: "/internal/v1/core/common-modules/item",
+          url: new URL(
+            `http://localhost/internal/v1/core/common-modules/item?module=countries&id=${encodeURIComponent(createdPayload.item.id)}`
+          ),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: deleteRoute.auth,
+          path: deleteRoute.path,
+          surface: deleteRoute.surface,
+          version: deleteRoute.version,
+        },
+      })
+
+      const deletePayload = JSON.parse(deleteResponse.body) as {
+        deleted: boolean
+        id: string
+      }
+
+      assert.equal(deleteResponse.statusCode, 200)
+      assert.equal(deletePayload.deleted, true)
+      assert.equal(deletePayload.id, createdPayload.item.id)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("authenticated billing internal routes return categories, vouchers, reports, and accept voucher posting", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-routes-"))
 

@@ -49,8 +49,8 @@ export const coreCommonModuleMenuGroups: CoreCommonModuleMenuGroup[] = [
     ],
   },
   {
-    id: "catalog",
-    label: "Catalog",
+    id: "product",
+    label: "Product",
     items: [
       defineCommonModuleItem("productGroups", "Product Groups", "Top-level product grouping."),
       defineCommonModuleItem("productCategories", "Product Categories", "Sell-side category classification."),
@@ -65,8 +65,8 @@ export const coreCommonModuleMenuGroups: CoreCommonModuleMenuGroup[] = [
     ],
   },
   {
-    id: "inventory",
-    label: "Inventory",
+    id: "order",
+    label: "Order",
     items: [
       defineCommonModuleItem("warehouses", "Warehouses", "Warehouse and stock location records."),
       defineCommonModuleItem("transports", "Transports", "Transport method master."),
@@ -75,17 +75,11 @@ export const coreCommonModuleMenuGroups: CoreCommonModuleMenuGroup[] = [
     ],
   },
   {
-    id: "commercial",
-    label: "Commercial",
+    id: "others",
+    label: "Others",
     items: [
       defineCommonModuleItem("currencies", "Currencies", "Currency code and symbol defaults."),
       defineCommonModuleItem("paymentTerms", "Payment Terms", "Payment due-day rules for trade flows."),
-    ],
-  },
-  {
-    id: "storefront",
-    label: "Storefront",
-    items: [
       defineCommonModuleItem("storefrontTemplates", "Storefront Templates", "Home-page copy and CTA template content for storefront delivery."),
       defineCommonModuleItem("sliderThemes", "Slider Themes", "Hero-slider gradients, CTA labels, and navigation styling."),
     ],
