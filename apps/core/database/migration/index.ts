@@ -7,6 +7,8 @@ import { coreAuthSessionsMigration } from "./06-auth-sessions.js"
 import { coreMailboxMigration } from "./07-mailbox.js"
 import { coreCommonModuleTablesMigration } from "./08-common-module-tables.js"
 import { coreCommonModuleTableBackfillMigration } from "./09-common-module-table-backfill.js"
+import { coreContactCodeBackfillMigration } from "./10-contact-code-backfill.js"
+import { coreCommonModuleSeedSyncMigration } from "./11-common-module-seed-sync.js"
 
 export const coreDatabaseMigrations = [
   coreBootstrapMigration,
@@ -18,4 +20,6 @@ export const coreDatabaseMigrations = [
   coreMailboxMigration,
   coreCommonModuleTablesMigration,
   coreCommonModuleTableBackfillMigration,
+  coreContactCodeBackfillMigration,
+  coreCommonModuleSeedSyncMigration,
 ]

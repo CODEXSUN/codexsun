@@ -17,6 +17,7 @@ export function SearchableLookupField({
   createActionLabel,
   disabled,
   emptyOptionLabel = "Select",
+  error,
   noResultsMessage = "No records found.",
   onCreateNew,
   onValueChange,
@@ -29,6 +30,7 @@ export function SearchableLookupField({
   createActionLabel?: string
   disabled?: boolean
   emptyOptionLabel?: string
+  error?: string | null
   noResultsMessage?: string
   onCreateNew?: (query: string) => void
   onValueChange: (value: string) => void
@@ -319,7 +321,12 @@ export function SearchableLookupField({
         type="button"
         ref={triggerRef}
         disabled={disabled}
-        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          "flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
+          error
+            ? "border-destructive focus-visible:border-destructive/70 focus-visible:ring-destructive/25"
+            : undefined
+        )}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
       >

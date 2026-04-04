@@ -91,7 +91,7 @@ export const authRoles: AuthRole[] = [
   defineRole({
     key: "admin_owner",
     actorType: "admin",
-    name: "Admin Owner",
+    name: "Super Admin",
     summary: "Full platform administration across the suite.",
     permissions: authPermissions,
   }),

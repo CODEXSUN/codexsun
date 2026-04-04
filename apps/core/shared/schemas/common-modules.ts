@@ -9,6 +9,7 @@ const commonModuleKeys = [
   "contactGroups",
   "contactTypes",
   "addressTypes",
+  "bankNames",
   "productGroups",
   "productCategories",
   "productTypes",

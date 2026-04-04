@@ -1316,6 +1316,7 @@ function ContactShowSection({ contactId }: { contactId: string }) {
         </CardHeader>
         <CardContent className="grid gap-6 p-5 md:grid-cols-2 xl:grid-cols-4">
           <DetailField label="Contact Name" value={contact.name} />
+          <DetailField label="Contact Code" value={contact.code} />
           <DetailField label="Legal Name" value={formatNullableDetail(contact.legalName)} />
           <DetailField label="Contact Type Id" value={formatNullableDetail(contact.contactTypeId)} />
           <DetailField label="Ledger Id" value={formatNullableDetail(contact.ledgerId)} />
@@ -1562,6 +1563,7 @@ function ContactsSection({
   const normalizedSearch = searchValue.trim().toLowerCase()
   const filteredContacts = data.items.filter((contact) => {
     const matchesSearch = [
+      contact.code,
       contact.name,
       contact.ledgerName ?? "",
       contact.primaryEmail ?? "",
@@ -1612,7 +1614,7 @@ function ContactsSection({
             id: "name",
             header: "Contact",
             sortable: true,
-            accessor: (contact) => contact.name,
+            accessor: (contact) => `${contact.code} ${contact.name}`,
             cell: (contact) => (
               <button
                 type="button"
@@ -1625,7 +1627,7 @@ function ContactsSection({
                   {contact.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {contact.description ?? "No description"}
+                  {contact.code} {contact.description ? `• ${contact.description}` : ""}
                 </p>
               </button>
             ),

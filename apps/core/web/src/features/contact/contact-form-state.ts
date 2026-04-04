@@ -12,7 +12,7 @@ import type {
 export type ContactFormValues = ContactUpsertPayload
 export type ContactLookupModuleKey = Extract<
   CommonModuleKey,
-  "contactTypes" | "addressTypes" | "countries" | "states" | "districts" | "cities" | "pincodes"
+  "contactTypes" | "addressTypes" | "bankNames" | "countries" | "states" | "districts" | "cities" | "pincodes"
 >
 
 export type LocalOption = {
@@ -88,6 +88,7 @@ export function createEmptyContactGst(): ContactGstDetailInput {
 
 export function createDefaultContactFormValues(): ContactFormValues {
   return {
+    code: "",
     contactTypeId: "1",
     ledgerId: null,
     ledgerName: null,
@@ -113,6 +114,7 @@ export function createDefaultContactFormValues(): ContactFormValues {
 
 export function toContactFormValues(contact: Contact): ContactFormValues {
   return {
+    code: contact.code,
     contactTypeId: contact.contactTypeId ?? "1",
     ledgerId: contact.ledgerId ?? null,
     ledgerName: contact.ledgerName ?? null,

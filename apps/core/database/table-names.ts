@@ -7,6 +7,7 @@ export const commonModuleTableNames = {
   contactGroups: "common_contact_groups",
   contactTypes: "common_contact_types",
   addressTypes: "common_address_types",
+  bankNames: "common_bank_names",
   productGroups: "common_product_groups",
   productCategories: "common_product_categories",
   productTypes: "common_product_types",

@@ -28,7 +28,7 @@ import type { LocalOption } from "./contact-form-state"
 export function ContactFormMessage({ children }: { children: ReactNode }) {
   return (
     <Card className="border-amber-200/70 bg-amber-50/70 shadow-sm">
-      <CardContent className="p-4 text-sm text-amber-950">{children}</CardContent>
+      <CardContent className="whitespace-pre-wrap p-4 text-sm text-amber-950">{children}</CardContent>
     </Card>
   )
 }
@@ -138,12 +138,14 @@ export function ContactStatusField({
 }
 
 export function ContactSelectField({
+  error,
   label,
   onValueChange,
   options,
   placeholder,
   value,
 }: {
+  error?: string | null
   label: string
   onValueChange: (value: string) => void
   options: LocalOption[]
@@ -151,9 +153,16 @@ export function ContactSelectField({
   value: string
 }) {
   return (
-    <ContactField label={label}>
+    <ContactField label={label} error={error}>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger
+          className={cn(
+            "w-full",
+            error
+              ? "border-destructive focus-visible:border-destructive/70 focus-visible:ring-destructive/25"
+              : undefined
+          )}
+        >
           <SelectValue placeholder={placeholder ?? `Select ${label.toLowerCase()}`} />
         </SelectTrigger>
         <SelectContent>
@@ -170,6 +179,7 @@ export function ContactSelectField({
 
 export function ContactLookupField({
   createActionLabel,
+  error,
   items,
   label,
   onCreateNew,
@@ -177,6 +187,7 @@ export function ContactLookupField({
   value,
 }: {
   createActionLabel?: string
+  error?: string | null
   items: CommonModuleItem[]
   label: string
   onCreateNew?: (query: string) => void
@@ -198,7 +209,7 @@ export function ContactLookupField({
   })
 
   return (
-    <ContactField label={label}>
+    <ContactField label={label} error={error}>
       <SearchableLookupField
         value={value === "1" ? undefined : value}
         onValueChange={onValueChange}
@@ -208,6 +219,7 @@ export function ContactLookupField({
         noResultsMessage={`No ${label.toLowerCase()} found.`}
         createActionLabel={createActionLabel}
         onCreateNew={onCreateNew}
+        error={error}
       />
     </ContactField>
   )
@@ -230,6 +242,20 @@ export function ContactCheckboxField({
   )
 }
 
-export function ContactTextField(props: React.ComponentProps<typeof Input>) {
-  return <Input {...props} />
+export function ContactTextField({
+  className,
+  error,
+  ...props
+}: React.ComponentProps<typeof Input> & { error?: string | null }) {
+  return (
+    <Input
+      {...props}
+      className={cn(
+        className,
+        error
+          ? "border-destructive focus-visible:border-destructive/70 focus-visible:ring-destructive/25"
+          : undefined
+      )}
+    />
+  )
 }

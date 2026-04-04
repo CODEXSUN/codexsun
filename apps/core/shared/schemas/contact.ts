@@ -63,6 +63,7 @@ export const contactGstDetailSchema = z.object({
 export const contactSummarySchema = z.object({
   id: z.string().min(1),
   uuid: z.string().min(1),
+  code: z.string().min(1),
   contactTypeId: z.string().trim().min(1).nullable().default(null),
   ledgerId: z.string().trim().min(1).nullable().default(null),
   ledgerName: z.string().trim().min(1).nullable().default(null),
@@ -125,6 +126,7 @@ export const contactGstDetailInputSchema = z.object({
 
 export const contactUpsertPayloadSchema = z
   .object({
+    code: dashStringField,
     contactTypeId: z.string().trim().min(1).nullable().default(null),
     ledgerId: z.string().trim().min(1).nullable().default(null),
     ledgerName: z.string().trim().min(1).nullable().default(null),

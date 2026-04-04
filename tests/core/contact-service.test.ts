@@ -81,6 +81,7 @@ test("core contact service supports create update and delete CRUD with linked le
       await prepareApplicationDatabase(runtime)
 
       const created = await createContact(runtime.primary, adminUser, {
+        code: "",
         ledgerId: "ledger-sundry-debtors",
         ledgerName: "Sundry Debtors",
         name: "Lakshmi Stores",
@@ -136,9 +137,11 @@ test("core contact service supports create update and delete CRUD with linked le
 
       assert.equal(created.item.ledgerId, "ledger-sundry-debtors")
       assert.equal(created.item.primaryEmail, "accounts@lakshmi.example.com")
+      assert.match(created.item.code, /^C\d{4}$/)
 
       const updated = await updateContact(runtime.primary, adminUser, created.item.id, {
         ...{
+          code: created.item.code,
           ledgerId: "ledger-sundry-creditors",
           ledgerName: "Sundry Creditors",
           name: "Lakshmi Stores",
@@ -185,6 +188,148 @@ test("core contact service supports create update and delete CRUD with linked le
 
       const listedAfterDelete = await listContacts(runtime.primary)
       assert.equal(listedAfterDelete.items.some((item) => item.id === created.item.id), false)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("core contact service allows repeated names but blocks duplicate gstin and phone", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-contacts-unique-"))
+  const adminUser = {
+    id: "auth-user:platform-admin",
+    email: "sundar@sundar.com",
+    phoneNumber: "9999999999",
+    displayName: "Sundar",
+    actorType: "admin" as const,
+    isSuperAdmin: true,
+    avatarUrl: null,
+    isActive: true,
+    organizationName: "Codexsun",
+    roles: [],
+    permissions: [],
+    createdAt: "2026-03-30T00:00:00.000Z",
+    updatedAt: "2026-03-30T00:00:00.000Z",
+  }
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const first = await createContact(runtime.primary, adminUser, {
+        code: "",
+        contactTypeId: "contact-type:registered-customer-b2b",
+        ledgerId: null,
+        ledgerName: null,
+        name: "Arun Traders",
+        legalName: "",
+        pan: "",
+        gstin: "29ABCDE1234F1Z5",
+        msmeType: "",
+        msmeNo: "",
+        openingBalance: 0,
+        balanceType: "",
+        creditLimit: 0,
+        website: "",
+        description: "",
+        isActive: true,
+        addresses: [],
+        emails: [],
+        phones: [{ phoneNumber: "+91 90000 12345", phoneType: "mobile", isPrimary: true }],
+        bankAccounts: [],
+        gstDetails: [],
+      })
+
+      const second = await createContact(runtime.primary, adminUser, {
+        code: "",
+        contactTypeId: "contact-type:unregistered-customer-b2c",
+        ledgerId: null,
+        ledgerName: null,
+        name: "Arun Traders",
+        legalName: "",
+        pan: "",
+        gstin: "",
+        msmeType: "",
+        msmeNo: "",
+        openingBalance: 0,
+        balanceType: "",
+        creditLimit: 0,
+        website: "",
+        description: "",
+        isActive: true,
+        addresses: [],
+        emails: [],
+        phones: [{ phoneNumber: "+91 90000 54321", phoneType: "mobile", isPrimary: true }],
+        bankAccounts: [],
+        gstDetails: [],
+      })
+
+      assert.notEqual(first.item.id, second.item.id)
+
+      await assert.rejects(
+        () =>
+          createContact(runtime.primary, adminUser, {
+            code: "",
+            contactTypeId: "contact-type:registered-customer-b2b",
+            ledgerId: null,
+            ledgerName: null,
+            name: "Another Name",
+            legalName: "",
+            pan: "",
+            gstin: "29ABCDE1234F1Z5",
+            msmeType: "",
+            msmeNo: "",
+            openingBalance: 0,
+            balanceType: "",
+            creditLimit: 0,
+            website: "",
+            description: "",
+            isActive: true,
+            addresses: [],
+            emails: [],
+            phones: [],
+            bankAccounts: [],
+            gstDetails: [],
+          }),
+        /GSTIN already exists/i
+      )
+
+      await assert.rejects(
+        () =>
+          createContact(runtime.primary, adminUser, {
+            code: "",
+            contactTypeId: "contact-type:unregistered-customer-b2c",
+            ledgerId: null,
+            ledgerName: null,
+            name: "Another Name",
+            legalName: "",
+            pan: "",
+            gstin: "",
+            msmeType: "",
+            msmeNo: "",
+            openingBalance: 0,
+            balanceType: "",
+            creditLimit: 0,
+            website: "",
+            description: "",
+            isActive: true,
+            addresses: [],
+            emails: [],
+            phones: [{ phoneNumber: "+91 90000 12345", phoneType: "mobile", isPrimary: true }],
+            bankAccounts: [],
+            gstDetails: [],
+          }),
+        /Mobile number already exists/i
+      )
     } finally {
       await runtime.destroy()
     }

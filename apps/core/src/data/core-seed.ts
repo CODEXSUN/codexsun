@@ -14,6 +14,7 @@ import {
   deliveryChannels,
   productModules,
 } from "../../shared/index.js"
+import { commonModuleItemsByKey as curatedCommonModuleItemsByKey } from "../common-modules/seed-data.js"
 
 const timestamp = "2026-03-30T09:00:00.000Z"
 
@@ -309,6 +310,7 @@ export const contacts: Contact[] = [
   contactSchema.parse({
     id: "contact:maya-rao",
     uuid: "d261d26f-55bc-4a4e-a8ab-8d3c9f1a7b11",
+    code: "C0001",
     contactTypeId: null,
     ledgerId: "ledger-sundry-debtors",
     ledgerName: "Sundry Debtors",
@@ -378,6 +380,7 @@ export const contacts: Contact[] = [
   contactSchema.parse({
     id: "contact:northwind-textiles",
     uuid: "af6e2e72-7b2d-4a7c-b1a5-11c7e6aa5530",
+    code: "S0001",
     contactTypeId: null,
     ledgerId: "ledger-sundry-creditors",
     ledgerName: "Sundry Creditors",
@@ -472,6 +475,7 @@ export const contacts: Contact[] = [
   contactSchema.parse({
     id: "contact:swift-drop",
     uuid: "25782363-d9ef-4a57-94e4-c83c696a65a4",
+    code: "P0001",
     contactTypeId: null,
     ledgerId: null,
     ledgerName: null,
@@ -589,6 +593,11 @@ export const commonModuleMetadata: CommonModuleMetadata[] = [
     stringColumn("name", "Type name"),
     stringColumn("description", "Description", { nullable: true }),
   ]),
+  defineMetadata("bankNames", "Bank names", "name", [
+    stringColumn("code", "Code"),
+    stringColumn("name", "Name"),
+    stringColumn("description", "Description", { nullable: true }),
+  ]),
   defineMetadata("productGroups", "Product groups", "name", [
     stringColumn("code", "Group code"),
     stringColumn("name", "Group name"),
@@ -696,364 +705,5 @@ export const commonModuleMetadata: CommonModuleMetadata[] = [
   ]),
 ]
 
-export const commonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]> = {
-  countries: [
-    defineItem("country:india", {
-      code: "IN",
-      name: "India",
-      phone_code: "+91",
-    }),
-  ],
-  states: [
-    defineItem("state:tamil-nadu", {
-      country_id: "country:india",
-      code: "TN",
-      name: "Tamil Nadu",
-    }),
-    defineItem("state:karnataka", {
-      country_id: "country:india",
-      code: "KA",
-      name: "Karnataka",
-    }),
-  ],
-  districts: [
-    defineItem("district:chennai", {
-      state_id: "state:tamil-nadu",
-      name: "Chennai",
-    }),
-    defineItem("district:bengaluru", {
-      state_id: "state:karnataka",
-      name: "Bengaluru Urban",
-    }),
-  ],
-  cities: [
-    defineItem("city:chennai", {
-      district_id: "district:chennai",
-      state_id: "state:tamil-nadu",
-      name: "Chennai",
-    }),
-    defineItem("city:bengaluru", {
-      district_id: "district:bengaluru",
-      state_id: "state:karnataka",
-      name: "Bengaluru",
-    }),
-  ],
-  pincodes: [
-    defineItem("pincode:600001", {
-      city_id: "city:chennai",
-      postal_code: "600001",
-    }),
-    defineItem("pincode:560001", {
-      city_id: "city:bengaluru",
-      postal_code: "560001",
-    }),
-  ],
-  contactGroups: [
-    defineItem("contact-group:retail", {
-      code: "retail",
-      name: "Retail customers",
-    }),
-    defineItem("contact-group:vendors", {
-      code: "vendors",
-      name: "Vendors",
-    }),
-  ],
-  contactTypes: [
-    defineItem("contact-type:customer", {
-      code: "customer",
-      name: "Customer",
-      requires_gstin: false,
-    }),
-    defineItem("contact-type:supplier", {
-      code: "supplier",
-      name: "Supplier",
-      requires_gstin: true,
-    }),
-    defineItem("contact-type:partner", {
-      code: "partner",
-      name: "Partner",
-      requires_gstin: true,
-    }),
-  ],
-  addressTypes: [
-    defineItem("address-type:billing", {
-      code: "billing",
-      name: "Billing",
-      description: "Billing and invoice address.",
-    }),
-    defineItem("address-type:shipping", {
-      code: "shipping",
-      name: "Shipping",
-      description: "Shipping and delivery address.",
-    }),
-    defineItem("address-type:office", {
-      code: "office",
-      name: "Office",
-      description: "Office or business address.",
-    }),
-    defineItem("address-type:branch", {
-      code: "branch",
-      name: "Branch",
-      description: "Branch or outlet address.",
-    }),
-    defineItem("address-type:primary-1", {
-      code: "primary-1",
-      name: "Primary 1",
-      description: "Primary address slot one.",
-    }),
-    defineItem("address-type:primary-2", {
-      code: "primary-2",
-      name: "Primary 2",
-      description: "Primary address slot two.",
-    }),
-  ],
-  productGroups: [
-    defineItem("product-group:apparel", {
-      code: "apparel",
-      name: "Apparel",
-    }),
-    defineItem("product-group:accessories", {
-      code: "accessories",
-      name: "Accessories",
-    }),
-  ],
-  productCategories: [
-    defineItem("product-category:ethnic", {
-      code: "ethnic",
-      name: "Ethnic Wear",
-      description: "Festive and premium ethnic silhouettes.",
-      image: "https://placehold.co/320x220/f4ebe1/3b2a20?text=Ethnic",
-      position_order: 10,
-      show_on_storefront_top_menu: true,
-      show_on_storefront_catalog: true,
-    }),
-    defineItem("product-category:shirts", {
-      code: "shirts",
-      name: "Shirts",
-      description: "Relaxed shirts for daily and occasion wear.",
-      image: "https://placehold.co/320x220/efe6dc/3b2a20?text=Shirts",
-      position_order: 20,
-      show_on_storefront_top_menu: true,
-      show_on_storefront_catalog: true,
-    }),
-    defineItem("product-category:accessories", {
-      code: "accessories",
-      name: "Accessories",
-      description: "Utility and styling accessories.",
-      image: "https://placehold.co/320x220/f5ece3/3b2a20?text=Accessories",
-      position_order: 30,
-      show_on_storefront_top_menu: true,
-      show_on_storefront_catalog: true,
-    }),
-  ],
-  productTypes: [
-    defineItem("product-type:finished-good", {
-      code: "finished-good",
-      name: "Finished good",
-    }),
-  ],
-  units: [
-    defineItem("unit:piece", {
-      code: "PCS",
-      name: "Piece",
-      symbol: "pc",
-    }),
-  ],
-  hsnCodes: [
-    defineItem("hsn:6204", {
-      code: "6204",
-      name: "Women woven garments",
-      gst_rate: 12,
-    }),
-    defineItem("hsn:6205", {
-      code: "6205",
-      name: "Men shirts",
-      gst_rate: 12,
-    }),
-  ],
-  taxes: [
-    defineItem("tax:gst-12", {
-      code: "GST12",
-      name: "GST 12%",
-      rate: 12,
-    }),
-  ],
-  brands: [
-    defineItem("brand:aster-loom", {
-      code: "aster-loom",
-      name: "Aster Loom",
-      description: "Artisanal festive silhouettes.",
-      featured_label: true,
-    }),
-    defineItem("brand:northline", {
-      code: "northline",
-      name: "Northline",
-      description: "Relaxed modern menswear.",
-      featured_label: false,
-    }),
-    defineItem("brand:little-bloom", {
-      code: "little-bloom",
-      name: "Little Bloom",
-      description: "Playful premium kidswear.",
-      featured_label: true,
-    }),
-  ],
-  colours: [
-    defineItem("colour:ivory", {
-      code: "ivory",
-      name: "Ivory",
-      swatch: "#efe6d7",
-    }),
-    defineItem("colour:indigo", {
-      code: "indigo",
-      name: "Indigo",
-      swatch: "#29446a",
-    }),
-    defineItem("colour:sand", {
-      code: "sand",
-      name: "Sand",
-      swatch: "#c8a67e",
-    }),
-  ],
-  sizes: [
-    defineItem("size:s", {
-      code: "S",
-      name: "Small",
-      sort_order: 10,
-    }),
-    defineItem("size:m", {
-      code: "M",
-      name: "Medium",
-      sort_order: 20,
-    }),
-    defineItem("size:l", {
-      code: "L",
-      name: "Large",
-      sort_order: 30,
-    }),
-  ],
-  currencies: [
-    defineItem("currency:inr", {
-      code: "INR",
-      name: "Indian Rupee",
-      symbol: "Rs.",
-    }),
-  ],
-  orderTypes: [
-    defineItem("order-type:retail", {
-      code: "retail",
-      name: "Retail order",
-    }),
-  ],
-  styles: [
-    defineItem("style:modern-ethnic", {
-      code: "modern-ethnic",
-      name: "Modern ethnic",
-    }),
-    defineItem("style:relaxed", {
-      code: "relaxed",
-      name: "Relaxed",
-    }),
-  ],
-  transports: [
-    defineItem("transport:surface", {
-      code: "surface",
-      name: "Surface courier",
-    }),
-  ],
-  warehouses: [
-    defineItem("warehouse:chennai-central", {
-      code: "chennai-central",
-      name: "Chennai Central Warehouse",
-      city_id: "city:chennai",
-    }),
-  ],
-  destinations: [
-    defineItem("destination:domestic", {
-      code: "domestic",
-      name: "Domestic",
-    }),
-  ],
-  paymentTerms: [
-    defineItem("payment-term:immediate", {
-      code: "immediate",
-      name: "Immediate",
-      days: 0,
-    }),
-    defineItem("payment-term:net-15", {
-      code: "net-15",
-      name: "Net 15",
-      days: 15,
-    }),
-  ],
-  storefrontTemplates: [
-    defineItem("storefront-template:home-category", {
-      code: "home-category",
-      name: "Home Category",
-      sort_order: 10,
-      badge_text: "Shop by category",
-      title: "Category stories driven from live catalog masters.",
-      description: "Top menu and catalog categories stay aligned with shared core master data.",
-      cta_primary_label: "Browse catalog",
-      cta_primary_href: "/search",
-      cta_secondary_label: null,
-      cta_secondary_href: null,
-      icon_key: null,
-      theme_key: "neutral",
-    }),
-    defineItem("storefront-template:home-featured", {
-      code: "home-featured",
-      name: "Home Featured",
-      sort_order: 20,
-      badge_text: "Featured edit",
-      title: "Featured products now come from the storefront publishing profile.",
-      description: "This section is safe to keep backend-driven because category, price, and stock all resolve from the same product source.",
-      cta_primary_label: null,
-      cta_primary_href: null,
-      cta_secondary_label: null,
-      cta_secondary_href: null,
-      icon_key: null,
-      theme_key: "sand",
-    }),
-    defineItem("storefront-template:home-cta", {
-      code: "home-cta",
-      name: "Home CTA",
-      sort_order: 30,
-      badge_text: "Storefront ready",
-      title: "Ship catalog, checkout, and order operations from one suite.",
-      description: "This CTA stays aligned with the current go-live storefront and operations baseline.",
-      cta_primary_label: "Open storefront",
-      cta_primary_href: "/public/v1/storefront/catalog",
-      cta_secondary_label: "Review orders",
-      cta_secondary_href: "/dashboard/apps/ecommerce/orders",
-      icon_key: "sparkles",
-      theme_key: "cta",
-    }),
-  ],
-  sliderThemes: [
-    defineItem("slider-theme:signature-01", {
-      code: "signature-01",
-      name: "Signature Ember",
-      sort_order: 10,
-      add_to_cart_label: "Add to cart",
-      view_details_label: "View details",
-      background_from: "#2b1a14",
-      background_via: "#6b4633",
-      background_to: "#f2ddc8",
-      text_color: "#ffffff",
-      muted_text_color: "#efe2d6",
-    }),
-    defineItem("slider-theme:signature-02", {
-      code: "signature-02",
-      name: "Walnut Glow",
-      sort_order: 20,
-      add_to_cart_label: "Add to bag",
-      view_details_label: "Explore",
-      background_from: "#311f19",
-      background_via: "#7a503c",
-      background_to: "#f6e6d3",
-      text_color: "#ffffff",
-      muted_text_color: "#f3e7dc",
-    }),
-  ],
-}
+export const commonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]> =
+  curatedCommonModuleItemsByKey
