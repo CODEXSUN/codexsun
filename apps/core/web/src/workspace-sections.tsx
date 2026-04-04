@@ -19,6 +19,8 @@ import {
   type CompanyResponse,
   type ContactListResponse,
   type ContactResponse,
+  type ProductListResponse,
+  type ProductResponse,
 } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { MasterList } from "@/components/blocks/master-list"
@@ -58,6 +60,8 @@ import { toCompanyFormValues } from "@core/web/src/features/company/company-form
 import { CompanyUpsertSection as CompanyUpsertFeatureSection } from "@core/web/src/features/company/company-upsert-section"
 import { toContactFormValues } from "@core/web/src/features/contact/contact-form-state"
 import { ContactUpsertSection as ContactUpsertFeatureSection } from "@core/web/src/features/contact/contact-upsert-section"
+import { toProductFormValues } from "@core/web/src/features/product/product-form-state"
+import { ProductUpsertSection as ProductUpsertFeatureSection } from "@core/web/src/features/product/product-upsert-section"
 import { cn } from "@/lib/utils"
 
 type ResourceState<T> = {
@@ -1757,6 +1761,558 @@ function ContactUpsertSection({ contactId }: { contactId?: string }) {
   return <ContactUpsertFeatureSection contactId={contactId} />
 }
 
+function ProductShowSection({ productId }: { productId: string }) {
+  const navigate = useNavigate()
+  const productResource = useJsonResource<ProductResponse>(
+    `/internal/v1/core/product?id=${encodeURIComponent(productId)}`
+  )
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  if (productResource.isLoading) {
+    return <LoadingStateCard message="Loading product details..." />
+  }
+
+  if (productResource.error || !productResource.data) {
+    return <StateCard message={productResource.error ?? "Product data is unavailable."} />
+  }
+
+  const product = productResource.data.item
+
+  async function handleDelete() {
+    setDeleteError(null)
+    setIsDeleting(true)
+
+    try {
+      await requestJson<{ deleted: true; id: string }>(
+        `/internal/v1/core/product?id=${encodeURIComponent(product.id)}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      void navigate("/dashboard/apps/core/products")
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Failed to delete product.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <SectionShell
+      title={product.name}
+      description="Shared product master details used across billing, ecommerce, and operational workflows."
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-2"
+          onClick={() => {
+            void navigate("/dashboard/apps/core/products")
+          }}
+        >
+          <ArrowLeftIcon className="size-4" />
+          Back
+        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              void navigate(`/dashboard/apps/core/products/${encodeURIComponent(product.id)}/edit`)
+            }}
+          >
+            <PencilLineIcon className="size-4" />
+            Edit
+          </Button>
+          <RecordShowActions
+            deleteLabel="Delete Product"
+            description={
+              <>
+                This will permanently delete{" "}
+                <span className="font-semibold text-foreground">{product.name}</span>.
+              </>
+            }
+            isDeleting={isDeleting}
+            onDelete={() => {
+              void handleDelete()
+            }}
+          />
+        </div>
+      </div>
+      {deleteError ? (
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {deleteError}
+        </div>
+      ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle>Details</CardTitle>
+          <CardDescription>Primary product identity, classification, and master settings.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 p-5 md:grid-cols-2 xl:grid-cols-4">
+          <DetailField label="Product Name" value={product.name} />
+          <DetailField label="Product Code" value={product.code} />
+          <DetailField label="SKU" value={product.sku} />
+          <DetailField label="Slug" value={product.slug} />
+          <DetailField label="Brand" value={formatNullableDetail(product.brandName)} />
+          <DetailField label="Category" value={formatNullableDetail(product.categoryName)} />
+          <DetailField label="Product Group" value={formatNullableDetail(product.productGroupName)} />
+          <DetailField label="Product Type" value={formatNullableDetail(product.productTypeName)} />
+          <DetailField label="Selling Price" value={formatNumberDetail(product.basePrice)} />
+          <DetailField label="Purchase Price" value={formatNumberDetail(product.costPrice)} />
+          <DetailField label="Has Variants" value={product.hasVariants ? "Yes" : "No"} />
+          <DetailField label="Status" value={product.isActive ? "Active" : "Inactive"} />
+          <DetailField label="Short Description" value={formatNullableDetail(product.shortDescription)} />
+          <DetailField label="Description" value={formatNullableDetail(product.description)} />
+          <DetailField label="Created At" value={product.createdAt} />
+          <DetailField label="Updated At" value={product.updatedAt} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Media</CardTitle>
+          <CardDescription>Images and visual assets stored against this product.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 p-5">
+          {product.images.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              {product.images.map((image) => (
+                <div
+                  key={image.id}
+                  className="overflow-hidden rounded-[1rem] border border-border/70 bg-card/70"
+                >
+                  <div className="aspect-square overflow-hidden bg-muted/50">
+                    <img
+                      src={image.imageUrl}
+                      alt={`${product.name} image ${image.sortOrder}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="space-y-2 p-3">
+                    <div className="flex flex-wrap gap-2">
+                      {image.isPrimary ? <Badge>Primary</Badge> : <Badge variant="outline">Image</Badge>}
+                      <Badge variant="outline">Order {image.sortOrder}</Badge>
+                      <ActivityStatusBadge active={image.isActive} />
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">{image.imageUrl}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">-</p>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Pricing</CardTitle>
+          <CardDescription>Commercial pricing, tags, and price rows.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-5">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <DetailField label="Featured" value={product.isFeatured ? "Yes" : "No"} />
+            <DetailField label="Tags" value={product.tagNames.length > 0 ? product.tagNames.join(", ") : "-"} />
+            <DetailField label="Variant Count" value={String(product.variantCount)} />
+            <DetailField label="Tag Count" value={String(product.tagCount)} />
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Price Rows
+            </p>
+            {product.prices.length > 0 ? (
+              <div className="grid gap-3">
+                {product.prices.map((price) => (
+                  <div key={price.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <DetailField label="MRP" value={formatNumberDetail(price.mrp)} />
+                      <DetailField label="Selling Price" value={formatNumberDetail(price.sellingPrice)} />
+                      <DetailField label="Purchase Price" value={formatNumberDetail(price.costPrice)} />
+                      <DetailField label="Status" value={price.isActive ? "Active" : "Inactive"} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Inventory</CardTitle>
+          <CardDescription>Warehouse stock and variant availability.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-5">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <DetailField label="Primary Image" value={formatNullableDetail(product.primaryImageUrl)} />
+            <DetailField label="Storefront Department" value={formatNullableDetail(product.storefrontDepartment)} />
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Stock Items
+            </p>
+            {product.stockItems.length > 0 ? (
+              <div className="grid gap-3">
+                {product.stockItems.map((stockItem) => (
+                  <div key={stockItem.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <DetailField label="Warehouse Id" value={stockItem.warehouseId} />
+                      <DetailField label="Quantity" value={formatNumberDetail(stockItem.quantity)} />
+                      <DetailField
+                        label="Reserved Quantity"
+                        value={formatNumberDetail(stockItem.reservedQuantity)}
+                      />
+                      <DetailField label="Status" value={stockItem.isActive ? "Active" : "Inactive"} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Storefront</CardTitle>
+          <CardDescription>Storefront flags, merchandising settings, and SEO.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-5">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <DetailField label="Home Slider" value={product.homeSliderEnabled ? "Yes" : "No"} />
+            <DetailField label="Promo Slider" value={product.promoSliderEnabled ? "Yes" : "No"} />
+            <DetailField label="Feature Section" value={product.featureSectionEnabled ? "Yes" : "No"} />
+            <DetailField label="New Arrival" value={product.isNewArrival ? "Yes" : "No"} />
+            <DetailField label="Best Seller" value={product.isBestSeller ? "Yes" : "No"} />
+            <DetailField label="Featured Label" value={product.isFeaturedLabel ? "Yes" : "No"} />
+          </div>
+          {product.storefront ? (
+            <div className="rounded-2xl border border-border/70 bg-card/60 p-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <DetailField label="Department" value={formatNullableDetail(product.storefront.department)} />
+                <DetailField label="Catalog Badge" value={formatNullableDetail(product.storefront.catalogBadge)} />
+                <DetailField label="Fabric" value={formatNullableDetail(product.storefront.fabric)} />
+                <DetailField label="Fit" value={formatNullableDetail(product.storefront.fit)} />
+                <DetailField label="Sleeve" value={formatNullableDetail(product.storefront.sleeve)} />
+                <DetailField label="Occasion" value={formatNullableDetail(product.storefront.occasion)} />
+                <DetailField label="Shipping Note" value={formatNullableDetail(product.storefront.shippingNote)} />
+                <DetailField label="Status" value={product.storefront.isActive ? "Active" : "Inactive"} />
+              </div>
+            </div>
+          ) : null}
+          {product.seo ? (
+            <div className="rounded-2xl border border-border/70 bg-card/60 p-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <DetailField label="Meta Title" value={formatNullableDetail(product.seo.metaTitle)} />
+                <DetailField
+                  label="Meta Description"
+                  value={formatNullableDetail(product.seo.metaDescription)}
+                />
+                <DetailField label="Meta Keywords" value={formatNullableDetail(product.seo.metaKeywords)} />
+              </div>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+function ProductsSection() {
+  const navigate = useNavigate()
+  const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [deleteTargetProduct, setDeleteTargetProduct] = useState<ProductListResponse["items"][number] | null>(null)
+  const [listError, setListError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [mutatingProductId, setMutatingProductId] = useState<string | null>(null)
+  const { data, error, isLoading } =
+    useJsonResource<ProductListResponse>(`/internal/v1/core/products?refresh=${refreshKey}`)
+
+  async function handleProductStatusChange(productId: string, isActive: boolean) {
+    setListError(null)
+    setMutatingProductId(productId)
+
+    try {
+      const detail = await requestJson<ProductResponse>(
+        `/internal/v1/core/product?id=${encodeURIComponent(productId)}`
+      )
+
+      await requestJson<ProductResponse>(
+        `/internal/v1/core/product?id=${encodeURIComponent(productId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            ...toProductFormValues(detail.item),
+            isActive,
+          }),
+        }
+      )
+
+      setRefreshKey((current) => current + 1)
+    } catch (statusError) {
+      setListError(
+        statusError instanceof Error ? statusError.message : "Failed to update product status."
+      )
+    } finally {
+      setMutatingProductId(null)
+    }
+  }
+
+  async function handleProductDelete(productId: string) {
+    setListError(null)
+    setIsDeleting(true)
+
+    try {
+      await requestJson<{ deleted: true; id: string }>(
+        `/internal/v1/core/product?id=${encodeURIComponent(productId)}`,
+        {
+          method: "DELETE",
+        }
+      )
+      setDeleteTargetProduct(null)
+      setRefreshKey((current) => current + 1)
+    } catch (deleteError) {
+      setListError(
+        deleteError instanceof Error ? deleteError.message : "Failed to delete product."
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  if (isLoading) {
+    return <LoadingStateCard message="Loading products..." />
+  }
+
+  if (error || !data) {
+    return <StateCard message={error ?? "Product data is unavailable."} />
+  }
+
+  const normalizedSearch = searchValue.trim().toLowerCase()
+  const filteredProducts = data.items.filter((product) => {
+    const matchesSearch = [
+      product.code,
+      product.name,
+      product.sku,
+      product.brandName ?? "",
+      product.categoryName ?? "",
+      product.shortDescription ?? "",
+    ].some((value) => value.toLowerCase().includes(normalizedSearch))
+
+    return matchesSearch && matchesStatusFilter(statusFilter, product.isActive)
+  })
+  const totalRecords = filteredProducts.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedProducts = filteredProducts.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  )
+
+  return (
+    <>
+      {listError ? (
+        <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {listError}
+        </div>
+      ) : null}
+      <MasterList
+        header={{
+          pageTitle: "Products",
+          pageDescription:
+            "Create and manage shared product masters with variants, pricing, and stock.",
+          addLabel: "New Product",
+          onAddClick: () => {
+            void navigate("/dashboard/apps/core/products/new")
+          },
+        }}
+        search={{
+          value: searchValue,
+          onChange: (value) => {
+            setSearchValue(value)
+            setCurrentPage(1)
+          },
+          placeholder: "Search products",
+        }}
+        filters={buildStatusFilters(statusFilter, (value) => {
+          setStatusFilter(value)
+          setCurrentPage(1)
+        })}
+        table={{
+          columns: [
+            {
+              id: "name",
+              header: "Product",
+              sortable: true,
+              accessor: (product) => `${product.code} ${product.name} ${product.sku}`,
+              cell: (product) => (
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => {
+                    void navigate(`/dashboard/apps/core/products/${encodeURIComponent(product.id)}`)
+                  }}
+                >
+                  <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
+                    {product.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {product.code} {product.sku ? `• ${product.sku}` : ""}
+                  </p>
+                </button>
+              ),
+            },
+            {
+              id: "classification",
+              header: "Classification",
+              sortable: true,
+              accessor: (product) =>
+                `${product.categoryName ?? ""} ${product.productGroupName ?? ""} ${product.brandName ?? ""}`,
+              cell: (product) => (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>{product.categoryName ?? "-"}</p>
+                  <p>{product.brandName ?? "-"}</p>
+                </div>
+              ),
+            },
+            {
+              id: "pricing",
+              header: "Pricing",
+              sortable: true,
+              accessor: (product) => product.basePrice,
+              cell: (product) => (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>Selling: {product.basePrice.toLocaleString("en-IN")}</p>
+                  <p>Purchase: {product.costPrice.toLocaleString("en-IN")}</p>
+                </div>
+              ),
+            },
+            {
+              id: "storefront",
+              header: "Storefront",
+              sortable: true,
+              accessor: (product) => `${product.storefrontDepartment ?? ""} ${product.tagNames.join(" ")}`,
+              cell: (product) => (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>{product.storefrontDepartment ?? "-"}</p>
+                  <p>{product.tagNames.length > 0 ? product.tagNames.join(", ") : "-"}</p>
+                </div>
+              ),
+            },
+            {
+              id: "status",
+              header: "Status",
+              sortable: true,
+              accessor: (product) => (product.isActive ? "active" : "inactive"),
+              cell: (product) => <ActivityStatusBadge active={product.isActive} />,
+            },
+            {
+              id: "actions",
+              header: "Actions",
+              cell: (product) => (
+                <RecordActionMenu
+                  active={product.isActive}
+                  itemLabel={product.name}
+                  disabled={mutatingProductId === product.id}
+                  onDelete={() => {
+                    setListError(null)
+                    setDeleteTargetProduct(product)
+                  }}
+                  onEdit={() => {
+                    void navigate(
+                      `/dashboard/apps/core/products/${encodeURIComponent(product.id)}/edit`
+                    )
+                  }}
+                  onToggleActive={() => {
+                    void handleProductStatusChange(product.id, !product.isActive)
+                  }}
+                />
+              ),
+              className: "w-20 min-w-20 text-right",
+              headerClassName: "w-20 min-w-20 text-right",
+            },
+          ],
+          data: paginatedProducts,
+          emptyMessage: "No products found.",
+          rowKey: (product) => product.id,
+        }}
+        footer={{
+          content: (
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Total products: <span className="font-medium text-foreground">{totalRecords}</span>
+              </span>
+            </div>
+          ),
+        }}
+        pagination={{
+          currentPage: safeCurrentPage,
+          pageSize,
+          totalRecords,
+          onPageChange: setCurrentPage,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize)
+            setCurrentPage(1)
+          },
+          pageSizeOptions: [10, 20, 50, 100, 200, 500],
+        }}
+      />
+      <AlertDialog
+        open={Boolean(deleteTargetProduct)}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteTargetProduct(null)
+          }
+        }}
+      >
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span>
+                This will permanently delete{" "}
+                <span className="font-semibold text-foreground">
+                  {deleteTargetProduct?.name ?? "product"}
+                </span>
+                .
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="border-destructive/15 bg-destructive/5">
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20"
+              disabled={isDeleting || !deleteTargetProduct}
+              onClick={() => {
+                if (deleteTargetProduct) {
+                  void handleProductDelete(deleteTargetProduct.id)
+                }
+              }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
+function ProductUpsertSection({ productId }: { productId?: string }) {
+  return <ProductUpsertFeatureSection productId={productId} />
+}
+
 function AutocompleteLookupField({
   createActionLabel,
   value,
@@ -2538,10 +3094,12 @@ function CoreSettingsSection() {
 export function CoreWorkspaceSection({
   companyId,
   contactId,
+  productId,
   sectionId,
 }: {
   companyId?: string
   contactId?: string
+  productId?: string
   sectionId?: string
 }) {
   const navigate = useNavigate()
@@ -2569,6 +3127,12 @@ export function CoreWorkspaceSection({
       return contactId ? <ContactShowSection contactId={contactId} /> : null
     case "contacts-upsert":
       return <ContactUpsertSection contactId={contactId} />
+    case "products":
+      return <ProductsSection />
+    case "products-show":
+      return productId ? <ProductShowSection productId={productId} /> : null
+    case "products-upsert":
+      return <ProductUpsertSection productId={productId} />
     case "common-modules":
       return <CommonModulesSection />
     case "setup":

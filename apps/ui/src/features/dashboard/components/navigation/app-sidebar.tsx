@@ -1,4 +1,4 @@
-import { ChevronRight, Cog, Home, RefreshCcw } from "lucide-react"
+import { ChevronRight, Cog, Home, Images, RefreshCcw } from "lucide-react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
 import {
@@ -185,6 +185,11 @@ export function AppSidebar() {
   const location = useLocation()
   const { open } = useSidebar()
   const showDeskGroup = location.pathname === links.dashboard
+  const showFrameworkUtilityGroups =
+    showDeskGroup ||
+    isRouteActive(location.pathname, links.mediaManager) ||
+    isRouteActive(location.pathname, links.settings) ||
+    isRouteActive(location.pathname, links.systemUpdate)
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -250,6 +255,30 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
+          </>
+        ) : null}
+
+        {showFrameworkUtilityGroups ? (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Media</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isRouteActive(location.pathname, links.mediaManager)}
+                    >
+                      <NavLink to={links.mediaManager}>
+                        <Images className="size-4" />
+                        {open ? <span>Media Manager</span> : null}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
             <SidebarGroup>
               <SidebarGroupLabel>Framework</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -300,6 +329,24 @@ export function AppSidebar() {
               open={open}
               pathname={location.pathname}
             />
+            <SidebarGroup>
+              <SidebarGroupLabel>Media</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isRouteActive(location.pathname, links.mediaManager)}
+                    >
+                      <NavLink to={links.mediaManager}>
+                        <Images className="size-4" />
+                        {open ? <span>Media Manager</span> : null}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
             <SidebarGroup>
               <SidebarGroupLabel>Application</SidebarGroupLabel>
               <SidebarGroupContent>

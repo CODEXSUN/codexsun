@@ -27,6 +27,12 @@ export const coreWorkspaceItems: CoreWorkspaceItem[] = [
     summary: "Shared contact and party management across the suite.",
   },
   {
+    id: "products",
+    name: "Products",
+    route: "/dashboard/apps/core/products",
+    summary: "Shared product and catalog item management across the suite.",
+  },
+  {
     id: "common-modules",
     name: "Common Modules",
     route: "/dashboard/apps/core/common-modules",

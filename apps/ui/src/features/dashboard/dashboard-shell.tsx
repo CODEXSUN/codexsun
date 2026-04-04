@@ -20,6 +20,7 @@ type DashboardShellContextValue = {
   links: {
     dashboard: string
     home: string
+    mediaManager: string
     settings: string
     systemUpdate: string
   }
@@ -114,6 +115,7 @@ export function DashboardShellProvider({
   const resolvedLinks = {
     dashboard: links?.dashboard ?? "/dashboard",
     home: links?.home ?? "/",
+    mediaManager: links?.mediaManager ?? "/dashboard/media",
     settings: links?.settings ?? "/dashboard/settings",
     systemUpdate: links?.systemUpdate ?? "/dashboard/system-update",
   }

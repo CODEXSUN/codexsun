@@ -8,7 +8,7 @@
 
 ## v-0.0.1
 
-### [#21] 2026-04-03 - Core master UX alignment and runtime branding
+### [#21] 2026-04-04 - Core shared master expansion and framework media manager
 
 - replaced the generic core common-module preview screen with module-specific list pages in the shared `CommonList` tone
 - added generic internal core common-module create, update, and delete support over the physical shared master tables
@@ -19,6 +19,11 @@
 - aligned company and contact list, show, and upsert flows with the shared master tone, including row-action menus, destructive dialogs, runtime loading polish, and modular temp-style forms
 - added shared UI registry references for row action menus, searchable lookup fields, and common master list pages so the applied patterns now exist in the design-system docs
 - introduced primary-company branding fields and content fields, then projected the selected company into the dashboard shell, public topbar or footer brand surfaces, and public brand-profile route output
+- added a core-owned shared product domain with schema, service, migrations, seeders, internal API routes, and contact-style list, show, and upsert pages inside the active shell
+- expanded product UX with richer attributes, variants, compact media cards, cleaner pricing labels, payload cleanup, and show-page media rendering aligned to the shared form tone
+- added a framework-owned shared media foundation with local binary storage, public web-root symlink exposure, internal and public media routes, and focused framework media tests
+- introduced a global framework media manager route and sidebar entry, then connected reusable media selection and preview into company logos, product galleries, and variant images
+- refined product and media UX with placeholder-row cleanup on save, five-up media browsing, compact equal-width card actions, product-image ordering that starts at `1`, and show-page image cards that match the form tone
 
 ### [#20] 2026-04-02 - Billing account master alignment and support docs
 

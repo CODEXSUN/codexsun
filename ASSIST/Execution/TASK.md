@@ -8,7 +8,7 @@
 
 ### Title
 
-`Core master UX alignment and runtime branding`
+`Core shared master expansion and framework media manager`
 
 ### Scope Checklist
 
@@ -20,12 +20,19 @@
 - [x] align contact and company list, show, and upsert flows with the requested shared master UX patterns
 - [x] add shared row action menus, lookup docs variants, and master-list docs references in the UI registry
 - [x] map the primary company profile into shared shell branding, public footer, and company content surfaces
+- [x] introduce a core-owned product domain with shared schema, service, API, and modular list or show or upsert frontend flow
+- [x] align core product UX to the shared contact tone, including compact image cards, attributes, variants, and show-page media display
+- [x] add a framework-owned shared media foundation with local storage, public media symlink, API routes, and runtime serving
+- [x] add a global framework media manager route and sidebar entry, then connect reusable media picking and preview into company and product image fields
+- [x] refine product and media UX with inline payload cleanup, five-up media browsing, equal-width card actions, order normalization from `1`, and compact show-page image presentation
 - [x] keep ASSIST tracking and changelog aligned with the shipped core common-module workspace change
 
 ### Validation Note
 
 - [x] `npx.cmd tsc --noEmit --pretty false`
 - [x] `npx.cmd tsx --test tests/core/common-module-service.test.ts tests/api/internal/routes.test.ts`
+- [x] `npx.cmd tsx --test tests/core/product-form-state.test.ts tests/core/product-service.test.ts`
+- [x] `npx.cmd tsx --test tests/framework/media-service.test.ts tests/api/internal/routes.test.ts`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
 - [ ] full `npm run build`

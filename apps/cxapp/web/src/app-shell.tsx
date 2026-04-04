@@ -25,6 +25,8 @@ import { CoreCompanyDetailPage } from "./pages/core-company-detail-page"
 import { CoreCompanyFormPage } from "./pages/core-company-form-page"
 import { CoreContactDetailPage } from "./pages/core-contact-detail-page"
 import { CoreContactFormPage } from "./pages/core-contact-form-page"
+import { CoreProductDetailPage } from "./pages/core-product-detail-page"
+import { CoreProductFormPage } from "./pages/core-product-form-page"
 import { BillingCategoryFormPage } from "./pages/billing-category-form-page"
 import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
 import { BillingPaymentFormPage } from "./pages/billing-payment-form-page"
@@ -32,6 +34,7 @@ import { BillingPurchaseFormPage } from "./pages/billing-purchase-form-page"
 import { BillingReceiptFormPage } from "./pages/billing-receipt-form-page"
 import { BillingSalesFormPage } from "./pages/billing-sales-form-page"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
+import { FrameworkMediaManagerPage } from "./pages/framework-media-manager-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
 import HomePage from "./pages/home"
 import { LoginPage } from "./pages/login-page"
@@ -147,6 +150,16 @@ function AuthenticatedAppShell() {
                     title="Settings"
                     description="Framework-level configuration, cross-app governance, and suite defaults are staged here. This page is the placeholder for the next real settings modules."
                   />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/media"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkMediaManagerPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -580,6 +593,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <CoreContactFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/products/:productId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreProductDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/products/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreProductFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/products/:productId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreProductFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

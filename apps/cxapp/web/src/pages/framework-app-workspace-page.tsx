@@ -133,6 +133,7 @@ export function FrameworkAppWorkspacePage({
   categoryId,
   companyId,
   contactId,
+  productId,
   ledgerId,
   voucherId,
   sectionId: forcedSectionId,
@@ -141,6 +142,7 @@ export function FrameworkAppWorkspacePage({
   categoryId?: string
   companyId?: string
   contactId?: string
+  productId?: string
   ledgerId?: string
   voucherId?: string
   sectionId?: string
@@ -210,7 +212,12 @@ export function FrameworkAppWorkspacePage({
       "Browse reusable shadcn-based components by category, preview variants, and copy install-ready code."
   const coreWorkspaceContent =
     app.id === "core" ? (
-      <CoreWorkspaceSection companyId={companyId} contactId={contactId} sectionId={sectionId} />
+      <CoreWorkspaceSection
+        companyId={companyId}
+        contactId={contactId}
+        productId={productId}
+        sectionId={sectionId}
+      />
     ) : null
   const billingWorkspaceContent =
     app.id === "billing" ? (
@@ -256,7 +263,18 @@ export function FrameworkAppWorkspacePage({
     (
       app.id === "core" &&
       (
-        ["companies", "companies-show", "companies-upsert", "contacts", "contacts-show", "contacts-upsert", "common-modules"].includes(sectionId ?? "overview") ||
+        [
+          "companies",
+          "companies-show",
+          "companies-upsert",
+          "contacts",
+          "contacts-show",
+          "contacts-upsert",
+          "products",
+          "products-show",
+          "products-upsert",
+          "common-modules",
+        ].includes(sectionId ?? "overview") ||
         (sectionId ?? "").startsWith("common-")
       )
     )

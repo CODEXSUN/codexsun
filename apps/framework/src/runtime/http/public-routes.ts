@@ -2,6 +2,8 @@ import type { AppSuite } from "../../application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../application/workspace-baseline.js"
 import { getPrimaryCompanyBrandProfile } from "../../../../core/src/services/company-service.js"
 import { getStorefrontCatalog } from "../../../../ecommerce/src/services/product-service.js"
+import { ApplicationError } from "../errors/application-error.js"
+import { readMediaContent } from "../media/media-service.js"
 
 import { definePublicRoute } from "./route-manifest.js"
 import type { HttpRouteDefinition } from "./route-types.js"
@@ -44,6 +46,31 @@ export function createPublicHttpRoutes(appSuite: AppSuite): HttpRouteDefinition[
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify(await getPrimaryCompanyBrandProfile(databases.primary)),
       }),
+    }),
+    definePublicRoute("/framework/media-file", {
+      summary: "Serve a public framework media file by asset id.",
+      handler: async ({ config, databases, request }) => {
+        const mediaId = request.url.searchParams.get("id")
+
+        if (!mediaId) {
+          throw new ApplicationError("Media id is required.", {}, 400)
+        }
+
+        const { item, content } = await readMediaContent(databases.primary, config, mediaId)
+
+        if (item.storageScope !== "public") {
+          throw new ApplicationError("Media asset is not publicly available.", { mediaId }, 404)
+        }
+
+        return {
+          statusCode: 200,
+          headers: {
+            "cache-control": "public, max-age=3600",
+            "content-type": item.mimeType,
+          },
+          body: content,
+        }
+      },
     }),
   ]
 }

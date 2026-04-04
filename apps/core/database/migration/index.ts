@@ -9,6 +9,7 @@ import { coreCommonModuleTablesMigration } from "./08-common-module-tables.js"
 import { coreCommonModuleTableBackfillMigration } from "./09-common-module-table-backfill.js"
 import { coreContactCodeBackfillMigration } from "./10-contact-code-backfill.js"
 import { coreCommonModuleSeedSyncMigration } from "./11-common-module-seed-sync.js"
+import { coreProductsMigration } from "./12-products.js"
 
 export const coreDatabaseMigrations = [
   coreBootstrapMigration,
@@ -22,4 +23,5 @@ export const coreDatabaseMigrations = [
   coreCommonModuleTableBackfillMigration,
   coreContactCodeBackfillMigration,
   coreCommonModuleSeedSyncMigration,
+  coreProductsMigration,
 ]

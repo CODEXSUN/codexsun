@@ -68,6 +68,7 @@ export function DeskProvider({
       links={{
         dashboard: user.isSuperAdmin ? "/dashboard/admin" : "/dashboard",
         home: "/",
+        mediaManager: "/dashboard/media",
         settings: "/dashboard/settings",
         systemUpdate: "/dashboard/system-update",
       }}

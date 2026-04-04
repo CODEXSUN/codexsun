@@ -20,6 +20,13 @@ import {
   listCompanies,
   updateCompany,
 } from "../../../core/src/services/company-service.js"
+import {
+  createProduct,
+  deleteProduct,
+  getProduct,
+  listProducts,
+  updateProduct,
+} from "../../../core/src/services/product-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { createContact, deleteContact, getContact, listContacts, updateContact } from "../../../core/src/services/contact-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
@@ -210,6 +217,86 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await deleteContact(context.databases.primary, user, contactId)
+        )
+      },
+    }),
+    defineInternalRoute("/core/products", {
+      summary: "Core product list used by shared item and catalog master surfaces.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await listProducts(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/core/product", {
+      summary: "Read one core product master by id.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const productId = context.request.url.searchParams.get("id")
+
+        if (!productId) {
+          throw new ApplicationError("Product id is required.", {}, 400)
+        }
+
+        return jsonResponse(await getProduct(context.databases.primary, user, productId))
+      },
+    }),
+    defineInternalRoute("/core/products", {
+      method: "POST",
+      summary: "Create a core product master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createProduct(context.databases.primary, user, context.request.jsonBody),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/core/product", {
+      method: "PATCH",
+      summary: "Update a core product master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const productId = context.request.url.searchParams.get("id")
+
+        if (!productId) {
+          throw new ApplicationError("Product id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateProduct(
+            context.databases.primary,
+            user,
+            productId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/core/product", {
+      method: "DELETE",
+      summary: "Delete a core product master.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const productId = context.request.url.searchParams.get("id")
+
+        if (!productId) {
+          throw new ApplicationError("Product id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteProduct(context.databases.primary, user, productId)
         )
       },
     }),

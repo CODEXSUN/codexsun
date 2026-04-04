@@ -17,6 +17,7 @@ import {
   type RuntimeDatabases,
 } from "../runtime/database/index.js"
 import { ApplicationError } from "../runtime/errors/application-error.js"
+import { ensurePublicMediaSymlink } from "../runtime/media/media-storage.js"
 import {
   createRequestContext,
   matchHttpRoute,
@@ -252,6 +253,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   } = config
 
   try {
+    await ensurePublicMediaSymlink(config)
     await prepareApplicationDatabase(databases, { logger: console })
   } catch (error) {
     await databases.destroy()

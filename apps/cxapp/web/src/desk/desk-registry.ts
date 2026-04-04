@@ -304,6 +304,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       overview: LayoutDashboard,
       companies: Building2,
       contacts: Users,
+      products: PackageCheck,
       "common-modules": Blocks,
       "common-countries": Flag,
       "common-states": MapPin,
@@ -529,6 +530,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}`,
                   `/dashboard/apps/${app.id}/contacts`,
+                  `/dashboard/apps/${app.id}/products`,
                 ].includes(item.route)
               ),
             },
@@ -903,6 +905,15 @@ export function resolveDeskLocation(
       section: "Framework",
       title: "Settings",
       description: "Cross-app settings and suite governance.",
+      app: null,
+    }
+  }
+
+  if (pathname === "/dashboard/media" || pathname.startsWith("/dashboard/media/")) {
+    return {
+      section: "Framework",
+      title: "Media Manager",
+      description: "Shared media library for reusable image attachments across the suite.",
       app: null,
     }
   }

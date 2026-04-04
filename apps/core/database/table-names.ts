@@ -32,6 +32,7 @@ export const coreTableNames = {
   bootstrapSnapshots: "core_bootstrap_snapshots",
   companies: "core_companies",
   contacts: "core_contacts",
+  products: "core_products",
   commonModuleMetadata: "core_common_module_metadata",
   commonModuleItems: "core_common_module_items",
   ...commonModuleTableNames,

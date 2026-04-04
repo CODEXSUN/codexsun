@@ -4,10 +4,12 @@ import { ArrowLeftIcon } from "lucide-react"
 
 import type { CommonModuleItem, CompanyResponse } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
+import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
@@ -324,48 +326,56 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
                     No logos added yet.
                   </div>
                 ) : null}
-                {form.logos.map((logo, index) => (
-                  <CompanyCollectionRow
-                    key={`logo-${index}`}
-                    onRemove={() =>
-                      setForm((current) => ({
-                        ...current,
-                        logos: current.logos.filter((_, itemIndex) => itemIndex !== index),
-                      }))
-                    }
-                  >
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <CompanyField label="Logo URL">
-                        <CompanyTextField
-                          value={logo.logoUrl}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              logos: updateCollectionItem(current.logos, index, (item) => ({
-                                ...item,
-                                logoUrl: event.target.value,
-                              })),
-                            }))
-                          }
-                        />
-                      </CompanyField>
-                      <CompanyField label="Logo Type">
-                        <CompanyTextField
-                          value={logo.logoType}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              logos: updateCollectionItem(current.logos, index, (item) => ({
-                                ...item,
-                                logoType: event.target.value,
-                              })),
-                            }))
-                          }
-                        />
-                      </CompanyField>
-                    </div>
-                  </CompanyCollectionRow>
-                ))}
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                  {form.logos.map((logo, index) => (
+                    <FrameworkMediaPickerField
+                      key={`logo-${index}`}
+                      value={logo.logoUrl}
+                      previewAlt={`${form.name || "Company"} logo ${index + 1}`}
+                      clearLabel="Clear"
+                      onChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          logos: updateCollectionItem(current.logos, index, (item) => ({
+                            ...item,
+                            logoUrl: value,
+                          })),
+                        }))
+                      }
+                      footer={
+                        <div className="grid gap-2">
+                          <Label>Logo Type</Label>
+                          <CompanyTextField
+                            value={logo.logoType}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                logos: updateCollectionItem(current.logos, index, (item) => ({
+                                  ...item,
+                                  logoType: event.target.value,
+                                })),
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="justify-start px-0 text-muted-foreground"
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                logos: current.logos.filter((_, itemIndex) => itemIndex !== index),
+                              }))
+                            }
+                          >
+                            Remove card
+                          </Button>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
               </CompanyFormSectionCard>
             </div>
           ),
