@@ -331,8 +331,6 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       "common-paymentTerms": Wallet,
       "common-storefrontTemplates": Sparkles,
       "common-sliderThemes": Palette,
-      setup: Cog,
-      "core-settings": Settings2,
     }
 
     return [
@@ -523,12 +521,19 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
       : app.id === "core"
         ? [
             {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [`/dashboard/apps/${app.id}`].includes(item.route)
+              ),
+            },
+            {
               id: `${app.id}-foundation`,
-              label: "Core",
+              label: "Master",
               shared: false,
               items: modules.filter((item) =>
                 [
-                  `/dashboard/apps/${app.id}`,
                   `/dashboard/apps/${app.id}/contacts`,
                   `/dashboard/apps/${app.id}/products`,
                 ].includes(item.route)
@@ -540,7 +545,8 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               shared: false,
               route: `/dashboard/apps/${app.id}/common-modules`,
               items: coreCommonModuleMenuGroups.map((group) => {
-                const firstRoute = group.items[0]?.route ?? `/dashboard/apps/${app.id}/common-modules`
+                const firstRoute =
+                  group.items[0]?.route ?? `/dashboard/apps/${app.id}/common-modules`
                 const firstItem = modules.find((item) => item.route === firstRoute)
 
                 return {
@@ -557,28 +563,9 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
             },
             {
               id: `${app.id}-settings`,
-              label: "Settings",
+              label: "Core",
               shared: false,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/apps/${app.id}/companies`,
-                  `/dashboard/apps/${app.id}/setup`,
-                  `/dashboard/apps/${app.id}/core-settings`,
-                ].includes(item.route)
-              ),
-            },
-            {
-              id: `${app.id}-workspace`,
-              label: "Workspace",
-              shared: true,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/apps/${app.id}/backend`,
-                  `/dashboard/apps/${app.id}/structure`,
-                  `/dashboard/apps/${app.id}/api`,
-                  `/dashboard/apps/${app.id}/database`,
-                ].includes(item.route)
-              ),
+              items: [],
             },
           ]
       : app.id === "ecommerce"
@@ -901,10 +888,61 @@ export function resolveDeskLocation(
   }
 
   if (pathname === "/dashboard/settings" || pathname.startsWith("/dashboard/settings/")) {
+    if (pathname === "/dashboard/settings/companies" || pathname.startsWith("/dashboard/settings/companies/")) {
+      return {
+        section: "Framework",
+        title: "Companies",
+        description: "Company master, branding, and organization records shared across the suite.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/users" || pathname.startsWith("/dashboard/settings/users/")) {
+      return {
+        section: "Framework",
+        title: "Users",
+        description: "Authenticated user administration for the application shell and shared business modules.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/roles" || pathname.startsWith("/dashboard/settings/roles/")) {
+      return {
+        section: "Framework",
+        title: "Roles",
+        description: "Role records and actor access groupings for framework user administration.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/permissions" || pathname.startsWith("/dashboard/settings/permissions/")) {
+      return {
+        section: "Framework",
+        title: "Permission Manager",
+        description: "Permission scope, page, module, report, workspace, and desk control definitions.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/core-settings" || pathname.startsWith("/dashboard/settings/core-settings/")) {
+      return {
+        section: "Framework",
+        title: "Core Settings",
+        description: "Runtime environment settings and shared operational guardrails for the suite.",
+        app: null,
+      }
+    }
+
     return {
       section: "Framework",
-      title: "Settings",
-      description: "Cross-app settings and suite governance.",
+      title: pathname.startsWith("/dashboard/settings/core-setup/")
+        || pathname === "/dashboard/settings/core-setup"
+        ? "Core Setup"
+        : "Settings",
+      description: pathname.startsWith("/dashboard/settings/core-setup/")
+        || pathname === "/dashboard/settings/core-setup"
+        ? "Bootstrap and readiness foundations for the shared suite."
+        : "Cross-app settings and suite governance.",
       app: null,
     }
   }

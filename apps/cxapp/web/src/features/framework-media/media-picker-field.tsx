@@ -7,6 +7,7 @@ import type { MediaStorageScope, MediaSummary } from "../../../../../framework/s
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ export function FrameworkMediaPickerField({
   orderValue,
   onOrderChange,
   previewAlt,
+  size = "default",
   value,
   onChange,
 }: {
@@ -35,6 +37,7 @@ export function FrameworkMediaPickerField({
   orderValue?: number | string
   onOrderChange?: (value: string) => void
   previewAlt: string
+  size?: "default" | "compact"
   value: string
   onChange: (value: string) => void
 }) {
@@ -47,17 +50,27 @@ export function FrameworkMediaPickerField({
 
   return (
     <div className="space-y-1.5">
-      <div className="overflow-hidden rounded-[0.95rem] border border-border/70 bg-background/70">
-        <div className="aspect-square bg-muted/60">
+      <div
+        className={cn(
+          "overflow-hidden rounded-[0.95rem] border border-border/70 bg-background/70",
+          size === "compact" ? "max-w-[13rem]" : ""
+        )}
+      >
+        <div className={cn("aspect-square bg-muted/60", size === "compact" ? "max-h-[13rem]" : "")}>
           {value.trim().length > 0 ? (
             <img src={value} alt={previewAlt} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            <div
+              className={cn(
+                "flex h-full items-center justify-center text-muted-foreground",
+                size === "compact" ? "text-xs" : "text-sm"
+              )}
+            >
               No image selected
             </div>
           )}
         </div>
-        <div className="space-y-1.5 p-2">
+        <div className={cn("space-y-1.5", size === "compact" ? "p-1.5" : "p-2")}>
           <p className="truncate text-xs text-muted-foreground">
             {value.trim().length > 0 ? value : "Choose a media asset to attach here."}
           </p>

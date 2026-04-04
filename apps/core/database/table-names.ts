@@ -38,6 +38,7 @@ export const coreTableNames = {
   ...commonModuleTableNames,
   authUsers: "auth_users",
   authPermissions: "auth_permissions",
+  authOptionCatalog: "auth_option_catalog",
   authRoles: "auth_roles",
   authUserRoles: "auth_user_roles",
   authRolePermissions: "auth_role_permissions",

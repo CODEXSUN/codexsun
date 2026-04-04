@@ -1,5 +1,6 @@
 import type { AppSuite } from "../../application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../application/workspace-baseline.js"
+import { getAppSettingsSnapshot } from "../../../../core/src/services/auth-option-service.js"
 import { getPrimaryCompanyBrandProfile } from "../../../../core/src/services/company-service.js"
 import { getStorefrontCatalog } from "../../../../ecommerce/src/services/product-service.js"
 import { ApplicationError } from "../errors/application-error.js"
@@ -13,7 +14,7 @@ export function createPublicHttpRoutes(appSuite: AppSuite): HttpRouteDefinition[
     definePublicRoute("/bootstrap", {
       legacyPaths: ["/public/bootstrap"],
       summary: "Public bootstrap metadata for unauthenticated setup-aware surfaces.",
-      handler: () => ({
+      handler: async ({ databases }) => ({
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify({
@@ -26,8 +27,18 @@ export function createPublicHttpRoutes(appSuite: AppSuite): HttpRouteDefinition[
           routes: {
             health: "/public/v1/health",
             apps: "/api/v1/apps",
+            settings: "/public/v1/app-settings",
           },
+          settings: (await getAppSettingsSnapshot(databases.primary)).item,
         }),
+      }),
+    }),
+    definePublicRoute("/app-settings", {
+      summary: "Public DB-backed app settings snapshot used for startup metadata and global option caches.",
+      handler: async ({ databases }) => ({
+        statusCode: 200,
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify(await getAppSettingsSnapshot(databases.primary)),
       }),
     }),
     definePublicRoute("/storefront/catalog", {

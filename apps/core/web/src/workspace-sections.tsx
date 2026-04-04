@@ -5,9 +5,6 @@ import { ArrowLeftIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
 import {
   coreCommonModuleMenuGroups,
   getCoreCommonModuleMenuItem,
-  deliveryChannels,
-  navigationSections,
-  productModules,
   type BootstrapSnapshot,
   type CommonModuleMetadata,
   type CommonModuleItem,
@@ -23,6 +20,7 @@ import {
   type ProductResponse,
 } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
+import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
 import { MasterList } from "@/components/blocks/master-list"
 import { RecordActionMenu } from "@/components/blocks/record-action-menu"
 import {
@@ -62,6 +60,7 @@ import { toContactFormValues } from "@core/web/src/features/contact/contact-form
 import { ContactUpsertSection as ContactUpsertFeatureSection } from "@core/web/src/features/contact/contact-upsert-section"
 import { toProductFormValues } from "@core/web/src/features/product/product-form-state"
 import { ProductUpsertSection as ProductUpsertFeatureSection } from "@core/web/src/features/product/product-upsert-section"
+import { CoreSettingsSection as CoreSettingsFeatureSection } from "@core/web/src/features/settings/core-settings-section"
 import { cn } from "@/lib/utils"
 
 type ResourceState<T> = {
@@ -214,6 +213,15 @@ function getCommonModuleListColumns(
   moduleKey: CommonModuleKey,
   columns: CommonModuleMetadata["columns"]
 ) {
+  if (moduleKey === "hsnCodes") {
+    const preferredOrder = ["code", "name", "description"] as const
+    const orderedColumns = preferredOrder
+      .map((key) => columns.find((column) => column.key === key) ?? null)
+      .filter((column): column is CommonModuleMetadata["columns"][number] => Boolean(column))
+
+    return orderedColumns
+  }
+
   if (moduleKey === "pincodes") {
     const preferredOrder = ["code", "area_name", "city_id", "district_id", "state_id"] as const
     const orderedColumns = preferredOrder
@@ -467,6 +475,47 @@ function ActiveSwitchField({
               ? "This record is available in the workspace."
               : "This record is hidden as inactive."}
           </p>
+        </div>
+        <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+      </label>
+    </div>
+  )
+}
+
+function BooleanSwitchField({
+  checked,
+  description,
+  id,
+  label,
+  offLabel = "No",
+  onCheckedChange,
+  onLabel = "Yes",
+}: {
+  checked: boolean
+  description: string
+  id: string
+  label: string
+  offLabel?: string
+  onCheckedChange: (checked: boolean) => void
+  onLabel?: string
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="cursor-pointer text-sm font-medium text-foreground" htmlFor={id}>
+        {label}
+      </label>
+      <label
+        className={cn(
+          "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2",
+          getActivityStatusPanelClassName(checked ? "active" : "inactive")
+        )}
+        htmlFor={id}
+      >
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium text-foreground">
+            {checked ? onLabel : offLabel}
+          </p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         </div>
         <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
       </label>
@@ -733,7 +782,7 @@ function CompaniesSection() {
           "Create and manage shared organization records, registration details, and primary communication channels used across the suite.",
         addLabel: "New Company",
         onAddClick: () => {
-          void navigate("/dashboard/apps/core/companies/new")
+          void navigate("/dashboard/settings/companies/new")
         },
       }}
       search={{
@@ -760,7 +809,7 @@ function CompaniesSection() {
                 type="button"
                 className="text-left"
                 onClick={() => {
-                  void navigate(`/dashboard/apps/core/companies/${encodeURIComponent(company.id)}`)
+                  void navigate(`/dashboard/settings/companies/${encodeURIComponent(company.id)}`)
                 }}
               >
                 <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
@@ -811,7 +860,7 @@ function CompaniesSection() {
                   setDeleteTargetCompany(company)
                 }}
                 onEdit={() => {
-                  void navigate(`/dashboard/apps/core/companies/${encodeURIComponent(company.id)}/edit`)
+                  void navigate(`/dashboard/settings/companies/${encodeURIComponent(company.id)}/edit`)
                 }}
                 onToggleActive={() => {
                   void handleCompanyStatusChange(company.id, !company.isActive)
@@ -992,7 +1041,7 @@ function CompanyShowSection({ companyId }: { companyId: string }) {
         }
       )
 
-      void navigate("/dashboard/apps/core/companies")
+      void navigate("/dashboard/settings/companies")
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : "Failed to delete company.")
     } finally {
@@ -1011,7 +1060,7 @@ function CompanyShowSection({ companyId }: { companyId: string }) {
           variant="outline"
           className="gap-2"
           onClick={() => {
-            void navigate("/dashboard/apps/core/companies")
+            void navigate("/dashboard/settings/companies")
           }}
         >
           <ArrowLeftIcon className="size-4" />
@@ -1023,7 +1072,7 @@ function CompanyShowSection({ companyId }: { companyId: string }) {
             variant="outline"
             className="gap-2"
             onClick={() => {
-              void navigate(`/dashboard/apps/core/companies/${encodeURIComponent(company.id)}/edit`)
+              void navigate(`/dashboard/settings/companies/${encodeURIComponent(company.id)}/edit`)
             }}
           >
             <PencilLineIcon className="size-4" />
@@ -2848,13 +2897,30 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
               const value = form[column.key]
               const isDescriptionField =
                 column.key.includes("description") || column.key.includes("address")
+              const isProductCategoryImageField =
+                moduleKey === "productCategories" && column.key === "image"
+              const isProductCategoryStorefrontToggle =
+                moduleKey === "productCategories" &&
+                (column.key === "show_on_storefront_top_menu" ||
+                  column.key === "show_on_storefront_catalog")
+              const showFieldLabel = !isProductCategoryStorefrontToggle
 
               return (
                 <div key={column.key} className="space-y-2">
-                  <label className="text-sm font-medium text-foreground" htmlFor={`common-module-${column.key}`}>
-                    {column.label}
-                  </label>
-                  {column.referenceModule ? (
+                  {showFieldLabel ? (
+                    <label className="text-sm font-medium text-foreground" htmlFor={`common-module-${column.key}`}>
+                      {column.label}
+                    </label>
+                  ) : null}
+                    {isProductCategoryImageField ? (
+                      <FrameworkMediaPickerField
+                        size="compact"
+                        value={typeof value === "string" ? value : ""}
+                        previewAlt={`${String(form.name ?? singularLabel)} image`}
+                        clearLabel="Clear"
+                      onChange={(nextValue) => handleFormChange(column.key, nextValue)}
+                    />
+                  ) : column.referenceModule ? (
                     <AutocompleteLookupField
                       value={typeof value === "string" ? value : ""}
                       onChange={(nextValue) => handleFormChange(column.key, nextValue)}
@@ -2869,6 +2935,20 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
                       allowEmptyOption={column.nullable}
                       emptyOptionLabel={column.nullable ? "-" : "Select option"}
                       createActionLabel={`Create new ${column.label}`}
+                    />
+                  ) : isProductCategoryStorefrontToggle ? (
+                    <BooleanSwitchField
+                      id={`common-module-${column.key}`}
+                      checked={Boolean(value)}
+                      label={column.label}
+                      onLabel="Enabled"
+                      offLabel="Disabled"
+                      description={
+                        column.key === "show_on_storefront_top_menu"
+                          ? "Enable this category in the storefront top navigation."
+                          : "Enable this category in the storefront catalog listing."
+                      }
+                      onCheckedChange={(checked) => handleFormChange(column.key, checked)}
                     />
                   ) : column.type === "boolean" ? (
                     <label className="flex items-center gap-3 rounded-xl border border-border/70 px-3 py-2">
@@ -3017,78 +3097,7 @@ function SetupSection() {
 }
 
 function CoreSettingsSection() {
-  return (
-    <SectionShell
-      title="Core Settings"
-      description="Shared navigation and foundation defaults currently staged in the core boundary."
-    >
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Navigation Lanes</CardTitle>
-            <CardDescription>Module groupings used for staged delivery planning.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {navigationSections.map((section) => (
-              <div key={section.title} className="space-y-2">
-                <p className="font-medium text-foreground">{section.title}</p>
-                <div className="flex flex-wrap gap-2">
-                  {section.moduleIds.map((moduleId) => (
-                    <Badge key={moduleId} variant="outline">
-                      {moduleId}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Delivery Channels</CardTitle>
-            <CardDescription>Targets currently modeled in the shared core workspace.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {deliveryChannels.map((channel) => (
-              <div
-                key={channel.id}
-                className="rounded-xl border border-border/70 bg-card/70 p-4"
-              >
-                <p className="font-medium text-foreground">{channel.name}</p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  {channel.summary}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Foundation Module Registry</CardTitle>
-            <CardDescription>Current shared module roadmap across the core app boundary.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {productModules.map((module) => (
-              <div
-                key={module.id}
-                className="rounded-xl border border-border/70 bg-card/70 p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-foreground">{module.name}</p>
-                  <Badge variant="outline">{module.readiness}</Badge>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {module.summary}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </SectionShell>
-  )
+  return <CoreSettingsFeatureSection />
 }
 
 export function CoreWorkspaceSection({

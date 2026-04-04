@@ -35,10 +35,18 @@ import { BillingReceiptFormPage } from "./pages/billing-receipt-form-page"
 import { BillingSalesFormPage } from "./pages/billing-sales-form-page"
 import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
 import { FrameworkMediaManagerPage } from "./pages/framework-media-manager-page"
+import { FrameworkRbacPage } from "./pages/framework-rbac-page"
+import { FrameworkPermissionFormPage } from "./pages/framework-permission-form-page"
+import { FrameworkRoleFormPage } from "./pages/framework-role-form-page"
+import { FrameworkSystemUpdatePage } from "./pages/framework-system-update-page"
+import { FrameworkUserDetailPage } from "./pages/framework-user-detail-page"
+import { FrameworkUserFormPage } from "./pages/framework-user-form-page"
+import { FrameworkUsersPage } from "./pages/framework-users-page"
 import { ForgotPasswordPage } from "./pages/forgot-password-page"
 import HomePage from "./pages/home"
 import { LoginPage } from "./pages/login-page"
 import { RequestAccessPage } from "./pages/request-access-page"
+import { RuntimeAppSettingsProvider } from "./features/runtime-app-settings/runtime-app-settings-provider"
 
 const container = createFrameworkBrowserContainer()
 const appSuite = container.resolve<AppSuite>(FRAMEWORK_TOKENS.appSuite)
@@ -108,15 +116,16 @@ function AuthenticatedAppShell() {
 
   return (
     <RuntimeBrandProvider>
-      <ProjectDefaultsProvider>
-        <DeskProvider
-          appSuite={appSuite}
-          user={user}
-          onLogout={() => {
-            void auth.logout()
-          }}
-        >
-          <Routes>
+      <RuntimeAppSettingsProvider>
+        <ProjectDefaultsProvider>
+          <DeskProvider
+            appSuite={appSuite}
+            user={user}
+            onLogout={() => {
+              void auth.logout()
+            }}
+          >
+            <Routes>
           <Route path="/" element={<HomePage appSuite={appSuite} />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -155,6 +164,204 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/settings/core-setup"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkAppWorkspacePage appId="core" sectionId="setup" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/core-settings"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkAppWorkspacePage appId="core" sectionId="core-settings" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/companies"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkAppWorkspacePage appId="core" sectionId="companies" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/companies/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreCompanyFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/companies/:companyId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreCompanyDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/companies/:companyId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <CoreCompanyFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/users"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkUsersPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/users/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkUserFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/users/:userId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkUserDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/users/:userId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkUserFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/roles"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkRbacPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/roles/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkRoleFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/roles/:roleId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkRoleFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/permissions"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkPermissionFormPage mode="list" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/permissions/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkPermissionFormPage mode="form" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/permissions/:permissionId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkPermissionFormPage mode="form" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/rbac"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkRbacPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/rbac/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkRoleFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/rbac/:roleId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <FrameworkRoleFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/core/setup"
+            element={<Navigate to="/dashboard/settings/core-setup" replace />}
+          />
+          <Route
+            path="/dashboard/apps/core/core-settings"
+            element={<Navigate to="/dashboard/settings/core-settings" replace />}
+          />
+          <Route
             path="/dashboard/media"
             element={
               <ProtectedRoute>
@@ -169,10 +376,7 @@ function AuthenticatedAppShell() {
             element={
               <ProtectedRoute>
                 <AdminLayout>
-                  <FrameworkUtilityPage
-                    title="System Update"
-                    description="Build health, deployment checkpoints, and future update controls will live here once the release workflow grows beyond the current scaffold."
-                  />
+                  <FrameworkSystemUpdatePage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -637,10 +841,11 @@ function AuthenticatedAppShell() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </DeskProvider>
-      </ProjectDefaultsProvider>
+            <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </DeskProvider>
+        </ProjectDefaultsProvider>
+      </RuntimeAppSettingsProvider>
     </RuntimeBrandProvider>
   )
 }

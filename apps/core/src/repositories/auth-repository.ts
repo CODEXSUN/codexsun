@@ -4,6 +4,7 @@ import type {
   ActorType,
   AuthPermission,
   AuthRole,
+  AuthRoleSummary,
   AuthSession,
   AuthUser,
 } from "../../shared/index.js"
@@ -93,6 +94,128 @@ export class AuthRepository {
     )
   }
 
+  async listRoles() {
+    const queryDatabase = asQueryDatabase(this.database)
+    const roleRows = await queryDatabase
+      .selectFrom(coreTableNames.authRoles)
+      .selectAll()
+      .orderBy("created_at")
+      .execute()
+
+    if (roleRows.length === 0) {
+      return [] satisfies AuthRoleSummary[]
+    }
+
+    const roleIds = roleRows.map((row) => asString(row.id))
+    const permissionRows = await queryDatabase
+      .selectFrom(`${coreTableNames.authRolePermissions} as rp`)
+      .innerJoin(
+        `${coreTableNames.authPermissions} as p`,
+        "rp.permission_id",
+        "p.id"
+      )
+      .select([
+        "rp.role_id as role_id",
+        "p.permission_key as permission_key",
+        "p.name as name",
+        "p.summary as summary",
+        "p.scope_type as scope_type",
+        "p.app_id as app_id",
+        "p.resource_key as resource_key",
+        "p.action_key as action_key",
+        "p.route as route",
+        "p.is_active as is_active",
+      ])
+      .where("rp.role_id", "in", roleIds)
+      .where("rp.is_active", "=", 1)
+      .where("p.is_active", "=", 1)
+      .execute()
+    const assignedCounts = await queryDatabase
+      .selectFrom(coreTableNames.authUserRoles)
+      .select([
+        "role_id",
+        ({ fn }) => fn.count<string>("id").as("assigned_count"),
+      ])
+      .where("role_id", "in", roleIds)
+      .where("is_active", "=", 1)
+      .groupBy("role_id")
+      .execute()
+
+    const permissionsByRole = new Map<string, AuthPermission[]>()
+
+    for (const row of permissionRows) {
+      const permission: AuthPermission = {
+        key: asString(row.permission_key) as AuthPermission["key"],
+        name: asString(row.name),
+        summary: asString(row.summary),
+        scopeType: asString(row.scope_type) as AuthPermission["scopeType"],
+        appId: asNullableString(row.app_id),
+        resourceKey: asString(row.resource_key),
+        actionKey: asString(row.action_key),
+        route: asNullableString(row.route),
+        isActive: asBoolean(row.is_active),
+      }
+      const rolePermissions = permissionsByRole.get(asString(row.role_id)) ?? []
+      rolePermissions.push(permission)
+      permissionsByRole.set(asString(row.role_id), rolePermissions)
+    }
+
+    const countsByRole = new Map(
+      assignedCounts.map((row) => [asString(row.role_id), Number(row.assigned_count ?? 0)])
+    )
+
+    return roleRows.map((row) => ({
+      key: asString(row.role_key) as AuthRole["key"],
+      name: asString(row.name),
+      summary: asString(row.summary),
+      actorType: asString(row.actor_type) as ActorType,
+      isActive: asBoolean(row.is_active),
+      permissions: permissionsByRole.get(asString(row.id)) ?? [],
+      assignedUserCount: countsByRole.get(asString(row.id)) ?? 0,
+    }) satisfies AuthRoleSummary)
+  }
+
+  async listPermissions() {
+    const rows = await asQueryDatabase(this.database)
+      .selectFrom(coreTableNames.authPermissions)
+      .selectAll()
+      .orderBy("created_at")
+      .execute()
+
+    return rows.map((row) => ({
+      key: asString(row.permission_key) as AuthPermission["key"],
+      name: asString(row.name),
+      summary: asString(row.summary),
+      scopeType: asString(row.scope_type) as AuthPermission["scopeType"],
+      appId: asNullableString(row.app_id),
+      resourceKey: asString(row.resource_key),
+      actionKey: asString(row.action_key),
+      route: asNullableString(row.route),
+      isActive: asBoolean(row.is_active),
+    }) satisfies AuthPermission)
+  }
+
+  async getRole(roleId: string) {
+    const queryDatabase = asQueryDatabase(this.database)
+    const roleRow = await queryDatabase
+      .selectFrom(coreTableNames.authRoles)
+      .selectAll()
+      .where("id", "=", roleId)
+      .executeTakeFirst()
+
+    if (!roleRow) {
+      return null
+    }
+
+    const [role] = (await this.listRoles()).filter((entry) => entry.key === roleId)
+    return role ?? null
+  }
+
+  async getPermission(permissionId: string) {
+    const permissions = await this.listPermissions()
+    return permissions.find((permission) => permission.key === permissionId) ?? null
+  }
+
   async listSessions() {
     const rows = await asQueryDatabase(this.database)
       .selectFrom(coreTableNames.authSessions)
@@ -125,8 +248,9 @@ export class AuthRepository {
     avatarUrl: string | null
     passwordHash: string
     organizationName: string | null
-    roleKey: string
+    roleKeys: string[]
     isSuperAdmin: boolean
+    isActive?: boolean
   }) {
     const timestamp = new Date().toISOString()
     const queryDatabase = asQueryDatabase(this.database)
@@ -143,7 +267,7 @@ export class AuthRepository {
         avatar_url: input.avatarUrl,
         organization_name: input.organizationName,
         is_super_admin: input.isSuperAdmin ? 1 : 0,
-        is_active: 1,
+        is_active: input.isActive ?? true ? 1 : 0,
         created_at: timestamp,
         updated_at: timestamp,
       })
@@ -151,14 +275,16 @@ export class AuthRepository {
 
     await queryDatabase
       .insertInto(coreTableNames.authUserRoles)
-      .values({
-        id: `${input.id}:${input.roleKey}`,
-        user_id: input.id,
-        role_id: input.roleKey,
-        is_active: 1,
-        created_at: timestamp,
-        updated_at: timestamp,
-      })
+      .values(
+        input.roleKeys.map((roleKey) => ({
+          id: `${input.id}:${roleKey}`,
+          user_id: input.id,
+          role_id: roleKey,
+          is_active: 1,
+          created_at: timestamp,
+          updated_at: timestamp,
+        }))
+      )
       .execute()
 
     const stored = await this.findById(input.id)
@@ -168,6 +294,206 @@ export class AuthRepository {
     }
 
     return stored.user
+  }
+
+  async updateUser(input: {
+    id: string
+    email: string
+    phoneNumber: string | null
+    displayName: string
+    actorType: ActorType
+    avatarUrl: string | null
+    organizationName: string | null
+    isSuperAdmin: boolean
+    isActive: boolean
+  }) {
+    await asQueryDatabase(this.database)
+      .updateTable(coreTableNames.authUsers)
+      .set({
+        email: input.email,
+        phone_number: input.phoneNumber,
+        display_name: input.displayName,
+        actor_type: input.actorType,
+        avatar_url: input.avatarUrl,
+        organization_name: input.organizationName,
+        is_super_admin: input.isSuperAdmin ? 1 : 0,
+        is_active: input.isActive ? 1 : 0,
+        updated_at: new Date().toISOString(),
+      })
+      .where("id", "=", input.id)
+      .execute()
+  }
+
+  async replaceUserRoles(userId: string, roleKeys: string[]) {
+    const queryDatabase = asQueryDatabase(this.database)
+    const timestamp = new Date().toISOString()
+
+    await queryDatabase
+      .deleteFrom(coreTableNames.authUserRoles)
+      .where("user_id", "=", userId)
+      .execute()
+
+    await queryDatabase
+      .insertInto(coreTableNames.authUserRoles)
+      .values(
+        roleKeys.map((roleKey) => ({
+          id: `${userId}:${roleKey}`,
+          user_id: userId,
+          role_id: roleKey,
+          is_active: 1,
+          created_at: timestamp,
+          updated_at: timestamp,
+        }))
+      )
+      .execute()
+  }
+
+  async createRole(input: {
+    key: string
+    name: string
+    summary: string
+    actorType: ActorType
+    permissionKeys: string[]
+    isActive: boolean
+  }) {
+    const timestamp = new Date().toISOString()
+    const queryDatabase = asQueryDatabase(this.database)
+
+    await queryDatabase
+      .insertInto(coreTableNames.authRoles)
+      .values({
+        id: input.key,
+        role_key: input.key,
+        name: input.name,
+        summary: input.summary,
+        actor_type: input.actorType,
+        is_active: input.isActive ? 1 : 0,
+        created_at: timestamp,
+        updated_at: timestamp,
+      })
+      .execute()
+
+    await queryDatabase
+      .insertInto(coreTableNames.authRolePermissions)
+      .values(
+        input.permissionKeys.map((permissionKey) => ({
+          id: `${input.key}:${permissionKey}`,
+          role_id: input.key,
+          permission_id: permissionKey,
+          is_active: 1,
+          created_at: timestamp,
+          updated_at: timestamp,
+        }))
+      )
+      .execute()
+
+    return this.getRole(input.key)
+  }
+
+  async updateRole(input: {
+    id: string
+    name: string
+    summary: string
+    actorType: ActorType
+    isActive: boolean
+  }) {
+    await asQueryDatabase(this.database)
+      .updateTable(coreTableNames.authRoles)
+      .set({
+        name: input.name,
+        summary: input.summary,
+        actor_type: input.actorType,
+        is_active: input.isActive ? 1 : 0,
+        updated_at: new Date().toISOString(),
+      })
+      .where("id", "=", input.id)
+      .execute()
+  }
+
+  async createPermission(input: {
+    key: string
+    name: string
+    summary: string
+    scopeType: string
+    appId: string | null
+    resourceKey: string
+    actionKey: string
+    route: string | null
+    isActive: boolean
+  }) {
+    const timestamp = new Date().toISOString()
+
+    await asQueryDatabase(this.database)
+      .insertInto(coreTableNames.authPermissions)
+      .values({
+        id: input.key,
+        permission_key: input.key,
+        name: input.name,
+        summary: input.summary,
+        scope_type: input.scopeType,
+        app_id: input.appId,
+        resource_key: input.resourceKey,
+        action_key: input.actionKey,
+        route: input.route,
+        is_active: input.isActive ? 1 : 0,
+        created_at: timestamp,
+        updated_at: timestamp,
+      })
+      .execute()
+
+    return this.getPermission(input.key)
+  }
+
+  async updatePermission(input: {
+    id: string
+    name: string
+    summary: string
+    scopeType: string
+    appId: string | null
+    resourceKey: string
+    actionKey: string
+    route: string | null
+    isActive: boolean
+  }) {
+    await asQueryDatabase(this.database)
+      .updateTable(coreTableNames.authPermissions)
+      .set({
+        name: input.name,
+        summary: input.summary,
+        scope_type: input.scopeType,
+        app_id: input.appId,
+        resource_key: input.resourceKey,
+        action_key: input.actionKey,
+        route: input.route,
+        is_active: input.isActive ? 1 : 0,
+        updated_at: new Date().toISOString(),
+      })
+      .where("id", "=", input.id)
+      .execute()
+  }
+
+  async replaceRolePermissions(roleId: string, permissionKeys: string[]) {
+    const queryDatabase = asQueryDatabase(this.database)
+    const timestamp = new Date().toISOString()
+
+    await queryDatabase
+      .deleteFrom(coreTableNames.authRolePermissions)
+      .where("role_id", "=", roleId)
+      .execute()
+
+    await queryDatabase
+      .insertInto(coreTableNames.authRolePermissions)
+      .values(
+        permissionKeys.map((permissionKey) => ({
+          id: `${roleId}:${permissionKey}`,
+          role_id: roleId,
+          permission_id: permissionKey,
+          is_active: 1,
+          created_at: timestamp,
+          updated_at: timestamp,
+        }))
+      )
+      .execute()
   }
 
   async createSession(input: {
@@ -418,6 +744,7 @@ export class AuthRepository {
         "r.name as name",
         "r.summary as summary",
         "r.actor_type as actor_type",
+        "r.is_active as is_active",
       ])
       .where("ur.user_id", "in", userIds)
       .where("ur.is_active", "=", 1)
@@ -439,6 +766,12 @@ export class AuthRepository {
               "p.permission_key as permission_key",
               "p.name as name",
               "p.summary as summary",
+              "p.scope_type as scope_type",
+              "p.app_id as app_id",
+              "p.resource_key as resource_key",
+              "p.action_key as action_key",
+              "p.route as route",
+              "p.is_active as is_active",
             ])
             .where("rp.role_id", "in", roleIds)
             .where("rp.is_active", "=", 1)
@@ -452,6 +785,12 @@ export class AuthRepository {
         key: asString(row.permission_key) as AuthPermission["key"],
         name: asString(row.name),
         summary: asString(row.summary),
+        scopeType: asString(row.scope_type) as AuthPermission["scopeType"],
+        appId: asNullableString(row.app_id),
+        resourceKey: asString(row.resource_key),
+        actionKey: asString(row.action_key),
+        route: asNullableString(row.route),
+        isActive: asBoolean(row.is_active),
       }
       const rolePermissions = permissionsByRole.get(asString(row.role_id)) ?? []
       rolePermissions.push(permission)
@@ -467,6 +806,7 @@ export class AuthRepository {
         name: asString(row.name),
         summary: asString(row.summary),
         actorType: asString(row.actor_type) as ActorType,
+        isActive: asBoolean(row.is_active),
         permissions: permissionsByRole.get(roleId) ?? [],
       }
       const userRoles = rolesByUser.get(asString(row.user_id)) ?? []

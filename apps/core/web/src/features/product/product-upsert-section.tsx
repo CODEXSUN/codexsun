@@ -15,6 +15,7 @@ import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navig
 
 import {
   buildVariantMatrix,
+  calculatePricingFromPurchase,
   createDefaultProductFormValues,
   createEmptyProductAttribute,
   createEmptyProductAttributeValue,
@@ -23,7 +24,6 @@ import {
   createEmptyProductStockItem,
   createEmptyProductTag,
   createEmptyProductVariant,
-  createEmptyProductVariantImage,
   createEmptyProductVariantAttribute,
   storefrontDepartmentOptions,
   toProductFormValues,
@@ -45,6 +45,11 @@ import {
 
 type LookupState = Record<ProductLookupModuleKey, CommonModuleItem[]>
 type ProductFieldErrors = Record<string, string>
+type ProductPricingDraft = {
+  purchase: number
+  sellPercent: number
+  mrpPercent: number
+}
 
 const lookupModules: ProductLookupModuleKey[] = [
   "brands",
@@ -126,6 +131,11 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
   const navigate = useNavigate()
   const isEditing = Boolean(productId)
   const [form, setForm] = useState<ProductFormValues>(createDefaultProductFormValues())
+  const [pricingDraft, setPricingDraft] = useState<ProductPricingDraft>({
+    purchase: 0,
+    sellPercent: 50,
+    mrpPercent: 75,
+  })
   const [lookupState, setLookupState] = useState<LookupState>({
     brands: [],
     productCategories: [],
@@ -172,6 +182,10 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
 
         if (!cancelled) {
           setForm(toProductFormValues(product.item))
+          setPricingDraft((current) => ({
+            ...current,
+            purchase: product.item.costPrice,
+          }))
           setIsLoading(false)
         }
       } catch (error) {
@@ -187,6 +201,80 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
       cancelled = true
     }
   }, [productId])
+
+  function handleApplyPricingFormula() {
+    setForm((current) => {
+      const formulaSettings = {
+        purchaseToSellPercent: pricingDraft.sellPercent,
+        purchaseToMrpPercent: pricingDraft.mrpPercent,
+      }
+      const productPurchase =
+        pricingDraft.purchase > 0 ? pricingDraft.purchase : current.costPrice
+      const productFormula = calculatePricingFromPurchase(productPurchase, formulaSettings)
+      const nextPrices = [...current.prices]
+
+      const upsertPriceRow = (
+        variantClientKey: string | null,
+        purchasePrice: number
+      ) => {
+        const formula = calculatePricingFromPurchase(purchasePrice, formulaSettings)
+        const rowIndex = nextPrices.findIndex(
+          (entry) => (entry.variantClientKey ?? null) === variantClientKey
+        )
+        const nextRow = {
+          variantClientKey,
+          costPrice: formula.purchasePrice,
+          sellingPrice: formula.sellingPrice,
+          mrp: formula.mrp,
+          isActive: true,
+        }
+
+        if (rowIndex >= 0) {
+          nextPrices[rowIndex] = {
+            ...nextPrices[rowIndex],
+            ...nextRow,
+          }
+          return
+        }
+
+        nextPrices.push(nextRow)
+      }
+
+      upsertPriceRow(null, productFormula.purchasePrice)
+
+      const nextVariants = current.variants.map((variant) => {
+        const scopedRow = current.prices.find(
+          (entry) => entry.variantClientKey === variant.clientKey
+        )
+        const variantPurchase =
+          scopedRow && scopedRow.costPrice > 0
+            ? scopedRow.costPrice
+            : variant.costPrice > 0
+              ? variant.costPrice
+              : productFormula.purchasePrice
+        const variantFormula = calculatePricingFromPurchase(
+          variantPurchase,
+          formulaSettings
+        )
+
+        upsertPriceRow(variant.clientKey, variantFormula.purchasePrice)
+
+        return {
+          ...variant,
+          costPrice: variantFormula.purchasePrice,
+          price: variantFormula.sellingPrice,
+        }
+      })
+
+      return {
+        ...current,
+        basePrice: productFormula.sellingPrice,
+        costPrice: productFormula.purchasePrice,
+        variants: nextVariants,
+        prices: nextPrices,
+      }
+    })
+  }
 
   const tabs = useMemo<AnimatedContentTab[]>(
     () => [
@@ -381,11 +469,25 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  setForm((current) => ({
-                    ...current,
-                    hasVariants: true,
-                    variants: buildVariantMatrix(current),
-                  }))
+                  setForm((current) => {
+                    const variants = buildVariantMatrix(current)
+
+                    return {
+                      ...current,
+                      hasVariants: true,
+                      variants,
+                      prices: current.prices.map((entry) =>
+                        entry.variantClientKey == null
+                          ? entry
+                          : { ...entry, variantClientKey: null }
+                      ),
+                      stockItems: current.stockItems.map((entry) =>
+                        entry.variantClientKey == null
+                          ? entry
+                          : { ...entry, variantClientKey: null }
+                      ),
+                    }
+                  })
                 }
               >
                 <BoxesIcon className="size-4" />
@@ -727,17 +829,8 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                     <ProductFormSectionCard
                       title="Variant Images"
                       description="Attach variant-specific images when the base gallery is not enough."
-                      onAdd={() =>
-                        setForm((current) => ({
-                          ...current,
-                          variants: updateCollectionItem(current.variants, index, (item) => ({
-                            ...item,
-                            images: [...item.images, createEmptyProductVariantImage()],
-                          })),
-                        }))
-                      }
                     >
-                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                      <div className="grid gap-4 md:grid-cols-3">
                         {variant.images.map((image, imageIndex) => (
                           <FrameworkMediaPickerField
                             key={`${variant.clientKey}-image-${imageIndex}`}
@@ -755,27 +848,6 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                                   })),
                                 })),
                               }))
-                            }
-                            footer={
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="justify-start px-0 text-muted-foreground"
-                                onClick={() =>
-                                  setForm((current) => ({
-                                    ...current,
-                                    variants: updateCollectionItem(current.variants, index, (item) => ({
-                                      ...item,
-                                      images: item.images.filter(
-                                        (_, nestedIndex) => nestedIndex !== imageIndex
-                                      ),
-                                    })),
-                                  }))
-                                }
-                              >
-                                Remove card
-                              </Button>
                             }
                           />
                         ))}
@@ -916,6 +988,79 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
         content: (
           <div className="space-y-5">
             <ProductFormSectionCard
+              title="Apply Pricing"
+              description="Enter purchase price and percentages once, then calculate product and variant selling or MRP values together."
+            >
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <ProductField label="Purchase Price">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={pricingDraft.purchase}
+                    onChange={(event) =>
+                      setPricingDraft((current) => ({
+                        ...current,
+                        purchase: Number(event.target.value || 0),
+                      }))
+                    }
+                  />
+                </ProductField>
+                <ProductField label="Selling %">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={pricingDraft.sellPercent}
+                    onChange={(event) =>
+                      setPricingDraft((current) => ({
+                        ...current,
+                        sellPercent: Number(event.target.value || 0),
+                      }))
+                    }
+                  />
+                </ProductField>
+                <ProductField label="MRP %">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={pricingDraft.mrpPercent}
+                    onChange={(event) =>
+                      setPricingDraft((current) => ({
+                        ...current,
+                        mrpPercent: Number(event.target.value || 0),
+                      }))
+                    }
+                  />
+                </ProductField>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    className="w-full md:w-auto"
+                    onClick={() => handleApplyPricingFormula()}
+                  >
+                    Calculate
+                  </Button>
+                </div>
+              </div>
+              <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                Example: purchase 100 with {pricingDraft.sellPercent}% selling and{" "}
+                {pricingDraft.mrpPercent}% MRP gives{" "}
+                {
+                  calculatePricingFromPurchase(100, {
+                    purchaseToSellPercent: pricingDraft.sellPercent,
+                    purchaseToMrpPercent: pricingDraft.mrpPercent,
+                  }).sellingPrice
+                }{" "}
+                selling and{" "}
+                {
+                  calculatePricingFromPurchase(100, {
+                    purchaseToSellPercent: pricingDraft.sellPercent,
+                    purchaseToMrpPercent: pricingDraft.mrpPercent,
+                  }).mrp
+                }{" "}
+                MRP. Variant rows use their own purchase price when available, otherwise the main purchase price.
+              </div>
+            </ProductFormSectionCard>
+            <ProductFormSectionCard
               title="Price Rows"
               description="Commercial pricing for product or variant scope."
               onAdd={() =>
@@ -950,17 +1095,17 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                         }))
                       }
                     />
-                    <ProductField label="MRP">
+                    <ProductField label="Purchase Price">
                       <Input
                         type="number"
                         step="0.01"
-                        value={price.mrp}
+                        value={price.costPrice}
                         onChange={(event) =>
                           setForm((current) => ({
                             ...current,
                             prices: updateCollectionItem(current.prices, index, (item) => ({
                               ...item,
-                              mrp: Number(event.target.value || 0),
+                              costPrice: Number(event.target.value || 0),
                             })),
                           }))
                         }
@@ -982,17 +1127,17 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                         }
                       />
                     </ProductField>
-                    <ProductField label="Purchase Price">
+                    <ProductField label="MRP">
                       <Input
                         type="number"
                         step="0.01"
-                        value={price.costPrice}
+                        value={price.mrp}
                         onChange={(event) =>
                           setForm((current) => ({
                             ...current,
                             prices: updateCollectionItem(current.prices, index, (item) => ({
                               ...item,
-                              costPrice: Number(event.target.value || 0),
+                              mrp: Number(event.target.value || 0),
                             })),
                           }))
                         }

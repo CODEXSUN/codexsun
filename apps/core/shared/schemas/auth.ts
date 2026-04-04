@@ -1,28 +1,48 @@
 import { z } from "zod"
 
-export const actorTypeSchema = z.enum(["customer", "staff", "admin", "vendor"])
-export const permissionKeySchema = z.enum([
-  "dashboard:view",
-  "users:manage",
-  "roles:manage",
-  "permissions:manage",
-  "customers:view",
-  "vendors:view",
-  "mailbox:manage",
-  "settings:manage",
+export const actorTypeSchema = z.enum([
+  "customer",
+  "staff",
+  "employee",
+  "partner",
+  "supplier",
+  "admin",
+  "vendor",
+])
+export const authRegisterActorTypeSchema = z.enum(["customer", "staff", "vendor"])
+export const permissionKeySchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(160)
+  .regex(/^[a-z0-9]+(?::[a-z0-9_]+)+$/, "Use lowercase namespace segments separated by colons.")
+
+export const permissionScopeTypeSchema = z.enum([
+  "desk",
+  "workspace",
+  "module",
+  "page",
+  "report",
+  "module-def",
 ])
 
-export const roleKeySchema = z.enum([
-  "customer_portal",
-  "staff_operator",
-  "admin_owner",
-  "vendor_portal",
-])
+export const roleKeySchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(120)
+  .regex(/^[a-z0-9]+(?:_[a-z0-9]+)*$/, "Use lowercase letters, numbers, and underscores only.")
 
 export const permissionSchema = z.object({
   key: permissionKeySchema,
   name: z.string().min(1),
   summary: z.string().min(1),
+  scopeType: permissionScopeTypeSchema,
+  appId: z.string().min(1).nullable(),
+  resourceKey: z.string().min(1),
+  actionKey: z.string().min(1),
+  route: z.string().min(1).nullable(),
+  isActive: z.boolean(),
 })
 
 export const roleSchema = z.object({
@@ -30,7 +50,33 @@ export const roleSchema = z.object({
   name: z.string().min(1),
   summary: z.string().min(1),
   actorType: actorTypeSchema,
+  isActive: z.boolean(),
   permissions: z.array(permissionSchema),
+})
+
+export const roleSummarySchema = roleSchema.extend({
+  assignedUserCount: z.number().int().nonnegative(),
+})
+
+export const authRoleUpsertPayloadSchema = z.object({
+  actorType: actorTypeSchema,
+  key: roleKeySchema.optional(),
+  name: z.string().trim().min(2).max(120),
+  summary: z.string().trim().min(2).max(400),
+  permissionKeys: z.array(permissionKeySchema).min(1),
+  isActive: z.boolean(),
+})
+
+export const authPermissionUpsertPayloadSchema = z.object({
+  key: permissionKeySchema.optional(),
+  name: z.string().trim().min(2).max(120),
+  summary: z.string().trim().min(2).max(400),
+  scopeType: permissionScopeTypeSchema,
+  appId: z.string().trim().min(1).max(120).nullable(),
+  resourceKey: z.string().trim().min(1).max(191),
+  actionKey: z.string().trim().min(1).max(64),
+  route: z.string().trim().min(1).max(255).nullable(),
+  isActive: z.boolean(),
 })
 
 export const authUserSchema = z.object({
@@ -112,8 +158,10 @@ export const authUserUpsertPayloadSchema = z.object({
   actorType: actorTypeSchema,
   avatarUrl: nullableUrlInputSchema,
   organizationName: nullableOrganizationInputSchema,
+  roleKeys: z.array(roleKeySchema).min(1),
   password: z.string().min(8).nullable().optional(),
   isActive: z.boolean(),
+  isSuperAdmin: z.boolean(),
 })
 
 export const authUserResponseSchema = z.object({
@@ -122,6 +170,22 @@ export const authUserResponseSchema = z.object({
 
 export const authUserListResponseSchema = z.object({
   items: z.array(authUserSummarySchema),
+})
+
+export const authRoleListResponseSchema = z.object({
+  items: z.array(roleSummarySchema),
+})
+
+export const authRoleResponseSchema = z.object({
+  item: roleSummarySchema,
+})
+
+export const authPermissionListResponseSchema = z.object({
+  items: z.array(permissionSchema),
+})
+
+export const authPermissionResponseSchema = z.object({
+  item: permissionSchema,
 })
 
 export const authSessionListResponseSchema = z.object({
@@ -156,7 +220,7 @@ export const authRegisterPayloadSchema = z.object({
   phoneNumber: z.string().trim().min(10).max(20),
   password: z.string().min(8),
   displayName: z.string().min(2),
-  actorType: actorTypeSchema.default("staff"),
+  actorType: authRegisterActorTypeSchema.default("staff"),
   emailVerificationId: z.string().min(1),
   organizationName: z.string().trim().min(2).max(120).optional(),
 })
@@ -242,14 +306,22 @@ export type PermissionKey = z.infer<typeof permissionKeySchema>
 export type RoleKey = z.infer<typeof roleKeySchema>
 export type AuthPermission = z.infer<typeof permissionSchema>
 export type AuthRole = z.infer<typeof roleSchema>
+export type AuthRoleSummary = z.infer<typeof roleSummarySchema>
 export type AuthUser = z.infer<typeof authUserSchema>
 export type AuthUserSummary = z.infer<typeof authUserSummarySchema>
 export type AuthSession = z.infer<typeof authSessionSchema>
 export type AuthOtpChannel = z.infer<typeof authOtpChannelSchema>
 export type AuthUserUpsertPayload = z.infer<typeof authUserUpsertPayloadSchema>
+export type AuthRoleUpsertPayload = z.infer<typeof authRoleUpsertPayloadSchema>
+export type AuthPermissionUpsertPayload = z.infer<typeof authPermissionUpsertPayloadSchema>
 export type AuthUserResponse = z.infer<typeof authUserResponseSchema>
 export type AuthUserListResponse = z.infer<typeof authUserListResponseSchema>
+export type AuthRoleListResponse = z.infer<typeof authRoleListResponseSchema>
+export type AuthRoleResponse = z.infer<typeof authRoleResponseSchema>
+export type AuthPermissionListResponse = z.infer<typeof authPermissionListResponseSchema>
+export type AuthPermissionResponse = z.infer<typeof authPermissionResponseSchema>
 export type AuthSessionListResponse = z.infer<typeof authSessionListResponseSchema>
+export type PermissionScopeType = z.infer<typeof permissionScopeTypeSchema>
 export type AuthRegisterOtpRequestPayload = z.infer<
   typeof authRegisterOtpRequestPayloadSchema
 >

@@ -1,3 +1,5 @@
+import "./restart-token.js"
+
 import { pathToFileURL } from "node:url"
 
 import { startFrameworkServer } from "../../../framework/src/server/index.js"

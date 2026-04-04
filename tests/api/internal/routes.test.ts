@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import test from "node:test"
@@ -106,6 +106,20 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("POST /internal/v1/core/companies"))
   assert.ok(routePaths.includes("PATCH /internal/v1/core/company"))
   assert.ok(routePaths.includes("DELETE /internal/v1/core/company"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/auth/users"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/auth/user"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/auth/users"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/core/auth/user"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/auth/roles"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/auth/role"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/auth/roles"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/core/auth/role"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/auth/permissions"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/auth/permission"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/auth/permissions"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/core/auth/permission"))
+  assert.ok(routePaths.includes("GET /internal/v1/core/runtime-settings"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/runtime-settings"))
   assert.ok(routePaths.includes("GET /internal/v1/core/products"))
   assert.ok(routePaths.includes("GET /internal/v1/core/product"))
   assert.ok(routePaths.includes("POST /internal/v1/core/products"))
@@ -113,6 +127,10 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("DELETE /internal/v1/core/product"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/media"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/media"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/system-update"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/system-update/history"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/system-update"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/system-update/reset"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/media-item"))
   assert.ok(routePaths.includes("PATCH /internal/v1/framework/media-item"))
   assert.ok(routePaths.includes("DELETE /internal/v1/framework/media-item"))
@@ -122,6 +140,655 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("PATCH /internal/v1/framework/media-folder"))
   assert.ok(routePaths.includes("DELETE /internal/v1/framework/media-folder"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/media-folder/restore"))
+})
+
+test("authenticated core runtime settings routes read and save env-backed settings", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-runtime-settings-"))
+
+  try {
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      ["DB_DRIVER=sqlite", "SQLITE_FILE=storage/runtime.sqlite", "APP_NAME=codexsun"].join("\n"),
+      "utf8"
+    )
+
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const readRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/core/runtime-settings"
+      )
+      const saveRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/core/runtime-settings"
+      )
+
+      assert.ok(readRoute)
+      assert.ok(saveRoute)
+
+      const readResponse = await readRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/runtime-settings",
+          url: new URL("http://localhost/internal/v1/core/runtime-settings"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readRoute.auth,
+          path: readRoute.path,
+          surface: readRoute.surface,
+          version: readRoute.version,
+        },
+      })
+
+      const readPayload = JSON.parse(readResponse.body) as {
+        envFilePath: string
+        values: Record<string, string | boolean>
+      }
+
+      assert.equal(readResponse.statusCode, 200)
+      assert.equal(readPayload.values.APP_NAME, "codexsun")
+
+      const saveResponse = await saveRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/runtime-settings",
+          url: new URL("http://localhost/internal/v1/core/runtime-settings"),
+          headers,
+          bodyText: JSON.stringify({
+            restart: false,
+            values: {
+              ...readPayload.values,
+              APP_NAME: "codexsun-updated",
+              APP_HTTP_PORT: "3200",
+              DB_DRIVER: "sqlite",
+              SQLITE_FILE: "storage/runtime.sqlite",
+            },
+          }),
+          jsonBody: {
+            restart: false,
+            values: {
+              ...readPayload.values,
+              APP_NAME: "codexsun-updated",
+              APP_HTTP_PORT: "3200",
+              DB_DRIVER: "sqlite",
+              SQLITE_FILE: "storage/runtime.sqlite",
+            },
+          },
+        },
+        route: {
+          auth: saveRoute.auth,
+          path: saveRoute.path,
+          surface: saveRoute.surface,
+          version: saveRoute.version,
+        },
+      })
+
+      const savePayload = JSON.parse(saveResponse.body) as {
+        saved: boolean
+        restartScheduled: boolean
+        snapshot: {
+          values: Record<string, string | boolean>
+        }
+      }
+
+      assert.equal(saveResponse.statusCode, 200)
+      assert.equal(savePayload.saved, true)
+      assert.equal(savePayload.restartScheduled, false)
+      assert.equal(savePayload.snapshot.values.APP_NAME, "codexsun-updated")
+      assert.match(readFileSync(path.join(tempRoot, ".env"), "utf8"), /APP_NAME=codexsun-updated/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("authenticated core auth routes manage roles, permissions, and users", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-auth-routes-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const listRolesRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/roles"
+      )
+      const listPermissionsRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/permissions"
+      )
+      const readPermissionRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/permission"
+      )
+      const createPermissionRoute = routes.find(
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/core/auth/permissions"
+      )
+      const updatePermissionRoute = routes.find(
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/core/auth/permission"
+      )
+      const createRoleRoute = routes.find(
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/core/auth/roles"
+      )
+      const readRoleRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/role"
+      )
+      const updateRoleRoute = routes.find(
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/core/auth/role"
+      )
+      const createUserRoute = routes.find(
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/core/auth/users"
+      )
+      const readUserRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/user"
+      )
+      const updateUserRoute = routes.find(
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/core/auth/user"
+      )
+
+      assert.ok(listRolesRoute)
+      assert.ok(listPermissionsRoute)
+      assert.ok(readPermissionRoute)
+      assert.ok(createPermissionRoute)
+      assert.ok(updatePermissionRoute)
+      assert.ok(createRoleRoute)
+      assert.ok(readRoleRoute)
+      assert.ok(updateRoleRoute)
+      assert.ok(createUserRoute)
+      assert.ok(readUserRoute)
+      assert.ok(updateUserRoute)
+
+      const rolesResponse = await listRolesRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/auth/roles",
+          url: new URL("http://localhost/internal/v1/core/auth/roles"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: listRolesRoute.auth,
+          path: listRolesRoute.path,
+          surface: listRolesRoute.surface,
+          version: listRolesRoute.version,
+        },
+      })
+
+      const rolesPayload = JSON.parse(rolesResponse.body) as {
+        items: Array<{ key: string; assignedUserCount: number }>
+      }
+
+      assert.equal(rolesResponse.statusCode, 200)
+      assert.ok(rolesPayload.items.some((item) => item.key === "staff_operator"))
+
+      const permissionsResponse = await listPermissionsRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/auth/permissions",
+          url: new URL("http://localhost/internal/v1/core/auth/permissions"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: listPermissionsRoute.auth,
+          path: listPermissionsRoute.path,
+          surface: listPermissionsRoute.surface,
+          version: listPermissionsRoute.version,
+        },
+      })
+
+      const permissionsPayload = JSON.parse(permissionsResponse.body) as {
+        items: Array<{ key: string }>
+      }
+
+      assert.equal(permissionsResponse.statusCode, 200)
+      assert.ok(permissionsPayload.items.some((item) => item.key === "users:manage"))
+
+      const createPermissionResponse = await createPermissionRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/auth/permissions",
+          url: new URL("http://localhost/internal/v1/core/auth/permissions"),
+          headers,
+          bodyText: JSON.stringify({
+            key: "billing:profit_and_loss:view",
+            name: "Profit And Loss View",
+            summary: "View the billing profit and loss report.",
+            scopeType: "report",
+            appId: "billing",
+            resourceKey: "profit-and-loss",
+            actionKey: "view",
+            route: "/dashboard/billing/profit-and-loss",
+            isActive: true,
+          }),
+          jsonBody: {
+            key: "billing:profit_and_loss:view",
+            name: "Profit And Loss View",
+            summary: "View the billing profit and loss report.",
+            scopeType: "report",
+            appId: "billing",
+            resourceKey: "profit-and-loss",
+            actionKey: "view",
+            route: "/dashboard/billing/profit-and-loss",
+            isActive: true,
+          },
+        },
+        route: {
+          auth: createPermissionRoute.auth,
+          path: createPermissionRoute.path,
+          surface: createPermissionRoute.surface,
+          version: createPermissionRoute.version,
+        },
+      })
+
+      const createdPermissionPayload = JSON.parse(createPermissionResponse.body) as {
+        item: { key: string; scopeType: string; appId: string | null }
+      }
+
+      assert.equal(createPermissionResponse.statusCode, 201)
+      assert.equal(createdPermissionPayload.item.key, "billing:profit_and_loss:view")
+      assert.equal(createdPermissionPayload.item.scopeType, "report")
+      assert.equal(createdPermissionPayload.item.appId, "billing")
+
+      const readPermissionResponse = await readPermissionRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/auth/permission",
+          url: new URL("http://localhost/internal/v1/core/auth/permission?id=billing%3Aprofit_and_loss%3Aview"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readPermissionRoute.auth,
+          path: readPermissionRoute.path,
+          surface: readPermissionRoute.surface,
+          version: readPermissionRoute.version,
+        },
+      })
+
+      const readPermissionPayload = JSON.parse(readPermissionResponse.body) as {
+        item: { resourceKey: string; route: string | null }
+      }
+
+      assert.equal(readPermissionResponse.statusCode, 200)
+      assert.equal(readPermissionPayload.item.resourceKey, "profit-and-loss")
+      assert.equal(readPermissionPayload.item.route, "/dashboard/billing/profit-and-loss")
+
+      const updatePermissionResponse = await updatePermissionRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/core/auth/permission",
+          url: new URL("http://localhost/internal/v1/core/auth/permission?id=billing%3Aprofit_and_loss%3Aview"),
+          headers,
+          bodyText: JSON.stringify({
+            key: "billing:profit_and_loss:view",
+            name: "Profit And Loss Report",
+            summary: "Updated report permission.",
+            scopeType: "report",
+            appId: "billing",
+            resourceKey: "profit-and-loss",
+            actionKey: "view",
+            route: "/dashboard/billing/profit-and-loss",
+            isActive: false,
+          }),
+          jsonBody: {
+            key: "billing:profit_and_loss:view",
+            name: "Profit And Loss Report",
+            summary: "Updated report permission.",
+            scopeType: "report",
+            appId: "billing",
+            resourceKey: "profit-and-loss",
+            actionKey: "view",
+            route: "/dashboard/billing/profit-and-loss",
+            isActive: false,
+          },
+        },
+        route: {
+          auth: updatePermissionRoute.auth,
+          path: updatePermissionRoute.path,
+          surface: updatePermissionRoute.surface,
+          version: updatePermissionRoute.version,
+        },
+      })
+
+      const updatedPermissionPayload = JSON.parse(updatePermissionResponse.body) as {
+        item: { name: string; isActive: boolean }
+      }
+
+      assert.equal(updatePermissionResponse.statusCode, 200)
+      assert.equal(updatedPermissionPayload.item.name, "Profit And Loss Report")
+      assert.equal(updatedPermissionPayload.item.isActive, false)
+
+      const createRoleResponse = await createRoleRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/auth/roles",
+          url: new URL("http://localhost/internal/v1/core/auth/roles"),
+          headers,
+          bodyText: JSON.stringify({
+            actorType: "staff",
+            key: "catalog_manager",
+            name: "Catalog Manager",
+            summary: "Manage product catalog users.",
+            permissionKeys: ["dashboard:view", "users:manage"],
+            isActive: true,
+          }),
+          jsonBody: {
+            actorType: "staff",
+            key: "catalog_manager",
+            name: "Catalog Manager",
+            summary: "Manage product catalog users.",
+            permissionKeys: ["dashboard:view", "users:manage"],
+            isActive: true,
+          },
+        },
+        route: {
+          auth: createRoleRoute.auth,
+          path: createRoleRoute.path,
+          surface: createRoleRoute.surface,
+          version: createRoleRoute.version,
+        },
+      })
+
+      const createdRolePayload = JSON.parse(createRoleResponse.body) as {
+        item: { key: string; permissionKeys?: string[]; permissions: Array<{ key: string }> }
+      }
+
+      assert.equal(createRoleResponse.statusCode, 201)
+      assert.equal(createdRolePayload.item.key, "catalog_manager")
+      assert.deepEqual(
+        createdRolePayload.item.permissions.map((permission) => permission.key),
+        ["dashboard:view", "users:manage"]
+      )
+
+      const readRoleResponse = await readRoleRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/auth/role",
+          url: new URL("http://localhost/internal/v1/core/auth/role?id=catalog_manager"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readRoleRoute.auth,
+          path: readRoleRoute.path,
+          surface: readRoleRoute.surface,
+          version: readRoleRoute.version,
+        },
+      })
+
+      const readRolePayload = JSON.parse(readRoleResponse.body) as {
+        item: { name: string; actorType: string }
+      }
+
+      assert.equal(readRoleResponse.statusCode, 200)
+      assert.equal(readRolePayload.item.name, "Catalog Manager")
+      assert.equal(readRolePayload.item.actorType, "staff")
+
+      const updateRoleResponse = await updateRoleRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/core/auth/role",
+          url: new URL("http://localhost/internal/v1/core/auth/role?id=catalog_manager"),
+          headers,
+          bodyText: JSON.stringify({
+            actorType: "staff",
+            key: "catalog_manager",
+            name: "Catalog Operator",
+            summary: "Updated role summary.",
+            permissionKeys: ["dashboard:view"],
+            isActive: false,
+          }),
+          jsonBody: {
+            actorType: "staff",
+            key: "catalog_manager",
+            name: "Catalog Operator",
+            summary: "Updated role summary.",
+            permissionKeys: ["dashboard:view"],
+            isActive: false,
+          },
+        },
+        route: {
+          auth: updateRoleRoute.auth,
+          path: updateRoleRoute.path,
+          surface: updateRoleRoute.surface,
+          version: updateRoleRoute.version,
+        },
+      })
+
+      const updatedRolePayload = JSON.parse(updateRoleResponse.body) as {
+        item: { name: string; isActive: boolean; permissions: Array<{ key: string }> }
+      }
+
+      assert.equal(updateRoleResponse.statusCode, 200)
+      assert.equal(updatedRolePayload.item.name, "Catalog Operator")
+      assert.equal(updatedRolePayload.item.isActive, false)
+      assert.deepEqual(
+        updatedRolePayload.item.permissions.map((permission) => permission.key),
+        ["dashboard:view"]
+      )
+
+      const createUserResponse = await createUserRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/core/auth/users",
+          url: new URL("http://localhost/internal/v1/core/auth/users"),
+          headers,
+          bodyText: JSON.stringify({
+            email: "user-admin-route@codexsun.local",
+            phoneNumber: "+919999999991",
+            displayName: "Route User",
+            actorType: "staff",
+            avatarUrl: null,
+            organizationName: "codexsun",
+            roleKeys: ["staff_operator"],
+            password: "RouteUser@123",
+            isActive: true,
+            isSuperAdmin: false,
+          }),
+          jsonBody: {
+            email: "user-admin-route@codexsun.local",
+            phoneNumber: "+919999999991",
+            displayName: "Route User",
+            actorType: "staff",
+            avatarUrl: null,
+            organizationName: "codexsun",
+            roleKeys: ["staff_operator"],
+            password: "RouteUser@123",
+            isActive: true,
+            isSuperAdmin: false,
+          },
+        },
+        route: {
+          auth: createUserRoute.auth,
+          path: createUserRoute.path,
+          surface: createUserRoute.surface,
+          version: createUserRoute.version,
+        },
+      })
+
+      const createdUserPayload = JSON.parse(createUserResponse.body) as {
+        item: { id: string; displayName: string; roles: Array<{ key: string }> }
+      }
+
+      assert.equal(createUserResponse.statusCode, 201)
+      assert.equal(createdUserPayload.item.displayName, "Route User")
+      assert.deepEqual(createdUserPayload.item.roles.map((role) => role.key), ["staff_operator"])
+
+      const readUserResponse = await readUserRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/core/auth/user",
+          url: new URL(
+            `http://localhost/internal/v1/core/auth/user?id=${encodeURIComponent(createdUserPayload.item.id)}`
+          ),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readUserRoute.auth,
+          path: readUserRoute.path,
+          surface: readUserRoute.surface,
+          version: readUserRoute.version,
+        },
+      })
+
+      const readUserPayload = JSON.parse(readUserResponse.body) as {
+        item: { email: string; displayName: string }
+      }
+
+      assert.equal(readUserResponse.statusCode, 200)
+      assert.equal(readUserPayload.item.email, "user-admin-route@codexsun.local")
+
+      const updateUserResponse = await updateUserRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/core/auth/user",
+          url: new URL(
+            `http://localhost/internal/v1/core/auth/user?id=${encodeURIComponent(createdUserPayload.item.id)}`
+          ),
+          headers,
+          bodyText: JSON.stringify({
+            email: "user-admin-route@codexsun.local",
+            phoneNumber: "+919999999991",
+            displayName: "Route User Updated",
+            actorType: "staff",
+            avatarUrl: null,
+            organizationName: "codexsun",
+            roleKeys: ["staff_operator"],
+            password: null,
+            isActive: false,
+            isSuperAdmin: false,
+          }),
+          jsonBody: {
+            email: "user-admin-route@codexsun.local",
+            phoneNumber: "+919999999991",
+            displayName: "Route User Updated",
+            actorType: "staff",
+            avatarUrl: null,
+            organizationName: "codexsun",
+            roleKeys: ["staff_operator"],
+            password: null,
+            isActive: false,
+            isSuperAdmin: false,
+          },
+        },
+        route: {
+          auth: updateUserRoute.auth,
+          path: updateUserRoute.path,
+          surface: updateUserRoute.surface,
+          version: updateUserRoute.version,
+        },
+      })
+
+      const updatedUserPayload = JSON.parse(updateUserResponse.body) as {
+        item: { displayName: string; isActive: boolean }
+      }
+
+      assert.equal(updateUserResponse.statusCode, 200)
+      assert.equal(updatedUserPayload.item.displayName, "Route User Updated")
+      assert.equal(updatedUserPayload.item.isActive, false)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
 })
 
 test("authenticated core common-module routes list and mutate shared master records", async () => {

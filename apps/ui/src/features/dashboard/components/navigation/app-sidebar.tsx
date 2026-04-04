@@ -1,4 +1,14 @@
-import { ChevronRight, Cog, Home, Images, RefreshCcw } from "lucide-react"
+import {
+  Building2,
+  ChevronRight,
+  Home,
+  Images,
+  KeyRound,
+  RefreshCcw,
+  Settings2,
+  ShieldCheck,
+  Users,
+} from "lucide-react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
 import {
@@ -29,6 +39,62 @@ import type { DashboardAppDefinition } from "@/features/dashboard/types"
 function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
 }
+
+const frameworkUtilityGroups = [
+  {
+    id: "media",
+    label: "Media",
+    items: [
+      {
+        icon: Images,
+        name: "Media Manager",
+        route: "/dashboard/media",
+      },
+    ],
+  },
+  {
+    id: "users",
+    label: "Users",
+    items: [
+      {
+        icon: Users,
+        name: "Users",
+        route: "/dashboard/settings/users",
+      },
+      {
+        icon: ShieldCheck,
+        name: "Roles",
+        route: "/dashboard/settings/roles",
+      },
+      {
+        icon: KeyRound,
+        name: "Permissions",
+        route: "/dashboard/settings/permissions",
+      },
+    ],
+  },
+  {
+    id: "framework",
+    label: "Framework",
+    items: [
+      {
+        icon: Building2,
+        name: "Companies",
+        route: "/dashboard/settings/companies",
+      },
+      {
+        icon: Settings2,
+        name: "Core Settings",
+        route: "/dashboard/settings/core-settings",
+      },
+      {
+        icon: RefreshCcw,
+        name: "System Update",
+        route: "/dashboard/system-update",
+      },
+    ],
+  },
+] as const
 
 function isMenuItemActive(pathname: string, item: DashboardAppDefinition["menuGroups"][number]["items"][number]) {
   return isRouteActive(pathname, item.route) || item.children?.some((child) => isRouteActive(pathname, child.route)) || false
@@ -73,9 +139,9 @@ function GroupedAppMenu({
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {app.menuGroups.map((group) => {
+        <SidebarGroupContent>
+          <SidebarMenu>
+          {app.menuGroups.filter((group) => group.items.length > 0).map((group) => {
             const GroupIcon = group.items[0]?.icon
             const hasChildren = group.items.length > 1
             const isGroupActive = group.items.some((item) =>
@@ -162,6 +228,7 @@ function GroupedAppMenu({
                               isActive={isRouteActive(pathname, item.route)}
                             >
                               <NavLink to={item.route}>
+                                <item.icon className="size-4" />
                                 <span>{item.name}</span>
                               </NavLink>
                             </SidebarMenuSubButton>
@@ -180,8 +247,89 @@ function GroupedAppMenu({
   )
 }
 
+function UtilityNavigationMenu({
+  open,
+  pathname,
+}: {
+  open: boolean
+  pathname: string
+}) {
+  if (!open) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {frameworkUtilityGroups.flatMap((group) =>
+              group.items.map((item) => (
+                <SidebarMenuItem key={item.route}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isRouteActive(pathname, item.route)}
+                    tooltip={item.name}
+                  >
+                    <NavLink to={item.route}>
+                      <item.icon className="size-4" />
+                      <span className="sr-only">{item.name}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))
+            )}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    )
+  }
+
+  return (
+    <>
+      {frameworkUtilityGroups.map((group) => {
+        const GroupIcon = group.items[0]?.icon
+        const isGroupActive = group.items.some((item) => isRouteActive(pathname, item.route))
+
+        return (
+          <SidebarGroup key={group.id}>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible defaultOpen={isGroupActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={isGroupActive} className="pr-2">
+                        {GroupIcon ? <GroupIcon className="size-4" /> : null}
+                        <span>{group.label}</span>
+                        <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {group.items.map((item) => (
+                          <SidebarMenuSubItem key={item.route}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isRouteActive(pathname, item.route)}
+                            >
+                              <NavLink to={item.route}>
+                                <item.icon className="size-4" />
+                                <span>{item.name}</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )
+      })}
+    </>
+  )
+}
+
 export function AppSidebar() {
-  const { apps, brand, currentApp, links, services, user } = useDashboardShell()
+  const { apps, brand, currentApp, links, user } = useDashboardShell()
   const location = useLocation()
   const { open } = useSidebar()
   const showDeskGroup = location.pathname === links.dashboard
@@ -259,112 +407,24 @@ export function AppSidebar() {
         ) : null}
 
         {showFrameworkUtilityGroups ? (
-          <>
-            <SidebarGroup>
-              <SidebarGroupLabel>Media</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isRouteActive(location.pathname, links.mediaManager)}
-                    >
-                      <NavLink to={links.mediaManager}>
-                        <Images className="size-4" />
-                        {open ? <span>Media Manager</span> : null}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>Framework</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isRouteActive(location.pathname, links.settings)}
-                    >
-                      <NavLink to={links.settings}>
-                        <Cog className="size-4" />
-                        {open ? <span>Settings</span> : null}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isRouteActive(location.pathname, links.systemUpdate)}
-                    >
-                      <NavLink to={links.systemUpdate}>
-                        <RefreshCcw className="size-4" />
-                        {open ? <span>System Update</span> : null}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {services.map((service) => (
-                    <SidebarMenuItem key={service.id}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={links.systemUpdate}>
-                          <service.icon className="size-4" />
-                          {open ? <span>{service.name}</span> : null}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
+          <UtilityNavigationMenu open={open} pathname={location.pathname} />
         ) : null}
 
         {currentApp ? (
           <>
             <GroupedAppMenu
               app={currentApp}
-              groupLabel={currentApp.id === "ui" ? "Platform" : "Workspace"}
+              groupLabel={
+                currentApp.id === "ui"
+                  ? "Platform"
+                  : currentApp.id === "core"
+                    ? "Core"
+                    : "Workspace"
+              }
               open={open}
               pathname={location.pathname}
             />
-            <SidebarGroup>
-              <SidebarGroupLabel>Media</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isRouteActive(location.pathname, links.mediaManager)}
-                    >
-                      <NavLink to={links.mediaManager}>
-                        <Images className="size-4" />
-                        {open ? <span>Media Manager</span> : null}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel>Application</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isRouteActive(location.pathname, links.settings)}
-                    >
-                      <NavLink to={links.settings}>
-                        <Cog className="size-4" />
-                        {open ? <span>Settings</span> : null}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            <UtilityNavigationMenu open={open} pathname={location.pathname} />
           </>
         ) : null}
       </SidebarContent>

@@ -8,7 +8,7 @@
 
 ## v-0.0.1
 
-### [#21] 2026-04-04 - Core shared master expansion and framework media manager
+### [#21] 2026-04-04 - Core shared master expansion and framework admin control center
 
 - replaced the generic core common-module preview screen with module-specific list pages in the shared `CommonList` tone
 - added generic internal core common-module create, update, and delete support over the physical shared master tables
@@ -24,6 +24,11 @@
 - added a framework-owned shared media foundation with local binary storage, public web-root symlink exposure, internal and public media routes, and focused framework media tests
 - introduced a global framework media manager route and sidebar entry, then connected reusable media selection and preview into company logos, product galleries, and variant images
 - refined product and media UX with placeholder-row cleanup on save, five-up media browsing, compact equal-width card actions, product-image ordering that starts at `1`, and show-page image cards that match the form tone
+- moved company administration and runtime control pages into the shell-level framework navigation, then simplified the sidebar grouping and icon treatment to match the quieter operational core tone
+- turned core settings into a real grouped runtime settings editor that reads and writes `.env` values from the frontend, supports restart, and can generate a fresh JWT secret
+- added a framework-owned system-update surface with git fetch or hard reset, build, rollback, restart, preflight checks, and persisted operator activity history
+- added shell-level user, role, and permission administration with list, show, and upsert flows, plus RBAC linkage backed by the app-owned auth tables and pivot records
+- introduced a database-backed auth option catalog and startup settings snapshot so actor type, permission scope, action, app, and resource options are no longer hardcoded in the frontend admin forms
 
 ### [#20] 2026-04-02 - Billing account master alignment and support docs
 

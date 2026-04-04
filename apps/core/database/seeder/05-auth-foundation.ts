@@ -31,7 +31,12 @@ export const coreAuthFoundationSeeder = defineDatabaseSeeder({
           permission_key: permission.key,
           name: permission.name,
           summary: permission.summary,
-          is_active: 1,
+          scope_type: permission.scopeType,
+          app_id: permission.appId,
+          resource_key: permission.resourceKey,
+          action_key: permission.actionKey,
+          route: permission.route,
+          is_active: permission.isActive ? 1 : 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }))

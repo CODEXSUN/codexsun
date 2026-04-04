@@ -8,7 +8,7 @@
 
 ### Title
 
-`Core shared master expansion and framework media manager`
+`Core shared master expansion and framework admin control center`
 
 ### Scope Checklist
 
@@ -25,6 +25,11 @@
 - [x] add a framework-owned shared media foundation with local storage, public media symlink, API routes, and runtime serving
 - [x] add a global framework media manager route and sidebar entry, then connect reusable media picking and preview into company and product image fields
 - [x] refine product and media UX with inline payload cleanup, five-up media browsing, equal-width card actions, order normalization from `1`, and compact show-page image presentation
+- [x] move companies, core settings, and update controls into the application or framework navigation with the requested quieter page tone and grouped sidebar structure
+- [x] turn core settings into a real runtime `.env` editor with grouped tabs, save, restart, and JWT secret generation
+- [x] add a framework system-update surface with git fetch or reset, build, rollback, restart, preflight checks, and persistent activity history
+- [x] add framework user, role, and permission management pages with list, show, and upsert flows aligned to the company or contact administration tone
+- [x] replace hardcoded auth admin option lists with database-backed startup settings for actor type, permission scope, action, app, and resource metadata
 - [x] keep ASSIST tracking and changelog aligned with the shipped core common-module workspace change
 
 ### Validation Note
@@ -33,6 +38,7 @@
 - [x] `npx.cmd tsx --test tests/core/common-module-service.test.ts tests/api/internal/routes.test.ts`
 - [x] `npx.cmd tsx --test tests/core/product-form-state.test.ts tests/core/product-service.test.ts`
 - [x] `npx.cmd tsx --test tests/framework/media-service.test.ts tests/api/internal/routes.test.ts`
+- [x] `npx.cmd tsx --test tests/framework/runtime-settings-service.test.ts tests/framework/system-update-service.test.ts tests/framework/runtime/http-routes.test.ts tests/api/internal/routes.test.ts`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
 - [ ] full `npm run build`

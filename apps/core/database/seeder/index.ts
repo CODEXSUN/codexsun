@@ -6,6 +6,7 @@ import { coreAuthFoundationSeeder } from "./05-auth-foundation.js"
 import { coreMailboxSeeder } from "./06-mailbox.js"
 import { coreCommonModuleTablesSeeder } from "./07-common-module-tables.js"
 import { coreProductsSeeder } from "./08-products.js"
+import { coreAuthOptionCatalogSeeder } from "./09-auth-option-catalog.js"
 
 export const coreDatabaseSeeders = [
   coreBootstrapSeeder,
@@ -16,4 +17,5 @@ export const coreDatabaseSeeders = [
   coreMailboxSeeder,
   coreCommonModuleTablesSeeder,
   coreProductsSeeder,
+  coreAuthOptionCatalogSeeder,
 ]

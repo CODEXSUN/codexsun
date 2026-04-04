@@ -934,7 +934,7 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
         })
       }
 
-      void navigate("/dashboard/apps/core/companies")
+      void navigate("/dashboard/settings/companies")
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : `Failed to save ${form.name || "company"}.`
@@ -957,7 +957,7 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <Button variant="ghost" size="sm" asChild className="-ml-3 w-fit">
-            <Link to="/dashboard/apps/core/companies">
+            <Link to="/dashboard/settings/companies">
               <ArrowLeftIcon className="size-4" />
               Back to companies
             </Link>
@@ -977,7 +977,7 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
             type="button"
             variant="outline"
             onClick={() => {
-              void navigate("/dashboard/apps/core/companies")
+              void navigate("/dashboard/settings/companies")
             }}
             disabled={isSaving}
           >

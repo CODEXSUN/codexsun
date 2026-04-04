@@ -1,4 +1,4 @@
-import { lstat, mkdir, rename, rm, symlink } from "node:fs/promises"
+import { lstat, mkdir, readdir, rename, rm, symlink } from "node:fs/promises"
 import path from "node:path"
 
 import type { ServerConfig } from "../config/index.js"
@@ -23,19 +23,49 @@ export function mediaAbsolutePath(
 }
 
 export function publicMediaMountDirectory(config: ServerConfig) {
+  return path.join(config.webRoot, "storage")
+}
+
+export function legacyPublicMediaMountDirectory(config: ServerConfig) {
   return path.join(config.webRoot, "public", "media")
 }
 
 export function publicMediaFileUrl(backendKey: string) {
-  return `/public/media/${backendKey
+  return `/storage/${backendKey
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/")}`
 }
 
-export async function ensurePublicMediaSymlink(config: ServerConfig) {
-  const targetDirectory = mediaVisibilityDirectory(config, "public")
-  const linkDirectory = publicMediaMountDirectory(config)
+async function canReplaceExistingMountDirectory(linkDirectory: string) {
+  const entries = await readdir(linkDirectory, { withFileTypes: true })
+
+  if (entries.length === 0) {
+    return true
+  }
+
+  if (entries.length !== 1) {
+    return false
+  }
+
+  const placeholderDirectory = entries[0]
+
+  if (!placeholderDirectory?.isDirectory() || placeholderDirectory.name !== "placeholders") {
+    return false
+  }
+
+  const placeholderEntries = await readdir(path.join(linkDirectory, "placeholders"), {
+    withFileTypes: true,
+  })
+
+  return (
+    placeholderEntries.length === 1 &&
+    placeholderEntries[0]?.isFile() === true &&
+    placeholderEntries[0].name === "default.txt"
+  )
+}
+
+async function ensureSymlink(targetDirectory: string, linkDirectory: string) {
   const parentDirectory = path.dirname(linkDirectory)
 
   await mkdir(targetDirectory, { recursive: true })
@@ -48,9 +78,13 @@ export async function ensurePublicMediaSymlink(config: ServerConfig) {
       return
     }
 
-    throw new Error(
-      `Public media mount already exists and is not a symlink: ${linkDirectory}`
-    )
+    if (existing.isDirectory() && (await canReplaceExistingMountDirectory(linkDirectory))) {
+      await rm(linkDirectory, { recursive: true, force: true })
+    } else {
+      throw new Error(
+        `Public media mount already exists and is not a symlink: ${linkDirectory}`
+      )
+    }
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code
 
@@ -64,6 +98,12 @@ export async function ensurePublicMediaSymlink(config: ServerConfig) {
     linkDirectory,
     process.platform === "win32" ? "junction" : "dir"
   )
+}
+
+export async function ensurePublicMediaSymlink(config: ServerConfig) {
+  const targetDirectory = mediaVisibilityDirectory(config, "public")
+  await ensureSymlink(targetDirectory, publicMediaMountDirectory(config))
+  await ensureSymlink(targetDirectory, legacyPublicMediaMountDirectory(config))
 }
 
 export async function moveMediaBinaryBetweenScopes(
@@ -99,23 +139,28 @@ export async function moveMediaBinaryBetweenScopes(
 }
 
 export async function removePublicMediaSymlink(config: ServerConfig) {
-  const linkDirectory = publicMediaMountDirectory(config)
+  const linkDirectories = [
+    publicMediaMountDirectory(config),
+    legacyPublicMediaMountDirectory(config),
+  ]
 
-  try {
-    const existing = await lstat(linkDirectory)
+  for (const linkDirectory of linkDirectories) {
+    try {
+      const existing = await lstat(linkDirectory)
 
-    if (!existing.isSymbolicLink()) {
-      return
+      if (!existing.isSymbolicLink()) {
+        continue
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+
+      if (code === "ENOENT") {
+        continue
+      }
+
+      throw error
     }
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code
 
-    if (code === "ENOENT") {
-      return
-    }
-
-    throw error
+    await rm(linkDirectory, { recursive: true, force: true })
   }
-
-  await rm(linkDirectory, { recursive: true, force: true })
 }

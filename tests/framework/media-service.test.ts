@@ -1,5 +1,13 @@
 import assert from "node:assert/strict"
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import test from "node:test"
@@ -19,7 +27,10 @@ import {
   createRuntimeDatabases,
   prepareApplicationDatabase,
 } from "../../apps/framework/src/runtime/database/index.js"
-import { publicMediaMountDirectory } from "../../apps/framework/src/runtime/media/media-storage.js"
+import {
+  ensurePublicMediaSymlink,
+  publicMediaMountDirectory,
+} from "../../apps/framework/src/runtime/media/media-storage.js"
 
 test("framework media service stores folders, uploads assets, and serves content", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-framework-media-"))
@@ -59,7 +70,7 @@ test("framework media service stores folders, uploads assets, and serves content
 
       assert.equal(uploaded.item.title, "Company Logo")
       assert.equal(uploaded.item.storageScope, "public")
-      assert.match(uploaded.item.fileUrl, /^\/public\/media\//)
+      assert.match(uploaded.item.fileUrl, /^\/storage\//)
 
       const publicMediaPath = path.join(
         publicMediaMountDirectory(config),
@@ -100,6 +111,34 @@ test("framework media service stores folders, uploads assets, and serves content
     } finally {
       await runtime.destroy()
     }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("framework media symlink setup replaces the generated placeholder storage directory", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-framework-media-link-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const mountDirectory = publicMediaMountDirectory(config)
+    const placeholderDirectory = path.join(mountDirectory, "placeholders")
+
+    rmSync(mountDirectory, { recursive: true, force: true })
+    mkdirSync(placeholderDirectory, { recursive: true })
+    writeFileSync(
+      path.join(placeholderDirectory, "default.txt"),
+      "generated placeholder"
+    )
+
+    await ensurePublicMediaSymlink(config)
+
+    assert.equal(existsSync(path.join(mountDirectory, "placeholders")), false)
+    assert.equal(lstatSync(mountDirectory).isSymbolicLink(), true)
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }

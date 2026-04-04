@@ -10,6 +10,8 @@ import { coreCommonModuleTableBackfillMigration } from "./09-common-module-table
 import { coreContactCodeBackfillMigration } from "./10-contact-code-backfill.js"
 import { coreCommonModuleSeedSyncMigration } from "./11-common-module-seed-sync.js"
 import { coreProductsMigration } from "./12-products.js"
+import { coreAuthPermissionScopeMigration } from "./13-auth-permission-scope.js"
+import { coreAuthOptionCatalogMigration } from "./14-auth-option-catalog.js"
 
 export const coreDatabaseMigrations = [
   coreBootstrapMigration,
@@ -24,4 +26,6 @@ export const coreDatabaseMigrations = [
   coreContactCodeBackfillMigration,
   coreCommonModuleSeedSyncMigration,
   coreProductsMigration,
+  coreAuthPermissionScopeMigration,
+  coreAuthOptionCatalogMigration,
 ]

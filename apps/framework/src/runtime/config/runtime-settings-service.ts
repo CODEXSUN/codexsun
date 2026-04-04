@@ -1,0 +1,273 @@
+import { readFileSync, writeFileSync } from "node:fs"
+import path from "node:path"
+
+import {
+  runtimeSettingGroups,
+  runtimeSettingKeys,
+  runtimeSettingsSavePayloadSchema,
+  runtimeSettingsSaveResponseSchema,
+  runtimeSettingsSnapshotSchema,
+  type RuntimeSettingField,
+  type RuntimeSettingsSavePayload,
+  type RuntimeSettingsSaveResponse,
+  type RuntimeSettingsSnapshot,
+} from "../../../shared/runtime-settings.js"
+import { ApplicationError } from "../errors/application-error.js"
+import type { ServerConfig } from "./server-config.js"
+import { scheduleFallbackRestart, triggerDevelopmentRestart } from "./runtime-restart.js"
+
+import { parseEnvFile } from "./env.js"
+import { getServerConfig } from "./server-config.js"
+
+export function resolveRuntimeSettingsRoot(config: ServerConfig) {
+  return path.resolve(config.webRoot, "..", "..", "..", "..")
+}
+
+function envFilePath(cwd = process.cwd()) {
+  return path.resolve(cwd, ".env")
+}
+
+function toBooleanValue(value: boolean | string) {
+  if (typeof value === "boolean") {
+    return value
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase())
+}
+
+function toStringValue(value: unknown) {
+  return value == null ? "" : String(value)
+}
+
+function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()) {
+  const config = getServerConfig(cwd)
+  const valueMap: Record<string, string | boolean> = {
+    APP_NAME: config.appName,
+    APP_HOST: config.appHost,
+    APP_DOMAIN: config.appDomain,
+    APP_HTTP_PORT: String(config.appHttpPort),
+    APP_HTTPS_PORT: String(config.appHttpsPort),
+    WEB_ROOT: path.relative(cwd, config.webRoot).replace(/\\/g, "/"),
+    CLOUDFLARE_ENABLED: config.cloudflareEnabled,
+    TLS_ENABLED: config.tlsEnabled,
+    TLS_KEY_PATH: config.tlsKeyPath
+      ? path.relative(cwd, config.tlsKeyPath).replace(/\\/g, "/")
+      : "",
+    TLS_CERT_PATH: config.tlsCertPath
+      ? path.relative(cwd, config.tlsCertPath).replace(/\\/g, "/")
+      : "",
+    FRONTEND_DOMAIN: config.frontendDomain,
+    FRONTEND_HOST: config.frontendHost,
+    FRONTEND_HTTP_PORT: String(config.frontendHttpPort),
+    FRONTEND_HTTPS_PORT: String(config.frontendHttpsPort),
+    DB_DRIVER: config.database.driver,
+    DB_HOST: config.database.host ?? "",
+    DB_PORT: config.database.port ? String(config.database.port) : "",
+    DB_NAME: config.database.name ?? "",
+    DB_USER: config.database.user ?? "",
+    DB_PASSWORD: config.database.password ?? "",
+    DB_SSL: config.database.ssl,
+    SQLITE_FILE: path.relative(cwd, config.database.sqliteFile).replace(/\\/g, "/"),
+    OFFLINE_SUPPORT_ENABLED: config.offline.enabled,
+    ANALYTICS_DB_ENABLED: config.analytics.enabled,
+    ANALYTICS_DB_HOST: config.analytics.host ?? "",
+    ANALYTICS_DB_PORT: config.analytics.port ? String(config.analytics.port) : "",
+    ANALYTICS_DB_NAME: config.analytics.name ?? "",
+    ANALYTICS_DB_USER: config.analytics.user ?? "",
+    ANALYTICS_DB_PASSWORD: config.analytics.password ?? "",
+    ANALYTICS_DB_SSL: config.analytics.ssl,
+    JWT_SECRET: config.security.jwtSecret,
+    JWT_EXPIRES_IN_SECONDS: String(config.security.jwtExpiresInSeconds),
+    AUTH_OTP_DEBUG: config.auth.otpDebug,
+    AUTH_OTP_EXPIRY_MINUTES: String(config.auth.otpExpiryMinutes),
+    SUPER_ADMIN_EMAILS: config.auth.superAdminEmails.join(", "),
+    SMTP_HOST: config.notifications.email.host,
+    SMTP_PORT: String(config.notifications.email.port),
+    SMTP_SECURE: config.notifications.email.secure,
+    SMTP_USER: config.notifications.email.user ?? "",
+    SMTP_PASS: config.notifications.email.password ?? "",
+    SMTP_FROM_EMAIL: config.notifications.email.fromEmail ?? "",
+    SMTP_FROM_NAME: config.notifications.email.fromName,
+    BILLING_FINANCIAL_YEAR_START_MONTH: String(
+      config.billing.compliance.financialYearStartMonth
+    ),
+    BILLING_FINANCIAL_YEAR_START_DAY: String(
+      config.billing.compliance.financialYearStartDay
+    ),
+    BILLING_EINVOICE_ENABLED: config.billing.compliance.eInvoice.enabled,
+    BILLING_EINVOICE_MODE: config.billing.compliance.eInvoice.mode,
+    BILLING_EINVOICE_BASE_URL: config.billing.compliance.eInvoice.baseUrl ?? "",
+    BILLING_EINVOICE_USERNAME: config.billing.compliance.eInvoice.username ?? "",
+    BILLING_EINVOICE_PASSWORD: config.billing.compliance.eInvoice.password ?? "",
+    BILLING_EINVOICE_CLIENT_ID: config.billing.compliance.eInvoice.clientId ?? "",
+    BILLING_EINVOICE_CLIENT_SECRET:
+      config.billing.compliance.eInvoice.clientSecret ?? "",
+    BILLING_EINVOICE_GSTIN: config.billing.compliance.eInvoice.gstin ?? "",
+    BILLING_EWAYBILL_ENABLED: config.billing.compliance.eWayBill.enabled,
+    BILLING_EWAYBILL_MODE: config.billing.compliance.eWayBill.mode,
+    BILLING_EWAYBILL_BASE_URL: config.billing.compliance.eWayBill.baseUrl ?? "",
+    BILLING_EWAYBILL_USERNAME: config.billing.compliance.eWayBill.username ?? "",
+    BILLING_EWAYBILL_PASSWORD: config.billing.compliance.eWayBill.password ?? "",
+    BILLING_EWAYBILL_CLIENT_ID: config.billing.compliance.eWayBill.clientId ?? "",
+    BILLING_EWAYBILL_CLIENT_SECRET:
+      config.billing.compliance.eWayBill.clientSecret ?? "",
+    BILLING_EWAYBILL_GSTIN: config.billing.compliance.eWayBill.gstin ?? "",
+  }
+
+  return valueMap[field.key] ?? (field.type === "boolean" ? false : "")
+}
+
+function normalizeFieldValue(field: RuntimeSettingField, rawValue: unknown) {
+  if (field.type === "boolean") {
+    return typeof rawValue === "boolean" ? rawValue : toBooleanValue(toStringValue(rawValue))
+  }
+
+  const value = toStringValue(rawValue).trim()
+
+  if (field.required && value.length === 0) {
+    throw new ApplicationError(`${field.label} is required.`, { field: field.key }, 400)
+  }
+
+  if (field.type === "number" && value.length > 0) {
+    const parsed = Number(value)
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new ApplicationError(
+        `${field.label} must be a valid positive number.`,
+        { field: field.key, value },
+        400
+      )
+    }
+  }
+
+  if (field.type === "select" && value.length > 0) {
+    const allowedValues = new Set((field.options ?? []).map((option) => option.value))
+
+    if (!allowedValues.has(value)) {
+      throw new ApplicationError(
+        `${field.label} must use one of the allowed options.`,
+        { field: field.key, value },
+        400
+      )
+    }
+  }
+
+  return value
+}
+
+function toEnvString(field: RuntimeSettingField, value: string | boolean) {
+  if (field.type === "boolean") {
+    return value ? "true" : "false"
+  }
+
+  return String(value)
+}
+
+function escapeEnvValue(value: string) {
+  if (value.length === 0) {
+    return "\"\""
+  }
+
+  if (/^[A-Za-z0-9_./:@,-]+$/.test(value)) {
+    return value
+  }
+
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+}
+
+function buildEnvFileContent(
+  values: Record<string, string | boolean>,
+  existingUnknownValues: Record<string, string>
+) {
+  const sections = runtimeSettingGroups.map((group) => {
+    const lines = [
+      `# ${group.label}`,
+      `# ${group.summary}`,
+      ...group.fields.flatMap((field) => {
+        const value = values[field.key]
+        const envValue = toEnvString(field, value)
+
+        if (!field.required && envValue.length === 0) {
+          return []
+        }
+
+        return [`${field.key}=${escapeEnvValue(envValue)}`]
+      }),
+    ]
+
+    return lines.join("\n")
+  })
+
+  const unknownSectionEntries = Object.entries(existingUnknownValues)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, value]) => `${key}=${escapeEnvValue(value)}`)
+
+  if (unknownSectionEntries.length > 0) {
+    sections.push(
+      ["# Additional", "# Existing unmanaged environment values.", ...unknownSectionEntries].join(
+        "\n"
+      )
+    )
+  }
+
+  return `${sections.join("\n\n")}\n`
+}
+
+export function getRuntimeSettingsSnapshot(cwd = process.cwd()): RuntimeSettingsSnapshot {
+  const values = Object.fromEntries(
+    runtimeSettingGroups.flatMap((group) =>
+      group.fields.map((field) => [field.key, valueFromResolvedConfig(field, cwd)])
+    )
+  ) as Record<string, string | boolean>
+
+  return runtimeSettingsSnapshotSchema.parse({
+    envFilePath: envFilePath(cwd),
+    values,
+  })
+}
+
+export async function saveRuntimeSettings(
+  payload: unknown,
+  cwd = process.cwd()
+): Promise<RuntimeSettingsSaveResponse> {
+  const parsedPayload = runtimeSettingsSavePayloadSchema.parse(payload)
+  const currentFileValues = parseEnvFile(envFilePath(cwd))
+  const normalizedValues = Object.fromEntries(
+    runtimeSettingGroups.flatMap((group) =>
+      group.fields.map((field) => [
+        field.key,
+        normalizeFieldValue(
+          field,
+          parsedPayload.values[field.key] ?? valueFromResolvedConfig(field, cwd)
+        ),
+      ])
+    )
+  ) as Record<string, string | boolean>
+
+  const unknownValues = Object.fromEntries(
+    Object.entries(currentFileValues).filter(([key]) => !runtimeSettingKeys.includes(key))
+  )
+
+  writeFileSync(
+    envFilePath(cwd),
+    buildEnvFileContent(normalizedValues, unknownValues),
+    "utf8"
+  )
+
+  let restartScheduled = false
+
+  if (parsedPayload.restart) {
+    restartScheduled = triggerDevelopmentRestart(cwd)
+
+    if (!restartScheduled) {
+      restartScheduled = true
+      scheduleFallbackRestart()
+    }
+  }
+
+  return runtimeSettingsSaveResponseSchema.parse({
+    saved: true,
+    restartScheduled,
+    snapshot: getRuntimeSettingsSnapshot(cwd),
+  })
+}

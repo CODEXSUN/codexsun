@@ -13,12 +13,67 @@ import {
   updateMediaFolder,
   uploadMediaImage,
 } from "../../../framework/src/runtime/media/media-service.js"
+import {
+  getSystemUpdateStatus,
+  listSystemUpdateHistory,
+  resetSystemToLastCommit,
+  runSystemUpdate,
+} from "../../../framework/src/runtime/system-update/system-update-service.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
   return [
+    defineInternalRoute("/framework/system-update", {
+      summary: "Read repository status and auto-update readiness for the framework shell.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(await getSystemUpdateStatus(context.config))
+      },
+    }),
+    defineInternalRoute("/framework/system-update/history", {
+      summary: "Read recent system update and reset activity for the framework shell.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(listSystemUpdateHistory(context.config))
+      },
+    }),
+    defineInternalRoute("/framework/system-update", {
+      method: "POST",
+      summary: "Fetch latest tracked git commit, build the suite, and restart when the worktree is clean.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(await runSystemUpdate(context.config, undefined, user.email))
+      },
+    }),
+    defineInternalRoute("/framework/system-update/reset", {
+      method: "POST",
+      summary: "Force reset the git worktree to the current commit, clean local files, rebuild, and restart.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await resetSystemToLastCommit(
+            context.config,
+            context.request.jsonBody,
+            undefined,
+            user.email
+          )
+        )
+      },
+    }),
     defineInternalRoute("/framework/media", {
       summary: "List framework-owned shared media assets.",
       handler: async (context) => {

@@ -15,12 +15,6 @@ export const coreWorkspaceItems: CoreWorkspaceItem[] = [
     summary: "Shared organization, master-data, and setup foundations.",
   },
   {
-    id: "companies",
-    name: "Companies",
-    route: "/dashboard/apps/core/companies",
-    summary: "Company-level setup and organization records.",
-  },
-  {
     id: "contacts",
     name: "Contacts",
     route: "/dashboard/apps/core/contacts",
@@ -39,16 +33,4 @@ export const coreWorkspaceItems: CoreWorkspaceItem[] = [
     summary: "Geography and reusable master data shared across apps.",
   },
   ...coreCommonModuleMenuItems,
-  {
-    id: "setup",
-    name: "Setup",
-    route: "/dashboard/apps/core/setup",
-    summary: "Bootstrap and readiness foundations for first-run delivery.",
-  },
-  {
-    id: "core-settings",
-    name: "Core Settings",
-    route: "/dashboard/apps/core/core-settings",
-    summary: "Core app defaults and shared operational guardrails.",
-  },
 ]

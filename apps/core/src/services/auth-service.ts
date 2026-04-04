@@ -10,7 +10,11 @@ import {
 import type {
   ActorType,
   AuthAccountRecoveryRequestResponse,
+  AuthPermissionListResponse,
+  AuthPermissionResponse,
   AuthAccountRecoveryRestoreResponse,
+  AuthRoleListResponse,
+  AuthRoleResponse,
   AuthPasswordResetConfirmResponse,
   AuthPasswordResetRequestResponse,
   AuthRegisterOtpRequestResponse,
@@ -29,8 +33,14 @@ import {
   authLogoutResponseSchema,
   authPasswordResetConfirmPayloadSchema,
   authPasswordResetConfirmResponseSchema,
+  authPermissionListResponseSchema,
+  authPermissionResponseSchema,
+  authRoleListResponseSchema,
+  authRoleResponseSchema,
   authPasswordResetRequestPayloadSchema,
   authPasswordResetRequestResponseSchema,
+  authRoleUpsertPayloadSchema,
+  authPermissionUpsertPayloadSchema,
   authRegisterOtpRequestPayloadSchema,
   authRegisterOtpRequestResponseSchema,
   authRegisterOtpVerifyPayloadSchema,
@@ -39,6 +49,8 @@ import {
   authSessionListResponseSchema,
   authTokenResponseSchema,
   authUserListResponseSchema,
+  authUserResponseSchema,
+  authUserUpsertPayloadSchema,
   type AuthLogoutResponse,
 } from "../../shared/index.js"
 
@@ -80,6 +92,308 @@ export class AuthService {
     return authSessionListResponseSchema.parse({
       items,
     } satisfies AuthSessionListResponse)
+  }
+
+  async listRoles() {
+    const items = await this.repository.listRoles()
+    return authRoleListResponseSchema.parse({
+      items,
+    } satisfies AuthRoleListResponse)
+  }
+
+  async listPermissions() {
+    const items = await this.repository.listPermissions()
+    return authPermissionListResponseSchema.parse({
+      items,
+    } satisfies AuthPermissionListResponse)
+  }
+
+  async getPermission(permissionId: string) {
+    const permission = await this.repository.getPermission(permissionId)
+
+    if (!permission) {
+      throw new ApplicationError("Permission could not be found.", { permissionId }, 404)
+    }
+
+    return authPermissionResponseSchema.parse({
+      item: permission,
+    } satisfies AuthPermissionResponse)
+  }
+
+  async getRole(roleId: string) {
+    const role = await this.repository.getRole(roleId)
+
+    if (!role) {
+      throw new ApplicationError("Role could not be found.", { roleId }, 404)
+    }
+
+    return authRoleResponseSchema.parse({
+      item: role,
+    } satisfies AuthRoleResponse)
+  }
+
+  async getUser(userId: string) {
+    const storedUser = await this.repository.findById(userId)
+
+    if (!storedUser) {
+      throw new ApplicationError("User could not be found.", { userId }, 404)
+    }
+
+    return authUserResponseSchema.parse({
+      item: this.applyConfiguredSuperAdminAccess(storedUser.user),
+    })
+  }
+
+  async createAdminUser(payload: unknown) {
+    const parsedPayload = authUserUpsertPayloadSchema.parse(payload)
+    const normalizedEmail = parsedPayload.email.trim().toLowerCase()
+    const existingUsers = await this.repository.findByEmail(normalizedEmail)
+
+    if (existingUsers.length > 0) {
+      throw new ApplicationError(
+        "An account already exists for this email.",
+        { email: normalizedEmail },
+        409
+      )
+    }
+
+    if (!parsedPayload.password) {
+      throw new ApplicationError("Password is required for a new user.", {}, 400)
+    }
+
+    const roleKeys = await this.assertAssignableRoles(
+      parsedPayload.actorType,
+      parsedPayload.roleKeys
+    )
+
+    if (parsedPayload.isSuperAdmin && parsedPayload.actorType !== "admin") {
+      throw new ApplicationError(
+        "Only admin users can be marked as super admin.",
+        { actorType: parsedPayload.actorType },
+        400
+      )
+    }
+
+    const user = await this.repository.create({
+      id: randomUUID(),
+      email: normalizedEmail,
+      phoneNumber: parsedPayload.phoneNumber,
+      displayName: parsedPayload.displayName.trim(),
+      actorType: parsedPayload.actorType,
+      avatarUrl:
+        parsedPayload.avatarUrl ??
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedPayload.displayName.trim())}&background=1f2937&color=ffffff`,
+      passwordHash: await hashPassword(parsedPayload.password),
+      organizationName: parsedPayload.organizationName,
+      roleKeys,
+      isSuperAdmin: parsedPayload.isSuperAdmin,
+      isActive: parsedPayload.isActive,
+    })
+
+    return authUserResponseSchema.parse({
+      item: this.applyConfiguredSuperAdminAccess(user),
+    })
+  }
+
+  async updateAdminUser(userId: string, payload: unknown) {
+    const parsedPayload = authUserUpsertPayloadSchema.parse(payload)
+    const storedUser = await this.repository.findById(userId)
+
+    if (!storedUser) {
+      throw new ApplicationError("User could not be found.", { userId }, 404)
+    }
+
+    const normalizedEmail = parsedPayload.email.trim().toLowerCase()
+    const existingUsers = await this.repository.findByEmail(normalizedEmail)
+
+    if (existingUsers.some((entry) => entry.user.id !== userId)) {
+      throw new ApplicationError(
+        "Another account already uses this email.",
+        { email: normalizedEmail },
+        409
+      )
+    }
+
+    const roleKeys = await this.assertAssignableRoles(
+      parsedPayload.actorType,
+      parsedPayload.roleKeys
+    )
+
+    if (parsedPayload.isSuperAdmin && parsedPayload.actorType !== "admin") {
+      throw new ApplicationError(
+        "Only admin users can be marked as super admin.",
+        { actorType: parsedPayload.actorType },
+        400
+      )
+    }
+
+    await this.repository.updateUser({
+      id: userId,
+      email: normalizedEmail,
+      phoneNumber: parsedPayload.phoneNumber,
+      displayName: parsedPayload.displayName.trim(),
+      actorType: parsedPayload.actorType,
+      avatarUrl:
+        parsedPayload.avatarUrl ??
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedPayload.displayName.trim())}&background=1f2937&color=ffffff`,
+      organizationName: parsedPayload.organizationName,
+      isSuperAdmin: parsedPayload.isSuperAdmin,
+      isActive: parsedPayload.isActive,
+    })
+
+    if (parsedPayload.password) {
+      await this.repository.updatePasswordHash(
+        userId,
+        await hashPassword(parsedPayload.password)
+      )
+    }
+
+    await this.repository.replaceUserRoles(userId, roleKeys)
+
+    const nextUser = await this.repository.findById(userId)
+
+    if (!nextUser) {
+      throw new ApplicationError("Updated user could not be found.", { userId }, 500)
+    }
+
+    return authUserResponseSchema.parse({
+      item: this.applyConfiguredSuperAdminAccess(nextUser.user),
+    })
+  }
+
+  async createRole(payload: unknown) {
+    const parsedPayload = authRoleUpsertPayloadSchema.parse(payload)
+    const permissionKeys = await this.assertAssignablePermissions(parsedPayload.permissionKeys)
+    const roleKey = parsedPayload.key?.trim() || this.createRoleKey(parsedPayload.name)
+    const existingRole = await this.repository.getRole(roleKey)
+
+    if (existingRole) {
+      throw new ApplicationError("A role already exists for this key.", { roleKey }, 409)
+    }
+
+    const role = await this.repository.createRole({
+      key: roleKey,
+      name: parsedPayload.name.trim(),
+      summary: parsedPayload.summary.trim(),
+      actorType: parsedPayload.actorType,
+      permissionKeys,
+      isActive: parsedPayload.isActive,
+    })
+
+    if (!role) {
+      throw new ApplicationError("Created role could not be found.", { roleKey }, 500)
+    }
+
+    return authRoleResponseSchema.parse({
+      item: role,
+    } satisfies AuthRoleResponse)
+  }
+
+  async updateRole(roleId: string, payload: unknown) {
+    const parsedPayload = authRoleUpsertPayloadSchema.parse(payload)
+    const role = await this.repository.getRole(roleId)
+
+    if (!role) {
+      throw new ApplicationError("Role could not be found.", { roleId }, 404)
+    }
+
+    const permissionKeys = await this.assertAssignablePermissions(parsedPayload.permissionKeys)
+
+    await this.repository.updateRole({
+      id: roleId,
+      name: parsedPayload.name.trim(),
+      summary: parsedPayload.summary.trim(),
+      actorType: parsedPayload.actorType,
+      isActive: parsedPayload.isActive,
+    })
+    await this.repository.replaceRolePermissions(roleId, permissionKeys)
+
+    const nextRole = await this.repository.getRole(roleId)
+
+    if (!nextRole) {
+      throw new ApplicationError("Updated role could not be found.", { roleId }, 500)
+    }
+
+    return authRoleResponseSchema.parse({
+      item: nextRole,
+    } satisfies AuthRoleResponse)
+  }
+
+  async createPermission(payload: unknown) {
+    const parsedPayload = authPermissionUpsertPayloadSchema.parse(payload)
+    const permissionKey = parsedPayload.key?.trim() || this.createPermissionKey(parsedPayload)
+    const existingPermission = await this.repository.getPermission(permissionKey)
+
+    if (existingPermission) {
+      throw new ApplicationError(
+        "A permission already exists for this key.",
+        { permissionKey },
+        409
+      )
+    }
+
+    const permission = await this.repository.createPermission({
+      key: permissionKey,
+      name: parsedPayload.name.trim(),
+      summary: parsedPayload.summary.trim(),
+      scopeType: parsedPayload.scopeType,
+      appId: parsedPayload.appId?.trim() || null,
+      resourceKey: parsedPayload.resourceKey.trim(),
+      actionKey: parsedPayload.actionKey.trim(),
+      route: parsedPayload.route?.trim() || null,
+      isActive: parsedPayload.isActive,
+    })
+
+    if (!permission) {
+      throw new ApplicationError(
+        "Created permission could not be found.",
+        { permissionKey },
+        500
+      )
+    }
+
+    return authPermissionResponseSchema.parse({
+      item: permission,
+    } satisfies AuthPermissionResponse)
+  }
+
+  async updatePermission(permissionId: string, payload: unknown) {
+    const parsedPayload = authPermissionUpsertPayloadSchema.parse(payload)
+    const permission = await this.repository.getPermission(permissionId)
+
+    if (!permission) {
+      throw new ApplicationError(
+        "Permission could not be found.",
+        { permissionId },
+        404
+      )
+    }
+
+    await this.repository.updatePermission({
+      id: permissionId,
+      name: parsedPayload.name.trim(),
+      summary: parsedPayload.summary.trim(),
+      scopeType: parsedPayload.scopeType,
+      appId: parsedPayload.appId?.trim() || null,
+      resourceKey: parsedPayload.resourceKey.trim(),
+      actionKey: parsedPayload.actionKey.trim(),
+      route: parsedPayload.route?.trim() || null,
+      isActive: parsedPayload.isActive,
+    })
+
+    const nextPermission = await this.repository.getPermission(permissionId)
+
+    if (!nextPermission) {
+      throw new ApplicationError(
+        "Updated permission could not be found.",
+        { permissionId },
+        500
+      )
+    }
+
+    return authPermissionResponseSchema.parse({
+      item: nextPermission,
+    } satisfies AuthPermissionResponse)
   }
 
   async requestRegisterOtp(payload: unknown): Promise<AuthRegisterOtpRequestResponse> {
@@ -210,13 +524,13 @@ export class AuthService {
         ? "customer"
         : parsedPayload.actorType === "vendor"
           ? "vendor"
-          : parsedPayload.actorType === "admin"
-            ? null
-            : "staff"
+          : parsedPayload.actorType === "staff"
+            ? "staff"
+            : null
 
     if (!actorType) {
       throw new ApplicationError(
-        "Public registration cannot create admin accounts.",
+        "Public registration is limited to staff, customer, and vendor accounts.",
         { actorType: parsedPayload.actorType },
         403
       )
@@ -248,12 +562,13 @@ export class AuthService {
       avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedPayload.displayName.trim())}&background=1f2937&color=ffffff`,
       passwordHash: await hashPassword(parsedPayload.password),
       organizationName: parsedPayload.organizationName?.trim() ?? null,
-      roleKey:
+      roleKeys: [
         actorType === "customer"
           ? "customer_portal"
           : actorType === "vendor"
             ? "vendor_portal"
             : "staff_operator",
+      ],
       isSuperAdmin: false,
     })
 
@@ -698,5 +1013,91 @@ export class AuthService {
     return verifyJwt<TokenClaims>(token, {
       secret: this.config.security.jwtSecret,
     })
+  }
+
+  private async assertAssignableRoles(actorType: ActorType, roleKeys: ReadonlyArray<string>) {
+    const roles = await this.repository.listRoles()
+    const selectedRoles = roles.filter((role) => roleKeys.includes(role.key))
+
+    if (selectedRoles.length !== roleKeys.length) {
+      throw new ApplicationError(
+        "One or more selected roles are invalid.",
+        { roleKeys },
+        400
+      )
+    }
+
+    if (selectedRoles.some((role) => role.actorType !== actorType)) {
+      throw new ApplicationError(
+        "Selected roles must match the chosen actor type.",
+        { actorType, roleKeys },
+        400
+      )
+    }
+
+    if (selectedRoles.some((role) => !role.isActive)) {
+      throw new ApplicationError(
+        "Selected roles must stay active.",
+        { roleKeys },
+        400
+      )
+    }
+
+    return selectedRoles.map((role) => role.key)
+  }
+
+  private async assertAssignablePermissions(permissionKeys: ReadonlyArray<string>) {
+    const permissions = await this.repository.listPermissions()
+    const selectedPermissions = permissions.filter((permission) =>
+      permissionKeys.includes(permission.key)
+    )
+
+    if (selectedPermissions.length !== permissionKeys.length) {
+      throw new ApplicationError(
+        "One or more selected permissions are invalid.",
+        { permissionKeys },
+        400
+      )
+    }
+
+    if (selectedPermissions.some((permission) => !permission.isActive)) {
+      throw new ApplicationError(
+        "Selected permissions must stay active.",
+        { permissionKeys },
+        400
+      )
+    }
+
+    return selectedPermissions.map((permission) => permission.key)
+  }
+
+  private createRoleKey(name: string) {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/_{2,}/g, "_")
+  }
+
+  private createPermissionKey(input: {
+    actionKey: string
+    appId: string | null
+    resourceKey: string
+    scopeType: string
+  }) {
+    const namespace = input.appId?.trim() || input.scopeType.trim()
+    const resource = input.resourceKey
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+    const action = input.actionKey
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+
+    return `${namespace}:${resource}:${action}`
   }
 }

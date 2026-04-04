@@ -29,6 +29,19 @@ export type LocalOption = {
   value: string
 }
 
+const VARIANT_IMAGE_LIMIT = 3
+
+export type PricingFormulaSettings = {
+  purchaseToSellPercent: number
+  purchaseToMrpPercent: number
+}
+
+export type PricingFormulaValues = {
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+}
+
 export type ProductAttributeFormValue = {
   clientKey: string
   name: string
@@ -108,6 +121,28 @@ function createClientKey() {
   return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
 }
 
+export function roundUpPrice(value: number) {
+  return Math.ceil(value)
+}
+
+export function calculatePricingFromPurchase(
+  purchasePrice: number,
+  settings: PricingFormulaSettings
+) {
+  const sellingPrice = roundUpPrice(
+    purchasePrice * (1 + settings.purchaseToSellPercent / 100)
+  )
+  const mrp = roundUpPrice(
+    purchasePrice * (1 + settings.purchaseToMrpPercent / 100)
+  )
+
+  return {
+    purchasePrice,
+    sellingPrice,
+    mrp,
+  } satisfies PricingFormulaValues
+}
+
 export function createEmptyProductImage(sortOrder = 1): ProductImageInput {
   return {
     imageUrl: "",
@@ -120,9 +155,16 @@ export function createEmptyProductImage(sortOrder = 1): ProductImageInput {
 export function createEmptyProductVariantImage(): ProductVariantImageFormValue {
   return {
     imageUrl: "",
-    isPrimary: true,
+    isPrimary: false,
     isActive: true,
   }
+}
+
+export function createDefaultProductVariantImages(): ProductVariantImageFormValue[] {
+  return Array.from({ length: VARIANT_IMAGE_LIMIT }, (_, index) => ({
+    ...createEmptyProductVariantImage(),
+    isPrimary: index === 0,
+  }))
 }
 
 export function createEmptyProductVariantAttribute(): ProductVariantAttributeFormValue {
@@ -164,7 +206,7 @@ export function createEmptyProductVariant(): ProductVariantFormValue {
     weight: null,
     barcode: "",
     isActive: true,
-    images: [createEmptyProductVariantImage()],
+    images: createDefaultProductVariantImages(),
     attributes: [],
   }
 }
@@ -290,23 +332,41 @@ function isMeaningfulVariant(
   )
 }
 
-function buildVariantSignature(
-  attributes: ProductVariantAttributeFormValue[],
-  optionNames?: Set<string>
+function buildVariantLabel(
+  productName: string,
+  attributes: ProductVariantAttributeFormValue[]
 ) {
-  return attributes
-    .filter(
-      (attribute) =>
-        !optionNames || optionNames.has(attribute.attributeName.trim().toLowerCase())
+  const optionLabel = attributes.map((attribute) => attribute.attributeValue.trim()).join(" / ")
+
+  if (productName.trim().length > 0 && optionLabel.length > 0) {
+    return `${productName.trim()} - ${optionLabel}`
+  }
+
+  return optionLabel || productName.trim()
+}
+
+function buildVariantSku(
+  productSku: string,
+  productCode: string,
+  attributes: ProductVariantAttributeFormValue[]
+) {
+  const base = productSku.trim() || productCode.trim()
+  const suffix = attributes
+    .map((attribute) =>
+      attribute.attributeValue
+        .trim()
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toUpperCase()
     )
-    .map(
-      (attribute) =>
-        `${attribute.attributeName.trim().toLowerCase()}::${attribute.attributeValue
-          .trim()
-          .toLowerCase()}`
-    )
-    .sort()
-    .join("||")
+    .filter(Boolean)
+    .join("-")
+
+  if (base.length > 0 && suffix.length > 0) {
+    return `${base.toUpperCase()}-${suffix}`
+  }
+
+  return (base || suffix).toUpperCase()
 }
 
 export function buildVariantMatrix(values: ProductFormValues): ProductVariantFormValue[] {
@@ -327,8 +387,6 @@ export function buildVariantMatrix(values: ProductFormValues): ProductVariantFor
   if (groups.length === 0) {
     return []
   }
-
-  const optionNames = new Set(groups.map((group) => group.attributeName.toLowerCase()))
   const combinations: ProductVariantAttributeFormValue[][] = []
 
   function visit(index: number, current: ProductVariantAttributeFormValue[]) {
@@ -352,32 +410,13 @@ export function buildVariantMatrix(values: ProductFormValues): ProductVariantFor
 
   visit(0, [])
 
-  const existingBySignature = new Map(
-    values.variants.map((variant) => [
-      buildVariantSignature(variant.attributes, optionNames),
-      variant,
-    ])
-  )
-
   return combinations.map((attributes) => {
-    const signature = buildVariantSignature(attributes, optionNames)
-    const existing = existingBySignature.get(signature)
-
-    if (existing) {
-      const customAttributes = existing.attributes.filter(
-        (attribute) => !optionNames.has(attribute.attributeName.trim().toLowerCase())
-      )
-
-      return {
-        ...existing,
-        variantName: attributes.map((attribute) => attribute.attributeValue).join(" / "),
-        attributes: [...attributes, ...customAttributes],
-      }
-    }
-
     return {
       ...createEmptyProductVariant(),
-      variantName: attributes.map((attribute) => attribute.attributeValue).join(" / "),
+      sku: buildVariantSku(values.sku, values.code, attributes),
+      variantName: buildVariantLabel(values.name, attributes),
+      price: values.basePrice,
+      costPrice: values.costPrice,
       attributes,
     }
   })
@@ -443,12 +482,28 @@ export function toProductFormValues(product: Product): ProductFormValues {
       isActive: item.isActive,
       images:
         item.images.length > 0
-          ? item.images.map((image) => ({
-              imageUrl: image.imageUrl,
-              isPrimary: image.isPrimary,
-              isActive: image.isActive,
-            }))
-          : [createEmptyProductVariantImage()],
+          ? [
+              ...item.images.slice(0, VARIANT_IMAGE_LIMIT).map((image) => ({
+                imageUrl: image.imageUrl,
+                isPrimary: image.isPrimary,
+                isActive: image.isActive,
+              })),
+              ...createDefaultProductVariantImages(),
+            ]
+              .slice(0, VARIANT_IMAGE_LIMIT)
+              .map((image, index) => ({
+                ...image,
+                isPrimary:
+                  index ===
+                  Math.max(
+                    0,
+                    Math.min(
+                      VARIANT_IMAGE_LIMIT - 1,
+                      item.images.findIndex((entry) => entry.isPrimary)
+                    )
+                  ),
+              }))
+          : createDefaultProductVariantImages(),
       attributes: item.attributes.map((attribute) => ({
         attributeName: attribute.attributeName,
         attributeValue: attribute.attributeValue,

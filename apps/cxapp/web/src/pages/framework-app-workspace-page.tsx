@@ -267,6 +267,7 @@ export function FrameworkAppWorkspacePage({
           "companies",
           "companies-show",
           "companies-upsert",
+          "core-settings",
           "contacts",
           "contacts-show",
           "contacts-upsert",

@@ -1,5 +1,6 @@
 import {
   permissionSchema,
+  type PermissionScopeType,
   roleSchema,
   mailboxTemplateSchema,
   type ActorType,
@@ -15,12 +16,26 @@ const timestamp = "2026-03-30T10:00:00.000Z"
 function definePermission(
   key: PermissionKey,
   name: string,
-  summary: string
+  summary: string,
+  scopeType: PermissionScopeType,
+  resourceKey: string,
+  options?: {
+    actionKey?: string
+    appId?: string | null
+    isActive?: boolean
+    route?: string | null
+  }
 ): AuthPermission {
   return permissionSchema.parse({
     key,
     name,
     summary,
+    scopeType,
+    appId: options?.appId ?? null,
+    resourceKey,
+    actionKey: options?.actionKey ?? "view",
+    route: options?.route ?? null,
+    isActive: options?.isActive ?? true,
   })
 }
 
@@ -29,9 +44,13 @@ function defineRole(input: {
   actorType: ActorType
   name: string
   summary: string
+  isActive?: boolean
   permissions: AuthPermission[]
 }): AuthRole {
-  return roleSchema.parse(input)
+  return roleSchema.parse({
+    ...input,
+    isActive: input.isActive ?? true,
+  })
 }
 
 function defineMailboxTemplate(
@@ -48,42 +67,66 @@ export const authPermissions: AuthPermission[] = [
   definePermission(
     "dashboard:view",
     "Dashboard View",
-    "View dashboard surfaces and workspace summaries."
+    "View dashboard surfaces and workspace summaries.",
+    "desk",
+    "dashboard",
+    { route: "/dashboard", actionKey: "view" }
   ),
   definePermission(
     "users:manage",
     "User Management",
-    "Create, review, and deactivate authenticated users."
+    "Create, review, and deactivate authenticated users.",
+    "module",
+    "users",
+    { appId: "framework", route: "/dashboard/settings/users", actionKey: "manage" }
   ),
   definePermission(
     "roles:manage",
     "Role Management",
-    "Manage role assignments and actor access."
+    "Manage role assignments and actor access.",
+    "module",
+    "roles",
+    { appId: "framework", route: "/dashboard/settings/roles", actionKey: "manage" }
   ),
   definePermission(
     "permissions:manage",
     "Permission Management",
-    "Review and adjust permission mappings."
+    "Review and adjust permission mappings.",
+    "module",
+    "permissions",
+    { appId: "framework", route: "/dashboard/settings/permissions", actionKey: "manage" }
   ),
   definePermission(
     "customers:view",
     "Customer Access",
-    "View customer-facing data and support flows."
+    "View customer-facing data and support flows.",
+    "page",
+    "customers",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/customers", actionKey: "view" }
   ),
   definePermission(
     "vendors:view",
     "Vendor Access",
-    "View vendor-facing data and shared operations."
+    "View vendor-facing data and shared operations.",
+    "module",
+    "vendors",
+    { appId: "billing", route: "/dashboard/billing/chart-of-accounts", actionKey: "view" }
   ),
   definePermission(
     "mailbox:manage",
     "Mailbox Management",
-    "Manage email templates and outgoing message history."
+    "Manage email templates and outgoing message history.",
+    "module-def",
+    "mailbox",
+    { appId: "core", actionKey: "manage" }
   ),
   definePermission(
     "settings:manage",
     "Settings Management",
-    "Review and adjust application-level settings."
+    "Review and adjust application-level settings.",
+    "workspace",
+    "framework-settings",
+    { appId: "framework", route: "/dashboard/settings/core-settings", actionKey: "manage" }
   ),
 ]
 
@@ -107,6 +150,33 @@ export const authRoles: AuthRole[] = [
         "vendors:view",
         "mailbox:manage",
       ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "employee_portal",
+    actorType: "employee",
+    name: "Employee Portal",
+    summary: "Authenticated access for employee-facing internal workflows.",
+    permissions: authPermissions.filter((permission) =>
+      ["dashboard:view", "mailbox:manage"].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "partner_portal",
+    actorType: "partner",
+    name: "Partner Portal",
+    summary: "Authenticated access for partner-facing shared workflows.",
+    permissions: authPermissions.filter((permission) =>
+      ["dashboard:view", "customers:view", "vendors:view"].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "supplier_portal",
+    actorType: "supplier",
+    name: "Supplier Portal",
+    summary: "Authenticated access for supplier-facing shared operations.",
+    permissions: authPermissions.filter((permission) =>
+      ["dashboard:view", "vendors:view"].includes(permission.key)
     ),
   }),
   defineRole({
