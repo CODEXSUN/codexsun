@@ -92,7 +92,9 @@ export function StorefrontHomePage() {
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {(data?.categories ?? []).map((category) => (
+            {(data?.categories ?? [])
+              .filter((category) => category.productCount > 0 && category.slug !== "all-items")
+              .map((category) => (
               <Card
                 key={category.id}
                 className="overflow-hidden rounded-[1.8rem] border-[#e3d5c6] py-0 shadow-[0_22px_50px_-40px_rgba(48,31,19,0.24)]"

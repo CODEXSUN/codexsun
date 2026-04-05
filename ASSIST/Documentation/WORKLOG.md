@@ -42,3 +42,7 @@
 - removed extra workspace and page hero chrome from the Home Slider route so the editor opens directly into the settings surface
 - softened the storefront hero image frame toward a glass-like shell with blur and diffused spread instead of a hard border line
 - split the main frontend entry into route-level chunks so production build no longer warns about the oversized initial bundle
+- moved the storefront top category rail off a hardcoded frontend `All Products` item and onto backend-seeded `All Items` plus backend-controlled top-menu visibility
+- extended the shared framework media picker so existing image fields can now use uploads, library assets, or direct external URLs from one flow
+- improved shared core common-module image fields so list rows render a thumbnail preview and compact multi-line URL text instead of only the raw media path
+- split storefront header concerns into dedicated top-menu and category-menu components, then added a centered sticky scrolled text-only category state with compact motion styling

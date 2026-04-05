@@ -92,6 +92,13 @@ function toCategorySlug(item: Record<string, unknown>) {
     .replace(/(^-|-$)/g, "")
 }
 
+function isAllItemsCategory(item: Record<string, unknown>) {
+  const code = typeof item.code === "string" ? item.code.trim().toLowerCase() : ""
+  const name = typeof item.name === "string" ? item.name.trim().toLowerCase() : ""
+
+  return code === "all-items" || name === "all items"
+}
+
 async function listStorefrontCategories(
   database: Kysely<unknown>,
   productCards: StorefrontProductCard[]
@@ -99,29 +106,39 @@ async function listStorefrontCategories(
   const categories = await listCommonModuleItems(database, "productCategories")
 
   return categories.items
-    .filter((item) => item.id !== "1" && item.show_on_storefront_catalog)
+    .filter(
+      (item) =>
+        item.id !== "1" &&
+        (Boolean(item.show_on_storefront_catalog) || Boolean(item.show_on_storefront_top_menu))
+    )
     .sort(
       (left, right) =>
         Number(left.position_order ?? 0) - Number(right.position_order ?? 0) ||
         String(left.name ?? "").localeCompare(String(right.name ?? ""))
     )
-    .map((item) => ({
-      id: item.id,
-      slug: toCategorySlug(item),
-      name: String(item.name ?? ""),
-      description:
-        typeof item.description === "string" && item.description.trim()
-          ? item.description
-          : null,
-      imageUrl:
-        typeof item.image === "string" && item.image.trim() && item.image !== "-"
-          ? item.image
-          : null,
-      showInTopMenu: Boolean(item.show_on_storefront_top_menu),
-      positionOrder: Number(item.position_order ?? 0),
-      productCount: productCards.filter((product) => product.categoryName === item.name).length,
-      href: `/shop/catalog?category=${encodeURIComponent(String(item.name ?? ""))}`,
-    })) satisfies StorefrontCategorySummary[]
+    .map((item) => {
+      const isAllItems = isAllItemsCategory(item)
+
+      return {
+        id: item.id,
+        slug: toCategorySlug(item),
+        name: String(item.name ?? ""),
+        description:
+          typeof item.description === "string" && item.description.trim()
+            ? item.description
+            : null,
+        imageUrl:
+          typeof item.image === "string" && item.image.trim() && item.image !== "-"
+            ? item.image
+            : null,
+        showInTopMenu: Boolean(item.show_on_storefront_top_menu),
+        positionOrder: Number(item.position_order ?? 0),
+        productCount: productCards.filter((product) => product.categoryName === item.name).length,
+        href: isAllItems
+          ? "/shop/catalog"
+          : `/shop/catalog?category=${encodeURIComponent(String(item.name ?? ""))}`,
+      }
+    }) satisfies StorefrontCategorySummary[]
 }
 
 export async function getStorefrontLanding(database: Kysely<unknown>) {
@@ -156,7 +173,11 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
           : items.slice(0, 4),
     newArrivals: newArrivals.length > 0 ? newArrivals : items.slice(0, 8),
     bestSellers: bestSellers.length > 0 ? bestSellers : items.slice(0, 6),
-    categories: categories.filter((item) => item.productCount > 0),
+    categories: categories.filter(
+      (item) =>
+        item.showInTopMenu ||
+        (item.productCount > 0 && item.slug !== "all-items")
+    ),
   })
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   FolderPlusIcon,
+  LinkIcon,
   ImageIcon,
   LoaderCircleIcon,
   PencilIcon,
@@ -75,6 +76,30 @@ function createAbsoluteAssetUrl(fileUrl: string) {
   }
 
   return new URL(fileUrl, window.location.origin).toString()
+}
+
+function normalizeMediaSourceUrl(value: string) {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return null
+  }
+
+  if (trimmed.startsWith("/")) {
+    return trimmed
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return trimmed
+    }
+  } catch {
+    return null
+  }
+
+  return null
 }
 
 type MediaAssetCardProps = {
@@ -206,7 +231,13 @@ export function FrameworkMediaBrowser({
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [isSavingAsset, setIsSavingAsset] = useState(false)
   const [activeUploads, setActiveUploads] = useState<string[]>([])
+  const [externalUrl, setExternalUrl] = useState(selectedUrl ?? "")
+  const [externalUrlError, setExternalUrlError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setExternalUrl(selectedUrl ?? "")
+  }, [selectedUrl])
 
   async function loadData() {
     setIsLoading(true)
@@ -405,6 +436,44 @@ export function FrameworkMediaBrowser({
     }
   }
 
+  function handleUseExternalUrl() {
+    const normalizedUrl = normalizeMediaSourceUrl(externalUrl)
+
+    if (!normalizedUrl) {
+      setExternalUrlError("Enter a valid image URL or a root-relative media path.")
+      return
+    }
+
+    setExternalUrlError(null)
+    onSelect?.({
+      id: `external:${normalizedUrl}`,
+      fileName: normalizedUrl.split("/").pop() || "external-image",
+      originalName: normalizedUrl,
+      fileUrl: normalizedUrl,
+      thumbnailUrl: normalizedUrl,
+      fileType: "image",
+      fileSize: 0,
+      mimeType: "image/*",
+      provider: "custom",
+      storageScope: "public",
+      folderId: null,
+      folderName: null,
+      title: null,
+      altText: null,
+      description: null,
+      tags: [],
+      width: null,
+      height: null,
+      isActive: true,
+      backendKey: "external-url",
+      disk: "external",
+      root: "external",
+      extension: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
   return (
     <div className="space-y-4">
       <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
@@ -453,6 +522,37 @@ export function FrameworkMediaBrowser({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {onSelect ? (
+            <div className="rounded-xl border border-border/70 bg-background/75 p-4">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <div className="grid gap-2">
+                  <Label htmlFor="framework-media-external-url">External Image URL</Label>
+                  <Input
+                    id="framework-media-external-url"
+                    value={externalUrl}
+                    onChange={(event) => {
+                      setExternalUrl(event.target.value)
+                      if (externalUrlError) {
+                        setExternalUrlError(null)
+                      }
+                    }}
+                    placeholder="https://placehold.co/320x220/f4ebe1/3b2a20?text=Ethnic"
+                  />
+                </div>
+                <Button type="button" variant="outline" onClick={handleUseExternalUrl}>
+                  <LinkIcon className="size-4" />
+                  Use URL
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Paste an external image URL or a root-relative path like `/storage/...`.
+              </p>
+              {externalUrlError ? (
+                <p className="mt-2 text-xs text-destructive">{externalUrlError}</p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,0.65fr))]">
             <div className="grid gap-2">
               <Label htmlFor="framework-media-search">Search</Label>
