@@ -64,9 +64,17 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       const savedSettings = await saveStorefrontSettings(runtime.primary, {
         ...storedSettings,
         announcement: "Updated storefront announcement",
+        announcementDesign: {
+          ...storedSettings.announcementDesign,
+          iconKey: "truck",
+          cornerStyle: "rounded",
+          backgroundColor: "#2c1e16",
+        },
       })
 
       assert.equal(savedSettings.announcement, "Updated storefront announcement")
+      assert.equal(savedSettings.announcementDesign.iconKey, "truck")
+      assert.equal(savedSettings.announcementDesign.cornerStyle, "rounded")
 
       const partiallySavedSettings = await saveStorefrontSettings(runtime.primary, {
         search: undefined,
@@ -130,6 +138,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(
         hydratedLegacySettings.search.placeholder,
         defaultStorefrontSettings.search.placeholder
+      )
+      assert.equal(
+        hydratedLegacySettings.announcementDesign.iconKey,
+        defaultStorefrontSettings.announcementDesign.iconKey
       )
       assert.equal(
         hydratedLegacySettings.homeSlider.slides[0]?.theme.themeKey,

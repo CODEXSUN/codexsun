@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { getActivityStatusPanelClassName } from "@/features/status/activity-status"
 import { cn } from "@/lib/utils"
@@ -159,6 +160,20 @@ export function CoreSettingsSection() {
           ? "Settings saved. Restarting application..."
           : "Settings saved. Restart the application when you want the new values to apply."
       )
+      showRecordToast({
+        entity: "Core Settings",
+        action: "saved",
+        recordName: "Runtime environment",
+        recordId: "core-settings",
+      })
+      if (!restart) {
+        showAppToast({
+          variant: "warning",
+          title: "Restart pending.",
+          description:
+            'The record "Runtime environment" is saved successfully. Restart the application when you want the new values to apply.',
+        })
+      }
 
       if (restart) {
         window.setTimeout(() => {

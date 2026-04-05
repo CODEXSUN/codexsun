@@ -1,0 +1,9 @@
+export const queryKeys = {
+  runtimeBrand: ["runtime", "brand-profile"] as const,
+  runtimeAppSettings: ["runtime", "app-settings"] as const,
+  demoSummary: ["demo", "summary"] as const,
+  demoJob: (jobId: string | null) => ["demo", "job", jobId] as const,
+  storefrontLanding: ["storefront", "landing"] as const,
+  storefrontCatalog: (search: string) => ["storefront", "catalog", search] as const,
+  storefrontProduct: (slug: string) => ["storefront", "product", slug] as const,
+}

@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useLocation, useSearchParams } from "react-router-dom"
 
 import type { StorefrontCategorySummary } from "@ecommerce/shared"
@@ -43,6 +45,7 @@ function CategoryPill({
               alt={label}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6d5140]">
@@ -78,8 +81,11 @@ export function StorefrontCategoryMenu({
   className?: string
   isScrolled?: boolean
 }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null)
   const location = useLocation()
   const [searchParams] = useSearchParams()
+  const [showLeftChevron, setShowLeftChevron] = useState(false)
+  const [showRightChevron, setShowRightChevron] = useState(false)
   const topMenuCategories = categories
     .filter((item) => item.showInTopMenu)
     .sort(
@@ -88,6 +94,44 @@ export function StorefrontCategoryMenu({
     )
   const activeCategory = searchParams.get("category")?.trim().toLowerCase() ?? ""
   const isCatalogRoute = location.pathname === storefrontPaths.catalog()
+
+  useEffect(() => {
+    const container = scrollRef.current
+
+    if (!container) {
+      return
+    }
+
+    const updateChevron = () => {
+      setShowLeftChevron(container.scrollLeft > 16)
+      const remaining =
+        container.scrollWidth - container.clientWidth - container.scrollLeft
+      setShowRightChevron(remaining > 16)
+    }
+
+    updateChevron()
+    container.addEventListener("scroll", updateChevron, { passive: true })
+    window.addEventListener("resize", updateChevron)
+
+    return () => {
+      container.removeEventListener("scroll", updateChevron)
+      window.removeEventListener("resize", updateChevron)
+    }
+  }, [topMenuCategories.length, isScrolled])
+
+  function scrollRight() {
+    scrollRef.current?.scrollBy({
+      left: isScrolled ? 220 : 320,
+      behavior: "smooth",
+    })
+  }
+
+  function scrollLeft() {
+    scrollRef.current?.scrollBy({
+      left: isScrolled ? -220 : -320,
+      behavior: "smooth",
+    })
+  }
 
   return (
     <div
@@ -99,31 +143,60 @@ export function StorefrontCategoryMenu({
         className
       )}
     >
-      <div
-        className={cn(
-          "w-full overflow-x-auto px-5 transition-all duration-300 lg:px-8 xl:px-10",
-          isScrolled ? "py-2.5" : "py-4"
-        )}
-      >
+      <div className="group relative mx-auto w-full max-w-[75%]">
         <div
+          ref={scrollRef}
           className={cn(
-            "mx-auto flex min-w-max items-center",
-            isScrolled
-              ? "justify-center gap-4 px-6 sm:gap-5 lg:gap-6"
-              : "justify-center gap-5 px-6 sm:gap-6 lg:gap-8"
+            "w-full overflow-x-auto px-3 transition-all duration-300 [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent lg:px-4",
+            isScrolled ? "py-2.5" : "py-4"
           )}
         >
-          {topMenuCategories.map((category) => (
-            <CategoryPill
-              key={category.id}
-              compact={isScrolled}
-              href={normalizeStorefrontHref(category.href) ?? storefrontPaths.catalog()}
-              imageUrl={category.imageUrl}
-              isActive={isCatalogRoute && activeCategory === category.name.trim().toLowerCase()}
-              label={category.name}
-            />
-          ))}
+          <div
+            className={cn(
+              "mx-auto flex min-w-max items-center",
+              isScrolled
+                ? "justify-center gap-4 px-6 sm:gap-5 lg:gap-6"
+                : "justify-center gap-5 px-6 sm:gap-6 lg:gap-8"
+            )}
+          >
+            {topMenuCategories.map((category) => (
+              <CategoryPill
+                key={category.id}
+                compact={isScrolled}
+                href={normalizeStorefrontHref(category.href) ?? storefrontPaths.catalog()}
+                imageUrl={category.imageUrl}
+                isActive={isCatalogRoute && activeCategory === category.name.trim().toLowerCase()}
+                label={category.name}
+              />
+            ))}
+          </div>
         </div>
+        {showLeftChevron ? (
+          <button
+            type="button"
+            aria-label="Scroll categories left"
+            className={cn(
+              "absolute left-0 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-[#dfc9b3] bg-[#fcf8f3]/92 p-2 text-[#705440] shadow-[0_14px_28px_-18px_rgba(43,26,12,0.38)] opacity-0 transition-all duration-300 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white group-hover:opacity-100",
+              isScrolled ? "ml-1" : "ml-2"
+            )}
+            onClick={scrollLeft}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        ) : null}
+        {showRightChevron ? (
+          <button
+            type="button"
+            aria-label="Scroll categories right"
+            className={cn(
+              "absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-[#dfc9b3] bg-[#fcf8f3]/92 p-2 text-[#705440] shadow-[0_14px_28px_-18px_rgba(43,26,12,0.38)] opacity-0 transition-all duration-300 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white group-hover:opacity-100",
+              isScrolled ? "mr-1" : "mr-2"
+            )}
+            onClick={scrollRight}
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        ) : null}
       </div>
     </div>
   )

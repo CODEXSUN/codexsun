@@ -9,6 +9,7 @@ import {
   Cog,
   ContactRound,
   Database,
+  FlaskConical,
   Flag,
   Globe,
   Landmark,
@@ -40,10 +41,11 @@ import {
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
 import { billingWorkspaceItems } from "@billing/shared"
 import { coreCommonModuleMenuGroups, coreWorkspaceItems } from "@core/shared"
+import { demoWorkspaceItems } from "@demo/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
 import { docsCategories } from "@/registry/data/catalog"
-import { registryBlockCategories } from "@/registry/data/blocks"
+import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
 import { registryPageCategories, registryPages } from "@/registry/data/pages"
 import type {
@@ -63,6 +65,7 @@ const appIconMap: Record<string, LucideIcon> = {
   cli: TerminalSquare,
   core: Building2,
   cxapp: Blocks,
+  demo: FlaskConical,
   ecommerce: MonitorSmartphone,
   frappe: PlugZap,
   site: Globe,
@@ -77,6 +80,7 @@ const appAccentClassMap: Record<string, string> = {
   cli: "from-slate-500/18 via-zinc-500/10 to-transparent",
   core: "from-cyan-500/18 via-sky-500/10 to-transparent",
   cxapp: "from-zinc-500/18 via-slate-500/10 to-transparent",
+  demo: "from-rose-500/18 via-orange-500/10 to-transparent",
   ecommerce: "from-amber-500/20 via-orange-500/10 to-transparent",
   frappe: "from-blue-500/18 via-sky-500/10 to-transparent",
   site: "from-violet-500/18 via-indigo-500/10 to-transparent",
@@ -114,6 +118,7 @@ const appPriorityOrder = [
   "billing",
   "frappe",
   "site",
+  "demo",
   "task",
   "tally",
   "core",
@@ -298,6 +303,13 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         summary: category.description,
         icon: ClipboardList,
       })),
+      ...registryBlocks.map((block) => ({
+        id: `${app.id}-blocks-entry-${block.id}`,
+        name: block.name,
+        route: `${root}/blocks-entry-${block.id}`,
+        summary: block.summary,
+        icon: ClipboardList,
+      })),
       ...docsTemplateCategories.map((category) => ({
         id: `${app.id}-pages-template-${category.slug}`,
         name: `${category.name} Templates`,
@@ -467,6 +479,33 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "demo") {
+    const demoWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      install: Sparkles,
+      companies: Building2,
+      common: Blocks,
+      contacts: Users,
+      products: PackageCheck,
+      categories: Boxes,
+      customers: Users,
+      orders: ShoppingBag,
+      billing: ReceiptText,
+      frappe: PlugZap,
+    }
+
+    return [
+      ...demoWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: demoWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -485,9 +524,9 @@ function createUiMenuGroups(
 ): DashboardMenuGroup[] {
   const root = `/dashboard/apps/${app.id}`
 
-  return [
-    {
-      id: `${app.id}-system-group`,
+    return [
+      {
+        id: `${app.id}-system-group`,
       label: "System",
       shared: true,
       route: root,
@@ -511,18 +550,26 @@ function createUiMenuGroups(
         ].includes(item.route)
       ),
     },
-    {
-      id: `${app.id}-blocks-group`,
-      label: "Blocks",
-      shared: false,
-      route: `${root}/blocks`,
-      items: modules.filter((item) =>
-        [
-          `${root}/blocks`,
-          ...registryBlockCategories.map((category) => `${root}/blocks-${category.id}`),
-        ].includes(item.route)
-      ),
-    },
+      {
+        id: `${app.id}-blocks-group`,
+        label: "Blocks",
+        shared: false,
+        route: `${root}/blocks`,
+        items: [
+          {
+            id: `${app.id}-blocks-root`,
+            name: "Blocks",
+            route: `${root}/blocks`,
+            summary: "Reusable application blocks grouped as individual reusable entries.",
+            icon: ClipboardList,
+            children: modules.filter((item) =>
+              registryBlocks.some(
+                (block) => item.route === `${root}/blocks-entry-${block.id}`
+              )
+            ),
+          },
+        ],
+      },
     {
       id: `${app.id}-pages-group`,
       label: "Pages",
@@ -701,6 +748,56 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   ),
                 },
               ],
+            },
+          ]
+      : app.id === "demo"
+        ? [
+            {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                  `/dashboard/apps/${app.id}/install`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-suite-data`,
+              label: "Suite Data",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/companies`,
+                  `/dashboard/apps/${app.id}/common`,
+                  `/dashboard/apps/${app.id}/contacts`,
+                  `/dashboard/apps/${app.id}/products`,
+                  `/dashboard/apps/${app.id}/categories`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-commerce`,
+              label: "Commerce",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/customers`,
+                  `/dashboard/apps/${app.id}/orders`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-ops`,
+              label: "Operations",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/billing`,
+                  `/dashboard/apps/${app.id}/frappe`,
+                ].includes(item.route)
+              ),
             },
           ]
       : app.id === "billing"

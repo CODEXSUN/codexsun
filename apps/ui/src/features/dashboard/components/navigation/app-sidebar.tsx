@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react"
+import { useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
 import {
@@ -35,6 +37,8 @@ import {
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { NavUser } from "@/features/dashboard/components/navigation/nav-user"
 import type { DashboardAppDefinition } from "@/features/dashboard/types"
+import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
+import { queryKeys } from "@cxapp/web/src/query/query-keys"
 
 function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
@@ -110,16 +114,93 @@ function isMenuItemActive(pathname: string, item: DashboardAppDefinition["menuGr
   return isRouteActive(pathname, item.route) || item.children?.some((child) => isRouteActive(pathname, child.route)) || false
 }
 
+function useDemoMenuCounts(isActive: boolean) {
+  const query = useQuery({
+    queryKey: queryKeys.demoSummary,
+    enabled: isActive,
+    queryFn: async () => {
+      const accessToken = getStoredAccessToken()
+      const response = await fetch("/internal/v1/demo/summary", {
+        cache: "no-store",
+        headers: accessToken
+          ? {
+              authorization: `Bearer ${accessToken}`,
+            }
+          : undefined,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}.`)
+      }
+
+      return (await response.json()) as {
+        modules: Array<{ id: string; currentCount: number }>
+      }
+    },
+  })
+
+  useEffect(() => {
+    if (!isActive) {
+      return
+    }
+    const handleRefresh = () => {
+      void query.refetch()
+    }
+
+    window.addEventListener("demo-summary-updated", handleRefresh)
+
+    return () => {
+      window.removeEventListener("demo-summary-updated", handleRefresh)
+    }
+  }, [isActive, query.refetch])
+
+  const moduleCountMap = Object.fromEntries(
+    (query.data?.modules ?? []).map((module) => [module.id, module.currentCount])
+  ) as Record<string, number>
+
+  return {
+    "/dashboard/apps/demo/companies": moduleCountMap.companies ?? 0,
+    "/dashboard/apps/demo/common": moduleCountMap.common ?? 0,
+    "/dashboard/apps/demo/contacts": moduleCountMap.contacts ?? 0,
+    "/dashboard/apps/demo/products": moduleCountMap.products ?? 0,
+    "/dashboard/apps/demo/categories": moduleCountMap.categories ?? 0,
+    "/dashboard/apps/demo/customers": moduleCountMap.customers ?? 0,
+    "/dashboard/apps/demo/orders": moduleCountMap.orders ?? 0,
+    "/dashboard/apps/demo/billing": moduleCountMap.billing ?? 0,
+    "/dashboard/apps/demo/frappe": moduleCountMap.frappe ?? 0,
+  }
+}
+
+function MenuCountBadge({
+  value,
+  className = "",
+}: {
+  value?: number
+  className?: string
+}) {
+  if (value == null) {
+    return null
+  }
+
+  return (
+    <span className={`inline-flex min-w-6 items-center justify-center rounded-full bg-sidebar-accent px-1.5 py-0.5 text-[11px] font-semibold text-sidebar-accent-foreground ${className}`}>
+      {value}
+    </span>
+  )
+}
+
 function GroupedAppMenu({
   app,
   groupLabel,
   open,
   pathname,
+  demoMenuCounts,
 }: {
   app: DashboardAppDefinition
   groupLabel: string
   open: boolean
   pathname: string
+  demoMenuCounts?: Record<string, number>
 }) {
   if (!open) {
     return (
@@ -210,10 +291,11 @@ function GroupedAppMenu({
                               className="group/collapsible"
                             >
                               <CollapsibleTrigger asChild>
-                                <SidebarMenuSubButton isActive={isMenuItemActive(pathname, item)}>
+                              <SidebarMenuSubButton isActive={isMenuItemActive(pathname, item)}>
                                   <item.icon className="size-4" />
                                   <span>{item.name}</span>
-                                  <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                  <MenuCountBadge value={demoMenuCounts?.[item.route]} className="ml-auto" />
+                                  <ChevronRight className="ml-2 size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuSubButton>
                               </CollapsibleTrigger>
                               <CollapsibleContent>
@@ -229,6 +311,7 @@ function GroupedAppMenu({
                                       }
                                     >
                                       <span>{child.name}</span>
+                                      <MenuCountBadge value={demoMenuCounts?.[child.route]} className="ml-auto" />
                                     </NavLink>
                                   ))}
                                 </div>
@@ -242,6 +325,7 @@ function GroupedAppMenu({
                               <NavLink to={item.route}>
                                 <item.icon className="size-4" />
                                 <span>{item.name}</span>
+                                <MenuCountBadge value={demoMenuCounts?.[item.route]} className="ml-auto" />
                               </NavLink>
                             </SidebarMenuSubButton>
                           )}
@@ -348,6 +432,7 @@ export function AppSidebar() {
   const { open } = useSidebar()
   const showDeskGroup = location.pathname === links.dashboard
   const currentAppUtilityGroups = getUtilityGroupsForCurrentApp(currentApp)
+  const demoMenuCounts = useDemoMenuCounts(currentApp?.id === "demo")
   const showFrameworkUtilityGroups =
     showDeskGroup ||
     isRouteActive(location.pathname, links.mediaManager) ||
@@ -443,6 +528,7 @@ export function AppSidebar() {
               }
               open={open}
               pathname={location.pathname}
+              demoMenuCounts={demoMenuCounts}
             />
             {currentAppUtilityGroups.length > 0 ? (
               <UtilityNavigationMenu

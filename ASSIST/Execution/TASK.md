@@ -4,34 +4,29 @@
 
 ### Reference
 
-`#26`
+`#27`
 
 ### Title
 
-`Ecommerce storefront tone, admin settings, and mobile hero polish`
+`Demo app, shared state layer, storefront designers, and shared UI blocks`
 
 ### Scope Checklist
 
-- [x] add a frontend target switch so home can resolve to `site`, `shop`, or `app`
-- [x] normalize active suite surfaces around `/admin/dashboard`, `/dashboard`, and `/profile`
-- [x] keep ecommerce product and common-master reuse inside the ecommerce workspace so the sidebar does not jump to `core`
-- [x] connect ecommerce storefront settings to a real backend settings service with legacy-safe partial save handling
-- [x] add an ecommerce-owned Home Slider designer with dedicated admin routing, multi-slide theme isolation, and backend persistence for hero theme settings
-- [x] rebuild the storefront shell tone around the temp/reference pattern with a richer header, search, category rail, footer, cards, and hero slider
-- [x] add a dedicated mobile hero slider layout with image-first ordering and mobile-sized text/actions
-- [x] slim the Home Slider admin surface by removing workspace and page hero chrome from the editor route
-- [x] refine the storefront hero image frame toward a softer glass-style shell instead of a hard outlined border
-- [x] move storefront top-menu categories to backend-owned `All Items` plus backend-controlled top-menu visibility instead of a static frontend pill
-- [x] support direct external image URLs anywhere the shared framework media picker is used, without removing uploads or media-library selection
-- [x] split storefront top menu and category navigation into dedicated components, then add a sticky scrolled text-only category mode with centered spacing and compact motion styling
-- [x] improve shared core common-module image cells so category image fields render as real thumbnails instead of raw storage paths
-- [x] reduce the large frontend entry chunk by introducing route-level lazy loading and explicit Vite chunk splitting
-- [x] update ASSIST tracking, ownership notes, changelog, and work log for the storefront batch
+- [x] add the app-owned `demo` application with module-scoped demo-data installers, summary pages, counts, and protected internal API routes
+- [x] add TanStack Query as the shared server-state layer and migrate runtime/app-settings, storefront shell, and demo polling to it
+- [x] add Zustand as a lightweight client-state layer for session and storefront shell state without disturbing the broader codebase
+- [x] improve storefront loading with skeletons, eager hero media, lazy catalog images, and faster first paint on slow networks
+- [x] add a shared toast layer with two-line record-result messaging, runtime positioning/tone settings, and design-system docs coverage
+- [x] integrate shared Tiptap editor support with icons and docs coverage in the UI design-system workspace
+- [x] move storefront search, featured-card, and category-card surfaces into reusable shared UI blocks and surfaces
+- [x] extend ecommerce storefront settings with saved featured and category row/layout designer settings, card design controls, and live frontend sync
+- [x] tighten media-browser overflow behavior so forms stay visible and asset grids scroll cleanly inside smaller screens
+- [x] update ASSIST tracking, ownership notes, architecture notes, changelog, and work log for the demo/state/storefront-designer batch
 
 ### Validation Note
 
 - [x] `npm.cmd run typecheck`
-- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts tests/framework/application/app-suite.test.ts`
+- [x] `npx.cmd tsx --test tests/demo/services.test.ts tests/api/demo-routes.test.ts tests/framework/application/app-suite.test.ts`
 - [x] `npm.cmd run build`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
@@ -41,7 +36,7 @@
 
 ### Reference
 
-`#27`
+`#28`
 
 ### Title
 

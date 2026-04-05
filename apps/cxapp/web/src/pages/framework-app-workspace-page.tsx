@@ -7,7 +7,7 @@ import { DocsPageHeader } from "@/docs/components/docs-page-header"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { DocsBrowser } from "@/docs/components/docs-browser"
 import { docsCategories, docsEntries } from "@/registry/data/catalog"
-import { registryBlockCategories } from "@/registry/data/blocks"
+import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
 import { registryPageCategories, registryPages } from "@/registry/data/pages"
 import {
@@ -19,6 +19,7 @@ import {
   DesignSystemReadinessPage,
 } from "@/design-system/pages/design-system-workbench-page"
 import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
+import { DemoWorkspaceSection } from "@demo/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
 import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
@@ -92,6 +93,17 @@ const uiBlockSections = Object.fromEntries(
       description: category.description,
       render: () => <DesignSystemBlocksPage categoryId={category.id} />,
       title: category.name,
+    },
+  ])
+)
+
+const uiBlockEntrySections = Object.fromEntries(
+  registryBlocks.map((block) => [
+    `blocks-entry-${block.id}`,
+    {
+      description: block.description,
+      render: () => <DesignSystemBlocksPage blockId={block.id} />,
+      title: block.name,
     },
   ])
 )
@@ -195,6 +207,7 @@ export function FrameworkAppWorkspacePage({
       ? uiWorkspaceSections[sectionId as keyof typeof uiWorkspaceSections] ??
         uiCategorySections[sectionId as keyof typeof uiCategorySections] ??
         uiBlockSections[sectionId as keyof typeof uiBlockSections] ??
+        uiBlockEntrySections[sectionId as keyof typeof uiBlockEntrySections] ??
         uiPageSections[sectionId as keyof typeof uiPageSections] ??
         uiPageEntrySections[sectionId as keyof typeof uiPageEntrySections] ??
         uiTemplateSections[sectionId as keyof typeof uiTemplateSections] ??
@@ -233,14 +246,34 @@ export function FrameworkAppWorkspacePage({
     app.id === "ecommerce" ? (
       <EcommerceWorkspaceSection productId={productId} sectionId={sectionId} />
     ) : null
+  const demoWorkspaceContent =
+    app.id === "demo" ? <DemoWorkspaceSection sectionId={sectionId} /> : null
   const frappeWorkspaceContent =
     app.id === "frappe" ? <FrappeWorkspaceSection sectionId={sectionId} /> : null
   const customWorkspaceContent =
     coreWorkspaceContent ??
     billingWorkspaceContent ??
+    demoWorkspaceContent ??
     ecommerceWorkspaceContent ??
     frappeWorkspaceContent
   const hideWorkspaceHero =
+    app.id === "ecommerce" ||
+    (
+      app.id === "demo" &&
+      [
+        "overview",
+        "install",
+        "companies",
+        "common",
+        "contacts",
+        "products",
+        "categories",
+        "customers",
+        "orders",
+        "billing",
+        "frappe",
+      ].includes(sectionId ?? "overview")
+    ) ||
     (
       app.id === "billing" &&
       [

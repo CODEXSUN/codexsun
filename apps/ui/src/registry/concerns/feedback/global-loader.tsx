@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react"
+import { useState, type HTMLAttributes } from "react"
 import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
@@ -24,6 +24,8 @@ export function GlobalLoader({
   className,
   ...props
 }: GlobalLoaderProps) {
+  const [logoFailed, setLogoFailed] = useState(false)
+
   return (
     <div
       className={cn(
@@ -120,11 +122,17 @@ export function GlobalLoader({
           }}
         />
         <div className="absolute inset-0 flex items-center justify-center">
-          <img
-            src="/logo.svg"
-            alt="Codexsun logo"
-            className="h-10 w-10 object-contain"
-          />
+          {logoFailed ? (
+            <div className="size-6 rounded-full bg-foreground/85 shadow-sm" aria-hidden="true" />
+          ) : (
+            <img
+              src="/logo.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-10 w-10 object-contain"
+              onError={() => setLogoFailed(true)}
+            />
+          )}
         </div>
       </motion.div>
       {label ? (

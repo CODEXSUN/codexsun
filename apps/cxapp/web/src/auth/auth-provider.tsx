@@ -14,6 +14,7 @@ import {
   readStoredAuthSession,
   type StoredAuthSession,
 } from "./session-storage"
+import { useAppSessionStore } from "../state/app-session-store"
 
 function toStoredSession(response: AuthTokenResponse): StoredAuthSession {
   return {
@@ -25,6 +26,7 @@ function toStoredSession(response: AuthTokenResponse): StoredAuthSession {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const setSessionState = useAppSessionStore((state) => state.setSessionState)
   const [session, setSession] = useState<StoredAuthSession | null>(() =>
     readStoredAuthSession()
   )
@@ -72,6 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    setSessionState({
+      user: session?.user ?? null,
+      isLoading,
+    })
+  }, [isLoading, session, setSessionState])
 
   const value = useMemo<AuthContextValue>(
     () => ({

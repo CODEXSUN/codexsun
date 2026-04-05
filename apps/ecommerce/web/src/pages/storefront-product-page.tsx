@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { ShieldCheck, ShoppingBag, Truck } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
 import type { StorefrontProductResponse } from "@ecommerce/shared"
+import { queryKeys } from "@cxapp/web/src/query/query-keys"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,28 +15,21 @@ import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
+import { StorefrontProductPageSkeleton } from "../components/storefront-skeletons"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontProductPage() {
   const { slug = "" } = useParams()
   const navigate = useNavigate()
   const cart = useStorefrontCart()
-  const [data, setData] = useState<StorefrontProductResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setData(await storefrontApi.getProduct(slug))
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Failed to load product.")
-      }
-    }
-
-    void load()
-  }, [slug])
+  const { data, error, isLoading } = useQuery<StorefrontProductResponse>({
+    queryKey: queryKeys.storefrontProduct(slug),
+    queryFn: () => storefrontApi.getProduct(slug),
+    enabled: slug.trim().length > 0,
+  })
 
   useEffect(() => {
     setSelectedImage(0)
@@ -48,7 +43,9 @@ export function StorefrontProductPage() {
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 pt-8 lg:px-8">
         {error ? (
           <Card className="border-destructive/20 bg-destructive/5">
-            <CardContent className="p-6 text-sm text-destructive">{error}</CardContent>
+            <CardContent className="p-6 text-sm text-destructive">
+              {error instanceof Error ? error.message : "Failed to load product."}
+            </CardContent>
           </Card>
         ) : null}
         {product ? (
@@ -63,6 +60,9 @@ export function StorefrontProductPage() {
                     }
                     alt={product.name}
                     className="aspect-[4/4.7] w-full object-cover"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-4">
@@ -79,6 +79,8 @@ export function StorefrontProductPage() {
                         src={imageUrl}
                         alt={product.name}
                         className="aspect-square w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   ))}
@@ -236,6 +238,8 @@ export function StorefrontProductPage() {
               </div>
             </section>
           </>
+        ) : isLoading ? (
+          <StorefrontProductPageSkeleton />
         ) : (
           <div className="text-sm text-muted-foreground">Loading product...</div>
         )}

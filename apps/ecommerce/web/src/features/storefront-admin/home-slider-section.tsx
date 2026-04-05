@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import {
   Select,
   SelectContent,
@@ -800,12 +801,23 @@ export function HomeSliderSection() {
                   null
               )
               setSaveMessage("Home slider saved.")
+              showRecordToast({
+                entity: "Home Slider",
+                action: "saved",
+                recordName: selectedSlide.label,
+                recordId: selectedSlide.id,
+              })
             } catch (saveError) {
-              setError(
+              const message =
                 saveError instanceof Error
                   ? saveError.message
                   : "Failed to save home slider settings."
-              )
+              setError(message)
+              showAppToast({
+                variant: "error",
+                title: "Home slider save failed.",
+                description: message,
+              })
             } finally {
               setIsSaving(false)
             }

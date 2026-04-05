@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
+import { useRuntimeBrandQuery } from "@cxapp/web/src/query/runtime-queries"
 
 type RuntimeBrandContextValue = {
   brand: CompanyBrandProfile | null
@@ -15,38 +16,10 @@ const RuntimeBrandContext = React.createContext<RuntimeBrandContextValue>({
 export function RuntimeBrandProvider({
   children,
 }: React.PropsWithChildren) {
-  const [brand, setBrand] = React.useState<CompanyBrandProfile | null>(null)
-
-  React.useEffect(() => {
-    let cancelled = false
-
-    async function loadBrandProfile() {
-      try {
-        const response = await fetch("/public/v1/brand-profile")
-        if (!response.ok) {
-          return
-        }
-
-        const payload = (await response.json()) as { item?: CompanyBrandProfile }
-        if (!cancelled) {
-          setBrand(payload.item ?? null)
-        }
-      } catch {
-        if (!cancelled) {
-          setBrand(null)
-        }
-      }
-    }
-
-    void loadBrandProfile()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { data: brand } = useRuntimeBrandQuery()
 
   return (
-    <RuntimeBrandContext.Provider value={{ brand }}>
+    <RuntimeBrandContext.Provider value={{ brand: brand ?? null }}>
       {children}
     </RuntimeBrandContext.Provider>
   )

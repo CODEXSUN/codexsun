@@ -13,10 +13,30 @@ export const storefrontSearchDepartmentSchema = z.object({
   label: z.string().min(1),
 })
 
+export const storefrontCatalogIntroSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+})
+
 export const storefrontSearchSchema = z.object({
+  catalogIntro: storefrontCatalogIntroSchema,
   placeholder: z.string().min(1),
   departmentLabel: z.string().min(1),
+  categoryFilterLabel: z.string().min(1),
+  departmentFilterLabel: z.string().min(1),
+  sortFilterLabel: z.string().min(1),
+  resetLabel: z.string().min(1),
+  resultsLabel: z.string().min(1),
   departments: z.array(storefrontSearchDepartmentSchema).min(1),
+})
+
+export const storefrontAnnouncementDesignSchema = z.object({
+  backgroundColor: hexColorSchema,
+  textColor: hexColorSchema,
+  iconColor: hexColorSchema,
+  iconKey: z.enum(["sparkles", "truck", "shield"]),
+  cornerStyle: z.enum(["pill", "rounded", "soft"]),
 })
 
 export const storefrontHeroSchema = z.object({
@@ -70,6 +90,52 @@ export const storefrontSectionCopySchema = z.object({
   summary: z.string().min(1),
   ctaLabel: z.string().min(1).nullable(),
   ctaHref: z.string().min(1).nullable(),
+  cardsPerRow: z.union([z.literal(3), z.literal(4), z.literal(5), z.literal(6)]).default(3),
+})
+
+export const storefrontFeaturedCardDesignSchema = z.object({
+  titleColor: hexColorSchema,
+  metaColor: hexColorSchema,
+  descriptionColor: hexColorSchema,
+  priceColor: hexColorSchema,
+  compareAtColor: hexColorSchema,
+  badgeBackgroundColor: hexColorSchema,
+  badgeTextColor: hexColorSchema,
+  secondaryBadgeText: z.string().min(1),
+  secondaryBadgeBackgroundColor: hexColorSchema,
+  secondaryBadgeTextColor: hexColorSchema,
+  primaryButtonLabel: z.string().min(1),
+  showPrimaryBadge: z.boolean().default(true),
+  showSecondaryBadge: z.boolean().default(true),
+  showBrandMeta: z.boolean().default(true),
+  showCategoryMeta: z.boolean().default(true),
+  showStockMeta: z.boolean().default(true),
+  showDescription: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showPrimaryAction: z.boolean().default(true),
+  showSecondaryActions: z.boolean().default(true),
+})
+
+export const storefrontCategoryCardDesignSchema = z.object({
+  titleColor: hexColorSchema,
+  metaColor: hexColorSchema,
+  descriptionColor: hexColorSchema,
+  buttonLabel: z.string().min(1),
+  buttonBackgroundColor: hexColorSchema,
+  buttonTextColor: hexColorSchema,
+  showProductCount: z.boolean().default(true),
+  showDescription: z.boolean().default(true),
+  showAction: z.boolean().default(true),
+})
+
+export const storefrontFeaturedSectionSchema = storefrontSectionCopySchema.extend({
+  rowsToShow: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+  cardDesign: storefrontFeaturedCardDesignSchema,
+})
+
+export const storefrontCategorySectionSchema = storefrontSectionCopySchema.extend({
+  rowsToShow: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+  cardDesign: storefrontCategoryCardDesignSchema,
 })
 
 export const storefrontPromoSectionSchema = z.object({
@@ -87,6 +153,19 @@ export const storefrontTrustNoteSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   iconKey: z.enum(["sparkles", "truck", "shield"]),
+})
+
+export const storefrontVisibilitySchema = z.object({
+  announcement: z.boolean().default(true),
+  hero: z.boolean().default(true),
+  search: z.boolean().default(true),
+  support: z.boolean().default(true),
+  featured: z.boolean().default(true),
+  categories: z.boolean().default(true),
+  newArrivals: z.boolean().default(true),
+  bestSellers: z.boolean().default(true),
+  cta: z.boolean().default(true),
+  trust: z.boolean().default(true),
 })
 
 export const storefrontFooterLinkSchema = z.object({
@@ -144,12 +223,14 @@ export const storefrontCategorySummarySchema = z.object({
 
 export const storefrontSettingsSchema = z.object({
   id: z.string().min(1),
+  visibility: storefrontVisibilitySchema,
   hero: storefrontHeroSchema,
   homeSlider: storefrontHomeSliderSchema,
   search: storefrontSearchSchema,
+  announcementDesign: storefrontAnnouncementDesignSchema,
   sections: z.object({
-    featured: storefrontSectionCopySchema,
-    categories: storefrontSectionCopySchema,
+    featured: storefrontFeaturedSectionSchema,
+    categories: storefrontCategorySectionSchema,
     newArrivals: storefrontSectionCopySchema,
     bestSellers: storefrontSectionCopySchema,
     cta: storefrontPromoSectionSchema,
@@ -217,11 +298,18 @@ export type StorefrontHomeSliderTheme = z.infer<typeof storefrontHomeSliderTheme
 export type StorefrontHomeSliderSlide = z.infer<typeof storefrontHomeSliderSlideSchema>
 export type StorefrontHomeSlider = z.infer<typeof storefrontHomeSliderSchema>
 export type StorefrontHighlight = z.infer<typeof storefrontHighlightSchema>
+export type StorefrontAnnouncementDesign = z.infer<typeof storefrontAnnouncementDesignSchema>
 export type StorefrontSearch = z.infer<typeof storefrontSearchSchema>
 export type StorefrontSearchDepartment = z.infer<typeof storefrontSearchDepartmentSchema>
+export type StorefrontCatalogIntro = z.infer<typeof storefrontCatalogIntroSchema>
 export type StorefrontSectionCopy = z.infer<typeof storefrontSectionCopySchema>
+export type StorefrontFeaturedCardDesign = z.infer<typeof storefrontFeaturedCardDesignSchema>
+export type StorefrontFeaturedSection = z.infer<typeof storefrontFeaturedSectionSchema>
+export type StorefrontCategoryCardDesign = z.infer<typeof storefrontCategoryCardDesignSchema>
+export type StorefrontCategorySection = z.infer<typeof storefrontCategorySectionSchema>
 export type StorefrontPromoSection = z.infer<typeof storefrontPromoSectionSchema>
 export type StorefrontTrustNote = z.infer<typeof storefrontTrustNoteSchema>
+export type StorefrontVisibility = z.infer<typeof storefrontVisibilitySchema>
 export type StorefrontFooter = z.infer<typeof storefrontFooterSchema>
 export type StorefrontFooterGroup = z.infer<typeof storefrontFooterGroupSchema>
 export type StorefrontFooterLink = z.infer<typeof storefrontFooterLinkSchema>

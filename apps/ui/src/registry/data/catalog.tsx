@@ -328,6 +328,10 @@ import DropdownMenuDropdownMenu08 from "@/registry/variants/dropdown-menu/dropdo
 import DropdownMenuDropdownMenu08Code from "@/registry/variants/dropdown-menu/dropdown-menu-08.tsx?raw"
 import DropdownMenuDropdownMenu09 from "@/registry/variants/dropdown-menu/dropdown-menu-09"
 import DropdownMenuDropdownMenu09Code from "@/registry/variants/dropdown-menu/dropdown-menu-09.tsx?raw"
+import EditorEditor01 from "@/registry/variants/editor/editor-01"
+import EditorEditor01Code from "@/registry/variants/editor/editor-01.tsx?raw"
+import EditorEditor02 from "@/registry/variants/editor/editor-02"
+import EditorEditor02Code from "@/registry/variants/editor/editor-02.tsx?raw"
 import InputInput01 from "@/registry/variants/input/input-01"
 import InputInput01Code from "@/registry/variants/input/input-01.tsx?raw"
 import InputInput02 from "@/registry/variants/input/input-02"
@@ -712,8 +716,8 @@ export const docsCategories: DocsCategory[] = [
     id: "forms",
     name: "Forms",
     description: "Inputs and selection controls for data capture.",
-    items: ["checkbox","input","input-otp","radio-group","select","slider","switch","textarea"],
-    preview: <CategoryPreview label="Forms" count={8} />,
+    items: ["checkbox","editor","input","input-otp","radio-group","select","slider","switch","textarea"],
+    preview: <CategoryPreview label="Forms" count={9} />,
   },
   {
     id: "navigation",
@@ -1733,6 +1737,27 @@ export const docsEntries: DocsEntry[] = [
         title: "Table Row Actions",
         code: DropdownMenuDropdownMenu09Code,
         preview: <DropdownMenuDropdownMenu09 />,
+      },
+    ],
+  },
+  {
+    id: "editor",
+    name: "Editor",
+    description: "Shared Tiptap-based rich-text editing and read-only preview surfaces for formatted content.",
+    category: "forms",
+    icon: PencilRuler,
+    examples: [
+      {
+        id: "editor-01",
+        title: "Rich Text",
+        code: EditorEditor01Code,
+        preview: <EditorEditor01 />,
+      },
+      {
+        id: "editor-02",
+        title: "Read Only",
+        code: EditorEditor02Code,
+        preview: <EditorEditor02 />,
       },
     ],
   },

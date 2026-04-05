@@ -61,6 +61,8 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     FRONTEND_HTTP_PORT: String(config.frontendHttpPort),
     FRONTEND_HTTPS_PORT: String(config.frontendHttpsPort),
     VITE_FRONTEND_TARGET: config.frontendTarget,
+    VITE_TOAST_POSITION: config.notifications.toast.position,
+    VITE_TOAST_TONE: config.notifications.toast.tone,
     DB_DRIVER: config.database.driver,
     DB_HOST: config.database.host ?? "",
     DB_PORT: config.database.port ? String(config.database.port) : "",

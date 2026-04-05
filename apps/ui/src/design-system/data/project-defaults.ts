@@ -102,6 +102,14 @@ export const projectDesignSystemDefaults: Record<
     notes:
       "Keep high-frequency primary actions visible outside the menu.",
   },
+  editor: {
+    applicationName: "rich-text",
+    defaultExampleId: "editor-01",
+    aliases: ["wysiwyg", "rich-editor"],
+    usage: "Formatted content entry for landing copy, long-form descriptions, and policy text.",
+    notes:
+      "Use the shared rich-text editor when content needs structure, links, or emphasis beyond plain textarea.",
+  },
   input: {
     applicationName: "field",
     defaultExampleId: "input-01",
@@ -211,6 +219,14 @@ export const projectDesignSystemDefaults: Record<
     usage: "Segmented content within a single page or workspace.",
     notes:
       "The contained tabs align with the application's panel-heavy layout language.",
+  },
+  toast: {
+    applicationName: "record-result",
+    defaultExampleId: "toast-stack-01",
+    aliases: ["notify", "notification"],
+    usage: "Two-line action feedback for save, warning, install, and failure outcomes.",
+    notes:
+      "Use the shared record-result toast pattern for application feedback instead of ad hoc inline success strings.",
   },
   textarea: {
     applicationName: "notes",

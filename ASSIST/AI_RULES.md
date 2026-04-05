@@ -31,10 +31,11 @@ All product code lives under one `apps/` root:
 6. `apps/ui`
 7. `apps/billing`
 8. `apps/ecommerce`
-9. `apps/task`
-10. `apps/frappe`
-11. `apps/tally`
-12. `apps/cli`
+9. `apps/demo`
+10. `apps/task`
+11. `apps/frappe`
+12. `apps/tally`
+13. `apps/cli`
 
 ## Standard App Shape
 
@@ -58,10 +59,11 @@ Every app folder must keep the same baseline shape:
 6. `ui` owns the reusable design system, shared styles, and neutral UX building blocks.
 7. `billing` owns accounting, inventory, vouchers, and reporting behavior.
 8. `ecommerce` owns storefront, catalog presentation, cart, checkout, payments, order tracking, and customer commerce flows.
-9. `task` owns task, workspace, and team workflow behavior.
-10. `frappe` owns ERPNext-specific settings, snapshot storage, and connector sync orchestration.
-11. `tally` owns Tally-specific integration boundaries.
-12. `cli` owns operational commands, diagnostics, and release helpers.
+9. `demo` owns demo-data installation, sample business data generation, and demo showcase administration.
+10. `task` owns task, workspace, and team workflow behavior.
+11. `frappe` owns ERPNext-specific settings, snapshot storage, and connector sync orchestration.
+12. `tally` owns Tally-specific integration boundaries.
+13. `cli` owns operational commands, diagnostics, and release helpers.
 
 ## Mandatory Rules
 

@@ -135,6 +135,8 @@ function buildMergedStorefrontSettings(
   const payloadRecord = asRecord(payload) ?? {}
   const heroRecord = asRecord(payloadRecord.hero)
   const searchRecord = asRecord(payloadRecord.search)
+  const announcementDesignRecord = asRecord(payloadRecord.announcementDesign)
+  const visibilityRecord = asRecord(payloadRecord.visibility)
   const sectionsRecord = asRecord(payloadRecord.sections)
   const footerRecord = asRecord(payloadRecord.footer)
   const featuredRecord = asRecord(sectionsRecord?.featured)
@@ -142,10 +144,18 @@ function buildMergedStorefrontSettings(
   const newArrivalsRecord = asRecord(sectionsRecord?.newArrivals)
   const bestSellersRecord = asRecord(sectionsRecord?.bestSellers)
   const ctaRecord = asRecord(sectionsRecord?.cta)
+  const featuredCardDesignRecord = asRecord(featuredRecord?.cardDesign)
+  const categoriesCardDesignRecord = asRecord(categoriesRecord?.cardDesign)
 
   return storefrontSettingsSchema.parse({
     ...base,
     ...payloadRecord,
+    visibility: visibilityRecord
+      ? {
+          ...base.visibility,
+          ...visibilityRecord,
+        }
+      : base.visibility,
     hero: heroRecord
       ? {
           ...base.hero,
@@ -165,6 +175,12 @@ function buildMergedStorefrontSettings(
             : base.search.departments,
         }
       : base.search,
+    announcementDesign: announcementDesignRecord
+      ? {
+          ...base.announcementDesign,
+          ...announcementDesignRecord,
+        }
+      : base.announcementDesign,
     sections: sectionsRecord
       ? {
           ...base.sections,
@@ -173,6 +189,16 @@ function buildMergedStorefrontSettings(
                 featured: {
                   ...base.sections.featured,
                   ...featuredRecord,
+                  rowsToShow:
+                    typeof featuredRecord.rowsToShow === "number"
+                      ? featuredRecord.rowsToShow
+                      : base.sections.featured.rowsToShow,
+                  cardDesign: featuredCardDesignRecord
+                    ? {
+                        ...base.sections.featured.cardDesign,
+                        ...featuredCardDesignRecord,
+                      }
+                    : base.sections.featured.cardDesign,
                 },
               }
             : {}),
@@ -181,6 +207,16 @@ function buildMergedStorefrontSettings(
                 categories: {
                   ...base.sections.categories,
                   ...categoriesRecord,
+                  rowsToShow:
+                    typeof categoriesRecord.rowsToShow === "number"
+                      ? categoriesRecord.rowsToShow
+                      : base.sections.categories.rowsToShow,
+                  cardDesign: categoriesCardDesignRecord
+                    ? {
+                        ...base.sections.categories.cardDesign,
+                        ...categoriesCardDesignRecord,
+                      }
+                    : base.sections.categories.cardDesign,
                 },
               }
             : {}),

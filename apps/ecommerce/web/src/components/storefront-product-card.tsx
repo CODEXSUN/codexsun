@@ -54,6 +54,7 @@ export function StorefrontProductCard({
             alt={item.name}
             className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm font-medium text-foreground/60">

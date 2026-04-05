@@ -17,6 +17,7 @@ test("app suite registers framework plus standalone business and integration app
     "site",
     "billing",
     "ecommerce",
+    "demo",
     "task",
     "frappe",
     "tally",

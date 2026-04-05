@@ -475,7 +475,7 @@ export function FrameworkMediaBrowser({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-h-0">
       <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
         <CardHeader className={compact ? "pb-4" : undefined}>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -680,8 +680,13 @@ export function FrameworkMediaBrowser({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
-        <CardContent className="p-5">
+      <Card className="overflow-hidden rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+        <CardContent
+          className={cn(
+            "p-5 min-h-0 overflow-y-auto",
+            compact ? "max-h-[min(46vh,28rem)]" : "max-h-[min(56vh,40rem)]"
+          )}
+        >
           {isLoading ? (
             <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
               <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
@@ -722,7 +727,7 @@ export function FrameworkMediaBrowser({
           }
         }}
       >
-        <DialogContent className="w-[min(96vw,40rem)] max-w-[40rem]">
+        <DialogContent className="w-[min(96vw,40rem)] max-w-[40rem] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Media</DialogTitle>
             <DialogDescription>

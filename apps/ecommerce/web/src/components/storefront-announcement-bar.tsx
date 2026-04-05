@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Sparkles } from "lucide-react"
+import { ShieldCheck, Sparkles, Truck } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import type { StorefrontLandingResponse } from "@ecommerce/shared"
@@ -30,39 +30,45 @@ export function StorefrontAnnouncementBar({
   landing,
   cartSubtotalAmount,
 }: StorefrontAnnouncementBarProps) {
+  const settings = landing?.settings
+  const visibility = settings?.visibility
   const items = useMemo<AnnouncementItem[]>(() => {
-    const settings = landing?.settings
     const threshold = Math.max(settings?.freeShippingThreshold ?? 3999, 0)
     const remainingAmount = Math.max(threshold - cartSubtotalAmount, 0)
     const supportParts = [settings?.supportEmail?.trim(), settings?.supportPhone?.trim()].filter(
       (value): value is string => Boolean(value)
     )
+    const nextItems: AnnouncementItem[] = []
 
-    return [
-      {
+    if (visibility?.announcement && settings?.announcement?.trim()) {
+      nextItems.push({
         id: "announcement",
-        text:
-          settings?.announcement?.trim() || "Storefront announcement will appear here.",
+        text: settings.announcement.trim(),
         href: storefrontPaths.catalog(),
-      },
-      {
+      })
+    }
+
+    if (visibility?.support) {
+      nextItems.push({
         id: "shipping",
         text:
           remainingAmount > 0
             ? `Add ${formatCurrency(remainingAmount)} more to unlock free shipping on prepaid orders above ${formatCurrency(threshold)}.`
             : "Free shipping unlocked for your current cart.",
         href: remainingAmount > 0 ? storefrontPaths.catalog() : storefrontPaths.cart(),
-      },
-      {
+      })
+      nextItems.push({
         id: "support",
         text:
           supportParts.length > 0
             ? `Need help? Reach support at ${supportParts.join(" or ")}.`
             : "Need help? Track your order and reach the storefront support team.",
         href: storefrontPaths.trackOrder(),
-      },
-    ]
-  }, [cartSubtotalAmount, landing])
+      })
+    }
+
+    return nextItems
+  }, [cartSubtotalAmount, settings, visibility?.announcement, visibility?.support])
 
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -93,6 +99,19 @@ export function StorefrontAnnouncementBar({
   }, [items.length, rotateToNext])
 
   const activeItem = items[activeIndex] ?? items[0]
+  const design = settings?.announcementDesign
+  const Icon =
+    design?.iconKey === "truck"
+      ? Truck
+      : design?.iconKey === "shield"
+        ? ShieldCheck
+        : Sparkles
+  const roundedClass =
+    design?.cornerStyle === "rounded"
+      ? "rounded-[1.4rem]"
+      : design?.cornerStyle === "soft"
+        ? "rounded-[1rem]"
+        : "rounded-[999px]"
 
   if (!activeItem) {
     return null
@@ -108,14 +127,24 @@ export function StorefrontAnnouncementBar({
         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
         className="flex min-w-0 items-center gap-3"
       >
-        <Sparkles className="size-4 shrink-0 text-amber-300" />
+        <Icon
+          className="size-4 shrink-0"
+          style={{ color: design?.iconColor ?? "#f6c453" }}
+        />
         <span className="truncate">{activeItem.text}</span>
       </motion.span>
     </AnimatePresence>
   )
 
   return (
-    <section className="rounded-[999px] border border-[#d6c8b6] bg-[#221812] px-5 py-3 text-sm text-stone-100 shadow-lg">
+    <section
+      className={`${roundedClass} border px-5 py-3 text-sm shadow-lg`}
+      style={{
+        borderColor: "rgba(214, 200, 182, 0.8)",
+        backgroundColor: design?.backgroundColor ?? "#221812",
+        color: design?.textColor ?? "#f5efe8",
+      }}
+    >
       {activeItem.href ? (
         <Link
           to={normalizeStorefrontHref(activeItem.href) ?? activeItem.href}

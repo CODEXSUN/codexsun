@@ -46,3 +46,16 @@
 - extended the shared framework media picker so existing image fields can now use uploads, library assets, or direct external URLs from one flow
 - improved shared core common-module image fields so list rows render a thumbnail preview and compact multi-line URL text instead of only the raw media path
 - split storefront header concerns into dedicated top-menu and category-menu components, then added a centered sticky scrolled text-only category state with compact motion styling
+
+### `#27` 2026-04-05
+
+- added the app-owned `demo` application with protected internal routes, module-specific demo-data installers, live install progress, and summary/count pages for sample operational data
+- introduced TanStack Query as the shared server-state layer and migrated storefront shell data, runtime app settings, branding, and demo installer polling onto it
+- added Zustand only for lightweight shell/session and storefront coordination state without forcing a global reducer model across the repo
+- improved storefront first paint with skeletons, eager hero media, lazy catalog/category/product images, and cleaner loading order on slower networks
+- added a shared two-line toast system with runtime-configurable placement/tone, design-system docs coverage, and integration into admin save/install flows
+- integrated a shared Tiptap editor with icon toolbar support and design-system docs coverage in the `ui` app
+- moved storefront search, featured-card, and category-card surfaces into reusable shared `ui` blocks and shared UX components used by both docs and live ecommerce admin/front-end pages
+- extended ecommerce storefront settings so featured and category sections have saved row counts, rows to show, card designers, toggles, and synced frontend rendering after save
+- fixed storefront sync gaps so admin saves refresh the public storefront shell consistently, including announcement styling and featured/category layout updates
+- tightened media-browser overflow so upload/filter controls remain visible while large media grids and edit dialogs scroll cleanly on smaller screens

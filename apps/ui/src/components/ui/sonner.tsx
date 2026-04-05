@@ -2,7 +2,11 @@ import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-const Toaster = ({ ...props }: ToasterProps) => {
+type AppToasterProps = ToasterProps & {
+  tone?: "soft" | "solid"
+}
+
+const Toaster = ({ tone = "soft", ...props }: AppToasterProps) => {
   const { theme = "system" } = useTheme()
 
   return (
@@ -28,9 +32,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
+          "--normal-bg": tone === "solid" ? "hsl(var(--foreground))" : "var(--popover)",
+          "--normal-text":
+            tone === "solid" ? "hsl(var(--background))" : "var(--popover-foreground)",
+          "--normal-border": tone === "solid" ? "hsl(var(--foreground) / 0.2)" : "var(--border)",
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }

@@ -270,20 +270,33 @@ export function DesignSystemDefaultsPage() {
 
 export function DesignSystemBlocksPage({
   categoryId,
+  blockId,
 }: {
   categoryId?: (typeof registryBlockCategories)[number]["id"]
+  blockId?: string
 } = {}) {
-  return <DesignSystemBlocksContent categoryId={categoryId} />
+  return <DesignSystemBlocksContent categoryId={categoryId} blockId={blockId} />
 }
 
 export function DesignSystemBlocksContent({
   categoryId,
+  blockId,
 }: {
   categoryId?: (typeof registryBlockCategories)[number]["id"]
+  blockId?: string
 }) {
   const visibleCategories = categoryId
     ? registryBlocksByCategory.filter((category) => category.id === categoryId)
     : registryBlocksByCategory
+  const isSingleBlockView = Boolean(blockId)
+  const filteredCategories = blockId
+    ? visibleCategories
+        .map((category) => ({
+          ...category,
+          items: category.items.filter((block) => block.id === blockId),
+        }))
+        .filter((category) => category.items.length > 0)
+    : visibleCategories
   const totalBlockCount = registryBlocksByCategory.reduce(
     (count, category) => count + category.items.length,
     0
@@ -294,78 +307,81 @@ export function DesignSystemBlocksContent({
       <div id="form-blocks" className="h-0 scroll-mt-24" />
       <Card className="overflow-hidden border-border/70 py-0 shadow-sm">
         <CardContent className="space-y-4 px-5 py-6 md:px-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Blocks
-              </p>
-              <CardTitle>Reusable application blocks</CardTitle>
-              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                These blocks combine multiple governed components into repeatable
-                application patterns so new pages do not have to start from isolated
-                primitives.
-              </p>
+          {isSingleBlockView ? null : (
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  Blocks
+                </p>
+                <CardTitle>Reusable application blocks</CardTitle>
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                  These blocks combine multiple governed components into repeatable
+                  application patterns so new pages do not have to start from isolated
+                  primitives.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">
+                  {totalBlockCount} block{totalBlockCount === 1 ? "" : "s"}
+                </Badge>
+                <Badge variant="outline">
+                  {registryBlockCategories.length} categories
+                </Badge>
+                <Link
+                  to={workspaceLinks.settings}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  Review defaults first
+                </Link>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">
-                {totalBlockCount} block{totalBlockCount === 1 ? "" : "s"}
-              </Badge>
-              <Badge variant="outline">
-                {registryBlockCategories.length} categories
-              </Badge>
-              <Link
-                to={workspaceLinks.settings}
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                Review defaults first
-              </Link>
-            </div>
-          </div>
+          )}
           <div className="space-y-6">
-            {visibleCategories.map((category) => (
+            {filteredCategories.map((category) => (
               <div key={category.id} className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-lg font-semibold text-foreground">
-                      {category.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {category.description}
-                    </p>
+                {isSingleBlockView ? null : (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-lg font-semibold text-foreground">
+                        {category.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {category.description}
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {category.items.length} block
+                      {category.items.length === 1 ? "" : "s"}
+                    </Badge>
                   </div>
-                  <Badge variant="outline">
-                    {category.items.length} block
-                    {category.items.length === 1 ? "" : "s"}
-                  </Badge>
-                </div>
+                )}
                 <div className="grid gap-4">
                   {category.items.map((block) => (
                     <Card
                       key={block.id}
                       className="overflow-hidden border-border/70 py-0 shadow-sm"
                     >
-                      <CardContent className="grid gap-5 px-5 py-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+                      <CardContent className="space-y-5 px-5 py-5">
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-3">
                               <p className="text-lg font-semibold text-foreground">
                                 {block.name}
                               </p>
-                              <div className="flex items-center gap-1">
-                                <CopyCodeButton code={block.code} iconOnly />
-                                <ViewCodeDialog
-                                  code={block.code}
-                                  title={block.name}
-                                  description={block.summary}
-                                />
-                              </div>
+                              {isSingleBlockView ? null : (
+                                <Badge variant="outline">{category.name}</Badge>
+                              )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {block.summary}
-                            </p>
-                            <p className="text-sm leading-6 text-muted-foreground">
-                              {block.description}
-                            </p>
+                            {isSingleBlockView ? null : (
+                              <>
+                                <p className="text-sm text-muted-foreground">
+                                  {block.summary}
+                                </p>
+                                <p className="text-sm leading-6 text-muted-foreground">
+                                  {block.description}
+                                </p>
+                              </>
+                            )}
                           </div>
                           <div className="space-y-2">
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -380,8 +396,28 @@ export function DesignSystemBlocksContent({
                             </div>
                           </div>
                         </div>
-                        <div className="theme-preview-surface rounded-[1.5rem] border border-border/70 p-4">
+                        <div className="theme-preview-surface overflow-hidden rounded-[1.5rem] border border-border/70 p-4">
                           {block.preview}
+                        </div>
+                        <div className="rounded-[1.25rem] border border-border/70 bg-background/70 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                Code
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Open the dedicated source for this block or copy it directly into a feature.
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CopyCodeButton code={block.code} />
+                              <ViewCodeDialog
+                                code={block.code}
+                                title={block.name}
+                                description={block.summary}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

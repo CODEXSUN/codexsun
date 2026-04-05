@@ -28,10 +28,11 @@ Current app roots under `apps/`:
 6. `ui`
 7. `billing`
 8. `ecommerce`
-9. `task`
-10. `frappe`
-11. `tally`
-12. `cli`
+9. `demo`
+10. `task`
+11. `frappe`
+12. `tally`
+13. `cli`
 
 ## Standard App Shape
 
@@ -151,6 +152,10 @@ Ecommerce owns:
 
 `apps/task` owns workspaces, tasks, and team workflow flows.
 
+### Demo
+
+`apps/demo` owns demo-data installation, sample business data generation, demo workspace summaries, and preview administration for sales/demo environments.
+
 ### Frappe
 
 `apps/frappe` owns ERPNext-specific settings, snapshot storage, connector contracts, and sync orchestration.
@@ -211,9 +216,10 @@ Current registered suite surfaces:
 7. billing
 8. ecommerce
 9. task
-10. frappe
-11. tally
-12. cli
+10. demo
+11. frappe
+12. tally
+13. cli
 
 Every manifest carries workspace metadata so framework and CxApp can inspect app roots without filesystem guessing.
 
@@ -261,6 +267,7 @@ Active coverage today includes:
 7. auth lifecycle flows such as seeded login, OTP registration, password reset, recovery, and session revocation
 8. Frappe connector flows such as settings save, item sync, purchase receipt sync, and route registration
 9. ecommerce storefront flows such as catalog reads from `core`, customer registration, checkout, payment verification, portal orders, order tracking, and role-based auth landing
+10. demo-data install routes, installers, and workspace summary flows
 
 ## Current State
 
@@ -282,7 +289,10 @@ Implemented now:
 14. app-owned `frappe` connector settings, todo snapshots, item snapshots, purchase receipt snapshots, internal routes, and desk workspace sections
 15. one `cxapp` login session that routes admins to `/admin/dashboard`, desk users to `/dashboard`, and customers to `/profile`
 16. app-owned `ecommerce` storefront settings, dedicated home-slider designer, storefront admin editing, catalog reads from `core` products and shared product masters, customer registration linked to `core` contacts, customer accounts linked to `cxapp` auth users, orders, checkout, Razorpay-ready payments, public tracking, and customer portal pages
-17. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, and Frappe connector behavior
+17. app-owned `demo` install profiles, module-specific demo data installers, progress tracking, and demo workspace counts for customer, supplier, product, category, and order data seeding
+18. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
+19. shared storefront editor and docs surfaces in `apps/ui` such as reusable search, featured-card, category-card, rich-text editor, and toast blocks that are consumed by both the storefront and design-system docs
+20. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, demo installer flows, and Frappe connector behavior
 
 Still future work:
 

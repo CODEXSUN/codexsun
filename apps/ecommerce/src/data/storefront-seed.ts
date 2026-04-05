@@ -2,6 +2,18 @@ import { storefrontSettingsSchema } from "../../shared/index.js"
 
 export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
   id: "storefront-settings:default",
+  visibility: {
+    announcement: true,
+    hero: true,
+    search: true,
+    support: true,
+    featured: true,
+    categories: true,
+    newArrivals: true,
+    bestSellers: true,
+    cta: true,
+    trust: true,
+  },
   hero: {
     eyebrow: "Factory direct storefront",
     title: "Premium-knit essentials shaped by a live core catalog.",
@@ -114,8 +126,19 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
     ],
   },
   search: {
+    catalogIntro: {
+      eyebrow: "Catalog",
+      title: "Browse the storefront",
+      summary:
+        "Shared core products are merchandised here with ecommerce-owned discovery, filter, cart, and checkout behavior.",
+    },
     placeholder: "Search for products, brands, and categories",
     departmentLabel: "Department",
+    categoryFilterLabel: "All Category",
+    departmentFilterLabel: "All departments",
+    sortFilterLabel: "Featured",
+    resetLabel: "Reset",
+    resultsLabel: "products available",
     departments: [
       { value: "all", label: "All" },
       { value: "women", label: "Women" },
@@ -123,6 +146,13 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
       { value: "kids", label: "Kids" },
       { value: "accessories", label: "Accessories" },
     ],
+  },
+  announcementDesign: {
+    backgroundColor: "#221812",
+    textColor: "#f5efe8",
+    iconColor: "#f6c453",
+    iconKey: "sparkles",
+    cornerStyle: "pill",
   },
   sections: {
     featured: {
@@ -132,6 +162,30 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
         "Feature-section products stay tied to the live catalog while the storefront keeps a more editorial, campaign-led tone.",
       ctaLabel: "View catalog",
       ctaHref: "/shop/catalog",
+      cardsPerRow: 3,
+      rowsToShow: 1,
+      cardDesign: {
+        titleColor: "#1f1813",
+        metaColor: "#8b715d",
+        descriptionColor: "#7f695a",
+        priceColor: "#1f1813",
+        compareAtColor: "#9a8170",
+        badgeBackgroundColor: "#111111",
+        badgeTextColor: "#ffffff",
+        secondaryBadgeText: "Sale",
+        secondaryBadgeBackgroundColor: "#1f1813",
+        secondaryBadgeTextColor: "#ffffff",
+        primaryButtonLabel: "Buy Now",
+        showPrimaryBadge: true,
+        showSecondaryBadge: true,
+        showBrandMeta: true,
+        showCategoryMeta: true,
+        showStockMeta: true,
+        showDescription: true,
+        showCompareAtPrice: true,
+        showPrimaryAction: true,
+        showSecondaryActions: true,
+      },
     },
     categories: {
       eyebrow: "Shop by category",
@@ -140,6 +194,19 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
         "The top category rail and the home category cards both derive from shared core product categories flagged for storefront visibility.",
       ctaLabel: "Browse all categories",
       ctaHref: "/shop/catalog",
+      cardsPerRow: 3,
+      rowsToShow: 1,
+      cardDesign: {
+        titleColor: "#241913",
+        metaColor: "#8a6b55",
+        descriptionColor: "#6a5241",
+        buttonLabel: "Explore",
+        buttonBackgroundColor: "#ffffff",
+        buttonTextColor: "#241913",
+        showProductCount: true,
+        showDescription: true,
+        showAction: true,
+      },
     },
     newArrivals: {
       eyebrow: "New arrivals",
@@ -148,6 +215,7 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
         "New-arrival flags on shared core products drive the launch lane automatically.",
       ctaLabel: null,
       ctaHref: null,
+      cardsPerRow: 3,
     },
     bestSellers: {
       eyebrow: "Best sellers",
@@ -156,6 +224,7 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
         "Best-seller product flags surface here without duplicating catalog ownership inside ecommerce.",
       ctaLabel: null,
       ctaHref: null,
+      cardsPerRow: 3,
     },
     cta: {
       eyebrow: "Storefront ready",

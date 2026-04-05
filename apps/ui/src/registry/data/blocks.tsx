@@ -6,8 +6,22 @@ import LoginPage02 from "@/registry/blocks/auth/login-page-02"
 import LoginPage02Code from "@/registry/blocks/auth/login-page-02.tsx?raw"
 import SignInPanel01 from "@/registry/blocks/auth/sign-in-panel-01"
 import SignInPanel01Code from "@/registry/blocks/auth/sign-in-panel-01.tsx?raw"
+import FeaturedCard1 from "@/registry/blocks/commerce/featured-card-1"
+import FeaturedCard1Code from "@/registry/blocks/commerce/featured-card-1.tsx?raw"
+import FeaturedCard3 from "@/registry/blocks/commerce/featured-card-3"
+import FeaturedCard3Code from "@/registry/blocks/commerce/featured-card-3.tsx?raw"
+import FeaturedCard4 from "@/registry/blocks/commerce/featured-card-4"
+import FeaturedCard4Code from "@/registry/blocks/commerce/featured-card-4.tsx?raw"
+import FeaturedCard5 from "@/registry/blocks/commerce/featured-card-5"
+import FeaturedCard5Code from "@/registry/blocks/commerce/featured-card-5.tsx?raw"
+import FeaturedCard6 from "@/registry/blocks/commerce/featured-card-6"
+import FeaturedCard6Code from "@/registry/blocks/commerce/featured-card-6.tsx?raw"
+import ToastStack01 from "@/registry/blocks/feedback/toast-stack-01"
+import ToastStack01Code from "@/registry/blocks/feedback/toast-stack-01.tsx?raw"
 import FilterToolbar01 from "@/registry/blocks/data/filter-toolbar-01"
 import FilterToolbar01Code from "@/registry/blocks/data/filter-toolbar-01.tsx?raw"
+import StorefrontSearch01 from "@/registry/blocks/data/storefront-search-01"
+import StorefrontSearch01Code from "@/registry/blocks/data/storefront-search-01.tsx?raw"
 import ProfileSettingsForm01 from "@/registry/blocks/forms/profile-settings-form-01"
 import ProfileSettingsForm01Code from "@/registry/blocks/forms/profile-settings-form-01.tsx?raw"
 import SupportRequestForm01 from "@/registry/blocks/forms/support-request-form-01"
@@ -20,6 +34,11 @@ export const registryBlockCategories = [
     description: "Sign-in, access, and account entry flows.",
   },
   {
+    id: "feedback",
+    name: "Feedback",
+    description: "Toast stacks, alerts, and async workflow messaging patterns.",
+  },
+  {
     id: "forms",
     name: "Forms",
     description: "Multi-field data capture and editable settings surfaces.",
@@ -28,6 +47,11 @@ export const registryBlockCategories = [
     id: "data",
     name: "Data",
     description: "List filters, table helpers, and result control patterns.",
+  },
+  {
+    id: "commerce",
+    name: "Commerce",
+    description: "Storefront discovery, merchandising, and shopping flow surfaces.",
   },
 ] as const
 
@@ -89,6 +113,18 @@ export const registryBlocks: RegistryBlock[] = [
     preview: <SignInPanel01 />,
   },
   {
+    id: "toast-stack-01",
+    name: "Record Result Toasts",
+    summary:
+      "Two-line application toasts for save, warning, and failure outcomes with clear record naming.",
+    description:
+      "Use this when the app needs colorful record-result messaging with a concise action line and an exact record detail line.",
+    category: "feedback",
+    componentIds: ["alert", "badge", "button", "spinner"],
+    code: ToastStack01Code,
+    preview: <ToastStack01 />,
+  },
+  {
     id: "support-request-form-01",
     name: "Support Request Form",
     summary:
@@ -123,6 +159,78 @@ export const registryBlocks: RegistryBlock[] = [
     componentIds: ["badge", "button", "input", "select"],
     code: FilterToolbar01Code,
     preview: <FilterToolbar01 />,
+  },
+  {
+    id: "storefront-search-01",
+    name: "Storefront Search",
+    summary:
+      "Commerce search surface with category selector, search action, filter row, and discovery chips.",
+    description:
+      "Use this for storefront and catalog discovery flows where search needs to feel editorial and product-led.",
+    category: "commerce",
+    componentIds: ["button", "dropdown-menu", "input"],
+    code: StorefrontSearch01Code,
+    preview: <StorefrontSearch01 />,
+  },
+  {
+    id: "featured-card-1",
+    name: "FeaturedCard-1",
+    summary:
+      "Single featured product card for focused merchandising and responsive card studies.",
+    description:
+      "Use this when the storefront needs one hero product card preview that can be tuned independently before scaling to a row.",
+    category: "commerce",
+    componentIds: ["badge", "button", "card"],
+    code: FeaturedCard1Code,
+    preview: <FeaturedCard1 />,
+  },
+  {
+    id: "featured-card-3",
+    name: "FeaturedCard-3",
+    summary:
+      "Three-up featured card row for spacious storefront merchandising previews.",
+    description:
+      "Use this when the storefront needs a roomy featured lane with larger product storytelling.",
+    category: "commerce",
+    componentIds: ["badge", "button", "card"],
+    code: FeaturedCard3Code,
+    preview: <FeaturedCard3 />,
+  },
+  {
+    id: "featured-card-4",
+    name: "FeaturedCard-4",
+    summary:
+      "Four-up featured card row balancing editorial detail and denser product coverage.",
+    description:
+      "Use this variant when the storefront needs one more card per row without losing readability.",
+    category: "commerce",
+    componentIds: ["badge", "button", "card"],
+    code: FeaturedCard4Code,
+    preview: <FeaturedCard4 />,
+  },
+  {
+    id: "featured-card-5",
+    name: "FeaturedCard-5",
+    summary:
+      "Five-up featured card row for compact discovery lanes and promotional rails.",
+    description:
+      "Use this when the storefront needs tighter product density while keeping the same card language.",
+    category: "commerce",
+    componentIds: ["badge", "button", "card"],
+    code: FeaturedCard5Code,
+    preview: <FeaturedCard5 />,
+  },
+  {
+    id: "featured-card-6",
+    name: "FeaturedCard-6",
+    summary:
+      "Six-up featured card row for maximum single-row coverage in design-time previews.",
+    description:
+      "Use this for dense featured strip exploration and tighter product-led layout studies.",
+    category: "commerce",
+    componentIds: ["badge", "button", "card"],
+    code: FeaturedCard6Code,
+    preview: <FeaturedCard6 />,
   },
 ]
 

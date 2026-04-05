@@ -216,6 +216,7 @@ export function StorefrontTopMenu({
   const authenticatedHomePath = resolveAuthenticatedHomePath(auth.user)
   const { data } = useStorefrontShellData()
   const settings = data?.settings
+  const showSearch = Boolean(settings?.visibility.search)
   const cart = useStorefrontCart()
   const cartCount = cart.itemCount
   const isCartActive = location.pathname === storefrontPaths.cart()
@@ -333,14 +334,16 @@ export function StorefrontTopMenu({
             </div>
           </Link>
 
-          <div className="hidden min-w-0 xl:block xl:justify-self-center xl:w-full">
-            <StorefrontSearchBar
-              className="mx-auto w-full max-w-[820px]"
-              placeholder={settings?.search.placeholder}
-              departmentLabel={settings?.search.departmentLabel}
-              departments={settings?.search.departments}
-            />
-          </div>
+          {showSearch ? (
+            <div className="hidden min-w-0 xl:block xl:justify-self-center xl:w-full">
+              <StorefrontSearchBar
+                className="mx-auto w-full max-w-[820px]"
+                placeholder={settings?.search.placeholder}
+                departmentLabel={settings?.search.departmentLabel}
+                departments={settings?.search.departments}
+              />
+            </div>
+          ) : null}
 
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:gap-3 xl:justify-self-end xl:justify-end xl:flex-nowrap">
             <div className="flex items-center gap-2 rounded-full border border-[#ece3d9] bg-white/62 px-1.5 py-1 shadow-[0_16px_28px_-26px_rgba(58,34,18,0.35)] sm:gap-3">
@@ -523,14 +526,16 @@ export function StorefrontTopMenu({
           </div>
         </div>
 
-        <div className="min-w-0 xl:hidden">
-          <StorefrontSearchBar
-            className="w-full"
-            placeholder={settings?.search.placeholder}
-            departmentLabel={settings?.search.departmentLabel}
-            departments={settings?.search.departments}
-          />
-        </div>
+        {showSearch ? (
+          <div className="min-w-0 xl:hidden">
+            <StorefrontSearchBar
+              className="w-full"
+              placeholder={settings?.search.placeholder}
+              departmentLabel={settings?.search.departmentLabel}
+              departments={settings?.search.departments}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   )

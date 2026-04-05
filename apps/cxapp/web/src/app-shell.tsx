@@ -14,6 +14,7 @@ import type { AuthUser } from "@cxapp/shared"
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
 import { RuntimeBrandProvider } from "@/features/branding/runtime-brand-provider"
 import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider"
+import { Toaster } from "@/components/ui/sonner"
 import type { DashboardUser } from "@/features/dashboard/types"
 import { StorefrontCartProvider } from "@ecommerce/web/src/cart/storefront-cart"
 import { storefrontPaths } from "@ecommerce/web/src/lib/storefront-routes"
@@ -31,7 +32,12 @@ import {
   isShopFrontendSurface,
 } from "./config/frontend-surface"
 import { DeskProvider } from "./desk/desk-provider"
-import { RuntimeAppSettingsProvider } from "./features/runtime-app-settings/runtime-app-settings-provider"
+import {
+  RuntimeAppSettingsProvider,
+  useRuntimeAppSettings,
+} from "./features/runtime-app-settings/runtime-app-settings-provider"
+import { AppQueryProvider } from "./query/query-provider"
+import { useAppSessionStore } from "./state/app-session-store"
 
 function lazyNamed<TModule extends Record<string, unknown>, TKey extends keyof TModule>(
   load: () => Promise<TModule>,
@@ -243,10 +249,11 @@ function ProtectedRoute({
 }) {
   const location = useLocation()
   const auth = useAuth()
+  const homePath = useAppSessionStore((state) => state.homePath)
 
   if (auth.isLoading) {
     return (
-      <GlobalLoader size="md" label="M" />
+      <GlobalLoader size="md" />
     )
   }
 
@@ -263,12 +270,12 @@ function ProtectedRoute({
     const isAllowed = allow ? allow(auth.user) : isDeskSurfaceUser(auth.user)
 
     if (!isAllowed) {
-      return <Navigate to={resolveAuthenticatedHomePath(auth.user)} replace />
+      return <Navigate to={homePath || resolveAuthenticatedHomePath(auth.user)} replace />
     }
   }
 
   if (!auth.user) {
-    return <Navigate to={resolveAuthenticatedHomePath(auth.user)} replace />
+    return <Navigate to={homePath || resolveAuthenticatedHomePath(auth.user)} replace />
   }
 
   return children
@@ -298,7 +305,8 @@ function AuthenticatedAppShell() {
                 void auth.logout()
               }}
             >
-              <Suspense fallback={<GlobalLoader size="md" label="M" />}>
+              <AppToastLayer />
+              <Suspense fallback={<GlobalLoader size="md" />}>
                 <Routes>
           <Route
             path="/"
@@ -1112,11 +1120,25 @@ function AuthenticatedAppShell() {
   )
 }
 
+function AppToastLayer() {
+  const { settings } = useRuntimeAppSettings()
+
+  return (
+    <Toaster
+      position={settings?.uiFeedback.toast.position ?? "top-right"}
+      tone={settings?.uiFeedback.toast.tone ?? "soft"}
+      closeButton
+    />
+  )
+}
+
 function AppShell() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AuthenticatedAppShell />
+        <AppQueryProvider>
+          <AuthenticatedAppShell />
+        </AppQueryProvider>
       </AuthProvider>
     </BrowserRouter>
   )

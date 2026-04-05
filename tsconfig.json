@@ -28,6 +28,7 @@
       "@core/*": ["./apps/core/*"],
       "@api/*": ["./apps/api/*"],
       "@billing/*": ["./apps/billing/*"],
+      "@demo/*": ["./apps/demo/*"],
       "@ecommerce/*": ["./apps/ecommerce/*"],
       "@task/*": ["./apps/task/*"],
       "@frappe/*": ["./apps/frappe/*"],

@@ -8,6 +8,19 @@
 
 ## v-0.0.1
 
+### [#27] 2026-04-05 - Demo app, shared state layer, storefront designers, and shared UI blocks
+
+- added the app-owned `demo` application with protected internal API routes, module-scoped demo-data installers, transactional install jobs, progress reporting, and demo summary/count workspace pages
+- introduced TanStack Query as the shared server-state layer, then migrated runtime app settings, runtime brand data, storefront shell data, and demo installer polling to query-backed refresh and invalidation
+- added lightweight Zustand stores only for session and storefront shell coordination, avoiding broader client-state churn while improving initial shell readiness
+- improved storefront first paint and slow-network behavior with skeletons, more deliberate loading order, eager hero media, and lazy catalog/category/product image handling
+- added a shared two-line toast system with colorful result tones, runtime placement and tone settings, design-system docs coverage, and integration into the main admin save/install flows
+- integrated a shared Tiptap editor with icon toolbar support and docs coverage inside the shared UI app
+- extracted storefront search, featured-card, and category-card surfaces into reusable shared `ui` blocks and UX components so ecommerce admin previews, docs, and live storefront pages render from the same shared visual surfaces
+- extended ecommerce storefront settings with saved featured and category layout controls, rows-to-show controls, single-card designers, color/toggle options, and frontend sync after save
+- fixed storefront sync gaps by making admin saves refresh the public storefront shell and by aligning announcement, featured, and category rendering with the saved backend settings
+- tightened framework media browser overflow behavior so forms remain visible while large media grids and edit dialogs scroll cleanly on constrained screens
+
 ### [#26] 2026-04-05 - Ecommerce storefront tone, admin settings, and mobile hero polish
 
 - added a frontend target switch so the home surface can resolve to `site`, `shop`, or `app`, then normalized the active suite route tone around `/admin/dashboard`, `/dashboard`, and `/profile`

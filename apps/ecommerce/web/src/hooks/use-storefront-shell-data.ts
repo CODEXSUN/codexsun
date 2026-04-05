@@ -1,92 +1,62 @@
-import { useEffect, useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 
 import type { StorefrontLandingResponse } from "@ecommerce/shared"
+import { queryKeys } from "@cxapp/web/src/query/query-keys"
+import { useStorefrontShellStore } from "../state/storefront-shell-store"
 
 import { storefrontApi } from "../api/storefront-api"
 
-let cachedLanding: StorefrontLandingResponse | null = null
-let inflightLanding: Promise<StorefrontLandingResponse> | null = null
-
-async function loadStorefrontLanding() {
-  if (cachedLanding) {
-    return cachedLanding
-  }
-
-  if (!inflightLanding) {
-    inflightLanding = storefrontApi
-      .getHome()
-      .then((payload) => {
-        cachedLanding = payload
-        inflightLanding = null
-        return payload
-      })
-      .catch((error) => {
-        inflightLanding = null
-        throw error
-      })
-  }
-
-  return inflightLanding
-}
-
 export function invalidateStorefrontShellData() {
-  cachedLanding = null
-  inflightLanding = null
+  window.dispatchEvent(new CustomEvent("storefront-shell-invalidated"))
 }
 
 export function useStorefrontShellData() {
-  const [data, setData] = useState<StorefrontLandingResponse | null>(cachedLanding)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(!cachedLanding)
+  const queryClient = useQueryClient()
+  const cachedLanding = useStorefrontShellStore((state) => state.landing)
+  const setLanding = useStorefrontShellStore((state) => state.setLanding)
+  const query = useQuery({
+    queryKey: queryKeys.storefrontLanding,
+    queryFn: () => storefrontApi.getHome(),
+    initialData: cachedLanding ?? undefined,
+  })
 
   useEffect(() => {
-    let cancelled = false
-
-    if (cachedLanding) {
-      setData(cachedLanding)
-      setIsLoading(false)
-      return
+    if (query.data) {
+      setLanding(query.data)
     }
+  }, [query.data, setLanding])
 
-    setIsLoading(true)
-
-    void loadStorefrontLanding()
-      .then((payload) => {
-        if (!cancelled) {
-          setData(payload)
-          setError(null)
-        }
-      })
-      .catch((loadError) => {
-        if (!cancelled) {
-          setError(
-            loadError instanceof Error ? loadError.message : "Failed to load storefront."
-          )
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  useQueryInvalidationBridge(() => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.storefrontLanding })
+  })
 
   return {
-    data,
-    error,
-    isLoading,
+    data: query.data ?? null,
+    error: query.error instanceof Error ? query.error.message : null,
+    isLoading: query.isLoading,
     refresh: async () => {
-      invalidateStorefrontShellData()
-      setIsLoading(true)
-      const payload = await loadStorefrontLanding()
-      setData(payload)
-      setError(null)
-      setIsLoading(false)
-      return payload
+      await queryClient.invalidateQueries({ queryKey: queryKeys.storefrontLanding })
+      const payload = await queryClient.fetchQuery({
+        queryKey: queryKeys.storefrontLanding,
+        queryFn: () => storefrontApi.getHome(),
+      })
+
+      return payload as StorefrontLandingResponse
     },
   }
+}
+
+function useQueryInvalidationBridge(onInvalidate: () => void) {
+  useEffect(() => {
+    const handleInvalidate = () => {
+      onInvalidate()
+    }
+
+    window.addEventListener("storefront-shell-invalidated", handleInvalidate)
+
+    return () => {
+      window.removeEventListener("storefront-shell-invalidated", handleInvalidate)
+    }
+  }, [onInvalidate])
 }

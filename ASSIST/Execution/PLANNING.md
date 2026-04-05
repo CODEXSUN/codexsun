@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#26`
+`#27`
 
 ### Goal
 
-Finish the ecommerce storefront shell so public shop, admin storefront settings, reused core masters, and mobile hero behavior all feel like one coherent commerce surface inside the current app boundaries.
+Add the demo-data app, introduce shared query/state infrastructure, and finish the storefront admin/design-system sync so ecommerce editing and live frontend rendering stay aligned without violating app ownership boundaries.
 
 ### Scope
 
@@ -22,62 +22,67 @@ Finish the ecommerce storefront shell so public shop, admin storefront settings,
 - `apps/cxapp/web/src/app-shell.tsx`
 - `apps/cxapp/web/src/desk`
 - `apps/cxapp/web/src/pages`
+- `apps/demo`
 - `apps/ecommerce/shared`
 - `apps/ecommerce/src/services`
 - `apps/ecommerce/web/src/components`
 - `apps/ecommerce/web/src/features`
 - `apps/ecommerce/web/src/hooks`
+- `apps/ecommerce/web/src/state`
 - `apps/ecommerce/web/src/lib`
 - `apps/ecommerce/web/src/pages`
+- `apps/cxapp/web/src/query`
+- `apps/cxapp/web/src/state`
+- `apps/ui/src/components/ui`
+- `apps/ui/src/components/ux`
+- `apps/ui/src/registry/blocks`
+- `apps/ui/src/registry/variants/editor`
 - `tests/ecommerce`
+- `tests/demo`
+- `tests/api`
 - `tests/framework`
 
 ### Canonical Decisions
 
 - `ecommerce` owns storefront tone, content settings, public catalog presentation, and customer-commerce journeys.
-- `ecommerce` also owns the home-slider designer and its persisted hero theme settings; the slider should not depend on `core` or shared `ui` business config.
+- `ecommerce` also owns the home-slider designer and storefront section designers, while shared visual building blocks belong in `apps/ui`.
 - the home-slider designer should support multiple isolated slide themes while the public hero keeps the same visual structure and motion.
 - `core` remains the owner of shared products and shared product-related masters such as groups, categories, types, brands, colours, sizes, styles, units, HSN codes, and taxes.
 - reused `core` product and common-master screens may render inside the ecommerce workspace, but the route base must stay under `/dashboard/apps/ecommerce/*` so the sidebar stays on ecommerce.
 - public route tone should stay aligned across desktop and mobile, but mobile can use its own composition when desktop spacing does not scale cleanly.
 - storefront settings saves must remain backward-compatible with earlier stored payloads and partial updates.
+- `demo` owns demo-data installers and counts, but must create records through app-owned services and app-owned transactions rather than hidden direct table writes across the repo.
+- TanStack Query is the shared server-state layer; Zustand is only for lightweight browser-side coordination state.
 
 ### Execution Plan
 
-1. finish the storefront-facing admin and public route surfaces around the `site` / `shop` / `app` frontend switch and the `/admin/dashboard` + `/profile` route model
-2. move ecommerce admin navigation to app-owned sections while reusing `core` product and shared master screens under ecommerce-owned routes
-3. connect storefront settings editing to a real ecommerce-owned backend service and make partial saves safe against legacy stored payloads
-4. add a dedicated ecommerce-owned Home Slider designer and route so hero theme settings can be edited without overloading the general storefront page
-5. reshape the public storefront shell to the requested temp/reference tone with a richer top menu, search, category rail, hero slider, footer, and product cards
-6. add a dedicated mobile hero slider layout instead of forcing the desktop frame to collapse awkwardly
-7. evolve the home-slider designer from one global theme into a multi-slide list so each hero slot carries its own isolated theme payload
-8. remove extra workspace and page-hero chrome from the home-slider admin route so the editor stays lean
-9. push the storefront image frame toward a softer glass-style shell instead of a visible outline
-10. move the storefront top category rail fully to backend-owned category records, including a seeded `All Items` entry instead of a static frontend pill
-11. extend the shared framework media picker so uploads, library assets, and external URLs all work through one media-input path
-12. split storefront top-menu and category-nav concerns into dedicated components, then add a centered sticky scrolled text-only category state
-13. improve shared image-field rendering in core common-module lists so media paths show a real thumbnail plus compact URL text
-14. split the main client bundle so the storefront and desk surfaces do not stay in one oversized entry chunk
-15. record the storefront batch in work log, task tracking, planning, ownership notes, architecture current-state notes, and changelog
+1. add the app-owned `demo` module, routes, schemas, installers, summary counts, and per-module install actions for sample business data
+2. introduce TanStack Query provider and shared query keys, then migrate the most obvious server-state paths such as runtime settings, storefront shell, and demo polling
+3. add lightweight Zustand stores only where browser-side coordination is needed for session and storefront shell readiness
+4. improve storefront first paint and slow-network behavior with skeletons, better loading order, and lazy image handling
+5. add a shared toast layer with runtime-controlled placement/tone and wire it into the main admin save/install paths
+6. integrate shared Tiptap editor support and add docs coverage in the UI app
+7. move storefront search and commerce card/grid surfaces into reusable shared UI blocks and docs registry entries
+8. extend the storefront editors so featured and category sections have saved row counts, row counts to show, card designers, and live frontend sync
+9. fix storefront shell sync gaps so admin saves refresh the public storefront consistently
+10. tighten media-browser overflow so the form stays visible while asset grids and edit panels scroll in smaller spaces
+11. record the batch in work log, task tracking, planning, ownership notes, architecture current-state notes, and changelog
 
 ### Validation Plan
 
 - Run `npm.cmd run typecheck`
-- Run `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts tests/framework/application/app-suite.test.ts`
+- Run `npx.cmd tsx --test tests/demo/services.test.ts tests/api/demo-routes.test.ts tests/framework/application/app-suite.test.ts`
 - Run `npm.cmd run build`
-- Verify the ecommerce workspace retains its own sidebar while rendering reused `core` product and common-master screens
-- Verify public storefront shell reads and saves ecommerce-owned settings without breaking legacy rows
-- Verify the dedicated home-slider designer can load, save, and drive the live hero theme
-- Verify the dedicated home-slider designer can load, save, and drive isolated themes per slide without changing the public hero layout
-- Verify the storefront hero behaves acceptably on both desktop and mobile layouts
-- Verify storefront top-menu categories are fully backend-driven and the seeded `All Items` entry routes to the unfiltered catalog
-- Verify external image URLs work through the shared framework media picker in existing media-required forms
-- Verify the sticky scrolled category menu stays stable, centered, and text-only without header flicker
+- Verify the demo workspace can install module-scoped sample data and report live counts
+- Verify runtime/app-settings, storefront shell, and demo job state refresh through TanStack Query without stale data
+- Verify the featured and category editors save layout settings and update the live storefront after refresh
+- Verify shared storefront blocks used by the editor and docs match the live storefront behavior and tone
+- Verify media-browser forms stay visible while media results scroll on smaller screens
 
 ### Validation Status
 
 - [x] `npm.cmd run typecheck`
-- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts tests/framework/application/app-suite.test.ts`
+- [x] `npx.cmd tsx --test tests/demo/services.test.ts tests/api/demo-routes.test.ts tests/framework/application/app-suite.test.ts`
 - [x] `npm.cmd run build`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
@@ -85,6 +90,6 @@ Finish the ecommerce storefront shell so public shop, admin storefront settings,
 
 ### Risks And Follow-Up
 
-- the storefront hero was tuned against the current temp/reference target and may need another pass if the content mix or default images change materially
-- ecommerce still depends on `core` master-data quality for top-menu categories and product display completeness
-- the large async desk chunk is reduced but not aggressively split by feature yet; deeper desk-level chunking can still be done later if needed
+- the storefront still relies on shared `core` master-data quality for categories, products, and counts; poor seed quality will still surface in previews
+- the demo installers intentionally stay app-owned and transactional, but deeper demo coverage for every future module will still need explicit per-module installers
+- more storefront sections such as new arrivals and best sellers could still be made layout-configurable in a later pass if needed

@@ -23,6 +23,17 @@ export const runtimeSettingFieldSchema = z.object({
   options: z.array(runtimeSettingOptionSchema).optional(),
 })
 
+export const runtimeToastPositionSchema = z.enum([
+  "top-left",
+  "top-center",
+  "top-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+])
+
+export const runtimeToastToneSchema = z.enum(["soft", "solid"])
+
 export const runtimeSettingGroupSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -196,6 +207,39 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
           { label: "Site", value: "site" },
           { label: "Shop", value: "shop" },
           { label: "App", value: "app" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "feedback-toasts",
+    label: "Toasts",
+    summary: "Global toast placement and visual tone used by the shared application feedback layer.",
+    fields: [
+      {
+        key: "VITE_TOAST_POSITION",
+        label: "Toast Position",
+        type: "select",
+        description: "Default toast stack position across the suite.",
+        required: true,
+        options: [
+          { label: "Top Left", value: "top-left" },
+          { label: "Top Center", value: "top-center" },
+          { label: "Top Right", value: "top-right" },
+          { label: "Bottom Left", value: "bottom-left" },
+          { label: "Bottom Center", value: "bottom-center" },
+          { label: "Bottom Right", value: "bottom-right" },
+        ],
+      },
+      {
+        key: "VITE_TOAST_TONE",
+        label: "Toast Tone",
+        type: "select",
+        description: "Choose between soft surface toasts and solid high-contrast toasts.",
+        required: true,
+        options: [
+          { label: "Soft", value: "soft" },
+          { label: "Solid", value: "solid" },
         ],
       },
     ],

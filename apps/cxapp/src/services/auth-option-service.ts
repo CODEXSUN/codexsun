@@ -5,6 +5,7 @@ import {
   type AppSettingOption,
   type AppSettingsResponse,
 } from "../../../framework/shared/index.js"
+import { getServerConfig } from "../../../framework/src/runtime/config/server-config.js"
 import { asQueryDatabase } from "../data/query-database.js"
 
 import { cxappTableNames } from "../../database/table-names.js"
@@ -41,6 +42,7 @@ export async function getAppSettingsSnapshot(
   database: Kysely<unknown>
 ): Promise<AppSettingsResponse> {
   const options = await listAuthOptionCatalog(database)
+  const config = getServerConfig()
   const filterByCategory = (category: string) =>
     options.filter((option) => option.category === category)
 
@@ -53,6 +55,12 @@ export async function getAppSettingsSnapshot(
         permissionActionTypes: filterByCategory("permission-action-type"),
         apps: filterByCategory("app"),
         resources: filterByCategory("resource"),
+      },
+      uiFeedback: {
+        toast: {
+          position: config.notifications.toast.position,
+          tone: config.notifications.toast.tone,
+        },
       },
     },
   })

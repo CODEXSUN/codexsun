@@ -62,7 +62,11 @@ export function StorefrontHeroSlider({
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const cart = useStorefrontCart()
-  const featuredItems = landing.featured.length > 0 ? landing.featured : landing.newArrivals
+  const featuredItems =
+    (landing.featured.length > 0 ? landing.featured : landing.newArrivals).slice(
+      0,
+      Math.max(landing.settings.homeSlider.slides.length, 1)
+    )
   const activeItem = featuredItems[selectedIndex] ?? featuredItems[0] ?? null
   const activeBadge =
     activeItem?.promoSliderEnabled && activeItem.promoBadge
@@ -204,6 +208,9 @@ export function StorefrontHeroSlider({
                           src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
                           alt={activeItem.name}
                           className="h-full w-full object-cover object-center"
+                          loading="eager"
+                          decoding="async"
+                          fetchPriority="high"
                         />
                       </div>
                     </div>
@@ -445,6 +452,9 @@ export function StorefrontHeroSlider({
                         src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
                         alt={activeItem.name}
                         className="h-full w-full object-cover object-center"
+                        loading="eager"
+                        decoding="async"
+                        fetchPriority="high"
                       />
                     </div>
                   </div>

@@ -3,6 +3,7 @@ import { billingAppManifest } from "../../../billing/src/app-manifest.js"
 import { cliAppManifest } from "../../../cli/src/app-manifest.js"
 import { coreAppManifest } from "../../../core/src/app-manifest.js"
 import { cxappAppManifest } from "../../../cxapp/src/app-manifest.js"
+import { demoAppManifest } from "../../../demo/src/app-manifest.js"
 import { ecommerceAppManifest } from "../../../ecommerce/src/app-manifest.js"
 import { frappeAppManifest } from "../../../frappe/src/app-manifest.js"
 import { siteAppManifest } from "../../../site/src/app-manifest.js"
@@ -24,6 +25,7 @@ export function createAppSuite(): AppSuite {
       siteAppManifest,
       billingAppManifest,
       ecommerceAppManifest,
+      demoAppManifest,
       taskAppManifest,
       frappeAppManifest,
       tallyAppManifest,

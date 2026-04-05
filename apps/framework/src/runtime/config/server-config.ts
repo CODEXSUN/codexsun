@@ -4,6 +4,14 @@ import { readBoolean, readNumber, resolveEnv } from "./env.js"
 
 export type DatabaseDriver = "mariadb" | "postgres" | "sqlite"
 export type FrontendTarget = "site" | "shop" | "app"
+export type ToastPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right"
+export type ToastTone = "soft" | "solid"
 
 function readFrontendTarget(value: string | undefined): FrontendTarget {
   if (value === "site" || value === "shop" || value === "app") {
@@ -11,6 +19,24 @@ function readFrontendTarget(value: string | undefined): FrontendTarget {
   }
 
   return "site"
+}
+
+function readToastPosition(value: string | undefined): ToastPosition {
+  switch (value) {
+    case "top-left":
+    case "top-center":
+    case "top-right":
+    case "bottom-left":
+    case "bottom-center":
+    case "bottom-right":
+      return value
+    default:
+      return "top-right"
+  }
+}
+
+function readToastTone(value: string | undefined): ToastTone {
+  return value === "solid" ? "solid" : "soft"
 }
 
 export type ServerConfig = {
@@ -72,6 +98,10 @@ export type ServerConfig = {
       password?: string
       fromEmail?: string
       fromName: string
+    }
+    toast: {
+      position: ToastPosition
+      tone: ToastTone
     }
   }
   billing: {
@@ -206,6 +236,10 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         password: smtpPassword,
         fromEmail: smtpFromEmail,
         fromName: env.SMTP_FROM_NAME?.trim() || "codexsun",
+      },
+      toast: {
+        position: readToastPosition(env.VITE_TOAST_POSITION),
+        tone: readToastTone(env.VITE_TOAST_TONE),
       },
     },
     billing: {
