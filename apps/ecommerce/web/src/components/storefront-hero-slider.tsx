@@ -64,11 +64,26 @@ export function StorefrontHeroSlider({
   const cart = useStorefrontCart()
   const featuredItems = landing.featured.length > 0 ? landing.featured : landing.newArrivals
   const activeItem = featuredItems[selectedIndex] ?? featuredItems[0] ?? null
-  const activeBadge = activeItem?.badge ?? activeItem?.categoryName ?? landing.settings.hero.eyebrow
+  const activeBadge =
+    activeItem?.promoSliderEnabled && activeItem.promoBadge
+      ? activeItem.promoBadge
+      : activeItem?.badge ?? activeItem?.categoryName ?? landing.settings.hero.eyebrow
+  const activeTitle =
+    activeItem?.promoSliderEnabled && activeItem.promoTitle
+      ? activeItem.promoTitle
+      : activeItem?.name ?? landing.settings.hero.title
+  const activeSummary =
+    activeItem?.promoSliderEnabled && activeItem.promoSubtitle
+      ? activeItem.promoSubtitle
+      : activeItem?.shortDescription ?? landing.settings.hero.summary
   const activeSliderTheme =
     landing.settings.homeSlider.slides[selectedIndex]?.theme ??
     landing.settings.homeSlider.slides[0]?.theme
   const sliderStyles = resolveHomeSliderThemeStyles(activeSliderTheme ?? landing.settings.homeSlider.slides[0].theme)
+  const activePrimaryCtaLabel =
+    activeItem?.promoSliderEnabled && activeItem.promoCtaLabel
+      ? activeItem.promoCtaLabel
+      : sliderStyles.primaryButtonLabel
 
   useEffect(() => {
     if (featuredItems.length <= 1) {
@@ -211,7 +226,7 @@ export function StorefrontHeroSlider({
               <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
                 <motion.div variants={staggeredContentItem} className="space-y-3">
                   <h1 className="line-clamp-2 font-heading text-[1.9rem] font-semibold tracking-tight leading-[1.02] sm:text-[2.2rem]">
-                    {activeItem.name}
+                    {activeTitle}
                   </h1>
                 </motion.div>
                 <motion.p
@@ -219,7 +234,7 @@ export function StorefrontHeroSlider({
                   className="line-clamp-2 pt-3 text-sm leading-6 sm:text-base sm:leading-7"
                   style={{ color: sliderStyles.mutedTextColor }}
                 >
-                  {activeItem.shortDescription ?? landing.settings.hero.summary}
+                  {activeSummary}
                 </motion.p>
 
                 <motion.div variants={staggeredContentItem} className="flex items-center gap-5 py-5">
@@ -271,7 +286,7 @@ export function StorefrontHeroSlider({
                     }
                   >
                     <ShoppingBag className="size-4" />
-                    {sliderStyles.primaryButtonLabel}
+                    {activePrimaryCtaLabel}
                   </Button>
                   <Link
                     to={storefrontPaths.product(activeItem.slug)}
@@ -318,7 +333,7 @@ export function StorefrontHeroSlider({
                 <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
                   <motion.div variants={staggeredContentItem} className="space-y-5">
                     <h1 className="line-clamp-2 max-w-xl font-heading text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.6rem] lg:leading-[0.98]">
-                      {activeItem.name}
+                      {activeTitle}
                     </h1>
                   </motion.div>
                   <motion.p
@@ -326,7 +341,7 @@ export function StorefrontHeroSlider({
                     className="line-clamp-2 max-w-2xl overflow-hidden pt-5 text-base leading-8 sm:text-lg"
                     style={{ color: sliderStyles.mutedTextColor }}
                   >
-                    {activeItem.shortDescription ?? landing.settings.hero.summary}
+                    {activeSummary}
                   </motion.p>
                   <motion.div variants={staggeredContentItem} className="flex flex-wrap items-center gap-7 py-6">
                     <div className="flex flex-col gap-1">
@@ -376,7 +391,7 @@ export function StorefrontHeroSlider({
                       }
                     >
                       <ShoppingBag className="size-4" />
-                      {sliderStyles.primaryButtonLabel}
+                      {activePrimaryCtaLabel}
                     </Button>
                     <Link
                       to={storefrontPaths.product(activeItem.slug)}

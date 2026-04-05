@@ -74,7 +74,7 @@ export function StorefrontSearchBar({
   return (
     <form
       className={cn(
-        "group flex w-full items-stretch overflow-hidden rounded-full border border-[#ddd4c9] bg-[#fffdfa] shadow-[0_20px_42px_-30px_rgba(58,34,18,0.5)] transition-[border-color,box-shadow,transform] duration-300 focus-within:-translate-y-0.5 focus-within:border-[#efb15a] focus-within:shadow-[0_28px_56px_-32px_rgba(240,179,93,0.65)]",
+        "group flex w-full items-stretch overflow-hidden rounded-[1.6rem] border border-[#ddd4c9] bg-[#fffdfa] shadow-[0_20px_42px_-30px_rgba(58,34,18,0.5)] transition-[border-color,box-shadow,transform] duration-300 focus-within:-translate-y-0.5 focus-within:border-[#efb15a] focus-within:shadow-[0_28px_56px_-32px_rgba(240,179,93,0.65)] sm:rounded-full",
         className
       )}
       onSubmit={(event) => {
@@ -103,7 +103,7 @@ export function StorefrontSearchBar({
             id="storefront-department-trigger"
             type="button"
             variant="ghost"
-            className="h-14 min-w-[6.5rem] justify-start gap-2 rounded-none border-r border-[#ebe3d9] bg-transparent px-3.5 text-sm font-medium text-[#5c5147] shadow-none transition-all duration-200 hover:bg-transparent hover:text-[#8b5e34] focus-visible:ring-0 data-[state=open]:bg-transparent data-[state=open]:text-[#8b5e34] [&_svg:last-child]:transition-transform [&_svg:last-child]:duration-200 data-[state=open]:[&_svg:last-child]:rotate-180 sm:min-w-[7.25rem]"
+            className="h-12 min-w-[5.5rem] justify-start gap-2 rounded-none border-r border-[#ebe3d9] bg-transparent px-3 text-sm font-medium text-[#5c5147] shadow-none transition-all duration-200 hover:bg-transparent hover:text-[#8b5e34] focus-visible:ring-0 data-[state=open]:bg-transparent data-[state=open]:text-[#8b5e34] [&_svg:last-child]:transition-transform [&_svg:last-child]:duration-200 data-[state=open]:[&_svg:last-child]:rotate-180 sm:h-14 sm:min-w-[7.25rem] sm:px-3.5"
             aria-label={departmentLabel}
           >
             <span className="truncate">
@@ -148,18 +148,18 @@ export function StorefrontSearchBar({
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="flex min-w-0 flex-1 items-center gap-2 px-5">
+      <div className="flex min-w-0 flex-1 items-center gap-2 px-4 sm:px-5">
         <Input
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
-          className="h-14 border-0 bg-transparent px-0 text-[15px] font-medium text-[#1f1a16] shadow-none placeholder:text-[#9b9084] focus-visible:ring-0"
+          className="h-12 border-0 bg-transparent px-0 text-[14px] font-medium text-[#1f1a16] shadow-none placeholder:text-[#9b9084] focus-visible:ring-0 sm:h-14 sm:text-[15px]"
           placeholder={placeholder}
         />
       </div>
       <Button
         type="submit"
         size="icon"
-        className="relative z-10 mr-1.5 h-[calc(100%-12px)] min-h-11 w-12 shrink-0 self-center rounded-full border border-[#efbb72] bg-[#f3c27c] text-[#241913] shadow-[0_12px_20px_-16px_rgba(161,98,23,0.7)] transition-all duration-200 hover:scale-[1.02] hover:border-[#e6ac57] hover:bg-[#efb15a] hover:shadow-[0_16px_24px_-16px_rgba(240,177,90,0.7)] active:scale-[0.97]"
+        className="relative z-10 mr-1 h-[calc(100%-8px)] min-h-10 w-11 shrink-0 self-center rounded-full border border-[#efbb72] bg-[#f3c27c] text-[#241913] shadow-[0_12px_20px_-16px_rgba(161,98,23,0.7)] transition-all duration-200 hover:scale-[1.02] hover:border-[#e6ac57] hover:bg-[#efb15a] hover:shadow-[0_16px_24px_-16px_rgba(240,177,90,0.7)] active:scale-[0.97] sm:mr-1.5 sm:h-[calc(100%-12px)] sm:min-h-11 sm:w-12"
       >
         <Search className="size-5" />
       </Button>
@@ -168,7 +168,7 @@ export function StorefrontSearchBar({
         <Button
           type="button"
           variant="ghost"
-          className="mr-1 h-12 rounded-full px-4 text-[#6f655b] transition-colors duration-200 hover:bg-[#f4ece3] hover:text-[#1f1a16]"
+          className="mr-1 hidden h-12 rounded-full px-4 text-[#6f655b] transition-colors duration-200 hover:bg-[#f4ece3] hover:text-[#1f1a16] sm:inline-flex"
           onClick={() => {
             setSearchValue("")
             setDepartment("all")

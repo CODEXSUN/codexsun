@@ -1436,20 +1436,6 @@ export function ProductUpsertSection({
                   }
                 />
                 <ProductCheckboxField
-                  checked={form.promoSliderEnabled}
-                  label="Promo slider"
-                  onCheckedChange={(checked) =>
-                    setForm((current) => ({
-                      ...current,
-                      promoSliderEnabled: checked,
-                      storefront: {
-                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                        promoSliderEnabled: checked,
-                      },
-                    }))
-                  }
-                />
-                <ProductCheckboxField
                   checked={form.isNewArrival}
                   label="New arrival"
                   onCheckedChange={(checked) =>
@@ -1541,6 +1527,120 @@ export function ProductUpsertSection({
               </div>
             </ProductFormSectionCard>
           </div>
+        ),
+      },
+      {
+        label: "Promo",
+        value: "promo",
+        content: (
+          <ProductFormSectionCard
+            title="Promo Slider"
+            description="Campaign copy and ordering used when this product appears in promo-led storefront surfaces."
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <ProductCheckboxField
+                checked={form.promoSliderEnabled}
+                label="Enable promo slider"
+                onCheckedChange={(checked) =>
+                  setForm((current) => ({
+                    ...current,
+                    promoSliderEnabled: checked,
+                    storefront: {
+                      ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                      promoSliderEnabled: checked,
+                    },
+                  }))
+                }
+              />
+              <ProductField
+                label="Promo Order"
+                description="Lower numbers appear earlier in promo-led product rails."
+              >
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.storefront?.promoSliderOrder ?? 0}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        promoSliderOrder: Number(event.target.value || 0),
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField
+                label="Promo Title"
+                description='Example: "Starting ₹199"'
+              >
+                <ProductTextField
+                  value={form.storefront?.promoTitle ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        promoTitle: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField
+                label="Promo Subtitle"
+                description='Example: "Deals on summer fashion"'
+              >
+                <ProductTextField
+                  value={form.storefront?.promoSubtitle ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        promoSubtitle: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField
+                label="Promo Badge"
+                description='Optional short marker like "Hot Deal" or "Limited Drop".'
+              >
+                <ProductTextField
+                  value={form.storefront?.promoBadge ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        promoBadge: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField
+                label="Promo CTA Label"
+                description='Optional action label like "Shop Offer" or "Explore Now".'
+              >
+                <ProductTextField
+                  value={form.storefront?.promoCtaLabel ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        promoCtaLabel: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+            </div>
+          </ProductFormSectionCard>
         ),
       },
     ],

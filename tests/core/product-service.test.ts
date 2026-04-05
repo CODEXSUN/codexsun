@@ -123,14 +123,18 @@ test("core product service supports create update and delete CRUD", async () => 
           department: "men",
           homeSliderEnabled: false,
           homeSliderOrder: 0,
-          promoSliderEnabled: false,
-          promoSliderOrder: 0,
+          promoSliderEnabled: true,
+          promoSliderOrder: 2,
           featureSectionEnabled: true,
           featureSectionOrder: 3,
           isNewArrival: true,
           isBestSeller: false,
           isFeaturedLabel: true,
           catalogBadge: "Core",
+          promoBadge: "Hot Deal",
+          promoTitle: "Starting ₹199",
+          promoSubtitle: "Deals on summer fashion",
+          promoCtaLabel: "Shop Offer",
           fabric: "Cotton",
           fit: "Regular",
           sleeve: "Half Sleeve",
@@ -144,6 +148,8 @@ test("core product service supports create update and delete CRUD", async () => 
 
       assert.equal(created.item.code, "CORE-TSHIRT-001")
       assert.equal(created.item.primaryImageUrl?.includes("Core+Product"), true)
+      assert.equal(created.item.storefront?.promoTitle, "Starting ₹199")
+      assert.equal(created.item.storefront?.promoSubtitle, "Deals on summer fashion")
 
       const createdWithVariants = await createProduct(runtime.primary, adminUser, {
         code: "PRD-VAR-001",
