@@ -35,6 +35,8 @@ import {
   isCustomerSurfaceUser,
   resolveAuthenticatedHomePath,
 } from "@cxapp/web/src/auth/auth-surface"
+import { cn } from "@ui/lib/utils"
+import { useLocation } from "react-router-dom"
 
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
@@ -149,7 +151,7 @@ function StorefrontThemeMenu() {
         <Button
           variant="outline"
           size="icon"
-          className="size-10 rounded-full border-[#d8d8d8] bg-white text-[#1f1f1f] hover:border-[#111111] hover:bg-[#111111] hover:text-white data-[state=open]:border-[#111111] data-[state=open]:bg-[#111111] data-[state=open]:text-white"
+          className="size-11 rounded-full border-[#ddd4c9] bg-white/88 text-[#2b241f] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.06] hover:border-[#111111] hover:bg-[#111111] hover:text-white active:scale-[0.97] data-[state=open]:border-[#111111] data-[state=open]:bg-[#111111] data-[state=open]:text-white"
         >
           {themeMode === "dark" ? <MoonStar className="size-5" /> : <SunMedium className="size-5" />}
         </Button>
@@ -204,6 +206,8 @@ function StorefrontThemeMenu() {
 
 export function StorefrontHeader() {
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isWishlistActive, setIsWishlistActive] = useState(false)
+  const location = useLocation()
   const { brand } = useRuntimeBrand()
   const customerAuth = useStorefrontCustomerAuth()
   const auth = useAuth()
@@ -212,6 +216,7 @@ export function StorefrontHeader() {
   const settings = data?.settings
   const cart = useStorefrontCart()
   const cartCount = cart.itemCount
+  const isCartActive = location.pathname === storefrontPaths.cart()
 
   useEffect(() => {
     function handleScroll() {
@@ -309,74 +314,115 @@ export function StorefrontHeader() {
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b border-[#ece7df] backdrop-blur-md transition-colors ${
-        isScrolled ? "bg-[#fbfaf7]/88" : "bg-[#fbfaf7]/98"
+      className={`sticky top-0 z-40 border-b border-[#ece7df]/90 backdrop-blur-xl transition-all duration-300 ${
+        isScrolled
+          ? "bg-[#fbfaf7]/80 shadow-[0_22px_52px_-30px_rgba(34,22,13,0.5)]"
+          : "bg-[#fbfaf7]/96 shadow-[0_14px_28px_-24px_rgba(34,22,13,0.24)]"
       }`}
     >
-      <div className="flex w-full items-center gap-3 px-4 py-2.5 lg:px-5">
-        <Link to={storefrontPaths.home()} className="min-w-0 shrink-0">
-          <div className="flex items-center gap-2.5">
+      <div
+        className={`grid w-full grid-cols-1 items-center gap-3 px-4 transition-all duration-300 sm:px-6 lg:grid-cols-[minmax(240px,1fr)_minmax(620px,840px)_minmax(320px,1fr)] lg:gap-6 lg:px-10 ${
+          isScrolled ? "py-2.5" : "py-3.5"
+        }`}
+      >
+        <Link to={storefrontPaths.home()} className="min-w-0 shrink-0 justify-self-start">
+          <div className="flex items-center gap-3 rounded-full px-1 py-1">
             <img
               src="/logo.svg"
               alt={brand?.brandName ?? "Codexsun Store"}
-              className="h-10 w-auto shrink-0"
+              className="h-11 w-auto shrink-0 lg:h-12"
             />
             <div className="flex min-w-0 flex-col justify-center leading-none">
-              <p className="truncate text-[1.55rem] font-semibold uppercase tracking-[0.2em] text-[#181818]">
+              <p className="truncate text-[1.2rem] font-semibold uppercase tracking-[0.22em] text-[#181818] sm:text-[1.35rem] lg:text-[1.5rem]">
                 {brand?.brandName ?? "Codexsun Store"}
               </p>
-              <p className="mt-0.5 truncate text-[12px] leading-none text-[#757575]">
+              <p className="mt-1 hidden truncate text-[10px] font-medium uppercase tracking-[0.18em] text-[#a39689] sm:block">
                 {brand?.tagline ?? "Smart IT. Trusted value."}
               </p>
             </div>
           </div>
         </Link>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 lg:justify-self-center lg:w-full">
           <StorefrontSearchBar
+            className="mx-auto w-full max-w-[840px]"
             placeholder={settings?.search.placeholder}
             departmentLabel={settings?.search.departmentLabel}
             departments={settings?.search.departments}
           />
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-10 rounded-full border-[#d8d8d8] bg-white text-[#555555] hover:bg-[#f8f8f8] hover:text-[#1f1f1f]"
-          >
-            <Heart className="size-5" />
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="icon"
-            className="relative size-10 rounded-full border-[#d8d8d8] bg-white text-[#555555] hover:bg-[#f8f8f8] hover:text-[#1f1f1f]"
-          >
-            <Link to={storefrontPaths.cart()}>
-              <ShoppingCart className="size-5" />
-              {cartCount > 0 ? (
-                <Badge className="absolute -right-1 -top-1 min-w-5 rounded-full px-1 text-[10px]">
-                  {cartCount}
-                </Badge>
-              ) : null}
-            </Link>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-10 rounded-full border-[#d8d8d8] bg-white px-3.5 text-[#1f1f1f] hover:border-[#111111] hover:bg-[#111111] hover:text-white data-[state=open]:border-[#111111] data-[state=open]:bg-[#111111] data-[state=open]:text-white"
-              >
-                <UserRound className="size-5" />
-                <span>{customerAuth.isAuthenticated ? "Account" : "Login"}</span>
-                <ChevronDown className="size-4 text-current" />
-              </Button>
-            </DropdownMenuTrigger>
+        <div className="ml-auto flex shrink-0 items-center justify-self-end gap-3">
+          <div className="flex items-center gap-3 rounded-full border border-[#ece3d9] bg-white/62 px-1.5 py-1 shadow-[0_16px_28px_-26px_rgba(58,34,18,0.35)]">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className={cn(
+                "size-11 rounded-full border-[#ddd4c9] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.08] hover:border-[#111111] active:scale-[0.97]",
+                isWishlistActive
+                  ? "bg-white/90 text-[#534a42] hover:bg-white hover:text-[#111111]"
+                  : "bg-white/90 text-[#534a42] hover:bg-white hover:text-[#111111]"
+              )}
+              onClick={() => {
+                setIsWishlistActive((current) => !current)
+              }}
+              aria-pressed={isWishlistActive}
+            >
+              <Heart
+                className={cn(
+                  "size-5 transition-colors duration-200",
+                  isWishlistActive && "fill-[#8b5e34] text-[#8b5e34]"
+                )}
+              />
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="icon"
+              className={cn(
+                "relative size-11 rounded-full border-[#ddd4c9] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.08] hover:border-[#111111] active:scale-[0.97]",
+                isCartActive
+                  ? "bg-white/90 text-[#534a42] hover:bg-white hover:text-[#111111]"
+                  : "bg-white/90 text-[#534a42] hover:bg-white hover:text-[#111111]"
+              )}
+            >
+              <Link to={storefrontPaths.cart()}>
+                <ShoppingCart
+                  className={cn(
+                    "size-5 transition-colors duration-200",
+                    isCartActive && "fill-[#8b5e34] text-[#8b5e34]"
+                  )}
+                />
+                {cartCount > 0 ? (
+                  <Badge className="absolute -right-1 -top-1 min-w-5 rounded-full border border-white bg-[#111111] px-1 text-[10px] text-white shadow-[0_10px_18px_-12px_rgba(17,17,17,0.9)]">
+                    {cartCount}
+                  </Badge>
+                ) : null}
+              </Link>
+            </Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="default"
+                  className="h-11 rounded-full border border-[#ddd4c9] bg-white px-4 font-semibold text-[#1f1a16] shadow-[0_22px_36px_-24px_rgba(58,34,18,0.38)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white hover:shadow-[0_26px_40px_-24px_rgba(139,94,52,0.7)] active:translate-y-0 active:scale-[0.96] active:bg-[#6f4a29] data-[state=open]:border-[#8b5e34] data-[state=open]:bg-[#8b5e34] data-[state=open]:text-white [&_svg:last-child]:transition-transform [&_svg:last-child]:duration-200 data-[state=open]:[&_svg:last-child]:rotate-180"
+                >
+                  <UserRound className="size-5" />
+                  <span>{customerAuth.isAuthenticated ? "Account" : "Login"}</span>
+                  <ChevronDown className="size-4 text-current" />
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
               className="w-72 rounded-[1.35rem] border-[#e2ddd6] bg-white p-0 shadow-[0_22px_44px_-26px_rgba(44,26,14,0.35)]"
             >
+              <div className="px-4 py-4">
+                <p className="text-[1.02rem] font-semibold text-[#241913]">
+                  {auth.isAuthenticated ? "Account Menu" : "Welcome Back"}
+                </p>
+              </div>
+              <DropdownMenuSeparator className="mx-0 my-0 bg-[#ece6df]" />
+
               {!auth.isAuthenticated ? (
                 <>
                   <div className="flex items-center justify-between px-4 py-4">
@@ -389,12 +435,17 @@ export function StorefrontHeader() {
                     </Link>
                   </div>
                   <DropdownMenuSeparator className="mx-0 my-0 bg-[#ece6df]" />
-                  <DropdownMenuItem asChild className="rounded-none px-4 py-3 text-[15px] text-[#241913] focus:bg-[#f6efe8] focus:text-[#8b5e34]">
-                    <Link to={storefrontPaths.accountLogin(storefrontPaths.account())}>
-                      <LogIn className="size-4" />
-                      <span>Sign In</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  <div className="p-2">
+                    <DropdownMenuItem
+                      asChild
+                      className="rounded-xl px-3 py-3 text-[15px] text-[#241913] focus:bg-[#f6efe8] focus:text-[#8b5e34]"
+                    >
+                      <Link to={storefrontPaths.accountLogin(storefrontPaths.account())}>
+                        <LogIn className="size-4" />
+                        <span>Sign In</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </div>
                   <DropdownMenuSeparator className="mx-0 my-0 bg-[#ece6df]" />
                 </>
               ) : null}
@@ -439,18 +490,18 @@ export function StorefrontHeader() {
                   </div>
                 </>
               ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-10 rounded-full border-[#d8d8d8] bg-white px-3.5 text-[#1f1f1f] hover:border-[#111111] hover:bg-[#111111] hover:text-white data-[state=open]:border-[#111111] data-[state=open]:bg-[#111111] data-[state=open]:text-white"
-              >
-                <span>More</span>
-                <ChevronDown className="size-4 text-current" />
-              </Button>
-            </DropdownMenuTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-11 rounded-full border border-transparent bg-transparent px-3 text-[#5c5147] shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-transparent hover:text-[#8b5e34] active:translate-y-0 active:scale-[0.98] active:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-[#8b5e34] [&_svg:last-child]:transition-transform [&_svg:last-child]:duration-200 data-[state=open]:[&_svg:last-child]:rotate-180"
+                >
+                  <span>More</span>
+                  <ChevronDown className="size-4 text-current" />
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
               className="w-72 rounded-[1.35rem] border-[#e2ddd6] bg-white p-0 shadow-[0_22px_44px_-26px_rgba(44,26,14,0.35)]"
@@ -475,8 +526,9 @@ export function StorefrontHeader() {
                   </DropdownMenuItem>
                 ))}
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <StorefrontThemeMenu />
         </div>
       </div>
