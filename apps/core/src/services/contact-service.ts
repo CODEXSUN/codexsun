@@ -107,6 +107,10 @@ function normalizeContact(contact: Contact) {
         address.addressTypeId ?? normalizeLegacyAddressTypeId((address as { addressType?: unknown }).addressType),
       districtId: address.districtId ?? null,
     })),
+    emails: contact.emails ?? [],
+    phones: contact.phones ?? [],
+    bankAccounts: contact.bankAccounts ?? [],
+    gstDetails: contact.gstDetails ?? [],
   })
 }
 

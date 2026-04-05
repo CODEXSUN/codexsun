@@ -358,12 +358,12 @@ function AuthenticatedAppShell() {
               <Route path="/checkout" element={<StorefrontCheckoutPage />} />
               <Route path="/track-order" element={<StorefrontTrackOrderPage />} />
               <Route
-                path="/profile/login"
+                path="/customer/login"
                 element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />}
               />
-              <Route path="/profile/register" element={<StorefrontAccountRegisterPage />} />
+              <Route path="/customer/register" element={<StorefrontAccountRegisterPage />} />
               <Route
-                path="/profile"
+                path="/customer"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountPage />
@@ -371,7 +371,7 @@ function AuthenticatedAppShell() {
                 }
               />
               <Route
-                path="/profile/:sectionId"
+                path="/customer/:sectionId"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountPage />
@@ -379,13 +379,18 @@ function AuthenticatedAppShell() {
                 }
               />
               <Route
-                path="/profile/orders/:orderId"
+                path="/customer/orders/:orderId"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountOrderPage />
                   </ProtectedRoute>
                 }
               />
+              <Route path="/profile/login" element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />} />
+              <Route path="/profile/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
+              <Route path="/profile" element={<Navigate to={storefrontPaths.account()} replace />} />
+              <Route path="/profile/:sectionId" element={<Navigate to={storefrontPaths.account()} replace />} />
+              <Route path="/profile/orders/:orderId" element={<Navigate to={storefrontPaths.account()} replace />} />
               <Route path="/account/login" element={<Navigate to={storefrontPaths.accountLogin()} replace />} />
               <Route path="/account/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
               <Route path="/account" element={<Navigate to={storefrontPaths.account()} replace />} />
@@ -400,12 +405,12 @@ function AuthenticatedAppShell() {
               <Route path="/shop/checkout" element={<StorefrontCheckoutPage />} />
               <Route path="/shop/track-order" element={<StorefrontTrackOrderPage />} />
               <Route
-                path="/shop/profile/login"
+                path="/shop/customer/login"
                 element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />}
               />
-              <Route path="/shop/profile/register" element={<StorefrontAccountRegisterPage />} />
+              <Route path="/shop/customer/register" element={<StorefrontAccountRegisterPage />} />
               <Route
-                path="/shop/profile"
+                path="/shop/customer"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountPage />
@@ -413,7 +418,7 @@ function AuthenticatedAppShell() {
                 }
               />
               <Route
-                path="/shop/profile/:sectionId"
+                path="/shop/customer/:sectionId"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountPage />
@@ -421,13 +426,18 @@ function AuthenticatedAppShell() {
                 }
               />
               <Route
-                path="/shop/profile/orders/:orderId"
+                path="/shop/customer/orders/:orderId"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountOrderPage />
                   </ProtectedRoute>
                 }
               />
+              <Route path="/shop/profile/login" element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />} />
+              <Route path="/shop/profile/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
+              <Route path="/shop/profile" element={<Navigate to={storefrontPaths.account()} replace />} />
+              <Route path="/shop/profile/:sectionId" element={<Navigate to={storefrontPaths.account()} replace />} />
+              <Route path="/shop/profile/orders/:orderId" element={<Navigate to={storefrontPaths.account()} replace />} />
               <Route path="/shop/account/login" element={<Navigate to={storefrontPaths.accountLogin()} replace />} />
               <Route path="/shop/account/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
               <Route path="/shop/account" element={<Navigate to={storefrontPaths.account()} replace />} />

@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#29] 2026-04-06 - Customer portal isolation, storefront persistence, and commerce UX refinement
+
+- moved the customer surface onto canonical `/customer/*` routes, isolated it from admin and desk shells, and tightened auth redirect handling so customer users never see application menus or workspace switching
+- rebuilt the customer profile page into customer-safe contact-style tabs with shared communication, addressing, and finance flows while keeping admin-only contact fields out of the portal
+- refined the customer portal shell, sidebar, overview panels, and wishlist presentation to use a more theme-oriented dashboard tone without leaking admin UI patterns
+- hardened legacy customer and contact hydration so widened nested arrays such as emails, phones, bank accounts, and GST details do not break re-login or profile reads on older stored data
+- added shared storefront wishlist persistence that keeps guest wishlist intent locally, auto-syncs it into the ecommerce customer-portal database after login, and reflects the saved wishlist consistently in the storefront header, home, catalog, product, and portal views
+
 ### [#28] 2026-04-05 - Core product operations, media tabs, and storefront runtime stabilization
 
 - added shared core product bulk-edit support for merchandising fields plus product duplication with safe `-copy` naming, exposed through new internal routes and list-level UI actions without disturbing the existing product upsert flow

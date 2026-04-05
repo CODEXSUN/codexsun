@@ -39,6 +39,7 @@ import { cn } from "@ui/lib/utils"
 
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
+import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { useStorefrontShellData } from "../hooks/use-storefront-shell-data"
 import { storefrontPaths } from "../lib/storefront-routes"
 import { StorefrontSearchBar } from "./storefront-search-bar"
@@ -208,10 +209,10 @@ export function StorefrontTopMenu({
 }: {
   isScrolled: boolean
 }) {
-  const [isWishlistActive, setIsWishlistActive] = useState(false)
   const location = useLocation()
   const { brand } = useRuntimeBrand()
   const customerAuth = useStorefrontCustomerAuth()
+  const customerPortal = useStorefrontCustomerPortal()
   const auth = useAuth()
   const authenticatedHomePath = resolveAuthenticatedHomePath(auth.user)
   const isCustomerUser = isCustomerSurfaceUser(auth.user)
@@ -221,6 +222,8 @@ export function StorefrontTopMenu({
   const cart = useStorefrontCart()
   const cartCount = cart.itemCount
   const isCartActive = location.pathname === storefrontPaths.cart()
+  const isWishlistActive = location.pathname === storefrontPaths.accountSection("wishlist")
+  const wishlistCount = customerPortal.wishlistCount
 
   const accountMenuItems = [
     {
@@ -358,24 +361,33 @@ export function StorefrontTopMenu({
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:gap-3 xl:justify-self-end xl:justify-end xl:flex-nowrap">
             <div className="flex items-center gap-2 rounded-full border border-[#ece3d9] bg-white/62 px-1.5 py-1 shadow-[0_16px_28px_-26px_rgba(58,34,18,0.35)] sm:gap-3">
               <Button
-                type="button"
+                asChild
                 variant="outline"
                 size="icon"
                 className={cn(
-                  "size-10 rounded-full border-[#ddd4c9] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.08] hover:border-[#111111] active:scale-[0.97] sm:size-11",
+                  "relative size-10 rounded-full border-[#ddd4c9] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.08] hover:border-[#111111] active:scale-[0.97] sm:size-11",
                   "bg-white/90 text-[#534a42] hover:bg-white hover:text-[#111111]"
                 )}
-                onClick={() => {
-                  setIsWishlistActive((current) => !current)
-                }}
-                aria-pressed={isWishlistActive}
               >
-                <Heart
-                  className={cn(
-                    "size-4 transition-colors duration-200 sm:size-5",
-                    isWishlistActive && "fill-[#8b5e34] text-[#8b5e34]"
-                  )}
-                />
+                <Link
+                  to={
+                    auth.isAuthenticated && isCustomerUser
+                      ? storefrontPaths.accountSection("wishlist")
+                      : storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist"))
+                  }
+                >
+                  <Heart
+                    className={cn(
+                      "size-4 transition-colors duration-200 sm:size-5",
+                      (isWishlistActive || wishlistCount > 0) && "fill-[#8b5e34] text-[#8b5e34]"
+                    )}
+                  />
+                  {wishlistCount > 0 ? (
+                    <Badge className="absolute -right-1 -top-1 min-w-5 rounded-full border border-white bg-[#8b5e34] px-1 text-[10px] text-white shadow-[0_10px_18px_-12px_rgba(139,94,52,0.9)]">
+                      {wishlistCount}
+                    </Badge>
+                  ) : null}
+                </Link>
               </Button>
               <Button
                 asChild

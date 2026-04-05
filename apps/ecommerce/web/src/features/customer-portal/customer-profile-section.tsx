@@ -64,18 +64,9 @@ type CustomerProfileFormState = {
   gstDetails: ContactGstDetailInput[]
 }
 
-const lookupModules: ContactLookupModuleKey[] = [
-  "addressTypes",
-  "bankNames",
-  "countries",
-  "states",
-  "districts",
-  "cities",
-  "pincodes",
-]
-
 function createLookupState(response?: CustomerProfileLookupResponse): LookupState {
   return {
+    contactTypes: [],
     addressTypes: response?.addressTypes ?? [],
     bankNames: response?.bankNames ?? [],
     countries: response?.countries ?? [],
@@ -309,14 +300,6 @@ export function CustomerProfileSection({
                     }
                   />
                 </ContactField>
-                <ContactField label="Website" className="md:col-span-2">
-                  <ContactTextField
-                    value={form.website}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, website: event.target.value }))
-                    }
-                  />
-                </ContactField>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <ReadonlyStateField
@@ -474,3 +457,458 @@ export function CustomerProfileSection({
             </div>
           ),
         },
+        {
+          label: "Addressing",
+          value: "addressing",
+          content: (
+            <ContactFormSectionCard
+              title="Addresses"
+              description="Billing and shipping address details used across checkout and order delivery."
+              onAdd={() =>
+                setForm((current) => ({
+                  ...current,
+                  addresses: [...current.addresses, createEmptyContactAddress()],
+                }))
+              }
+            >
+              {form.addresses.map((address, index) => (
+                <ContactCollectionRow
+                  key={`address-${index}`}
+                  onRemove={() =>
+                    setForm((current) => ({
+                      ...current,
+                      addresses: current.addresses.filter((_, itemIndex) => itemIndex !== index),
+                    }))
+                  }
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <ContactLookupField
+                      label="Address Type"
+                      items={lookupState.addressTypes}
+                      value={address.addressTypeId}
+                      onValueChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            addressTypeId: value,
+                          })),
+                        }))
+                      }
+                    />
+                    <ContactCheckboxField
+                      checked={address.isDefault}
+                      label="Default address"
+                      onCheckedChange={(checked) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            isDefault: checked,
+                          })),
+                        }))
+                      }
+                    />
+                    <ContactField label="Address Line 1" className="md:col-span-2">
+                      <ContactTextField
+                        value={address.addressLine1}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                              ...item,
+                              addressLine1: event.target.value,
+                            })),
+                          }))
+                        }
+                      />
+                    </ContactField>
+                    <ContactField label="Address Line 2" className="md:col-span-2">
+                      <ContactTextField
+                        value={address.addressLine2}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                              ...item,
+                              addressLine2: event.target.value,
+                            })),
+                          }))
+                        }
+                      />
+                    </ContactField>
+                    <ContactLookupField
+                      label="Country"
+                      items={lookupState.countries}
+                      value={address.countryId}
+                      onValueChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            countryId: value,
+                          })),
+                        }))
+                      }
+                    />
+                    <ContactLookupField
+                      label="State"
+                      items={lookupState.states}
+                      value={address.stateId}
+                      onValueChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            stateId: value,
+                          })),
+                        }))
+                      }
+                    />
+                    <ContactLookupField
+                      label="District"
+                      items={lookupState.districts}
+                      value={address.districtId}
+                      onValueChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            districtId: value,
+                          })),
+                        }))
+                      }
+                    />
+                    <ContactLookupField
+                      label="City"
+                      items={lookupState.cities}
+                      value={address.cityId}
+                      onValueChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            cityId: value,
+                          })),
+                        }))
+                      }
+                    />
+                    <ContactLookupField
+                      label="Pincode"
+                      items={lookupState.pincodes}
+                      value={address.pincodeId}
+                      onValueChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                            ...item,
+                            pincodeId: value,
+                          })),
+                        }))
+                      }
+                    />
+                    <div className="hidden md:block" aria-hidden="true" />
+                    <ContactField label="Latitude" className="md:col-span-1">
+                      <Input
+                        type="number"
+                        step="0.0000001"
+                        value={address.latitude ?? ""}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                              ...item,
+                              latitude: event.target.value ? Number(event.target.value) : null,
+                            })),
+                          }))
+                        }
+                      />
+                    </ContactField>
+                    <ContactField label="Longitude" className="md:col-span-1">
+                      <Input
+                        type="number"
+                        step="0.0000001"
+                        value={address.longitude ?? ""}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            addresses: updateCollectionItem(current.addresses, index, (item) => ({
+                              ...item,
+                              longitude: event.target.value ? Number(event.target.value) : null,
+                            })),
+                          }))
+                        }
+                      />
+                    </ContactField>
+                  </div>
+                </ContactCollectionRow>
+              ))}
+            </ContactFormSectionCard>
+          ),
+        },
+        {
+          label: "Finance",
+          value: "finance",
+          content: (
+            <div className="space-y-4">
+              <ContactFormSectionCard
+                title="Bank Accounts"
+                description="Bank Accounts for refund purpose and customer banking details."
+                onAdd={() =>
+                  setForm((current) => ({
+                    ...current,
+                    bankAccounts: [...current.bankAccounts, createEmptyContactBank()],
+                  }))
+                }
+              >
+                {form.bankAccounts.map((account, index) => (
+                  <ContactCollectionRow
+                    key={`bank-${index}`}
+                    onRemove={() =>
+                      setForm((current) => ({
+                        ...current,
+                        bankAccounts: current.bankAccounts.filter(
+                          (_, itemIndex) => itemIndex !== index
+                        ),
+                      }))
+                    }
+                  >
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <ContactField label="Bank Name">
+                        <SearchableLookupField
+                          value={account.bankName || undefined}
+                          onValueChange={(value) =>
+                            setForm((current) => ({
+                              ...current,
+                              bankAccounts: updateCollectionItem(
+                                current.bankAccounts,
+                                index,
+                                (item) => ({
+                                  ...item,
+                                  bankName: value,
+                                })
+                              ),
+                            }))
+                          }
+                          options={lookupState.bankNames.map((item) => ({
+                            value: String(item.name ?? item.code ?? item.id),
+                            label: String(item.name ?? item.code ?? item.id),
+                          }))}
+                          placeholder="Select bank name"
+                          searchPlaceholder="Search bank name"
+                          noResultsMessage="No bank name found."
+                        />
+                      </ContactField>
+                      <ContactField label="Branch">
+                        <ContactTextField
+                          value={account.branch}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              bankAccounts: updateCollectionItem(
+                                current.bankAccounts,
+                                index,
+                                (item) => ({
+                                  ...item,
+                                  branch: event.target.value,
+                                })
+                              ),
+                            }))
+                          }
+                        />
+                      </ContactField>
+                      <ContactField label="Account Number">
+                        <ContactTextField
+                          value={account.accountNumber}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              bankAccounts: updateCollectionItem(
+                                current.bankAccounts,
+                                index,
+                                (item) => ({
+                                  ...item,
+                                  accountNumber: event.target.value,
+                                })
+                              ),
+                            }))
+                          }
+                        />
+                      </ContactField>
+                      <ContactField label="Account Holder Name">
+                        <ContactTextField
+                          value={account.accountHolderName}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              bankAccounts: updateCollectionItem(
+                                current.bankAccounts,
+                                index,
+                                (item) => ({
+                                  ...item,
+                                  accountHolderName: event.target.value,
+                                })
+                              ),
+                            }))
+                          }
+                        />
+                      </ContactField>
+                      <ContactField label="IFSC">
+                        <ContactTextField
+                          value={account.ifsc}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              bankAccounts: updateCollectionItem(
+                                current.bankAccounts,
+                                index,
+                                (item) => ({
+                                  ...item,
+                                  ifsc: event.target.value.toUpperCase(),
+                                })
+                              ),
+                            }))
+                          }
+                        />
+                      </ContactField>
+                      <ContactCheckboxField
+                        checked={account.isPrimary}
+                        label="Primary account"
+                        onCheckedChange={(checked) =>
+                          setForm((current) => ({
+                            ...current,
+                            bankAccounts: updateCollectionItem(
+                              current.bankAccounts,
+                              index,
+                              (item) => ({
+                                ...item,
+                                isPrimary: checked,
+                              })
+                            ),
+                          }))
+                        }
+                      />
+                    </div>
+                  </ContactCollectionRow>
+                ))}
+              </ContactFormSectionCard>
+              <ContactFormSectionCard
+                title="GST Details"
+                description="GST for registered B2B customer."
+                onAdd={() =>
+                  setForm((current) => ({
+                    ...current,
+                    gstDetails: [...current.gstDetails, createEmptyContactGst()],
+                  }))
+                }
+              >
+                {form.gstDetails.map((detail, index) => (
+                  <ContactCollectionRow
+                    key={`gst-${index}`}
+                    onRemove={() =>
+                      setForm((current) => ({
+                        ...current,
+                        gstDetails: current.gstDetails.filter(
+                          (_, itemIndex) => itemIndex !== index
+                        ),
+                      }))
+                    }
+                  >
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <ContactField label="GSTIN">
+                        <ContactTextField
+                          value={detail.gstin}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              gstDetails: updateCollectionItem(current.gstDetails, index, (item) => ({
+                                ...item,
+                                gstin: normalizeUppercase(event.target.value),
+                              })),
+                            }))
+                          }
+                        />
+                      </ContactField>
+                      <ContactField label="State">
+                        <SearchableLookupField
+                          value={detail.state || undefined}
+                          onValueChange={(value) =>
+                            setForm((current) => ({
+                              ...current,
+                              gstDetails: updateCollectionItem(current.gstDetails, index, (item) => ({
+                                ...item,
+                                state: value,
+                              })),
+                            }))
+                          }
+                          options={lookupState.states.map((item) => ({
+                            value: String(item.name ?? item.code ?? item.id),
+                            label: String(item.name ?? item.code ?? item.id),
+                          }))}
+                          placeholder="Select state"
+                          searchPlaceholder="Search state"
+                          noResultsMessage="No state found."
+                        />
+                      </ContactField>
+                      <ContactCheckboxField
+                        checked={detail.isDefault}
+                        label="Default"
+                        onCheckedChange={(checked) =>
+                          setForm((current) => ({
+                            ...current,
+                            gstDetails: updateCollectionItem(current.gstDetails, index, (item) => ({
+                              ...item,
+                              isDefault: checked,
+                            })),
+                          }))
+                        }
+                      />
+                    </div>
+                  </ContactCollectionRow>
+                ))}
+              </ContactFormSectionCard>
+            </div>
+          ),
+        },
+      ] satisfies AnimatedContentTab[],
+    [customerTypeLabel, derivedGstin, form, lookupState, profile.isActive]
+  )
+
+  return (
+    <div className="space-y-8 py-2 md:space-y-10 md:py-4">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            Your Profile
+          </h1>
+          <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+            Keep your account details current so refunds, invoices, delivery updates, and support requests stay accurate and trusted.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setForm(createFormState(profile))}
+            disabled={isSaving}
+          >
+            Reset
+          </Button>
+          <Button type="button" onClick={() => void handleSave()} disabled={isSaving || isLoadingLookups}>
+            {isSaving ? "Saving..." : "Save profile"}
+          </Button>
+        </div>
+      </div>
+
+      {error ? (
+        <Card className="border-amber-200/70 bg-amber-50/70 shadow-sm">
+          <CardContent className="whitespace-pre-wrap p-4 text-sm text-amber-950">
+            {error}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <AnimatedTabs defaultTabValue="details" tabs={tabs} />
+    </div>
+  )
+}

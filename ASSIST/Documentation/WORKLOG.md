@@ -68,3 +68,11 @@
 - forward-hydrated new product summary fields such as `attributeCount` and `totalStockQuantity` across seed data, core product reads, and ecommerce storefront reads so older persisted rows no longer break requests
 - stabilized the local backend host by fixing the startup crash caused by stale product seed payloads and re-verifying the framework health endpoint after restart
 - fixed storefront runtime payload generation so `/public/v1/storefront/home` can render legacy products again without `400` schema failures
+
+### `#29` 2026-04-06
+
+- moved the customer portal to canonical `/customer/*` routes and isolated the customer shell from admin and desk navigation so customer users only see customer-safe surfaces
+- rebuilt the customer profile page into customer-safe contact-style tabs for details, communication, addressing, and finance, while keeping shared lookups and customer-only field exposure
+- refined the customer portal shell, sidebar, overview cards, and wishlist presentation to match the shared dashboard tone without leaking admin controls or app switching
+- hardened widened customer/contact hydration paths so older stored records with missing nested arrays no longer break relogin or customer profile reads
+- added shared storefront wishlist storage, synced guest wishlist intent after login, and connected the storefront home, catalog, product, and header surfaces to the same persisted customer-portal wishlist flow

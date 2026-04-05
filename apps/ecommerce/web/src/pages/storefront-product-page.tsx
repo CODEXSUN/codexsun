@@ -12,7 +12,6 @@ import { CommercePrice } from "@/components/ux/commerce-price"
 import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepper"
 
 import { storefrontApi } from "../api/storefront-api"
-import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
@@ -24,7 +23,6 @@ export function StorefrontProductPage() {
   const { slug = "" } = useParams()
   const navigate = useNavigate()
   const cart = useStorefrontCart()
-  const customerAuth = useStorefrontCustomerAuth()
   const customerPortal = useStorefrontCustomerPortal()
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -44,11 +42,6 @@ export function StorefrontProductPage() {
   const isWishlisted = product ? customerPortal.isWishlisted(product.id) : false
 
   async function handleToggleWishlist(productId: string) {
-    if (!customerAuth.isAuthenticated || !customerAuth.accessToken) {
-      void navigate(storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist")))
-      return
-    }
-
     await customerPortal.toggleWishlist(productId)
   }
 

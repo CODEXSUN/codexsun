@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 
 import type { StorefrontCatalogResponse } from "@ecommerce/shared"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select"
 
 import { storefrontApi } from "../api/storefront-api"
-import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
@@ -25,11 +24,9 @@ import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-po
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontCatalogPage() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryString = searchParams.toString()
   const cart = useStorefrontCart()
-  const customerAuth = useStorefrontCustomerAuth()
   const customerPortal = useStorefrontCustomerPortal()
 
   const { data, error, isLoading, isFetching } = useQuery<StorefrontCatalogResponse>({
@@ -42,11 +39,6 @@ export function StorefrontCatalogPage() {
   const showSearchSection = Boolean(data?.settings.visibility.search)
 
   async function handleToggleWishlist(productId: string) {
-    if (!customerAuth.isAuthenticated || !customerAuth.accessToken) {
-      void navigate(storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist")))
-      return
-    }
-
     await customerPortal.toggleWishlist(productId)
   }
 

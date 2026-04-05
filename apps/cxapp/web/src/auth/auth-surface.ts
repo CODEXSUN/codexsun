@@ -97,7 +97,7 @@ export function resolvePostAuthPath(
     return homePath
   }
 
-  if (isDeskSurfaceUser(user) && nextPath.startsWith("/profile")) {
+  if (isDeskSurfaceUser(user) && (nextPath.startsWith("/profile") || nextPath.startsWith("/customer"))) {
     return homePath
   }
 

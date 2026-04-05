@@ -65,7 +65,7 @@ export const storefrontPaths = {
     return search ? `${path}?${search}` : path
   },
   accountLogin: (next?: string | null) => {
-    const path = "/login"
+    const path = withStorefrontRoot("/customer/login")
 
     if (!next) {
       return path
@@ -74,13 +74,13 @@ export const storefrontPaths = {
     const searchParams = new URLSearchParams({ next })
     return `${path}?${searchParams.toString()}`
   },
-  accountRegister: () => withStorefrontRoot("/profile/register"),
-  account: () => withStorefrontRoot("/profile"),
+  accountRegister: () => withStorefrontRoot("/customer/register"),
+  account: () => withStorefrontRoot("/customer"),
   accountSection: (
     section: "overview" | "profile" | "wishlist" | "cart" | "orders" | "support" | "coupons" | "gift-cards" | "rewards"
-  ) => withStorefrontRoot(`/profile/${encodeURIComponent(section)}`),
+  ) => withStorefrontRoot(`/customer/${encodeURIComponent(section)}`),
   accountOrder: (orderId: string) =>
-    withStorefrontRoot(`/profile/orders/${encodeURIComponent(orderId)}`),
+    withStorefrontRoot(`/customer/orders/${encodeURIComponent(orderId)}`),
 }
 
 export function normalizeStorefrontHref(

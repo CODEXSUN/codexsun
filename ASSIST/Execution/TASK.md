@@ -4,27 +4,26 @@
 
 ### Reference
 
-`#28`
+`#29`
 
 ### Title
 
-`Core product operations, media tabs, and storefront runtime stabilization`
+`Customer portal isolation, storefront persistence, and commerce UX refinement`
 
 ### Scope Checklist
 
-- [x] add product bulk-edit actions for merchandising fields without disturbing the existing single-product editor
-- [x] add product duplicate support that creates editable copy records with safe `-copy` naming
-- [x] extend product, contact, and product-category list filtering with operational filters for merchandising and data completeness
-- [x] refactor the framework media browser into animated tabs with contained preview layouts and better small-screen behavior
-- [x] fix legacy product summary hydration so new `attributeCount` and `totalStockQuantity` fields do not break older stored records
-- [x] stabilize runtime storefront and branding reads by fixing startup crashes and storefront payload hydration gaps
-- [x] update ASSIST task tracking, planning, work log, and changelog for the product-ops and runtime-stability batch
+- [x] move the customer portal onto canonical `/customer/*` routes and isolate it from admin and desk navigation
+- [x] rebuild the customer profile surface into customer-safe contact-style tabs with shared lookup-backed communication, addressing, and finance sections
+- [x] create a customer-only sidebar shell and themed overview surfaces without leaking admin modules or app switching controls
+- [x] persist storefront wishlist actions into the ecommerce customer-portal store and auto-sync guest wishlist intent after login
+- [x] refine storefront and customer portal visuals, wishlist density, and themed overview cards for a cleaner customer-facing experience
+- [x] harden legacy customer and storefront hydration so widened customer/contact and product summary schemas do not break existing records
+- [x] update ASSIST task tracking, planning, work log, and changelog for the customer-portal and storefront-persistence batch
 
 ### Validation Note
 
 - [x] `npm.cmd run typecheck`
-- [x] backend `/health` check on `127.0.0.1:3001`
-- [x] manual storefront payload verification after legacy hydration fixes
+- [x] manual verification of customer route and storefront wishlist flow wiring
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
 - [ ] full `npm run build`
