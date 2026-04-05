@@ -9,4 +9,5 @@
 - media library to tab section and improve with image optimize , crop , and many more
 - more cards with different variant to store front
 - make media library upload button out side of tab at top position and make scroll for outer layer of pop up window
-- tighten and remove unwanted text 
+- tighten and remove unwanted text and keep first tab is to upload and bulk upload and drag and drop option and it always open when media lib call
+- 
