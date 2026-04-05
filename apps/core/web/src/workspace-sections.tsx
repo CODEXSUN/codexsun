@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeftIcon, CopyIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
+import { ArrowLeftIcon, ArrowRightIcon, CopyIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
 
 import {
   coreCommonModuleMenuGroups,
@@ -1054,8 +1054,58 @@ function DetailField({
   )
 }
 
+function HighlightMetricCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string
+  value: string
+  helper?: string
+}) {
+  return (
+    <div className="rounded-2xl border border-primary/12 bg-primary/5 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+      {helper ? <p className="mt-1 text-xs text-muted-foreground">{helper}</p> : null}
+    </div>
+  )
+}
+
+function HighlightChip({
+  label,
+  active,
+}: {
+  label: string
+  active: boolean
+}) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded-full border px-3 py-1 text-[11px] font-medium tracking-[0.04em]",
+        active
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-border/70 bg-background/75 text-muted-foreground"
+      )}
+    >
+      {label}
+    </Badge>
+  )
+}
+
 function formatNumberDetail(value: number) {
   return value.toLocaleString("en-IN")
+}
+
+function formatCurrencyDetail(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value)
 }
 
 function formatNullableDetail(value: string | null | undefined) {
@@ -2025,8 +2075,21 @@ export function ProductShowSection({
   const productResource = useJsonResource<ProductResponse>(
     `/internal/v1/core/product?id=${encodeURIComponent(productId)}`
   )
+  const productListResource = useJsonResource<ProductListResponse>("/internal/v1/core/products")
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const navigationState = useMemo(() => {
+    const items = productListResource.data?.items ?? []
+    const currentIndex = items.findIndex((item) => item.id === productId)
+
+    return {
+      currentIndex,
+      total: items.length,
+      previous: currentIndex > 0 ? items[currentIndex - 1] : null,
+      next: currentIndex >= 0 && currentIndex < items.length - 1 ? items[currentIndex + 1] : null,
+    }
+  }, [productId, productListResource.data])
 
   if (productResource.isLoading) {
     return <LoadingStateCard message="Loading product details..." />
@@ -2037,6 +2100,19 @@ export function ProductShowSection({
   }
 
   const product = productResource.data.item
+  const primaryVisual = product.primaryImageUrl ?? product.images[0]?.imageUrl ?? null
+  const averageRating =
+    product.reviews.length > 0
+      ? product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length
+      : null
+  const storefrontFlags = [
+    { label: "Home slider", active: product.homeSliderEnabled },
+    { label: "Promo slider", active: product.promoSliderEnabled },
+    { label: "Featured lane", active: product.featureSectionEnabled },
+    { label: "New arrival", active: product.isNewArrival },
+    { label: "Best seller", active: product.isBestSeller },
+    { label: "Featured badge", active: product.isFeaturedLabel },
+  ]
 
   async function handleDelete() {
     setDeleteError(null)
@@ -2058,23 +2134,60 @@ export function ProductShowSection({
     }
   }
 
+  function handleNavigateProduct(targetId: string | null | undefined) {
+    if (!targetId) {
+      return
+    }
+
+    void navigate(`${routeBase}/${encodeURIComponent(targetId)}`)
+  }
+
   return (
     <SectionShell
       title={product.name}
-      description="Shared product master details used across billing, ecommerce, and operational workflows."
+      description={
+        product.shortDescription?.trim() ||
+        "Shared product master details used across billing, ecommerce, and operational workflows."
+      }
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
             type="button"
             variant="outline"
             className="gap-2"
             onClick={() => {
               void navigate(routeBase)
             }}
-        >
-          <ArrowLeftIcon className="size-4" />
-          Back
-        </Button>
+          >
+            <ArrowLeftIcon className="size-4" />
+            Back
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            disabled={!navigationState.previous}
+            onClick={() => handleNavigateProduct(navigationState.previous?.id)}
+          >
+            <ArrowLeftIcon className="size-4" />
+            Previous
+          </Button>
+          <Button
+            type="button"
+            className="gap-2"
+            disabled={!navigationState.next}
+            onClick={() => handleNavigateProduct(navigationState.next?.id)}
+          >
+            Next
+            <ArrowRightIcon className="size-4" />
+          </Button>
+          {navigationState.currentIndex >= 0 ? (
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+              {navigationState.currentIndex + 1} / {navigationState.total}
+            </Badge>
+          ) : null}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -2107,9 +2220,165 @@ export function ProductShowSection({
           {deleteError}
         </div>
       ) : null}
+      <Card className="overflow-hidden border-primary/12 bg-gradient-to-br from-primary/[0.04] via-background to-background">
+        <CardContent className="grid gap-6 p-5 lg:grid-cols-[280px_minmax(0,1fr)_340px]">
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-muted/45">
+              <div className="aspect-square overflow-hidden">
+                {primaryVisual ? (
+                  <img
+                    src={primaryVisual}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full min-h-64 items-center justify-center text-sm text-muted-foreground">
+                    No product image
+                  </div>
+                )}
+              </div>
+            </div>
+            {product.images.length > 1 ? (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.slice(0, 4).map((image) => (
+                  <div
+                    key={image.id}
+                    className="overflow-hidden rounded-xl border border-border/70 bg-muted/40"
+                  >
+                    <div className="aspect-square overflow-hidden">
+                      <img
+                        src={image.imageUrl}
+                        alt={`${product.name} preview ${image.sortOrder}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <ActivityStatusBadge active={product.isActive} />
+                <HighlightChip label="Featured master" active={product.isFeatured} />
+                {product.storefront?.catalogBadge ? (
+                  <Badge className="rounded-full px-3 py-1">{product.storefront.catalogBadge}</Badge>
+                ) : null}
+                {product.storefront?.promoBadge ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-primary/20 bg-primary/8 px-3 py-1 text-primary"
+                  >
+                    {product.storefront.promoBadge}
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground lg:text-3xl">
+                  {product.storefront?.promoTitle?.trim() || product.name}
+                </h2>
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {product.storefront?.promoSubtitle?.trim() ||
+                    product.shortDescription?.trim() ||
+                    product.description?.trim() ||
+                    "No summary available."}
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DetailField label="Code" value={product.code} />
+              <DetailField label="SKU" value={product.sku} />
+              <DetailField label="Brand" value={formatNullableDetail(product.brandName)} />
+              <DetailField label="Category" value={formatNullableDetail(product.categoryName)} />
+              <DetailField label="Department" value={formatNullableDetail(product.storefrontDepartment)} />
+              <DetailField label="Product Type" value={formatNullableDetail(product.productTypeName)} />
+              <DetailField label="Slug" value={product.slug} />
+              <DetailField
+                label="CTA Label"
+                value={formatNullableDetail(product.storefront?.promoCtaLabel)}
+              />
+            </div>
+            <div className="rounded-2xl border border-primary/12 bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Storefront readiness
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {storefrontFlags.map((flag) => (
+                  <HighlightChip key={flag.label} label={flag.label} active={flag.active} />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <HighlightMetricCard
+                label="Selling price"
+                value={formatCurrencyDetail(product.basePrice)}
+                helper={`Cost ${formatCurrencyDetail(product.costPrice)}`}
+              />
+              <HighlightMetricCard
+                label="Stock on hand"
+                value={formatNumberDetail(product.totalStockQuantity)}
+                helper={`${formatNumberDetail(product.stockItems.length)} stock rows`}
+              />
+              <HighlightMetricCard
+                label="Variants"
+                value={formatNumberDetail(product.variantCount)}
+                helper={`${formatNumberDetail(product.attributeCount)} attributes configured`}
+              />
+              <HighlightMetricCard
+                label="Storefront proof"
+                value={averageRating ? averageRating.toFixed(1) : "0.0"}
+                helper={
+                  product.reviews.length > 0
+                    ? `${formatNumberDetail(product.reviews.length)} reviews`
+                    : "No customer reviews yet"
+                }
+              />
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Front-of-store copy
+              </p>
+              <div className="mt-3 grid gap-3">
+                <DetailField label="Promo Title" value={formatNullableDetail(product.storefront?.promoTitle)} />
+                <DetailField
+                  label="Promo Subtitle"
+                  value={formatNullableDetail(product.storefront?.promoSubtitle)}
+                />
+                <DetailField
+                  label="Shipping Note"
+                  value={formatNullableDetail(product.storefront?.shippingNote)}
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="border-primary/12">
+        <CardHeader>
+          <CardTitle>Storefront Focus</CardTitle>
+          <CardDescription>
+            Merchandising, promo copy, and catalog-facing traits that matter first during verification.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-5">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <DetailField label="Home Slider Order" value={formatNumberDetail(product.storefront?.homeSliderOrder ?? 0)} />
+            <DetailField label="Promo Slider Order" value={formatNumberDetail(product.storefront?.promoSliderOrder ?? 0)} />
+            <DetailField label="Feature Section Order" value={formatNumberDetail(product.storefront?.featureSectionOrder ?? 0)} />
+            <DetailField label="Catalog Badge" value={formatNullableDetail(product.storefront?.catalogBadge)} />
+            <DetailField label="Fabric" value={formatNullableDetail(product.storefront?.fabric)} />
+            <DetailField label="Fit" value={formatNullableDetail(product.storefront?.fit)} />
+            <DetailField label="Sleeve" value={formatNullableDetail(product.storefront?.sleeve)} />
+            <DetailField label="Occasion" value={formatNullableDetail(product.storefront?.occasion)} />
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>Core Details</CardTitle>
           <CardDescription>Primary product identity, classification, and master settings.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 p-5 md:grid-cols-2 xl:grid-cols-4">
@@ -2129,6 +2398,70 @@ export function ProductShowSection({
           <DetailField label="Description" value={formatNullableDetail(product.description)} />
           <DetailField label="Created At" value={product.createdAt} />
           <DetailField label="Updated At" value={product.updatedAt} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Attributes And Variants</CardTitle>
+          <CardDescription>
+            Verification surface for variant combinations, product attributes, and active tags.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-5">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Attributes
+            </p>
+            {product.attributes.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {product.attributes.map((attribute) => (
+                  <Badge key={attribute.id} variant="outline" className="rounded-full px-3 py-1">
+                    {attribute.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Variants
+            </p>
+            {product.variants.length > 0 ? (
+              <div className="grid gap-3">
+                {product.variants.map((variant) => (
+                  <div key={variant.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                      <DetailField label="Variant" value={variant.variantName} />
+                      <DetailField label="SKU" value={variant.sku} />
+                      <DetailField label="Selling Price" value={formatCurrencyDetail(variant.price)} />
+                      <DetailField label="Stock" value={formatNumberDetail(variant.stockQuantity)} />
+                      <DetailField label="Status" value={variant.isActive ? "Active" : "Inactive"} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Tags
+            </p>
+            {product.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {product.tags.map((tag) => (
+                  <Badge key={tag.id} variant="outline" className="rounded-full px-3 py-1">
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
         </CardContent>
       </Card>
       <Card>
@@ -2278,6 +2611,56 @@ export function ProductShowSection({
               </div>
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Offers And Reviews</CardTitle>
+          <CardDescription>Commercial offers and review proof captured against this product.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-5">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Offers
+            </p>
+            {product.offers.length > 0 ? (
+              <div className="grid gap-3">
+                {product.offers.map((offer) => (
+                  <div key={offer.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <DetailField label="Title" value={offer.title} />
+                      <DetailField label="Offer Price" value={formatCurrencyDetail(offer.offerPrice)} />
+                      <DetailField label="Start" value={formatNullableDetail(offer.startDate)} />
+                      <DetailField label="End" value={formatNullableDetail(offer.endDate)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Reviews
+            </p>
+            {product.reviews.length > 0 ? (
+              <div className="grid gap-3">
+                {product.reviews.map((review) => (
+                  <div key={review.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <DetailField label="Rating" value={String(review.rating)} />
+                      <DetailField label="Review Date" value={review.reviewDate} />
+                      <DetailField label="User" value={formatNullableDetail(review.userId)} />
+                      <DetailField label="Comment" value={formatNullableDetail(review.review)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">-</p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </SectionShell>

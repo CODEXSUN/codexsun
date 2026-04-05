@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from "react"
 import {
   FolderPlusIcon,
   LayoutGridIcon,
@@ -22,7 +22,7 @@ import type {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -239,6 +239,7 @@ export function FrameworkMediaBrowser({
   const [externalUrl, setExternalUrl] = useState(selectedUrl ?? "")
   const [externalUrlError, setExternalUrlError] = useState<string | null>(null)
   const [previewLayout, setPreviewLayout] = useState<MediaPreviewLayout>("small-grid")
+  const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -266,6 +267,10 @@ export function FrameworkMediaBrowser({
   useEffect(() => {
     void loadData()
   }, [])
+
+  function openFilePicker() {
+    fileInputRef.current?.click()
+  }
 
   const filteredAssets = useMemo(() => {
     const searchTerm = search.trim().toLowerCase()
@@ -360,6 +365,12 @@ export function FrameworkMediaBrowser({
       setActiveUploads([])
       setIsUploading(false)
     }
+  }
+
+  function handleDrop(event: ReactDragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsDragOver(false)
+    void handleFilesSelected(event.dataTransfer.files)
   }
 
   async function handleCreateFolder() {
@@ -483,10 +494,101 @@ export function FrameworkMediaBrowser({
   const mediaTabs = useMemo<AnimatedContentTab[]>(() => {
     return [
       {
+        label: "Upload",
+        value: "upload",
+        content: (
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div
+              className={cn(
+                "rounded-xl border border-dashed bg-background/80 p-4 transition",
+                isDragOver
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/15"
+                  : "border-border/70"
+              )}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setIsDragOver(true)
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={handleDrop}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(event) => void handleFilesSelected(event.target.files)}
+              />
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="button" onClick={openFilePicker} disabled={isUploading}>
+                    {isUploading ? (
+                      <LoaderCircleIcon className="size-4 animate-spin" />
+                    ) : (
+                      <UploadIcon className="size-4" />
+                    )}
+                    Upload Images
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Bulk upload up to {MAX_FILES_PER_UPLOAD} images in one batch.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-6 text-center">
+                  <p className="text-sm font-medium text-foreground">Drag and drop images here</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Total upload size up to {readableFileSize(MAX_TOTAL_UPLOAD_BYTES)}.
+                  </p>
+                </div>
+                {activeUploads.length > 0 ? (
+                  <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+                    Uploading: {activeUploads.join(", ")}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Upload Scope</Label>
+              <Select
+                value={uploadScope}
+                onValueChange={(value) => setUploadScope(value as MediaStorageScope)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allowedScopes.map((scope) => (
+                    <SelectItem key={scope} value={scope}>
+                      {scope === "public" ? "Public" : "Private"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Upload Folder</Label>
+              <Select value={uploadFolderId} onValueChange={setUploadFolderId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Unfiled" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unfiled</SelectItem>
+                  {folders.map((folder) => (
+                    <SelectItem key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ),
+      },
+      {
         label: "Browse",
         value: "browse",
         content: (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_repeat(3,minmax(0,0.7fr))]">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_repeat(3,minmax(0,0.7fr))]">
             <div className="grid gap-2">
               <Label htmlFor="framework-media-search">Search</Label>
               <Input
@@ -546,93 +648,6 @@ export function FrameworkMediaBrowser({
                   <SelectItem value="presentation">Presentation</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-        ),
-      },
-      {
-        label: "Upload",
-        value: "upload",
-        content: (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label>Upload Scope</Label>
-                  <Select
-                    value={uploadScope}
-                    onValueChange={(value) => setUploadScope(value as MediaStorageScope)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select scope" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allowedScopes.map((scope) => (
-                        <SelectItem key={scope} value={scope}>
-                          {scope === "public" ? "Public" : "Private"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Upload Folder</Label>
-                  <Select value={uploadFolderId} onValueChange={setUploadFolderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Unfiled" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Unfiled</SelectItem>
-                      {folders.map((folder) => (
-                        <SelectItem key={folder.id} value={folder.id}>
-                          {folder.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="rounded-xl border border-border/70 bg-background/75 p-4">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(event) => void handleFilesSelected(event.target.files)}
-                />
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <LoaderCircleIcon className="size-4 animate-spin" />
-                    ) : (
-                      <UploadIcon className="size-4" />
-                    )}
-                    Upload Images
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Upload up to {MAX_FILES_PER_UPLOAD} images per batch.
-                  </p>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Total upload size can go up to {readableFileSize(MAX_TOTAL_UPLOAD_BYTES)}.
-                </p>
-                {activeUploads.length > 0 ? (
-                  <div className="mt-3 rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-                    Uploading: {activeUploads.join(", ")}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="rounded-xl border border-dashed border-border/70 bg-background/50 p-4">
-              <p className="text-sm font-medium text-foreground">Upload behavior</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                New uploads appear immediately in the preview area below and stay editable from their asset cards.
-              </p>
             </div>
           </div>
         ),
@@ -731,6 +746,7 @@ export function FrameworkMediaBrowser({
     externalUrlError,
     folderFilter,
     folders,
+    isDragOver,
     isCreatingFolder,
     isUploading,
     newFolderName,
@@ -743,17 +759,22 @@ export function FrameworkMediaBrowser({
   ])
 
   return (
-    <div className="space-y-4 min-h-0">
+    <div className="min-h-0 space-y-3">
       <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
-        <CardHeader className={compact ? "pb-4" : undefined}>
+        <CardHeader className={cn("pb-3", compact ? "pt-4" : undefined)}>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <CardTitle className="text-base">Media Library</CardTitle>
-              <CardDescription>
-                Upload up to 5 images at once and reuse them anywhere in the application.
-              </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={openFilePicker} disabled={isUploading}>
+                {isUploading ? (
+                  <LoaderCircleIcon className="size-4 animate-spin" />
+                ) : (
+                  <UploadIcon className="size-4" />
+                )}
+                Upload
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -767,14 +788,8 @@ export function FrameworkMediaBrowser({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <AnimatedTabs tabs={mediaTabs} defaultTabValue="browse" />
-
-          <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-xs text-muted-foreground">
-            Upload limit: {MAX_FILES_PER_UPLOAD} images per batch · total size up to{" "}
-            {readableFileSize(MAX_TOTAL_UPLOAD_BYTES)}.
-          </div>
-
+        <CardContent className="space-y-3 pt-0">
+          <AnimatedTabs tabs={mediaTabs} defaultTabValue="upload" />
           {error ? (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {error}
@@ -784,13 +799,10 @@ export function FrameworkMediaBrowser({
       </Card>
 
       <Card className="overflow-hidden rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
-        <CardHeader className="border-b border-border/70 pb-4">
+        <CardHeader className="border-b border-border/70 pb-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <CardTitle className="text-base">Preview</CardTitle>
-              <CardDescription>
-                Review assets below without losing the form. Switch layouts based on the current media set.
-              </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -825,8 +837,8 @@ export function FrameworkMediaBrowser({
         </CardHeader>
         <CardContent
           className={cn(
-            "p-5 min-h-0 overflow-y-auto",
-            compact ? "max-h-[min(44vh,26rem)]" : "max-h-[min(52vh,34rem)]"
+            "min-h-0 overflow-y-auto p-4",
+            compact ? "max-h-[min(42vh,24rem)]" : "max-h-[min(48vh,30rem)]"
           )}
         >
           {isLoading ? (

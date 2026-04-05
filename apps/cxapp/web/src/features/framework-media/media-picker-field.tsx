@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -113,12 +112,10 @@ export function FrameworkMediaPickerField({
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[min(96vw,78rem)] max-w-[78rem]">
+        <DialogContent className="w-[min(96vw,78rem)] max-w-[78rem] max-h-[90vh] overflow-y-auto p-0">
+          <div className="space-y-4 p-6">
           <DialogHeader>
             <DialogTitle>Select Media</DialogTitle>
-            <DialogDescription>
-              Upload a new image or reuse an existing framework media asset.
-            </DialogDescription>
           </DialogHeader>
           <FrameworkMediaBrowser
             compact
@@ -126,6 +123,7 @@ export function FrameworkMediaPickerField({
             onSelect={handleSelect}
             selectedUrl={value || null}
           />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
