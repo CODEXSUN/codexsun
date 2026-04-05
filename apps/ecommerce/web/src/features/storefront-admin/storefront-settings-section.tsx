@@ -16,6 +16,7 @@ import {
   FeaturedCardRowSurface,
   type FeaturedCardRowVariant,
 } from "@/components/ux/featured-card-row-surface"
+import { CategoryCardSurface } from "@/components/ux/category-card-surface"
 import { CategoryCardGridSurface } from "@/components/ux/category-card-grid-surface"
 import { CommerceProductCard } from "@/components/ux/commerce-product-card"
 import {
@@ -149,25 +150,29 @@ function PreviewCard({
   summary,
   children,
   className,
+  showHeader = true,
 }: {
   eyebrow: string
   title: string
   summary: string
   children: React.ReactNode
   className?: string
+  showHeader?: boolean
 }) {
   return (
     <Card className={cn("overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm", className)}>
       <CardContent className="space-y-5 p-5">
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            {eyebrow}
-          </p>
-          <h3 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            {title}
-          </h3>
-          <p className="text-sm leading-6 text-muted-foreground">{summary}</p>
-        </div>
+        {showHeader ? (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              {eyebrow}
+            </p>
+            <h3 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+              {title}
+            </h3>
+            <p className="text-sm leading-6 text-muted-foreground">{summary}</p>
+          </div>
+        ) : null}
         {children}
       </CardContent>
     </Card>
@@ -585,7 +590,7 @@ function SingleFeaturedCardPreview({
   return (
     <SectionPreviewShell>
       {item ? (
-        <div className="mx-auto w-full max-w-sm">
+        <div className="w-full">
           <CommerceProductCard
             href={storefrontPaths.product(item.slug)}
             name={item.name}
@@ -684,13 +689,8 @@ function SingleCategoryCardPreview({
   return (
     <SectionPreviewShell>
       {item ? (
-        <div className="mx-auto w-full max-w-sm">
-          <CategoryCardGridSurface
-            items={[item]}
-            cardsPerRow={3}
-            rowsToShow={1}
-            cardDesign={section.cardDesign}
-          />
+        <div className="w-full">
+          <CategoryCardSurface item={item} design={section.cardDesign} />
         </div>
       ) : (
         <EmptyPreviewState message="A single category preview will appear here once live storefront categories are available." />
@@ -1641,6 +1641,7 @@ export function StorefrontSettingsSection() {
               title="Featured card designer"
               summary="This single-card preview uses the same live featured product card and updates across breakpoints."
               className="xl:sticky xl:top-24"
+              showHeader={false}
             >
               <SingleFeaturedCardPreview
                 section={featuredSection}
@@ -1920,6 +1921,7 @@ export function StorefrontSettingsSection() {
               title="Category card designer"
               summary="This single-card preview uses the same live category card and updates across breakpoints."
               className="xl:sticky xl:top-24"
+              showHeader={false}
             >
               <SingleCategoryCardPreview
                 section={categoriesSection}

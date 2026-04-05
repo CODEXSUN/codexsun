@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeftIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
+import { ArrowLeftIcon, CopyIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
 
 import {
   coreCommonModuleMenuGroups,
@@ -13,6 +13,7 @@ import {
   type CommonModuleSummaryListResponse,
   type ContactListResponse,
   type ContactResponse,
+  type ProductBulkEditResponse,
   type ProductListResponse,
   type ProductResponse,
 } from "@core/shared"
@@ -39,6 +40,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import {
   ActivityStatusBadge,
@@ -53,6 +55,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
@@ -62,6 +71,7 @@ import { toContactFormValues } from "@core/web/src/features/contact/contact-form
 import { ContactUpsertSection as ContactUpsertFeatureSection } from "@core/web/src/features/contact/contact-upsert-section"
 import { toProductFormValues } from "@core/web/src/features/product/product-form-state"
 import { ProductUpsertSection as ProductUpsertFeatureSection } from "@core/web/src/features/product/product-upsert-section"
+import { storefrontDepartmentOptions } from "@core/web/src/features/product/product-form-state"
 import { CoreSettingsSection as CoreSettingsFeatureSection } from "@core/web/src/features/settings/core-settings-section"
 import { cn } from "@/lib/utils"
 
@@ -81,6 +91,68 @@ type CommonModuleFormState = Record<string, string | boolean>
 type CommonModuleReferenceMap = Partial<Record<CommonModuleKey, CommonModuleItem[]>>
 
 type StatusFilterValue = "all" | "active" | "inactive"
+type BulkToggleValue = "keep" | "enable" | "disable"
+type ProductBulkEditFormState = {
+  categoryId: string
+  storefrontDepartment: string
+  isActive: BulkToggleValue
+  isFeatured: BulkToggleValue
+  featureSectionEnabled: BulkToggleValue
+  featureSectionOrder: string
+  homeSliderEnabled: BulkToggleValue
+  homeSliderOrder: string
+  promoSliderEnabled: BulkToggleValue
+  promoSliderOrder: string
+  isNewArrival: BulkToggleValue
+  isBestSeller: BulkToggleValue
+  isFeaturedLabel: BulkToggleValue
+}
+
+const bulkToggleOptions: LookupOption[] = [
+  { label: "Keep current", value: "keep" },
+  { label: "Enable", value: "enable" },
+  { label: "Disable", value: "disable" },
+]
+
+const presenceFilterOptions = [
+  { label: "All", value: "all" },
+  { label: "Yes", value: "yes" },
+  { label: "No", value: "no" },
+] as const
+
+function createDefaultProductBulkEditFormState(): ProductBulkEditFormState {
+  return {
+    categoryId: "__keep__",
+    storefrontDepartment: "__keep__",
+    isActive: "keep",
+    isFeatured: "keep",
+    featureSectionEnabled: "keep",
+    featureSectionOrder: "",
+    homeSliderEnabled: "keep",
+    homeSliderOrder: "",
+    promoSliderEnabled: "keep",
+    promoSliderOrder: "",
+    isNewArrival: "keep",
+    isBestSeller: "keep",
+    isFeaturedLabel: "keep",
+  }
+}
+
+function resolveBulkToggleValue(value: BulkToggleValue) {
+  if (value === "keep") {
+    return undefined
+  }
+
+  return value === "enable"
+}
+
+function matchesPresenceFilter(filter: "all" | "yes" | "no", value: boolean) {
+  if (filter === "all") {
+    return true
+  }
+
+  return filter === "yes" ? value : !value
+}
 
 function matchesStatusFilter(statusFilter: StatusFilterValue, isActive: boolean) {
   if (statusFilter === "all") {
@@ -1561,6 +1633,13 @@ function ContactsSection({
   const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
+  const [contactTypeFilter, setContactTypeFilter] = useState("__all__")
+  const [ledgerFilter, setLedgerFilter] = useState<"all" | "yes" | "no">("all")
+  const [emailFilter, setEmailFilter] = useState<"all" | "yes" | "no">("all")
+  const [phoneFilter, setPhoneFilter] = useState<"all" | "yes" | "no">("all")
+  const [gstinFilter, setGstinFilter] = useState<"all" | "yes" | "no">("all")
+  const [websiteFilter, setWebsiteFilter] = useState<"all" | "yes" | "no">("all")
+  const [contentFilter, setContentFilter] = useState<"all" | "yes" | "no">("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [deleteTargetContact, setDeleteTargetContact] = useState<ContactListResponse["items"][number] | null>(null)
@@ -1570,6 +1649,20 @@ function ContactsSection({
   const [mutatingContactId, setMutatingContactId] = useState<string | null>(null)
   const { data, error, isLoading } =
     useJsonResource<ContactListResponse>(`/internal/v1/core/contacts?refresh=${refreshKey}`)
+  const contactTypesResponse = useJsonResource<{ module: CommonModuleKey; items: CommonModuleItem[] }>(
+    "/internal/v1/core/common-modules/items?module=contactTypes"
+  )
+
+  const contactTypeOptions = useMemo<LookupOption[]>(
+    () => [
+      { label: "All contact types", value: "__all__" },
+      ...(contactTypesResponse.data?.items ?? []).map((item) => ({
+        label: String(item.name ?? item.code ?? "Unnamed type"),
+        value: item.id,
+      })),
+    ],
+    [contactTypesResponse.data]
+  )
 
   async function handleContactStatusChange(contactId: string, isActive: boolean) {
     setListError(null)
@@ -1642,7 +1735,28 @@ function ContactsSection({
       contact.description ?? "",
     ].some((value) => value.toLowerCase().includes(normalizedSearch))
 
-    return matchesSearch && matchesStatusFilter(statusFilter, contact.isActive)
+    const matchesType =
+      contactTypeFilter === "__all__"
+        ? true
+        : (contact.contactTypeId ?? "__none__") === contactTypeFilter
+    const matchesLedger = matchesPresenceFilter(ledgerFilter, Boolean(contact.ledgerId))
+    const matchesEmail = matchesPresenceFilter(emailFilter, Boolean(contact.primaryEmail))
+    const matchesPhone = matchesPresenceFilter(phoneFilter, Boolean(contact.primaryPhone))
+    const matchesGstin = matchesPresenceFilter(gstinFilter, Boolean(contact.gstin))
+    const matchesWebsite = matchesPresenceFilter(websiteFilter, Boolean(contact.website))
+    const matchesContent = matchesPresenceFilter(contentFilter, Boolean(contact.description))
+
+    return (
+      matchesSearch &&
+      matchesStatusFilter(statusFilter, contact.isActive) &&
+      matchesType &&
+      matchesLedger &&
+      matchesEmail &&
+      matchesPhone &&
+      matchesGstin &&
+      matchesWebsite &&
+      matchesContent
+    )
   })
   const totalRecords = filteredContacts.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -1659,6 +1773,78 @@ function ContactsSection({
           {listError}
         </div>
       ) : null}
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Contact Filters</CardTitle>
+          <CardDescription>
+            Filter contacts by type, ledger linkage, communication readiness, tax details, and profile content.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Contact Type</label>
+            <AutocompleteLookupField
+              value={contactTypeFilter}
+              onChange={(value) => {
+                setContactTypeFilter(value)
+                setCurrentPage(1)
+              }}
+              options={contactTypeOptions}
+              placeholder="Choose contact type"
+            />
+          </div>
+          {[
+            { label: "Ledger Linked", value: ledgerFilter, setter: setLedgerFilter },
+            { label: "Has Email", value: emailFilter, setter: setEmailFilter },
+            { label: "Has Phone", value: phoneFilter, setter: setPhoneFilter },
+            { label: "Has GSTIN", value: gstinFilter, setter: setGstinFilter },
+            { label: "Has Website", value: websiteFilter, setter: setWebsiteFilter },
+            { label: "Has Content", value: contentFilter, setter: setContentFilter },
+          ].map((entry) => (
+            <div key={entry.label} className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{entry.label}</label>
+              <Select
+                value={entry.value}
+                onValueChange={(nextValue) => {
+                  entry.setter(nextValue as "all" | "yes" | "no")
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={entry.label} />
+                </SelectTrigger>
+                <SelectContent>
+                  {presenceFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setContactTypeFilter("__all__")
+                setLedgerFilter("all")
+                setEmailFilter("all")
+                setPhoneFilter("all")
+                setGstinFilter("all")
+                setWebsiteFilter("all")
+                setContentFilter("all")
+                setStatusFilter("all")
+                setCurrentPage(1)
+              }}
+            >
+              Clear Contact Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       <MasterList
       header={{
         pageTitle: "Contacts",
@@ -2106,15 +2292,69 @@ export function ProductsSection({
   const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
+  const [categoryFilter, setCategoryFilter] = useState("__all__")
+  const [brandFilter, setBrandFilter] = useState("__all__")
+  const [storefrontFilter, setStorefrontFilter] = useState("all")
+  const [attributeFilter, setAttributeFilter] = useState<"all" | "yes" | "no">("all")
+  const [contentFilter, setContentFilter] = useState<"all" | "yes" | "no">("all")
+  const [stockFilter, setStockFilter] = useState<"all" | "yes" | "no">("all")
+  const [promoFilter, setPromoFilter] = useState<"all" | "yes" | "no">("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  const [selectedProductIds, setSelectedProductIds] = useState<Array<string | number>>([])
+  const [bulkEditOpen, setBulkEditOpen] = useState(false)
+  const [bulkEditForm, setBulkEditForm] = useState<ProductBulkEditFormState>(
+    createDefaultProductBulkEditFormState()
+  )
   const [deleteTargetProduct, setDeleteTargetProduct] = useState<ProductListResponse["items"][number] | null>(null)
   const [listError, setListError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isBulkSaving, setIsBulkSaving] = useState(false)
   const [mutatingProductId, setMutatingProductId] = useState<string | null>(null)
   const { data, error, isLoading } =
     useJsonResource<ProductListResponse>(`/internal/v1/core/products?refresh=${refreshKey}`)
+  const categoryResponse = useJsonResource<{ module: CommonModuleKey; items: CommonModuleItem[] }>(
+    "/internal/v1/core/common-modules/items?module=productCategories"
+  )
+
+  const categoryOptions = useMemo<LookupOption[]>(() => {
+    const dynamicOptions =
+      categoryResponse.data?.items.map((item) => ({
+        label: String(item.name ?? item.code ?? "Unnamed category"),
+        value: item.id,
+      })) ?? []
+
+    return [
+      { label: "Keep current category", value: "__keep__" },
+      { label: "Clear category", value: "__clear__" },
+      ...dynamicOptions,
+    ]
+  }, [categoryResponse.data])
+
+  const brandOptions = useMemo<LookupOption[]>(() => {
+    const uniqueBrands = Array.from(
+      new Map(
+        (data?.items ?? [])
+          .filter((product) => product.brandId && product.brandName)
+          .map((product) => [product.brandId as string, product.brandName as string])
+      ).entries()
+    )
+
+    return [
+      { label: "All brands", value: "__all__" },
+      ...uniqueBrands.map(([value, label]) => ({ label, value })),
+    ]
+  }, [data?.items])
+
+  const departmentOptions = useMemo<LookupOption[]>(
+    () => [
+      { label: "Keep current department", value: "__keep__" },
+      { label: "Clear department", value: "__clear__" },
+      ...storefrontDepartmentOptions,
+    ],
+    []
+  )
 
   async function handleProductStatusChange(productId: string, isActive: boolean) {
     setListError(null)
@@ -2146,6 +2386,35 @@ export function ProductsSection({
     }
   }
 
+  async function handleProductDuplicate(product: ProductListResponse["items"][number]) {
+    setListError(null)
+    setMutatingProductId(product.id)
+
+    try {
+      const response = await requestJson<ProductResponse>(
+        `/internal/v1/core/product/duplicate?id=${encodeURIComponent(product.id)}`,
+        {
+          method: "POST",
+        }
+      )
+
+      showRecordToast({
+        action: "duplicated",
+        entity: "Product",
+        recordId: response.item.id,
+        recordName: response.item.name,
+      })
+      setRefreshKey((current) => current + 1)
+      void navigate(`${routeBase}/${encodeURIComponent(response.item.id)}/edit`)
+    } catch (duplicateError) {
+      setListError(
+        duplicateError instanceof Error ? duplicateError.message : "Failed to duplicate product."
+      )
+    } finally {
+      setMutatingProductId(null)
+    }
+  }
+
   async function handleProductDelete(productId: string) {
     setListError(null)
     setIsDeleting(true)
@@ -2168,6 +2437,86 @@ export function ProductsSection({
     }
   }
 
+  async function handleBulkEditSave() {
+    const payload: Record<string, unknown> = {
+      productIds: selectedProductIds.map((value) => String(value)),
+    }
+
+    if (bulkEditForm.categoryId === "__clear__") {
+      payload.categoryId = null
+      payload.categoryName = null
+    } else if (bulkEditForm.categoryId !== "__keep__") {
+      const selectedCategory =
+        categoryResponse.data?.items.find((item) => item.id === bulkEditForm.categoryId) ?? null
+      payload.categoryId = bulkEditForm.categoryId
+      payload.categoryName = selectedCategory ? String(selectedCategory.name ?? "") : null
+    }
+
+    if (bulkEditForm.storefrontDepartment === "__clear__") {
+      payload.storefrontDepartment = null
+    } else if (bulkEditForm.storefrontDepartment !== "__keep__") {
+      payload.storefrontDepartment = bulkEditForm.storefrontDepartment
+    }
+
+    const toggleEntries = [
+      ["isActive", resolveBulkToggleValue(bulkEditForm.isActive)],
+      ["isFeatured", resolveBulkToggleValue(bulkEditForm.isFeatured)],
+      ["featureSectionEnabled", resolveBulkToggleValue(bulkEditForm.featureSectionEnabled)],
+      ["homeSliderEnabled", resolveBulkToggleValue(bulkEditForm.homeSliderEnabled)],
+      ["promoSliderEnabled", resolveBulkToggleValue(bulkEditForm.promoSliderEnabled)],
+      ["isNewArrival", resolveBulkToggleValue(bulkEditForm.isNewArrival)],
+      ["isBestSeller", resolveBulkToggleValue(bulkEditForm.isBestSeller)],
+      ["isFeaturedLabel", resolveBulkToggleValue(bulkEditForm.isFeaturedLabel)],
+    ] as const
+
+    for (const [key, value] of toggleEntries) {
+      if (value !== undefined) {
+        payload[key] = value
+      }
+    }
+
+    if (bulkEditForm.featureSectionOrder.trim()) {
+      payload.featureSectionOrder = Number(bulkEditForm.featureSectionOrder)
+    }
+
+    if (bulkEditForm.homeSliderOrder.trim()) {
+      payload.homeSliderOrder = Number(bulkEditForm.homeSliderOrder)
+    }
+
+    if (bulkEditForm.promoSliderOrder.trim()) {
+      payload.promoSliderOrder = Number(bulkEditForm.promoSliderOrder)
+    }
+
+    setListError(null)
+    setIsBulkSaving(true)
+
+    try {
+      const response = await requestJson<ProductBulkEditResponse>(
+        "/internal/v1/core/products/bulk-edit",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      )
+
+      showAppToast({
+        variant: "success",
+        title: "Product bulk update successful.",
+        description: `${response.count} selected products were updated with the new merchandising settings.`,
+      })
+      setBulkEditOpen(false)
+      setBulkEditForm(createDefaultProductBulkEditFormState())
+      setSelectedProductIds([])
+      setRefreshKey((current) => current + 1)
+    } catch (bulkError) {
+      setListError(
+        bulkError instanceof Error ? bulkError.message : "Failed to update selected products."
+      )
+    } finally {
+      setIsBulkSaving(false)
+    }
+  }
+
   if (isLoading) {
     return <LoadingStateCard message="Loading products..." />
   }
@@ -2187,7 +2536,54 @@ export function ProductsSection({
       product.shortDescription ?? "",
     ].some((value) => value.toLowerCase().includes(normalizedSearch))
 
-    return matchesSearch && matchesStatusFilter(statusFilter, product.isActive)
+    const matchesCategory =
+      categoryFilter === "__all__" ? true : (product.categoryId ?? "__none__") === categoryFilter
+    const matchesBrand =
+      brandFilter === "__all__" ? true : (product.brandId ?? "__none__") === brandFilter
+    const matchesStorefront =
+      storefrontFilter === "all"
+        ? true
+        : storefrontFilter === "feature-section"
+          ? product.featureSectionEnabled
+          : storefrontFilter === "home-slider"
+            ? product.homeSliderEnabled
+            : storefrontFilter === "new-arrival"
+              ? product.isNewArrival
+              : storefrontFilter === "best-seller"
+                ? product.isBestSeller
+                : storefrontFilter === "featured-badge"
+                  ? product.isFeaturedLabel
+                  : Boolean(
+                      product.storefrontDepartment ||
+                        product.featureSectionEnabled ||
+                        product.homeSliderEnabled ||
+                        product.promoSliderEnabled ||
+                        product.isNewArrival ||
+                        product.isBestSeller ||
+                        product.isFeaturedLabel
+                    )
+    const matchesAttributes = matchesPresenceFilter(
+      attributeFilter,
+      product.attributeCount > 0
+    )
+    const matchesContent = matchesPresenceFilter(
+      contentFilter,
+      Boolean(product.description || product.shortDescription)
+    )
+    const matchesStock = matchesPresenceFilter(stockFilter, product.totalStockQuantity > 0)
+    const matchesPromo = matchesPresenceFilter(promoFilter, product.promoSliderEnabled)
+
+    return (
+      matchesSearch &&
+      matchesStatusFilter(statusFilter, product.isActive) &&
+      matchesCategory &&
+      matchesBrand &&
+      matchesStorefront &&
+      matchesAttributes &&
+      matchesContent &&
+      matchesStock &&
+      matchesPromo
+    )
   })
   const totalRecords = filteredProducts.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -2204,11 +2600,184 @@ export function ProductsSection({
           {listError}
         </div>
       ) : null}
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Product Filters</CardTitle>
+          <CardDescription>
+            Filter products by category, brand, storefront publishing, content readiness, stock, and promo state.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Category</label>
+            <AutocompleteLookupField
+              value={categoryFilter}
+              onChange={(value) => {
+                setCategoryFilter(value)
+                setCurrentPage(1)
+              }}
+              options={[{ label: "All categories", value: "__all__" }, ...categoryOptions.filter((option) => option.value !== "__keep__" && option.value !== "__clear__")]}
+              placeholder="Choose category"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Brand</label>
+            <AutocompleteLookupField
+              value={brandFilter}
+              onChange={(value) => {
+                setBrandFilter(value)
+                setCurrentPage(1)
+              }}
+              options={brandOptions}
+              placeholder="Choose brand"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Storefront</label>
+            <Select
+              value={storefrontFilter}
+              onValueChange={(value) => {
+                setStorefrontFilter(value)
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All storefront" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All storefront states</SelectItem>
+                <SelectItem value="any-storefront">Any storefront placement</SelectItem>
+                <SelectItem value="feature-section">Feature section</SelectItem>
+                <SelectItem value="home-slider">Home slider</SelectItem>
+                <SelectItem value="new-arrival">New arrival</SelectItem>
+                <SelectItem value="best-seller">Best seller</SelectItem>
+                <SelectItem value="featured-badge">Featured badge</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Has Attributes</label>
+            <Select
+              value={attributeFilter}
+              onValueChange={(value) => {
+                setAttributeFilter(value as "all" | "yes" | "no")
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Attributes" />
+              </SelectTrigger>
+              <SelectContent>
+                {presenceFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Has Content</label>
+            <Select
+              value={contentFilter}
+              onValueChange={(value) => {
+                setContentFilter(value as "all" | "yes" | "no")
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Content" />
+              </SelectTrigger>
+              <SelectContent>
+                {presenceFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">In Stock</label>
+            <Select
+              value={stockFilter}
+              onValueChange={(value) => {
+                setStockFilter(value as "all" | "yes" | "no")
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Stock" />
+              </SelectTrigger>
+              <SelectContent>
+                {presenceFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Promo Enabled</label>
+            <Select
+              value={promoFilter}
+              onValueChange={(value) => {
+                setPromoFilter(value as "all" | "yes" | "no")
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Promo" />
+              </SelectTrigger>
+              <SelectContent>
+                {presenceFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setCategoryFilter("__all__")
+                setBrandFilter("__all__")
+                setStorefrontFilter("all")
+                setAttributeFilter("all")
+                setContentFilter("all")
+                setStockFilter("all")
+                setPromoFilter("all")
+                setStatusFilter("all")
+                setCurrentPage(1)
+              }}
+            >
+              Clear Product Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       <MasterList
         header={{
           pageTitle: "Products",
           pageDescription:
             "Create and manage shared product masters with variants, pricing, and stock.",
+          actions: (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-md"
+              disabled={selectedProductIds.length === 0}
+              onClick={() => setBulkEditOpen(true)}
+            >
+              Bulk edit selected
+              {selectedProductIds.length > 0 ? ` (${selectedProductIds.length})` : ""}
+            </Button>
+          ),
           addLabel: "New Product",
           onAddClick: () => {
             void navigate(`${routeBase}/new`)
@@ -2300,6 +2869,16 @@ export function ProductsSection({
               cell: (product) => (
                 <RecordActionMenu
                   active={product.isActive}
+                  customItems={[
+                    {
+                      key: "duplicate",
+                      label: "Duplicate",
+                      icon: <CopyIcon className="size-4" />,
+                      onSelect: () => {
+                        void handleProductDuplicate(product)
+                      },
+                    },
+                  ]}
                   itemLabel={product.name}
                   disabled={mutatingProductId === product.id}
                   onDelete={() => {
@@ -2324,12 +2903,23 @@ export function ProductsSection({
           emptyMessage: "No products found.",
           rowKey: (product) => product.id,
         }}
+        rowSelection={{
+          selectedRowIds: selectedProductIds,
+          onSelectedRowIdsChange: setSelectedProductIds,
+          selectionLabel: "Select products",
+        }}
         footer={{
           content: (
             <div className="flex flex-wrap items-center gap-4">
               <span>
                 Total products: <span className="font-medium text-foreground">{totalRecords}</span>
               </span>
+              {selectedProductIds.length > 0 ? (
+                <span>
+                  Selected:{" "}
+                  <span className="font-medium text-foreground">{selectedProductIds.length}</span>
+                </span>
+              ) : null}
             </div>
           ),
         }}
@@ -2382,6 +2972,263 @@ export function ProductsSection({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Product Edit</DialogTitle>
+            <DialogDescription>
+              Update category, storefront sections, arrivals, promo, and related merchandising flags for the selected products without opening each record.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Category</label>
+                    <AutocompleteLookupField
+                      value={bulkEditForm.categoryId}
+                      onChange={(value) =>
+                        setBulkEditForm((current) => ({ ...current, categoryId: value }))
+                      }
+                      options={categoryOptions}
+                      placeholder="Choose category"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Department</label>
+                    <AutocompleteLookupField
+                      value={bulkEditForm.storefrontDepartment}
+                      onChange={(value) =>
+                        setBulkEditForm((current) => ({
+                          ...current,
+                          storefrontDepartment: value,
+                        }))
+                      }
+                      options={departmentOptions}
+                      placeholder="Choose department"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Record Status</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.isActive}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        isActive: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose status update"
+                  />
+                </div>
+                <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Featured Master Flag</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.isFeatured}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        isFeatured: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose featured update"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Feature Section</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.featureSectionEnabled}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        featureSectionEnabled: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose section update"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    value={bulkEditForm.featureSectionOrder}
+                    onChange={(event) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        featureSectionOrder: event.target.value,
+                      }))
+                    }
+                    placeholder="Order"
+                  />
+                </div>
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Home Slider</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.homeSliderEnabled}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        homeSliderEnabled: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose slider update"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    value={bulkEditForm.homeSliderOrder}
+                    onChange={(event) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        homeSliderOrder: event.target.value,
+                      }))
+                    }
+                    placeholder="Order"
+                  />
+                </div>
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Promo Slider</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.promoSliderEnabled}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        promoSliderEnabled: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose promo update"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    value={bulkEditForm.promoSliderOrder}
+                    onChange={(event) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        promoSliderOrder: event.target.value,
+                      }))
+                    }
+                    placeholder="Order"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">New Arrival</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.isNewArrival}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        isNewArrival: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose arrival update"
+                  />
+                </div>
+                <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Best Seller</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.isBestSeller}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        isBestSeller: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose seller update"
+                  />
+                </div>
+                <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Featured Badge</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.isFeaturedLabel}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        isFeaturedLabel: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose badge update"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-border/70 bg-card/80 p-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Selected products</p>
+                <p className="text-xs text-muted-foreground">
+                  Apply one merchandising pass to the current table selection.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {data.items
+                  .filter((product) => selectedProductIds.includes(product.id))
+                  .slice(0, 8)
+                  .map((product) => (
+                    <div
+                      key={product.id}
+                      className="rounded-xl border border-border/70 bg-background/70 px-3 py-2"
+                    >
+                      <p className="text-sm font-medium text-foreground">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.code} {product.categoryName ? `• ${product.categoryName}` : ""}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+              {selectedProductIds.length > 8 ? (
+                <p className="text-xs text-muted-foreground">
+                  +{selectedProductIds.length - 8} more selected products
+                </p>
+              ) : null}
+              <div className="rounded-xl border border-dashed border-border/70 bg-background/40 p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Included updates
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Category, department, slider sections, arrivals, featured labels, and status can all be changed here in one pass.
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setBulkEditOpen(false)
+                setBulkEditForm(createDefaultProductBulkEditFormState())
+              }}
+              disabled={isBulkSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                void handleBulkEditSave()
+              }}
+              disabled={isBulkSaving || selectedProductIds.length === 0}
+            >
+              {isBulkSaving ? "Saving..." : `Apply to ${selectedProductIds.length} products`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -2442,6 +3289,10 @@ export function CommonModulesSection({
   const [refreshKey, setRefreshKey] = useState(0)
   const [searchValue, setSearchValue] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
+  const [topMenuFilter, setTopMenuFilter] = useState<"all" | "yes" | "no">("all")
+  const [catalogFilter, setCatalogFilter] = useState<"all" | "yes" | "no">("all")
+  const [imageFilter, setImageFilter] = useState<"all" | "yes" | "no">("all")
+  const [descriptionFilter, setDescriptionFilter] = useState<"all" | "yes" | "no">("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [referenceState, setReferenceState] = useState<{
@@ -2553,6 +3404,10 @@ export function CommonModulesSection({
     setFormError(null)
     setSearchValue("")
     setStatusFilter("all")
+    setTopMenuFilter("all")
+    setCatalogFilter("all")
+    setImageFilter("all")
+    setDescriptionFilter("all")
     setCurrentPage(1)
   }, [activeMetadata])
 
@@ -2654,7 +3509,25 @@ export function CommonModulesSection({
       }),
     ].some((value) => value.toLowerCase().includes(normalizedSearch))
 
-    return matchesSearch && matchesStatusFilter(statusFilter, item.isActive)
+    const matchesProductCategoryFilters =
+      moduleKey !== "productCategories"
+        ? true
+        : matchesPresenceFilter(
+            topMenuFilter,
+            Boolean(item.show_on_storefront_top_menu)
+          ) &&
+          matchesPresenceFilter(
+            catalogFilter,
+            Boolean(item.show_on_storefront_catalog)
+          ) &&
+          matchesPresenceFilter(imageFilter, Boolean(item.image)) &&
+          matchesPresenceFilter(descriptionFilter, Boolean(item.description))
+
+    return (
+      matchesSearch &&
+      matchesStatusFilter(statusFilter, item.isActive) &&
+      matchesProductCategoryFilters
+    )
   })
   const totalRecords = filteredItems.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -2762,6 +3635,63 @@ export function CommonModulesSection({
         <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {listError}
         </div>
+      ) : null}
+      {moduleKey === "productCategories" ? (
+        <Card className="mb-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Product Category Filters</CardTitle>
+            <CardDescription>
+              Filter category masters by storefront placement, catalog readiness, media, and content completeness.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {[
+              { label: "Top Menu", value: topMenuFilter, setter: setTopMenuFilter },
+              { label: "Catalog", value: catalogFilter, setter: setCatalogFilter },
+              { label: "Has Image", value: imageFilter, setter: setImageFilter },
+              { label: "Has Description", value: descriptionFilter, setter: setDescriptionFilter },
+            ].map((entry) => (
+              <div key={entry.label} className="space-y-2">
+                <label className="text-sm font-medium text-foreground">{entry.label}</label>
+                <Select
+                  value={entry.value}
+                  onValueChange={(nextValue) => {
+                    entry.setter(nextValue as "all" | "yes" | "no")
+                    setCurrentPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={entry.label} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {presenceFilterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setTopMenuFilter("all")
+                  setCatalogFilter("all")
+                  setImageFilter("all")
+                  setDescriptionFilter("all")
+                  setStatusFilter("all")
+                  setCurrentPage(1)
+                }}
+              >
+                Clear Category Filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
       <MasterList
         header={{

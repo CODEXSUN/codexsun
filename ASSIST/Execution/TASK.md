@@ -4,39 +4,37 @@
 
 ### Reference
 
-`#27`
+`#28`
 
 ### Title
 
-`Demo app, shared state layer, storefront designers, and shared UI blocks`
+`Core product operations, media tabs, and storefront runtime stabilization`
 
 ### Scope Checklist
 
-- [x] add the app-owned `demo` application with module-scoped demo-data installers, summary pages, counts, and protected internal API routes
-- [x] add TanStack Query as the shared server-state layer and migrate runtime/app-settings, storefront shell, and demo polling to it
-- [x] add Zustand as a lightweight client-state layer for session and storefront shell state without disturbing the broader codebase
-- [x] improve storefront loading with skeletons, eager hero media, lazy catalog images, and faster first paint on slow networks
-- [x] add a shared toast layer with two-line record-result messaging, runtime positioning/tone settings, and design-system docs coverage
-- [x] integrate shared Tiptap editor support with icons and docs coverage in the UI design-system workspace
-- [x] move storefront search, featured-card, and category-card surfaces into reusable shared UI blocks and surfaces
-- [x] extend ecommerce storefront settings with saved featured and category row/layout designer settings, card design controls, and live frontend sync
-- [x] tighten media-browser overflow behavior so forms stay visible and asset grids scroll cleanly inside smaller screens
-- [x] update ASSIST tracking, ownership notes, architecture notes, changelog, and work log for the demo/state/storefront-designer batch
+- [x] add product bulk-edit actions for merchandising fields without disturbing the existing single-product editor
+- [x] add product duplicate support that creates editable copy records with safe `-copy` naming
+- [x] extend product, contact, and product-category list filtering with operational filters for merchandising and data completeness
+- [x] refactor the framework media browser into animated tabs with contained preview layouts and better small-screen behavior
+- [x] fix legacy product summary hydration so new `attributeCount` and `totalStockQuantity` fields do not break older stored records
+- [x] stabilize runtime storefront and branding reads by fixing startup crashes and storefront payload hydration gaps
+- [x] update ASSIST task tracking, planning, work log, and changelog for the product-ops and runtime-stability batch
 
 ### Validation Note
 
 - [x] `npm.cmd run typecheck`
-- [x] `npx.cmd tsx --test tests/demo/services.test.ts tests/api/demo-routes.test.ts tests/framework/application/app-suite.test.ts`
-- [x] `npm.cmd run build`
+- [x] backend `/health` check on `127.0.0.1:3001`
+- [x] manual storefront payload verification after legacy hydration fixes
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
+- [ ] full `npm run build`
 - [ ] full Playwright suite
 
 ## Next Batch
 
 ### Reference
 
-`#28`
+`#29`
 
 ### Title
 

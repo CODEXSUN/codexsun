@@ -51,6 +51,8 @@ function createSeedProduct(input: {
     isFeaturedLabel: false,
     primaryImageUrl: input.imageUrl,
     variantCount: 0,
+    attributeCount: 0,
+    totalStockQuantity: 12,
     tagCount: 2,
     tagNames: ["core", input.department],
     createdAt: timestamp,

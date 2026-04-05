@@ -78,6 +78,7 @@ export type MasterListProps<TData> = {
     addLabel?: string
     onAddClick?: () => void
     addDisabled?: boolean
+    actions?: ReactNode
   }
   search?: {
     value: string
@@ -317,17 +318,20 @@ export function MasterList<TData>({
         <div className="space-y-1">
           <p className="max-w-3xl text-sm text-muted-foreground/80">{header.pageDescription}</p>
         </div>
-        {header.addLabel && header.onAddClick ? (
-          <Button
-            type="button"
-            className="h-9 shrink-0 gap-2 self-start rounded-md px-3 lg:mt-1 lg:mr-2"
-            onClick={header.onAddClick}
-            disabled={header.addDisabled}
-          >
-            <PlusIcon className="size-4" />
-            <span>{header.addLabel}</span>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {header.actions}
+          {header.addLabel && header.onAddClick ? (
+            <Button
+              type="button"
+              className="h-9 shrink-0 gap-2 self-start rounded-md px-3 lg:mt-1 lg:mr-2"
+              onClick={header.onAddClick}
+              disabled={header.addDisabled}
+            >
+              <PlusIcon className="size-4" />
+              <span>{header.addLabel}</span>
+            </Button>
+          ) : null}
+        </div>
       </section>
 
       {showSearchSection ? (

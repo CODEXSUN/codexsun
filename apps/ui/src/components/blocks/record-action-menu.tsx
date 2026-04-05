@@ -7,6 +7,7 @@ import {
   RotateCcwIcon,
   Trash2Icon,
 } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +21,7 @@ export function RecordActionMenu({
   active = true,
   ariaLabel,
   className,
+  customItems,
   deleteLabel = "Delete",
   disabled = false,
   editLabel = "Edit",
@@ -31,6 +33,13 @@ export function RecordActionMenu({
   active?: boolean
   ariaLabel?: string
   className?: string
+  customItems?: Array<{
+    icon?: ReactNode
+    key: string
+    label: string
+    onSelect: () => void
+    destructive?: boolean
+  }>
   deleteLabel?: string
   disabled?: boolean
   editLabel?: string
@@ -60,6 +69,16 @@ export function RecordActionMenu({
             {editLabel}
           </DropdownMenuItem>
         ) : null}
+        {customItems?.map((item) => (
+          <DropdownMenuItem
+            key={item.key}
+            className={item.destructive ? "gap-2 text-destructive focus:text-destructive" : "gap-2"}
+            onSelect={item.onSelect}
+          >
+            {item.icon}
+            {item.label}
+          </DropdownMenuItem>
+        ))}
         {onToggleActive ? (
           <DropdownMenuItem className="gap-2" onSelect={onToggleActive}>
             {active ? <CircleOffIcon className="size-4" /> : <RotateCcwIcon className="size-4" />}

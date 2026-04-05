@@ -246,6 +246,8 @@ export const productSummarySchema = z.object({
   isFeaturedLabel: z.boolean(),
   primaryImageUrl: z.string().nullable(),
   variantCount: z.number().int(),
+  attributeCount: z.number().int(),
+  totalStockQuantity: z.number(),
   tagCount: z.number().int(),
   tagNames: z.array(z.string().min(1)).default([]),
   createdAt: z.string().min(1),
@@ -465,12 +467,35 @@ export const productUpsertPayloadSchema = z.object({
   reviews: z.array(productReviewInputSchema).default([]),
 })
 
+export const productBulkEditPayloadSchema = z.object({
+  productIds: z.array(z.string().trim().min(1)).min(1),
+  categoryId: z.string().trim().min(1).nullable().optional(),
+  categoryName: z.string().trim().nullable().optional(),
+  storefrontDepartment: storefrontDepartmentSchema.nullable().optional(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  homeSliderEnabled: z.boolean().optional(),
+  homeSliderOrder: z.number().int().optional(),
+  promoSliderEnabled: z.boolean().optional(),
+  promoSliderOrder: z.number().int().optional(),
+  featureSectionEnabled: z.boolean().optional(),
+  featureSectionOrder: z.number().int().optional(),
+  isNewArrival: z.boolean().optional(),
+  isBestSeller: z.boolean().optional(),
+  isFeaturedLabel: z.boolean().optional(),
+})
+
 export const productListResponseSchema = z.object({
   items: z.array(productSummarySchema),
 })
 
 export const productResponseSchema = z.object({
   item: productSchema,
+})
+
+export const productBulkEditResponseSchema = z.object({
+  count: z.number().int(),
+  updatedIds: z.array(z.string().min(1)),
 })
 
 export type StorefrontDepartment = z.infer<typeof storefrontDepartmentSchema>
@@ -509,5 +534,7 @@ export type ProductStorefrontInput = z.infer<typeof productStorefrontInputSchema
 export type ProductTagInput = z.infer<typeof productTagInputSchema>
 export type ProductReviewInput = z.infer<typeof productReviewInputSchema>
 export type ProductUpsertPayload = z.infer<typeof productUpsertPayloadSchema>
+export type ProductBulkEditPayload = z.infer<typeof productBulkEditPayloadSchema>
 export type ProductListResponse = z.infer<typeof productListResponseSchema>
 export type ProductResponse = z.infer<typeof productResponseSchema>
+export type ProductBulkEditResponse = z.infer<typeof productBulkEditResponseSchema>

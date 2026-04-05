@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
+import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import type { AppSettingsSnapshot } from "../../../../framework/shared/index.js"
 
 import { queryKeys } from "./query-keys"
@@ -11,8 +12,20 @@ declare global {
   }
 }
 
-async function requestJson<T>(path: string) {
-  const response = await fetch(path, { cache: "no-store" })
+async function requestJson<T>(path: string, withAuth = false) {
+  const accessToken = withAuth ? getStoredAccessToken() : null
+  const response = await fetch(path, {
+    cache: "no-store",
+    headers: accessToken
+      ? {
+          authorization: `Bearer ${accessToken}`,
+        }
+      : undefined,
+  })
+
+  if (response.status === 404) {
+    return { item: null as T | null }
+  }
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}.`)
@@ -25,9 +38,16 @@ export function useRuntimeBrandQuery() {
   return useQuery({
     queryKey: queryKeys.runtimeBrand,
     queryFn: async () => {
-      const payload = await requestJson<CompanyBrandProfile>("/public/v1/brand-profile")
+      try {
+        const hasAccessToken = Boolean(getStoredAccessToken())
+        const payload = hasAccessToken
+          ? await requestJson<CompanyBrandProfile>("/internal/v1/cxapp/company-brand", true)
+          : await requestJson<CompanyBrandProfile>("/public/v1/brand-profile")
 
-      return payload.item ?? null
+        return payload.item ?? null
+      } catch {
+        return null
+      }
     },
     retry: false,
   })

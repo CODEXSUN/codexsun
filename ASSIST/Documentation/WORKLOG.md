@@ -59,3 +59,12 @@
 - extended ecommerce storefront settings so featured and category sections have saved row counts, rows to show, card designers, toggles, and synced frontend rendering after save
 - fixed storefront sync gaps so admin saves refresh the public storefront shell consistently, including announcement styling and featured/category layout updates
 - tightened media-browser overflow so upload/filter controls remain visible while large media grids and edit dialogs scroll cleanly on smaller screens
+
+### `#28` 2026-04-05
+
+- added separate product bulk-edit actions for merchandising fields and product duplication with safe `-copy` naming without disturbing the existing single-product editor
+- extended product, contact, and product-category list screens with richer operational filters for merchandising state, data completeness, and catalog placement
+- refactored the framework media browser into animated tabs with contained preview layouts so forms stay visible while large image sets scroll inside the modal
+- forward-hydrated new product summary fields such as `attributeCount` and `totalStockQuantity` across seed data, core product reads, and ecommerce storefront reads so older persisted rows no longer break requests
+- stabilized the local backend host by fixing the startup crash caused by stale product seed payloads and re-verifying the framework health endpoint after restart
+- fixed storefront runtime payload generation so `/public/v1/storefront/home` can render legacy products again without `400` schema failures

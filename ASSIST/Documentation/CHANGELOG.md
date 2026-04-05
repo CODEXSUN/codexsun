@@ -8,6 +8,15 @@
 
 ## v-0.0.1
 
+### [#28] 2026-04-05 - Core product operations, media tabs, and storefront runtime stabilization
+
+- added shared core product bulk-edit support for merchandising fields plus product duplication with safe `-copy` naming, exposed through new internal routes and list-level UI actions without disturbing the existing product upsert flow
+- extended core product, contact, and product-category list screens with richer operational filters for category, brand, storefront placement, content presence, stock presence, promo state, contact completeness, and category-display flags
+- refactored the framework media browser into animated tabs with separate browse, upload, folders, and external-URL surfaces while keeping preview layouts and long media result sets contained within the screen
+- forward-hydrated the new `attributeCount` and `totalStockQuantity` product summary fields across core seed data, core product reads, and ecommerce storefront reads so older stored rows no longer fail schema parsing
+- stabilized runtime startup by fixing the seed payload crash that had taken down the backend host, then verified the framework health endpoint after restart
+- fixed the storefront landing payload so `/public/v1/storefront/home` can render legacy products again instead of returning `400` for missing summary fields
+
 ### [#27] 2026-04-05 - Demo app, shared state layer, storefront designers, and shared UI blocks
 
 - added the app-owned `demo` application with protected internal API routes, module-scoped demo-data installers, transactional install jobs, progress reporting, and demo summary/count workspace pages

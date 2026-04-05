@@ -12,8 +12,10 @@ import {
   updateCommonModuleItem,
 } from "../../../core/src/services/common-module-service.js"
 import {
+  bulkUpdateProducts,
   createProduct,
   deleteProduct,
+  duplicateProduct,
   getProduct,
   listProducts,
   updateProduct,
@@ -148,6 +150,19 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/core/products/bulk-edit", {
+      method: "POST",
+      summary: "Bulk update shared product merchandising and storefront flags.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await bulkUpdateProducts(context.databases.primary, user, context.request.jsonBody)
+        )
+      },
+    }),
     defineInternalRoute("/core/product", {
       method: "PATCH",
       summary: "Update a core product master.",
@@ -168,6 +183,25 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
             productId,
             context.request.jsonBody
           )
+        )
+      },
+    }),
+    defineInternalRoute("/core/product/duplicate", {
+      method: "POST",
+      summary: "Duplicate one core product into a new editable copy.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const productId = context.request.url.searchParams.get("id")
+
+        if (!productId) {
+          throw new ApplicationError("Product id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await duplicateProduct(context.databases.primary, user, productId),
+          201
         )
       },
     }),

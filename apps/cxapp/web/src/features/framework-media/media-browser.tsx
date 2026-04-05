@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   FolderPlusIcon,
+  LayoutGridIcon,
   LinkIcon,
   ImageIcon,
+  ListIcon,
   LoaderCircleIcon,
   PencilIcon,
+  PresentationIcon,
   RefreshCwIcon,
   Share2Icon,
   Trash2Icon,
@@ -39,6 +42,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
 
 import {
   createFrameworkMediaFolder,
@@ -50,6 +54,7 @@ import {
 } from "./media-api"
 
 type ScopeFilter = "all" | MediaStorageScope
+type MediaPreviewLayout = "list" | "small-grid" | "presentation"
 
 const MAX_FILES_PER_UPLOAD = 5
 const MAX_TOTAL_UPLOAD_BYTES = 25 * 1024 * 1024
@@ -233,6 +238,7 @@ export function FrameworkMediaBrowser({
   const [activeUploads, setActiveUploads] = useState<string[]>([])
   const [externalUrl, setExternalUrl] = useState(selectedUrl ?? "")
   const [externalUrlError, setExternalUrlError] = useState<string | null>(null)
+  const [previewLayout, setPreviewLayout] = useState<MediaPreviewLayout>("small-grid")
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -474,86 +480,13 @@ export function FrameworkMediaBrowser({
     })
   }
 
-  return (
-    <div className="space-y-4 min-h-0">
-      <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
-        <CardHeader className={compact ? "pb-4" : undefined}>
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-base">Media Library</CardTitle>
-              <CardDescription>
-                Upload up to 5 images at once and reuse them anywhere in the application.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(event) => void handleFilesSelected(event.target.files)}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <LoaderCircleIcon className="size-4 animate-spin" />
-                ) : (
-                  <UploadIcon className="size-4" />
-                )}
-                Upload Images
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => void loadData()}
-                disabled={isLoading}
-              >
-                <RefreshCwIcon className={cn("size-4", isLoading ? "animate-spin" : undefined)} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {onSelect ? (
-            <div className="rounded-xl border border-border/70 bg-background/75 p-4">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <div className="grid gap-2">
-                  <Label htmlFor="framework-media-external-url">External Image URL</Label>
-                  <Input
-                    id="framework-media-external-url"
-                    value={externalUrl}
-                    onChange={(event) => {
-                      setExternalUrl(event.target.value)
-                      if (externalUrlError) {
-                        setExternalUrlError(null)
-                      }
-                    }}
-                    placeholder="https://placehold.co/320x220/f4ebe1/3b2a20?text=Ethnic"
-                  />
-                </div>
-                <Button type="button" variant="outline" onClick={handleUseExternalUrl}>
-                  <LinkIcon className="size-4" />
-                  Use URL
-                </Button>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Paste an external image URL or a root-relative path like `/storage/...`.
-              </p>
-              {externalUrlError ? (
-                <p className="mt-2 text-xs text-destructive">{externalUrlError}</p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,0.65fr))]">
+  const mediaTabs = useMemo<AnimatedContentTab[]>(() => {
+    return [
+      {
+        label: "Browse",
+        value: "browse",
+        content: (
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_repeat(3,minmax(0,0.7fr))]">
             <div className="grid gap-2">
               <Label htmlFor="framework-media-search">Search</Label>
               <Input
@@ -599,78 +532,248 @@ export function FrameworkMediaBrowser({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Upload Scope</Label>
+              <Label>Preview Layout</Label>
               <Select
-                value={uploadScope}
-                onValueChange={(value) => setUploadScope(value as MediaStorageScope)}
+                value={previewLayout}
+                onValueChange={(value) => setPreviewLayout(value as MediaPreviewLayout)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select scope" />
+                  <SelectValue placeholder="Preview layout" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allowedScopes.map((scope) => (
-                    <SelectItem key={scope} value={scope}>
-                      {scope === "public" ? "Public" : "Private"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Upload Folder</Label>
-              <Select value={uploadFolderId} onValueChange={setUploadFolderId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Unfiled" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Unfiled</SelectItem>
-                  {folders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="list">List</SelectItem>
+                  <SelectItem value="small-grid">Small Grid</SelectItem>
+                  <SelectItem value="presentation">Presentation</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid gap-2">
-              <Label htmlFor="framework-media-folder-create">New Folder</Label>
-              <Input
-                id="framework-media-folder-create"
-                value={newFolderName}
-                onChange={(event) => setNewFolderName(event.target.value)}
-                placeholder="Company Logos"
-              />
+        ),
+      },
+      {
+        label: "Upload",
+        value: "upload",
+        content: (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>Upload Scope</Label>
+                  <Select
+                    value={uploadScope}
+                    onValueChange={(value) => setUploadScope(value as MediaStorageScope)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select scope" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allowedScopes.map((scope) => (
+                        <SelectItem key={scope} value={scope}>
+                          {scope === "public" ? "Public" : "Private"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Upload Folder</Label>
+                  <Select value={uploadFolderId} onValueChange={setUploadFolderId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unfiled" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unfiled</SelectItem>
+                      {folders.map((folder) => (
+                        <SelectItem key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-background/75 p-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => void handleFilesSelected(event.target.files)}
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <LoaderCircleIcon className="size-4 animate-spin" />
+                    ) : (
+                      <UploadIcon className="size-4" />
+                    )}
+                    Upload Images
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Upload up to {MAX_FILES_PER_UPLOAD} images per batch.
+                  </p>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Total upload size can go up to {readableFileSize(MAX_TOTAL_UPLOAD_BYTES)}.
+                </p>
+                {activeUploads.length > 0 ? (
+                  <div className="mt-3 rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+                    Uploading: {activeUploads.join(", ")}
+                  </div>
+                ) : null}
+              </div>
             </div>
-            <div className="flex items-end">
+            <div className="rounded-xl border border-dashed border-border/70 bg-background/50 p-4">
+              <p className="text-sm font-medium text-foreground">Upload behavior</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                New uploads appear immediately in the preview area below and stay editable from their asset cards.
+              </p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Folders",
+        value: "folders",
+        content: (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="grid gap-2">
+                <Label htmlFor="framework-media-folder-create">New Folder</Label>
+                <Input
+                  id="framework-media-folder-create"
+                  value={newFolderName}
+                  onChange={(event) => setNewFolderName(event.target.value)}
+                  placeholder="Company Logos"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleCreateFolder()}
+                  disabled={isCreatingFolder || newFolderName.trim().length === 0}
+                >
+                  {isCreatingFolder ? (
+                    <LoaderCircleIcon className="size-4 animate-spin" />
+                  ) : (
+                    <FolderPlusIcon className="size-4" />
+                  )}
+                  Create Folder
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+              <p className="text-sm font-medium text-foreground">Available folders</p>
+              <div className="mt-3 flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1">
+                {folders.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No folders created yet.</p>
+                ) : (
+                  folders.map((folder) => (
+                    <Badge key={folder.id} variant="outline" className="rounded-xl px-3 py-1">
+                      {folder.name}
+                    </Badge>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "External URL",
+        value: "external-url",
+        content: onSelect ? (
+          <div className="rounded-xl border border-border/70 bg-background/75 p-4">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="grid gap-2">
+                <Label htmlFor="framework-media-external-url">External Image URL</Label>
+                <Input
+                  id="framework-media-external-url"
+                  value={externalUrl}
+                  onChange={(event) => {
+                    setExternalUrl(event.target.value)
+                    if (externalUrlError) {
+                      setExternalUrlError(null)
+                    }
+                  }}
+                  placeholder="https://placehold.co/320x220/f4ebe1/3b2a20?text=Ethnic"
+                />
+              </div>
+              <Button type="button" variant="outline" onClick={handleUseExternalUrl}>
+                <LinkIcon className="size-4" />
+                Use URL
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Paste an external image URL or a root-relative path like `/storage/...`.
+            </p>
+            {externalUrlError ? (
+              <p className="mt-2 text-xs text-destructive">{externalUrlError}</p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border/70 bg-background/50 p-4 text-sm text-muted-foreground">
+            External URL selection is available only when the media browser is opened from a picker field.
+          </div>
+        ),
+      },
+    ]
+  }, [
+    activeUploads,
+    allowedScopes,
+    externalUrl,
+    externalUrlError,
+    folderFilter,
+    folders,
+    isCreatingFolder,
+    isUploading,
+    newFolderName,
+    onSelect,
+    previewLayout,
+    scopeFilter,
+    search,
+    uploadFolderId,
+    uploadScope,
+  ])
+
+  return (
+    <div className="space-y-4 min-h-0">
+      <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+        <CardHeader className={compact ? "pb-4" : undefined}>
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Media Library</CardTitle>
+              <CardDescription>
+                Upload up to 5 images at once and reuse them anywhere in the application.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => void handleCreateFolder()}
-                disabled={isCreatingFolder || newFolderName.trim().length === 0}
+                variant="ghost"
+                size="sm"
+                onClick={() => void loadData()}
+                disabled={isLoading}
               >
-                {isCreatingFolder ? (
-                  <LoaderCircleIcon className="size-4 animate-spin" />
-                ) : (
-                  <FolderPlusIcon className="size-4" />
-                )}
-                Create Folder
+                <RefreshCwIcon className={cn("size-4", isLoading ? "animate-spin" : undefined)} />
+                Refresh
               </Button>
             </div>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <AnimatedTabs tabs={mediaTabs} defaultTabValue="browse" />
 
           <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-xs text-muted-foreground">
             Upload limit: {MAX_FILES_PER_UPLOAD} images per batch · total size up to{" "}
             {readableFileSize(MAX_TOTAL_UPLOAD_BYTES)}.
           </div>
-
-          {activeUploads.length > 0 ? (
-            <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-              Uploading: {activeUploads.join(", ")}
-            </div>
-          ) : null}
 
           {error ? (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -681,10 +784,49 @@ export function FrameworkMediaBrowser({
       </Card>
 
       <Card className="overflow-hidden rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+        <CardHeader className="border-b border-border/70 pb-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Preview</CardTitle>
+              <CardDescription>
+                Review assets below without losing the form. Switch layouts based on the current media set.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={previewLayout === "list" ? "default" : "outline"}
+                onClick={() => setPreviewLayout("list")}
+              >
+                <ListIcon className="size-4" />
+                List
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={previewLayout === "small-grid" ? "default" : "outline"}
+                onClick={() => setPreviewLayout("small-grid")}
+              >
+                <LayoutGridIcon className="size-4" />
+                Small Grid
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={previewLayout === "presentation" ? "default" : "outline"}
+                onClick={() => setPreviewLayout("presentation")}
+              >
+                <PresentationIcon className="size-4" />
+                Presentation
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent
           className={cn(
             "p-5 min-h-0 overflow-y-auto",
-            compact ? "max-h-[min(46vh,28rem)]" : "max-h-[min(56vh,40rem)]"
+            compact ? "max-h-[min(44vh,26rem)]" : "max-h-[min(52vh,34rem)]"
           )}
         >
           {isLoading ? (
@@ -696,11 +838,92 @@ export function FrameworkMediaBrowser({
             <div className="flex min-h-48 items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 bg-background/60 text-sm text-muted-foreground">
               No media found for the current filters.
             </div>
+          ) : previewLayout === "list" ? (
+            <div className="space-y-3">
+              {filteredAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className={cn(
+                    "grid gap-3 rounded-[1.2rem] border border-border/70 bg-background/70 p-3 sm:grid-cols-[88px_minmax(0,1fr)_auto]",
+                    selectedUrl === asset.fileUrl ? "border-primary ring-2 ring-primary/15" : undefined
+                  )}
+                >
+                  <div className="h-22 overflow-hidden rounded-xl bg-muted/60">
+                    {canRenderImagePreview(asset) ? (
+                      <img
+                        src={asset.fileUrl}
+                        alt={asset.altText ?? asset.title ?? asset.fileName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground">
+                        <ImageIcon className="size-6" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {asset.title ?? asset.fileName}
+                    </p>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {asset.originalName} · {asset.folderName ?? "Unfiled"} · {readableFileSize(asset.fileSize)}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">{asset.storageScope}</Badge>
+                      <Badge variant="outline">{asset.fileType}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-start justify-end gap-2">
+                    {onSelect ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={selectedUrl === asset.fileUrl ? "default" : "outline"}
+                        onClick={() => onSelect(asset)}
+                      >
+                        {selectedUrl === asset.fileUrl ? "Selected" : "Use Media"}
+                      </Button>
+                    ) : null}
+                    <Button type="button" size="icon" variant="outline" onClick={() => openEditDialog(asset)}>
+                      <PencilIcon className="size-4" />
+                    </Button>
+                    <Button type="button" size="icon" variant="outline" onClick={() => void handleShareAsset(asset)}>
+                      <Share2Icon className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => void handleDeleteAsset(asset)}
+                    >
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : previewLayout === "presentation" ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredAssets.map((asset) => (
+                <MediaAssetCard
+                  key={asset.id}
+                  asset={asset}
+                  isSelected={selectedUrl === asset.fileUrl}
+                  onDelete={(item) => void handleDeleteAsset(item)}
+                  onEdit={openEditDialog}
+                  onSelect={onSelect}
+                  onShare={(item) => void handleShareAsset(item)}
+                />
+              ))}
+            </div>
           ) : (
             <div
               className={cn(
                 "grid gap-4",
-                compact ? "grid-cols-2 lg:grid-cols-4 xl:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
+                compact
+                  ? "grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
+                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
               )}
             >
               {filteredAssets.map((asset) => (

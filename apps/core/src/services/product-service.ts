@@ -5,11 +5,16 @@ import type { Kysely } from "kysely"
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
+  productBulkEditResponseSchema,
+  productBulkEditPayloadSchema,
   productListResponseSchema,
   productResponseSchema,
   productSchema,
   productUpsertPayloadSchema,
+  type ProductStorefront,
   type Product,
+  type ProductBulkEditPayload,
+  type ProductBulkEditResponse,
   type ProductListResponse,
   type ProductResponse,
   type ProductUpsertPayload,
@@ -29,6 +34,29 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "")
 }
 
+function ensureUniqueText(
+  baseValue: string,
+  existingValues: string[],
+  fallbackPrefix: string
+) {
+  const normalizedExisting = new Set(
+    existingValues.map((value) => value.trim().toLowerCase()).filter(Boolean)
+  )
+  const base = baseValue.trim() || `${fallbackPrefix}-copy`
+
+  if (!normalizedExisting.has(base.toLowerCase())) {
+    return base
+  }
+
+  let index = 2
+
+  while (normalizedExisting.has(`${base}-${index}`.toLowerCase())) {
+    index += 1
+  }
+
+  return `${base}-${index}`
+}
+
 async function readProducts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
 
@@ -36,6 +64,34 @@ async function readProducts(database: Kysely<unknown>) {
     .map((product) =>
       productSchema.parse({
         ...product,
+        attributeCount:
+          typeof (product as { attributeCount?: unknown }).attributeCount === "number"
+            ? (product as { attributeCount: number }).attributeCount
+            : Array.isArray((product as { attributes?: unknown }).attributes)
+              ? ((product as { attributes: unknown[] }).attributes?.length ?? 0)
+              : 0,
+        totalStockQuantity:
+          typeof (product as { totalStockQuantity?: unknown }).totalStockQuantity === "number"
+            ? (product as { totalStockQuantity: number }).totalStockQuantity
+            : [
+                ...(
+                  Array.isArray((product as { stockItems?: unknown }).stockItems)
+                    ? ((product as { stockItems: Array<{ quantity?: unknown }> }).stockItems ?? [])
+                    : []
+                ),
+              ].reduce(
+                (sum, item) => sum + (typeof item.quantity === "number" ? item.quantity : 0),
+                0
+              ) +
+              (
+                Array.isArray((product as { variants?: unknown }).variants)
+                  ? ((product as { variants: Array<{ stockQuantity?: unknown }> }).variants ?? [])
+                  : []
+              ).reduce(
+                (sum, item) =>
+                  sum + (typeof item.stockQuantity === "number" ? item.stockQuantity : 0),
+                0
+              ),
         code:
           typeof (product as { code?: unknown }).code === "string" &&
           (product as { code?: string }).code?.trim()
@@ -88,6 +144,294 @@ function resolveLinkId(
   }
 
   return normalizeOptionalString(directId)
+}
+
+function toProductUpsertPayload(product: Product): ProductUpsertPayload {
+  return productUpsertPayloadSchema.parse({
+    code: product.code,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    shortDescription: product.shortDescription,
+    brandId: product.brandId,
+    brandName: product.brandName,
+    categoryId: product.categoryId,
+    categoryName: product.categoryName,
+    productGroupId: product.productGroupId,
+    productGroupName: product.productGroupName,
+    productTypeId: product.productTypeId,
+    productTypeName: product.productTypeName,
+    unitId: product.unitId,
+    hsnCodeId: product.hsnCodeId,
+    styleId: product.styleId,
+    sku: product.sku,
+    hasVariants: product.hasVariants,
+    basePrice: product.basePrice,
+    costPrice: product.costPrice,
+    taxId: product.taxId,
+    isFeatured: product.isFeatured,
+    isActive: product.isActive,
+    storefrontDepartment: product.storefrontDepartment,
+    homeSliderEnabled: product.homeSliderEnabled,
+    promoSliderEnabled: product.promoSliderEnabled,
+    featureSectionEnabled: product.featureSectionEnabled,
+    isNewArrival: product.isNewArrival,
+    isBestSeller: product.isBestSeller,
+    isFeaturedLabel: product.isFeaturedLabel,
+    images: product.images.map((image) => ({
+      imageUrl: image.imageUrl,
+      isPrimary: image.isPrimary,
+      sortOrder: image.sortOrder,
+      isActive: image.isActive,
+    })),
+    variants: product.variants.map((variant) => ({
+      clientKey: variant.id,
+      sku: variant.sku,
+      variantName: variant.variantName,
+      price: variant.price,
+      costPrice: variant.costPrice,
+      stockQuantity: variant.stockQuantity,
+      openingStock: variant.openingStock,
+      weight: variant.weight,
+      barcode: variant.barcode,
+      isActive: variant.isActive,
+      images: variant.images.map((image) => ({
+        imageUrl: image.imageUrl,
+        isPrimary: image.isPrimary,
+        isActive: image.isActive,
+      })),
+      attributes: variant.attributes.map((attribute) => ({
+        attributeName: attribute.attributeName,
+        attributeValue: attribute.attributeValue,
+        isActive: attribute.isActive,
+      })),
+    })),
+    prices: product.prices.map((price) => ({
+      variantId: price.variantId,
+      variantClientKey: price.variantId,
+      mrp: price.mrp,
+      sellingPrice: price.sellingPrice,
+      costPrice: price.costPrice,
+      isActive: price.isActive,
+    })),
+    discounts: product.discounts.map((discount) => ({
+      variantId: discount.variantId,
+      variantClientKey: discount.variantId,
+      discountType: discount.discountType,
+      discountValue: discount.discountValue,
+      startDate: discount.startDate,
+      endDate: discount.endDate,
+      isActive: discount.isActive,
+    })),
+    offers: product.offers.map((offer) => ({
+      title: offer.title,
+      description: offer.description,
+      offerPrice: offer.offerPrice,
+      startDate: offer.startDate,
+      endDate: offer.endDate,
+      isActive: offer.isActive,
+    })),
+    attributes: product.attributes.map((attribute) => ({
+      clientKey: attribute.id,
+      name: attribute.name,
+      isActive: attribute.isActive,
+    })),
+    attributeValues: product.attributeValues.map((value) => ({
+      clientKey: value.id,
+      attributeId: value.attributeId,
+      attributeClientKey: value.attributeId,
+      value: value.value,
+      isActive: value.isActive,
+    })),
+    variantMap: product.variantMap.map((item) => ({
+      attributeId: item.attributeId,
+      attributeClientKey: item.attributeId,
+      valueId: item.valueId,
+      valueClientKey: item.valueId,
+      isActive: item.isActive,
+    })),
+    stockItems: product.stockItems.map((item) => ({
+      variantId: item.variantId,
+      variantClientKey: item.variantId,
+      warehouseId: item.warehouseId,
+      quantity: item.quantity,
+      reservedQuantity: item.reservedQuantity,
+      isActive: item.isActive,
+    })),
+    stockMovements: product.stockMovements.map((item) => ({
+      variantId: item.variantId,
+      variantClientKey: item.variantId,
+      warehouseId: item.warehouseId,
+      movementType: item.movementType,
+      quantity: item.quantity,
+      referenceType: item.referenceType,
+      referenceId: item.referenceId,
+      movementAt: item.movementAt,
+      isActive: item.isActive,
+    })),
+    seo: product.seo
+      ? {
+          metaTitle: product.seo.metaTitle,
+          metaDescription: product.seo.metaDescription,
+          metaKeywords: product.seo.metaKeywords,
+          isActive: product.seo.isActive,
+        }
+      : null,
+    storefront: product.storefront
+      ? {
+          department: product.storefront.department,
+          homeSliderEnabled: product.storefront.homeSliderEnabled,
+          homeSliderOrder: product.storefront.homeSliderOrder,
+          promoSliderEnabled: product.storefront.promoSliderEnabled,
+          promoSliderOrder: product.storefront.promoSliderOrder,
+          featureSectionEnabled: product.storefront.featureSectionEnabled,
+          featureSectionOrder: product.storefront.featureSectionOrder,
+          isNewArrival: product.storefront.isNewArrival,
+          isBestSeller: product.storefront.isBestSeller,
+          isFeaturedLabel: product.storefront.isFeaturedLabel,
+          catalogBadge: product.storefront.catalogBadge,
+          promoBadge: product.storefront.promoBadge,
+          promoTitle: product.storefront.promoTitle,
+          promoSubtitle: product.storefront.promoSubtitle,
+          promoCtaLabel: product.storefront.promoCtaLabel,
+          fabric: product.storefront.fabric,
+          fit: product.storefront.fit,
+          sleeve: product.storefront.sleeve,
+          occasion: product.storefront.occasion,
+          shippingNote: product.storefront.shippingNote,
+          isActive: product.storefront.isActive,
+        }
+      : null,
+    tags: product.tags.map((tag) => ({
+      name: tag.name,
+      isActive: tag.isActive,
+    })),
+    reviews: product.reviews.map((review) => ({
+      userId: review.userId,
+      rating: review.rating,
+      review: review.review,
+      reviewDate: review.reviewDate,
+      isActive: review.isActive,
+    })),
+  })
+}
+
+function ensureStorefrontRecord(product: Product, timestamp: string): ProductStorefront {
+  return (
+    product.storefront ?? {
+      id: `product-storefront:${randomUUID()}`,
+      productId: product.id,
+      department: product.storefrontDepartment,
+      homeSliderEnabled: product.homeSliderEnabled,
+      homeSliderOrder: 0,
+      promoSliderEnabled: product.promoSliderEnabled,
+      promoSliderOrder: 0,
+      featureSectionEnabled: product.featureSectionEnabled,
+      featureSectionOrder: 0,
+      isNewArrival: product.isNewArrival,
+      isBestSeller: product.isBestSeller,
+      isFeaturedLabel: product.isFeaturedLabel,
+      catalogBadge: null,
+      promoBadge: null,
+      promoTitle: null,
+      promoSubtitle: null,
+      promoCtaLabel: null,
+      fabric: null,
+      fit: null,
+      sleeve: null,
+      occasion: null,
+      shippingNote: null,
+      isActive: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+  )
+}
+
+function applyBulkProductChanges(product: Product, payload: ProductBulkEditPayload): Product {
+  const timestamp = new Date().toISOString()
+  const requiresStorefront =
+    payload.storefrontDepartment !== undefined ||
+    payload.homeSliderEnabled !== undefined ||
+    payload.homeSliderOrder !== undefined ||
+    payload.promoSliderEnabled !== undefined ||
+    payload.promoSliderOrder !== undefined ||
+    payload.featureSectionEnabled !== undefined ||
+    payload.featureSectionOrder !== undefined ||
+    payload.isNewArrival !== undefined ||
+    payload.isBestSeller !== undefined ||
+    payload.isFeaturedLabel !== undefined
+  const storefront = requiresStorefront
+    ? ensureStorefrontRecord(product, timestamp)
+    : product.storefront
+
+  if (payload.categoryId !== undefined) {
+    product.categoryId = payload.categoryId
+    product.categoryName = normalizeOptionalString(payload.categoryName ?? null)
+  }
+
+  if (payload.storefrontDepartment !== undefined && storefront) {
+    product.storefrontDepartment = payload.storefrontDepartment
+    storefront.department = payload.storefrontDepartment
+  }
+
+  if (payload.isActive !== undefined) {
+    product.isActive = payload.isActive
+  }
+
+  if (payload.isFeatured !== undefined) {
+    product.isFeatured = payload.isFeatured
+  }
+
+  if (payload.homeSliderEnabled !== undefined && storefront) {
+    product.homeSliderEnabled = payload.homeSliderEnabled
+    storefront.homeSliderEnabled = payload.homeSliderEnabled
+  }
+
+  if (payload.homeSliderOrder !== undefined && storefront) {
+    storefront.homeSliderOrder = payload.homeSliderOrder
+  }
+
+  if (payload.promoSliderEnabled !== undefined && storefront) {
+    product.promoSliderEnabled = payload.promoSliderEnabled
+    storefront.promoSliderEnabled = payload.promoSliderEnabled
+  }
+
+  if (payload.promoSliderOrder !== undefined && storefront) {
+    storefront.promoSliderOrder = payload.promoSliderOrder
+  }
+
+  if (payload.featureSectionEnabled !== undefined && storefront) {
+    product.featureSectionEnabled = payload.featureSectionEnabled
+    storefront.featureSectionEnabled = payload.featureSectionEnabled
+  }
+
+  if (payload.featureSectionOrder !== undefined && storefront) {
+    storefront.featureSectionOrder = payload.featureSectionOrder
+  }
+
+  if (payload.isNewArrival !== undefined && storefront) {
+    product.isNewArrival = payload.isNewArrival
+    storefront.isNewArrival = payload.isNewArrival
+  }
+
+  if (payload.isBestSeller !== undefined && storefront) {
+    product.isBestSeller = payload.isBestSeller
+    storefront.isBestSeller = payload.isBestSeller
+  }
+
+  if (payload.isFeaturedLabel !== undefined && storefront) {
+    product.isFeaturedLabel = payload.isFeaturedLabel
+    storefront.isFeaturedLabel = payload.isFeaturedLabel
+  }
+
+  if (storefront) {
+    storefront.updatedAt = timestamp
+    product.storefront = storefront
+  }
+  product.updatedAt = timestamp
+
+  return productSchema.parse(product)
 }
 
 function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
@@ -287,6 +631,10 @@ function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
     isFeaturedLabel: storefront?.isFeaturedLabel ?? payload.isFeaturedLabel,
     primaryImageUrl: images.find((image) => image.isPrimary)?.imageUrl ?? images[0]?.imageUrl ?? null,
     variantCount: variants.length,
+    attributeCount: attributes.length,
+    totalStockQuantity:
+      payload.stockItems.reduce((sum, item) => sum + item.quantity, 0) +
+      variants.reduce((sum, item) => sum + item.stockQuantity, 0),
     tagCount: payload.tags.length,
     tagNames: payload.tags.map((tag) => tag.name),
     createdAt: existing?.createdAt ?? timestamp,
@@ -528,4 +876,71 @@ export async function deleteProduct(
     deleted: true as const,
     id: productId,
   }
+}
+
+export async function bulkUpdateProducts(
+  database: Kysely<unknown>,
+  _user: AuthUser,
+  payload: unknown
+): Promise<ProductBulkEditResponse> {
+  const parsedPayload = productBulkEditPayloadSchema.parse(payload)
+  const products = await readProducts(database)
+  const selectedIds = new Set(parsedPayload.productIds)
+  const missingIds = parsedPayload.productIds.filter(
+    (productId) => !products.some((item) => item.id === productId)
+  )
+
+  if (missingIds.length > 0) {
+    throw new ApplicationError("One or more products could not be found.", { missingIds }, 404)
+  }
+
+  const nextProducts = products.map((item) =>
+    selectedIds.has(item.id)
+      ? applyBulkProductChanges(structuredClone(item), parsedPayload)
+      : item
+  )
+
+  await writeProducts(database, nextProducts)
+
+  return productBulkEditResponseSchema.parse({
+    count: parsedPayload.productIds.length,
+    updatedIds: parsedPayload.productIds,
+  })
+}
+
+export async function duplicateProduct(
+  database: Kysely<unknown>,
+  _user: AuthUser,
+  productId: string
+): Promise<ProductResponse> {
+  const products = await readProducts(database)
+  const existing = products.find((item) => item.id === productId)
+
+  if (!existing) {
+    throw new ApplicationError("Product could not be found.", { productId }, 404)
+  }
+
+  const duplicatePayload = toProductUpsertPayload(existing)
+  const nextName = ensureUniqueText(`${existing.name}-copy`, products.map((item) => item.name), "product")
+  const nextSlug = slugify(
+    ensureUniqueText(`${existing.slug}-copy`, products.map((item) => item.slug), "product")
+  )
+  const nextCode = ensureUniqueText(`${existing.code}-copy`, products.map((item) => item.code), "product")
+  const nextSku = ensureUniqueText(`${existing.sku}-copy`, products.map((item) => item.sku), "product")
+
+  const record = buildProductRecord({
+    ...duplicatePayload,
+    name: nextName,
+    slug: nextSlug,
+    code: nextCode,
+    sku: nextSku,
+    reviews: [],
+    stockMovements: [],
+  })
+
+  await writeProducts(database, [...products, record])
+
+  return productResponseSchema.parse({
+    item: record,
+  })
 }
