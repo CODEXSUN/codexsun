@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 import { useStorefrontCart } from "../cart/storefront-cart"
+import { StorefrontAnnouncementBar } from "../components/storefront-announcement-bar"
 import { StorefrontHeroSlider } from "../components/storefront-hero-slider"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
@@ -27,12 +28,10 @@ export function StorefrontHomePage() {
           </Card>
         ) : null}
         {data ? <StorefrontHeroSlider landing={data} /> : null}
-        <section className="rounded-[1.8rem] border border-[#d6c8b6] bg-[#221812] px-6 py-4 text-sm text-stone-100 shadow-lg">
-          <div className="flex flex-wrap items-center gap-3">
-            <Sparkles className="size-4 text-amber-300" />
-            <span>{data?.settings.announcement ?? "Storefront announcement will appear here."}</span>
-          </div>
-        </section>
+        <StorefrontAnnouncementBar
+          landing={data}
+          cartSubtotalAmount={cart.subtotalAmount}
+        />
         <section className="space-y-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -92,7 +91,9 @@ export function StorefrontHomePage() {
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {(data?.categories ?? []).map((category) => (
+            {(data?.categories ?? [])
+              .filter((category) => category.productCount > 0 && category.slug !== "all-items")
+              .map((category) => (
               <Card
                 key={category.id}
                 className="overflow-hidden rounded-[1.8rem] border-[#e3d5c6] py-0 shadow-[0_22px_50px_-40px_rgba(48,31,19,0.24)]"

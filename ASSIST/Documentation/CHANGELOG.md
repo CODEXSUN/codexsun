@@ -19,6 +19,10 @@
 - added a dedicated mobile hero slider layout with image-first ordering, top-mounted badge and navigation, and smaller mobile-sized text and actions instead of forcing the desktop layout to collapse
 - removed the extra workspace and page-hero chrome from the Home Slider admin route so the designer opens directly into the lean ecommerce editing surface
 - softened the storefront hero image frame into a more glass-like shell by replacing the harder outer border feel with blur, translucent fill, and diffused highlights
+- moved the storefront top category rail to backend-owned category records by seeding `All Items`, removing the static frontend pill, and routing the seeded all-items entry to the unfiltered catalog
+- extended the shared framework media browser and picker so every existing media-required form can now choose uploads, library assets, or direct external image URLs
+- improved shared core common-module image list rendering to show real thumbnail previews plus compact multi-line storage URLs instead of plain raw paths
+- split the storefront top menu and category navigation into dedicated components and added a centered sticky text-only category state for the scrolled header
 - reduced the oversized client entry chunk by introducing route-level lazy loading and explicit Vite chunk splitting, which removes the production build warning for the main entry bundle
 
 ### [#25] 2026-04-05 - Unified auth surfaces and role-based landing

@@ -8,6 +8,7 @@ export const catalogSeed: SeedMap = {
     defineNamedModuleItem("product-group", "accessories", "accessories", "Accessories", "Complementary accessories and add-ons."),
   ],
   productCategories: [
+    defineItem("product-category:all-items", { code: "all-items", name: "All Items", description: "Browse the full storefront assortment in one view.", image: "https://placehold.co/320x220/f5ede5/3b2a20?text=All+Items", position_order: 0, show_on_storefront_top_menu: true, show_on_storefront_catalog: false }),
     defineItem("product-category:ethnic", { code: "ethnic", name: "Ethnic Wear", description: "Festive and premium ethnic silhouettes.", image: "https://placehold.co/320x220/f4ebe1/3b2a20?text=Ethnic", position_order: 10, show_on_storefront_top_menu: true, show_on_storefront_catalog: true }),
     defineItem("product-category:t-shirts", { code: "t-shirts", name: "T-Shirts", description: "Knitted T-shirts and jersey tops.", image: "https://placehold.co/320x220/efe6dc/3b2a20?text=T-Shirts", position_order: 20, show_on_storefront_top_menu: true, show_on_storefront_catalog: true }),
     defineItem("product-category:knitted-fabrics", { code: "knitted-fabrics", name: "Knitted Fabrics", description: "Knitted and dyed cotton fabric range.", image: "https://placehold.co/320x220/f5ece3/3b2a20?text=Knits", position_order: 30, show_on_storefront_top_menu: true, show_on_storefront_catalog: true }),

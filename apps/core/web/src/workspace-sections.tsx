@@ -309,6 +309,22 @@ function formatCommonModuleCellValue(
     return Number.isInteger(value) ? value.toString() : value.toFixed(2)
   }
 
+  if (column.key === "image" && typeof value === "string" && value.trim().length > 0) {
+    return (
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="size-12 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-muted/30">
+          <img
+            src={value}
+            alt={`${getCommonModulePrimaryText(item)} preview`}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+        <span className="line-clamp-3 text-xs leading-5 text-muted-foreground">{value}</span>
+      </div>
+    )
+  }
+
   if (typeof value === "string" && value.trim().length > 0) {
     return value
   }

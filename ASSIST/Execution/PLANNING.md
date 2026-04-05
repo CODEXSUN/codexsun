@@ -53,8 +53,12 @@ Finish the ecommerce storefront shell so public shop, admin storefront settings,
 7. evolve the home-slider designer from one global theme into a multi-slide list so each hero slot carries its own isolated theme payload
 8. remove extra workspace and page-hero chrome from the home-slider admin route so the editor stays lean
 9. push the storefront image frame toward a softer glass-style shell instead of a visible outline
-10. split the main client bundle so the storefront and desk surfaces do not stay in one oversized entry chunk
-11. record the storefront batch in work log, task tracking, planning, ownership notes, architecture current-state notes, and changelog
+10. move the storefront top category rail fully to backend-owned category records, including a seeded `All Items` entry instead of a static frontend pill
+11. extend the shared framework media picker so uploads, library assets, and external URLs all work through one media-input path
+12. split storefront top-menu and category-nav concerns into dedicated components, then add a centered sticky scrolled text-only category state
+13. improve shared image-field rendering in core common-module lists so media paths show a real thumbnail plus compact URL text
+14. split the main client bundle so the storefront and desk surfaces do not stay in one oversized entry chunk
+15. record the storefront batch in work log, task tracking, planning, ownership notes, architecture current-state notes, and changelog
 
 ### Validation Plan
 
@@ -66,6 +70,9 @@ Finish the ecommerce storefront shell so public shop, admin storefront settings,
 - Verify the dedicated home-slider designer can load, save, and drive the live hero theme
 - Verify the dedicated home-slider designer can load, save, and drive isolated themes per slide without changing the public hero layout
 - Verify the storefront hero behaves acceptably on both desktop and mobile layouts
+- Verify storefront top-menu categories are fully backend-driven and the seeded `All Items` entry routes to the unfiltered catalog
+- Verify external image URLs work through the shared framework media picker in existing media-required forms
+- Verify the sticky scrolled category menu stays stable, centered, and text-only without header flicker
 
 ### Validation Status
 

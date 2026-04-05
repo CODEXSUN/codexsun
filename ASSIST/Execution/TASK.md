@@ -21,6 +21,10 @@
 - [x] add a dedicated mobile hero slider layout with image-first ordering and mobile-sized text/actions
 - [x] slim the Home Slider admin surface by removing workspace and page hero chrome from the editor route
 - [x] refine the storefront hero image frame toward a softer glass-style shell instead of a hard outlined border
+- [x] move storefront top-menu categories to backend-owned `All Items` plus backend-controlled top-menu visibility instead of a static frontend pill
+- [x] support direct external image URLs anywhere the shared framework media picker is used, without removing uploads or media-library selection
+- [x] split storefront top menu and category navigation into dedicated components, then add a sticky scrolled text-only category mode with centered spacing and compact motion styling
+- [x] improve shared core common-module image cells so category image fields render as real thumbnails instead of raw storage paths
 - [x] reduce the large frontend entry chunk by introducing route-level lazy loading and explicit Vite chunk splitting
 - [x] update ASSIST tracking, ownership notes, changelog, and work log for the storefront batch
 
