@@ -4,6 +4,7 @@ import type { CompanyBrandProfile } from "@cxapp/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import type { AppSettingsSnapshot } from "../../../../framework/shared/index.js"
 
+import { fallbackRuntimeAppSettings } from "../features/runtime-app-settings/runtime-app-settings-fallback"
 import { queryKeys } from "./query-keys"
 
 declare global {
@@ -61,13 +62,19 @@ export function useRuntimeAppSettingsQuery() {
         return window.__CODEXSUN_APP_SETTINGS__ ?? null
       }
 
-      const payload = await requestJson<AppSettingsSnapshot>("/public/v1/app-settings")
-      const settings = payload.item ?? null
-      window.__CODEXSUN_APP_SETTINGS__ = settings ?? undefined
+      try {
+        const payload = await requestJson<AppSettingsSnapshot>("/public/v1/app-settings")
+        const settings = payload.item ?? fallbackRuntimeAppSettings
+        window.__CODEXSUN_APP_SETTINGS__ = settings
 
-      return settings
+        return settings
+      } catch {
+        window.__CODEXSUN_APP_SETTINGS__ = fallbackRuntimeAppSettings
+        return fallbackRuntimeAppSettings
+      }
+
     },
-    initialData: () => window.__CODEXSUN_APP_SETTINGS__ ?? null,
+    initialData: () => window.__CODEXSUN_APP_SETTINGS__ ?? fallbackRuntimeAppSettings,
     retry: false,
   })
 }

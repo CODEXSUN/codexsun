@@ -1,11 +1,12 @@
 import { ArrowRight, ShieldCheck, Sparkles, Truck } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CategoryCardGridSurface } from "@/components/ux/category-card-grid-surface"
 import { FeaturedCardRowSurface } from "@/components/ux/featured-card-row-surface"
 
+import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontAnnouncementBar } from "../components/storefront-announcement-bar"
 import { StorefrontHeroSlider } from "../components/storefront-hero-slider"
@@ -17,6 +18,7 @@ import {
   StorefrontProductCardSkeleton,
   StorefrontSectionHeadingSkeleton,
 } from "../components/storefront-skeletons"
+import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { useStorefrontShellData } from "../hooks/use-storefront-shell-data"
 import {
   normalizeStorefrontHref,
@@ -28,8 +30,11 @@ function hasContent(value: string | null | undefined) {
 }
 
 export function StorefrontHomePage() {
+  const navigate = useNavigate()
   const { data, error, isLoading } = useStorefrontShellData()
   const cart = useStorefrontCart()
+  const customerAuth = useStorefrontCustomerAuth()
+  const customerPortal = useStorefrontCustomerPortal()
   const visibility = data?.settings.visibility
   const featuredItems = data?.featured ?? []
   const categoryItems =
@@ -71,6 +76,15 @@ export function StorefrontHomePage() {
       hasContent(data?.settings.sections.cta.secondaryCtaLabel))
   const hasTrustSection = Boolean(visibility?.trust) && trustNotes.length > 0
   const showPromoGrid = hasCtaSection || hasTrustSection
+
+  async function handleToggleWishlist(productId: string) {
+    if (!customerAuth.isAuthenticated || !customerAuth.accessToken) {
+      void navigate(storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist")))
+      return
+    }
+
+    await customerPortal.toggleWishlist(productId)
+  }
 
   return (
     <StorefrontLayout>
@@ -248,6 +262,8 @@ export function StorefrontHomePage() {
                       key={item.id}
                       item={item}
                       href={storefrontPaths.product(item.slug)}
+                      isWishlisted={customerPortal.isWishlisted(item.id)}
+                      onToggleWishlist={() => void handleToggleWishlist(item.id)}
                       onAddToCart={() =>
                         cart.addItem({
                           productId: item.id,
@@ -288,6 +304,8 @@ export function StorefrontHomePage() {
                       key={item.id}
                       item={item}
                       href={storefrontPaths.product(item.slug)}
+                      isWishlisted={customerPortal.isWishlisted(item.id)}
+                      onToggleWishlist={() => void handleToggleWishlist(item.id)}
                       onAddToCart={() =>
                         cart.addItem({
                           productId: item.id,

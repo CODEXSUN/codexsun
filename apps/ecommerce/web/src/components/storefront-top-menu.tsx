@@ -214,6 +214,7 @@ export function StorefrontTopMenu({
   const customerAuth = useStorefrontCustomerAuth()
   const auth = useAuth()
   const authenticatedHomePath = resolveAuthenticatedHomePath(auth.user)
+  const isCustomerUser = isCustomerSurfaceUser(auth.user)
   const { data } = useStorefrontShellData()
   const settings = data?.settings
   const showSearch = Boolean(settings?.visibility.search)
@@ -226,24 +227,27 @@ export function StorefrontTopMenu({
       key: "profile",
       label: "My Profile",
       href:
-        auth.isAuthenticated && isCustomerSurfaceUser(auth.user)
-          ? storefrontPaths.account()
-          : storefrontPaths.accountLogin(storefrontPaths.account()),
+        auth.isAuthenticated && isCustomerUser
+          ? storefrontPaths.accountSection("profile")
+          : storefrontPaths.accountLogin(storefrontPaths.accountSection("profile")),
       icon: UserRound,
     },
     {
       key: "orders",
       label: "Orders",
       href:
-        auth.isAuthenticated && isCustomerSurfaceUser(auth.user)
-          ? storefrontPaths.account()
-          : storefrontPaths.accountLogin(storefrontPaths.account()),
+        auth.isAuthenticated && isCustomerUser
+          ? storefrontPaths.accountSection("orders")
+          : storefrontPaths.accountLogin(storefrontPaths.accountSection("orders")),
       icon: Package,
     },
     {
       key: "wishlist",
       label: "Wishlist",
-      href: storefrontPaths.catalog(),
+      href:
+        auth.isAuthenticated && isCustomerUser
+          ? storefrontPaths.accountSection("wishlist")
+          : storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist")),
       icon: Heart,
     },
     {
@@ -255,13 +259,19 @@ export function StorefrontTopMenu({
     {
       key: "rewards",
       label: "Rewards",
-      href: storefrontPaths.home(),
+      href:
+        auth.isAuthenticated && isCustomerUser
+          ? storefrontPaths.accountSection("rewards")
+          : storefrontPaths.accountLogin(storefrontPaths.accountSection("rewards")),
       icon: Gift,
     },
     {
       key: "gift-cards",
       label: "Gift Cards",
-      href: storefrontPaths.home(),
+      href:
+        auth.isAuthenticated && isCustomerUser
+          ? storefrontPaths.accountSection("gift-cards")
+          : storefrontPaths.accountLogin(storefrontPaths.accountSection("gift-cards")),
       icon: CreditCard,
     },
   ] as const
@@ -277,7 +287,7 @@ export function StorefrontTopMenu({
       key: "notifications",
       label: "Notification Settings",
       href:
-        auth.isAuthenticated && isCustomerSurfaceUser(auth.user)
+        auth.isAuthenticated && isCustomerUser
           ? storefrontPaths.account()
           : storefrontPaths.accountLogin(storefrontPaths.account()),
       icon: Bell,
@@ -465,8 +475,8 @@ export function StorefrontTopMenu({
                           className="rounded-xl px-3 py-3 text-[15px] text-[#241913] focus:bg-[#f6efe8] focus:text-[#8b5e34]"
                         >
                           <Link to={authenticatedHomePath}>
-                            <LayoutDashboard className="size-4" />
-                            <span>Dashboard</span>
+                            {isCustomerUser ? <UserRound className="size-4" /> : <LayoutDashboard className="size-4" />}
+                            <span>{isCustomerUser ? "My Portal" : "Dashboard"}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem

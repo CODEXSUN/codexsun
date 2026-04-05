@@ -703,7 +703,6 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               items: modules.filter((item) =>
                 [
                   `/dashboard/apps/${app.id}/products`,
-                  `/dashboard/apps/${app.id}/catalog`,
                   `/dashboard/apps/${app.id}/checkout`,
                 ].includes(item.route)
               ),

@@ -76,6 +76,9 @@ export const storefrontPaths = {
   },
   accountRegister: () => withStorefrontRoot("/profile/register"),
   account: () => withStorefrontRoot("/profile"),
+  accountSection: (
+    section: "overview" | "profile" | "wishlist" | "cart" | "orders" | "support" | "coupons" | "gift-cards" | "rewards"
+  ) => withStorefrontRoot(`/profile/${encodeURIComponent(section)}`),
   accountOrder: (orderId: string) =>
     withStorefrontRoot(`/profile/orders/${encodeURIComponent(orderId)}`),
 }

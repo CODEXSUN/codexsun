@@ -5,10 +5,11 @@ import type { AuthUser } from "@cxapp/shared"
 import {
   isAdminSurfaceUser,
   isCustomerSurfaceUser,
+  isWebSurfaceUser,
   resolveAuthenticatedHomePath,
 } from "../auth/auth-surface"
 
-type AppSurface = "guest" | "admin" | "customer" | "desk"
+type AppSurface = "guest" | "admin" | "customer" | "web" | "desk"
 
 type AppSessionState = {
   user: AuthUser | null
@@ -31,6 +32,10 @@ function resolveSurface(user: AuthUser | null): AppSurface {
 
   if (isCustomerSurfaceUser(user)) {
     return "customer"
+  }
+
+  if (isWebSurfaceUser(user)) {
+    return "web"
   }
 
   return "desk"

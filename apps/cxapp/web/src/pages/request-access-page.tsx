@@ -8,7 +8,7 @@ import AuthLayout from "@/layouts/AuthLayout"
 
 import { HttpError } from "../auth/auth-api"
 import { useAuth } from "../auth/auth-context"
-import { resolveAuthenticatedHomePath } from "../auth/auth-surface"
+import { resolvePostAuthPath } from "../auth/auth-surface"
 
 const stepLabels = ["Details", "OTP", "Password"] as const
 
@@ -136,7 +136,7 @@ export function RequestAccessPage() {
       })
       setSubmitted(true)
       window.setTimeout(() => {
-        void navigate(resolveAuthenticatedHomePath(response.user))
+        void navigate(resolvePostAuthPath(response.user, null))
       }, 900)
     } catch (nextError) {
       setError(

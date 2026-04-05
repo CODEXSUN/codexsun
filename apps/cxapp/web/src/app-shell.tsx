@@ -25,6 +25,7 @@ import {
   isAdminSurfaceUser,
   isCustomerSurfaceUser,
   isDeskSurfaceUser,
+  isWebSurfaceUser,
   resolveAuthenticatedHomePath,
 } from "./auth/auth-surface"
 import {
@@ -57,7 +58,7 @@ const DashboardPage = lazyNamed(
   () => import("@/features/dashboard/pages/dashboard-page"),
   "DashboardPage"
 )
-const AdminLayout = lazy(() => import("@/layouts/AdminLayout"))
+const BaseAdminLayout = lazy(() => import("@/layouts/AdminLayout"))
 const StorefrontAccountOrderPage = lazyNamed(
   () => import("@ecommerce/web/src/pages/storefront-account-order-page"),
   "StorefrontAccountOrderPage"
@@ -206,6 +207,10 @@ const RequestAccessPage = lazyNamed(
   () => import("./pages/request-access-page"),
   "RequestAccessPage"
 )
+const WebUserDashboardPage = lazyNamed(
+  () => import("./pages/web-user-dashboard-page"),
+  "WebUserDashboardPage"
+)
 
 const container = createFrameworkBrowserContainer()
 const appSuite = container.resolve<AppSuite>(FRAMEWORK_TOKENS.appSuite)
@@ -216,6 +221,20 @@ const guestUser: DashboardUser = {
   avatarUrl: null,
   actorType: "guest",
   isSuperAdmin: false,
+}
+
+function toDashboardUser(user: AuthUser | null | undefined): DashboardUser {
+  if (!user) {
+    return guestUser
+  }
+
+  return {
+    displayName: user.displayName,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+    actorType: user.actorType,
+    isSuperAdmin: user.isSuperAdmin,
+  }
 }
 
 function FrameworkUtilityPage({
@@ -281,33 +300,44 @@ function ProtectedRoute({
   return children
 }
 
-function AuthenticatedAppShell() {
-  const auth = useAuth()
-  const user: DashboardUser = auth.user
-    ? {
-        displayName: auth.user.displayName,
-        email: auth.user.email,
-        avatarUrl: auth.user.avatarUrl,
-        actorType: auth.user.actorType,
-        isSuperAdmin: auth.user.isSuperAdmin,
-      }
-    : guestUser
-
+function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <RuntimeBrandProvider>
       <RuntimeAppSettingsProvider>
         <ProjectDefaultsProvider>
           <StorefrontCartProvider>
-            <DeskProvider
-              appSuite={appSuite}
-              user={user}
-              onLogout={() => {
-                void auth.logout()
-              }}
-            >
-              <AppToastLayer />
-              <Suspense fallback={<GlobalLoader size="md" />}>
-                <Routes>
+            <AppToastLayer />
+            {children}
+          </StorefrontCartProvider>
+        </ProjectDefaultsProvider>
+      </RuntimeAppSettingsProvider>
+    </RuntimeBrandProvider>
+  )
+}
+
+function AdminLayout({ children }: { children: React.ReactNode }) {
+  const auth = useAuth()
+
+  return (
+    <DeskProvider
+      appSuite={appSuite}
+      user={toDashboardUser(auth.user)}
+      onLogout={() => {
+        void auth.logout()
+      }}
+    >
+      <BaseAdminLayout>{children}</BaseAdminLayout>
+    </DeskProvider>
+  )
+}
+
+function AuthenticatedAppShell() {
+  const auth = useAuth()
+
+  return (
+    <AppProviders>
+      <Suspense fallback={<GlobalLoader size="md" />}>
+        <Routes>
           <Route
             path="/"
             element={
@@ -334,6 +364,14 @@ function AuthenticatedAppShell() {
               <Route path="/profile/register" element={<StorefrontAccountRegisterPage />} />
               <Route
                 path="/profile"
+                element={
+                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                    <StorefrontAccountPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/:sectionId"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
                     <StorefrontAccountPage />
@@ -375,6 +413,14 @@ function AuthenticatedAppShell() {
                 }
               />
               <Route
+                path="/shop/profile/:sectionId"
+                element={
+                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                    <StorefrontAccountPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/shop/profile/orders/:orderId"
                 element={
                   <ProtectedRoute allow={isCustomerSurfaceUser}>
@@ -397,10 +443,14 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute allow={isDeskSurfaceUser}>
-                <AdminLayout>
-                  <DashboardPage />
-                </AdminLayout>
+              <ProtectedRoute allow={(user) => isDeskSurfaceUser(user) || isWebSurfaceUser(user)}>
+                {isWebSurfaceUser(auth.user) ? (
+                  <WebUserDashboardPage />
+                ) : (
+                  <AdminLayout>
+                    <DashboardPage />
+                  </AdminLayout>
+                )}
               </ProtectedRoute>
             }
           />
@@ -1109,14 +1159,10 @@ function AuthenticatedAppShell() {
               </ProtectedRoute>
             }
           />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-            </DeskProvider>
-          </StorefrontCartProvider>
-        </ProjectDefaultsProvider>
-      </RuntimeAppSettingsProvider>
-    </RuntimeBrandProvider>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </AppProviders>
   )
 }
 

@@ -3,12 +3,15 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
+import { storefrontOrderSchema, type StorefrontOrder } from "../../shared/index.js"
 import {
   createContact,
   getContact,
   listContacts,
   updateContact,
 } from "../../../core/src/services/contact-service.js"
+import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
+import type { CommonModuleKey } from "../../../core/shared/index.js"
 import {
   listJsonStorePayloads,
   replaceJsonStoreRecords,
@@ -17,15 +20,23 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import type { AuthUser } from "../../../cxapp/shared/schemas/auth.js"
 import { createAuthService } from "../../../cxapp/src/services/service-factory.js"
 import {
+  customerPortalPreferencesUpdatePayloadSchema,
+  customerPortalRecordSchema,
+  customerPortalResponseSchema,
   customerAccountSchema,
+  customerProfileLookupResponseSchema,
   customerProfileSchema,
   customerProfileUpdatePayloadSchema,
   customerRegisterPayloadSchema,
+  customerWishlistTogglePayloadSchema,
   type CustomerAccount,
+  type CustomerPortalRecord,
+  type CustomerPortalResponse,
   type CustomerProfile,
 } from "../../shared/index.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
+import { readCoreProducts, toStorefrontProductCard } from "./catalog-service.js"
 
 const systemActor: AuthUser = {
   id: "auth-user:ecommerce-system",
@@ -76,6 +87,174 @@ async function writeCustomerAccounts(database: Kysely<unknown>, items: CustomerA
   )
 }
 
+async function readCustomerPortalRecords(database: Kysely<unknown>) {
+  const items = await listJsonStorePayloads<CustomerPortalRecord>(
+    database,
+    ecommerceTableNames.customerPortal
+  )
+
+  return items.map((item) => customerPortalRecordSchema.parse(item))
+}
+
+async function writeCustomerPortalRecords(database: Kysely<unknown>, items: CustomerPortalRecord[]) {
+  await replaceJsonStoreRecords(
+    database,
+    ecommerceTableNames.customerPortal,
+    items.map((item, index) => ({
+      id: item.id,
+      moduleKey: "customer-portal",
+      sortOrder: index + 1,
+      payload: item,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }))
+  )
+}
+
+async function readOrders(database: Kysely<unknown>) {
+  const items = await listJsonStorePayloads<StorefrontOrder>(database, ecommerceTableNames.orders)
+  return items.map((item) => storefrontOrderSchema.parse(item))
+}
+
+function inferRewardsTier(pointsBalance: number) {
+  if (pointsBalance >= 1200) {
+    return "platinum" as const
+  }
+
+  if (pointsBalance >= 700) {
+    return "gold" as const
+  }
+
+  if (pointsBalance >= 300) {
+    return "silver" as const
+  }
+
+  return "bronze" as const
+}
+
+function nextTierTarget(tier: "bronze" | "silver" | "gold" | "platinum") {
+  switch (tier) {
+    case "bronze":
+      return { nextTier: "silver" as const, threshold: 300 }
+    case "silver":
+      return { nextTier: "gold" as const, threshold: 700 }
+    case "gold":
+      return { nextTier: "platinum" as const, threshold: 1200 }
+    default:
+      return { nextTier: null, threshold: 1200 }
+  }
+}
+
+function createDefaultPortalRecord(account: CustomerAccount): CustomerPortalRecord {
+  const now = new Date().toISOString()
+  const codeBase = account.displayName
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "")
+    .slice(0, 6) || "CUSTOM"
+  const welcomeCouponCode = `${codeBase}10`
+  const giftCardCode = `GC-${codeBase}-${account.id.slice(-4).toUpperCase()}`
+  const pointsBalance = 120
+  const tier = inferRewardsTier(pointsBalance)
+  const nextTier = nextTierTarget(tier)
+
+  return customerPortalRecordSchema.parse({
+    id: `customer-portal:${account.id}`,
+    customerAccountId: account.id,
+    wishlistProductIds: [],
+    coupons: [
+      {
+        id: `coupon:${account.id}:welcome`,
+        code: welcomeCouponCode,
+        title: "Welcome savings",
+        summary: "Use this on your next checkout for a first-order discount.",
+        discountLabel: "10% off",
+        minimumOrderAmount: 1499,
+        expiresAt: null,
+        status: "active",
+      },
+      {
+        id: `coupon:${account.id}:shipping`,
+        code: `SHIPFREE-${codeBase}`,
+        title: "Free shipping",
+        summary: "Unlock complimentary shipping on qualifying carts.",
+        discountLabel: "Free shipping",
+        minimumOrderAmount: 1999,
+        expiresAt: null,
+        status: "active",
+      },
+    ],
+    giftCards: [
+      {
+        id: `gift-card:${account.id}:welcome`,
+        code: giftCardCode,
+        title: "Welcome gift card",
+        summary: "Wallet-style store credit available across future orders.",
+        balanceAmount: 500,
+        expiresAt: null,
+        status: "active",
+      },
+    ],
+    rewards: {
+      tier,
+      pointsBalance,
+      lifetimePoints: pointsBalance,
+      nextTier: nextTier.nextTier,
+      pointsToNextTier: Math.max(0, nextTier.threshold - pointsBalance),
+      activities: [
+        {
+          id: `reward:${account.id}:signup`,
+          type: "signup",
+          label: "Account created",
+          summary: "Welcome reward credited for joining the customer portal.",
+          points: 120,
+          createdAt: now,
+        },
+      ],
+    },
+    preferences: {
+      orderUpdates: true,
+      wishlistAlerts: true,
+      priceDropAlerts: true,
+      marketingEmails: true,
+      smsAlerts: false,
+    },
+    createdAt: now,
+    updatedAt: now,
+  })
+}
+
+function upsertPortalRecord(
+  records: CustomerPortalRecord[],
+  updatedRecord: CustomerPortalRecord
+) {
+  const hasExisting = records.some((item) => item.customerAccountId === updatedRecord.customerAccountId)
+
+  if (!hasExisting) {
+    return [updatedRecord, ...records]
+  }
+
+  return records.map((item) =>
+    item.customerAccountId === updatedRecord.customerAccountId ? updatedRecord : item
+  )
+}
+
+async function ensureCustomerPortalRecord(
+  database: Kysely<unknown>,
+  account: CustomerAccount
+) {
+  const records = await readCustomerPortalRecords(database)
+  const existing = records.find((item) => item.customerAccountId === account.id) ?? null
+
+  if (existing) {
+    return existing
+  }
+
+  const record = createDefaultPortalRecord(account)
+  await writeCustomerPortalRecords(database, [record, ...records])
+  return record
+}
+
 async function buildCustomerProfile(
   database: Kysely<unknown>,
   account: CustomerAccount
@@ -86,14 +265,86 @@ async function buildCustomerProfile(
     id: account.id,
     authUserId: account.authUserId,
     coreContactId: account.coreContactId,
+    contactTypeId: contact.item.contactTypeId,
     email: account.email,
+    primaryEmail: contact.item.primaryEmail ?? account.email,
     phoneNumber: account.phoneNumber,
+    primaryPhone: contact.item.primaryPhone ?? account.phoneNumber,
     displayName: account.displayName,
     companyName: account.companyName,
+    legalName: contact.item.legalName,
     gstin: account.gstin,
+    website: contact.item.website,
+    isActive: contact.item.isActive,
     addresses: contact.item.addresses,
+    emails: contact.item.emails,
+    phones: contact.item.phones,
+    bankAccounts: contact.item.bankAccounts,
+    gstDetails: contact.item.gstDetails,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
+  })
+}
+
+export async function getAuthenticatedCustomerProfileLookups(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string
+) {
+  await resolveAuthenticatedCustomerAccount(database, config, token)
+
+  const moduleKeys = [
+    "addressTypes",
+    "bankNames",
+    "countries",
+    "states",
+    "districts",
+    "cities",
+    "pincodes",
+  ] as const satisfies CommonModuleKey[]
+
+  const entries = await Promise.all(
+    moduleKeys.map(async (moduleKey) => [
+      moduleKey,
+      (await listCommonModuleItems(database, moduleKey)).items,
+    ] as const)
+  )
+
+  return customerProfileLookupResponseSchema.parse(Object.fromEntries(entries))
+}
+
+async function buildCustomerPortalResponse(
+  database: Kysely<unknown>,
+  account: CustomerAccount
+): Promise<CustomerPortalResponse> {
+  const [profile, portalRecord, coreProducts, orders] = await Promise.all([
+    buildCustomerProfile(database, account),
+    ensureCustomerPortalRecord(database, account),
+    readCoreProducts(database),
+    readOrders(database),
+  ])
+
+  const wishlist = portalRecord.wishlistProductIds
+    .map((productId) => coreProducts.find((item) => item.id === productId) ?? null)
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .filter((item) => item.isActive)
+    .map(toStorefrontProductCard)
+
+  const customerOrders = orders.filter((item) => item.customerAccountId === account.id)
+
+  return customerPortalResponseSchema.parse({
+    profile,
+    wishlist,
+    coupons: portalRecord.coupons,
+    giftCards: portalRecord.giftCards,
+    rewards: portalRecord.rewards,
+    preferences: portalRecord.preferences,
+    stats: {
+      orderCount: customerOrders.length,
+      wishlistCount: wishlist.length,
+      activeCouponCount: portalRecord.coupons.filter((item) => item.status === "active").length,
+      activeGiftCardCount: portalRecord.giftCards.filter((item) => item.status === "active").length,
+    },
   })
 }
 
@@ -182,6 +433,7 @@ async function ensureCustomerAccountForUser(
       database,
       accounts.map((item) => (item.id === updatedAccount.id ? updatedAccount : item))
     )
+    await ensureCustomerPortalRecord(database, updatedAccount)
 
     return updatedAccount
   }
@@ -246,6 +498,7 @@ async function ensureCustomerAccountForUser(
   })
 
   await writeCustomerAccounts(database, [account, ...accounts])
+  await ensureCustomerPortalRecord(database, account)
   return account
 }
 
@@ -302,11 +555,11 @@ export async function registerCustomer(
             addressTypeId: "address-type:shipping",
             addressLine1: parsed.addressLine1,
             addressLine2: parsed.addressLine2 ?? "",
-            cityId: null,
+            cityId: parsed.city,
             districtId: null,
-            stateId: null,
-            countryId: null,
-            pincodeId: null,
+            stateId: parsed.state,
+            countryId: parsed.country,
+            pincodeId: parsed.pincode,
             latitude: null,
             longitude: null,
             isDefault: true,
@@ -336,6 +589,7 @@ export async function registerCustomer(
   })
 
   await writeCustomerAccounts(database, [account, ...accounts])
+  await ensureCustomerPortalRecord(database, account)
 
   return buildCustomerProfile(database, account)
 }
@@ -347,6 +601,15 @@ export async function getAuthenticatedCustomer(
 ) {
   const account = await resolveAuthenticatedCustomerAccount(database, config, token)
   return buildCustomerProfile(database, account)
+}
+
+export async function getAuthenticatedCustomerPortal(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string
+) {
+  const account = await resolveAuthenticatedCustomerAccount(database, config, token)
+  return buildCustomerPortalResponse(database, account)
 }
 
 export async function resolveAuthenticatedCustomerAccount(
@@ -367,61 +630,63 @@ export async function updateCustomerProfile(
   const parsed = customerProfileUpdatePayloadSchema.parse(payload)
   const account = await resolveAuthenticatedCustomerAccount(database, config, token)
   const gstin = normalizeOptionalString(parsed.gstin)
+  const website = normalizeOptionalString(parsed.website)
+  const legalName = normalizeOptionalString(parsed.legalName)
   const accounts = await readCustomerAccounts(database)
   const contact = await getContact(database, systemActor, account.coreContactId)
+  const primaryPhone =
+    parsed.phones.find((item) => item.isPrimary && normalizeOptionalString(item.phoneNumber)) ??
+    parsed.phones.find((item) => normalizeOptionalString(item.phoneNumber)) ??
+    null
+  const nextEmails = parsed.emails.filter((item) => normalizeOptionalString(item.email))
+  const nextPhones = parsed.phones.filter((item) => normalizeOptionalString(item.phoneNumber))
+  const nextAddresses = parsed.addresses.filter((item) => normalizeOptionalString(item.addressLine1))
+  const nextBankAccounts = parsed.bankAccounts.filter(
+    (item) =>
+      normalizeOptionalString(item.bankName) ||
+      normalizeOptionalString(item.accountNumber) ||
+      normalizeOptionalString(item.accountHolderName) ||
+      normalizeOptionalString(item.ifsc) ||
+      normalizeOptionalString(item.branch)
+  )
+  const nextGstDetails = parsed.gstDetails.filter(
+    (item) => normalizeOptionalString(item.gstin) || normalizeOptionalString(item.state)
+  )
+  const derivedGstin =
+    normalizeOptionalString(
+      nextGstDetails.find((item) => item.isDefault)?.gstin ?? nextGstDetails[0]?.gstin ?? null
+    ) ?? gstin
 
   await updateContact(database, systemActor, contact.item.id, {
     code: contact.item.code,
-    contactTypeId: resolveContactTypeId(gstin),
+    contactTypeId: resolveContactTypeId(derivedGstin),
     ledgerId: contact.item.ledgerId,
     ledgerName: contact.item.ledgerName,
     name: parsed.displayName,
-    legalName: parsed.companyName ?? "",
+    legalName: legalName ?? parsed.companyName ?? "",
     pan: contact.item.pan ?? "",
-    gstin: gstin ?? "",
+    gstin: derivedGstin ?? "",
     msmeType: contact.item.msmeType ?? "",
     msmeNo: contact.item.msmeNo ?? "",
     openingBalance: contact.item.openingBalance,
     balanceType: contact.item.balanceType ?? "",
     creditLimit: contact.item.creditLimit,
-    website: contact.item.website ?? "",
+    website: website ?? "",
     description: contact.item.description ?? "",
     isActive: true,
-    addresses: [
-      {
-        addressTypeId:
-          contact.item.addresses[0]?.addressTypeId ?? "address-type:shipping",
-        addressLine1: parsed.addressLine1,
-        addressLine2: parsed.addressLine2 ?? "",
-        cityId: null,
-        districtId: null,
-        stateId: null,
-        countryId: null,
-        pincodeId: null,
-        latitude: null,
-        longitude: null,
-        isDefault: true,
-      },
-    ],
-    emails: [{ email: account.email, emailType: "primary", isPrimary: true }],
-    phones: [{ phoneNumber: parsed.phoneNumber, phoneType: "mobile", isPrimary: true }],
-    bankAccounts: contact.item.bankAccounts.map((item) => ({
-      bankName: item.bankName,
-      accountNumber: item.accountNumber,
-      accountHolderName: item.accountHolderName,
-      ifsc: item.ifsc,
-      branch: item.branch ?? "",
-      isPrimary: item.isPrimary,
-    })),
-    gstDetails: gstin ? [{ gstin, state: parsed.state, isDefault: true }] : [],
+    addresses: nextAddresses,
+    emails: nextEmails,
+    phones: nextPhones,
+    bankAccounts: nextBankAccounts,
+    gstDetails: nextGstDetails,
   })
 
   const updatedAccount = customerAccountSchema.parse({
     ...account,
     displayName: parsed.displayName,
-    phoneNumber: parsed.phoneNumber,
+    phoneNumber: primaryPhone?.phoneNumber?.trim() || account.phoneNumber,
     companyName: normalizeOptionalString(parsed.companyName),
-    gstin,
+    gstin: derivedGstin,
     updatedAt: new Date().toISOString(),
   })
 
@@ -431,4 +696,58 @@ export async function updateCustomerProfile(
   )
 
   return buildCustomerProfile(database, updatedAccount)
+}
+
+export async function updateCustomerPortalPreferences(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string,
+  payload: unknown
+) {
+  const parsed = customerPortalPreferencesUpdatePayloadSchema.parse(payload ?? {})
+  const account = await resolveAuthenticatedCustomerAccount(database, config, token)
+  const records = await readCustomerPortalRecords(database)
+  const record = await ensureCustomerPortalRecord(database, account)
+  const updatedRecord = customerPortalRecordSchema.parse({
+    ...record,
+    preferences: {
+      ...record.preferences,
+      ...parsed,
+    },
+    updatedAt: new Date().toISOString(),
+  })
+
+  await writeCustomerPortalRecords(
+    database,
+    upsertPortalRecord(records, updatedRecord)
+  )
+
+  return buildCustomerPortalResponse(database, account)
+}
+
+export async function toggleCustomerWishlistItem(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string,
+  payload: unknown
+) {
+  const parsed = customerWishlistTogglePayloadSchema.parse(payload)
+  const account = await resolveAuthenticatedCustomerAccount(database, config, token)
+  const records = await readCustomerPortalRecords(database)
+  const record = await ensureCustomerPortalRecord(database, account)
+  const nextWishlistProductIds = record.wishlistProductIds.includes(parsed.productId)
+    ? record.wishlistProductIds.filter((item) => item !== parsed.productId)
+    : [parsed.productId, ...record.wishlistProductIds]
+  const updatedRecord = customerPortalRecordSchema.parse({
+    ...record,
+    wishlistProductIds: nextWishlistProductIds,
+    updatedAt: new Date().toISOString(),
+  })
+
+  await writeCustomerPortalRecords(
+    database,
+    upsertPortalRecord(records, updatedRecord)
+  )
+
+  return buildCustomerPortalResponse(database, account)
 }

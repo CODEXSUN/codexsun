@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 import type { StorefrontCatalogResponse } from "@ecommerce/shared"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
@@ -15,17 +15,22 @@ import {
 } from "@/components/ui/select"
 
 import { storefrontApi } from "../api/storefront-api"
+import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
 import { StorefrontSearchBar } from "../components/storefront-search-bar"
 import { StorefrontCatalogSkeleton } from "../components/storefront-skeletons"
+import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontCatalogPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryString = searchParams.toString()
   const cart = useStorefrontCart()
+  const customerAuth = useStorefrontCustomerAuth()
+  const customerPortal = useStorefrontCustomerPortal()
 
   const { data, error, isLoading, isFetching } = useQuery<StorefrontCatalogResponse>({
     queryKey: queryKeys.storefrontCatalog(queryString),
@@ -35,6 +40,15 @@ export function StorefrontCatalogPage() {
 
   const categoryOptions = useMemo(() => data?.availableCategories ?? [], [data])
   const showSearchSection = Boolean(data?.settings.visibility.search)
+
+  async function handleToggleWishlist(productId: string) {
+    if (!customerAuth.isAuthenticated || !customerAuth.accessToken) {
+      void navigate(storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist")))
+      return
+    }
+
+    await customerPortal.toggleWishlist(productId)
+  }
 
   return (
     <StorefrontLayout>
@@ -190,6 +204,8 @@ export function StorefrontCatalogPage() {
                   key={item.id}
                   item={item}
                   href={storefrontPaths.product(item.slug)}
+                  isWishlisted={customerPortal.isWishlisted(item.id)}
+                  onToggleWishlist={() => void handleToggleWishlist(item.id)}
                   onAddToCart={() =>
                     cart.addItem({
                       productId: item.id,

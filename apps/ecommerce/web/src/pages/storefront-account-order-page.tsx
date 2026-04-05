@@ -8,7 +8,7 @@ import { CommercePrice } from "@/components/ux/commerce-price"
 
 import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
-import { StorefrontLayout } from "../components/storefront-layout"
+import { CustomerPortalLayout } from "../components/customer-portal-layout"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontAccountOrderPage() {
@@ -47,8 +47,11 @@ export function StorefrontAccountOrderPage() {
   }
 
   return (
-    <StorefrontLayout>
-      <div className="mx-auto grid w-full max-w-5xl gap-8 px-5 pt-8 lg:px-8">
+    <CustomerPortalLayout
+      activeSection="orders"
+      title={data?.item.orderNumber ?? "Order detail"}
+      description="Review purchased items, order status, and delivery updates from your customer portal."
+    >
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {data?.item ? (
           <>
@@ -96,7 +99,6 @@ export function StorefrontAccountOrderPage() {
         ) : (
           <div className="text-sm text-muted-foreground">Loading order...</div>
         )}
-      </div>
-    </StorefrontLayout>
+    </CustomerPortalLayout>
   )
 }

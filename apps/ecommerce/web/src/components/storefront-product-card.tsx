@@ -26,10 +26,14 @@ export function StorefrontProductCard({
   item,
   href,
   onAddToCart,
+  isWishlisted = false,
+  onToggleWishlist,
 }: {
   item: StorefrontProductCardType
   href: string
   onAddToCart: () => void
+  isWishlisted?: boolean
+  onToggleWishlist?: () => void
 }) {
   const isOutOfStock = item.availableQuantity <= 0
   const badgeLabel = item.badge ?? item.categoryName ?? "Catalog"
@@ -81,8 +85,13 @@ export function StorefrontProductCard({
             size="icon"
             className={cn(navIconButtonClassName, "pointer-events-auto")}
             aria-label="Wishlist"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onToggleWishlist?.()
+            }}
           >
-            <Heart className="size-4" />
+            <Heart className={cn("size-4", isWishlisted ? "fill-current text-rose-600" : undefined)} />
           </Button>
         </div>
       </Link>

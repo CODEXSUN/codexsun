@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { ShieldCheck, ShoppingBag, Truck } from "lucide-react"
+import { Heart, ShieldCheck, ShoppingBag, Truck } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
 import type { StorefrontProductResponse } from "@ecommerce/shared"
@@ -12,9 +12,11 @@ import { CommercePrice } from "@/components/ux/commerce-price"
 import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepper"
 
 import { storefrontApi } from "../api/storefront-api"
+import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
+import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { StorefrontProductPageSkeleton } from "../components/storefront-skeletons"
 import { storefrontPaths } from "../lib/storefront-routes"
 
@@ -22,6 +24,8 @@ export function StorefrontProductPage() {
   const { slug = "" } = useParams()
   const navigate = useNavigate()
   const cart = useStorefrontCart()
+  const customerAuth = useStorefrontCustomerAuth()
+  const customerPortal = useStorefrontCustomerPortal()
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
 
@@ -37,6 +41,16 @@ export function StorefrontProductPage() {
 
   const product = data?.item
   const gallery = product?.images.length ? product.images : []
+  const isWishlisted = product ? customerPortal.isWishlisted(product.id) : false
+
+  async function handleToggleWishlist(productId: string) {
+    if (!customerAuth.isAuthenticated || !customerAuth.accessToken) {
+      void navigate(storefrontPaths.accountLogin(storefrontPaths.accountSection("wishlist")))
+      return
+    }
+
+    await customerPortal.toggleWishlist(productId)
+  }
 
   return (
     <StorefrontLayout>
@@ -163,6 +177,15 @@ export function StorefrontProductPage() {
                     >
                       Buy now
                     </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => void handleToggleWishlist(product.id)}
+                    >
+                      <Heart className={isWishlisted ? "fill-current text-rose-600" : undefined} />
+                      {isWishlisted ? "Wishlisted" : "Save to wishlist"}
+                    </Button>
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -223,6 +246,8 @@ export function StorefrontProductPage() {
                     key={item.id}
                     item={item}
                     href={storefrontPaths.product(item.slug)}
+                    isWishlisted={customerPortal.isWishlisted(item.id)}
+                    onToggleWishlist={() => void handleToggleWishlist(item.id)}
                     onAddToCart={() =>
                       cart.addItem({
                         productId: item.id,

@@ -20,7 +20,7 @@ import { getStorefrontSettings } from "./storefront-settings-service.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 
-function resolveProductPrice(product: {
+export function resolveProductPrice(product: {
   basePrice: number
   prices: { sellingPrice: number; mrp: number; isActive: boolean }[]
 }) {
@@ -35,7 +35,7 @@ function resolveProductPrice(product: {
   return { sellingPrice, mrp, discountPercent }
 }
 
-function resolveAvailableQuantity(product: {
+export function resolveAvailableQuantity(product: {
   stockItems: { quantity: number; reservedQuantity: number; isActive: boolean }[]
 }) {
   return product.stockItems
@@ -43,7 +43,7 @@ function resolveAvailableQuantity(product: {
     .reduce((sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity), 0)
 }
 
-function toStorefrontProductCard(
+export function toStorefrontProductCard(
   product: Product
 ): StorefrontProductCard {
   const { sellingPrice, mrp, discountPercent } = resolveProductPrice(product)
@@ -74,7 +74,7 @@ function toStorefrontProductCard(
   }
 }
 
-async function readCoreProducts(database: Kysely<unknown>) {
+export async function readCoreProducts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
 
   return items.map((item) =>

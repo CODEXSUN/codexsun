@@ -1,7 +1,11 @@
 import {
   getAuthenticatedCustomer,
+  getAuthenticatedCustomerProfileLookups,
+  getAuthenticatedCustomerPortal,
   registerCustomer,
+  toggleCustomerWishlistItem,
   updateCustomerProfile,
+  updateCustomerPortalPreferences,
 } from "../../../ecommerce/src/services/customer-service.js"
 import {
   createCheckoutOrder,
@@ -51,6 +55,25 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineExternalRoute("/storefront/customers/me/lookups", {
+      auth: "external",
+      summary: "Resolve customer-safe lookup options used by the customer profile editor.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await getAuthenticatedCustomerProfileLookups(
+            context.databases.primary,
+            context.config,
+            token
+          )
+        )
+      },
+    }),
     defineExternalRoute("/storefront/customers/me", {
       auth: "external",
       method: "PATCH",
@@ -64,6 +87,67 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await updateCustomerProfile(
+            context.databases.primary,
+            context.config,
+            token,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/portal", {
+      auth: "external",
+      summary: "Resolve the authenticated storefront customer's portal state.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await getAuthenticatedCustomerPortal(
+            context.databases.primary,
+            context.config,
+            token
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/preferences", {
+      auth: "external",
+      method: "PATCH",
+      summary: "Update authenticated storefront customer portal preferences.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await updateCustomerPortalPreferences(
+            context.databases.primary,
+            context.config,
+            token,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/wishlist", {
+      auth: "external",
+      method: "POST",
+      summary: "Toggle one wishlist item inside the authenticated storefront customer portal.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await toggleCustomerWishlistItem(
             context.databases.primary,
             context.config,
             token,

@@ -8,7 +8,14 @@ import { createAuthService } from "../../apps/cxapp/src/services/service-factory
 import { getStorefrontCatalog, getStorefrontLanding, getStorefrontProduct } from "../../apps/ecommerce/src/services/catalog-service.js"
 import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.js"
 import { defaultStorefrontSettings } from "../../apps/ecommerce/src/data/storefront-seed.js"
-import { getAuthenticatedCustomer, registerCustomer, updateCustomerProfile } from "../../apps/ecommerce/src/services/customer-service.js"
+import {
+  getAuthenticatedCustomer,
+  getAuthenticatedCustomerPortal,
+  registerCustomer,
+  toggleCustomerWishlistItem,
+  updateCustomerPortalPreferences,
+  updateCustomerProfile,
+} from "../../apps/ecommerce/src/services/customer-service.js"
 import {
   getStorefrontHomeSlider,
   getStorefrontSettings,
@@ -211,6 +218,17 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(refreshedCustomer.displayName, "Asha Raman")
 
+      const initialPortal = await getAuthenticatedCustomerPortal(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(initialPortal.coupons.length > 0, true)
+      assert.equal(initialPortal.giftCards.length > 0, true)
+      assert.equal(initialPortal.rewards.pointsBalance > 0, true)
+      assert.equal(initialPortal.wishlist.length, 0)
+
       await updateCustomerProfile(
         runtime.primary,
         config,
@@ -228,6 +246,31 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
           pincode: "600001",
         }
       )
+
+      const updatedPortal = await updateCustomerPortalPreferences(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        {
+          smsAlerts: true,
+          marketingEmails: false,
+        }
+      )
+
+      assert.equal(updatedPortal.preferences.smsAlerts, true)
+      assert.equal(updatedPortal.preferences.marketingEmails, false)
+
+      const wishlistedPortal = await toggleCustomerWishlistItem(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        {
+          productId: product.item.id,
+        }
+      )
+
+      assert.equal(wishlistedPortal.wishlist.length, 1)
+      assert.equal(wishlistedPortal.wishlist[0]?.id, product.item.id)
 
       const checkout = await createCheckoutOrder(
         runtime.primary,

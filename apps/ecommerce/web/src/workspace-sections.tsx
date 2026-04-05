@@ -299,35 +299,6 @@ function HomeSliderDesignerSection() {
   return <HomeSliderSection />
 }
 
-function CatalogSection() {
-  return (
-    <div className="space-y-4">
-      <SectionIntro
-        eyebrow="Catalog"
-        title="Core-backed catalog"
-        description="Ecommerce does not own shared product masters. It reads active products, categories, departments, and merchandising flags from core, then shapes them into storefront discovery APIs."
-      />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <MetricCard
-          icon={Package}
-          title="Shared products"
-          summary="Catalog cards, PDP details, category browse, and related items all come from core product storage."
-        />
-        <MetricCard
-          icon={LayoutTemplate}
-          title="Storefront shaping"
-          summary="Ecommerce turns shared master data into landing rails, product cards, PDP details, and category links."
-        />
-        <MetricCard
-          icon={Settings2}
-          title="Boundary rule"
-          summary="If a catalog concept becomes reusable across apps, move it to core instead of growing a hidden shared layer in ecommerce."
-        />
-      </div>
-    </div>
-  )
-}
-
 function ProductsSection() {
   return <ExactCoreProductsSection routeBase="/dashboard/apps/ecommerce/products" />
 
@@ -877,7 +848,7 @@ export function EcommerceWorkspaceSection({
     case "products-upsert":
       return <ProductUpsertSection productId={productId} />
     case "catalog":
-      return <CatalogSection />
+      return <ProductsSection />
     case "customers":
       return <CustomersSection />
     case "orders":

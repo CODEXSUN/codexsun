@@ -1,5 +1,8 @@
 import type {
+  CustomerProfileLookupResponse,
   CustomerProfile,
+  CustomerPortalPreferencesUpdatePayload,
+  CustomerPortalResponse,
   CustomerProfileUpdatePayload,
   CustomerRegisterPayload,
   StorefrontHomeSlider,
@@ -133,11 +136,40 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  getCustomerProfileLookups(accessToken: string) {
+    return requestJson<CustomerProfileLookupResponse>("/api/v1/storefront/customers/me/lookups", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  getCustomerPortal(accessToken: string) {
+    return requestJson<CustomerPortalResponse>("/api/v1/storefront/customers/me/portal", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
   updateCustomerProfile(accessToken: string, payload: CustomerProfileUpdatePayload) {
     return requestJson<CustomerProfile>("/api/v1/storefront/customers/me", {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),
+    })
+  },
+  updateCustomerPortalPreferences(
+    accessToken: string,
+    payload: CustomerPortalPreferencesUpdatePayload
+  ) {
+    return requestJson<CustomerPortalResponse>("/api/v1/storefront/customers/me/preferences", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  toggleCustomerWishlist(accessToken: string, productId: string) {
+    return requestJson<CustomerPortalResponse>("/api/v1/storefront/customers/me/wishlist", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify({ productId }),
     })
   },
   createCheckout(accessToken: string | null, payload: StorefrontCheckoutPayload) {

@@ -31,12 +31,6 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Core product masters consumed by ecommerce for merchandising, PDP delivery, and checkout readiness.",
   },
   {
-    id: "catalog",
-    name: "Catalog",
-    route: "/dashboard/apps/ecommerce/catalog",
-    summary: "Shared core products consumed by ecommerce for live storefront discovery and merchandising.",
-  },
-  {
     id: "customers",
     name: "Customers",
     route: "/dashboard/apps/ecommerce/customers",
