@@ -66,7 +66,7 @@ export function DeskProvider({
       resolveLocation={(pathname) => resolveDeskLocation(apps, pathname)}
       onLogout={onLogout}
       links={{
-        dashboard: user.isSuperAdmin ? "/dashboard/admin" : "/dashboard",
+        dashboard: user.isSuperAdmin ? "/admin/dashboard" : "/dashboard",
         home: "/",
         mediaManager: "/dashboard/media",
         settings: "/dashboard/settings",

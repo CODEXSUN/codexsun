@@ -58,7 +58,7 @@ export function GlobalLoadingProvider({ children }: { children: ReactNode }) {
     <GlobalLoadingContext.Provider value={value}>
       {children}
       {value.activeCount > 0 ? (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-background/72 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-background/48 backdrop-blur-sm">
           <GlobalLoader size="md" className="min-h-0 p-0" />
         </div>
       ) : null}

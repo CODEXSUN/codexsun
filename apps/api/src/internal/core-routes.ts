@@ -2,7 +2,6 @@ import {
   commonModuleKeySchema,
   type CommonModuleKey,
 } from "../../../core/shared/index.js"
-import { getBootstrapSnapshot } from "../../../core/src/services/bootstrap-service.js"
 import {
   createCommonModuleItem,
   deleteCommonModuleItem,
@@ -13,14 +12,6 @@ import {
   updateCommonModuleItem,
 } from "../../../core/src/services/common-module-service.js"
 import {
-  createCompany,
-  deleteCompany,
-  getCompany,
-  getPrimaryCompanyBrandProfile,
-  listCompanies,
-  updateCompany,
-} from "../../../core/src/services/company-service.js"
-import {
   createProduct,
   deleteProduct,
   getProduct,
@@ -28,11 +19,6 @@ import {
   updateProduct,
 } from "../../../core/src/services/product-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
-import {
-  getRuntimeSettingsSnapshot,
-  resolveRuntimeSettingsRoot,
-  saveRuntimeSettings,
-} from "../../../framework/src/runtime/config/runtime-settings-service.js"
 import { createContact, deleteContact, getContact, listContacts, updateContact } from "../../../core/src/services/contact-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
@@ -42,136 +28,6 @@ import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createCoreInternalRoutes(): HttpRouteDefinition[] {
   return [
-    defineInternalRoute("/core/bootstrap", {
-      legacyPaths: ["/internal/core/bootstrap"],
-      summary: "Core bootstrap mission, channels, and readiness snapshot.",
-      handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-
-        return jsonResponse(await getBootstrapSnapshot(context.databases.primary))
-      },
-    }),
-    defineInternalRoute("/core/runtime-settings", {
-      summary: "Read runtime .env-backed settings exposed through the core settings page.",
-      handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
-
-        return jsonResponse(
-          getRuntimeSettingsSnapshot(resolveRuntimeSettingsRoot(context.config))
-        )
-      },
-    }),
-    defineInternalRoute("/core/runtime-settings", {
-      method: "POST",
-      summary: "Save runtime .env-backed settings and optionally restart the application.",
-      handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
-
-        return jsonResponse(
-          await saveRuntimeSettings(
-            context.request.jsonBody,
-            resolveRuntimeSettingsRoot(context.config)
-          )
-        )
-      },
-    }),
-    defineInternalRoute("/core/companies", {
-      legacyPaths: ["/internal/core/companies"],
-      summary: "Core company list used by shared organization setup surfaces.",
-      handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-
-        return jsonResponse(await listCompanies(context.databases.primary))
-      },
-    }),
-    defineInternalRoute("/core/company", {
-      summary: "Read one core company by id.",
-      handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-        const companyId = context.request.url.searchParams.get("id")
-
-        if (!companyId) {
-          throw new ApplicationError("Company id is required.", {}, 400)
-        }
-
-        return jsonResponse(await getCompany(context.databases.primary, user, companyId))
-      },
-    }),
-    defineInternalRoute("/core/company-brand", {
-      summary: "Read the primary company brand profile used by shell and public surfaces.",
-      handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-
-        return jsonResponse(await getPrimaryCompanyBrandProfile(context.databases.primary))
-      },
-    }),
-    defineInternalRoute("/core/companies", {
-      method: "POST",
-      summary: "Create a core company master.",
-      handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-
-        return jsonResponse(
-          await createCompany(context.databases.primary, user, context.request.jsonBody),
-          201
-        )
-      },
-    }),
-    defineInternalRoute("/core/company", {
-      method: "PATCH",
-      summary: "Update a core company master.",
-      handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-        const companyId = context.request.url.searchParams.get("id")
-
-        if (!companyId) {
-          throw new ApplicationError("Company id is required.", {}, 400)
-        }
-
-        return jsonResponse(
-          await updateCompany(
-            context.databases.primary,
-            user,
-            companyId,
-            context.request.jsonBody
-          )
-        )
-      },
-    }),
-    defineInternalRoute("/core/company", {
-      method: "DELETE",
-      summary: "Delete a core company master.",
-      handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
-        const companyId = context.request.url.searchParams.get("id")
-
-        if (!companyId) {
-          throw new ApplicationError("Company id is required.", {}, 400)
-        }
-
-        return jsonResponse(
-          await deleteCompany(context.databases.primary, user, companyId)
-        )
-      },
-    }),
     defineInternalRoute("/core/contacts", {
       legacyPaths: ["/internal/core/contacts"],
       summary: "Core contact list used by shared party and master-data surfaces.",

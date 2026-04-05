@@ -26,6 +26,7 @@ export type DashboardMenuGroup = {
   label: string
   shared: boolean
   route?: string
+  icon?: LucideIcon
   items: DashboardMenuItem[]
 }
 

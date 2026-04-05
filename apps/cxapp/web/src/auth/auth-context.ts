@@ -11,7 +11,7 @@ import type {
   AuthRegisterPayload,
   AuthTokenResponse,
   AuthUser,
-} from "@core/shared"
+} from "@cxapp/shared"
 
 import type * as authApi from "./auth-api"
 import type { StoredAuthSession } from "./session-storage"

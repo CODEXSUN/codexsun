@@ -60,6 +60,7 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     FRONTEND_HOST: config.frontendHost,
     FRONTEND_HTTP_PORT: String(config.frontendHttpPort),
     FRONTEND_HTTPS_PORT: String(config.frontendHttpsPort),
+    VITE_FRONTEND_TARGET: config.frontendTarget,
     DB_DRIVER: config.database.driver,
     DB_HOST: config.database.host ?? "",
     DB_PORT: config.database.port ? String(config.database.port) : "",
@@ -88,6 +89,15 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     SMTP_PASS: config.notifications.email.password ?? "",
     SMTP_FROM_EMAIL: config.notifications.email.fromEmail ?? "",
     SMTP_FROM_NAME: config.notifications.email.fromName,
+    ECOMMERCE_FREE_SHIPPING_THRESHOLD: String(
+      config.commerce.storefront.freeShippingThreshold
+    ),
+    ECOMMERCE_DEFAULT_SHIPPING_AMOUNT: String(
+      config.commerce.storefront.defaultShippingAmount
+    ),
+    RAZORPAY_ENABLED: config.commerce.razorpay.enabled,
+    RAZORPAY_KEY_ID: config.commerce.razorpay.keyId ?? "",
+    RAZORPAY_KEY_SECRET: config.commerce.razorpay.keySecret ?? "",
     BILLING_FINANCIAL_YEAR_START_MONTH: String(
       config.billing.compliance.financialYearStartMonth
     ),
@@ -184,7 +194,7 @@ function buildEnvFileContent(
       `# ${group.label}`,
       `# ${group.summary}`,
       ...group.fields.flatMap((field) => {
-        const value = values[field.key]
+        const value = values[field.key] ?? (field.type === "boolean" ? false : "")
         const envValue = toEnvString(field, value)
 
         if (!field.required && envValue.length === 0) {

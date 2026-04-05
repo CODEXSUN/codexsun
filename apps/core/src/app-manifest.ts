@@ -6,7 +6,7 @@ export const coreAppManifest: AppManifest = {
   name: "Core",
   kind: "shared",
   description:
-    "Shared masters, company setup, contacts, and reusable ERP domain foundations.",
+    "Shared masters, contacts, products, and reusable ERP-common domain foundations.",
   standalone: true,
   dependencies: ["framework"],
   workspace: coreAppWorkspace,

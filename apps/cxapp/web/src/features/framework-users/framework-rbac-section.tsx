@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import type { AuthRoleListResponse } from "@core/shared"
+import type { AuthRoleListResponse } from "@cxapp/shared"
 
 import { Badge } from "@/components/ui/badge"
 import { MasterList } from "@/components/blocks/master-list"

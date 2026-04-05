@@ -26,10 +26,6 @@ export function publicMediaMountDirectory(config: ServerConfig) {
   return path.join(config.webRoot, "storage")
 }
 
-export function legacyPublicMediaMountDirectory(config: ServerConfig) {
-  return path.join(config.webRoot, "public", "media")
-}
-
 export function publicMediaFileUrl(backendKey: string) {
   return `/storage/${backendKey
     .split("/")
@@ -100,10 +96,31 @@ async function ensureSymlink(targetDirectory: string, linkDirectory: string) {
   )
 }
 
+async function removeMountDirectoryIfPresent(linkDirectory: string) {
+  try {
+    const existing = await lstat(linkDirectory)
+
+    if (existing.isSymbolicLink()) {
+      await rm(linkDirectory, { recursive: true, force: true })
+      return
+    }
+
+    if (existing.isDirectory() && (await canReplaceExistingMountDirectory(linkDirectory))) {
+      await rm(linkDirectory, { recursive: true, force: true })
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+
+    if (code !== "ENOENT") {
+      throw error
+    }
+  }
+}
+
 export async function ensurePublicMediaSymlink(config: ServerConfig) {
   const targetDirectory = mediaVisibilityDirectory(config, "public")
+  await removeMountDirectoryIfPresent(path.join(config.webRoot, "public", "media"))
   await ensureSymlink(targetDirectory, publicMediaMountDirectory(config))
-  await ensureSymlink(targetDirectory, legacyPublicMediaMountDirectory(config))
 }
 
 export async function moveMediaBinaryBetweenScopes(
@@ -139,10 +156,7 @@ export async function moveMediaBinaryBetweenScopes(
 }
 
 export async function removePublicMediaSymlink(config: ServerConfig) {
-  const linkDirectories = [
-    publicMediaMountDirectory(config),
-    legacyPublicMediaMountDirectory(config),
-  ]
+  const linkDirectories = [publicMediaMountDirectory(config)]
 
   for (const linkDirectory of linkDirectories) {
     try {

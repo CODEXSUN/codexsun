@@ -15,7 +15,7 @@ import type {
   AuthRegisterPayload,
   AuthTokenResponse,
   AuthUser,
-} from "@core/shared"
+} from "@cxapp/shared"
 
 export class HttpError extends Error {
   readonly statusCode: number

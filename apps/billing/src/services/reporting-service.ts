@@ -1,6 +1,6 @@
 import type { Kysely } from "kysely"
 
-import type { AuthUser } from "../../../core/shared/index.js"
+import type { AuthUser } from "../../../cxapp/shared/index.js"
 import {
   billingAccountingReportsResponseSchema,
   billingLedgerSchema,
@@ -235,7 +235,7 @@ export async function getBillingAccountingReports(
     outstandingMap.set(voucher.voucherNumber, {
       voucherId: voucher.id,
       voucherNumber: voucher.voucherNumber,
-      voucherType: voucher.type,
+      voucherType: voucher.type === "sales" ? "sales" : "purchase",
       date: voucher.date,
       counterparty: voucher.counterparty,
       originalAmount: getInvoiceAmount(voucher),

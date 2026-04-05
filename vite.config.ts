@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
         "/internal": `http://${backendProxyHost}:${backendPort}`,
         "/api": `http://${backendProxyHost}:${backendPort}`,
         "/public": `http://${backendProxyHost}:${backendPort}`,
+        "/storage": `http://${backendProxyHost}:${backendPort}`,
         "/health": `http://${backendProxyHost}:${backendPort}`,
       },
     },
@@ -49,6 +50,99 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'build/app/cxapp/web',
       emptyOutDir: true,
+      chunkSizeWarningLimit: 1400,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            const normalizedId = id.replaceAll('\\', '/')
+
+            if (
+              normalizedId.includes('/apps/ui/src/registry/') ||
+              normalizedId.includes('/apps/ui/src/docs/data/')
+            ) {
+              return 'ui-catalog'
+            }
+
+            if (normalizedId.includes('/apps/cxapp/web/src/desk/')) {
+              return 'desk-core'
+            }
+
+            if (
+              normalizedId.includes('/apps/ui/src/features/dashboard/pages/') ||
+              normalizedId.includes('/apps/ui/src/features/dashboard/dashboard-shell.tsx')
+            ) {
+              return 'dashboard-pages'
+            }
+
+            if (normalizedId.includes('/apps/ui/src/features/dashboard/')) {
+              return 'dashboard-core'
+            }
+
+            if (
+              normalizedId.endsWith('/app-manifest.ts') ||
+              normalizedId.endsWith('/workspace-items.ts') ||
+              normalizedId.endsWith('/common-module-navigation.ts') ||
+              normalizedId.endsWith('/module-registry.ts') ||
+              normalizedId.includes('/apps/framework/src/application/')
+            ) {
+              return 'app-suite'
+            }
+
+            if (!normalizedId.includes('/node_modules/')) {
+              return undefined
+            }
+
+            if (
+              normalizedId.includes('react-router-dom') ||
+              normalizedId.includes('react-dom') ||
+              normalizedId.includes('/react/')
+            ) {
+              return 'react-core'
+            }
+
+            if (
+              normalizedId.includes('@radix-ui') ||
+              normalizedId.includes('@base-ui') ||
+              normalizedId.includes('cmdk') ||
+              normalizedId.includes('vaul') ||
+              normalizedId.includes('react-day-picker') ||
+              normalizedId.includes('input-otp')
+            ) {
+              return 'ui-kit'
+            }
+
+            if (normalizedId.includes('lucide-react')) {
+              return 'icons'
+            }
+
+            if (
+              normalizedId.includes('zod') ||
+              normalizedId.includes('react-hook-form') ||
+              normalizedId.includes('@hookform/resolvers')
+            ) {
+              return 'forms'
+            }
+
+            if (
+              normalizedId.includes('framer-motion') ||
+              normalizedId.includes('/motion/') ||
+              normalizedId.includes('embla-carousel-react')
+            ) {
+              return 'motion'
+            }
+
+            if (
+              normalizedId.includes('@tanstack/react-table') ||
+              normalizedId.includes('recharts') ||
+              normalizedId.includes('date-fns')
+            ) {
+              return 'data'
+            }
+
+            return 'vendor'
+          },
+        },
+      },
     },
   }
 })

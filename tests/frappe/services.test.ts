@@ -4,8 +4,10 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
-import { listProducts } from "../../apps/ecommerce/src/services/product-service.js"
-import { syncFrappeItemsToProducts } from "../../apps/frappe/src/services/item-service.js"
+import {
+  listFrappeItemProductSyncLogs,
+  syncFrappeItemsToProducts,
+} from "../../apps/frappe/src/services/item-service.js"
 import {
   listFrappePurchaseReceipts,
   syncFrappePurchaseReceipts,
@@ -38,7 +40,7 @@ function createAdminUser() {
   }
 }
 
-test("frappe item sync creates ecommerce products through the app-owned sync path", async () => {
+test("frappe item sync is blocked while ecommerce stays scaffold-only", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-item-sync-"))
 
   try {
@@ -53,17 +55,21 @@ test("frappe item sync creates ecommerce products through the app-owned sync pat
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      const sync = await syncFrappeItemsToProducts(runtime.primary, adminUser, {
-        itemIds: ["frappe-item:luna-tote"],
-        duplicateMode: "overwrite",
-      })
-      const products = await listProducts(runtime.primary)
-      const createdProduct = products.items.find((item) => item.sku === "LUNA-TOTE-01")
+      await assert.rejects(
+        () =>
+          syncFrappeItemsToProducts(runtime.primary, adminUser, {
+            itemIds: ["frappe-item:luna-tote"],
+            duplicateMode: "overwrite",
+          }),
+        /scaffold-only/i
+      )
 
-      assert.equal(sync.sync.items.length, 1)
-      assert.equal(sync.sync.items[0]?.mode, "create")
-      assert.equal(products.items.length, 4)
-      assert.equal(createdProduct?.name, "Luna Utility Tote")
+      const logs = await listFrappeItemProductSyncLogs(runtime.primary, adminUser)
+      const blockedLog = logs.manager.items.find((item) => item.failureCount === 1)
+
+      assert.ok(logs.manager.items.length >= 2)
+      assert.equal(blockedLog?.failureCount, 1)
+      assert.match(blockedLog?.summary ?? "", /scaffold-only/i)
     } finally {
       await runtime.destroy()
     }
@@ -72,7 +78,7 @@ test("frappe item sync creates ecommerce products through the app-owned sync pat
   }
 })
 
-test("frappe settings save and purchase receipt sync stay inside the app-owned connector flow", async () => {
+test("frappe settings save and purchase receipt sync stay inside the connector flow with ecommerce scaffolded", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-receipts-"))
 
   try {
@@ -109,15 +115,14 @@ test("frappe settings save and purchase receipt sync stay inside the app-owned c
       const syncedReceipt = receipts.manager.items.find(
         (item) => item.id === "frappe-receipt:2026-0002"
       )
-      const products = await listProducts(runtime.primary)
 
       assert.equal(storedSettings.settings.isConfigured, true)
       assert.equal(storedSettings.settings.baseUrl, "https://erp.example.test")
       assert.equal(receiptSync.sync.items.length, 1)
       assert.equal(receiptSync.sync.items[0]?.mode, "create")
+      assert.equal(receiptSync.sync.items[0]?.linkedProductCount, 0)
       assert.equal(syncedReceipt?.isSyncedLocally, true)
-      assert.equal(syncedReceipt?.linkedProductCount, 1)
-      assert.equal(products.items.length, 4)
+      assert.equal(syncedReceipt?.linkedProductCount, 0)
     } finally {
       await runtime.destroy()
     }

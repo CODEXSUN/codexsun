@@ -5,7 +5,7 @@ import type {
   AuthRoleResponse,
   AuthUserListResponse,
   AuthUserResponse,
-} from "@core/shared"
+} from "@cxapp/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -38,37 +38,37 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function listFrameworkUsers() {
-  return requestJson<AuthUserListResponse>("/internal/v1/core/auth/users")
+  return requestJson<AuthUserListResponse>("/internal/v1/cxapp/auth/users")
 }
 
 export async function getFrameworkUser(userId: string) {
   return requestJson<AuthUserResponse>(
-    `/internal/v1/core/auth/user?id=${encodeURIComponent(userId)}`
+    `/internal/v1/cxapp/auth/user?id=${encodeURIComponent(userId)}`
   )
 }
 
 export async function listFrameworkRoles() {
-  return requestJson<AuthRoleListResponse>("/internal/v1/core/auth/roles")
+  return requestJson<AuthRoleListResponse>("/internal/v1/cxapp/auth/roles")
 }
 
 export async function getFrameworkRole(roleId: string) {
   return requestJson<AuthRoleResponse>(
-    `/internal/v1/core/auth/role?id=${encodeURIComponent(roleId)}`
+    `/internal/v1/cxapp/auth/role?id=${encodeURIComponent(roleId)}`
   )
 }
 
 export async function listFrameworkPermissions() {
-  return requestJson<AuthPermissionListResponse>("/internal/v1/core/auth/permissions")
+  return requestJson<AuthPermissionListResponse>("/internal/v1/cxapp/auth/permissions")
 }
 
 export async function getFrameworkPermission(permissionId: string) {
   return requestJson<AuthPermissionResponse>(
-    `/internal/v1/core/auth/permission?id=${encodeURIComponent(permissionId)}`
+    `/internal/v1/cxapp/auth/permission?id=${encodeURIComponent(permissionId)}`
   )
 }
 
 export async function createFrameworkPermission(payload: unknown) {
-  return requestJson<AuthPermissionResponse>("/internal/v1/core/auth/permissions", {
+  return requestJson<AuthPermissionResponse>("/internal/v1/cxapp/auth/permissions", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -76,7 +76,7 @@ export async function createFrameworkPermission(payload: unknown) {
 
 export async function updateFrameworkPermission(permissionId: string, payload: unknown) {
   return requestJson<AuthPermissionResponse>(
-    `/internal/v1/core/auth/permission?id=${encodeURIComponent(permissionId)}`,
+    `/internal/v1/cxapp/auth/permission?id=${encodeURIComponent(permissionId)}`,
     {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -85,7 +85,7 @@ export async function updateFrameworkPermission(permissionId: string, payload: u
 }
 
 export async function createFrameworkRole(payload: unknown) {
-  return requestJson<AuthRoleResponse>("/internal/v1/core/auth/roles", {
+  return requestJson<AuthRoleResponse>("/internal/v1/cxapp/auth/roles", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -93,7 +93,7 @@ export async function createFrameworkRole(payload: unknown) {
 
 export async function updateFrameworkRole(roleId: string, payload: unknown) {
   return requestJson<AuthRoleResponse>(
-    `/internal/v1/core/auth/role?id=${encodeURIComponent(roleId)}`,
+    `/internal/v1/cxapp/auth/role?id=${encodeURIComponent(roleId)}`,
     {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -102,7 +102,7 @@ export async function updateFrameworkRole(roleId: string, payload: unknown) {
 }
 
 export async function createFrameworkUser(payload: unknown) {
-  return requestJson<AuthUserResponse>("/internal/v1/core/auth/users", {
+  return requestJson<AuthUserResponse>("/internal/v1/cxapp/auth/users", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -110,7 +110,7 @@ export async function createFrameworkUser(payload: unknown) {
 
 export async function updateFrameworkUser(userId: string, payload: unknown) {
   return requestJson<AuthUserResponse>(
-    `/internal/v1/core/auth/user?id=${encodeURIComponent(userId)}`,
+    `/internal/v1/cxapp/auth/user?id=${encodeURIComponent(userId)}`,
     {
       method: "PATCH",
       body: JSON.stringify(payload),

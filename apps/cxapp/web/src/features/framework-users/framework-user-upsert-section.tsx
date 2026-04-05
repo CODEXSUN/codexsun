@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeftIcon, PlusIcon, XIcon } from "lucide-react"
 
-import type { ActorType, AuthRoleSummary, RoleKey } from "@core/shared"
+import type { ActorType, AuthRoleSummary, RoleKey } from "@cxapp/shared"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

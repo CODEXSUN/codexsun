@@ -3,6 +3,15 @@ import path from "node:path"
 import { readBoolean, readNumber, resolveEnv } from "./env.js"
 
 export type DatabaseDriver = "mariadb" | "postgres" | "sqlite"
+export type FrontendTarget = "site" | "shop" | "app"
+
+function readFrontendTarget(value: string | undefined): FrontendTarget {
+  if (value === "site" || value === "shop" || value === "app") {
+    return value
+  }
+
+  return "site"
+}
 
 export type ServerConfig = {
   appName: string
@@ -14,6 +23,7 @@ export type ServerConfig = {
   frontendHost: string
   frontendHttpPort: number
   frontendHttpsPort: number
+  frontendTarget: FrontendTarget
   webRoot: string
   tlsEnabled: boolean
   tlsKeyPath?: string
@@ -90,6 +100,17 @@ export type ServerConfig = {
       }
     }
   }
+  commerce: {
+    storefront: {
+      freeShippingThreshold: number
+      defaultShippingAmount: number
+    }
+    razorpay: {
+      enabled: boolean
+      keyId?: string
+      keySecret?: string
+    }
+  }
 }
 
 export function getServerConfig(cwd = process.cwd()): ServerConfig {
@@ -119,6 +140,7 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
     frontendHost: env.FRONTEND_HOST ?? "0.0.0.0",
     frontendHttpPort: readNumber(env.FRONTEND_HTTP_PORT, 5173, "FRONTEND_HTTP_PORT"),
     frontendHttpsPort: readNumber(env.FRONTEND_HTTPS_PORT, 5174, "FRONTEND_HTTPS_PORT"),
+    frontendTarget: readFrontendTarget(env.VITE_FRONTEND_TARGET),
     webRoot: path.resolve(cwd, env.WEB_ROOT ?? "build/app/cxapp/web"),
     tlsEnabled,
     tlsKeyPath: env.TLS_KEY_PATH
@@ -218,6 +240,25 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
           clientSecret: env.BILLING_EWAYBILL_CLIENT_SECRET?.trim() || undefined,
           gstin: env.BILLING_EWAYBILL_GSTIN?.trim() || undefined,
         },
+      },
+    },
+    commerce: {
+      storefront: {
+        freeShippingThreshold: readNumber(
+          env.ECOMMERCE_FREE_SHIPPING_THRESHOLD,
+          3999,
+          "ECOMMERCE_FREE_SHIPPING_THRESHOLD"
+        ),
+        defaultShippingAmount: readNumber(
+          env.ECOMMERCE_DEFAULT_SHIPPING_AMOUNT,
+          149,
+          "ECOMMERCE_DEFAULT_SHIPPING_AMOUNT"
+        ),
+      },
+      razorpay: {
+        enabled: readBoolean(env.RAZORPAY_ENABLED, false),
+        keyId: env.RAZORPAY_KEY_ID?.trim() || undefined,
+        keySecret: env.RAZORPAY_KEY_SECRET?.trim() || undefined,
       },
     },
   }

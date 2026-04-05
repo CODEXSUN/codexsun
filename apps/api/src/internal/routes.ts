@@ -4,9 +4,9 @@ import { defineInternalRoute } from "../../../framework/src/runtime/http/index.j
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
 import { createBillingInternalRoutes } from "./billing-routes.js"
-import { createCoreAuthInternalRoutes } from "./core-auth-routes.js"
 import { createCoreInternalRoutes } from "./core-routes.js"
-import { createEcommerceInternalRoutes } from "./ecommerce-routes.js"
+import { createCxappAuthInternalRoutes } from "./cxapp-auth-routes.js"
+import { createCxappInternalRoutes } from "./cxapp-routes.js"
 import { createFrappeInternalRoutes } from "./frappe-routes.js"
 import { createFrameworkInternalRoutes } from "./framework-routes.js"
 
@@ -38,10 +38,10 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
       }),
     }),
     ...createCoreInternalRoutes(),
-    ...createCoreAuthInternalRoutes(),
+    ...createCxappInternalRoutes(),
+    ...createCxappAuthInternalRoutes(),
     ...createFrameworkInternalRoutes(),
     ...createBillingInternalRoutes(),
-    ...createEcommerceInternalRoutes(),
     ...createFrappeInternalRoutes(),
   ]
 }

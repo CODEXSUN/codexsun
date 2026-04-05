@@ -185,6 +185,19 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         placeholder: "5174",
         required: true,
       },
+      {
+        key: "VITE_FRONTEND_TARGET",
+        label: "Frontend Target",
+        type: "select",
+        description:
+          "Select whether the frontend home opens the portfolio site, ecommerce storefront, or billing app login.",
+        required: true,
+        options: [
+          { label: "Site", value: "site" },
+          { label: "Shop", value: "shop" },
+          { label: "App", value: "app" },
+        ],
+      },
     ],
   },
   {
@@ -412,6 +425,54 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         description: "Default sender display name.",
         placeholder: "codexsun",
         required: true,
+      },
+    ],
+  },
+  {
+    id: "commerce-storefront",
+    label: "Commerce Storefront",
+    summary: "Storefront shipping thresholds and default commerce checkout values.",
+    fields: [
+      {
+        key: "ECOMMERCE_FREE_SHIPPING_THRESHOLD",
+        label: "Free Shipping Threshold",
+        type: "number",
+        description: "Cart total above which shipping becomes free.",
+        placeholder: "3999",
+        required: true,
+      },
+      {
+        key: "ECOMMERCE_DEFAULT_SHIPPING_AMOUNT",
+        label: "Default Shipping Amount",
+        type: "number",
+        description: "Shipping charge applied below the free shipping threshold.",
+        placeholder: "149",
+        required: true,
+      },
+    ],
+  },
+  {
+    id: "commerce-razorpay",
+    label: "Razorpay",
+    summary: "Payment gateway credentials for the ecommerce checkout surface.",
+    fields: [
+      {
+        key: "RAZORPAY_ENABLED",
+        label: "Razorpay Enabled",
+        type: "boolean",
+        description: "Enable live Razorpay order creation and signature verification.",
+      },
+      {
+        key: "RAZORPAY_KEY_ID",
+        label: "Razorpay Key Id",
+        type: "string",
+        description: "Public Razorpay key id used by checkout.",
+      },
+      {
+        key: "RAZORPAY_KEY_SECRET",
+        label: "Razorpay Key Secret",
+        type: "password",
+        description: "Secret key used for order creation and signature verification.",
       },
     ],
   },

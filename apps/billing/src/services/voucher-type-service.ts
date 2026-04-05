@@ -11,7 +11,7 @@ import {
   billingVoucherMasterTypeSchema,
   billingVoucherMasterTypeUpsertPayloadSchema,
 } from "../../shared/index.js"
-import type { AuthUser } from "../../../core/shared/index.js"
+import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 
 import { billingTableNames } from "../../database/table-names.js"

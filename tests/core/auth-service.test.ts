@@ -4,11 +4,11 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
-import { AuthRepository } from "../../apps/core/src/repositories/auth-repository.js"
+import { AuthRepository } from "../../apps/cxapp/src/repositories/auth-repository.js"
 import {
   createAuthService,
   createMailboxService,
-} from "../../apps/core/src/services/service-factory.js"
+} from "../../apps/cxapp/src/services/service-factory.js"
 import { getServerConfig } from "../../apps/framework/src/runtime/config/index.js"
 import {
   createRuntimeDatabases,

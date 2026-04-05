@@ -1,15 +1,14 @@
 import { createExternalApiRoutes } from "../../../../api/src/external/routes.js"
+import { createPublicApiRoutes } from "../../../../api/src/external/public-routes.js"
 import { createInternalApiRoutes } from "../../../../api/src/internal/routes.js"
 import type { AppSuite } from "../../application/app-manifest.js"
-
-import { createPublicHttpRoutes } from "./public-routes.js"
 import type { HttpRouteDefinition } from "./route-types.js"
 
 export function createHttpRouteAssemblies(appSuite: AppSuite) {
   return [
     ...createInternalApiRoutes(appSuite),
     ...createExternalApiRoutes(appSuite),
-    ...createPublicHttpRoutes(appSuite),
+    ...createPublicApiRoutes(appSuite),
   ]
 }
 

@@ -4,7 +4,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import type { AuthTokenResponse } from "@core/shared"
+import type { AuthTokenResponse } from "@cxapp/shared"
 
 import * as authApi from "./auth-api"
 import { AuthContext, type AuthContextValue } from "./auth-context"

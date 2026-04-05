@@ -110,7 +110,7 @@ export function CoreSettingsSection() {
 
       try {
         const snapshot = await requestJson<RuntimeSettingsSnapshot>(
-          "/internal/v1/core/runtime-settings"
+          "/internal/v1/cxapp/runtime-settings"
         )
 
         if (!cancelled) {
@@ -142,7 +142,7 @@ export function CoreSettingsSection() {
 
     try {
       const response = await requestJson<RuntimeSettingsSaveResponse>(
-        "/internal/v1/core/runtime-settings",
+        "/internal/v1/cxapp/runtime-settings",
         {
           method: "POST",
           body: JSON.stringify({

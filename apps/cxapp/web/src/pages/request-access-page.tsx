@@ -8,6 +8,7 @@ import AuthLayout from "@/layouts/AuthLayout"
 
 import { HttpError } from "../auth/auth-api"
 import { useAuth } from "../auth/auth-context"
+import { resolveAuthenticatedHomePath } from "../auth/auth-surface"
 
 const stepLabels = ["Details", "OTP", "Password"] as const
 
@@ -133,11 +134,9 @@ export function RequestAccessPage() {
         emailVerificationId: verificationId,
         organizationName: "codexsun",
       })
-      const isAdmin =
-        response.user.isSuperAdmin || response.user.actorType === "admin"
       setSubmitted(true)
       window.setTimeout(() => {
-        void navigate(isAdmin ? "/dashboard/admin" : "/dashboard")
+        void navigate(resolveAuthenticatedHomePath(response.user))
       }, 900)
     } catch (nextError) {
       setError(

@@ -42,8 +42,8 @@ export function resolveEnv(cwd = process.cwd()): EnvMap {
   const fileEnv = parseEnvFile(envPath)
 
   return {
-    ...process.env,
     ...fileEnv,
+    ...process.env,
   }
 }
 

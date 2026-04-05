@@ -1,5 +1,6 @@
 import { billingDatabaseModule } from "../../../../../billing/src/database-module.js"
 import { coreDatabaseModule } from "../../../../../core/src/database-module.js"
+import { cxappDatabaseModule } from "../../../../../cxapp/src/database-module.js"
 import { ecommerceDatabaseModule } from "../../../../../ecommerce/src/database-module.js"
 import { frappeDatabaseModule } from "../../../../../frappe/src/database-module.js"
 
@@ -21,6 +22,7 @@ export const frameworkDatabaseModule = defineAppDatabaseModule({
 
 export const registeredDatabaseModules: AppDatabaseModule[] = [
   frameworkDatabaseModule,
+  cxappDatabaseModule,
   coreDatabaseModule,
   billingDatabaseModule,
   ecommerceDatabaseModule,

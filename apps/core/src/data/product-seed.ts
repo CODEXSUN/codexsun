@@ -1,13 +1,199 @@
-import { products as ecommerceSeedProducts } from "../../../ecommerce/src/data/ecommerce-seed.js"
 import { productSchema, type Product } from "../../shared/index.js"
 
-export const products: Product[] = ecommerceSeedProducts.map((product) =>
-  productSchema.parse({
-    ...product,
-    code:
-      typeof (product as { code?: unknown }).code === "string" &&
-      (product as { code?: string }).code.trim()
-        ? (product as { code: string }).code
-        : product.sku,
+const timestamp = "2026-04-04T00:00:00.000Z"
+
+function createSeedProduct(input: {
+  id: string
+  code: string
+  name: string
+  slug: string
+  sku: string
+  brandName: string
+  categoryName: string
+  department: "women" | "men" | "kids" | "accessories"
+  imageUrl: string
+  basePrice: number
+  costPrice: number
+  badge: string
+}) {
+  return productSchema.parse({
+    id: input.id,
+    uuid: `${input.id}-uuid`,
+    code: input.code,
+    name: input.name,
+    slug: input.slug,
+    description: `${input.name} shared product master.`,
+    shortDescription: input.name,
+    brandId: `brand:${input.brandName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    brandName: input.brandName,
+    categoryId: `product-category:${input.categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    categoryName: input.categoryName,
+    productGroupId: "product-group:shared-catalog",
+    productGroupName: "Shared Catalog",
+    productTypeId: "product-type:finished-good",
+    productTypeName: "Finished Good",
+    unitId: "unit:piece",
+    hsnCodeId: "hsn:default",
+    styleId: "style:default",
+    sku: input.sku,
+    hasVariants: false,
+    basePrice: input.basePrice,
+    costPrice: input.costPrice,
+    taxId: "tax:gst-standard",
+    isFeatured: false,
+    isActive: true,
+    storefrontDepartment: input.department,
+    homeSliderEnabled: false,
+    promoSliderEnabled: false,
+    featureSectionEnabled: false,
+    isNewArrival: true,
+    isBestSeller: false,
+    isFeaturedLabel: false,
+    primaryImageUrl: input.imageUrl,
+    variantCount: 0,
+    tagCount: 2,
+    tagNames: ["core", input.department],
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    images: [
+      {
+        id: `${input.id}:image:primary`,
+        productId: input.id,
+        imageUrl: input.imageUrl,
+        isPrimary: true,
+        sortOrder: 1,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ],
+    variants: [],
+    prices: [
+      {
+        id: `${input.id}:price:default`,
+        productId: input.id,
+        variantId: null,
+        mrp: Math.round(input.basePrice * 1.18),
+        sellingPrice: input.basePrice,
+        costPrice: input.costPrice,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ],
+    discounts: [],
+    offers: [],
+    attributes: [],
+    attributeValues: [],
+    variantMap: [],
+    stockItems: [
+      {
+        id: `${input.id}:stock:default`,
+        productId: input.id,
+        variantId: null,
+        warehouseId: "warehouse:default",
+        quantity: 12,
+        reservedQuantity: 1,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ],
+    stockMovements: [],
+    seo: {
+      id: `${input.id}:seo`,
+      productId: input.id,
+      metaTitle: input.name,
+      metaDescription: `${input.name} shared catalog product.`,
+      metaKeywords: `${input.brandName}, ${input.categoryName}, core`,
+      isActive: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    storefront: {
+      id: `${input.id}:storefront`,
+      productId: input.id,
+      department: input.department,
+      homeSliderEnabled: false,
+      homeSliderOrder: 0,
+      promoSliderEnabled: false,
+      promoSliderOrder: 0,
+      featureSectionEnabled: false,
+      featureSectionOrder: 0,
+      isNewArrival: true,
+      isBestSeller: false,
+      isFeaturedLabel: false,
+      catalogBadge: input.badge,
+      fabric: null,
+      fit: null,
+      sleeve: null,
+      occasion: null,
+      shippingNote: "Shared core seed product.",
+      isActive: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    tags: [
+      {
+        id: `${input.id}:tag:core`,
+        name: "core",
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: `${input.id}:tag:${input.department}`,
+        name: input.department,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ],
+    reviews: [],
   })
-)
+}
+
+export const products: Product[] = [
+  createSeedProduct({
+    id: "core-product:aster-linen-shirt",
+    code: "CORE-PRD-001",
+    name: "Aster Linen Shirt",
+    slug: "aster-linen-shirt",
+    sku: "ASTER-LINEN-SHIRT-001",
+    brandName: "Aster Loom",
+    categoryName: "Shirts",
+    department: "men",
+    imageUrl: "https://placehold.co/900x1200/e8dfd4/2d211b?text=Aster+Linen+Shirt",
+    basePrice: 1890,
+    costPrice: 1120,
+    badge: "Core",
+  }),
+  createSeedProduct({
+    id: "core-product:luna-utility-tote",
+    code: "CORE-PRD-002",
+    name: "Luna Utility Tote",
+    slug: "luna-utility-tote",
+    sku: "LUNA-UTILITY-TOTE-01",
+    brandName: "Northline",
+    categoryName: "Accessories",
+    department: "accessories",
+    imageUrl: "https://placehold.co/900x1200/dad4cb/2d211b?text=Luna+Utility+Tote",
+    basePrice: 2490,
+    costPrice: 1490,
+    badge: "Travel",
+  }),
+  createSeedProduct({
+    id: "core-product:saffron-festive-set",
+    code: "CORE-PRD-003",
+    name: "Saffron Festive Set",
+    slug: "saffron-festive-set",
+    sku: "SAFFRON-FESTIVE-SET-01",
+    brandName: "Verde Studio",
+    categoryName: "Ethnic Wear",
+    department: "women",
+    imageUrl: "https://placehold.co/900x1200/f0e4d8/2d211b?text=Saffron+Festive+Set",
+    basePrice: 3290,
+    costPrice: 2010,
+    badge: "Festive",
+  }),
+]

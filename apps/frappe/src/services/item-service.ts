@@ -2,22 +2,7 @@ import { randomUUID } from "node:crypto"
 
 import type { Kysely } from "kysely"
 
-import type { AuthUser } from "../../../core/shared/index.js"
-import {
-  listProductRecords,
-  replaceProductRecords,
-} from "../../../ecommerce/src/services/product-admin-service.js"
-import {
-  productSchema,
-  type Product,
-  type ProductImage,
-  type ProductPrice,
-  type ProductSeo,
-  type ProductStockItem,
-  type ProductStorefront,
-  type ProductTag,
-  type StorefrontDepartment,
-} from "../../../ecommerce/shared/index.js"
+import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   frappeItemManagerResponseSchema,
@@ -45,54 +30,6 @@ function slugify(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-}
-
-function placeholderImage(text: string, background: string, foreground = "243447") {
-  return `https://placehold.co/900x1200/${background}/${foreground}?text=${encodeURIComponent(
-    text
-  )}`
-}
-
-function deriveDepartment(item: {
-  itemGroup: string
-  itemName: string
-}): StorefrontDepartment {
-  const content = `${item.itemGroup} ${item.itemName}`.toLowerCase()
-
-  if (content.includes("women") || content.includes("ethnic") || content.includes("ladies")) {
-    return "women"
-  }
-
-  if (content.includes("men") || content.includes("shirt") || content.includes("gents")) {
-    return "men"
-  }
-
-  if (content.includes("kids") || content.includes("child") || content.includes("baby")) {
-    return "kids"
-  }
-
-  return "accessories"
-}
-
-function deriveBasePrice(item: {
-  itemGroup: string
-  itemName: string
-}) {
-  const department = deriveDepartment(item)
-
-  if (department === "women") {
-    return 2490
-  }
-
-  if (department === "men") {
-    return 1890
-  }
-
-  if (department === "kids") {
-    return 1490
-  }
-
-  return 1290
 }
 
 function createReferenceOptions(values: string[]) {
@@ -142,199 +79,6 @@ async function readStoredDefaults(database: Kysely<unknown>) {
     defaultItemGroup: "",
     defaultPriceList: "",
   }
-}
-
-function buildProductFromItem(item: (typeof frappeItemSchema)["_output"], existing: Product | null) {
-  const timestamp = new Date().toISOString()
-  const id = existing?.id ?? `product:frappe:${slugify(item.itemCode || item.itemName)}`
-  const uuid = existing?.uuid ?? randomUUID()
-  const basePrice = existing?.basePrice ?? deriveBasePrice(item)
-  const costPrice = existing?.costPrice ?? Math.round(basePrice * 0.62)
-  const brandName = item.brand || existing?.brandName || "Frappe Imported"
-  const categoryName = item.itemGroup || existing?.categoryName || "Frappe Catalog"
-  const department = deriveDepartment(item)
-  const imageUrl =
-    existing?.images[0]?.imageUrl ?? placeholderImage(item.itemName, "dbeafe")
-  const images: ProductImage[] =
-    existing?.images.length
-      ? existing.images.map((image, index) => ({
-          ...image,
-          productId: id,
-          sortOrder: index + 1,
-          updatedAt: timestamp,
-        }))
-      : [
-          {
-            id: `product-image:${slugify(item.itemCode)}:primary`,
-            productId: id,
-            imageUrl,
-            isPrimary: true,
-            sortOrder: 1,
-            isActive: true,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          },
-        ]
-  const prices: ProductPrice[] =
-    existing?.prices.length
-      ? existing.prices.map((price) => ({
-          ...price,
-          productId: id,
-          mrp: Math.max(price.mrp, basePrice),
-          sellingPrice: basePrice,
-          costPrice,
-          updatedAt: timestamp,
-        }))
-      : [
-          {
-            id: `product-price:${slugify(item.itemCode)}:base`,
-            productId: id,
-            variantId: null,
-            mrp: basePrice,
-            sellingPrice: basePrice,
-            costPrice,
-            isActive: true,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          },
-        ]
-  const stockItems: ProductStockItem[] =
-    existing?.stockItems.length
-      ? existing.stockItems.map((stockItem) => ({
-          ...stockItem,
-          productId: id,
-          updatedAt: timestamp,
-        }))
-      : [
-          {
-            id: `stock-item:${slugify(item.itemCode)}:default`,
-            productId: id,
-            variantId: null,
-            warehouseId:
-              slugify(item.defaultWarehouse || "default-warehouse") || "warehouse",
-            quantity: 0,
-            reservedQuantity: 0,
-            isActive: true,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          },
-        ]
-  const seo: ProductSeo = existing?.seo ?? {
-    id: `product-seo:${slugify(item.itemCode)}`,
-    productId: id,
-    metaTitle: item.itemName,
-    metaDescription: item.description || item.itemName,
-    metaKeywords: [item.brand, item.itemGroup, "frappe"].filter(Boolean).join(", "),
-    isActive: true,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }
-  const storefront: ProductStorefront = existing?.storefront ?? {
-    id: `product-storefront:${slugify(item.itemCode)}`,
-    productId: id,
-    department,
-    homeSliderEnabled: false,
-    homeSliderOrder: 0,
-    promoSliderEnabled: false,
-    promoSliderOrder: 0,
-    featureSectionEnabled: false,
-    featureSectionOrder: 0,
-    isNewArrival: true,
-    isBestSeller: false,
-    isFeaturedLabel: false,
-    catalogBadge: "ERP",
-    fabric: null,
-    fit: null,
-    sleeve: null,
-    occasion: null,
-    shippingNote: "Imported from Frappe connector.",
-    isActive: true,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }
-  const tags: ProductTag[] = [
-    {
-      id: `product-tag:${slugify(item.itemCode)}:frappe`,
-      name: "frappe",
-      isActive: true,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: `product-tag:${slugify(item.itemCode)}:${slugify(item.itemGroup || "catalog")}`,
-      name: item.itemGroup || "catalog",
-      isActive: true,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-  ]
-
-  return productSchema.parse({
-    ...(existing ?? {}),
-    id,
-    uuid,
-    name: item.itemName,
-    slug:
-      existing?.slug ?? (slugify(item.itemName || item.itemCode) || slugify(id)),
-    description: item.description || existing?.description || item.itemName,
-    shortDescription:
-      existing?.shortDescription ?? (item.description || item.itemName),
-    brandId: existing?.brandId ?? `brand:${slugify(brandName)}`,
-    brandName,
-    categoryId: existing?.categoryId ?? `product-category:${slugify(categoryName)}`,
-    categoryName,
-    productGroupId:
-      existing?.productGroupId ?? `product-group:${slugify(categoryName)}`,
-    productGroupName: existing?.productGroupName ?? categoryName,
-    productTypeId: existing?.productTypeId ?? "product-type:frappe-import",
-    productTypeName: existing?.productTypeName ?? "Frappe import",
-    unitId: existing?.unitId ?? `unit:${slugify(item.stockUom || "nos")}`,
-    hsnCodeId: existing?.hsnCodeId ?? `hsn:${slugify(item.gstHsnCode || "na")}`,
-    styleId: existing?.styleId ?? "style:frappe-import",
-    sku: item.itemCode,
-    hasVariants: existing?.hasVariants ?? item.hasVariants,
-    basePrice,
-    costPrice,
-    taxId: existing?.taxId ?? "tax:gst-standard",
-    isFeatured: existing?.isFeatured ?? false,
-    isActive: !item.disabled,
-    storefrontDepartment: existing?.storefrontDepartment ?? department,
-    homeSliderEnabled: existing?.homeSliderEnabled ?? false,
-    promoSliderEnabled: existing?.promoSliderEnabled ?? false,
-    featureSectionEnabled: existing?.featureSectionEnabled ?? false,
-    isNewArrival: existing?.isNewArrival ?? true,
-    isBestSeller: existing?.isBestSeller ?? false,
-    isFeaturedLabel: existing?.isFeaturedLabel ?? false,
-    primaryImageUrl: images[0]?.imageUrl ?? null,
-    variantCount: existing?.variants.length ?? 0,
-    tagCount: tags.length,
-    tagNames: tags.map((tag) => tag.name),
-    createdAt: existing?.createdAt ?? timestamp,
-    updatedAt: timestamp,
-    images,
-    variants: existing?.variants ?? [],
-    prices,
-    discounts: existing?.discounts ?? [],
-    offers: existing?.offers ?? [],
-    attributes: existing?.attributes ?? [],
-    attributeValues: existing?.attributeValues ?? [],
-    variantMap: existing?.variantMap ?? [],
-    stockItems,
-    stockMovements: existing?.stockMovements ?? [],
-    seo: {
-      ...seo,
-      productId: id,
-      updatedAt: timestamp,
-    },
-    storefront: {
-      ...storefront,
-      productId: id,
-      department,
-      updatedAt: timestamp,
-    },
-    tags,
-    reviews: existing?.reviews ?? [],
-  })
 }
 
 export async function listFrappeItems(
@@ -503,128 +247,31 @@ export async function syncFrappeItemsToProducts(
 
   const parsedPayload = frappeItemProductSyncPayloadSchema.parse(payload)
   const itemIds = [...new Set(parsedPayload.itemIds.map((value) => value.trim()))]
-  const startedAt = new Date().toISOString()
   const items = await readItems(database)
-  const products = await listProductRecords(database)
-  const nextProducts = [...products]
-  const nextItems = [...items]
-  const syncResults: FrappeItemProductSyncResult[] = []
-  const syncLogItems: FrappeItemProductSyncLogItem[] = []
-  let successCount = 0
-  let skippedCount = 0
-  let failureCount = 0
-  let productsChanged = false
+  const startedAt = new Date().toISOString()
+  const syncLogItems: FrappeItemProductSyncLogItem[] = itemIds.map((itemId) => {
+    const item = items.find((entry) => entry.id === itemId) as FrappeItem | undefined
 
-  for (const itemId of itemIds) {
-    const itemIndex = nextItems.findIndex((item) => item.id === itemId)
-
-    if (itemIndex === -1) {
-      failureCount += 1
-      syncLogItems.push({
-        frappeItemId: itemId,
-        frappeItemCode: itemId,
-        productId: null,
-        productName: null,
-        productSlug: null,
-        mode: "failed",
-        reason: "Frappe item could not be found.",
-      })
-      continue
+    return {
+      frappeItemId: itemId,
+      frappeItemCode: item?.itemCode ?? itemId,
+      productId: null,
+      productName: null,
+      productSlug: null,
+      mode: "failed",
+      reason:
+        "Ecommerce is scaffold-only right now. Product sync is unavailable until the ecommerce rebuild lands.",
     }
-
-    const item = nextItems[itemIndex] as FrappeItem
-    const existingProduct =
-      nextProducts.find(
-        (product) =>
-          product.sku.trim().toLowerCase() === item.itemCode.trim().toLowerCase()
-      ) ?? null
-
-    if (existingProduct && parsedPayload.duplicateMode === "skip") {
-      skippedCount += 1
-      const skippedResult = {
-        frappeItemId: item.id,
-        frappeItemCode: item.itemCode,
-        productId: existingProduct.id,
-        productName: existingProduct.name,
-        productSlug: existingProduct.slug,
-        mode: "skipped" as const,
-      }
-
-      nextItems[itemIndex] = {
-        ...item,
-        syncedProductId: existingProduct.id,
-        syncedProductName: existingProduct.name,
-        syncedProductSlug: existingProduct.slug,
-        isSyncedToProduct: true,
-        modifiedAt: new Date().toISOString(),
-      }
-      syncResults.push(skippedResult)
-      syncLogItems.push({
-        ...skippedResult,
-        reason: "Duplicate product exists and overwrite was skipped.",
-      })
-      continue
-    }
-
-    const syncedProduct = buildProductFromItem(item, existingProduct)
-    const productMode = existingProduct ? "update" : "create"
-
-    if (existingProduct) {
-      const productIndex = nextProducts.findIndex(
-        (product) => product.id === existingProduct.id
-      )
-      nextProducts[productIndex] = syncedProduct
-    } else {
-      nextProducts.push(syncedProduct)
-    }
-
-    productsChanged = true
-    successCount += 1
-    nextItems[itemIndex] = {
-      ...item,
-      syncedProductId: syncedProduct.id,
-      syncedProductName: syncedProduct.name,
-      syncedProductSlug: syncedProduct.slug,
-      isSyncedToProduct: true,
-      modifiedAt: new Date().toISOString(),
-    }
-
-    const syncResult = {
-      frappeItemId: item.id,
-      frappeItemCode: item.itemCode,
-      productId: syncedProduct.id,
-      productName: syncedProduct.name,
-      productSlug: syncedProduct.slug,
-      mode: productMode as "create" | "update",
-    }
-
-    syncResults.push(syncResult)
-    syncLogItems.push({
-      ...syncResult,
-      reason: "",
-    })
-  }
-
-  if (productsChanged) {
-    await replaceProductRecords(database, nextProducts)
-  }
-
-  await replaceStorePayloads(database, frappeTableNames.items, nextItems.map((item, index) => ({
-    id: item.id,
-    moduleKey: "items",
-    sortOrder: index + 1,
-    payload: item,
-    updatedAt: item.modifiedAt,
-  })))
-
+  })
+  const failureCount = syncLogItems.length
   const finishedAt = new Date().toISOString()
-  const summary = `Synced ${successCount} of ${itemIds.length} item${itemIds.length === 1 ? "" : "s"}${skippedCount > 0 ? `, skipped ${skippedCount}` : ""}${failureCount > 0 ? `, failed ${failureCount}` : ""}.`
+  const summary = `Blocked ${failureCount} item sync request${failureCount === 1 ? "" : "s"} because ecommerce is scaffold-only.`
   const nextLog = frappeItemProductSyncLogSchema.parse({
     id: `frappe-sync-log:${randomUUID()}`,
     duplicateMode: parsedPayload.duplicateMode,
     requestedCount: itemIds.length,
-    successCount,
-    skippedCount,
+    successCount: 0,
+    skippedCount: 0,
     failureCount,
     startedAt,
     finishedAt,
@@ -647,17 +294,12 @@ export async function syncFrappeItemsToProducts(
       updatedAt: item.syncedAt,
     })))
 
-  return frappeItemProductSyncResponseSchema.parse({
-    sync: {
-      items: syncResults,
-      summary: {
-        logId: nextLog.id,
-        requestedCount: itemIds.length,
-        successCount,
-        skippedCount,
-        failureCount,
-      },
-      syncedAt: finishedAt,
+  throw new ApplicationError(
+    "Ecommerce is scaffold-only right now. Product sync is unavailable until the ecommerce rebuild lands.",
+    {
+      itemIds,
+      logId: nextLog.id,
     },
-  })
+    409
+  )
 }

@@ -96,6 +96,16 @@ const frameworkUtilityGroups = [
   },
 ] as const
 
+type FrameworkUtilityGroup = (typeof frameworkUtilityGroups)[number]
+
+function getUtilityGroupsForCurrentApp(app: DashboardAppDefinition | null) {
+  if (app?.id === "ecommerce") {
+    return frameworkUtilityGroups.filter((group) => group.id === "media") as readonly FrameworkUtilityGroup[]
+  }
+
+  return frameworkUtilityGroups as readonly FrameworkUtilityGroup[]
+}
+
 function isMenuItemActive(pathname: string, item: DashboardAppDefinition["menuGroups"][number]["items"][number]) {
   return isRouteActive(pathname, item.route) || item.children?.some((child) => isRouteActive(pathname, child.route)) || false
 }
@@ -142,10 +152,11 @@ function GroupedAppMenu({
         <SidebarGroupContent>
           <SidebarMenu>
           {app.menuGroups.filter((group) => group.items.length > 0).map((group) => {
-            const GroupIcon = group.items[0]?.icon
-            const hasChildren = group.items.length > 1
+            const GroupIcon = group.icon ?? group.items[0]?.icon
+            const hasNestedChildren = group.items.some((item) => (item.children?.length ?? 0) > 0)
+            const hasChildren = group.items.length > 1 || hasNestedChildren
             const isGroupActive = group.items.some((item) =>
-              isRouteActive(pathname, item.route)
+              isMenuItemActive(pathname, item)
             )
 
             if (!hasChildren) {
@@ -200,6 +211,7 @@ function GroupedAppMenu({
                             >
                               <CollapsibleTrigger asChild>
                                 <SidebarMenuSubButton isActive={isMenuItemActive(pathname, item)}>
+                                  <item.icon className="size-4" />
                                   <span>{item.name}</span>
                                   <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuSubButton>
@@ -250,16 +262,18 @@ function GroupedAppMenu({
 function UtilityNavigationMenu({
   open,
   pathname,
+  groups = frameworkUtilityGroups,
 }: {
   open: boolean
   pathname: string
+  groups?: readonly FrameworkUtilityGroup[]
 }) {
   if (!open) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
-            {frameworkUtilityGroups.flatMap((group) =>
+            {groups.flatMap((group) =>
               group.items.map((item) => (
                 <SidebarMenuItem key={item.route}>
                   <SidebarMenuButton
@@ -283,7 +297,7 @@ function UtilityNavigationMenu({
 
   return (
     <>
-      {frameworkUtilityGroups.map((group) => {
+      {groups.map((group) => {
         const GroupIcon = group.items[0]?.icon
         const isGroupActive = group.items.some((item) => isRouteActive(pathname, item.route))
 
@@ -333,6 +347,7 @@ export function AppSidebar() {
   const location = useLocation()
   const { open } = useSidebar()
   const showDeskGroup = location.pathname === links.dashboard
+  const currentAppUtilityGroups = getUtilityGroupsForCurrentApp(currentApp)
   const showFrameworkUtilityGroups =
     showDeskGroup ||
     isRouteActive(location.pathname, links.mediaManager) ||
@@ -407,7 +422,10 @@ export function AppSidebar() {
         ) : null}
 
         {showFrameworkUtilityGroups ? (
-          <UtilityNavigationMenu open={open} pathname={location.pathname} />
+          <UtilityNavigationMenu
+            open={open}
+            pathname={location.pathname}
+          />
         ) : null}
 
         {currentApp ? (
@@ -419,12 +437,20 @@ export function AppSidebar() {
                   ? "Platform"
                   : currentApp.id === "core"
                     ? "Core"
+                    : currentApp.id === "ecommerce"
+                      ? "Ecommerce"
                     : "Workspace"
               }
               open={open}
               pathname={location.pathname}
             />
-            <UtilityNavigationMenu open={open} pathname={location.pathname} />
+            {currentAppUtilityGroups.length > 0 ? (
+              <UtilityNavigationMenu
+                open={open}
+                pathname={location.pathname}
+                groups={currentAppUtilityGroups}
+              />
+            ) : null}
           </>
         ) : null}
       </SidebarContent>

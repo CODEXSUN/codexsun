@@ -19,9 +19,10 @@ import {
   DesignSystemReadinessPage,
 } from "@/design-system/pages/design-system-workbench-page"
 import { CoreWorkspaceSection } from "@core/web/src/workspace-sections"
-import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
+import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
+import { getCoreCommonModuleMenuItem } from "@core/shared"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
 import { useDesk } from "../desk/desk-provider"
@@ -230,7 +231,7 @@ export function FrameworkAppWorkspacePage({
     ) : null
   const ecommerceWorkspaceContent =
     app.id === "ecommerce" ? (
-      <EcommerceWorkspaceSection sectionId={sectionId} />
+      <EcommerceWorkspaceSection productId={productId} sectionId={sectionId} />
     ) : null
   const frappeWorkspaceContent =
     app.id === "frappe" ? <FrappeWorkspaceSection sectionId={sectionId} /> : null
@@ -259,6 +260,24 @@ export function FrameworkAppWorkspacePage({
         "purchase-vouchers",
         "purchase-vouchers-upsert",
       ].includes(sectionId ?? "overview")
+    ) ||
+    (
+      app.id === "ecommerce" &&
+      [
+        "storefront",
+        "products",
+        "products-show",
+        "products-upsert",
+        "catalog",
+        "customers",
+        "orders",
+        "checkout",
+        "settings",
+      ].includes(sectionId ?? "overview")
+    ) ||
+    (
+      app.id === "ecommerce" &&
+      Boolean(sectionId && getCoreCommonModuleMenuItem(sectionId))
     ) ||
     (
       app.id === "core" &&

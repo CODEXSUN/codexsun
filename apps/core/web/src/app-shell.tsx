@@ -9,10 +9,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import {
   coreWorkspaceItems,
-  deliveryChannels,
   navigationSections,
-  productModules,
 } from "@core/shared"
+import { deliveryChannels, productModules } from "@cxapp/shared"
 
 function CoreAppShell() {
   const foundationModuleCount = productModules.filter(

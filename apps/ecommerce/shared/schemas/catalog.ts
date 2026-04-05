@@ -1,0 +1,118 @@
+import { z } from "zod"
+
+export const storefrontHighlightSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  summary: z.string().min(1),
+})
+
+export const storefrontHeroSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  primaryCtaLabel: z.string().min(1),
+  primaryCtaHref: z.string().min(1),
+  secondaryCtaLabel: z.string().min(1),
+  secondaryCtaHref: z.string().min(1),
+  heroImageUrl: z.string().min(1),
+  highlights: z.array(storefrontHighlightSchema).min(1),
+})
+
+export const storefrontProductCardSchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  brandName: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  department: z.string().nullable(),
+  badge: z.string().nullable(),
+  shortDescription: z.string().nullable(),
+  primaryImageUrl: z.string().nullable(),
+  sellingPrice: z.number().finite(),
+  mrp: z.number().finite(),
+  discountPercent: z.number().int().min(0),
+  isNewArrival: z.boolean(),
+  isBestSeller: z.boolean(),
+  isFeaturedLabel: z.boolean(),
+  availableQuantity: z.number().int().min(0),
+  tagNames: z.array(z.string().min(1)),
+})
+
+export const storefrontCategorySummarySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  productCount: z.number().int().min(0),
+  href: z.string().min(1),
+})
+
+export const storefrontSettingsSchema = z.object({
+  id: z.string().min(1),
+  hero: storefrontHeroSchema,
+  announcement: z.string().min(1),
+  supportPhone: z.string().min(1),
+  supportEmail: z.email(),
+  freeShippingThreshold: z.number().finite().nonnegative(),
+  defaultShippingAmount: z.number().finite().nonnegative(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontLandingResponseSchema = z.object({
+  settings: storefrontSettingsSchema,
+  featured: z.array(storefrontProductCardSchema),
+  newArrivals: z.array(storefrontProductCardSchema),
+  bestSellers: z.array(storefrontProductCardSchema),
+  categories: z.array(storefrontCategorySummarySchema),
+})
+
+export const storefrontCatalogQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  category: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  tag: z.string().trim().optional(),
+  sort: z.enum(["featured", "latest", "price-asc", "price-desc"]).optional(),
+})
+
+export const storefrontCatalogResponseSchema = z.object({
+  settings: storefrontSettingsSchema,
+  filters: z.object({
+    search: z.string().trim().default(""),
+    category: z.string().trim().default(""),
+    department: z.string().trim().default(""),
+    tag: z.string().trim().default(""),
+    sort: z.enum(["featured", "latest", "price-asc", "price-desc"]).default("featured"),
+  }),
+  items: z.array(storefrontProductCardSchema),
+  availableCategories: z.array(storefrontCategorySummarySchema),
+  availableDepartments: z.array(z.string().min(1)),
+  availableTags: z.array(z.string().min(1)),
+})
+
+export const storefrontProductDetailSchema = storefrontProductCardSchema.extend({
+  description: z.string().nullable(),
+  images: z.array(z.string().min(1)),
+  fits: z.array(z.string().min(1)),
+  fabrics: z.array(z.string().min(1)),
+  shippingNote: z.string().nullable(),
+  reviewCount: z.number().int().min(0),
+  averageRating: z.number().finite().min(0).max(5),
+})
+
+export const storefrontProductResponseSchema = z.object({
+  settings: storefrontSettingsSchema,
+  item: storefrontProductDetailSchema,
+  relatedItems: z.array(storefrontProductCardSchema),
+})
+
+export type StorefrontHero = z.infer<typeof storefrontHeroSchema>
+export type StorefrontHighlight = z.infer<typeof storefrontHighlightSchema>
+export type StorefrontProductCard = z.infer<typeof storefrontProductCardSchema>
+export type StorefrontCategorySummary = z.infer<typeof storefrontCategorySummarySchema>
+export type StorefrontSettings = z.infer<typeof storefrontSettingsSchema>
+export type StorefrontLandingResponse = z.infer<typeof storefrontLandingResponseSchema>
+export type StorefrontCatalogQuery = z.infer<typeof storefrontCatalogQuerySchema>
+export type StorefrontCatalogResponse = z.infer<typeof storefrontCatalogResponseSchema>
+export type StorefrontProductDetail = z.infer<typeof storefrontProductDetailSchema>
+export type StorefrontProductResponse = z.infer<typeof storefrontProductResponseSchema>

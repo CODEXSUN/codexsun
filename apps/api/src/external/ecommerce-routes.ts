@@ -1,0 +1,150 @@
+import {
+  getAuthenticatedCustomer,
+  registerCustomer,
+  updateCustomerProfile,
+} from "../../../ecommerce/src/services/customer-service.js"
+import {
+  createCheckoutOrder,
+  getCustomerOrder,
+  listCustomerOrders,
+  verifyCheckoutPayment,
+} from "../../../ecommerce/src/services/order-service.js"
+import { getRazorpayPaymentConfig } from "../../../ecommerce/src/services/razorpay-service.js"
+import { defineExternalRoute } from "../../../framework/src/runtime/http/index.js"
+import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
+
+import { jsonResponse } from "../shared/http-responses.js"
+import { readBearerToken } from "../shared/request.js"
+
+export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
+  return [
+    defineExternalRoute("/storefront/customers/register", {
+      auth: "none",
+      method: "POST",
+      summary: "Register a storefront customer account and create the linked core contact.",
+      handler: async (context) =>
+        jsonResponse(
+          await registerCustomer(
+            context.databases.primary,
+            context.config,
+            context.request.jsonBody
+          ),
+          201
+        ),
+    }),
+    defineExternalRoute("/storefront/customers/me", {
+      auth: "external",
+      summary: "Resolve the authenticated storefront customer profile.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await getAuthenticatedCustomer(
+            context.databases.primary,
+            context.config,
+            token
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me", {
+      auth: "external",
+      method: "PATCH",
+      summary: "Update the authenticated storefront customer profile.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await updateCustomerProfile(
+            context.databases.primary,
+            context.config,
+            token,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/checkout", {
+      auth: "none",
+      method: "POST",
+      summary: "Create a storefront checkout order and return the Razorpay payment session.",
+      handler: async (context) =>
+        jsonResponse(
+          await createCheckoutOrder(
+            context.databases.primary,
+            context.config,
+            context.request.jsonBody,
+            readBearerToken(context.request.headers)
+          ),
+          201
+        ),
+    }),
+    defineExternalRoute("/storefront/checkout/payment/verify", {
+      auth: "none",
+      method: "POST",
+      summary: "Verify a Razorpay payment and confirm the storefront order.",
+      handler: async (context) =>
+        jsonResponse(
+          await verifyCheckoutPayment(
+            context.databases.primary,
+            context.config,
+            context.request.jsonBody
+          )
+        ),
+    }),
+    defineExternalRoute("/storefront/payment-config", {
+      auth: "none",
+      summary: "Expose the storefront payment provider config required by the checkout UI.",
+      handler: async (context) =>
+        jsonResponse(getRazorpayPaymentConfig(context.config)),
+    }),
+    defineExternalRoute("/storefront/orders", {
+      auth: "external",
+      summary: "List the authenticated storefront customer's orders.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await listCustomerOrders(context.databases.primary, context.config, token)
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/order", {
+      auth: "external",
+      summary: "Read one authenticated storefront order by id.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+        const orderId = context.request.url.searchParams.get("id")
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        if (!orderId) {
+          return jsonResponse({ error: "Order id is required." }, 400)
+        }
+
+        return jsonResponse(
+          await getCustomerOrder(
+            context.databases.primary,
+            context.config,
+            token,
+            orderId
+          )
+        )
+      },
+    }),
+  ]
+}

@@ -5,7 +5,7 @@ import path from "node:path"
 import test from "node:test"
 
 import { createInternalApiRoutes } from "../../../apps/api/src/internal/routes.js"
-import { createAuthService } from "../../../apps/core/src/services/service-factory.js"
+import { createAuthService } from "../../../apps/cxapp/src/services/service-factory.js"
 import { createAppSuite } from "../../../apps/framework/src/application/app-suite.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
 import {
@@ -102,24 +102,24 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("POST /internal/v1/core/common-modules/items"))
   assert.ok(routePaths.includes("PATCH /internal/v1/core/common-modules/item"))
   assert.ok(routePaths.includes("DELETE /internal/v1/core/common-modules/item"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/company"))
-  assert.ok(routePaths.includes("POST /internal/v1/core/companies"))
-  assert.ok(routePaths.includes("PATCH /internal/v1/core/company"))
-  assert.ok(routePaths.includes("DELETE /internal/v1/core/company"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/auth/users"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/auth/user"))
-  assert.ok(routePaths.includes("POST /internal/v1/core/auth/users"))
-  assert.ok(routePaths.includes("PATCH /internal/v1/core/auth/user"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/auth/roles"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/auth/role"))
-  assert.ok(routePaths.includes("POST /internal/v1/core/auth/roles"))
-  assert.ok(routePaths.includes("PATCH /internal/v1/core/auth/role"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/auth/permissions"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/auth/permission"))
-  assert.ok(routePaths.includes("POST /internal/v1/core/auth/permissions"))
-  assert.ok(routePaths.includes("PATCH /internal/v1/core/auth/permission"))
-  assert.ok(routePaths.includes("GET /internal/v1/core/runtime-settings"))
-  assert.ok(routePaths.includes("POST /internal/v1/core/runtime-settings"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/company"))
+  assert.ok(routePaths.includes("POST /internal/v1/cxapp/companies"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/cxapp/company"))
+  assert.ok(routePaths.includes("DELETE /internal/v1/cxapp/company"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/users"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/user"))
+  assert.ok(routePaths.includes("POST /internal/v1/cxapp/auth/users"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/cxapp/auth/user"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/roles"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/role"))
+  assert.ok(routePaths.includes("POST /internal/v1/cxapp/auth/roles"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/cxapp/auth/role"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/permissions"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/permission"))
+  assert.ok(routePaths.includes("POST /internal/v1/cxapp/auth/permissions"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/cxapp/auth/permission"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/runtime-settings"))
+  assert.ok(routePaths.includes("POST /internal/v1/cxapp/runtime-settings"))
   assert.ok(routePaths.includes("GET /internal/v1/core/products"))
   assert.ok(routePaths.includes("GET /internal/v1/core/product"))
   assert.ok(routePaths.includes("POST /internal/v1/core/products"))
@@ -181,11 +181,11 @@ test("authenticated core runtime settings routes read and save env-backed settin
 
       const readRoute = routes.find(
         (candidate) =>
-          candidate.method === "GET" && candidate.path === "/internal/v1/core/runtime-settings"
+          candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/runtime-settings"
       )
       const saveRoute = routes.find(
         (candidate) =>
-          candidate.method === "POST" && candidate.path === "/internal/v1/core/runtime-settings"
+          candidate.method === "POST" && candidate.path === "/internal/v1/cxapp/runtime-settings"
       )
 
       assert.ok(readRoute)
@@ -197,8 +197,8 @@ test("authenticated core runtime settings routes read and save env-backed settin
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/core/runtime-settings",
-          url: new URL("http://localhost/internal/v1/core/runtime-settings"),
+          pathname: "/internal/v1/cxapp/runtime-settings",
+          url: new URL("http://localhost/internal/v1/cxapp/runtime-settings"),
           headers,
           bodyText: null,
           jsonBody: null,
@@ -225,8 +225,8 @@ test("authenticated core runtime settings routes read and save env-backed settin
         databases: runtime,
         request: {
           method: "POST",
-          pathname: "/internal/v1/core/runtime-settings",
-          url: new URL("http://localhost/internal/v1/core/runtime-settings"),
+          pathname: "/internal/v1/cxapp/runtime-settings",
+          url: new URL("http://localhost/internal/v1/cxapp/runtime-settings"),
           headers,
           bodyText: JSON.stringify({
             restart: false,
@@ -310,37 +310,37 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
       }
 
       const listRolesRoute = routes.find(
-        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/roles"
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/auth/roles"
       )
       const listPermissionsRoute = routes.find(
-        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/permissions"
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/auth/permissions"
       )
       const readPermissionRoute = routes.find(
-        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/permission"
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/auth/permission"
       )
       const createPermissionRoute = routes.find(
-        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/core/auth/permissions"
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/cxapp/auth/permissions"
       )
       const updatePermissionRoute = routes.find(
-        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/core/auth/permission"
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/cxapp/auth/permission"
       )
       const createRoleRoute = routes.find(
-        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/core/auth/roles"
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/cxapp/auth/roles"
       )
       const readRoleRoute = routes.find(
-        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/role"
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/auth/role"
       )
       const updateRoleRoute = routes.find(
-        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/core/auth/role"
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/cxapp/auth/role"
       )
       const createUserRoute = routes.find(
-        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/core/auth/users"
+        (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/cxapp/auth/users"
       )
       const readUserRoute = routes.find(
-        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/core/auth/user"
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/auth/user"
       )
       const updateUserRoute = routes.find(
-        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/core/auth/user"
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/cxapp/auth/user"
       )
 
       assert.ok(listRolesRoute)
@@ -361,8 +361,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/core/auth/roles",
-          url: new URL("http://localhost/internal/v1/core/auth/roles"),
+          pathname: "/internal/v1/cxapp/auth/roles",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/roles"),
           headers,
           bodyText: null,
           jsonBody: null,
@@ -388,8 +388,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/core/auth/permissions",
-          url: new URL("http://localhost/internal/v1/core/auth/permissions"),
+          pathname: "/internal/v1/cxapp/auth/permissions",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/permissions"),
           headers,
           bodyText: null,
           jsonBody: null,
@@ -415,8 +415,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "POST",
-          pathname: "/internal/v1/core/auth/permissions",
-          url: new URL("http://localhost/internal/v1/core/auth/permissions"),
+          pathname: "/internal/v1/cxapp/auth/permissions",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/permissions"),
           headers,
           bodyText: JSON.stringify({
             key: "billing:profit_and_loss:view",
@@ -464,8 +464,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/core/auth/permission",
-          url: new URL("http://localhost/internal/v1/core/auth/permission?id=billing%3Aprofit_and_loss%3Aview"),
+          pathname: "/internal/v1/cxapp/auth/permission",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/permission?id=billing%3Aprofit_and_loss%3Aview"),
           headers,
           bodyText: null,
           jsonBody: null,
@@ -492,8 +492,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "PATCH",
-          pathname: "/internal/v1/core/auth/permission",
-          url: new URL("http://localhost/internal/v1/core/auth/permission?id=billing%3Aprofit_and_loss%3Aview"),
+          pathname: "/internal/v1/cxapp/auth/permission",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/permission?id=billing%3Aprofit_and_loss%3Aview"),
           headers,
           bodyText: JSON.stringify({
             key: "billing:profit_and_loss:view",
@@ -540,8 +540,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "POST",
-          pathname: "/internal/v1/core/auth/roles",
-          url: new URL("http://localhost/internal/v1/core/auth/roles"),
+          pathname: "/internal/v1/cxapp/auth/roles",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/roles"),
           headers,
           bodyText: JSON.stringify({
             actorType: "staff",
@@ -585,8 +585,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/core/auth/role",
-          url: new URL("http://localhost/internal/v1/core/auth/role?id=catalog_manager"),
+          pathname: "/internal/v1/cxapp/auth/role",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/role?id=catalog_manager"),
           headers,
           bodyText: null,
           jsonBody: null,
@@ -613,8 +613,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "PATCH",
-          pathname: "/internal/v1/core/auth/role",
-          url: new URL("http://localhost/internal/v1/core/auth/role?id=catalog_manager"),
+          pathname: "/internal/v1/cxapp/auth/role",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/role?id=catalog_manager"),
           headers,
           bodyText: JSON.stringify({
             actorType: "staff",
@@ -659,8 +659,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "POST",
-          pathname: "/internal/v1/core/auth/users",
-          url: new URL("http://localhost/internal/v1/core/auth/users"),
+          pathname: "/internal/v1/cxapp/auth/users",
+          url: new URL("http://localhost/internal/v1/cxapp/auth/users"),
           headers,
           bodyText: JSON.stringify({
             email: "user-admin-route@codexsun.local",
@@ -709,9 +709,9 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "GET",
-          pathname: "/internal/v1/core/auth/user",
+          pathname: "/internal/v1/cxapp/auth/user",
           url: new URL(
-            `http://localhost/internal/v1/core/auth/user?id=${encodeURIComponent(createdUserPayload.item.id)}`
+            `http://localhost/internal/v1/cxapp/auth/user?id=${encodeURIComponent(createdUserPayload.item.id)}`
           ),
           headers,
           bodyText: null,
@@ -738,9 +738,9 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
         databases: runtime,
         request: {
           method: "PATCH",
-          pathname: "/internal/v1/core/auth/user",
+          pathname: "/internal/v1/cxapp/auth/user",
           url: new URL(
-            `http://localhost/internal/v1/core/auth/user?id=${encodeURIComponent(createdUserPayload.item.id)}`
+            `http://localhost/internal/v1/cxapp/auth/user?id=${encodeURIComponent(createdUserPayload.item.id)}`
           ),
           headers,
           bodyText: JSON.stringify({

@@ -8,7 +8,7 @@ import {
   SlashIcon,
 } from "lucide-react"
 
-import type { AuthUserResponse } from "@core/shared"
+import type { AuthUserResponse } from "@cxapp/shared"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

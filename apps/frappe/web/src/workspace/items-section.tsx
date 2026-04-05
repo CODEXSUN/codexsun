@@ -197,7 +197,7 @@ export function FrappeItemsSection() {
   return (
     <SectionShell
       title="Item Manager"
-      description="Review Frappe item snapshots, maintain local edits, and sync selected records into ecommerce product ownership."
+      description="Review Frappe item snapshots, maintain local edits, and stage records for the future commerce rebuild."
       actions={(
         <>
           <Button variant="outline" onClick={() => void loadItemsAndLogs()}>
@@ -225,7 +225,7 @@ export function FrappeItemsSection() {
         <MetricCard
           label="Synced"
           value={syncedCount}
-          hint="Items already linked to ecommerce product records."
+          hint="Items already linked to a local target record."
         />
         <MetricCard
           label="Variants"
@@ -246,7 +246,7 @@ export function FrappeItemsSection() {
           <CardHeader>
             <CardTitle>Item Snapshots</CardTitle>
             <CardDescription>
-              Search, inspect, and select Frappe items for ecommerce synchronization.
+              Search, inspect, and select Frappe items for future target-app synchronization.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -346,7 +346,7 @@ export function FrappeItemsSection() {
           <CardHeader>
             <CardTitle>{editingId ? "Edit Item" : "Create Item"}</CardTitle>
             <CardDescription>
-              Super-admin only. Item changes stay inside the Frappe app before they are projected into ecommerce.
+              Super-admin only. Item changes stay inside the Frappe app before they are projected into a rebuilt target app.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -483,7 +483,7 @@ export function FrappeItemsSection() {
         <CardHeader>
           <CardTitle>Recent Sync Logs</CardTitle>
           <CardDescription>
-            Latest item-to-product projection runs owned by the Frappe connector.
+            Latest item sync attempts owned by the Frappe connector.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">

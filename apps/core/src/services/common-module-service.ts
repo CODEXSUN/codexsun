@@ -296,7 +296,7 @@ async function ensureCommonModuleItemIsNotReferenced(
 ) {
   for (const referencingDefinition of listCommonModuleDefinitions()) {
     for (const column of referencingDefinition.columns) {
-      if (column.referenceModule !== definition.key) {
+      if (!("referenceModule" in column) || column.referenceModule !== definition.key) {
         continue
       }
 
@@ -304,7 +304,7 @@ async function ensureCommonModuleItemIsNotReferenced(
         const dependentRow = await asQueryDatabase(database)
           .selectFrom(referencingDefinition.tableName)
           .select("id")
-          .where(column.key as never, "=", itemId)
+          .where(column.key as never, "=", itemId as never)
           .executeTakeFirst()
 
         if (dependentRow) {

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import type { CompanyBrandProfile } from "@core/shared"
+import type { CompanyBrandProfile } from "@cxapp/shared"
 
 type RuntimeBrandContextValue = {
   brand: CompanyBrandProfile | null

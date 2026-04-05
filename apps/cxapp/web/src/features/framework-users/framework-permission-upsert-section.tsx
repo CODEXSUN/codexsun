@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeftIcon } from "lucide-react"
 
-import type { PermissionScopeType } from "@core/shared"
+import type { PermissionScopeType } from "@cxapp/shared"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -324,7 +324,7 @@ export function FrameworkPermissionUpsertSection({ permissionId }: { permissionI
                     }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select scope" />
                   </SelectTrigger>
                   <SelectContent>
@@ -341,7 +341,7 @@ export function FrameworkPermissionUpsertSection({ permissionId }: { permissionI
                   value={form.actionKey}
                   onValueChange={(value) => setForm((current) => ({ ...current, actionKey: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select action" />
                   </SelectTrigger>
                   <SelectContent>
@@ -395,7 +395,9 @@ export function FrameworkPermissionUpsertSection({ permissionId }: { permissionI
                     setForm((current) => ({ ...current, appId: value === "__none__" ? "" : value }))
                   }
                 >
-                  <SelectTrigger className={fieldErrors.appId ? "border-destructive" : undefined}>
+                  <SelectTrigger
+                    className={fieldErrors.appId ? "w-full border-destructive" : "w-full"}
+                  >
                     <SelectValue placeholder="Select app" />
                   </SelectTrigger>
                   <SelectContent>
@@ -427,7 +429,11 @@ export function FrameworkPermissionUpsertSection({ permissionId }: { permissionI
                     setFieldErrors((current) => ({ ...current, resourceKey: undefined, appId: undefined }))
                   }}
                 >
-                  <SelectTrigger className={fieldErrors.resourceKey ? "border-destructive" : undefined}>
+                  <SelectTrigger
+                    className={
+                      fieldErrors.resourceKey ? "w-full border-destructive" : "w-full"
+                    }
+                  >
                     <SelectValue placeholder="Select resource" />
                   </SelectTrigger>
                   <SelectContent>

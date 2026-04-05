@@ -16,8 +16,8 @@ Before making changes, read:
 6. `ASSIST/Execution/TASK.md`
 7. `ASSIST/Execution/PLANNING.md`
 8. the relevant guide under `ASSIST/Planning`
-9. `apps/ui/src/features/design-system/data/project-defaults.ts` when the task touches known shared UI components or page composition
-10. `apps/ui/src/features/component-registry` when the task touches shared component variants or reusable blocks
+9. `apps/ui/src/design-system/data/project-defaults.ts` when the task touches known shared UI components or page composition
+10. `apps/ui/src/registry` and `apps/ui/src/components/blocks` when the task touches shared component variants or reusable blocks
 
 ## Current Repository Model
 
@@ -52,12 +52,12 @@ Every app folder must keep the same baseline shape:
 
 1. `framework` owns runtime infrastructure, DI, config, database runtime, HTTP host wiring, and app composition.
 2. `cxapp` is the main suite-facing product shell and owns the active frontend and server entry wrappers.
-3. `core` owns shared business masters, suite auth and mailbox foundations, and reusable ERP-common foundations.
+3. `core` owns shared business masters and reusable ERP-common foundations only.
 4. `api` owns only route definitions and contracts, split into internal and external surfaces.
 5. `site` owns static and presentation-only public surfaces.
 6. `ui` owns the reusable design system, shared styles, and neutral UX building blocks.
 7. `billing` owns accounting, inventory, vouchers, and reporting behavior.
-8. `ecommerce` owns storefront, catalog, checkout, and customer commerce flows.
+8. `ecommerce` owns storefront, catalog presentation, cart, checkout, payments, order tracking, and customer commerce flows.
 9. `task` owns task, workspace, and team workflow behavior.
 10. `frappe` owns ERPNext-specific settings, snapshot storage, and connector sync orchestration.
 11. `tally` owns Tally-specific integration boundaries.
@@ -74,17 +74,18 @@ Every app folder must keep the same baseline shape:
 7. Keep shared masters in `apps/core`.
 8. Keep shared UI in `apps/ui`; do not move app-specific business screens back into the shared UI package.
 9. Shared `apps/ui/src/features/*` code is allowed only for neutral cross-app surfaces such as dashboard shell presentation or design-system docs.
-10. For known shared UI components, use `apps/ui/src/features/design-system/data/project-defaults.ts` as the project source of truth for component names and default variants.
-11. For reusable shared UI compositions, source them from `apps/ui/src/features/component-registry/blocks` rather than recreating page fragments inside docs or app shells.
+10. For known shared UI components, use `apps/ui/src/design-system/data/project-defaults.ts` as the project source of truth for component names and default variants.
+11. For reusable shared UI compositions, source them from `apps/ui/src/registry/blocks` or `apps/ui/src/components/blocks` rather than recreating page fragments inside docs or app shells.
 12. Keep MariaDB as the default live transactional database, SQLite as the offline desktop option, and PostgreSQL as the optional analytics path.
 13. Keep build outputs under `build/app/<app>/<target>` and reserve `build/module/<module>/<target>` for future modules.
 14. Update docs, task tracking, planning, and changelog in the same batch as architecture changes.
 15. Use one reference number across task tracking, planning, changelog, and commit subjects for the same batch.
 16. Keep scaffolds honest; do not present placeholders as completed domain behavior.
 17. Keep migration and seeder execution inside `apps/framework/src/runtime/database`; do not scatter ad hoc table bootstrapping across routes, services, or web code.
-18. Keep framework auth support limited to reusable primitives such as config, hashing, JWT signing, SMTP transport, and request parsing; keep auth users, sessions, OTP records, mailbox templates, and auth business logic inside the owning app such as `apps/core`.
+18. Keep framework auth support limited to reusable primitives such as config, hashing, JWT signing, SMTP transport, and request parsing; keep auth users, sessions, OTP records, mailbox templates, bootstrap records, company records, and auth business logic inside the owning app such as `apps/cxapp`.
 19. Keep suite-facing auth pages and browser session persistence in `apps/cxapp`; do not move routed auth workflows into `apps/ui`.
 20. Keep ERPNext connection settings, todo/item/receipt snapshots, and connector sync logs inside `apps/frappe`; if the connector needs to project into another app such as `ecommerce`, add a narrow app-owned service in the target app instead of writing across boundaries ad hoc.
+21. Keep only one browser login and backend session system in `apps/cxapp`; customer portal access in `apps/ecommerce` must consume that shared auth session instead of creating a second login store or token flow.
 
 ## Implementation Style
 

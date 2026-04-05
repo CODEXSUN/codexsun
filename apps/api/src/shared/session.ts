@@ -1,4 +1,4 @@
-import { createAuthService } from "../../../core/src/services/service-factory.js"
+import { createAuthService } from "../../../cxapp/src/services/service-factory.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import type { HttpRouteHandlerContext } from "../../../framework/src/runtime/http/route-types.js"
 

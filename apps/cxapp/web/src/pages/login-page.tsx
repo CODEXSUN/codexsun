@@ -8,6 +8,7 @@ import AuthLayout from "@/layouts/AuthLayout"
 
 import { HttpError } from "../auth/auth-api"
 import { useAuth } from "../auth/auth-context"
+import { resolveAuthenticatedHomePath } from "../auth/auth-surface"
 
 export function LoginPage() {
   const auth = useAuth()
@@ -30,10 +31,7 @@ export function LoginPage() {
         email: email.trim().toLowerCase(),
         password,
       })
-      const isAdmin =
-        response.user.isSuperAdmin || response.user.actorType === "admin"
-
-      void navigate(next ?? (isAdmin ? "/dashboard/admin" : "/dashboard"))
+      void navigate(next ?? resolveAuthenticatedHomePath(response.user))
     } catch (nextError) {
       setError(
         nextError instanceof HttpError

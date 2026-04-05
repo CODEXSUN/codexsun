@@ -29,22 +29,9 @@ export const commonModuleTableNames = {
 } as const
 
 export const coreTableNames = {
-  bootstrapSnapshots: "core_bootstrap_snapshots",
-  companies: "core_companies",
   contacts: "core_contacts",
   products: "core_products",
   commonModuleMetadata: "core_common_module_metadata",
   commonModuleItems: "core_common_module_items",
   ...commonModuleTableNames,
-  authUsers: "auth_users",
-  authPermissions: "auth_permissions",
-  authOptionCatalog: "auth_option_catalog",
-  authRoles: "auth_roles",
-  authUserRoles: "auth_user_roles",
-  authRolePermissions: "auth_role_permissions",
-  authSessions: "auth_sessions",
-  authContactVerifications: "auth_contact_verifications",
-  mailboxTemplates: "mailbox_templates",
-  mailboxMessages: "mailbox_messages",
-  mailboxMessageRecipients: "mailbox_message_recipients",
 } as const

@@ -1,4 +1,4 @@
-import type { AuthUser } from "@core/shared"
+import type { AuthUser } from "@cxapp/shared"
 
 export type StoredAuthSession = {
   accessToken: string

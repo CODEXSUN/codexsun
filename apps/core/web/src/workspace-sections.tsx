@@ -5,20 +5,22 @@ import { ArrowLeftIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
 import {
   coreCommonModuleMenuGroups,
   getCoreCommonModuleMenuItem,
-  type BootstrapSnapshot,
   type CommonModuleMetadata,
   type CommonModuleItem,
   type CommonModuleKey,
   type CommonModuleMetadataListResponse,
   type CommonModuleRecordResponse,
   type CommonModuleSummaryListResponse,
-  type CompanyListResponse,
-  type CompanyResponse,
   type ContactListResponse,
   type ContactResponse,
   type ProductListResponse,
   type ProductResponse,
 } from "@core/shared"
+import type {
+  BootstrapSnapshot,
+  CompanyListResponse,
+  CompanyResponse,
+} from "@cxapp/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
 import { MasterList } from "@/components/blocks/master-list"
@@ -549,8 +551,8 @@ function OverviewSection() {
 
       try {
         const [bootstrap, companies, contacts, modules] = await Promise.all([
-          requestJson<BootstrapSnapshot>("/internal/v1/core/bootstrap"),
-          requestJson<CompanyListResponse>("/internal/v1/core/companies"),
+          requestJson<BootstrapSnapshot>("/internal/v1/cxapp/bootstrap"),
+          requestJson<CompanyListResponse>("/internal/v1/cxapp/companies"),
           requestJson<ContactListResponse>("/internal/v1/core/contacts"),
           requestJson<CommonModuleSummaryListResponse>(
             "/internal/v1/core/common-modules/summary"
@@ -685,7 +687,7 @@ function CompaniesSection() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [mutatingCompanyId, setMutatingCompanyId] = useState<string | null>(null)
   const { data, error, isLoading } =
-    useJsonResource<CompanyListResponse>(`/internal/v1/core/companies?refresh=${refreshKey}`)
+    useJsonResource<CompanyListResponse>(`/internal/v1/cxapp/companies?refresh=${refreshKey}`)
 
   async function handleCompanyStatusChange(companyId: string, isActive: boolean) {
     setListError(null)
@@ -693,11 +695,11 @@ function CompaniesSection() {
 
     try {
       const detail = await requestJson<CompanyResponse>(
-        `/internal/v1/core/company?id=${encodeURIComponent(companyId)}`
+        `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`
       )
 
       await requestJson<CompanyResponse>(
-        `/internal/v1/core/company?id=${encodeURIComponent(companyId)}`,
+        `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -723,7 +725,7 @@ function CompaniesSection() {
 
     try {
       await requestJson<{ deleted: true; id: string }>(
-        `/internal/v1/core/company?id=${encodeURIComponent(companyId)}`,
+        `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`,
         {
           method: "DELETE",
         }
@@ -1014,7 +1016,7 @@ function RecordShowActions({
 function CompanyShowSection({ companyId }: { companyId: string }) {
   const navigate = useNavigate()
   const companyResource = useJsonResource<CompanyResponse>(
-    `/internal/v1/core/company?id=${encodeURIComponent(companyId)}`
+    `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`
   )
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -1035,7 +1037,7 @@ function CompanyShowSection({ companyId }: { companyId: string }) {
 
     try {
       await requestJson<{ deleted: true; id: string }>(
-        `/internal/v1/core/company?id=${encodeURIComponent(company.id)}`,
+        `/internal/v1/cxapp/company?id=${encodeURIComponent(company.id)}`,
         {
           method: "DELETE",
         }
@@ -1810,7 +1812,13 @@ function ContactUpsertSection({ contactId }: { contactId?: string }) {
   return <ContactUpsertFeatureSection contactId={contactId} />
 }
 
-function ProductShowSection({ productId }: { productId: string }) {
+export function ProductShowSection({
+  productId,
+  routeBase = "/dashboard/apps/core/products",
+}: {
+  productId: string
+  routeBase?: string
+}) {
   const navigate = useNavigate()
   const productResource = useJsonResource<ProductResponse>(
     `/internal/v1/core/product?id=${encodeURIComponent(productId)}`
@@ -1840,7 +1848,7 @@ function ProductShowSection({ productId }: { productId: string }) {
         }
       )
 
-      void navigate("/dashboard/apps/core/products")
+      void navigate(routeBase)
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : "Failed to delete product.")
     } finally {
@@ -1855,12 +1863,12 @@ function ProductShowSection({ productId }: { productId: string }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
-          type="button"
-          variant="outline"
-          className="gap-2"
-          onClick={() => {
-            void navigate("/dashboard/apps/core/products")
-          }}
+            type="button"
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              void navigate(routeBase)
+            }}
         >
           <ArrowLeftIcon className="size-4" />
           Back
@@ -1871,7 +1879,7 @@ function ProductShowSection({ productId }: { productId: string }) {
             variant="outline"
             className="gap-2"
             onClick={() => {
-              void navigate(`/dashboard/apps/core/products/${encodeURIComponent(product.id)}/edit`)
+              void navigate(`${routeBase}/${encodeURIComponent(product.id)}/edit`)
             }}
           >
             <PencilLineIcon className="size-4" />
@@ -2074,7 +2082,11 @@ function ProductShowSection({ productId }: { productId: string }) {
   )
 }
 
-function ProductsSection() {
+export function ProductsSection({
+  routeBase = "/dashboard/apps/core/products",
+}: {
+  routeBase?: string
+} = {}) {
   const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
@@ -2183,7 +2195,7 @@ function ProductsSection() {
             "Create and manage shared product masters with variants, pricing, and stock.",
           addLabel: "New Product",
           onAddClick: () => {
-            void navigate("/dashboard/apps/core/products/new")
+            void navigate(`${routeBase}/new`)
           },
         }}
         search={{
@@ -2210,7 +2222,7 @@ function ProductsSection() {
                   type="button"
                   className="text-left"
                   onClick={() => {
-                    void navigate(`/dashboard/apps/core/products/${encodeURIComponent(product.id)}`)
+                    void navigate(`${routeBase}/${encodeURIComponent(product.id)}`)
                   }}
                 >
                   <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
@@ -2280,7 +2292,7 @@ function ProductsSection() {
                   }}
                   onEdit={() => {
                     void navigate(
-                      `/dashboard/apps/core/products/${encodeURIComponent(product.id)}/edit`
+                      `${routeBase}/${encodeURIComponent(product.id)}/edit`
                     )
                   }}
                   onToggleActive={() => {
@@ -2397,7 +2409,13 @@ function AutocompleteLookupField({
   )
 }
 
-function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
+export function CommonModulesSection({
+  moduleKey,
+  routeBase = "/dashboard/apps/core",
+}: {
+  moduleKey?: CommonModuleKey
+  routeBase?: string
+}) {
   const navigate = useNavigate()
   const metadata = useJsonResource<CommonModuleMetadataListResponse>(
     "/internal/v1/core/common-modules/metadata"
@@ -2567,7 +2585,7 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
                   return (
                     <a
                       key={item.id}
-                      href={item.route}
+                      href={`${routeBase}/common-${item.key}`}
                       className="rounded-xl border border-border/70 bg-card/70 p-4 transition hover:border-accent/40 hover:bg-card"
                     >
                       <p className="font-medium text-foreground">{item.name}</p>
@@ -2925,7 +2943,7 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
                       value={typeof value === "string" ? value : ""}
                       onChange={(nextValue) => handleFormChange(column.key, nextValue)}
                       onCreateNew={() =>
-                        navigate(`/dashboard/apps/core/common-${column.referenceModule}`)
+                        navigate(`${routeBase}/common-${column.referenceModule}`)
                       }
                       options={(referenceState.data[column.referenceModule] ?? []).map((item) => ({
                         label: getCommonModuleOptionLabel(item),
@@ -3060,7 +3078,7 @@ function CommonModulesSection({ moduleKey }: { moduleKey?: CommonModuleKey }) {
 
 function SetupSection() {
   const { data, error, isLoading } =
-    useJsonResource<BootstrapSnapshot>("/internal/v1/core/bootstrap")
+    useJsonResource<BootstrapSnapshot>("/internal/v1/cxapp/bootstrap")
 
   if (isLoading) {
     return <LoadingStateCard message="Loading setup..." />

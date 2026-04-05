@@ -2,11 +2,9 @@ import { randomUUID } from "node:crypto"
 
 import type { Kysely } from "kysely"
 
-import type { AuthUser } from "../../../core/shared/index.js"
-import { findProductRecordBySku } from "../../../ecommerce/src/services/product-admin-service.js"
+import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
-  frappeItemSchema,
   frappePurchaseReceiptManagerResponseSchema,
   frappePurchaseReceiptResponseSchema,
   frappePurchaseReceiptSchema,
@@ -19,7 +17,6 @@ import {
 
 import { frappeTableNames } from "../../database/table-names.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
-import { syncFrappeItemsToProducts } from "./item-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
 import { frappeSettingsSchema } from "../../shared/index.js"
 
@@ -62,38 +59,14 @@ async function readStoredSettings(database: Kysely<unknown>) {
   }
 }
 
-async function readItems(database: Kysely<unknown>) {
-  return listStorePayloads(database, frappeTableNames.items, frappeItemSchema)
-}
-
-async function decorateReceipt(
-  database: Kysely<unknown>,
-  receipt: FrappePurchaseReceipt
-) {
-  const products = await Promise.all(
-    receipt.items.map((item) => findProductRecordBySku(database, item.itemCode))
-  )
-  const decoratedItems = receipt.items.map((item, index) => {
-    const linkedProduct = products[index]
-
-    if (!linkedProduct) {
-      return {
-        ...item,
-        productId: "",
-        productName: "",
-        productSlug: "",
-        isSyncedToProduct: false,
-      }
-    }
-
-    return {
-      ...item,
-      productId: linkedProduct.id,
-      productName: linkedProduct.name,
-      productSlug: linkedProduct.slug,
-      isSyncedToProduct: true,
-    }
-  })
+function decorateReceipt(receipt: FrappePurchaseReceipt) {
+  const decoratedItems = receipt.items.map((item) => ({
+    ...item,
+    productId: "",
+    productName: "",
+    productSlug: "",
+    isSyncedToProduct: false,
+  }))
 
   return frappePurchaseReceiptSchema.parse({
     ...receipt,
@@ -113,9 +86,7 @@ export async function listFrappePurchaseReceipts(
     readReceipts(database),
     readStoredSettings(database),
   ])
-  const items = await Promise.all(
-    receipts.map((receipt) => decorateReceipt(database, receipt))
-  )
+  const items = receipts.map((receipt) => decorateReceipt(receipt))
 
   return frappePurchaseReceiptManagerResponseSchema.parse({
     manager: {
@@ -153,7 +124,7 @@ export async function getFrappePurchaseReceipt(
   }
 
   return frappePurchaseReceiptResponseSchema.parse({
-    item: await decorateReceipt(database, receipt),
+    item: decorateReceipt(receipt),
   })
 }
 
@@ -177,32 +148,15 @@ export async function syncFrappePurchaseReceipts(
     )
   }
 
-  const itemCodes = [...new Set(
-    selectedReceipts.flatMap((receipt) => receipt.items.map((item) => item.itemCode))
-  )]
-  const allItems = await readItems(database)
-
-  const syncItemIds = allItems
-    .filter((item) => itemCodes.includes(item.itemCode))
-    .map((item) => item.id)
-
-  if (syncItemIds.length > 0) {
-    await syncFrappeItemsToProducts(database, user, {
-      itemIds: syncItemIds,
-      duplicateMode: "overwrite",
-    })
-  }
-
   const syncedAt = new Date().toISOString()
   const syncResults: FrappePurchaseReceiptSyncResult[] = []
-  const nextReceipts = await Promise.all(
-    receipts.map(async (receipt) => {
+  const nextReceipts = receipts.map((receipt) => {
       if (!receiptIds.includes(receipt.id)) {
-        return decorateReceipt(database, receipt)
+        return decorateReceipt(receipt)
       }
 
       const wasSynced = receipt.isSyncedLocally || Boolean(receipt.syncedRecordId)
-      const decoratedReceipt = await decorateReceipt(database, receipt)
+      const decoratedReceipt = decorateReceipt(receipt)
       const nextReceipt = frappePurchaseReceiptSchema.parse({
         ...decoratedReceipt,
         syncedRecordId:
@@ -223,7 +177,6 @@ export async function syncFrappePurchaseReceipts(
 
       return nextReceipt
     })
-  )
 
   await replaceStorePayloads(database, frappeTableNames.purchaseReceipts, nextReceipts.map((receipt, index) => ({
     id: receipt.id,

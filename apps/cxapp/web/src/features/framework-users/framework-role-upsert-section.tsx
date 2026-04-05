@@ -7,7 +7,7 @@ import type {
   AuthPermissionListResponse,
   AuthRoleResponse,
   PermissionKey,
-} from "@core/shared"
+} from "@cxapp/shared"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"

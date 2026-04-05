@@ -126,12 +126,19 @@ test("framework media symlink setup replaces the generated placeholder storage d
     config.offline.enabled = false
 
     const mountDirectory = publicMediaMountDirectory(config)
+    const legacyMountDirectory = path.join(config.webRoot, "public", "media")
     const placeholderDirectory = path.join(mountDirectory, "placeholders")
 
     rmSync(mountDirectory, { recursive: true, force: true })
+    rmSync(legacyMountDirectory, { recursive: true, force: true })
     mkdirSync(placeholderDirectory, { recursive: true })
+    mkdirSync(path.join(legacyMountDirectory, "placeholders"), { recursive: true })
     writeFileSync(
       path.join(placeholderDirectory, "default.txt"),
+      "generated placeholder"
+    )
+    writeFileSync(
+      path.join(legacyMountDirectory, "placeholders", "default.txt"),
       "generated placeholder"
     )
 
@@ -139,6 +146,7 @@ test("framework media symlink setup replaces the generated placeholder storage d
 
     assert.equal(existsSync(path.join(mountDirectory, "placeholders")), false)
     assert.equal(lstatSync(mountDirectory).isSymbolicLink(), true)
+    assert.equal(existsSync(legacyMountDirectory), false)
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }

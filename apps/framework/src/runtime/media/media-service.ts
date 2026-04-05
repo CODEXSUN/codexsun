@@ -55,13 +55,16 @@ function normalizeOptionalString(value: string | null | undefined) {
 
 function parseDataUrl(dataUrl: string) {
   const match = dataUrl.match(/^data:([^;,]+);base64,(.+)$/)
-  if (!match) {
+  const mimeType = match?.[1]
+  const encodedContent = match?.[2]
+
+  if (!mimeType || !encodedContent) {
     throw new ApplicationError("Media upload must be a valid base64 data URL.", {}, 400)
   }
 
   return {
-    mimeType: match[1],
-    buffer: Buffer.from(match[2], "base64"),
+    mimeType,
+    buffer: Buffer.from(encodedContent, "base64"),
   }
 }
 

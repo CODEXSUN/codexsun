@@ -10,21 +10,19 @@ import {
   commonModuleTableNames,
   coreTableNames,
 } from "../../../apps/core/database/table-names.js"
+import { cxappTableNames } from "../../../apps/cxapp/database/table-names.js"
 import { listCommonModuleSummaries } from "../../../apps/core/src/services/common-module-service.js"
-import { listCompanies } from "../../../apps/core/src/services/company-service.js"
+import { listCompanies } from "../../../apps/cxapp/src/services/company-service.js"
 import { listContacts } from "../../../apps/core/src/services/contact-service.js"
+import { listProducts as listCoreProducts } from "../../../apps/core/src/services/product-service.js"
 import { billingTableNames } from "../../../apps/billing/database/table-names.js"
 import { listBillingLedgers } from "../../../apps/billing/src/services/ledger-service.js"
 import { listBillingVouchers } from "../../../apps/billing/src/services/voucher-service.js"
-import { listCustomerDetails } from "../../../apps/ecommerce/src/services/customer-service.js"
-import { listOrderWorkflows } from "../../../apps/ecommerce/src/services/order-service.js"
-import { getStorefrontCatalog, listProducts } from "../../../apps/ecommerce/src/services/product-service.js"
-import { getEcommercePricingSettings } from "../../../apps/ecommerce/src/services/settings-service.js"
+import { ecommerceTableNames } from "../../../apps/ecommerce/database/table-names.js"
 import { listFrappeItems } from "../../../apps/frappe/src/services/item-service.js"
 import { listFrappePurchaseReceipts } from "../../../apps/frappe/src/services/purchase-receipt-service.js"
 import { readFrappeSettings } from "../../../apps/frappe/src/services/settings-service.js"
 import { listFrappeTodos } from "../../../apps/frappe/src/services/todo-service.js"
-import { ecommerceTableNames } from "../../../apps/ecommerce/database/table-names.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
 import {
   createRuntimeDatabases,
@@ -42,18 +40,27 @@ test("registered database processes stay ordered by app and module", () => {
     listRegisteredDatabaseMigrations().map((migration) => migration.id),
     [
       "framework:runtime:01-system-ledger",
-      "core:bootstrap:01-bootstrap",
-      "core:companies:02-companies",
+      "framework:runtime:02-media-library",
+      "cxapp:bootstrap:01-bootstrap",
+      "cxapp:companies:02-companies",
+      "cxapp:auth:05-auth-foundation",
+      "cxapp:auth:06-auth-sessions",
+      "cxapp:mailbox:07-mailbox",
+      "cxapp:auth:13-auth-permission-scope",
+      "cxapp:auth:14-auth-option-catalog",
       "core:contacts:03-contacts",
       "core:common-modules:04-common-modules",
-      "core:auth:05-auth-foundation",
-      "core:auth:06-auth-sessions",
-      "core:mailbox:07-mailbox",
-      "ecommerce:pricing-settings:01-pricing-settings",
-      "ecommerce:products:02-products",
-      "ecommerce:storefront:03-storefront",
-      "ecommerce:orders:04-orders",
-      "ecommerce:customers:05-customers",
+      "core:common-modules:08-common-module-tables",
+      "core:common-modules:09-common-module-table-backfill",
+      "core:contacts:10-contact-code-backfill",
+      "core:common-modules:11-common-module-seed-sync",
+      "core:products:12-products",
+      "billing:categories:01-categories",
+      "billing:ledgers:02-ledgers",
+      "billing:voucher-groups:02-voucher-groups",
+      "billing:voucher-types:03-voucher-types",
+      "billing:vouchers:03-vouchers",
+      "ecommerce:storefront:01-storefront-foundation",
       "frappe:settings:01-settings",
       "frappe:todos:02-todos",
       "frappe:items:03-items",
@@ -65,17 +72,21 @@ test("registered database processes stay ordered by app and module", () => {
   assert.deepEqual(
     listRegisteredDatabaseSeeders().map((seeder) => seeder.id),
     [
-      "core:bootstrap:01-bootstrap",
-      "core:companies:02-companies",
+      "cxapp:bootstrap:01-bootstrap",
+      "cxapp:companies:02-companies",
+      "cxapp:auth:05-auth-foundation",
+      "cxapp:mailbox:06-mailbox",
+      "cxapp:auth:09-auth-option-catalog",
       "core:contacts:03-contacts",
       "core:common-modules:04-common-modules",
-      "core:auth:05-auth-foundation",
-      "core:mailbox:06-mailbox",
-      "ecommerce:pricing-settings:01-pricing-settings",
-      "ecommerce:products:02-products",
-      "ecommerce:storefront:03-storefront",
-      "ecommerce:orders:04-orders",
-      "ecommerce:customers:05-customers",
+      "core:common-modules:07-common-module-tables",
+      "core:products:08-products",
+      "billing:categories:01-categories",
+      "billing:ledgers:02-ledgers",
+      "billing:voucher-groups:02-voucher-groups",
+      "billing:vouchers:03-vouchers",
+      "billing:voucher-types:03-voucher-types",
+      "ecommerce:storefront:01-storefront-settings",
       "frappe:settings:01-settings",
       "frappe:todos:02-todos",
       "frappe:items:03-items",
@@ -85,7 +96,7 @@ test("registered database processes stay ordered by app and module", () => {
   )
 })
 
-test("database prepare applies app-owned migrations and seeders for core, billing, ecommerce, and frappe", async () => {
+test("database prepare applies app-owned migrations and seeders with ecommerce storefront registered", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-db-prepare-"))
 
   try {
@@ -131,7 +142,7 @@ test("database prepare applies app-owned migrations and seeders for core, billin
         .select(["id"])
         .execute()
       const companyRows = await queryDatabase
-        .selectFrom(coreTableNames.companies)
+        .selectFrom(cxappTableNames.companies)
         .select(["id"])
         .execute()
       const commonCategoryRows = await queryDatabase
@@ -139,15 +150,19 @@ test("database prepare applies app-owned migrations and seeders for core, billin
         .select(["id"])
         .execute()
       const productRows = await queryDatabase
-        .selectFrom(ecommerceTableNames.products)
+        .selectFrom(coreTableNames.products)
         .select(["id"])
         .execute()
       const billingVoucherRows = await queryDatabase
         .selectFrom(billingTableNames.vouchers)
         .select(["id"])
         .execute()
+      const storefrontSettingsRows = await queryDatabase
+        .selectFrom(ecommerceTableNames.storefrontSettings)
+        .select(["id"])
+        .execute()
       const seededSuperAdmin = await queryDatabase
-        .selectFrom(coreTableNames.authUsers)
+        .selectFrom(cxappTableNames.authUsers)
         .select(["email", "is_super_admin"])
         .where("id", "=", "auth-user:platform-admin")
         .executeTakeFirst()
@@ -159,19 +174,12 @@ test("database prepare applies app-owned migrations and seeders for core, billin
       assert.equal(appliedSeeders.length, listRegisteredDatabaseSeeders().length)
       assert.equal(companyRows.length, 2)
       assert.equal(billingVoucherRows.length, 6)
-      assert.equal(commonCategoryRows.length, 3)
+      assert.equal(storefrontSettingsRows.length, 1)
+      assert.equal(commonCategoryRows.length, 5)
       assert.equal(productRows.length, 3)
       assert.equal(seededSuperAdmin?.email, "sundar@sundar.com")
       assert.equal(Number(seededSuperAdmin?.is_super_admin ?? 0), 1)
 
-      const companies = await listCompanies(runtime.primary)
-      const contacts = await listContacts(runtime.primary)
-      const commonModuleSummary = await listCommonModuleSummaries(runtime.primary)
-      const products = await listProducts(runtime.primary)
-      const storefrontCatalog = await getStorefrontCatalog(runtime.primary)
-      const orderWorkflows = await listOrderWorkflows(runtime.primary)
-      const customerDetails = await listCustomerDetails(runtime.primary)
-      const pricingSettings = await getEcommercePricingSettings(runtime.primary)
       const adminUser = {
         id: "auth-user:platform-admin",
         email: "sundar@sundar.com",
@@ -192,11 +200,7 @@ test("database prepare applies app-owned migrations and seeders for core, billin
       const billingLedgers = await listBillingLedgers(runtime.primary)
       const billingVouchers = await listBillingVouchers(runtime.primary, adminUser)
       const commonModuleSummary = await listCommonModuleSummaries(runtime.primary)
-      const products = await listProducts(runtime.primary)
-      const storefrontCatalog = await getStorefrontCatalog(runtime.primary)
-      const orderWorkflows = await listOrderWorkflows(runtime.primary)
-      const customerDetails = await listCustomerDetails(runtime.primary)
-      const pricingSettings = await getEcommercePricingSettings(runtime.primary)
+      const products = await listCoreProducts(runtime.primary)
       const frappeSettings = await readFrappeSettings(runtime.primary, adminUser)
       const frappeTodos = await listFrappeTodos(runtime.primary, adminUser)
       const frappeItems = await listFrappeItems(runtime.primary, adminUser)
@@ -208,10 +212,6 @@ test("database prepare applies app-owned migrations and seeders for core, billin
       assert.equal(billingVouchers.items.length, 6)
       assert.ok(commonModuleSummary.items.length >= 20)
       assert.equal(products.items.length, 3)
-      assert.equal(storefrontCatalog.products.length, 3)
-      assert.equal(orderWorkflows.items.length, 2)
-      assert.equal(customerDetails.items.length, 2)
-      assert.equal(pricingSettings.settings.purchaseToSellPercent, 22)
       assert.equal(frappeSettings.settings.defaultCompany, "Codexsun Trading Pvt Ltd")
       assert.equal(frappeTodos.todos.items.length, 3)
       assert.equal(frappeItems.manager.items.length, 3)

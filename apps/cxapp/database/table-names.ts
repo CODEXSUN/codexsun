@@ -1,0 +1,15 @@
+export const cxappTableNames = {
+  bootstrapSnapshots: "cxapp_bootstrap_snapshots",
+  companies: "cxapp_companies",
+  authUsers: "cxapp_auth_users",
+  authPermissions: "cxapp_auth_permissions",
+  authOptionCatalog: "cxapp_auth_option_catalog",
+  authRoles: "cxapp_auth_roles",
+  authUserRoles: "cxapp_auth_user_roles",
+  authRolePermissions: "cxapp_auth_role_permissions",
+  authSessions: "cxapp_auth_sessions",
+  authContactVerifications: "cxapp_auth_contact_verifications",
+  mailboxTemplates: "cxapp_mailbox_templates",
+  mailboxMessages: "cxapp_mailbox_messages",
+  mailboxMessageRecipients: "cxapp_mailbox_message_recipients",
+} as const

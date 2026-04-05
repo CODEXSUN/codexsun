@@ -6,13 +6,13 @@ export const ecommerceAppManifest: AppManifest = {
   name: "Ecommerce",
   kind: "business",
   description:
-    "Storefront, product catalog, checkout flows, and customer commerce operations.",
+    "Standalone storefront app that consumes shared masters from core and owns customer commerce flows end to end.",
   standalone: true,
   dependencies: ["framework", "core", "api", "ui"],
   workspace: ecommerceAppWorkspace,
   surfaces: {
     web: true,
-    internalApi: true,
+    internalApi: false,
     externalApi: true,
   },
 }

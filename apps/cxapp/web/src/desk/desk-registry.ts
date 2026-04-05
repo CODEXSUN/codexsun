@@ -12,6 +12,7 @@ import {
   Flag,
   Globe,
   Landmark,
+  CreditCard,
   PackageCheck,
   Package,
   Palette,
@@ -26,6 +27,7 @@ import {
   Settings2,
   Server,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   TerminalSquare,
   Truck,
@@ -214,6 +216,27 @@ function createTechnicalWorkspaceModules(
 
 function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
   const root = `/dashboard/apps/${app.id}`
+  const ecommerceProductCommonModules = coreCommonModuleMenuGroups
+    .find((group) => group.id === "product")
+    ?.items.map((item) => ({
+      id: `${app.id}-${item.id}`,
+      name: item.name,
+      route: `${root}/common-${item.key}`,
+      summary: item.summary,
+      icon:
+        {
+          "common-productGroups": Boxes,
+          "common-productCategories": PackageCheck,
+          "common-productTypes": Package,
+          "common-brands": Building2,
+          "common-colours": Palette,
+          "common-sizes": Ruler,
+          "common-styles": Package,
+          "common-units": Scale,
+          "common-hsnCodes": BadgePercent,
+          "common-taxes": BadgePercent,
+        }[item.id] ?? Blocks,
+    })) ?? []
 
   if (app.id === "ui") {
     return [
@@ -352,28 +375,6 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
-  if (app.id === "ecommerce") {
-    const ecommerceWorkspaceIconMap: Record<string, LucideIcon> = {
-      overview: LayoutDashboard,
-      catalog: PackageCheck,
-      storefront: MonitorSmartphone,
-      orders: ReceiptText,
-      customers: Users,
-      settings: Settings2,
-    }
-
-    return [
-      ...ecommerceWorkspaceItems.map((item) => ({
-        id: `${app.id}-${item.id}`,
-        name: item.name,
-        route: item.route,
-        summary: item.summary,
-        icon: ecommerceWorkspaceIconMap[item.id] ?? Blocks,
-      })),
-      ...createTechnicalWorkspaceModules(app, root),
-    ]
-  }
-
   if (app.id === "frappe") {
     const frappeWorkspaceIconMap: Record<string, LucideIcon> = {
       overview: LayoutDashboard,
@@ -436,6 +437,31 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
               ]
             : undefined,
       })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
+  if (app.id === "ecommerce") {
+    const ecommerceWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      storefront: MonitorSmartphone,
+      products: Package,
+      catalog: PackageCheck,
+      customers: Users,
+      orders: ShoppingBag,
+      checkout: CreditCard,
+      settings: Settings2,
+    }
+
+    return [
+      ...ecommerceWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: ecommerceWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...ecommerceProductCommonModules,
       ...createTechnicalWorkspaceModules(app, root),
     ]
   }
@@ -568,38 +594,6 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               items: [],
             },
           ]
-      : app.id === "ecommerce"
-        ? [
-            {
-              id: `${app.id}-commerce`,
-              label: "Commerce",
-              shared: false,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/apps/${app.id}`,
-                  `/dashboard/apps/${app.id}/catalog`,
-                  `/dashboard/apps/${app.id}/storefront`,
-                  `/dashboard/apps/${app.id}/orders`,
-                  `/dashboard/apps/${app.id}/customers`,
-                  `/dashboard/apps/${app.id}/settings`,
-                ].includes(item.route)
-              ),
-            },
-            {
-              id: `${app.id}-workspace`,
-              label: "Workspace",
-              shared: true,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/apps/${app.id}/backend`,
-                  `/dashboard/apps/${app.id}/structure`,
-                  `/dashboard/apps/${app.id}/web`,
-                  `/dashboard/apps/${app.id}/api`,
-                  `/dashboard/apps/${app.id}/database`,
-                ].includes(item.route)
-              ),
-            },
-          ]
       : app.id === "frappe"
         ? [
             {
@@ -629,6 +623,73 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/database`,
                 ].includes(item.route)
               ),
+            },
+          ]
+      : app.id === "ecommerce"
+        ? [
+            {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-commerce`,
+              label: "Commerce",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/storefront`,
+                  `/dashboard/apps/${app.id}/products`,
+                  `/dashboard/apps/${app.id}/catalog`,
+                  `/dashboard/apps/${app.id}/checkout`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-operations`,
+              label: "Operations",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/customers`,
+                  `/dashboard/apps/${app.id}/orders`,
+                  `/dashboard/apps/${app.id}/settings`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-common`,
+              label: "Common",
+              icon: Blocks,
+              shared: false,
+              items: [
+                {
+                  id: `${app.id}-common-product`,
+                  name: "Product",
+                  route: `/dashboard/apps/${app.id}/common-productGroups`,
+                  summary: "Shared core product masters reused by ecommerce products and storefront behavior.",
+                  icon: Boxes,
+                  children: modules.filter((item) =>
+                    [
+                      `/dashboard/apps/${app.id}/common-productGroups`,
+                      `/dashboard/apps/${app.id}/common-productCategories`,
+                      `/dashboard/apps/${app.id}/common-productTypes`,
+                      `/dashboard/apps/${app.id}/common-brands`,
+                      `/dashboard/apps/${app.id}/common-colours`,
+                      `/dashboard/apps/${app.id}/common-sizes`,
+                      `/dashboard/apps/${app.id}/common-styles`,
+                      `/dashboard/apps/${app.id}/common-units`,
+                      `/dashboard/apps/${app.id}/common-hsnCodes`,
+                      `/dashboard/apps/${app.id}/common-taxes`,
+                    ].includes(item.route)
+                  ),
+                },
+              ],
             },
           ]
       : app.id === "billing"
@@ -823,20 +884,36 @@ export function matchesDeskRoute(
   )
 }
 
-function getBestRouteMatch<T extends { route: string; matchRoutes?: string[] }>(
+function flattenMenuItems<T extends { children?: T[] }>(
   items: T[],
-  pathname: string
-) {
-  return [...items]
+  depth = 0
+): Array<T & { depth: number }> {
+  return items.flatMap((item) => [
+    { ...item, depth },
+    ...flattenMenuItems(item.children ?? [], depth + 1),
+  ])
+}
+
+function getBestMenuItemMatch<
+  T extends { route: string; matchRoutes?: string[]; children?: T[] },
+>(items: T[], pathname: string) {
+  return [...flattenMenuItems(items)]
     .filter((item) => matchesDeskRoute(pathname, item.route, item.matchRoutes))
     .sort((left, right) => {
-      const leftLength = Math.max(left.route.length, ...(left.matchRoutes ?? []).map((route) => route.length))
+      const leftLength = Math.max(
+        left.route.length,
+        ...(left.matchRoutes ?? []).map((route) => route.length)
+      )
       const rightLength = Math.max(
         right.route.length,
         ...(right.matchRoutes ?? []).map((route) => route.length)
       )
 
-      return rightLength - leftLength
+      if (rightLength !== leftLength) {
+        return rightLength - leftLength
+      }
+
+      return right.depth - left.depth
     })[0] ?? null
 }
 
@@ -857,9 +934,7 @@ export function findDeskAppByPathname(
   return (
     apps.find((app) =>
       app.menuGroups.some((group) =>
-        group.items.some((item) =>
-          matchesDeskRoute(pathname, item.route, item.matchRoutes)
-        )
+        getBestMenuItemMatch(group.items, pathname)
       )
     ) ?? null
   )
@@ -878,7 +953,12 @@ export function resolveDeskLocation(
     }
   }
 
-  if (pathname === "/dashboard/admin" || pathname === "/dashboard/admin/") {
+  if (
+    pathname === "/admin/dashboard" ||
+    pathname === "/admin/dashboard/" ||
+    pathname === "/dashboard/admin" ||
+    pathname === "/dashboard/admin/"
+  ) {
     return {
       section: "Admin",
       title: "Application Desk",
@@ -979,7 +1059,7 @@ export function resolveDeskLocation(
     }
   }
 
-  const activeMenuItem = getBestRouteMatch(
+  const activeMenuItem = getBestMenuItemMatch(
     app.menuGroups.flatMap((group) => group.items),
     pathname
   )

@@ -86,6 +86,7 @@ CxApp owns:
 4. the routed auth pages and shell handoff
 5. the operator-facing interface for composed apps
 6. browser-side auth session persistence for the active suite shell
+7. app-owned auth, sessions, roles, permissions, mailbox, bootstrap, company profile, and runtime app settings for the active suite shell
 
 Framework remains underneath CxApp as the reusable runtime.
 
@@ -93,11 +94,10 @@ Framework remains underneath CxApp as the reusable runtime.
 
 `apps/core` owns shared business foundations such as:
 
-1. company
-2. contacts
-3. setup
-4. reusable ERP-common contracts
-5. app-owned auth, sessions, roles, permissions, and mailbox foundations
+1. contacts
+2. products
+3. shared common modules and master data
+4. reusable ERP-common contracts for shared master records
 
 ### API
 
@@ -136,7 +136,16 @@ UI does not own app-specific business workflows.
 
 ### Ecommerce
 
-`apps/ecommerce` owns catalog, storefront, checkout, and customer commerce flows.
+`apps/ecommerce` is the standalone commerce boundary.
+
+Ecommerce owns:
+
+1. catalog
+2. storefront
+3. checkout
+4. customer commerce flows
+5. payments and order tracking
+6. customer accounts, profile, portal pages, and order history linked to the shared `cxapp` auth session
 
 ### Task
 
@@ -182,7 +191,10 @@ Current framework route surfaces:
 3. internal workspace baseline: `/internal/baseline`
 4. external app registry: `/api/apps`
 5. external auth surface: `/api/v1/auth/*`
-6. protected core auth and mailbox surfaces: `/internal/v1/core/auth/*` and `/internal/v1/core/mailbox/*`
+6. protected cxapp auth and mailbox surfaces: `/internal/v1/cxapp/auth/*` and `/internal/v1/cxapp/mailbox/*`
+7. protected cxapp setup and company surfaces: `/internal/v1/cxapp/bootstrap`, `/internal/v1/cxapp/company*`, and `/internal/v1/cxapp/runtime-settings`
+8. public storefront surfaces: `/public/v1/storefront/*`
+9. external storefront customer and checkout surfaces: `/api/v1/storefront/*`
 
 ## App Suite Model
 
@@ -248,6 +260,7 @@ Active coverage today includes:
 6. database execution workflow for app-owned migrations and seeders
 7. auth lifecycle flows such as seeded login, OTP registration, password reset, recovery, and session revocation
 8. Frappe connector flows such as settings save, item sync, purchase receipt sync, and route registration
+9. ecommerce storefront flows such as catalog reads from `core`, customer registration, checkout, payment verification, portal orders, order tracking, and role-based auth landing
 
 ## Current State
 
@@ -262,12 +275,14 @@ Implemented now:
 7. shared desk shell and grouped app navigation from `apps/ui`
 8. shared auth layouts and auth page presentation through `apps/ui`
 9. shared design-system docs and routeable component catalog in the `ui` app
-10. app-owned `core` and `ecommerce` migrations and seeders executed through the framework runtime and CLI helper
-11. `core` and `ecommerce` services reading seeded database tables instead of bypassing the database with in-memory seed arrays
-12. app-owned `core` auth, session, OTP, role, permission, and mailbox storage with external and internal API surfaces
+10. app-owned `cxapp`, `core`, `billing`, `ecommerce`, and `frappe` migrations and seeders executed through the framework runtime and CLI helper
+11. `cxapp`, `core`, `billing`, `ecommerce`, and `frappe` services reading seeded database tables instead of bypassing the database with in-memory seed arrays
+12. app-owned `cxapp` auth, session, OTP, role, permission, mailbox, bootstrap, company, and app-settings storage with external and internal API surfaces
 13. active `cxapp` auth pages using the live auth API and persisted browser sessions instead of placeholder-only local state
 14. app-owned `frappe` connector settings, todo snapshots, item snapshots, purchase receipt snapshots, internal routes, and desk workspace sections
-15. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, and Frappe connector sync behavior
+15. one `cxapp` login session that routes admins to `/admin/dashboard`, desk users to `/dashboard`, and customers to `/profile`
+16. app-owned `ecommerce` storefront settings, catalog reads from `core` products, customer registration linked to `core` contacts, customer accounts linked to `cxapp` auth users, orders, checkout, Razorpay-ready payments, public tracking, and customer portal pages
+17. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, and Frappe connector behavior
 
 Still future work:
 
@@ -275,7 +290,8 @@ Still future work:
 2. richer relational schemas and write flows beyond the current module-payload baseline
 3. richer connector execution flows such as webhooks, job queues, and deeper bidirectional reconciliation
 4. auth hardening such as refresh-token rotation, MFA, rate limiting, richer admin UX, and deeper audit flows
-5. Electron desktop runtime
+5. promotions, couponing, inventory reservation, shipment carriers, and post-order commerce workflows inside `apps/ecommerce`
+6. Electron desktop runtime
 
 ## Boundary Rules
 
@@ -285,4 +301,5 @@ Still future work:
 4. api must stay route-focused
 5. connectors must stay isolated in their app boundaries
 6. CxApp may orchestrate apps, but it must not erase app ownership boundaries
-7. framework may host reusable auth primitives, but auth domain rules, tables, and mailbox records stay app-owned
+7. framework may host reusable auth primitives, but auth domain rules, tables, mailbox records, bootstrap state, and company records stay app-owned in `cxapp`
+8. `ecommerce` must not create a second browser auth store or JWT/session system; customer portal access must resolve through the shared `cxapp` auth session

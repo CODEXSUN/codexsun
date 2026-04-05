@@ -1,5 +1,7 @@
 import type {
   CommonModuleKey,
+} from "@core/shared"
+import type {
   Company,
   CompanyAddressInput,
   CompanyBankAccountInput,
@@ -7,7 +9,7 @@ import type {
   CompanyLogoInput,
   CompanyPhoneInput,
   CompanyUpsertPayload,
-} from "@core/shared"
+} from "@cxapp/shared"
 
 export type CompanyFormValues = CompanyUpsertPayload
 export type CompanyLocationModuleKey = Extract<

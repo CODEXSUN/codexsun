@@ -25,12 +25,19 @@ import {
 } from "../runtime/http/index.js"
 
 const mimeTypes: Record<string, string> = {
+  ".avif": "image/avif",
   ".css": "text/css; charset=utf-8",
+  ".gif": "image/gif",
   ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
   ".svg": "image/svg+xml",
   ".txt": "text/plain; charset=utf-8",
+  ".webp": "image/webp",
   ".woff2": "font/woff2",
 }
 
@@ -79,6 +86,12 @@ function renderWelcomePage(appName: string) {
     </main>
   </body>
 </html>`)
+}
+
+type RuntimeStartupState = {
+  errorMessage: string | null
+  startedAt: string
+  status: "starting" | "ready" | "failed"
 }
 
 async function resolveResponse(
@@ -251,13 +264,10 @@ export async function startFrameworkServer(cwd = process.cwd()) {
     tlsKeyPath,
     webRoot,
   } = config
-
-  try {
-    await ensurePublicMediaSymlink(config)
-    await prepareApplicationDatabase(databases, { logger: console })
-  } catch (error) {
-    await databases.destroy()
-    throw error
+  const startupState: RuntimeStartupState = {
+    errorMessage: null,
+    startedAt: new Date().toISOString(),
+    status: "starting",
   }
 
   type ListenerServer =
@@ -272,12 +282,55 @@ export async function startFrameworkServer(cwd = process.cwd()) {
     request: IncomingMessage,
     response: ServerResponse<IncomingMessage>
   ) => {
+    const requestUrl = new URL(
+      request.url ?? "/",
+      `http://${request.headers.host ?? "localhost"}`
+    )
+
     if (isShuttingDown) {
       response.writeHead(503, {
         "content-type": "application/json; charset=utf-8",
         connection: "close",
       })
       response.end(JSON.stringify({ message: "Server is shutting down" }))
+      return
+    }
+
+    if (startupState.status !== "ready") {
+      const isHealthRoute =
+        requestUrl.pathname === "/health" ||
+        requestUrl.pathname === "/public/v1/health"
+
+      response.writeHead(startupState.status === "failed" ? 500 : 503, {
+        "content-type": "application/json; charset=utf-8",
+        "retry-after": "2",
+      })
+      response.end(
+        JSON.stringify(
+          isHealthRoute
+            ? {
+                app: appName,
+                status:
+                  startupState.status === "failed"
+                    ? "startup_failed"
+                    : "starting_up",
+                startedAt: startupState.startedAt,
+                detail: startupState.errorMessage,
+              }
+            : {
+                message:
+                  startupState.status === "failed"
+                    ? "Server startup failed"
+                    : "Server is starting up",
+                status:
+                  startupState.status === "failed"
+                    ? "startup_failed"
+                    : "starting_up",
+                startedAt: startupState.startedAt,
+                detail: startupState.errorMessage,
+              }
+        )
+      )
       return
     }
 
@@ -293,11 +346,6 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       response.end(JSON.stringify({ message: "Method not allowed" }))
       return
     }
-
-    const requestUrl = new URL(
-      request.url ?? "/",
-      `http://${request.headers.host ?? "localhost"}`
-    )
 
     try {
       const requestBody =
@@ -534,6 +582,20 @@ export async function startFrameworkServer(cwd = process.cwd()) {
 
   if (httpsServer) {
     listen(httpsServer, appHttpsPort, "https")
+  }
+
+  try {
+    await ensurePublicMediaSymlink(config)
+    await prepareApplicationDatabase(databases, { logger: console })
+    startupState.status = "ready"
+    console.log(`${appName} runtime ready`)
+  } catch (error) {
+    startupState.status = "failed"
+    startupState.errorMessage =
+      error instanceof Error ? error.message : "Unknown startup error"
+    console.error(`${appName} startup preparation error:`, error)
+    shutdown("startupFailure")
+    throw error
   }
 }
 

@@ -5,51 +5,205 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom"
+import { Suspense, lazy, type ComponentType, type LazyExoticComponent } from "react"
 
 import type { AppSuite } from "@framework/application/app-manifest"
 import { createFrameworkBrowserContainer } from "@framework/di/browser-container"
 import { FRAMEWORK_TOKENS } from "@framework/di/tokens"
+import type { AuthUser } from "@cxapp/shared"
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
-import { DashboardPage } from "@/features/dashboard/pages/dashboard-page"
 import { RuntimeBrandProvider } from "@/features/branding/runtime-brand-provider"
 import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider"
-import AdminLayout from "@/layouts/AdminLayout"
 import type { DashboardUser } from "@/features/dashboard/types"
+import { StorefrontCartProvider } from "@ecommerce/web/src/cart/storefront-cart"
+import { storefrontPaths } from "@ecommerce/web/src/lib/storefront-routes"
 
 import { useAuth } from "./auth/auth-context"
 import { AuthProvider } from "./auth/auth-provider"
+import {
+  isAdminSurfaceUser,
+  isCustomerSurfaceUser,
+  isDeskSurfaceUser,
+  resolveAuthenticatedHomePath,
+} from "./auth/auth-surface"
+import {
+  isAppFrontendSurface,
+  isShopFrontendSurface,
+} from "./config/frontend-surface"
 import { DeskProvider } from "./desk/desk-provider"
-import { BillingVoucherSectionPage } from "./pages/billing-voucher-section-page"
-import { BillingWorkspacePage } from "./pages/billing-workspace-page"
-import { CoreCompanyDetailPage } from "./pages/core-company-detail-page"
-import { CoreCompanyFormPage } from "./pages/core-company-form-page"
-import { CoreContactDetailPage } from "./pages/core-contact-detail-page"
-import { CoreContactFormPage } from "./pages/core-contact-form-page"
-import { CoreProductDetailPage } from "./pages/core-product-detail-page"
-import { CoreProductFormPage } from "./pages/core-product-form-page"
-import { BillingCategoryFormPage } from "./pages/billing-category-form-page"
-import { BillingLedgerFormPage } from "./pages/billing-ledger-form-page"
-import { BillingPaymentFormPage } from "./pages/billing-payment-form-page"
-import { BillingPurchaseFormPage } from "./pages/billing-purchase-form-page"
-import { BillingReceiptFormPage } from "./pages/billing-receipt-form-page"
-import { BillingSalesFormPage } from "./pages/billing-sales-form-page"
-import { FrameworkAppWorkspacePage } from "./pages/framework-app-workspace-page"
-import { FrameworkMediaManagerPage } from "./pages/framework-media-manager-page"
-import { FrameworkRbacPage } from "./pages/framework-rbac-page"
-import { FrameworkPermissionFormPage } from "./pages/framework-permission-form-page"
-import { FrameworkRoleFormPage } from "./pages/framework-role-form-page"
-import { FrameworkSystemUpdatePage } from "./pages/framework-system-update-page"
-import { FrameworkUserDetailPage } from "./pages/framework-user-detail-page"
-import { FrameworkUserFormPage } from "./pages/framework-user-form-page"
-import { FrameworkUsersPage } from "./pages/framework-users-page"
-import { ForgotPasswordPage } from "./pages/forgot-password-page"
-import HomePage from "./pages/home"
-import { LoginPage } from "./pages/login-page"
-import { RequestAccessPage } from "./pages/request-access-page"
 import { RuntimeAppSettingsProvider } from "./features/runtime-app-settings/runtime-app-settings-provider"
+
+function lazyNamed<TModule extends Record<string, unknown>, TKey extends keyof TModule>(
+  load: () => Promise<TModule>,
+  exportName: TKey
+): LazyExoticComponent<ComponentType<any>> {
+  return lazy(async () => {
+    const module = await load()
+
+    return {
+      default: module[exportName] as ComponentType<any>,
+    }
+  })
+}
+
+const SiteHomePage = lazy(() => import("@site/web/src/pages/home"))
+const DashboardPage = lazyNamed(
+  () => import("@/features/dashboard/pages/dashboard-page"),
+  "DashboardPage"
+)
+const AdminLayout = lazy(() => import("@/layouts/AdminLayout"))
+const StorefrontAccountOrderPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-account-order-page"),
+  "StorefrontAccountOrderPage"
+)
+const StorefrontAccountPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-account-page"),
+  "StorefrontAccountPage"
+)
+const StorefrontAccountRegisterPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-account-register-page"),
+  "StorefrontAccountRegisterPage"
+)
+const StorefrontCartPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-cart-page"),
+  "StorefrontCartPage"
+)
+const StorefrontCatalogPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-catalog-page"),
+  "StorefrontCatalogPage"
+)
+const StorefrontCheckoutPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-checkout-page"),
+  "StorefrontCheckoutPage"
+)
+const StorefrontHomePage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-home-page"),
+  "StorefrontHomePage"
+)
+const StorefrontProductPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-product-page"),
+  "StorefrontProductPage"
+)
+const StorefrontTrackOrderPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-track-order-page"),
+  "StorefrontTrackOrderPage"
+)
+const BillingVoucherSectionPage = lazyNamed(
+  () => import("./pages/billing-voucher-section-page"),
+  "BillingVoucherSectionPage"
+)
+const BillingWorkspacePage = lazyNamed(
+  () => import("./pages/billing-workspace-page"),
+  "BillingWorkspacePage"
+)
+const CoreCompanyDetailPage = lazyNamed(
+  () => import("./pages/core-company-detail-page"),
+  "CoreCompanyDetailPage"
+)
+const CoreCompanyFormPage = lazyNamed(
+  () => import("./pages/core-company-form-page"),
+  "CoreCompanyFormPage"
+)
+const CoreContactDetailPage = lazyNamed(
+  () => import("./pages/core-contact-detail-page"),
+  "CoreContactDetailPage"
+)
+const CoreContactFormPage = lazyNamed(
+  () => import("./pages/core-contact-form-page"),
+  "CoreContactFormPage"
+)
+const CoreProductDetailPage = lazyNamed(
+  () => import("./pages/core-product-detail-page"),
+  "CoreProductDetailPage"
+)
+const CoreProductFormPage = lazyNamed(
+  () => import("./pages/core-product-form-page"),
+  "CoreProductFormPage"
+)
+const EcommerceProductDetailPage = lazyNamed(
+  () => import("./pages/ecommerce-product-detail-page"),
+  "EcommerceProductDetailPage"
+)
+const EcommerceProductFormPage = lazyNamed(
+  () => import("./pages/ecommerce-product-form-page"),
+  "EcommerceProductFormPage"
+)
+const BillingCategoryFormPage = lazyNamed(
+  () => import("./pages/billing-category-form-page"),
+  "BillingCategoryFormPage"
+)
+const BillingLedgerFormPage = lazyNamed(
+  () => import("./pages/billing-ledger-form-page"),
+  "BillingLedgerFormPage"
+)
+const BillingPaymentFormPage = lazyNamed(
+  () => import("./pages/billing-payment-form-page"),
+  "BillingPaymentFormPage"
+)
+const BillingPurchaseFormPage = lazyNamed(
+  () => import("./pages/billing-purchase-form-page"),
+  "BillingPurchaseFormPage"
+)
+const BillingReceiptFormPage = lazyNamed(
+  () => import("./pages/billing-receipt-form-page"),
+  "BillingReceiptFormPage"
+)
+const BillingSalesFormPage = lazyNamed(
+  () => import("./pages/billing-sales-form-page"),
+  "BillingSalesFormPage"
+)
+const FrameworkAppWorkspacePage = lazyNamed(
+  () => import("./pages/framework-app-workspace-page"),
+  "FrameworkAppWorkspacePage"
+)
+const FrameworkMediaManagerPage = lazyNamed(
+  () => import("./pages/framework-media-manager-page"),
+  "FrameworkMediaManagerPage"
+)
+const FrameworkRbacPage = lazyNamed(
+  () => import("./pages/framework-rbac-page"),
+  "FrameworkRbacPage"
+)
+const FrameworkPermissionFormPage = lazyNamed(
+  () => import("./pages/framework-permission-form-page"),
+  "FrameworkPermissionFormPage"
+)
+const FrameworkRoleFormPage = lazyNamed(
+  () => import("./pages/framework-role-form-page"),
+  "FrameworkRoleFormPage"
+)
+const FrameworkSystemUpdatePage = lazyNamed(
+  () => import("./pages/framework-system-update-page"),
+  "FrameworkSystemUpdatePage"
+)
+const FrameworkUserDetailPage = lazyNamed(
+  () => import("./pages/framework-user-detail-page"),
+  "FrameworkUserDetailPage"
+)
+const FrameworkUserFormPage = lazyNamed(
+  () => import("./pages/framework-user-form-page"),
+  "FrameworkUserFormPage"
+)
+const FrameworkUsersPage = lazyNamed(
+  () => import("./pages/framework-users-page"),
+  "FrameworkUsersPage"
+)
+const ForgotPasswordPage = lazyNamed(
+  () => import("./pages/forgot-password-page"),
+  "ForgotPasswordPage"
+)
+const LoginPage = lazyNamed(
+  () => import("./pages/login-page"),
+  "LoginPage"
+)
+const RequestAccessPage = lazyNamed(
+  () => import("./pages/request-access-page"),
+  "RequestAccessPage"
+)
 
 const container = createFrameworkBrowserContainer()
 const appSuite = container.resolve<AppSuite>(FRAMEWORK_TOKENS.appSuite)
+const adminDashboardPath = "/admin/dashboard"
 const guestUser: DashboardUser = {
   displayName: "Guest Operator",
   email: "guest@codexsun.local",
@@ -80,7 +234,13 @@ function FrameworkUtilityPage({
   )
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({
+  children,
+  allow,
+}: {
+  children: React.ReactNode
+  allow?: (user: AuthUser) => boolean
+}) {
   const location = useLocation()
   const auth = useAuth()
 
@@ -97,6 +257,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         replace
       />
     )
+  }
+
+  if (auth.user) {
+    const isAllowed = allow ? allow(auth.user) : isDeskSurfaceUser(auth.user)
+
+    if (!isAllowed) {
+      return <Navigate to={resolveAuthenticatedHomePath(auth.user)} replace />
+    }
+  }
+
+  if (!auth.user) {
+    return <Navigate to={resolveAuthenticatedHomePath(auth.user)} replace />
   }
 
   return children
@@ -118,22 +290,106 @@ function AuthenticatedAppShell() {
     <RuntimeBrandProvider>
       <RuntimeAppSettingsProvider>
         <ProjectDefaultsProvider>
-          <DeskProvider
-            appSuite={appSuite}
-            user={user}
-            onLogout={() => {
-              void auth.logout()
-            }}
-          >
-            <Routes>
-          <Route path="/" element={<HomePage appSuite={appSuite} />} />
+          <StorefrontCartProvider>
+            <DeskProvider
+              appSuite={appSuite}
+              user={user}
+              onLogout={() => {
+                void auth.logout()
+              }}
+            >
+              <Suspense fallback={<GlobalLoader size="md" label="M" />}>
+                <Routes>
+          <Route
+            path="/"
+            element={
+              isShopFrontendSurface ? (
+                <StorefrontHomePage />
+              ) : isAppFrontendSurface ? (
+                <Navigate to="/login" replace />
+              ) : (
+                <SiteHomePage appSuite={appSuite} />
+              )
+            }
+          />
+          {isShopFrontendSurface ? (
+            <>
+              <Route path="/catalog" element={<StorefrontCatalogPage />} />
+              <Route path="/products/:slug" element={<StorefrontProductPage />} />
+              <Route path="/cart" element={<StorefrontCartPage />} />
+              <Route path="/checkout" element={<StorefrontCheckoutPage />} />
+              <Route path="/track-order" element={<StorefrontTrackOrderPage />} />
+              <Route
+                path="/profile/login"
+                element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />}
+              />
+              <Route path="/profile/register" element={<StorefrontAccountRegisterPage />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                    <StorefrontAccountPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/orders/:orderId"
+                element={
+                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                    <StorefrontAccountOrderPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/account/login" element={<Navigate to={storefrontPaths.accountLogin()} replace />} />
+              <Route path="/account/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
+              <Route path="/account" element={<Navigate to={storefrontPaths.account()} replace />} />
+              <Route
+                path="/account/orders/:orderId"
+                element={<Navigate to={storefrontPaths.account()} replace />}
+              />
+              <Route path="/shop" element={<StorefrontHomePage />} />
+              <Route path="/shop/catalog" element={<StorefrontCatalogPage />} />
+              <Route path="/shop/products/:slug" element={<StorefrontProductPage />} />
+              <Route path="/shop/cart" element={<StorefrontCartPage />} />
+              <Route path="/shop/checkout" element={<StorefrontCheckoutPage />} />
+              <Route path="/shop/track-order" element={<StorefrontTrackOrderPage />} />
+              <Route
+                path="/shop/profile/login"
+                element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />}
+              />
+              <Route path="/shop/profile/register" element={<StorefrontAccountRegisterPage />} />
+              <Route
+                path="/shop/profile"
+                element={
+                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                    <StorefrontAccountPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/shop/profile/orders/:orderId"
+                element={
+                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                    <StorefrontAccountOrderPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/shop/account/login" element={<Navigate to={storefrontPaths.accountLogin()} replace />} />
+              <Route path="/shop/account/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
+              <Route path="/shop/account" element={<Navigate to={storefrontPaths.account()} replace />} />
+              <Route
+                path="/shop/account/orders/:orderId"
+                element={<Navigate to={storefrontPaths.account()} replace />}
+              />
+            </>
+          ) : null}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/request-access" element={<RequestAccessPage />} />
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isDeskSurfaceUser}>
                 <AdminLayout>
                   <DashboardPage />
                 </AdminLayout>
@@ -141,9 +397,9 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
-            path="/dashboard/admin"
+            path={adminDashboardPath}
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <DashboardPage variant="admin" />
                 </AdminLayout>
@@ -151,9 +407,13 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/admin"
+            element={<Navigate to={adminDashboardPath} replace />}
+          />
+          <Route
             path="/dashboard/settings"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkUtilityPage
                     title="Settings"
@@ -166,7 +426,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/core-setup"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkAppWorkspacePage appId="core" sectionId="setup" />
                 </AdminLayout>
@@ -176,7 +436,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/core-settings"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkAppWorkspacePage appId="core" sectionId="core-settings" />
                 </AdminLayout>
@@ -186,7 +446,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/companies"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkAppWorkspacePage appId="core" sectionId="companies" />
                 </AdminLayout>
@@ -196,7 +456,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/companies/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <CoreCompanyFormPage />
                 </AdminLayout>
@@ -206,7 +466,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/companies/:companyId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <CoreCompanyDetailPage />
                 </AdminLayout>
@@ -216,7 +476,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/companies/:companyId/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <CoreCompanyFormPage />
                 </AdminLayout>
@@ -226,7 +486,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/users"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkUsersPage />
                 </AdminLayout>
@@ -236,7 +496,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/users/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkUserFormPage />
                 </AdminLayout>
@@ -246,7 +506,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/users/:userId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkUserDetailPage />
                 </AdminLayout>
@@ -256,7 +516,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/users/:userId/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkUserFormPage />
                 </AdminLayout>
@@ -266,7 +526,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/roles"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkRbacPage />
                 </AdminLayout>
@@ -276,7 +536,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/roles/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkRoleFormPage />
                 </AdminLayout>
@@ -286,7 +546,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/roles/:roleId/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkRoleFormPage />
                 </AdminLayout>
@@ -296,7 +556,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/permissions"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkPermissionFormPage mode="list" />
                 </AdminLayout>
@@ -306,7 +566,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/permissions/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkPermissionFormPage mode="form" />
                 </AdminLayout>
@@ -316,7 +576,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/permissions/:permissionId/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkPermissionFormPage mode="form" />
                 </AdminLayout>
@@ -326,7 +586,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/rbac"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkRbacPage />
                 </AdminLayout>
@@ -336,7 +596,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/rbac/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkRoleFormPage />
                 </AdminLayout>
@@ -346,7 +606,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/settings/rbac/:roleId/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkRoleFormPage />
                 </AdminLayout>
@@ -364,7 +624,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/media"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkMediaManagerPage />
                 </AdminLayout>
@@ -374,7 +634,7 @@ function AuthenticatedAppShell() {
           <Route
             path="/dashboard/system-update"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkSystemUpdatePage />
                 </AdminLayout>
@@ -742,36 +1002,6 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
-            path="/dashboard/apps/core/companies/:companyId"
-            element={
-              <ProtectedRoute>
-                <AdminLayout>
-                  <CoreCompanyDetailPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/apps/core/companies/new"
-            element={
-              <ProtectedRoute>
-                <AdminLayout>
-                  <CoreCompanyFormPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/apps/core/companies/:companyId/edit"
-            element={
-              <ProtectedRoute>
-                <AdminLayout>
-                  <CoreCompanyFormPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/dashboard/apps/core/contacts/:contactId"
             element={
               <ProtectedRoute>
@@ -832,6 +1062,36 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/apps/ecommerce/products/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommerceProductFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/products/:productId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommerceProductDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/products/:productId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommerceProductFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/apps/:appId/:sectionId"
             element={
               <ProtectedRoute>
@@ -841,9 +1101,11 @@ function AuthenticatedAppShell() {
               </ProtectedRoute>
             }
           />
-            <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </DeskProvider>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+            </DeskProvider>
+          </StorefrontCartProvider>
         </ProjectDefaultsProvider>
       </RuntimeAppSettingsProvider>
     </RuntimeBrandProvider>

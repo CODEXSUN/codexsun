@@ -108,7 +108,7 @@ export const frappeItems: FrappeItem[] = [
     id: "frappe-item:luna-tote",
     itemCode: "LUNA-TOTE-01",
     itemName: "Luna Utility Tote",
-    description: "Accessory line pending publication into the ecommerce assortment.",
+    description: "Accessory line pending publication into the rebuilt commerce assortment.",
     itemGroup: "Accessories",
     stockUom: "Nos",
     brand: "Luna Works",
@@ -243,7 +243,7 @@ export const frappeItemProductSyncLogs: FrappeItemProductSyncLog[] = [
     finishedAt: timestamp,
     syncedAt: timestamp,
     createdByUserId: "auth-user:platform-admin",
-    summary: "Synced 2 of 2 items into the ecommerce catalog.",
+    summary: "Synced 2 of 2 items into the earlier commerce target before the ecommerce reset.",
     items: [
       {
         frappeItemId: "frappe-item:aster-kurta",

@@ -1,31 +1,31 @@
 import { useEffect, useState } from "react"
+import type { LucideIcon } from "lucide-react"
+import { ArrowUpRight, CreditCard, LayoutTemplate, Package, Settings2, ShoppingBag, Users } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
 
-import type { CommonModuleSummaryListResponse } from "@core/shared"
-import type {
-  CommerceOrderListResponse,
-  CommerceOrderWorkflowListResponse,
-  CustomerHelpdeskDetailListResponse,
-  CustomerHelpdeskListResponse,
-  EcommercePricingSettingsResponse,
-  ProductListResponse,
-  StorefrontCatalogResponse,
-} from "@ecommerce/shared"
+import type { ProductListResponse } from "@core/shared"
+import type { ProductResponse } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  CommonModulesSection as ExactCoreCommonModulesSection,
+  ProductShowSection as ExactCoreProductShowSection,
+  ProductsSection as ExactCoreProductsSection,
+} from "@core/web/src/workspace-sections"
+import { getCoreCommonModuleMenuItem } from "@core/shared"
+import { MasterList } from "@/components/blocks/master-list"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
+import { ProductUpsertSection as CoreProductUpsertSection } from "@core/web/src/features/product/product-upsert-section"
 
-import { EcommerceWorkspaceTabs } from "./components/ecommerce-workspace-tabs"
+import { storefrontPaths } from "./lib/storefront-routes"
 
 type ResourceState<T> = {
   data: T | null
@@ -33,7 +33,61 @@ type ResourceState<T> = {
   isLoading: boolean
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
+type StatusFilterValue = "all" | "active" | "inactive"
+
+function matchesStatusFilter(statusFilter: StatusFilterValue, isActive: boolean) {
+  if (statusFilter === "all") {
+    return true
+  }
+
+  return statusFilter === "active" ? isActive : !isActive
+}
+
+function buildStatusFilters(
+  statusFilter: StatusFilterValue,
+  onChange: (value: StatusFilterValue) => void
+) {
+  return {
+    options: [
+      {
+        key: "all",
+        label: "All products",
+        isActive: statusFilter === "all",
+        onSelect: () => onChange("all"),
+      },
+      {
+        key: "active",
+        label: "Active only",
+        isActive: statusFilter === "active",
+        onSelect: () => onChange("active"),
+      },
+      {
+        key: "inactive",
+        label: "Inactive only",
+        isActive: statusFilter === "inactive",
+        onSelect: () => onChange("inactive"),
+      },
+    ],
+    activeFilters:
+      statusFilter === "all"
+        ? []
+        : [
+            {
+              key: "status",
+              label: "Status",
+              value: statusFilter === "active" ? "Active only" : "Inactive only",
+            },
+          ],
+    onRemoveFilter: (key: string) => {
+      if (key === "status") {
+        onChange("all")
+      }
+    },
+    onClearAllFilters: () => onChange("all"),
+  }
+}
+
+async function requestJson<T>(path: string): Promise<T> {
   const accessToken = getStoredAccessToken()
   const response = await fetch(path, {
     headers: accessToken
@@ -44,7 +98,12 @@ async function fetchJson<T>(path: string): Promise<T> {
   })
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}.`)
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; message?: string }
+      | null
+    const message =
+      payload?.error ?? payload?.message ?? `Request failed with status ${response.status}.`
+    throw new Error(message)
   }
 
   return (await response.json()) as T
@@ -65,7 +124,7 @@ function useJsonResource<T>(path: string): ResourceState<T> {
       setState({ data: null, error: null, isLoading: true })
 
       try {
-        const data = await fetchJson<T>(path)
+        const data = await requestJson<T>(path)
         if (!cancelled) {
           setState({ data, error: null, isLoading: false })
         }
@@ -90,546 +149,772 @@ function useJsonResource<T>(path: string): ResourceState<T> {
   return state
 }
 
-function SectionShell({
+function SectionIntro({
+  eyebrow,
   title,
   description,
-  children,
 }: {
+  eyebrow: string
   title: string
   description: string
-  children: React.ReactNode
 }) {
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-      </Card>
-      {children}
-    </div>
-  )
-}
-
-function StateCard({ message }: { message: string }) {
-  return (
-    <Card>
-      <CardContent className="p-5 text-sm text-muted-foreground">{message}</CardContent>
+    <Card className="border border-border/70 bg-background/90 shadow-sm">
+      <CardHeader>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          {eyebrow}
+        </p>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription className="max-w-3xl text-sm leading-7">
+          {description}
+        </CardDescription>
+      </CardHeader>
     </Card>
   )
 }
 
 function MetricCard({
-  label,
-  value,
-  hint,
+  icon: Icon,
+  title,
+  summary,
 }: {
-  label: string
-  value: string | number
-  hint: string
+  icon: LucideIcon
+  title: string
+  summary: string
 }) {
   return (
-    <Card>
-      <CardContent className="space-y-2 p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {label}
-        </p>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-        <p className="text-sm leading-6 text-muted-foreground">{hint}</p>
+    <Card className="rounded-[1.3rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="space-y-3 p-5">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-accent/10">
+          <Icon className="size-5 text-accent" />
+        </div>
+        <div className="space-y-1">
+          <p className="font-medium text-foreground">{title}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{summary}</p>
+        </div>
       </CardContent>
     </Card>
   )
 }
 
-function OverviewSection() {
-  const [state, setState] = useState<{
-    products: ProductListResponse | null
-    orders: CommerceOrderListResponse | null
-    customers: CustomerHelpdeskListResponse | null
-    settings: EcommercePricingSettingsResponse | null
-    error: string | null
-    isLoading: boolean
-  }>({
-    products: null,
-    orders: null,
-    customers: null,
-    settings: null,
-    error: null,
-    isLoading: true,
-  })
-  useGlobalLoading(state.isLoading)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      try {
-        const [products, orders, customers, settings] = await Promise.all([
-          fetchJson<ProductListResponse>("/internal/v1/ecommerce/products"),
-          fetchJson<CommerceOrderListResponse>("/internal/v1/ecommerce/orders"),
-          fetchJson<CustomerHelpdeskListResponse>("/internal/v1/ecommerce/customers"),
-          fetchJson<EcommercePricingSettingsResponse>(
-            "/internal/v1/ecommerce/settings/pricing"
-          ),
-        ])
-
-        if (!cancelled) {
-          setState({
-            products,
-            orders,
-            customers,
-            settings,
-            error: null,
-            isLoading: false,
-          })
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setState({
-            products: null,
-            orders: null,
-            customers: null,
-            settings: null,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to load the ecommerce overview.",
-            isLoading: false,
-          })
-        }
-      }
-    }
-
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  if (state.isLoading) {
-    return null
-  }
-
-  if (!state.products || !state.orders || !state.customers || !state.settings || state.error) {
-    return <StateCard message={state.error ?? "Commerce overview data is unavailable."} />
-  }
-
-  const activeProducts = state.products.items.filter((item) => item.isActive).length
-
+function ActionLink({
+  href,
+  label,
+}: {
+  href: string
+  label: string
+}) {
   return (
-    <SectionShell
-      title="Commerce Overview"
-      description="Go-live catalog, customer, and order operations powered by the ecommerce app boundary."
-    >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Products"
-          value={state.products.items.length}
-          hint={`${activeProducts} active catalog products are ready for storefront projection.`}
-        />
-        <MetricCard
-          label="Orders"
-          value={state.orders.items.length}
-          hint="Operational order records currently exposed by the workflow service."
-        />
-        <MetricCard
-          label="Customers"
-          value={state.customers.items.length}
-          hint="Support-visible customer profiles linked to storefront orders."
-        />
-        <MetricCard
-          label="Pricing Formula"
-          value={`${state.settings.settings.purchaseToSellPercent}%`}
-          hint={`Purchase-to-MRP baseline: ${state.settings.settings.purchaseToMrpPercent}%`}
-        />
-      </div>
-    </SectionShell>
+    <Button asChild variant="outline" className="justify-between rounded-full">
+      <Link to={href} className="gap-2">
+        {label}
+        <ArrowUpRight className="size-4" />
+      </Link>
+    </Button>
   )
 }
 
-function CatalogSection() {
-  const { data, error, isLoading } =
-    useJsonResource<ProductListResponse>("/internal/v1/ecommerce/products")
-
-  if (isLoading) {
-    return null
-  }
-
-  if (error || !data) {
-    return <StateCard message={error ?? "Catalog data is unavailable."} />
-  }
-
+function LoadingStateCard({ message }: { message: string }) {
   return (
-    <SectionShell
-      title="Catalog"
-      description="Product publishing and assortment records adopted into the ecommerce boundary."
-    >
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Storefront</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.items.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-foreground">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.brandName ?? "Unbranded"} · {product.sku}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {product.categoryName ?? "Catalog"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {product.basePrice.toLocaleString("en-IN")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      {product.homeSliderEnabled ? <Badge variant="outline">Hero</Badge> : null}
-                      {product.featureSectionEnabled ? (
-                        <Badge variant="outline">Feature</Badge>
-                      ) : null}
-                      {product.promoSliderEnabled ? (
-                        <Badge variant="outline">Promo</Badge>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="space-y-4 p-5">
+        <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4"
+            >
+              <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-full animate-pulse rounded bg-muted/80" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-muted/80" />
+            </div>
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground">{message}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function StateCard({ message }: { message: string }) {
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="p-5 text-sm text-muted-foreground">{message}</CardContent>
+    </Card>
+  )
+}
+
+function OverviewSection() {
+  return (
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Ecommerce"
+        title="Commerce admin overview"
+        description="The ecommerce app owns storefront delivery, customer accounts, checkout, orders, tracking, and payment behavior. Shared products and contacts stay in core, but the commerce journey remains inside ecommerce."
+      />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <MetricCard
+          icon={LayoutTemplate}
+          title="Storefront surface"
+          summary="Landing, catalog, PDP, cart, checkout, and order tracking are already live in the ecommerce web app."
+        />
+        <MetricCard
+          icon={Users}
+          title="Customer boundary"
+          summary="Registration creates ecommerce customer accounts and links them to shared core contacts."
+        />
+        <MetricCard
+          icon={CreditCard}
+          title="Payment flow"
+          summary="Checkout supports Razorpay-ready live mode with a mock fallback for local development."
+        />
+      </div>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Quick access</CardTitle>
+          <CardDescription>
+            Open the public commerce flow without leaving the admin workspace context.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <ActionLink href={storefrontPaths.home()} label="Open storefront" />
+          <ActionLink href={storefrontPaths.catalog()} label="Open catalog" />
+          <ActionLink href={storefrontPaths.trackOrder()} label="Track order page" />
+          <ActionLink href={storefrontPaths.accountLogin()} label="Customer login" />
         </CardContent>
       </Card>
-    </SectionShell>
+    </div>
   )
 }
 
 function StorefrontSection() {
-  const { data, error, isLoading } =
-    useJsonResource<StorefrontCatalogResponse>("/public/v1/storefront/catalog")
-
-  if (isLoading) {
-    return null
-  }
-
-  if (error || !data) {
-    return <StateCard message={error ?? "Storefront data is unavailable."} />
-  }
-
   return (
-    <SectionShell
-      title="Storefront"
-      description="Public storefront projection served from the ecommerce backend surface."
-    >
-      <div className="grid gap-4 md:grid-cols-3">
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Storefront"
+        title="Public storefront"
+        description="This section covers the customer-facing shopping flow: landing hero, category browse, product detail, cart, and order tracking. These pages are public and app-owned by ecommerce."
+      />
+      <div className="grid gap-4 md:grid-cols-2">
         <MetricCard
-          label="Categories"
-          value={data.categories.length}
-          hint="Public menu and catalog groupings derived from active products."
+          icon={LayoutTemplate}
+          title="Page stack"
+          summary="Home, catalog, product detail, cart, checkout, and tracking all render from apps/ecommerce/web."
         />
         <MetricCard
-          label="Brands"
-          value={data.brands.length}
-          hint="Public brand rails generated from storefront-ready products."
-        />
-        <MetricCard
-          label="Reviews"
-          value={data.reviews.length}
-          hint="Storefront review records exposed to shopper-facing surfaces."
+          icon={ShoppingBag}
+          title="Navigation"
+          summary="Storefront headers, footer links, and cart entry points are now target-aware and no longer hardcoded to one mount path."
         />
       </div>
-
-      <Card>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Featured Catalog Products</CardTitle>
-          <CardDescription>Public-facing product cards derived from the storefront route.</CardDescription>
+          <CardTitle>Public entry points</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {data.products.slice(0, 3).map((product) => (
-            <div
-              key={product.id}
-              className="rounded-xl border border-border/70 bg-card/70 p-4"
-            >
-              <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
-                <img
-                  src={product.images[0] ?? ""}
-                  alt={product.name}
-                  className="aspect-[4/5] w-full object-cover"
-                />
-              </div>
-              <div className="mt-4 space-y-2">
-                <div className="flex flex-wrap gap-2">
-                  {product.catalogBadge ? <Badge variant="outline">{product.catalogBadge}</Badge> : null}
-                  <Badge variant="outline">{product.department}</Badge>
-                </div>
-                <p className="font-medium text-foreground">{product.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {product.brand} · {product.categoryName}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Rs. {product.price.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-          ))}
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <ActionLink href={storefrontPaths.home()} label="Home" />
+          <ActionLink href={storefrontPaths.catalog()} label="Catalog" />
+          <ActionLink href={storefrontPaths.cart()} label="Cart" />
+          <ActionLink href={storefrontPaths.trackOrder()} label="Track order" />
         </CardContent>
       </Card>
-
-      <div className="flex justify-start">
-        <Button asChild>
-          <a href="/public/v1/storefront/catalog" target="_blank" rel="noreferrer">
-            Open public catalog JSON
-          </a>
-        </Button>
-      </div>
-    </SectionShell>
+    </div>
   )
 }
 
-function OrdersSection() {
-  const workflows = useJsonResource<CommerceOrderWorkflowListResponse>(
-    "/internal/v1/ecommerce/order-workflows"
+function CatalogSection() {
+  return (
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Catalog"
+        title="Core-backed catalog"
+        description="Ecommerce does not own shared product masters. It reads active products, categories, departments, and merchandising flags from core, then shapes them into storefront discovery APIs."
+      />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <MetricCard
+          icon={Package}
+          title="Shared products"
+          summary="Catalog cards, PDP details, category browse, and related items all come from core product storage."
+        />
+        <MetricCard
+          icon={LayoutTemplate}
+          title="Storefront shaping"
+          summary="Ecommerce turns shared master data into landing rails, product cards, PDP details, and category links."
+        />
+        <MetricCard
+          icon={Settings2}
+          title="Boundary rule"
+          summary="If a catalog concept becomes reusable across apps, move it to core instead of growing a hidden shared layer in ecommerce."
+        />
+      </div>
+    </div>
   )
+}
 
-  if (workflows.isLoading) {
-    return null
+function ProductsSection() {
+  return <ExactCoreProductsSection routeBase="/dashboard/apps/ecommerce/products" />
+
+  const navigate = useNavigate()
+  const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const { data, error, isLoading } = useJsonResource<ProductListResponse>("/internal/v1/core/products")
+
+  if (isLoading) {
+    return <LoadingStateCard message="Loading core products used by ecommerce..." />
   }
 
-  if (workflows.error || !workflows.data) {
-    return <StateCard message={workflows.error ?? "Order data is unavailable."} />
+  if (error || !data) {
+    return <StateCard message={error ?? "Product data is unavailable."} />
   }
+
+  const safeData = data!
+  const normalizedSearch = searchValue.trim().toLowerCase()
+  const filteredProducts = safeData.items.filter((product) => {
+    const matchesSearch = [
+      product.code,
+      product.name,
+      product.sku,
+      product.brandName ?? "",
+      product.categoryName ?? "",
+      product.tagNames.join(" "),
+    ].some((value) => value.toLowerCase().includes(normalizedSearch))
+
+    return matchesSearch && matchesStatusFilter(statusFilter, product.isActive)
+  })
+
+  const totalRecords = filteredProducts.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedProducts = filteredProducts.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  )
+  const activeProducts = safeData.items.filter((product) => product.isActive).length
+  const merchandisedProducts = safeData.items.filter(
+    (product) =>
+      product.homeSliderEnabled ||
+      product.promoSliderEnabled ||
+      product.featureSectionEnabled ||
+      product.isNewArrival ||
+      product.isBestSeller ||
+      product.isFeaturedLabel
+  ).length
+  const storefrontReadyProducts = safeData.items.filter(
+    (product) => product.isActive && Boolean(product.slug) && Boolean(product.primaryImageUrl)
+  ).length
 
   return (
-    <SectionShell
-      title="Orders"
-      description="Operational order workflows with shipment and invoice state."
-    >
-      <Accordion type="single" collapsible className="space-y-3">
-        {workflows.data.items.map((workflow) => (
-          <AccordionItem
-            key={workflow.order.id}
-            value={workflow.order.id}
-            className="rounded-xl border border-border/70 bg-card/70 px-4"
-          >
-            <AccordionTrigger>
-              <div className="flex flex-col items-start gap-1 text-left">
-                <p className="font-medium text-foreground">{workflow.order.orderNumber}</p>
-                <p className="text-sm text-muted-foreground">
-                  {workflow.order.firstName} {workflow.order.lastName} · {workflow.order.status}
-                </p>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <MetricCard
-                  label="Total"
-                  value={`Rs. ${workflow.order.totalAmount.toLocaleString("en-IN")}`}
-                  hint={`Payment: ${workflow.order.paymentStatus}`}
-                />
-                <MetricCard
-                  label="Shipment"
-                  value={workflow.shipment?.status ?? "Pending"}
-                  hint={workflow.shipment?.trackingNumber ?? "No tracking number yet."}
-                />
-                <MetricCard
-                  label="Invoice"
-                  value={workflow.invoice?.status ?? "Pending"}
-                  hint={workflow.invoice?.invoiceNumber ?? "Invoice not issued yet."}
-                />
-              </div>
-              <div className="space-y-2">
-                {workflow.events.map((event) => (
-                  <div
-                    key={event.id}
-                    className="rounded-xl border border-border/70 bg-background/80 p-3 text-sm"
-                  >
-                    <p className="font-medium text-foreground">{event.title}</p>
-                    <p className="text-muted-foreground">{event.description ?? "No description"}</p>
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Products"
+        title="Core products consumed by ecommerce"
+        description="Products remain owned by core. Ecommerce reads those product masters and uses their merchandising, category, pricing, image, and storefront metadata to shape discovery, PDP, cart, and checkout behavior."
+      />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <MetricCard
+          icon={Package}
+          title="Shared products"
+          summary={`${safeData.items.length} total shared products are available to the ecommerce storefront boundary.`}
+        />
+        <MetricCard
+          icon={LayoutTemplate}
+          title="Storefront-ready"
+          summary={`${storefrontReadyProducts} active products already have slug and primary image data for storefront delivery.`}
+        />
+        <MetricCard
+          icon={ShoppingBag}
+          title="Merchandised"
+          summary={`${merchandisedProducts} products currently carry ecommerce-facing merchandising flags or feature placement.`}
+        />
+      </div>
+      <MasterList
+        header={{
+          pageTitle: "Products",
+          pageDescription:
+            "Review the core product masters ecommerce currently consumes. Create or edit shared products in core, then return here to validate their ecommerce-facing merchandising fields.",
+          addLabel: "New Product",
+          onAddClick: () => {
+            void navigate("/dashboard/apps/ecommerce/products/new")
+          },
+        }}
+        search={{
+          value: searchValue,
+          onChange: (value) => {
+            setSearchValue(value)
+            setCurrentPage(1)
+          },
+          placeholder: "Search products, brands, categories, or tags",
+        }}
+        filters={buildStatusFilters(statusFilter, (value) => {
+          setStatusFilter(value)
+          setCurrentPage(1)
+        })}
+        table={{
+          columns: [
+            {
+              id: "product",
+              header: "Product",
+              sortable: true,
+              accessor: (product) => `${product.code} ${product.name} ${product.sku}`,
+              cell: (product) => (
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => {
+                    void navigate(`/dashboard/apps/ecommerce/products/${encodeURIComponent(product.id)}`)
+                  }}
+                >
+                  <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
+                    {product.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {product.code} {product.sku ? `• ${product.sku}` : ""}
+                  </p>
+                </button>
+              ),
+            },
+            {
+              id: "classification",
+              header: "Classification",
+              sortable: true,
+              accessor: (product) =>
+                `${product.categoryName ?? ""} ${product.productGroupName ?? ""} ${product.brandName ?? ""}`,
+              cell: (product) => (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>{product.categoryName ?? "-"}</p>
+                  <p>{product.brandName ?? "-"}</p>
+                </div>
+              ),
+            },
+            {
+              id: "pricing",
+              header: "Pricing",
+              sortable: true,
+              accessor: (product) => product.basePrice,
+              cell: (product) => (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>Selling: {product.basePrice.toLocaleString("en-IN")}</p>
+                  <p>Cost: {product.costPrice.toLocaleString("en-IN")}</p>
+                </div>
+              ),
+            },
+            {
+              id: "ecommerce",
+              header: "Ecommerce",
+              sortable: true,
+              accessor: (product) =>
+                `${product.storefrontDepartment ?? ""} ${product.tagNames.join(" ")}`,
+              cell: (product) => (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {product.storefrontDepartment ?? "No department"}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {product.isNewArrival ? <Badge variant="secondary">New arrival</Badge> : null}
+                    {product.isBestSeller ? <Badge variant="secondary">Best seller</Badge> : null}
+                    {product.isFeaturedLabel ? <Badge variant="secondary">Featured</Badge> : null}
+                    {product.homeSliderEnabled ? <Badge variant="outline">Home slider</Badge> : null}
+                    {product.featureSectionEnabled ? <Badge variant="outline">Feature rail</Badge> : null}
+                    {!product.isNewArrival &&
+                    !product.isBestSeller &&
+                    !product.isFeaturedLabel &&
+                    !product.homeSliderEnabled &&
+                    !product.featureSectionEnabled ? (
+                      <Badge variant="outline">Standard</Badge>
+                    ) : null}
                   </div>
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </SectionShell>
+                </div>
+              ),
+            },
+            {
+              id: "storefront",
+              header: "Storefront",
+              cell: (product) => (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => {
+                      void navigate(`/dashboard/apps/ecommerce/products/${encodeURIComponent(product.id)}`)
+                    }}
+                  >
+                    Core master
+                  </Button>
+                  <Button asChild variant="outline" className="h-8 rounded-full px-3 text-xs">
+                    <Link to={storefrontPaths.product(product.slug)}>
+                      PDP
+                    </Link>
+                  </Button>
+                </div>
+              ),
+            },
+            {
+              id: "status",
+              header: "Status",
+              sortable: true,
+              accessor: (product) => (product.isActive ? "active" : "inactive"),
+              cell: (product) => (
+                <Badge variant={product.isActive ? "secondary" : "outline"}>
+                  {product.isActive ? "Active" : "Inactive"}
+                </Badge>
+              ),
+            },
+          ],
+          data: paginatedProducts,
+          emptyMessage: "No products found for ecommerce.",
+          rowKey: (product) => product.id,
+        }}
+        footer={{
+          content: (
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Total products: <span className="font-medium text-foreground">{totalRecords}</span>
+              </span>
+              <span>
+                Active products: <span className="font-medium text-foreground">{activeProducts}</span>
+              </span>
+            </div>
+          ),
+        }}
+        pagination={{
+          currentPage: safeCurrentPage,
+          pageSize,
+          totalRecords,
+          onPageChange: setCurrentPage,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize)
+            setCurrentPage(1)
+          },
+          pageSizeOptions: [10, 20, 50, 100, 200],
+        }}
+      />
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Product actions</CardTitle>
+          <CardDescription>
+            Ecommerce consumes the shared product master. Use core for product authoring and the storefront for public validation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ActionLink href="/dashboard/apps/ecommerce/products" label="Open ecommerce products" />
+          <ActionLink href="/dashboard/apps/ecommerce/products/new" label="Create product" />
+          <ActionLink href={storefrontPaths.catalog()} label="Open storefront catalog" />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ProductShowSection({ productId }: { productId: string }) {
+  return (
+    <ExactCoreProductShowSection
+      productId={productId}
+      routeBase="/dashboard/apps/ecommerce/products"
+    />
+  )
+
+  const navigate = useNavigate()
+  const { data, error, isLoading } = useJsonResource<ProductResponse>(
+    `/internal/v1/core/product?id=${encodeURIComponent(productId)}`
+  )
+
+  if (isLoading) {
+    return <LoadingStateCard message="Loading ecommerce product detail..." />
+  }
+
+  if (error || !data) {
+    return <StateCard message={error ?? "Product detail is unavailable."} />
+  }
+
+  const product = data!.item
+
+  return (
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Products"
+        title={product.name}
+        description="This product remains owned by core, but you are reviewing it inside ecommerce because its merchandising, pricing, imagery, and storefront metadata directly drive the shopping experience."
+      />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          icon={Package}
+          title="SKU and code"
+          summary={`${product.code} • ${product.sku}`}
+        />
+        <MetricCard
+          icon={CreditCard}
+          title="Pricing"
+          summary={`Selling ${product.basePrice.toLocaleString("en-IN")} and cost ${product.costPrice.toLocaleString("en-IN")}.`}
+        />
+        <MetricCard
+          icon={LayoutTemplate}
+          title="Storefront"
+          summary={product.storefrontDepartment ? `Placed in ${product.storefrontDepartment}.` : "No storefront department assigned yet."}
+        />
+        <MetricCard
+          icon={ShoppingBag}
+          title="Variants"
+          summary={`${product.variantCount} variants and ${product.tagCount} tags available for commerce use.`}
+        />
+      </div>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Commerce-facing details</CardTitle>
+          <CardDescription>
+            The ecommerce storefront consumes these shared core product attributes directly.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Classification
+            </p>
+            <p className="text-sm text-foreground">{product.categoryName ?? "-"}</p>
+            <p className="text-sm text-muted-foreground">{product.brandName ?? "-"}</p>
+          </div>
+          <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Merchandising
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {product.homeSliderEnabled ? <Badge variant="outline">Home slider</Badge> : null}
+              {product.promoSliderEnabled ? <Badge variant="outline">Promo slider</Badge> : null}
+              {product.featureSectionEnabled ? <Badge variant="outline">Feature rail</Badge> : null}
+              {product.isNewArrival ? <Badge variant="secondary">New arrival</Badge> : null}
+              {product.isBestSeller ? <Badge variant="secondary">Best seller</Badge> : null}
+              {product.isFeaturedLabel ? <Badge variant="secondary">Featured</Badge> : null}
+              {!product.homeSliderEnabled &&
+              !product.promoSliderEnabled &&
+              !product.featureSectionEnabled &&
+              !product.isNewArrival &&
+              !product.isBestSeller &&
+              !product.isFeaturedLabel ? (
+                <Badge variant="outline">Standard</Badge>
+              ) : null}
+            </div>
+          </div>
+          <div className="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Status
+            </p>
+            <Badge variant={product.isActive ? "secondary" : "outline"}>
+              {product.isActive ? "Active" : "Inactive"}
+            </Badge>
+            <p className="text-sm text-muted-foreground">
+              {product.primaryImageUrl ? "Primary image is present for storefront rendering." : "Primary image is missing."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <ActionLink href="/dashboard/apps/ecommerce/products" label="Back to products" />
+          <ActionLink href={`/dashboard/apps/ecommerce/products/${encodeURIComponent(product.id)}/edit`} label="Edit in ecommerce" />
+          <ActionLink href={storefrontPaths.product(product.slug)} label="Open PDP" />
+          <Button
+            type="button"
+            variant="outline"
+            className="justify-between rounded-full"
+            onClick={() => {
+              void navigate(`/dashboard/apps/ecommerce/products/${encodeURIComponent(product.id)}/edit`)
+            }}
+          >
+            Edit product
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ProductUpsertSection({ productId }: { productId?: string }) {
+  return (
+    <CoreProductUpsertSection
+      commonRouteBase="/dashboard/apps/ecommerce"
+      productId={productId}
+      routeBase="/dashboard/apps/ecommerce/products"
+    />
   )
 }
 
 function CustomersSection() {
-  const customers = useJsonResource<CustomerHelpdeskDetailListResponse>(
-    "/internal/v1/ecommerce/customer-details"
-  )
-
-  if (customers.isLoading) {
-    return null
-  }
-
-  if (customers.error || !customers.data) {
-    return <StateCard message={customers.error ?? "Customer data is unavailable."} />
-  }
-
   return (
-    <SectionShell
-      title="Customers"
-      description="Customer helpdesk records including delivery addresses, issues, and linked orders."
-    >
-      <Accordion type="single" collapsible className="space-y-3">
-        {customers.data.items.map((detail) => (
-          <AccordionItem
-            key={detail.customer.id}
-            value={detail.customer.id}
-            className="rounded-xl border border-border/70 bg-card/70 px-4"
-          >
-            <AccordionTrigger>
-              <div className="flex flex-col items-start gap-1 text-left">
-                <p className="font-medium text-foreground">{detail.customer.displayName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {detail.customer.email} · {detail.customer.orderCount} order(s)
-                </p>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <MetricCard
-                  label="Total spent"
-                  value={`Rs. ${detail.customer.totalSpent.toLocaleString("en-IN")}`}
-                  hint={detail.customer.defaultAddressSummary ?? "No default address"}
-                />
-                <MetricCard
-                  label="Issues"
-                  value={detail.issues.length}
-                  hint={detail.issues[0]?.title ?? "No active issues."}
-                />
-              </div>
-              <div className="space-y-2">
-                {detail.issues.length === 0 ? (
-                  <StateCard message="No support issues are currently flagged for this customer." />
-                ) : (
-                  detail.issues.map((issue) => (
-                    <div
-                      key={issue.code}
-                      className="rounded-xl border border-border/70 bg-background/80 p-3 text-sm"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{issue.severity}</Badge>
-                        <p className="font-medium text-foreground">{issue.title}</p>
-                      </div>
-                      <p className="mt-2 text-muted-foreground">{issue.description}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </SectionShell>
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Customers"
+        title="Customer accounts and contacts"
+        description="Customer registration, login, browser session, and portal access are app-owned by ecommerce. Shared identity records still project into core contacts with the correct contact type."
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        <MetricCard
+          icon={Users}
+          title="Registration flow"
+          summary="B2B and B2C customer registration create or reuse matching core contacts while keeping customer auth separate from cxapp operator auth."
+        />
+        <MetricCard
+          icon={ShoppingBag}
+          title="Portal flow"
+          summary="Customers can sign in, review profile details, and inspect their own order history inside the ecommerce-owned portal."
+        />
+      </div>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Customer routes</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ActionLink href={storefrontPaths.accountRegister()} label="Registration page" />
+          <ActionLink href={storefrontPaths.accountLogin()} label="Login page" />
+          <ActionLink href={storefrontPaths.account()} label="Portal home" />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function OrdersSection() {
+  return (
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Orders"
+        title="Order lifecycle"
+        description="Checkout produces ecommerce-owned orders, verifies payment state, records timeline entries, and exposes both public tracking and portal order history from the same app boundary."
+      />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <MetricCard
+          icon={ShoppingBag}
+          title="Checkout origin"
+          summary="Orders are created from the storefront cart and normalized against live core product data before payment."
+        />
+        <MetricCard
+          icon={CreditCard}
+          title="Verification"
+          summary="Payment verification updates order status and timeline events in ecommerce without leaking payment workflow into framework or core."
+        />
+        <MetricCard
+          icon={Package}
+          title="Tracking"
+          summary="Both customer portal order views and public tracking resolve the same ecommerce order records."
+        />
+      </div>
+    </div>
+  )
+}
+
+function CheckoutSection() {
+  return (
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Checkout"
+        title="Cart and payment flow"
+        description="Cart state lives in the ecommerce frontend, shipping totals derive from ecommerce storefront settings, and checkout hands off to Razorpay or mock verification depending on runtime config."
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        <MetricCard
+          icon={ShoppingBag}
+          title="Cart UX"
+          summary="Cart drawer and dedicated cart page both lead into the same checkout flow and subtotal logic."
+        />
+        <MetricCard
+          icon={CreditCard}
+          title="Gateway readiness"
+          summary="Razorpay keys and enablement stay in runtime settings. Missing keys keep the local mock checkout path available."
+        />
+      </div>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Commerce actions</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ActionLink href={storefrontPaths.cart()} label="Open cart" />
+          <ActionLink href={storefrontPaths.checkout()} label="Open checkout" />
+          <ActionLink href="/dashboard/settings/core-settings" label="Runtime settings" />
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
 function SettingsSection() {
-  const pricing = useJsonResource<EcommercePricingSettingsResponse>(
-    "/internal/v1/ecommerce/settings/pricing"
-  )
-  const dependencies = useJsonResource<CommonModuleSummaryListResponse>(
-    "/internal/v1/core/common-modules/summary"
-  )
-
-  if (pricing.isLoading || dependencies.isLoading) {
-    return null
-  }
-
-  if (pricing.error || dependencies.error || !pricing.data || !dependencies.data) {
-    return (
-      <StateCard
-        message={pricing.error ?? dependencies.error ?? "Commerce settings are unavailable."}
-      />
-    )
-  }
-
-  const requiredKeys = new Set([
-    "productCategories",
-    "brands",
-    "storefrontTemplates",
-    "sliderThemes",
-    "warehouses",
-  ])
-
-  const requiredDependencies = dependencies.data.items.filter((item) =>
-    requiredKeys.has(item.key)
-  )
-
   return (
-    <SectionShell
-      title="Settings"
-      description="Commerce pricing defaults and shared master dependencies required for storefront delivery."
-    >
-      <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
+      <SectionIntro
+        eyebrow="Settings"
+        title="Ecommerce runtime settings"
+        description="Commerce shipping thresholds, frontend target selection, and Razorpay credentials are managed through the shared runtime settings flow while staying scoped to ecommerce behavior."
+      />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <MetricCard
-          label="Purchase to Sell"
-          value={`${pricing.data.settings.purchaseToSellPercent}%`}
-          hint="Default selling uplift for pricing baselines."
+          icon={Settings2}
+          title="Frontend target"
+          summary="The shared frontend can now switch between site, shop, and app from .env and runtime settings."
         />
         <MetricCard
-          label="Purchase to MRP"
-          value={`${pricing.data.settings.purchaseToMrpPercent}%`}
-          hint="Default MRP uplift for catalog publishing."
+          icon={CreditCard}
+          title="Razorpay"
+          summary="Enable live checkout only when gateway keys are configured; otherwise local mock verification remains active."
+        />
+        <MetricCard
+          icon={LayoutTemplate}
+          title="Storefront baseline"
+          summary="Hero copy, shipping defaults, and public storefront shaping are seeded inside ecommerce and stay rebuild-safe."
         />
       </div>
-
-      <Card>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Core Dependencies</CardTitle>
-          <CardDescription>
-            Shared masters that the ecommerce workspace expects from core.
-          </CardDescription>
+          <CardTitle>Admin destinations</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {requiredDependencies.map((dependency) => (
-            <div
-              key={dependency.key}
-              className="rounded-xl border border-border/70 bg-card/70 p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-foreground">{dependency.label}</p>
-                <Badge variant={dependency.itemCount > 0 ? "default" : "outline"}>
-                  {dependency.itemCount > 0 ? "Ready" : "Empty"}
-                </Badge>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {dependency.activeCount} active records available.
-              </p>
-            </div>
-          ))}
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          <ActionLink href="/dashboard/settings/core-settings" label="Open runtime settings" />
+          <ActionLink href="/dashboard/apps/ecommerce/storefront" label="Open storefront admin" />
         </CardContent>
       </Card>
-    </SectionShell>
+    </div>
   )
 }
 
-export function EcommerceWorkspaceSection({ sectionId }: { sectionId?: string }) {
-  return (
-    <EcommerceWorkspaceTabs
-      sectionId={sectionId}
-      sections={{
-        overview: <OverviewSection />,
-        catalog: <CatalogSection />,
-        storefront: <StorefrontSection />,
-        orders: <OrdersSection />,
-        customers: <CustomersSection />,
-        settings: <SettingsSection />,
-      }}
-    />
-  )
+export function EcommerceWorkspaceSection({
+  productId,
+  sectionId,
+}: {
+  productId?: string
+  sectionId?: string
+}) {
+  const commonModuleMenuItem = sectionId ? getCoreCommonModuleMenuItem(sectionId) : null
+
+  switch (sectionId ?? "overview") {
+    case "storefront":
+      return <StorefrontSection />
+    case "products":
+      return <ProductsSection />
+    case "products-show":
+      return productId ? <ProductShowSection productId={productId} /> : null
+    case "products-upsert":
+      return <ProductUpsertSection productId={productId} />
+    case "catalog":
+      return <CatalogSection />
+    case "customers":
+      return <CustomersSection />
+    case "orders":
+      return <OrdersSection />
+    case "checkout":
+      return <CheckoutSection />
+    case "settings":
+      return <SettingsSection />
+    case "overview":
+      return <OverviewSection />
+    default:
+      return commonModuleMenuItem ? (
+        <ExactCoreCommonModulesSection
+          moduleKey={commonModuleMenuItem.key}
+          routeBase="/dashboard/apps/ecommerce"
+        />
+      ) : null
+  }
 }

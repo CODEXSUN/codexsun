@@ -5,11 +5,11 @@ function EcommerceAppShell() {
   return (
     <AppWorkspacePreview
       manifest={ecommerceAppManifest}
-      accent="Commerce engine"
+      accent="Live storefront"
       capabilities={[
-        "Owns catalog, storefront, checkout, and customer flows.",
-        "Keeps commerce delivery separate from billing and connector concerns.",
-        "Can expose dedicated web experiences without breaking suite boundaries.",
+        "Owns the storefront journey from landing, catalog, and product detail through checkout and order tracking.",
+        "Consumes shared products and contacts from core while keeping customer sessions, orders, and checkout behavior inside ecommerce.",
+        "Ships a customer portal, Razorpay-ready payment flow, and app-owned storefront APIs without pushing commerce logic into framework or core.",
       ]}
     />
   )

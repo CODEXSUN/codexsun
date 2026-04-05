@@ -135,7 +135,7 @@ export function FrappePurchaseReceiptsSection() {
   return (
     <SectionShell
       title="Purchase Receipts"
-      description="Review ERPNext purchase receipt snapshots and sync them after the related item records are mapped into ecommerce."
+      description="Review ERPNext purchase receipt snapshots and sync them into local connector records while commerce is being rebuilt."
       actions={(
         <>
           <Button variant="outline" onClick={() => void loadReceipts()}>
@@ -163,7 +163,7 @@ export function FrappePurchaseReceiptsSection() {
         <MetricCard
           label="Linked Products"
           value={linkedProductCount}
-          hint="Receipt rows already resolved to ecommerce products."
+          hint="Receipt rows currently resolved to local linked products."
         />
         <MetricCard
           label="Last Sync"

@@ -1,4 +1,4 @@
-import { createAuthService } from "../../../core/src/services/service-factory.js"
+import { createAuthService } from "../../../cxapp/src/services/service-factory.js"
 import { defineExternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 

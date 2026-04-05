@@ -95,7 +95,7 @@ export function FrappeOverviewSection() {
   return (
     <SectionShell
       title="Frappe Overview"
-      description="ERPNext connector readiness, local snapshots, and ecommerce synchronization status inside the app-owned Frappe boundary."
+      description="ERPNext connector readiness, local snapshots, and rebuild-safe sync status inside the app-owned Frappe boundary."
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -106,7 +106,7 @@ export function FrappeOverviewSection() {
         <MetricCard
           label="Items"
           value={state.items.length}
-          hint={`${syncedItems} item snapshots already mapped to ecommerce products.`}
+          hint={`${syncedItems} item snapshots currently linked to a local product target.`}
         />
         <MetricCard
           label="Receipts"
@@ -136,15 +136,15 @@ export function FrappeOverviewSection() {
         <Card>
           <CardHeader>
             <CardTitle>Connector Flow</CardTitle>
-            <CardDescription>
-              The Frappe app owns ERPNext snapshots and sync orchestration without leaking commerce logic into the connector boundary.
+          <CardDescription>
+              The Frappe app owns ERPNext snapshots and sync orchestration without leaking target-app business logic into the connector boundary.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
             <p>1. Save ERPNext connection settings and default mappings in the Frappe app.</p>
             <p>2. Review or edit local Frappe ToDo and Item snapshots before syncing.</p>
-            <p>3. Sync selected items into ecommerce product records through the app-owned product admin service.</p>
-            <p>4. Sync purchase receipts after item mapping so receipt rows resolve back to local products.</p>
+            <p>3. Keep item and receipt snapshots local while downstream product ownership is being rebuilt.</p>
+            <p>4. Re-enable target-app sync only after the rebuilt commerce boundary is ready.</p>
           </CardContent>
         </Card>
 

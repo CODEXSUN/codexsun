@@ -127,7 +127,15 @@ function VariantScopeField({
   )
 }
 
-export function ProductUpsertSection({ productId }: { productId?: string }) {
+export function ProductUpsertSection({
+  commonRouteBase = "/dashboard/apps/core",
+  productId,
+  routeBase = "/dashboard/apps/core/products",
+}: {
+  commonRouteBase?: string
+  productId?: string
+  routeBase?: string
+}) {
   const navigate = useNavigate()
   const isEditing = Boolean(productId)
   const [form, setForm] = useState<ProductFormValues>(createDefaultProductFormValues())
@@ -323,7 +331,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, productGroupId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-productGroups")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-productGroups`)}
                 createActionLabel='Create new "Product Group"'
               />
               <ProductLookupField
@@ -333,7 +341,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, categoryId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-productCategories")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-productCategories`)}
                 createActionLabel='Create new "Category"'
               />
               <ProductLookupField
@@ -343,7 +351,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, brandId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-brands")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-brands`)}
                 createActionLabel='Create new "Brand"'
               />
               <ProductLookupField
@@ -353,7 +361,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, productTypeId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-productTypes")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-productTypes`)}
                 createActionLabel='Create new "Product Type"'
               />
               <ProductLookupField
@@ -363,7 +371,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, unitId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-units")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-units`)}
                 createActionLabel='Create new "Unit"'
               />
               <ProductLookupField
@@ -373,7 +381,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, hsnCodeId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-hsnCodes")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-hsnCodes`)}
                 createActionLabel='Create new "HSN Code"'
               />
               <ProductLookupField
@@ -383,7 +391,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, taxId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-taxes")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-taxes`)}
                 createActionLabel='Create new "Tax"'
               />
               <ProductLookupField
@@ -393,7 +401,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                 onValueChange={(value) =>
                   setForm((current) => ({ ...current, styleId: value }))
                 }
-                onCreateNew={() => void navigate("/dashboard/apps/core/common-styles")}
+                onCreateNew={() => void navigate(`${commonRouteBase}/common-styles`)}
                 createActionLabel='Create new "Style"'
               />
               <ProductField label="Selling Price">
@@ -1239,7 +1247,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
                         })),
                       }))
                     }
-                    onCreateNew={() => void navigate("/dashboard/apps/core/common-warehouses")}
+                    onCreateNew={() => void navigate(`${commonRouteBase}/common-warehouses`)}
                     createActionLabel='Create new "Warehouse"'
                   />
                   <ProductField label="Quantity">
@@ -1571,7 +1579,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
           body: JSON.stringify(payload),
         })
       }
-      void navigate("/dashboard/apps/core/products")
+      void navigate(routeBase)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Failed to save product.")
     } finally {
@@ -1588,7 +1596,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <Button variant="ghost" size="sm" asChild className="-ml-3 w-fit">
-            <Link to="/dashboard/apps/core/products">
+            <Link to={routeBase}>
               <ArrowLeftIcon className="size-4" />
               Back to products
             </Link>
@@ -1601,7 +1609,7 @@ export function ProductUpsertSection({ productId }: { productId?: string }) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => void navigate("/dashboard/apps/core/products")}
+            onClick={() => void navigate(routeBase)}
             disabled={isSaving}
           >
             Cancel

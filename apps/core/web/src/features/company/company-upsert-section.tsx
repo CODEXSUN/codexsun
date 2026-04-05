@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeftIcon } from "lucide-react"
 
-import type { CommonModuleItem, CompanyResponse } from "@core/shared"
+import type { CommonModuleItem } from "@core/shared"
+import type { CompanyResponse } from "@cxapp/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
 
@@ -176,7 +177,7 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
         }
 
         const company = await requestJson<CompanyResponse>(
-          `/internal/v1/core/company?id=${encodeURIComponent(companyId)}`
+          `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`
         )
 
         if (!cancelled) {
@@ -921,14 +922,14 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
     try {
       if (companyId) {
         await requestJson<CompanyResponse>(
-          `/internal/v1/core/company?id=${encodeURIComponent(companyId)}`,
+          `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`,
           {
             method: "PATCH",
             body: JSON.stringify(form),
           }
         )
       } else {
-        await requestJson<CompanyResponse>("/internal/v1/core/companies", {
+        await requestJson<CompanyResponse>("/internal/v1/cxapp/companies", {
           method: "POST",
           body: JSON.stringify(form),
         })

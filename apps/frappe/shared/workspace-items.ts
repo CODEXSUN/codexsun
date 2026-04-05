@@ -10,7 +10,7 @@ export const frappeWorkspaceItems: FrappeWorkspaceItem[] = [
     id: "overview",
     name: "Frappe Overview",
     route: "/dashboard/apps/frappe",
-    summary: "Connector workspace for ERPNext readiness, local snapshots, and ecommerce sync health.",
+    summary: "Connector workspace for ERPNext readiness, local snapshots, and rebuild-safe sync health.",
   },
   {
     id: "connection",
@@ -28,7 +28,7 @@ export const frappeWorkspaceItems: FrappeWorkspaceItem[] = [
     id: "items",
     name: "Item Manager",
     route: "/dashboard/apps/frappe/items",
-    summary: "Manage item snapshots and sync selected Frappe items into ecommerce products.",
+    summary: "Manage item snapshots and stage selected Frappe items for the future commerce rebuild.",
   },
   {
     id: "purchase-receipts",

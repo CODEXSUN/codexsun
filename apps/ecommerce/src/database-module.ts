@@ -5,7 +5,7 @@ import { defineAppDatabaseModule } from "../../framework/src/runtime/database/pr
 export const ecommerceDatabaseModule = defineAppDatabaseModule({
   appId: "ecommerce",
   label: "Ecommerce",
-  order: 20,
+  order: 30,
   migrations: ecommerceDatabaseMigrations,
   seeders: ecommerceDatabaseSeeders,
 })
