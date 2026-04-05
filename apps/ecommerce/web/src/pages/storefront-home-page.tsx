@@ -1,39 +1,22 @@
-import { useEffect, useState } from "react"
-import { ArrowRight, CircleCheckBig, Sparkles } from "lucide-react"
+import { ArrowRight, ShieldCheck, Sparkles, Truck } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import type { StorefrontLandingResponse } from "@ecommerce/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CommerceProductCard } from "@/components/ux/commerce-product-card"
 
-import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCart } from "../cart/storefront-cart"
+import { StorefrontHeroSlider } from "../components/storefront-hero-slider"
 import { StorefrontLayout } from "../components/storefront-layout"
+import { StorefrontProductCard } from "../components/storefront-product-card"
+import { useStorefrontShellData } from "../hooks/use-storefront-shell-data"
 import {
   normalizeStorefrontHref,
   storefrontPaths,
 } from "../lib/storefront-routes"
 
 export function StorefrontHomePage() {
-  const [data, setData] = useState<StorefrontLandingResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { data, error, isLoading } = useStorefrontShellData()
   const cart = useStorefrontCart()
-
-  useEffect(() => {
-    async function load() {
-      try {
-        setData(await storefrontApi.getHome())
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Failed to load storefront.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    void load()
-  }, [])
 
   return (
     <StorefrontLayout>
@@ -43,70 +26,7 @@ export function StorefrontHomePage() {
             <CardContent className="p-6 text-sm text-destructive">{error}</CardContent>
           </Card>
         ) : null}
-        <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-          <div className="space-y-6">
-            <div className="inline-flex rounded-full border border-border/70 bg-background/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              {data?.settings.hero.eyebrow ?? "Storefront"}
-            </div>
-            <div className="space-y-4">
-              <h1 className="max-w-3xl font-heading text-5xl font-semibold tracking-tight text-[#241913] sm:text-6xl">
-                {data?.settings.hero.title ?? "Shared core products. Fresh ecommerce flows."}
-              </h1>
-              <p className="max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                {data?.settings.hero.summary ??
-                  "This storefront rebuild reads shared masters from core and keeps the commerce journey fully inside ecommerce."}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="rounded-full">
-                <Link
-                  to={
-                    normalizeStorefrontHref(data?.settings.hero.primaryCtaHref) ??
-                    storefrontPaths.catalog()
-                  }
-                  className="gap-2"
-                >
-                  {data?.settings.hero.primaryCtaLabel ?? "Shop now"}
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-full">
-                <Link
-                  to={
-                    normalizeStorefrontHref(data?.settings.hero.secondaryCtaHref) ??
-                    storefrontPaths.trackOrder()
-                  }
-                >
-                  {data?.settings.hero.secondaryCtaLabel ?? "Track order"}
-                </Link>
-              </Button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {(data?.settings.hero.highlights ?? []).map((highlight) => (
-                <div
-                  key={highlight.id}
-                  className="rounded-[1.3rem] border border-border/70 bg-background/85 p-4 shadow-sm"
-                >
-                  <p className="text-sm font-semibold">{highlight.label}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {highlight.summary}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-[#e8ddd1] p-4 shadow-xl">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.5),transparent_38%),linear-gradient(160deg,rgba(255,255,255,0.2),transparent_55%)]" />
-            <img
-              src={
-                data?.settings.hero.heroImageUrl ??
-                "https://placehold.co/1200x900/e9ddcf/2d211b?text=Storefront"
-              }
-              alt="Storefront hero"
-              className="relative h-full w-full rounded-[1.5rem] object-cover"
-            />
-          </div>
-        </section>
+        {data ? <StorefrontHeroSlider landing={data} /> : null}
         <section className="rounded-[1.8rem] border border-[#d6c8b6] bg-[#221812] px-6 py-4 text-sm text-stone-100 shadow-lg">
           <div className="flex flex-wrap items-center gap-3">
             <Sparkles className="size-4 text-amber-300" />
@@ -117,29 +37,34 @@ export function StorefrontHomePage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Featured
+                {data?.settings.sections.featured.eyebrow ?? "Featured"}
               </p>
               <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
-                Spotlight picks
+                {data?.settings.sections.featured.title ?? "Spotlight picks"}
               </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                {data?.settings.sections.featured.summary}
+              </p>
             </div>
             <Button asChild variant="outline" className="rounded-full">
-              <Link to={storefrontPaths.catalog()}>View catalog</Link>
+              <Link
+                to={
+                  normalizeStorefrontHref(data?.settings.sections.featured.ctaHref) ??
+                  storefrontPaths.catalog()
+                }
+                className="gap-2"
+              >
+                {data?.settings.sections.featured.ctaLabel ?? "View catalog"}
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
           </div>
           <div className="grid gap-5 lg:grid-cols-3">
             {(data?.featured ?? []).map((item) => (
-              <CommerceProductCard
+              <StorefrontProductCard
                 key={item.id}
+                item={item}
                 href={storefrontPaths.product(item.slug)}
-                name={item.name}
-                imageUrl={item.primaryImageUrl}
-                badge={item.badge}
-                brandName={item.brandName}
-                categoryName={item.categoryName}
-                shortDescription={item.shortDescription}
-                amount={item.sellingPrice}
-                compareAtAmount={item.mrp}
                 onAddToCart={() =>
                   cart.addItem({
                     productId: item.id,
@@ -157,32 +82,53 @@ export function StorefrontHomePage() {
         <section className="space-y-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Categories
+              {data?.settings.sections.categories.eyebrow ?? "Categories"}
             </p>
             <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
-              Browse by category
+              {data?.settings.sections.categories.title ?? "Browse by category"}
             </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+              {data?.settings.sections.categories.summary}
+            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {(data?.categories ?? []).map((category) => (
-              <Card key={category.id} className="overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm">
-                <CardContent className="flex items-center justify-between gap-4 p-5">
-                  <div className="space-y-2">
-                    <p className="font-medium">{category.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {category.description ?? `${category.productCount} products in this category.`}
-                    </p>
+              <Card
+                key={category.id}
+                className="overflow-hidden rounded-[1.8rem] border-[#e3d5c6] py-0 shadow-[0_22px_50px_-40px_rgba(48,31,19,0.24)]"
+              >
+                <CardContent className="space-y-4 p-0">
+                  <div className="aspect-[16/10] bg-[linear-gradient(135deg,#f1e6da,#fbf7f1)]">
+                    {category.imageUrl ? (
+                      <img
+                        src={category.imageUrl}
+                        alt={category.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : null}
                   </div>
-                  <Button asChild variant="outline" className="rounded-full">
-                    <Link
-                      to={
-                        normalizeStorefrontHref(category.href) ??
-                        storefrontPaths.catalog()
-                      }
-                    >
-                      {category.productCount}
-                    </Link>
-                  </Button>
+                  <div className="flex items-center justify-between gap-4 p-5 pt-0">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#8a6b55]">
+                        {category.productCount} products
+                      </p>
+                      <p className="font-medium">{category.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {category.description ??
+                          `${category.productCount} products in this category.`}
+                      </p>
+                    </div>
+                    <Button asChild variant="outline" className="rounded-full">
+                      <Link
+                        to={
+                          normalizeStorefrontHref(category.href) ??
+                          storefrontPaths.catalog()
+                        }
+                      >
+                        Explore
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -192,85 +138,134 @@ export function StorefrontHomePage() {
           <div className="space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                New arrivals
+                {data?.settings.sections.newArrivals.eyebrow ?? "New arrivals"}
               </p>
               <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
-                Fresh into the catalog
+                {data?.settings.sections.newArrivals.title ?? "Fresh into the catalog"}
               </h2>
+              <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
+                {data?.settings.sections.newArrivals.summary}
+              </p>
             </div>
-            <div className="grid gap-4">
-              {(data?.newArrivals ?? []).slice(0, 3).map((item) => (
-                <Card key={item.id} className="rounded-[1.5rem] border-border/70 py-0 shadow-sm">
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <img
-                      src={
-                        item.primaryImageUrl ??
-                        "https://placehold.co/360x420/e8ddd1/2d211b?text=New"
-                      }
-                      alt={item.name}
-                      className="h-24 w-20 rounded-2xl object-cover"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to={storefrontPaths.product(item.slug)}
-                        className="line-clamp-2 font-medium text-foreground transition hover:text-primary"
-                      >
-                        {item.name}
-                      </Link>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {item.shortDescription}
-                      </p>
-                    </div>
-                    <CircleCheckBig className="size-5 text-emerald-600" />
-                  </CardContent>
-                </Card>
+            <div className="grid gap-5">
+              {(data?.newArrivals ?? []).slice(0, 2).map((item) => (
+                <StorefrontProductCard
+                  key={item.id}
+                  item={item}
+                  href={storefrontPaths.product(item.slug)}
+                  onAddToCart={() =>
+                    cart.addItem({
+                      productId: item.id,
+                      slug: item.slug,
+                      name: item.name,
+                      imageUrl: item.primaryImageUrl,
+                      unitPrice: item.sellingPrice,
+                      mrp: item.mrp,
+                    })
+                  }
+                />
               ))}
             </div>
           </div>
           <div className="space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Best sellers
+                {data?.settings.sections.bestSellers.eyebrow ?? "Best sellers"}
               </p>
               <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
-                Fast movers right now
+                {data?.settings.sections.bestSellers.title ?? "Fast movers right now"}
               </h2>
+              <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
+                {data?.settings.sections.bestSellers.summary}
+              </p>
             </div>
-            <div className="grid gap-4">
-              {(data?.bestSellers ?? []).slice(0, 3).map((item) => (
-                <Card key={item.id} className="rounded-[1.5rem] border-border/70 py-0 shadow-sm">
-                  <CardContent className="flex items-center justify-between gap-4 p-4">
-                    <div className="min-w-0">
-                      <Link
-                        to={storefrontPaths.product(item.slug)}
-                        className="line-clamp-1 font-medium text-foreground transition hover:text-primary"
-                      >
-                        {item.name}
-                      </Link>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {item.brandName ?? item.categoryName ?? "Catalog product"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="rounded-full"
-                      onClick={() =>
-                        cart.addItem({
-                          productId: item.id,
-                          slug: item.slug,
-                          name: item.name,
-                          imageUrl: item.primaryImageUrl,
-                          unitPrice: item.sellingPrice,
-                          mrp: item.mrp,
-                        })
-                      }
-                    >
-                      Add
-                    </Button>
-                  </CardContent>
-                </Card>
+            <div className="grid gap-5">
+              {(data?.bestSellers ?? []).slice(0, 2).map((item) => (
+                <StorefrontProductCard
+                  key={item.id}
+                  item={item}
+                  href={storefrontPaths.product(item.slug)}
+                  onAddToCart={() =>
+                    cart.addItem({
+                      productId: item.id,
+                      slug: item.slug,
+                      name: item.name,
+                      imageUrl: item.primaryImageUrl,
+                      unitPrice: item.sellingPrice,
+                      mrp: item.mrp,
+                    })
+                  }
+                />
               ))}
             </div>
+          </div>
+        </section>
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <Card className="rounded-[2rem] border-[#decfbd] bg-[linear-gradient(135deg,#221812_0%,#3b2a20_100%)] py-0 text-stone-100 shadow-[0_30px_80px_-52px_rgba(28,15,8,0.75)]">
+            <CardContent className="space-y-5 p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/80">
+                {data?.settings.sections.cta.eyebrow ?? "Storefront ready"}
+              </p>
+              <div className="space-y-3">
+                <h2 className="font-heading text-3xl font-semibold tracking-tight">
+                  {data?.settings.sections.cta.title ??
+                    "One storefront, one checkout, one customer portal."}
+                </h2>
+                <p className="max-w-2xl text-sm leading-7 text-stone-200/80">
+                  {data?.settings.sections.cta.summary}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button asChild className="rounded-full bg-white text-[#241913] hover:bg-white/90">
+                  <Link
+                    to={
+                      normalizeStorefrontHref(data?.settings.sections.cta.primaryCtaHref) ??
+                      storefrontPaths.catalog()
+                    }
+                  >
+                    {data?.settings.sections.cta.primaryCtaLabel ?? "Start browsing"}
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-full border-white/25 bg-transparent text-white hover:bg-white/10"
+                >
+                  <Link
+                    to={
+                      normalizeStorefrontHref(data?.settings.sections.cta.secondaryCtaHref) ??
+                      storefrontPaths.cart()
+                    }
+                  >
+                    {data?.settings.sections.cta.secondaryCtaLabel ?? "Open cart"}
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="grid gap-4">
+            {(data?.settings.trustNotes ?? []).map((note) => {
+              const Icon =
+                note.iconKey === "truck"
+                  ? Truck
+                  : note.iconKey === "shield"
+                    ? ShieldCheck
+                    : Sparkles
+
+              return (
+                <Card key={note.id} className="rounded-[1.6rem] border-[#e4d6c7] py-0 shadow-sm">
+                  <CardContent className="space-y-3 p-5">
+                    <div className="flex size-11 items-center justify-center rounded-2xl bg-[#f4e8da] text-[#6d5140]">
+                      <Icon className="size-5" />
+                    </div>
+                    <p className="font-medium">{note.title}</p>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      {note.summary}
+                    </p>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </section>
         {isLoading ? (

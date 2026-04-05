@@ -2,6 +2,7 @@ import type {
   CustomerProfile,
   CustomerProfileUpdatePayload,
   CustomerRegisterPayload,
+  StorefrontSettings,
   StorefrontCatalogResponse,
   StorefrontCheckoutPayload,
   StorefrontCheckoutResponse,
@@ -34,14 +35,24 @@ async function requestJson<T>(url: string, options: JsonRequestOptions = {}) {
   })
 
   const payload = (await response.json().catch(() => null)) as
-    | { error?: string }
+    | { error?: string; context?: { issues?: Array<{ path?: Array<string | number>; message?: string }> } }
     | T
     | null
 
   if (!response.ok) {
+    const issueDetail =
+      typeof payload === "object" &&
+      payload &&
+      "context" in payload &&
+      payload.context?.issues?.[0]
+        ? `${payload.context.issues[0]?.path?.join(".") ?? "payload"}: ${payload.context.issues[0]?.message ?? "Invalid value"}`
+        : null
+
     throw new Error(
       typeof payload === "object" && payload && "error" in payload && payload.error
-        ? String(payload.error)
+        ? issueDetail
+          ? `${String(payload.error)} ${issueDetail}`
+          : String(payload.error)
         : `Request failed with status ${response.status}`
     )
   }
@@ -70,6 +81,19 @@ export const storefrontApi = {
     url.searchParams.set("slug", slug)
 
     return requestJson<StorefrontProductResponse>(url.toString(), { cache: "no-store" })
+  },
+  getStorefrontSettings(accessToken: string) {
+    return requestJson<StorefrontSettings>("/internal/v1/ecommerce/storefront-settings", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontSettings(accessToken: string, payload: StorefrontSettings) {
+    return requestJson<StorefrontSettings>("/internal/v1/ecommerce/storefront-settings", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
   },
   getPaymentConfig() {
     return requestJson<StorefrontPaymentConfig>("/public/v1/storefront/payment-config", {

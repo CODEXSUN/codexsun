@@ -4,38 +4,37 @@
 
 ### Reference
 
-`#25`
+`#26`
 
 ### Title
 
-`Unified auth surfaces and role-based landing`
+`Ecommerce storefront tone, admin settings, and mobile hero polish`
 
 ### Scope Checklist
 
-- [x] keep one browser login and backend session system under `apps/cxapp`
-- [x] remove the separate ecommerce customer JWT and browser session flow
-- [x] link ecommerce customer accounts to shared `cxapp` auth users instead of storing separate ecommerce passwords
-- [x] route authenticated users by role: admin -> `/admin/dashboard`, customer -> `/profile`, desk user -> `/dashboard`
-- [x] guard admin, desk, and customer portal routes so users are redirected back to their allowed surface
-- [x] fix env precedence so process env overrides `.env` during Playwright and scripted runs
-- [x] add browser e2e coverage for admin, operator, customer, and billing login paths
-- [x] add a concise work log under `ASSIST/Documentation/WORKLOG.md`
-- [x] update architecture, ownership, execution tracking, and changelog docs for the single-login model
+- [x] add a frontend target switch so home can resolve to `site`, `shop`, or `app`
+- [x] normalize active suite surfaces around `/admin/dashboard`, `/dashboard`, and `/profile`
+- [x] keep ecommerce product and common-master reuse inside the ecommerce workspace so the sidebar does not jump to `core`
+- [x] connect ecommerce storefront settings to a real backend settings service with legacy-safe partial save handling
+- [x] rebuild the storefront shell tone around the temp/reference pattern with a richer header, search, category rail, footer, cards, and hero slider
+- [x] add a dedicated mobile hero slider layout with image-first ordering and mobile-sized text/actions
+- [x] reduce the large frontend entry chunk by introducing route-level lazy loading and explicit Vite chunk splitting
+- [x] update ASSIST tracking, ownership notes, changelog, and work log for the storefront batch
 
 ### Validation Note
 
 - [x] `npm.cmd run typecheck`
-- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/core/auth-service.test.ts tests/framework/runtime/http-routes.test.ts`
-- [x] `npx.cmd playwright test tests/e2e/auth-routing.spec.ts tests/e2e/billing.spec.ts`
+- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts tests/framework/application/app-suite.test.ts`
+- [x] `npm.cmd run build`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
-- [ ] full `npm run build`
+- [ ] full Playwright suite
 
 ## Next Batch
 
 ### Reference
 
-`#26`
+`#27`
 
 ### Title
 

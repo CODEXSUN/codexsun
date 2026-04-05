@@ -6,6 +6,17 @@ export const storefrontHighlightSchema = z.object({
   summary: z.string().min(1),
 })
 
+export const storefrontSearchDepartmentSchema = z.object({
+  value: z.string().min(1),
+  label: z.string().min(1),
+})
+
+export const storefrontSearchSchema = z.object({
+  placeholder: z.string().min(1),
+  departmentLabel: z.string().min(1),
+  departments: z.array(storefrontSearchDepartmentSchema).min(1),
+})
+
 export const storefrontHeroSchema = z.object({
   eyebrow: z.string().min(1),
   title: z.string().min(1),
@@ -16,6 +27,47 @@ export const storefrontHeroSchema = z.object({
   secondaryCtaHref: z.string().min(1),
   heroImageUrl: z.string().min(1),
   highlights: z.array(storefrontHighlightSchema).min(1),
+})
+
+export const storefrontSectionCopySchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  ctaLabel: z.string().min(1).nullable(),
+  ctaHref: z.string().min(1).nullable(),
+})
+
+export const storefrontPromoSectionSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  primaryCtaLabel: z.string().min(1),
+  primaryCtaHref: z.string().min(1),
+  secondaryCtaLabel: z.string().min(1),
+  secondaryCtaHref: z.string().min(1),
+})
+
+export const storefrontTrustNoteSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  iconKey: z.enum(["sparkles", "truck", "shield"]),
+})
+
+export const storefrontFooterLinkSchema = z.object({
+  label: z.string().min(1),
+  href: z.string().min(1),
+})
+
+export const storefrontFooterGroupSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  links: z.array(storefrontFooterLinkSchema).min(1),
+})
+
+export const storefrontFooterSchema = z.object({
+  description: z.string().min(1),
+  groups: z.array(storefrontFooterGroupSchema).min(1),
 })
 
 export const storefrontProductCardSchema = z.object({
@@ -40,9 +92,12 @@ export const storefrontProductCardSchema = z.object({
 
 export const storefrontCategorySummarySchema = z.object({
   id: z.string().min(1),
+  slug: z.string().min(1),
   name: z.string().min(1),
   description: z.string().nullable(),
   imageUrl: z.string().nullable(),
+  showInTopMenu: z.boolean(),
+  positionOrder: z.number().int(),
   productCount: z.number().int().min(0),
   href: z.string().min(1),
 })
@@ -50,6 +105,16 @@ export const storefrontCategorySummarySchema = z.object({
 export const storefrontSettingsSchema = z.object({
   id: z.string().min(1),
   hero: storefrontHeroSchema,
+  search: storefrontSearchSchema,
+  sections: z.object({
+    featured: storefrontSectionCopySchema,
+    categories: storefrontSectionCopySchema,
+    newArrivals: storefrontSectionCopySchema,
+    bestSellers: storefrontSectionCopySchema,
+    cta: storefrontPromoSectionSchema,
+  }),
+  trustNotes: z.array(storefrontTrustNoteSchema).min(1),
+  footer: storefrontFooterSchema,
   announcement: z.string().min(1),
   supportPhone: z.string().min(1),
   supportEmail: z.email(),
@@ -108,6 +173,14 @@ export const storefrontProductResponseSchema = z.object({
 
 export type StorefrontHero = z.infer<typeof storefrontHeroSchema>
 export type StorefrontHighlight = z.infer<typeof storefrontHighlightSchema>
+export type StorefrontSearch = z.infer<typeof storefrontSearchSchema>
+export type StorefrontSearchDepartment = z.infer<typeof storefrontSearchDepartmentSchema>
+export type StorefrontSectionCopy = z.infer<typeof storefrontSectionCopySchema>
+export type StorefrontPromoSection = z.infer<typeof storefrontPromoSectionSchema>
+export type StorefrontTrustNote = z.infer<typeof storefrontTrustNoteSchema>
+export type StorefrontFooter = z.infer<typeof storefrontFooterSchema>
+export type StorefrontFooterGroup = z.infer<typeof storefrontFooterGroupSchema>
+export type StorefrontFooterLink = z.infer<typeof storefrontFooterLinkSchema>
 export type StorefrontProductCard = z.infer<typeof storefrontProductCardSchema>
 export type StorefrontCategorySummary = z.infer<typeof storefrontCategorySummarySchema>
 export type StorefrontSettings = z.infer<typeof storefrontSettingsSchema>

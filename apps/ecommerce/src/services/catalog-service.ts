@@ -1,7 +1,6 @@
 import type { Kysely } from "kysely"
 
 import {
-  getFirstJsonStorePayload,
   listJsonStorePayloads,
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import { coreTableNames } from "../../../core/database/table-names.js"
@@ -13,13 +12,11 @@ import {
   storefrontCatalogResponseSchema,
   storefrontLandingResponseSchema,
   storefrontProductResponseSchema,
-  storefrontSettingsSchema,
   type StorefrontCategorySummary,
   type StorefrontProductCard,
   type StorefrontProductResponse,
-  type StorefrontSettings,
 } from "../../shared/index.js"
-import { defaultStorefrontSettings } from "../data/storefront-seed.js"
+import { getStorefrontSettings } from "./storefront-settings-service.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 
@@ -72,19 +69,22 @@ function toStorefrontProductCard(
   }
 }
 
-async function readStorefrontSettings(database: Kysely<unknown>) {
-  const stored = await getFirstJsonStorePayload<StorefrontSettings>(
-    database,
-    ecommerceTableNames.storefrontSettings
-  )
-
-  return storefrontSettingsSchema.parse(stored ?? defaultStorefrontSettings)
-}
-
 async function readCoreProducts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
 
   return items.map((item) => productSchema.parse(item))
+}
+
+function toCategorySlug(item: Record<string, unknown>) {
+  const base = typeof item.code === "string" && item.code.trim()
+    ? item.code
+    : String(item.name ?? "")
+
+  return base
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
 }
 
 async function listStorefrontCategories(
@@ -95,8 +95,14 @@ async function listStorefrontCategories(
 
   return categories.items
     .filter((item) => item.id !== "1" && item.show_on_storefront_catalog)
+    .sort(
+      (left, right) =>
+        Number(left.position_order ?? 0) - Number(right.position_order ?? 0) ||
+        String(left.name ?? "").localeCompare(String(right.name ?? ""))
+    )
     .map((item) => ({
       id: item.id,
+      slug: toCategorySlug(item),
       name: String(item.name ?? ""),
       description:
         typeof item.description === "string" && item.description.trim()
@@ -106,13 +112,15 @@ async function listStorefrontCategories(
         typeof item.image === "string" && item.image.trim() && item.image !== "-"
           ? item.image
           : null,
+      showInTopMenu: Boolean(item.show_on_storefront_top_menu),
+      positionOrder: Number(item.position_order ?? 0),
       productCount: productCards.filter((product) => product.categoryName === item.name).length,
       href: `/shop/catalog?category=${encodeURIComponent(String(item.name ?? ""))}`,
     })) satisfies StorefrontCategorySummary[]
 }
 
 export async function getStorefrontLanding(database: Kysely<unknown>) {
-  const settings = await readStorefrontSettings(database)
+  const settings = await getStorefrontSettings(database)
   const products = await readCoreProducts(database)
   const items = products
     .filter((item) => item.isActive)
@@ -128,12 +136,12 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
     featured: featured.length > 0 ? featured : items.slice(0, 4),
     newArrivals: newArrivals.length > 0 ? newArrivals : items.slice(0, 8),
     bestSellers: bestSellers.length > 0 ? bestSellers : items.slice(0, 6),
-    categories: categories.filter((item) => item.productCount > 0).slice(0, 6),
+    categories: categories.filter((item) => item.productCount > 0),
   })
 }
 
 export async function getStorefrontCatalog(database: Kysely<unknown>, query: unknown) {
-  const settings = await readStorefrontSettings(database)
+  const settings = await getStorefrontSettings(database)
   const filters = storefrontCatalogQuerySchema.parse(query ?? {})
   const products = await readCoreProducts(database)
   const categories = await listStorefrontCategories(
@@ -228,7 +236,7 @@ export async function getStorefrontProduct(
   database: Kysely<unknown>,
   query: { id?: string | null; slug?: string | null }
 ): Promise<StorefrontProductResponse> {
-  const settings = await readStorefrontSettings(database)
+  const settings = await getStorefrontSettings(database)
   const products = await readCoreProducts(database)
   const product = products.find(
     (item) =>

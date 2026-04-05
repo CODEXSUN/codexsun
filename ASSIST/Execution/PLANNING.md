@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#25`
+`#26`
 
 ### Goal
 
-Collapse the platform to one `cxapp` login and session system, then route each authenticated user to the correct surface based on role without breaking ecommerce portal behavior or desk workflows.
+Finish the ecommerce storefront shell so public shop, admin storefront settings, reused core masters, and mobile hero behavior all feel like one coherent commerce surface inside the current app boundaries.
 
 ### Scope
 
@@ -18,63 +18,58 @@ Collapse the platform to one `cxapp` login and session system, then route each a
 - `ASSIST/Documentation/CHANGELOG.md`
 - `ASSIST/Documentation/WORKLOG.md`
 - `ASSIST/Execution/TASK.md`
-- `apps/framework/src/runtime/config`
-- `apps/cxapp/src/services`
+- `apps/api/src/internal`
 - `apps/cxapp/web/src/app-shell.tsx`
-- `apps/cxapp/web/src/auth`
+- `apps/cxapp/web/src/desk`
 - `apps/cxapp/web/src/pages`
-- `apps/api/src/external`
-- `apps/ecommerce/database`
 - `apps/ecommerce/shared`
 - `apps/ecommerce/src/services`
-- `apps/ecommerce/web/src/auth`
 - `apps/ecommerce/web/src/components`
+- `apps/ecommerce/web/src/features`
+- `apps/ecommerce/web/src/hooks`
 - `apps/ecommerce/web/src/lib`
 - `apps/ecommerce/web/src/pages`
-- `tests/core`
 - `tests/ecommerce`
-- `tests/e2e`
+- `tests/framework`
 
 ### Canonical Decisions
 
-- `cxapp` owns the only browser login store and backend auth/session system.
-- `ecommerce` may own customer accounts and customer profile data, but it must not mint a second JWT or persist a second browser auth session.
-- ecommerce customer accounts should link to shared `cxapp` auth users rather than storing separate ecommerce passwords.
-- route access must be role-driven:
-  admin -> `/admin/dashboard`
-  customer -> `/profile`
-  desk user -> `/dashboard`
-- Playwright and scripted runs must rely on process env overriding `.env` so test ports remain isolated and deterministic.
+- `ecommerce` owns storefront tone, content settings, public catalog presentation, and customer-commerce journeys.
+- `core` remains the owner of shared products and shared product-related masters such as groups, categories, types, brands, colours, sizes, styles, units, HSN codes, and taxes.
+- reused `core` product and common-master screens may render inside the ecommerce workspace, but the route base must stay under `/dashboard/apps/ecommerce/*` so the sidebar stays on ecommerce.
+- public route tone should stay aligned across desktop and mobile, but mobile can use its own composition when desktop spacing does not scale cleanly.
+- storefront settings saves must remain backward-compatible with earlier stored payloads and partial updates.
 
 ### Execution Plan
 
-1. add shared auth-surface helpers so role-to-surface decisions live in one place
-2. refactor ecommerce customer services to use `cxapp` auth users and sessions instead of ecommerce-owned JWT sessions
-3. move customer portal frontend auth to the shared `cxapp` session while keeping ecommerce-owned customer profile APIs
-4. guard admin, desk, and customer routes with the shared role-to-surface rules
-5. fix env precedence in framework config resolution so test env values beat `.env`
-6. add targeted service coverage and browser e2e coverage for role-based login landings and route protection
-7. record the batch in work log, task tracking, planning, architecture, ownership notes, and changelog
+1. finish the storefront-facing admin and public route surfaces around the `site` / `shop` / `app` frontend switch and the `/admin/dashboard` + `/profile` route model
+2. move ecommerce admin navigation to app-owned sections while reusing `core` product and shared master screens under ecommerce-owned routes
+3. connect storefront settings editing to a real ecommerce-owned backend service and make partial saves safe against legacy stored payloads
+4. reshape the public storefront shell to the requested temp/reference tone with a richer top menu, search, category rail, hero slider, footer, and product cards
+5. add a dedicated mobile hero slider layout instead of forcing the desktop frame to collapse awkwardly
+6. split the main client bundle so the storefront and desk surfaces do not stay in one oversized entry chunk
+7. record the storefront batch in work log, task tracking, planning, ownership notes, architecture current-state notes, and changelog
 
 ### Validation Plan
 
 - Run `npm.cmd run typecheck`
-- Run `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/core/auth-service.test.ts tests/framework/runtime/http-routes.test.ts`
-- Run `npx.cmd playwright test tests/e2e/auth-routing.spec.ts tests/e2e/billing.spec.ts`
-- Verify admin, operator, and customer logins land on the expected surface
-- Verify customers cannot stay on desk routes and desk users cannot stay on customer-only portal routes
+- Run `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts tests/framework/application/app-suite.test.ts`
+- Run `npm.cmd run build`
+- Verify the ecommerce workspace retains its own sidebar while rendering reused `core` product and common-master screens
+- Verify public storefront shell reads and saves ecommerce-owned settings without breaking legacy rows
+- Verify the storefront hero behaves acceptably on both desktop and mobile layouts
 
 ### Validation Status
 
 - [x] `npm.cmd run typecheck`
-- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/core/auth-service.test.ts tests/framework/runtime/http-routes.test.ts`
-- [x] `npx.cmd playwright test tests/e2e/auth-routing.spec.ts tests/e2e/billing.spec.ts`
+- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts tests/framework/application/app-suite.test.ts`
+- [x] `npm.cmd run build`
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
-- [ ] full `npm run build`
+- [ ] full Playwright suite
 
 ### Risks And Follow-Up
 
-- legacy databases may still contain the old `ecommerce_customer_sessions` JSON store from earlier builds; it is now obsolete and no longer used by runtime code
-- customer registration still remains an ecommerce-owned flow, but it now provisions a linked `cxapp` auth user before first login
-- if you want a stricter public-entry model next, the remaining alias routes like `/profile/login` can be reduced further to hard redirects or removed entirely after compatibility is no longer needed
+- the storefront hero was tuned against the current temp/reference target and may need another pass if the content mix or default images change materially
+- ecommerce still depends on `core` master-data quality for top-menu categories and product display completeness
+- the large async desk chunk is reduced but not aggressively split by feature yet; deeper desk-level chunking can still be done later if needed

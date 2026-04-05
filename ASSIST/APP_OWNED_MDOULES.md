@@ -25,7 +25,7 @@ Reset ownership map for the current `apps/` suite. Keep this file short, boundar
 | `site` | site shell, landing content, public presentation pages | Presentation-only public website surface. |
 | `ui` | `components/ui`, `components/blocks`, `registry/variants`, `registry/blocks`, `design-system`, `docs`, neutral dashboard/layout features | Shared design system and neutral UX building blocks. Must stay app-agnostic. |
 | `billing` | categories, ledgers, voucher groups, voucher types, vouchers, reporting, compliance, billing workspace sections | Accounting and voucher domain. Owns finance-facing transactional modules and reports. |
-| `ecommerce` | `catalog-service`, `customer-service`, `order-service`, `razorpay-service`, storefront pages, cart, checkout, tracking | Standalone commerce app. Reads shared product and contact masters from `core`, then owns storefront content, customer accounts, cart, checkout, payments, orders, and customer portal behavior while consuming the shared `cxapp` auth session instead of minting its own login system. |
+| `ecommerce` | `catalog-service`, `customer-service`, `order-service`, `razorpay-service`, `storefront-settings-service`, storefront pages, cart, checkout, tracking | Standalone commerce app. Reads shared product, contact, and product-master data from `core`, then owns storefront content, storefront settings, customer accounts, cart, checkout, payments, orders, and customer portal behavior while consuming the shared `cxapp` auth session instead of minting its own login system. |
 | `task` | `app-manifest`, preview app shell | Reserved task/workflow boundary. Structure exists, but live modules are not implemented yet. |
 | `frappe` | settings, todos, items, purchase receipts, sync store, connector access, frappe workspace sections | ERPNext connector boundary. Owns connection settings, local snapshots, and controlled sync orchestration. |
 | `tally` | `app-manifest`, preview app shell | Reserved Tally integration boundary. Structure exists, but live modules are not implemented yet. |
@@ -45,6 +45,7 @@ Reset ownership map for the current `apps/` suite. Keep this file short, boundar
 ## Current Starting Point
 
 - `ecommerce` now owns a live storefront stack from landing page to checkout and customer order views.
+- ecommerce admin now reuses shared `core` product and product-master screens through ecommerce-owned routes, so shared masters stay in `core` while the commerce sidebar stays stable.
 - `cxapp`, `framework`, and `core` now have clearer ownership separation.
 - admin, desk user, and customer landings now resolve from one shared auth session instead of separate desk and storefront login stores.
 - Remaining optional refinement: move the last suite-facing frontend sections from `apps/core/web` into `apps/cxapp/web` if you want frontend ownership to be as strict as backend ownership.

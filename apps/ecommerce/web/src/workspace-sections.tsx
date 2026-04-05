@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { ProductUpsertSection as CoreProductUpsertSection } from "@core/web/src/features/product/product-upsert-section"
+import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
 
 import { storefrontPaths } from "./lib/storefront-routes"
 
@@ -289,38 +290,7 @@ function OverviewSection() {
 }
 
 function StorefrontSection() {
-  return (
-    <div className="space-y-4">
-      <SectionIntro
-        eyebrow="Storefront"
-        title="Public storefront"
-        description="This section covers the customer-facing shopping flow: landing hero, category browse, product detail, cart, and order tracking. These pages are public and app-owned by ecommerce."
-      />
-      <div className="grid gap-4 md:grid-cols-2">
-        <MetricCard
-          icon={LayoutTemplate}
-          title="Page stack"
-          summary="Home, catalog, product detail, cart, checkout, and tracking all render from apps/ecommerce/web."
-        />
-        <MetricCard
-          icon={ShoppingBag}
-          title="Navigation"
-          summary="Storefront headers, footer links, and cart entry points are now target-aware and no longer hardcoded to one mount path."
-        />
-      </div>
-      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>Public entry points</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <ActionLink href={storefrontPaths.home()} label="Home" />
-          <ActionLink href={storefrontPaths.catalog()} label="Catalog" />
-          <ActionLink href={storefrontPaths.cart()} label="Cart" />
-          <ActionLink href={storefrontPaths.trackOrder()} label="Track order" />
-        </CardContent>
-      </Card>
-    </div>
-  )
+  return <StorefrontSettingsSection />
 }
 
 function CatalogSection() {

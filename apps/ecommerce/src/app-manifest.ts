@@ -12,7 +12,7 @@ export const ecommerceAppManifest: AppManifest = {
   workspace: ecommerceAppWorkspace,
   surfaces: {
     web: true,
-    internalApi: false,
+    internalApi: true,
     externalApi: true,
   },
 }

@@ -6,7 +6,13 @@ import test from "node:test"
 
 import { createAuthService } from "../../apps/cxapp/src/services/service-factory.js"
 import { getStorefrontCatalog, getStorefrontLanding, getStorefrontProduct } from "../../apps/ecommerce/src/services/catalog-service.js"
+import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.js"
+import { defaultStorefrontSettings } from "../../apps/ecommerce/src/data/storefront-seed.js"
 import { getAuthenticatedCustomer, registerCustomer, updateCustomerProfile } from "../../apps/ecommerce/src/services/customer-service.js"
+import {
+  getStorefrontSettings,
+  saveStorefrontSettings,
+} from "../../apps/ecommerce/src/services/storefront-settings-service.js"
 import {
   createCheckoutOrder,
   listCustomerOrders,
@@ -18,6 +24,7 @@ import {
   createRuntimeDatabases,
   prepareApplicationDatabase,
 } from "../../apps/framework/src/runtime/database/index.js"
+import { replaceJsonStoreRecords } from "../../apps/framework/src/runtime/database/process/json-store.js"
 
 test("ecommerce storefront supports customer registration, mock checkout, portal orders, and public tracking", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-services-"))
@@ -38,13 +45,67 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       const landing = await getStorefrontLanding(runtime.primary)
       const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const storedSettings = await getStorefrontSettings(runtime.primary)
       const product = await getStorefrontProduct(runtime.primary, {
         slug: catalog.items[0]?.slug ?? null,
       })
 
       assert.equal(landing.settings.hero.title.length > 0, true)
+      assert.equal(storedSettings.search.departments.length > 0, true)
       assert.equal(catalog.items.length > 0, true)
       assert.equal(product.item.id, catalog.items[0]?.id)
+      assert.equal(landing.categories.some((item) => item.showInTopMenu), true)
+
+      const savedSettings = await saveStorefrontSettings(runtime.primary, {
+        ...storedSettings,
+        announcement: "Updated storefront announcement",
+      })
+
+      assert.equal(savedSettings.announcement, "Updated storefront announcement")
+
+      const partiallySavedSettings = await saveStorefrontSettings(runtime.primary, {
+        search: undefined,
+        footer: {
+          description: "Updated footer description",
+        },
+      })
+
+      assert.equal(
+        partiallySavedSettings.footer.description,
+        "Updated footer description"
+      )
+      assert.equal(
+        partiallySavedSettings.search.placeholder,
+        storedSettings.search.placeholder
+      )
+
+      await replaceJsonStoreRecords(
+        runtime.primary,
+        ecommerceTableNames.storefrontSettings,
+        [
+          {
+            id: storedSettings.id,
+            payload: {
+              id: storedSettings.id,
+              hero: storedSettings.hero,
+              announcement: storedSettings.announcement,
+              supportPhone: storedSettings.supportPhone,
+              supportEmail: storedSettings.supportEmail,
+              freeShippingThreshold: storedSettings.freeShippingThreshold,
+              defaultShippingAmount: storedSettings.defaultShippingAmount,
+              createdAt: storedSettings.createdAt,
+              updatedAt: storedSettings.updatedAt,
+            },
+          },
+        ]
+      )
+
+      const hydratedLegacySettings = await getStorefrontSettings(runtime.primary)
+
+      assert.equal(
+        hydratedLegacySettings.search.placeholder,
+        defaultStorefrontSettings.search.placeholder
+      )
 
       const registration = await registerCustomer(runtime.primary, config, {
         displayName: "Asha Raman",
