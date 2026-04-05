@@ -19,6 +19,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Landing page, catalog, PDP, cart, and track-order surface owned by the ecommerce app.",
   },
   {
+    id: "home-slider",
+    name: "Home Slider",
+    route: "/dashboard/apps/ecommerce/home-slider",
+    summary: "Hero-slider gradients, CTA tone, frame styling, and navigation treatment for the public storefront home page.",
+  },
+  {
     id: "products",
     name: "Products",
     route: "/dashboard/apps/ecommerce/products",

@@ -521,9 +521,11 @@ export function ProductUpsertSection({
                 }
               >
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                  <ProductField label={`Attribute ${index + 1}`}>
+                  <ProductField
+                    label={`Attribute ${index + 1}`}
+                    description="Add attribute as COLOUR, SIZE, PACKING and value as Red, S, Gift."
+                  >
                     <ProductTextField
-                      placeholder="Color"
                       value={attribute.name}
                       onChange={(event) =>
                         setForm((current) => ({
@@ -563,7 +565,6 @@ export function ProductUpsertSection({
                           className="grid gap-3 rounded-xl border border-border/70 bg-background/70 p-3 md:grid-cols-[minmax(0,1fr)_auto]"
                         >
                           <ProductTextField
-                            placeholder="Red"
                             value={value.value}
                             onChange={(event) =>
                               setForm((current) => ({

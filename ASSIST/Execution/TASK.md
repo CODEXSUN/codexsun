@@ -16,8 +16,11 @@
 - [x] normalize active suite surfaces around `/admin/dashboard`, `/dashboard`, and `/profile`
 - [x] keep ecommerce product and common-master reuse inside the ecommerce workspace so the sidebar does not jump to `core`
 - [x] connect ecommerce storefront settings to a real backend settings service with legacy-safe partial save handling
+- [x] add an ecommerce-owned Home Slider designer with dedicated admin routing, multi-slide theme isolation, and backend persistence for hero theme settings
 - [x] rebuild the storefront shell tone around the temp/reference pattern with a richer header, search, category rail, footer, cards, and hero slider
 - [x] add a dedicated mobile hero slider layout with image-first ordering and mobile-sized text/actions
+- [x] slim the Home Slider admin surface by removing workspace and page hero chrome from the editor route
+- [x] refine the storefront hero image frame toward a softer glass-style shell instead of a hard outlined border
 - [x] reduce the large frontend entry chunk by introducing route-level lazy loading and explicit Vite chunk splitting
 - [x] update ASSIST tracking, ownership notes, changelog, and work log for the storefront batch
 

@@ -126,6 +126,16 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
     .filter((item) => item.isActive)
     .map(toStorefrontProductCard)
 
+  const homeSliderItems = products
+    .filter((item) => item.isActive && item.homeSliderEnabled)
+    .sort(
+      (left, right) =>
+        (left.storefront?.homeSliderOrder ?? 0) -
+          (right.storefront?.homeSliderOrder ?? 0) ||
+        left.name.localeCompare(right.name)
+    )
+    .map(toStorefrontProductCard)
+    .slice(0, 4)
   const featured = items.filter((item) => item.isFeaturedLabel).slice(0, 4)
   const newArrivals = items.filter((item) => item.isNewArrival).slice(0, 8)
   const bestSellers = items.filter((item) => item.isBestSeller).slice(0, 6)
@@ -133,7 +143,12 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
 
   return storefrontLandingResponseSchema.parse({
     settings,
-    featured: featured.length > 0 ? featured : items.slice(0, 4),
+    featured:
+      homeSliderItems.length > 0
+        ? homeSliderItems
+        : featured.length > 0
+          ? featured
+          : items.slice(0, 4),
     newArrivals: newArrivals.length > 0 ? newArrivals : items.slice(0, 8),
     bestSellers: bestSellers.length > 0 ? bestSellers : items.slice(0, 6),
     categories: categories.filter((item) => item.productCount > 0),

@@ -6,6 +6,12 @@ import {
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
   storefrontSettingsSchema,
+  storefrontHomeSliderSchema,
+  storefrontHomeSliderSlideSchema,
+  storefrontHomeSliderThemeSchema,
+  type StorefrontHomeSlider,
+  type StorefrontHomeSliderSlide,
+  type StorefrontHomeSliderTheme,
   type StorefrontSettings,
 } from "../../shared/index.js"
 import { ecommerceTableNames } from "../../database/table-names.js"
@@ -15,6 +21,110 @@ function asRecord(value: unknown) {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)
     : null
+}
+
+const fallbackHomeSliderTheme: StorefrontHomeSliderTheme = {
+  themeKey: "signature-ember",
+  backgroundFrom: "#3d2219",
+  backgroundVia: "#7c5642",
+  backgroundTo: "#efe3d6",
+  textColor: null,
+  mutedTextColor: null,
+  badgeBackground: null,
+  badgeTextColor: null,
+  primaryButtonLabel: "Buy now",
+  secondaryButtonLabel: "View details",
+  primaryButtonBackground: null,
+  primaryButtonTextColor: null,
+  secondaryButtonBackground: null,
+  secondaryButtonTextColor: null,
+  navBackground: null,
+  navTextColor: null,
+  frameBackground: null,
+  outerFrameBorderColor: null,
+  innerFrameBorderColor: null,
+  imagePanelBackground: "#ffffff",
+}
+
+function buildMergedHomeSliderTheme(
+  base: StorefrontHomeSliderTheme,
+  payload: unknown
+): StorefrontHomeSliderTheme {
+  return storefrontHomeSliderThemeSchema.parse({
+    ...base,
+    ...(asRecord(payload) ?? {}),
+  })
+}
+
+function buildSliderSeed(index: number, fallbackTheme: StorefrontHomeSliderTheme) {
+  const sequence = String(index + 1).padStart(2, "0")
+
+  return {
+    id: `home-slider:${sequence}`,
+    label: `Slider ${sequence}`,
+    theme: fallbackTheme,
+  } satisfies StorefrontHomeSliderSlide
+}
+
+function buildMergedHomeSlider(
+  base: StorefrontHomeSlider,
+  payload: unknown
+): StorefrontHomeSlider {
+  const payloadRecord = asRecord(payload)
+  const defaultTheme =
+    defaultStorefrontSettings.homeSlider.slides[0]?.theme ?? fallbackHomeSliderTheme
+  const firstBaseSlide = base.slides[0] ?? buildSliderSeed(0, defaultTheme)
+
+  if (!payloadRecord) {
+    return storefrontHomeSliderSchema.parse(base)
+  }
+
+  if (!Array.isArray(payloadRecord.slides)) {
+    return storefrontHomeSliderSchema.parse({
+      slides: base.slides.map((slide, index) =>
+        index === 0
+          ? storefrontHomeSliderSlideSchema.parse({
+              ...slide,
+              theme: buildMergedHomeSliderTheme(slide.theme, payloadRecord),
+            })
+          : slide
+      ),
+    })
+  }
+
+  const slides = payloadRecord.slides
+    .map((item, index) => {
+      const itemRecord = asRecord(item)
+      const baseSlide = base.slides[index] ?? buildSliderSeed(index, firstBaseSlide.theme)
+
+      if (!itemRecord) {
+        return baseSlide
+      }
+
+      const themeRecord = asRecord(itemRecord.theme)
+
+      return storefrontHomeSliderSlideSchema.parse({
+        ...baseSlide,
+        ...itemRecord,
+        id:
+          typeof itemRecord.id === "string" && itemRecord.id.trim().length > 0
+            ? itemRecord.id
+            : baseSlide.id,
+        label:
+          typeof itemRecord.label === "string" && itemRecord.label.trim().length > 0
+            ? itemRecord.label
+            : baseSlide.label,
+        theme: buildMergedHomeSliderTheme(
+          baseSlide.theme,
+          themeRecord ?? itemRecord
+        ),
+      })
+    })
+    .filter((item) => item != null)
+
+  return storefrontHomeSliderSchema.parse({
+    slides: slides.length > 0 ? slides : base.slides,
+  })
 }
 
 function buildMergedStorefrontSettings(
@@ -45,6 +155,7 @@ function buildMergedStorefrontSettings(
             : base.hero.highlights,
         }
       : base.hero,
+    homeSlider: buildMergedHomeSlider(base.homeSlider, payloadRecord.homeSlider),
     search: searchRecord
       ? {
           ...base.search,
@@ -146,4 +257,25 @@ export async function saveStorefrontSettings(
   ])
 
   return nextSettings
+}
+
+export async function getStorefrontHomeSlider(
+  database: Kysely<unknown>
+): Promise<StorefrontHomeSlider> {
+  const settings = await getStorefrontSettings(database)
+  return storefrontHomeSliderSchema.parse(settings.homeSlider)
+}
+
+export async function saveStorefrontHomeSlider(
+  database: Kysely<unknown>,
+  payload: unknown
+): Promise<StorefrontHomeSlider> {
+  const current = await getStorefrontSettings(database)
+  const parsedPayload = buildMergedHomeSlider(current.homeSlider, payload)
+
+  const nextSettings = await saveStorefrontSettings(database, {
+    homeSlider: parsedPayload,
+  })
+
+  return storefrontHomeSliderSchema.parse(nextSettings.homeSlider)
 }

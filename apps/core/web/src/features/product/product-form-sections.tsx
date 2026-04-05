@@ -92,17 +92,22 @@ export function ProductCollectionRow({
 export function ProductField({
   children,
   className,
+  description,
   error,
   label,
 }: {
   children: ReactNode
   className?: string
+  description?: string
   error?: string | null
   label: string
 }) {
   return (
     <div className={cn("grid gap-3", className)}>
-      <Label className={error ? "text-destructive" : undefined}>{label}</Label>
+      <div className="grid gap-1">
+        <Label className={error ? "text-destructive" : undefined}>{label}</Label>
+        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+      </div>
       {children}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>

@@ -35,6 +35,10 @@
 - added frontend home switching for `site`, `shop`, and `app`, then normalized public, admin, and customer route shapes around `/admin/dashboard`, `/dashboard`, and `/profile`
 - rebuilt ecommerce admin navigation so products and shared product masters from `core` stay inside the ecommerce workspace instead of switching the sidebar to `core`
 - connected ecommerce storefront settings to a real backend settings service and hardened partial saves against legacy rows and missing nested objects
+- added a dedicated ecommerce-owned Home Slider designer, backend route, and persisted theme settings for hero gradients, buttons, navigation, and frame styling
+- evolved the Home Slider admin into a multi-slide list so each storefront hero slot can keep its own isolated theme settings
 - reshaped the storefront shell to the requested temp/reference tone with a richer top menu, search, category rail, footer, product cards, and multiple hero-slider iterations
 - added a dedicated mobile hero slider with image-first ordering, top-mounted badge and chevrons, and mobile-sized typography and actions
+- removed extra workspace and page hero chrome from the Home Slider route so the editor opens directly into the settings surface
+- softened the storefront hero image frame toward a glass-like shell with blur and diffused spread instead of a hard border line
 - split the main frontend entry into route-level chunks so production build no longer warns about the oversized initial bundle

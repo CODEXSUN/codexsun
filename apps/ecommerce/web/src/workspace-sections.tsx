@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { ProductUpsertSection as CoreProductUpsertSection } from "@core/web/src/features/product/product-upsert-section"
+import { HomeSliderSection } from "./features/storefront-admin/home-slider-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
 
 import { storefrontPaths } from "./lib/storefront-routes"
@@ -280,6 +281,7 @@ function OverviewSection() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <ActionLink href={storefrontPaths.home()} label="Open storefront" />
+          <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Home slider designer" />
           <ActionLink href={storefrontPaths.catalog()} label="Open catalog" />
           <ActionLink href={storefrontPaths.trackOrder()} label="Track order page" />
           <ActionLink href={storefrontPaths.accountLogin()} label="Customer login" />
@@ -291,6 +293,10 @@ function OverviewSection() {
 
 function StorefrontSection() {
   return <StorefrontSettingsSection />
+}
+
+function HomeSliderDesignerSection() {
+  return <HomeSliderSection />
 }
 
 function CatalogSection() {
@@ -843,6 +849,7 @@ function SettingsSection() {
         <CardContent className="grid gap-3 md:grid-cols-2">
           <ActionLink href="/dashboard/settings/core-settings" label="Open runtime settings" />
           <ActionLink href="/dashboard/apps/ecommerce/storefront" label="Open storefront admin" />
+          <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Open slider designer" />
         </CardContent>
       </Card>
     </div>
@@ -861,6 +868,8 @@ export function EcommerceWorkspaceSection({
   switch (sectionId ?? "overview") {
     case "storefront":
       return <StorefrontSection />
+    case "home-slider":
+      return <HomeSliderDesignerSection />
     case "products":
       return <ProductsSection />
     case "products-show":

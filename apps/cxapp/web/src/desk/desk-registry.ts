@@ -445,6 +445,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     const ecommerceWorkspaceIconMap: Record<string, LucideIcon> = {
       overview: LayoutDashboard,
       storefront: MonitorSmartphone,
+      "home-slider": Sparkles,
       products: Package,
       catalog: PackageCheck,
       customers: Users,
@@ -638,12 +639,22 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               ),
             },
             {
+              id: `${app.id}-storefront`,
+              label: "Store Front",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/storefront`,
+                  `/dashboard/apps/${app.id}/home-slider`,
+                ].includes(item.route)
+              ),
+            },
+            {
               id: `${app.id}-commerce`,
               label: "Commerce",
               shared: false,
               items: modules.filter((item) =>
                 [
-                  `/dashboard/apps/${app.id}/storefront`,
                   `/dashboard/apps/${app.id}/products`,
                   `/dashboard/apps/${app.id}/catalog`,
                   `/dashboard/apps/${app.id}/checkout`,

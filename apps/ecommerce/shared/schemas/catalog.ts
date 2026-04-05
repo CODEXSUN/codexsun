@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+const hexColorSchema = z.string().regex(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i)
+
 export const storefrontHighlightSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -27,6 +29,39 @@ export const storefrontHeroSchema = z.object({
   secondaryCtaHref: z.string().min(1),
   heroImageUrl: z.string().min(1),
   highlights: z.array(storefrontHighlightSchema).min(1),
+})
+
+export const storefrontHomeSliderThemeSchema = z.object({
+  themeKey: z.string().min(1),
+  backgroundFrom: hexColorSchema,
+  backgroundVia: hexColorSchema,
+  backgroundTo: hexColorSchema,
+  textColor: hexColorSchema.nullable(),
+  mutedTextColor: hexColorSchema.nullable(),
+  badgeBackground: hexColorSchema.nullable(),
+  badgeTextColor: hexColorSchema.nullable(),
+  primaryButtonLabel: z.string().min(1).nullable(),
+  secondaryButtonLabel: z.string().min(1).nullable(),
+  primaryButtonBackground: hexColorSchema.nullable(),
+  primaryButtonTextColor: hexColorSchema.nullable(),
+  secondaryButtonBackground: hexColorSchema.nullable(),
+  secondaryButtonTextColor: hexColorSchema.nullable(),
+  navBackground: hexColorSchema.nullable(),
+  navTextColor: hexColorSchema.nullable(),
+  frameBackground: hexColorSchema.nullable(),
+  outerFrameBorderColor: hexColorSchema.nullable(),
+  innerFrameBorderColor: hexColorSchema.nullable(),
+  imagePanelBackground: hexColorSchema.nullable(),
+})
+
+export const storefrontHomeSliderSlideSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  theme: storefrontHomeSliderThemeSchema,
+})
+
+export const storefrontHomeSliderSchema = z.object({
+  slides: z.array(storefrontHomeSliderSlideSchema).min(1),
 })
 
 export const storefrontSectionCopySchema = z.object({
@@ -105,6 +140,7 @@ export const storefrontCategorySummarySchema = z.object({
 export const storefrontSettingsSchema = z.object({
   id: z.string().min(1),
   hero: storefrontHeroSchema,
+  homeSlider: storefrontHomeSliderSchema,
   search: storefrontSearchSchema,
   sections: z.object({
     featured: storefrontSectionCopySchema,
@@ -172,6 +208,9 @@ export const storefrontProductResponseSchema = z.object({
 })
 
 export type StorefrontHero = z.infer<typeof storefrontHeroSchema>
+export type StorefrontHomeSliderTheme = z.infer<typeof storefrontHomeSliderThemeSchema>
+export type StorefrontHomeSliderSlide = z.infer<typeof storefrontHomeSliderSlideSchema>
+export type StorefrontHomeSlider = z.infer<typeof storefrontHomeSliderSchema>
 export type StorefrontHighlight = z.infer<typeof storefrontHighlightSchema>
 export type StorefrontSearch = z.infer<typeof storefrontSearchSchema>
 export type StorefrontSearchDepartment = z.infer<typeof storefrontSearchDepartmentSchema>

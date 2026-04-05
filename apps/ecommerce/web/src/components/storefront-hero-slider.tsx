@@ -14,6 +14,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { useStorefrontCart } from "../cart/storefront-cart"
+import { resolveHomeSliderThemeStyles } from "../lib/home-slider-theme"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 function formatCurrency(value: number) {
@@ -22,6 +23,35 @@ function formatCurrency(value: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+const smoothContentTransition = {
+  type: "spring" as const,
+  stiffness: 120,
+  damping: 20,
+  mass: 0.95,
+}
+
+const smoothImageTransition = {
+  type: "spring" as const,
+  stiffness: 110,
+  damping: 18,
+  mass: 1,
+}
+
+const staggeredContentTransition = {
+  staggerChildren: 0.06,
+  delayChildren: 0.04,
+}
+
+const staggeredContentItem = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: {
+    duration: 0.28,
+    ease: [0.22, 1, 0.36, 1] as const,
+  },
 }
 
 export function StorefrontHeroSlider({
@@ -35,6 +65,10 @@ export function StorefrontHeroSlider({
   const featuredItems = landing.featured.length > 0 ? landing.featured : landing.newArrivals
   const activeItem = featuredItems[selectedIndex] ?? featuredItems[0] ?? null
   const activeBadge = activeItem?.badge ?? activeItem?.categoryName ?? landing.settings.hero.eyebrow
+  const activeSliderTheme =
+    landing.settings.homeSlider.slides[selectedIndex]?.theme ??
+    landing.settings.homeSlider.slides[0]?.theme
+  const sliderStyles = resolveHomeSliderThemeStyles(activeSliderTheme ?? landing.settings.homeSlider.slides[0].theme)
 
   useEffect(() => {
     if (featuredItems.length <= 1) {
@@ -66,22 +100,40 @@ export function StorefrontHeroSlider({
   }
 
   return (
-    <section className="relative overflow-hidden rounded-[2.6rem] border border-[#e1d3c4] bg-[linear-gradient(90deg,#3d2219_0%,#5a3a2b_34%,#856252_62%,#d6c1b0_84%,#efe3d6_100%)] text-white shadow-[0_35px_95px_-46px_rgba(52,26,15,0.42)] lg:h-[520px]">
+    <section
+      className="relative overflow-hidden rounded-[2.6rem] border border-[#e1d3c4] shadow-[0_35px_95px_-46px_rgba(52,26,15,0.42)] lg:h-[520px]"
+      style={{
+        background: sliderStyles.background,
+        color: sliderStyles.textColor,
+      }}
+    >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_18%,rgba(255,255,255,0.14),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_32%)]" />
       <div className="relative mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:flex lg:h-full lg:px-12 lg:py-12">
         <div className="space-y-5 lg:hidden">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/78 bg-white/12 p-3 shadow-[0_28px_72px_-42px_rgba(24,12,7,0.48)] backdrop-blur-[2px]">
-            <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3">
-              <Badge className="w-fit rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/92 backdrop-blur-sm">
+          <div className="relative overflow-hidden rounded-[2rem] shadow-[0_28px_72px_-42px_rgba(24,12,7,0.48)]">
+            <div className="absolute inset-x-4 top-3 z-10 flex items-center justify-between gap-3 sm:inset-x-5">
+              <Badge
+                className="w-fit rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] backdrop-blur-sm"
+                style={{
+                  background: sliderStyles.badgeBackground,
+                  color: sliderStyles.badgeTextColor,
+                  borderColor: sliderStyles.innerFrameBorderColor,
+                }}
+              >
                 {activeBadge}
               </Badge>
               {featuredItems.length > 1 ? (
-                <div className="flex items-center gap-2">
+                <div className="mr-1 flex items-center gap-2">
                   <Button
                     type="button"
                     size="icon"
                     variant="outline"
-                    className="size-9 rounded-full border-white/0 bg-white text-[#241913] shadow-sm hover:bg-white/92"
+                    className="size-9 rounded-full border shadow-sm"
+                    style={{
+                      background: sliderStyles.navBackground,
+                      color: sliderStyles.navTextColor,
+                      borderColor: sliderStyles.innerFrameBorderColor,
+                    }}
                     onClick={goPrevious}
                   >
                     <ChevronLeft className="size-4" />
@@ -90,7 +142,12 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
-                    className="size-9 rounded-full border-white/0 bg-white text-[#241913] shadow-sm hover:bg-white/92"
+                    className="size-9 rounded-full border shadow-sm"
+                    style={{
+                      background: sliderStyles.navBackground,
+                      color: sliderStyles.navTextColor,
+                      borderColor: sliderStyles.innerFrameBorderColor,
+                    }}
                     onClick={goNext}
                   >
                     <ChevronRight className="size-4" />
@@ -99,152 +156,109 @@ export function StorefrontHeroSlider({
               ) : null}
             </div>
 
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={`${activeItem.id}:mobile-image`}
-                custom={direction}
-                initial={{ opacity: 0, x: direction > 0 ? 36 : -36, scale: 0.98 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: direction > 0 ? -28 : 28, scale: 0.985 }}
-                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                className="relative h-[260px] w-full sm:h-[320px]"
-              >
-                <div className="flex h-full overflow-hidden rounded-[1.7rem] border border-white/48 bg-white p-px">
-                  <div className="h-full w-full overflow-hidden rounded-[1.58rem]">
-                    <img
-                      src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
-                      alt={activeItem.name}
-                      className="h-full w-full object-cover"
-                    />
+            <div className="pt-10">
+              <AnimatePresence mode="wait" initial={false} custom={direction}>
+                <motion.div
+                  key={`${activeItem.id}:mobile-image`}
+                  custom={direction}
+                  initial={{ opacity: 0, x: direction > 0 ? 18 : -18, scale: 0.992 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: direction > 0 ? -14 : 14, scale: 0.992 }}
+                  transition={{ ...smoothImageTransition, delay: 0.05 }}
+                  className="relative mt-3 h-[280px] w-full sm:mt-3 sm:h-[340px]"
+                >
+                  <div
+                    className="flex h-full w-full overflow-hidden rounded-[1.78rem] p-2 backdrop-blur-[24px]"
+                    style={{
+                      background: sliderStyles.frameBackground,
+                      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.34), 0 0 0 1px ${sliderStyles.outerFrameBorderColor}, 0 18px 40px -28px rgba(24,12,7,0.28), 0 10px 34px -18px rgba(255,255,255,0.16)`,
+                    }}
+                  >
+                    <div
+                      className="flex h-full w-full overflow-hidden rounded-[1.56rem] border p-2"
+                      style={{
+                        background: sliderStyles.imagePanelBackground,
+                        borderColor: sliderStyles.innerFrameBorderColor,
+                      }}
+                    >
+                      <div
+                        className="h-full w-full overflow-hidden rounded-[1.3rem]"
+                        style={{ background: sliderStyles.imagePanelBackground }}
+                      >
+                        <img
+                          src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
+                          alt={activeItem.name}
+                          className="h-full w-full object-cover object-center"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
 
-          <AnimatePresence mode="wait" custom={direction}>
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
             <motion.div
               key={`${activeItem.id}:mobile-content`}
               custom={direction}
-              initial={{ opacity: 0, y: direction > 0 ? 24 : -24 }}
+              initial={{ opacity: 0, y: direction > 0 ? 16 : -16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: direction > 0 ? -18 : 18 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: direction > 0 ? -10 : 10 }}
+              transition={smoothContentTransition}
               className="space-y-4 px-1 pb-1"
             >
-              <div className="space-y-3">
-                <h1 className="line-clamp-2 font-heading text-[1.9rem] font-semibold tracking-tight leading-[1.02] text-white sm:text-[2.2rem]">
-                  {activeItem.name}
-                </h1>
-                <p className="line-clamp-2 text-sm leading-6 text-white/88 sm:text-base sm:leading-7">
-                  {activeItem.shortDescription ?? landing.settings.hero.summary}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-5 py-1">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/72">
-                    Special Price
-                  </span>
-                  <span className="text-2xl font-semibold text-white sm:text-[1.9rem]">
-                    {formatCurrency(activeItem.sellingPrice)}
-                  </span>
-                </div>
-                <div className="h-9 w-px bg-white/16" />
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/72">
-                    Rating & Reviews
-                  </span>
-                  <div className="flex items-center gap-2 text-amber-300">
-                    <Star className="size-4 fill-current" />
-                    <span className="text-lg font-semibold text-white">
-                      {activeItem.isBestSeller ? "4.8" : activeItem.isFeaturedLabel ? "4.6" : "4.5"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  className="h-10 rounded-full bg-white px-5 text-sm font-semibold text-[#241913] hover:bg-white/92 sm:flex-1"
-                  onClick={() =>
-                    cart.addItem({
-                      productId: activeItem.id,
-                      slug: activeItem.slug,
-                      name: activeItem.name,
-                      imageUrl: activeItem.primaryImageUrl,
-                      unitPrice: activeItem.sellingPrice,
-                      mrp: activeItem.mrp,
-                    })
-                  }
-                >
-                  <ShoppingBag className="size-4" />
-                  Buy now
-                </Button>
-                <Link
-                  to={storefrontPaths.product(activeItem.slug)}
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "h-10 rounded-xl border-white/18 bg-white/16 px-5 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/22 hover:text-white sm:flex-1"
-                  )}
-                >
-                  View details
-                </Link>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="hidden h-full w-full items-center gap-10 lg:grid lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="flex h-full flex-col">
-            <Badge className="mt-1 w-fit self-start rounded-full border border-white/20 bg-white/12 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/92 backdrop-blur-sm">
-              {activeBadge}
-            </Badge>
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={`${activeItem.id}:content`}
-                custom={direction}
-                initial={{ opacity: 0, x: direction > 0 ? 36 : -36 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: direction > 0 ? -24 : 24 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="my-auto -translate-y-4 space-y-6"
-              >
-                <div className="space-y-5">
-                  <h1 className="line-clamp-2 max-w-xl font-heading text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-[3.6rem] lg:leading-[0.98]">
+              <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
+                <motion.div variants={staggeredContentItem} className="space-y-3">
+                  <h1 className="line-clamp-2 font-heading text-[1.9rem] font-semibold tracking-tight leading-[1.02] sm:text-[2.2rem]">
                     {activeItem.name}
                   </h1>
-                  <p className="line-clamp-2 max-w-2xl overflow-hidden text-base leading-8 text-white/88 sm:text-lg">
-                    {activeItem.shortDescription ?? landing.settings.hero.summary}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-7 py-3">
+                </motion.div>
+                <motion.p
+                  variants={staggeredContentItem}
+                  className="line-clamp-2 pt-3 text-sm leading-6 sm:text-base sm:leading-7"
+                  style={{ color: sliderStyles.mutedTextColor }}
+                >
+                  {activeItem.shortDescription ?? landing.settings.hero.summary}
+                </motion.p>
+
+                <motion.div variants={staggeredContentItem} className="flex items-center gap-5 py-5">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-white/72">
+                    <span
+                      className="text-[10px] font-medium uppercase tracking-[0.16em]"
+                      style={{ color: sliderStyles.mutedTextColor }}
+                    >
                       Special Price
                     </span>
-                    <span className="text-3xl font-semibold text-white sm:text-4xl">
+                    <span className="text-2xl font-semibold sm:text-[1.9rem]">
                       {formatCurrency(activeItem.sellingPrice)}
                     </span>
                   </div>
-                  <div className="h-10 w-px bg-white/16" />
+                  <div className="h-9 w-px" style={{ background: `${sliderStyles.mutedTextColor}33` }} />
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-white/72">
+                    <span
+                      className="text-[10px] font-medium uppercase tracking-[0.16em]"
+                      style={{ color: sliderStyles.mutedTextColor }}
+                    >
                       Rating & Reviews
                     </span>
                     <div className="flex items-center gap-2 text-amber-300">
-                      <Star className="size-4 fill-current sm:size-5" />
-                      <span className="text-xl font-semibold text-white">
+                      <Star className="size-4 fill-current" />
+                      <span className="text-lg font-semibold">
                         {activeItem.isBestSeller ? "4.8" : activeItem.isFeaturedLabel ? "4.6" : "4.5"}
                       </span>
                     </div>
                   </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                </motion.div>
+
+                <motion.div variants={staggeredContentItem} className="flex flex-col gap-3 sm:flex-row">
                   <Button
                     type="button"
-                    className="h-11 rounded-full bg-white px-6 text-base font-semibold text-[#241913] hover:bg-white/92"
+                    className="h-10 rounded-full px-5 text-sm font-semibold sm:flex-1"
+                    style={{
+                      background: sliderStyles.primaryButtonBackground,
+                      color: sliderStyles.primaryButtonTextColor,
+                    }}
                     onClick={() =>
                       cart.addItem({
                         productId: activeItem.id,
@@ -257,40 +271,165 @@ export function StorefrontHeroSlider({
                     }
                   >
                     <ShoppingBag className="size-4" />
-                    Buy now
+                    {sliderStyles.primaryButtonLabel}
                   </Button>
                   <Link
                     to={storefrontPaths.product(activeItem.slug)}
                     className={cn(
                       buttonVariants({ variant: "outline" }),
-                      "h-11 rounded-xl border-white/18 bg-white/16 px-6 text-base font-medium text-white backdrop-blur-sm hover:bg-white/22 hover:text-white"
+                      "h-10 rounded-xl px-5 text-sm font-medium backdrop-blur-sm sm:flex-1"
                     )}
+                    style={{
+                      background: sliderStyles.secondaryButtonBackground,
+                      color: sliderStyles.secondaryButtonTextColor,
+                      borderColor: sliderStyles.innerFrameBorderColor,
+                    }}
                   >
-                    View details
+                    {sliderStyles.secondaryButtonLabel}
                   </Link>
-                </div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="hidden h-full w-full items-center gap-10 lg:grid lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="flex h-full flex-col">
+            <Badge
+              className="mt-1 w-fit self-start rounded-full border px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] backdrop-blur-sm"
+              style={{
+                background: sliderStyles.badgeBackground,
+                color: sliderStyles.badgeTextColor,
+                borderColor: sliderStyles.innerFrameBorderColor,
+              }}
+            >
+              {activeBadge}
+            </Badge>
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <motion.div
+                key={`${activeItem.id}:content`}
+                custom={direction}
+                initial={{ opacity: 0, x: direction > 0 ? 24 : -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: direction > 0 ? -16 : 16 }}
+                transition={smoothContentTransition}
+                className="my-auto -translate-y-4 space-y-6"
+              >
+                <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
+                  <motion.div variants={staggeredContentItem} className="space-y-5">
+                    <h1 className="line-clamp-2 max-w-xl font-heading text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.6rem] lg:leading-[0.98]">
+                      {activeItem.name}
+                    </h1>
+                  </motion.div>
+                  <motion.p
+                    variants={staggeredContentItem}
+                    className="line-clamp-2 max-w-2xl overflow-hidden pt-5 text-base leading-8 sm:text-lg"
+                    style={{ color: sliderStyles.mutedTextColor }}
+                  >
+                    {activeItem.shortDescription ?? landing.settings.hero.summary}
+                  </motion.p>
+                  <motion.div variants={staggeredContentItem} className="flex flex-wrap items-center gap-7 py-6">
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="text-xs font-medium uppercase tracking-[0.16em]"
+                        style={{ color: sliderStyles.mutedTextColor }}
+                      >
+                        Special Price
+                      </span>
+                      <span className="text-3xl font-semibold sm:text-4xl">
+                        {formatCurrency(activeItem.sellingPrice)}
+                      </span>
+                    </div>
+                    <div className="h-10 w-px" style={{ background: `${sliderStyles.mutedTextColor}33` }} />
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="text-xs font-medium uppercase tracking-[0.16em]"
+                        style={{ color: sliderStyles.mutedTextColor }}
+                      >
+                        Rating & Reviews
+                      </span>
+                      <div className="flex items-center gap-2 text-amber-300">
+                        <Star className="size-4 fill-current sm:size-5" />
+                        <span className="text-xl font-semibold">
+                          {activeItem.isBestSeller ? "4.8" : activeItem.isFeaturedLabel ? "4.6" : "4.5"}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                  <motion.div variants={staggeredContentItem} className="flex flex-wrap items-center gap-3 pt-3">
+                    <Button
+                      type="button"
+                      className="h-11 rounded-full px-6 text-base font-semibold"
+                      style={{
+                        background: sliderStyles.primaryButtonBackground,
+                        color: sliderStyles.primaryButtonTextColor,
+                      }}
+                      onClick={() =>
+                        cart.addItem({
+                          productId: activeItem.id,
+                          slug: activeItem.slug,
+                          name: activeItem.name,
+                          imageUrl: activeItem.primaryImageUrl,
+                          unitPrice: activeItem.sellingPrice,
+                          mrp: activeItem.mrp,
+                        })
+                      }
+                    >
+                      <ShoppingBag className="size-4" />
+                      {sliderStyles.primaryButtonLabel}
+                    </Button>
+                    <Link
+                      to={storefrontPaths.product(activeItem.slug)}
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "h-11 rounded-xl px-6 text-base font-medium backdrop-blur-sm"
+                      )}
+                      style={{
+                        background: sliderStyles.secondaryButtonBackground,
+                        color: sliderStyles.secondaryButtonTextColor,
+                        borderColor: sliderStyles.innerFrameBorderColor,
+                      }}
+                    >
+                      {sliderStyles.secondaryButtonLabel}
+                    </Link>
+                  </motion.div>
+                </motion.div>
               </motion.div>
             </AnimatePresence>
           </div>
 
           <div className="relative flex h-full items-center justify-center sm:-my-4 lg:-my-7">
             <div className="relative flex h-full w-full items-center justify-center">
-              <AnimatePresence mode="wait" custom={direction}>
+              <AnimatePresence mode="wait" initial={false} custom={direction}>
                 <motion.div
                   key={`${activeItem.id}:image`}
                   custom={direction}
-                  initial={{ opacity: 0, x: direction > 0 ? 48 : -48, scale: 0.98 }}
+                  initial={{ opacity: 0, x: direction > 0 ? 24 : -24, scale: 0.992 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: direction > 0 ? -34 : 34, scale: 0.985 }}
-                  transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative h-[360px] w-full max-w-[360px] rounded-[2rem] border border-white/78 bg-white/12 p-3 shadow-[0_28px_72px_-42px_rgba(24,12,7,0.48)] backdrop-blur-[2px] sm:h-[420px] sm:max-w-[440px] lg:h-[480px] lg:w-[520px] lg:max-w-[520px]"
+                  exit={{ opacity: 0, x: direction > 0 ? -18 : 18, scale: 0.992 }}
+                  transition={{ ...smoothImageTransition, delay: 0.06 }}
+                  className="relative z-[1] h-[360px] w-full max-w-[360px] rounded-[2rem] p-3 backdrop-blur-[24px] sm:h-[420px] sm:max-w-[440px] lg:h-[480px] lg:w-[520px] lg:max-w-[520px]"
+                  style={{
+                    background: sliderStyles.frameBackground,
+                    boxShadow:
+                      `inset 0 1px 0 rgba(255,255,255,0.34), 0 0 0 1px ${sliderStyles.outerFrameBorderColor}, 0 28px 72px -42px rgba(24,12,7,0.34), 0 12px 38px -20px rgba(255,255,255,0.18)`,
+                  }}
                 >
-                  <div className="flex h-full overflow-hidden rounded-[1.7rem] border border-white/48 bg-white p-px">
-                    <div className="h-full w-full overflow-hidden rounded-[1.58rem]">
+                  <div
+                    className="flex h-full overflow-hidden rounded-[1.7rem] border p-px"
+                    style={{
+                      background: sliderStyles.imagePanelBackground,
+                      borderColor: sliderStyles.innerFrameBorderColor,
+                    }}
+                  >
+                    <div
+                      className="h-full w-full overflow-hidden rounded-[1.58rem]"
+                      style={{ background: sliderStyles.imagePanelBackground }}
+                    >
                       <img
                         src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
                         alt={activeItem.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover object-center"
                       />
                     </div>
                   </div>
@@ -303,7 +442,12 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
-                    className="size-11 rounded-full border-white/0 bg-white text-[#241913] shadow-sm hover:bg-white/92"
+                    className="size-11 rounded-full border shadow-sm"
+                    style={{
+                      background: sliderStyles.navBackground,
+                      color: sliderStyles.navTextColor,
+                      borderColor: sliderStyles.innerFrameBorderColor,
+                    }}
                     onClick={goPrevious}
                   >
                     <ChevronLeft className="size-5" />
@@ -312,10 +456,14 @@ export function StorefrontHeroSlider({
                     {featuredItems.map((item, index) => (
                       <span
                         key={item.id}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all duration-300",
-                          index === selectedIndex ? "w-6 bg-[#241913]" : "w-1.5 bg-white/70"
-                        )}
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{
+                          width: index === selectedIndex ? "1.5rem" : "0.375rem",
+                          background:
+                            index === selectedIndex
+                              ? sliderStyles.activeIndicatorColor
+                              : sliderStyles.inactiveIndicatorColor,
+                        }}
                       />
                     ))}
                   </div>
@@ -323,7 +471,12 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
-                    className="size-11 rounded-full border-white/0 bg-white text-[#241913] shadow-sm hover:bg-white/92"
+                    className="size-11 rounded-full border shadow-sm"
+                    style={{
+                      background: sliderStyles.navBackground,
+                      color: sliderStyles.navTextColor,
+                      borderColor: sliderStyles.innerFrameBorderColor,
+                    }}
                     onClick={goNext}
                   >
                     <ChevronRight className="size-5" />

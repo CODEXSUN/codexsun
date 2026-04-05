@@ -265,6 +265,7 @@ export function FrameworkAppWorkspacePage({
       app.id === "ecommerce" &&
       [
         "storefront",
+        "home-slider",
         "products",
         "products-show",
         "products-upsert",

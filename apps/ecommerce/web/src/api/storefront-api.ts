@@ -2,6 +2,7 @@ import type {
   CustomerProfile,
   CustomerProfileUpdatePayload,
   CustomerRegisterPayload,
+  StorefrontHomeSlider,
   StorefrontSettings,
   StorefrontCatalogResponse,
   StorefrontCheckoutPayload,
@@ -90,6 +91,19 @@ export const storefrontApi = {
   },
   updateStorefrontSettings(accessToken: string, payload: StorefrontSettings) {
     return requestJson<StorefrontSettings>("/internal/v1/ecommerce/storefront-settings", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getHomeSlider(accessToken: string) {
+    return requestJson<StorefrontHomeSlider>("/internal/v1/ecommerce/home-slider", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateHomeSlider(accessToken: string, payload: StorefrontHomeSlider) {
+    return requestJson<StorefrontHomeSlider>("/internal/v1/ecommerce/home-slider", {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),

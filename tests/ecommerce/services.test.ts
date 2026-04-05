@@ -10,7 +10,9 @@ import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.j
 import { defaultStorefrontSettings } from "../../apps/ecommerce/src/data/storefront-seed.js"
 import { getAuthenticatedCustomer, registerCustomer, updateCustomerProfile } from "../../apps/ecommerce/src/services/customer-service.js"
 import {
+  getStorefrontHomeSlider,
   getStorefrontSettings,
+  saveStorefrontHomeSlider,
   saveStorefrontSettings,
 } from "../../apps/ecommerce/src/services/storefront-settings-service.js"
 import {
@@ -46,12 +48,15 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       const landing = await getStorefrontLanding(runtime.primary)
       const catalog = await getStorefrontCatalog(runtime.primary, {})
       const storedSettings = await getStorefrontSettings(runtime.primary)
+      const storedHomeSlider = await getStorefrontHomeSlider(runtime.primary)
       const product = await getStorefrontProduct(runtime.primary, {
         slug: catalog.items[0]?.slug ?? null,
       })
 
       assert.equal(landing.settings.hero.title.length > 0, true)
       assert.equal(storedSettings.search.departments.length > 0, true)
+      assert.equal(storedHomeSlider.slides.length > 0, true)
+      assert.equal(storedHomeSlider.slides[0]?.theme.themeKey.length > 0, true)
       assert.equal(catalog.items.length > 0, true)
       assert.equal(product.item.id, catalog.items[0]?.id)
       assert.equal(landing.categories.some((item) => item.showInTopMenu), true)
@@ -79,6 +84,26 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         storedSettings.search.placeholder
       )
 
+      const savedHomeSlider = await saveStorefrontHomeSlider(runtime.primary, {
+        slides: [
+          {
+            id: storedHomeSlider.slides[0]?.id ?? "home-slider:01",
+            label: "Slider 01",
+            theme: {
+              themeKey: "mocha-bronze",
+              backgroundFrom: "#2f1e18",
+              backgroundVia: "#8a5a40",
+              backgroundTo: "#efcfac",
+              primaryButtonLabel: "Shop this drop",
+            },
+          },
+          ...(storedHomeSlider.slides.slice(1) ?? []),
+        ],
+      })
+
+      assert.equal(savedHomeSlider.slides[0]?.theme.themeKey, "mocha-bronze")
+      assert.equal(savedHomeSlider.slides[0]?.theme.primaryButtonLabel, "Shop this drop")
+
       await replaceJsonStoreRecords(
         runtime.primary,
         ecommerceTableNames.storefrontSettings,
@@ -105,6 +130,40 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(
         hydratedLegacySettings.search.placeholder,
         defaultStorefrontSettings.search.placeholder
+      )
+      assert.equal(
+        hydratedLegacySettings.homeSlider.slides[0]?.theme.themeKey,
+        defaultStorefrontSettings.homeSlider.slides[0]?.theme.themeKey
+      )
+
+      await replaceJsonStoreRecords(
+        runtime.primary,
+        ecommerceTableNames.storefrontSettings,
+        [
+          {
+            id: storedSettings.id,
+            payload: {
+              ...storedSettings,
+              homeSlider: {
+                themeKey: "walnut-glow",
+                backgroundFrom: "#201611",
+                backgroundVia: "#5f4334",
+                backgroundTo: "#e9d6c3",
+              },
+            },
+          },
+        ]
+      )
+
+      const hydratedSingleThemeSettings = await getStorefrontSettings(runtime.primary)
+
+      assert.equal(
+        hydratedSingleThemeSettings.homeSlider.slides[0]?.theme.themeKey,
+        "walnut-glow"
+      )
+      assert.equal(
+        hydratedSingleThemeSettings.homeSlider.slides.length,
+        defaultStorefrontSettings.homeSlider.slides.length
       )
 
       const registration = await registerCustomer(runtime.primary, config, {
