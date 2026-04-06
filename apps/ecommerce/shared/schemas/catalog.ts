@@ -215,6 +215,8 @@ export const storefrontProductCardSchema = z.object({
   isNewArrival: z.boolean(),
   isBestSeller: z.boolean(),
   isFeaturedLabel: z.boolean(),
+  shippingCharge: z.number().finite().nonnegative().nullable().default(null),
+  handlingCharge: z.number().finite().nonnegative().nullable().default(null),
   availableQuantity: z.number().int().min(0),
   tagNames: z.array(z.string().min(1)),
 })
@@ -252,6 +254,7 @@ export const storefrontSettingsSchema = z.object({
   supportEmail: z.email(),
   freeShippingThreshold: z.number().finite().nonnegative(),
   defaultShippingAmount: z.number().finite().nonnegative(),
+  defaultHandlingAmount: z.number().finite().nonnegative(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })

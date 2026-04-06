@@ -55,10 +55,10 @@ export function DockIcon({
     const bounds = ref.current.getBoundingClientRect()
     const centerX = bounds.left + bounds.width / 2
     const distance = Math.abs(mouseX - centerX)
-    const influence = Math.max(0, 1 - distance / 140)
+    const influence = Math.max(0, 1 - distance / 120)
 
-    scale = 1 + influence * 0.28
-    translateY = influence * -8
+    scale = 1 + influence * 0.14
+    translateY = influence * -4
   }
 
   return (

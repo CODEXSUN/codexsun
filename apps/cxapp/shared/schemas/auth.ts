@@ -197,6 +197,7 @@ export const authOtpChannelSchema = z.enum(["email", "mobile"])
 export const authRegisterOtpRequestPayloadSchema = z.object({
   channel: authOtpChannelSchema,
   destination: z.string().trim().min(1),
+  displayName: z.string().trim().min(2).max(120).optional(),
 })
 
 export const authRegisterOtpRequestResponseSchema = z.object({

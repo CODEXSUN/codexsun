@@ -463,6 +463,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       customers: Users,
       orders: ShoppingBag,
       checkout: CreditCard,
+      shipping: Truck,
       settings: Settings2,
     }
 
@@ -704,6 +705,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/products`,
                   `/dashboard/apps/${app.id}/checkout`,
+                  `/dashboard/apps/${app.id}/shipping`,
                 ].includes(item.route)
               ),
             },
@@ -1139,6 +1141,19 @@ export function resolveDeskLocation(
       section: "Framework",
       title: "Media Manager",
       description: "Shared media library for reusable image attachments across the suite.",
+      app: null,
+    }
+  }
+
+  if (
+    pathname === "/dashboard/mail-service" ||
+    pathname.startsWith("/dashboard/mail-service/")
+  ) {
+    return {
+      section: "Framework",
+      title: "Mail Service",
+      description:
+        "Transactional email templates, OTP delivery history, and manual outbound mail inside the application shell.",
       app: null,
     }
   }

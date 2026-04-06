@@ -10,6 +10,8 @@ import {
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
+import type { StorefrontSettings } from "@ecommerce/shared"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,6 +27,7 @@ import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepp
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 
+import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
@@ -33,14 +36,20 @@ import {
   handleStorefrontImageError,
   resolveStorefrontImageUrl,
 } from "../lib/storefront-image"
+import { calculateStorefrontChargeTotals } from "../lib/storefront-shipping"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 type CartViewVariant = "editorial" | "compact"
 
 const cartViewVariantStorageKey = "codexsun.storefront.cart.view-variant"
-const freeShippingThreshold = 5000
-const shippingEstimate = 199
-const handlingEstimate = 99
+const fallbackStorefrontSettings: Pick<
+  StorefrontSettings,
+  "freeShippingThreshold" | "defaultShippingAmount" | "defaultHandlingAmount"
+> = {
+  freeShippingThreshold: 3999,
+  defaultShippingAmount: 149,
+  defaultHandlingAmount: 99,
+}
 const cartViewOptions: Array<{
   value: CartViewVariant
   label: string
@@ -334,6 +343,7 @@ export function StorefrontCartPage() {
   const navigate = useNavigate()
   const cart = useStorefrontCart()
   const customerAuth = useStorefrontCustomerAuth()
+  const [storefrontSettings, setStorefrontSettings] = useState(fallbackStorefrontSettings)
   const [viewVariant, setViewVariant] = useState<CartViewVariant>(() =>
     getStoredCartViewVariant()
   )
@@ -343,13 +353,36 @@ export function StorefrontCartPage() {
     window.localStorage.setItem(cartViewVariantStorageKey, viewVariant)
   }, [viewVariant])
 
-  const estimatedShipping =
-    cart.items.length === 0
-      ? 0
-      : cart.subtotalAmount >= freeShippingThreshold
-        ? 0
-        : shippingEstimate
-  const estimatedHandling = cart.items.length === 0 ? 0 : handlingEstimate
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSettings() {
+      try {
+        const settings = await storefrontApi.getPublicStorefrontSettings()
+
+        if (!cancelled) {
+          setStorefrontSettings({
+            freeShippingThreshold: settings.freeShippingThreshold,
+            defaultShippingAmount: settings.defaultShippingAmount,
+            defaultHandlingAmount: settings.defaultHandlingAmount,
+          })
+        }
+      } catch {
+        if (!cancelled) {
+          setStorefrontSettings(fallbackStorefrontSettings)
+        }
+      }
+    }
+
+    void loadSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const { shippingAmount: estimatedShipping, handlingAmount: estimatedHandling } =
+    calculateStorefrontChargeTotals(cart.items, storefrontSettings, cart.subtotalAmount)
   const estimatedTotal = cart.subtotalAmount + estimatedShipping + estimatedHandling
   const totalSavings = cart.items.reduce(
     (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
@@ -587,7 +620,7 @@ export function StorefrontCartPage() {
                     <div>
                       <p className="font-medium text-foreground">Delivery estimate</p>
                       <p className="mt-1 leading-6 text-muted-foreground">
-                        Free shipping unlocks above {formatCurrency(freeShippingThreshold)}.
+                        Free shipping unlocks above {formatCurrency(storefrontSettings.freeShippingThreshold)}.
                       </p>
                     </div>
                   </div>

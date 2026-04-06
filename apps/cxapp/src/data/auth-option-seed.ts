@@ -88,6 +88,15 @@ const frameworkResources = [
   }),
   createOption({
     category: "resource",
+    key: "mail-service",
+    label: "Mail Service",
+    summary: "Shared outbound mail templates and delivery history.",
+    appId: "framework",
+    route: "/dashboard/mail-service",
+    scopeType: "page",
+  }),
+  createOption({
+    category: "resource",
     key: "roles",
     label: "Roles",
     summary: "Framework role manager.",

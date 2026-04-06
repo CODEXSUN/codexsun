@@ -2,6 +2,14 @@
 
 ## Done Till Here
 
+### `#32` 2026-04-06
+
+- connected storefront Razorpay checkout more directly, removed the extra test payment screen, and carried the required checkout metadata through ecommerce runtime config and services
+- refined storefront UX across fixed header or category navigation, announcement overflow handling, promo CTA styling, mobile hero layout, CTA placement, and dock hover containment
+- added framework mail pages, mailbox persistence wiring, and related auth or shell updates inside `cxapp`
+- added supporting ecommerce shipping, storefront order, and admin workflow updates alongside container deployment asset changes under `.container/`
+- updated ASSIST task tracking, planning, and changelog for the current batch
+
 ### `#22` 2026-04-04
 
 - cleaned app ownership between `cxapp`, `framework`, and `core`
@@ -76,3 +84,10 @@
 - refined the customer portal shell, sidebar, overview cards, and wishlist presentation to match the shared dashboard tone without leaking admin controls or app switching
 - hardened widened customer/contact hydration paths so older stored records with missing nested arrays no longer break relogin or customer profile reads
 - added shared storefront wishlist storage, synced guest wishlist intent after login, and connected the storefront home, catalog, product, and header surfaces to the same persisted customer-portal wishlist flow
+
+### `#31` 2026-04-06
+
+- added a reusable shared inline editable table block under `apps/ui` with mixed in-cell editing for text, quantity, calendar date, state lookup, city lookup, notes, and publish toggles
+- registered the editable grid as a new `table-12` design-system variant inside the shared docs catalog and component-variant metadata
+- added a dedicated data block entry so the UI workspace side menu now exposes the editable table as a reusable block preview
+- updated ASSIST task tracking, planning, and changelog for the new shared UI batch

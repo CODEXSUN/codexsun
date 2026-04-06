@@ -52,6 +52,8 @@ export const mailboxMessageSummarySchema = z.object({
   referenceType: z.string().nullable(),
   referenceId: z.string().nullable(),
   errorMessage: z.string().nullable(),
+  isArchived: z.boolean(),
+  archivedAt: z.string().nullable(),
   sentAt: z.string().nullable(),
   failedAt: z.string().nullable(),
   createdAt: z.string().min(1),
@@ -167,6 +169,29 @@ export const mailboxMessageResponseSchema = z.object({
   item: mailboxMessageSchema,
 })
 
+export const mailboxMessageDeletePayloadSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+})
+
+export const mailboxMessageDeleteResponseSchema = z.object({
+  deleted: z.literal(true),
+  count: z.number().int().nonnegative(),
+})
+
+export const mailboxMessageArchivePayloadSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+})
+
+export const mailboxMessageArchiveResponseSchema = z.object({
+  archived: z.literal(true),
+  count: z.number().int().nonnegative(),
+})
+
+export const mailboxMessageRestoreResponseSchema = z.object({
+  restored: z.literal(true),
+  count: z.number().int().nonnegative(),
+})
+
 export type MailboxRecipientType = z.infer<typeof mailboxRecipientTypeSchema>
 export type MailboxMessageStatus = z.infer<typeof mailboxMessageStatusSchema>
 export type MailboxRecipient = z.infer<typeof mailboxRecipientSchema>
@@ -187,3 +212,8 @@ export type MailboxMessageListResponse = z.infer<
   typeof mailboxMessageListResponseSchema
 >
 export type MailboxMessageResponse = z.infer<typeof mailboxMessageResponseSchema>
+export type MailboxMessageDeletePayload = z.infer<typeof mailboxMessageDeletePayloadSchema>
+export type MailboxMessageDeleteResponse = z.infer<typeof mailboxMessageDeleteResponseSchema>
+export type MailboxMessageArchivePayload = z.infer<typeof mailboxMessageArchivePayloadSchema>
+export type MailboxMessageArchiveResponse = z.infer<typeof mailboxMessageArchiveResponseSchema>
+export type MailboxMessageRestoreResponse = z.infer<typeof mailboxMessageRestoreResponseSchema>

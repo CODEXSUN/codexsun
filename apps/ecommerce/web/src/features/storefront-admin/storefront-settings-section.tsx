@@ -1284,6 +1284,22 @@ export function StorefrontSettingsSection() {
                 />
               }
             />
+            <Row
+              label="Default Handling"
+              description="Fallback handling charge when a product does not define its own handling amount."
+              field={
+                <Input
+                  type="number"
+                  value={draft.defaultHandlingAmount}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      defaultHandlingAmount: Number(event.target.value || 0),
+                    })
+                  }
+                />
+              }
+            />
           </TableCard>
           <PreviewCard
             eyebrow="Support preview"
@@ -1309,6 +1325,9 @@ export function StorefrontSettingsSection() {
                     </p>
                     <p className="mt-1 text-sm text-stone-300">
                       Default {formatCurrency(draft.defaultShippingAmount)}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-300">
+                      Handling {formatCurrency(draft.defaultHandlingAmount)}
                     </p>
                   </div>
                 </div>

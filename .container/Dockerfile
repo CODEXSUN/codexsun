@@ -3,7 +3,7 @@ FROM node:22-bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git nano sudo ca-certificates openssh-client \
+  && apt-get install -y --no-install-recommends ca-certificates dumb-init \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/codexsun/app
@@ -13,25 +13,23 @@ RUN npm ci
 
 COPY apps ./apps
 COPY public ./public
-COPY ASSIST ./ASSIST
 COPY .container ./.container
 COPY components.json ./
-COPY eslint.config.js ./
 COPY index.html ./
-COPY playwright.config.ts ./
-COPY README.md ./
 COPY tsconfig.json ./
+COPY tsconfig.server.json ./
 COPY vite.config.ts ./
-COPY .env.example ./
+COPY .env.sample ./
 
-RUN cp .env.example .env
-RUN rm -rf ./public/storage && mkdir -p ./public/storage
+ARG VITE_FRONTEND_TARGET=shop
+ENV VITE_FRONTEND_TARGET=${VITE_FRONTEND_TARGET}
+
 RUN mkdir -p /opt/codexsun/runtime/storage/backups/database
 RUN chmod +x ./.container/entrypoint.sh
-RUN npm run build:api && npm run build:web
+RUN npm run build
 
 EXPOSE 4000
 
 VOLUME ["/opt/codexsun/runtime"]
 
-ENTRYPOINT ["./.container/entrypoint.sh"]
+ENTRYPOINT ["dumb-init", "--", "./.container/entrypoint.sh"]

@@ -69,6 +69,8 @@ export function toStorefrontProductCard(
     isNewArrival: product.isNewArrival,
     isBestSeller: product.isBestSeller,
     isFeaturedLabel: product.isFeaturedLabel,
+    shippingCharge: product.storefront?.shippingCharge ?? null,
+    handlingCharge: product.storefront?.handlingCharge ?? null,
     availableQuantity: resolveAvailableQuantity(product),
     tagNames: product.tagNames,
   }

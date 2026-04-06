@@ -57,7 +57,7 @@ export function StorefrontHeader({
   }, [])
 
   return (
-    <header className="sticky top-0 z-40">
+    <header className="fixed inset-x-0 top-0 z-50">
       <StorefrontTopMenu isScrolled={isCategoryCompact} />
       {showCategoryMenu ? (
         <div className="hidden md:block">

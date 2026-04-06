@@ -314,6 +314,7 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
   supportEmail: "storefront@codexsun.local",
   freeShippingThreshold: 3999,
   defaultShippingAmount: 149,
+  defaultHandlingAmount: 99,
   createdAt: "2026-04-04T10:00:00.000Z",
   updatedAt: "2026-04-04T10:00:00.000Z",
 })

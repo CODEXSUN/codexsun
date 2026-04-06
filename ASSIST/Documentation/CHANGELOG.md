@@ -8,6 +8,22 @@
 
 ## v-0.0.1
 
+### [#32] 2026-04-06 - Storefront UX polish, framework mail, and deployment wiring
+
+- connected live storefront payment flow details for Razorpay checkout, removed the extra test-only payment screen, and carried richer checkout metadata through ecommerce order and payment services
+- tightened storefront UX across announcement, header, category navigation, hero slider, CTA styling, mobile dock hover behavior, and customer-facing cart, catalog, checkout, account, and tracking surfaces
+- added framework mail migration, service, route, and page wiring in `cxapp` together with related mailbox schema and repository updates
+- added ecommerce shipping and storefront-order support wiring, plus related admin and runtime service updates for the commerce app
+- updated container and customer deployment assets under `.container/`, runtime config samples, and related shell or docs wiring to support the current local and client packaging flow
+- updated ASSIST task tracking, planning, and work log for the cross-app batch
+
+### [#31] 2026-04-06 - Inline editable table design-system block and docs wiring
+
+- added a reusable shared inline editable table block in `apps/ui` with mixed in-cell editing for text, numeric quantity, delivery date calendar, dependent state and city lookups, multiline notes, publish toggle, and row actions
+- registered the new editable grid as `table-12` inside the governed table catalog so it is available in the shared design-system docs alongside existing table variants
+- added a dedicated data block registry entry for the editable table so the UI workspace side menu exposes it as a reusable block preview instead of leaving it as a hidden one-off demo
+- updated ASSIST task tracking, planning, and work log to record the shared UI batch under the new reference
+
 ### [#30] 2026-04-06 - Responsive storefront polish, fixed dashboards, and container setup
 
 - expanded ecommerce storefront controls so featured, new-arrivals, and best-seller lanes share backend-configured card density, tighter equal-height cards, and synchronized frontend rendering

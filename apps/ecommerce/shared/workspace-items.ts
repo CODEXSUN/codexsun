@@ -49,6 +49,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Cart, address capture, shipping logic, Razorpay handoff, and post-payment verification flow.",
   },
   {
+    id: "shipping",
+    name: "Shipping",
+    route: "/dashboard/apps/ecommerce/shipping",
+    summary: "Global shipping and handling defaults used when product-level charges are not defined.",
+  },
+  {
     id: "settings",
     name: "Settings",
     route: "/dashboard/apps/ecommerce/settings",

@@ -1412,6 +1412,44 @@ export function ProductUpsertSection({
                     }
                   />
                 </ProductField>
+                <ProductField label="Shipping Charge">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.storefront?.shippingCharge ?? ""}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        storefront: {
+                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                          shippingCharge:
+                            event.target.value.trim().length > 0
+                              ? Number(event.target.value)
+                              : null,
+                        },
+                      }))
+                    }
+                  />
+                </ProductField>
+                <ProductField label="Handling Charge">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.storefront?.handlingCharge ?? ""}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        storefront: {
+                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                          handlingCharge:
+                            event.target.value.trim().length > 0
+                              ? Number(event.target.value)
+                              : null,
+                        },
+                      }))
+                    }
+                  />
+                </ProductField>
                 <ProductCheckboxField
                   checked={form.featureSectionEnabled}
                   label="Feature section"

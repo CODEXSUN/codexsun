@@ -20,6 +20,8 @@ import ToastStack01 from "@/registry/blocks/feedback/toast-stack-01"
 import ToastStack01Code from "@/registry/blocks/feedback/toast-stack-01.tsx?raw"
 import FilterToolbar01 from "@/registry/blocks/data/filter-toolbar-01"
 import FilterToolbar01Code from "@/registry/blocks/data/filter-toolbar-01.tsx?raw"
+import InlineEditableTable01 from "@/registry/blocks/data/inline-editable-table-01"
+import InlineEditableTable01Code from "@/registry/blocks/data/inline-editable-table-01.tsx?raw"
 import StorefrontSearch01 from "@/registry/blocks/data/storefront-search-01"
 import StorefrontSearch01Code from "@/registry/blocks/data/storefront-search-01.tsx?raw"
 import ProfileSettingsForm01 from "@/registry/blocks/forms/profile-settings-form-01"
@@ -159,6 +161,18 @@ export const registryBlocks: RegistryBlock[] = [
     componentIds: ["badge", "button", "input", "select"],
     code: FilterToolbar01Code,
     preview: <FilterToolbar01 />,
+  },
+  {
+    id: "inline-editable-table-01",
+    name: "Inline Editable Table",
+    summary:
+      "Editable data block with in-cell text, quantity, date, lookup, notes, switch, and row actions.",
+    description:
+      "Use this for dense operator workflows such as dispatch plans, quote lines, or setup tables where edits should stay in the grid instead of opening a separate form.",
+    category: "data",
+    componentIds: ["button", "input", "lookup", "switch", "table", "textarea"],
+    code: InlineEditableTable01Code,
+    preview: <InlineEditableTable01 />,
   },
   {
     id: "storefront-search-01",

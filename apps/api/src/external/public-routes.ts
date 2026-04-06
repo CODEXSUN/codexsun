@@ -9,6 +9,7 @@ import {
 } from "../../../ecommerce/src/services/catalog-service.js"
 import { trackOrderByReference } from "../../../ecommerce/src/services/order-service.js"
 import { getRazorpayPaymentConfig } from "../../../ecommerce/src/services/razorpay-service.js"
+import { getStorefrontSettings } from "../../../ecommerce/src/services/storefront-settings-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { readMediaContent } from "../../../framework/src/runtime/media/media-service.js"
 
@@ -70,6 +71,14 @@ export function createPublicApiRoutes(appSuite: AppSuite): HttpRouteDefinition[]
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify(await getStorefrontLanding(databases.primary)),
+      }),
+    }),
+    definePublicRoute("/storefront/settings", {
+      summary: "Public storefront settings used by cart, checkout, and other non-home surfaces.",
+      handler: async ({ databases }) => ({
+        statusCode: 200,
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify(await getStorefrontSettings(databases.primary)),
       }),
     }),
     definePublicRoute("/storefront/product", {

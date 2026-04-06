@@ -120,6 +120,23 @@ function normalizeOrderItem(value: unknown, index: number, orderId: string): Sto
     name: normalizeRequiredString(record.name, `Legacy item ${index + 1}`),
     brandName: normalizeOptionalString(record.brandName),
     imageUrl: normalizeOptionalString(record.imageUrl),
+    variantLabel: normalizeOptionalString(record.variantLabel),
+    attributes: Array.isArray(record.attributes)
+      ? record.attributes
+          .map((attribute) => {
+            const attributeRecord = asRecord(attribute)
+
+            if (!attributeRecord) {
+              return null
+            }
+
+            const name = normalizeOptionalString(attributeRecord.name)
+            const value = normalizeOptionalString(attributeRecord.value)
+
+            return name && value ? { name, value } : null
+          })
+          .filter((attribute): attribute is NonNullable<StorefrontOrderItem["attributes"][number]> => attribute !== null)
+      : [],
     quantity,
     unitPrice,
     mrp,
@@ -160,9 +177,10 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     )
   )
   const shippingAmount = Math.max(0, normalizeNumber(record.shippingAmount, 0))
+  const handlingAmount = Math.max(0, normalizeNumber(record.handlingAmount, 0))
   const totalAmount = Math.max(
-    subtotalAmount + shippingAmount,
-    normalizeNumber(record.totalAmount, subtotalAmount + shippingAmount)
+    subtotalAmount + shippingAmount + handlingAmount,
+    normalizeNumber(record.totalAmount, subtotalAmount + shippingAmount + handlingAmount)
   )
   const shippingAddress = normalizeAddress(record.shippingAddress)
   const billingAddress = normalizeAddress(record.billingAddress, shippingAddress)
@@ -190,6 +208,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     subtotalAmount,
     discountAmount,
     shippingAmount,
+    handlingAmount,
     totalAmount,
     currency: normalizeRequiredString(record.currency, "INR"),
     notes: normalizeOptionalString(record.notes),

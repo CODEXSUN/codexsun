@@ -25,6 +25,7 @@ import {
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { ProductUpsertSection as CoreProductUpsertSection } from "@core/web/src/features/product/product-upsert-section"
 import { HomeSliderSection } from "./features/storefront-admin/home-slider-section"
+import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
 
 import { storefrontPaths } from "./lib/storefront-routes"
@@ -855,6 +856,8 @@ export function EcommerceWorkspaceSection({
       return <OrdersSection />
     case "checkout":
       return <CheckoutSection />
+    case "shipping":
+      return <ShippingSettingsSection />
     case "settings":
       return <SettingsSection />
     case "overview":

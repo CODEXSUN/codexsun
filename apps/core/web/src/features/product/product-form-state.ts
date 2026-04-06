@@ -307,6 +307,8 @@ export function createDefaultProductFormValues(): ProductFormValues {
       sleeve: "",
       occasion: "",
       shippingNote: "",
+      shippingCharge: null,
+      handlingCharge: null,
       isActive: true,
     },
     tags: [createEmptyProductTag()],
@@ -623,6 +625,8 @@ export function toProductFormValues(product: Product): ProductFormValues {
           sleeve: toEditableString(product.storefront.sleeve),
           occasion: toEditableString(product.storefront.occasion),
           shippingNote: toEditableString(product.storefront.shippingNote),
+          shippingCharge: product.storefront.shippingCharge,
+          handlingCharge: product.storefront.handlingCharge,
           isActive: product.storefront.isActive,
         } satisfies ProductStorefrontInput)
       : {
@@ -646,6 +650,8 @@ export function toProductFormValues(product: Product): ProductFormValues {
           sleeve: "",
           occasion: "",
           shippingNote: "",
+          shippingCharge: null,
+          handlingCharge: null,
           isActive: true,
         },
     tags:
@@ -710,8 +716,18 @@ export function toProductUpsertPayload(values: ProductFormValues): ProductUpsert
     attributeValueIdByKey.set(value.clientKey, value.clientKey)
   })
 
+  const storefront =
+    values.storefront != null
+      ? {
+          ...values.storefront,
+          shippingCharge: values.storefront.shippingCharge ?? null,
+          handlingCharge: values.storefront.handlingCharge ?? null,
+        }
+      : null
+
   return {
     ...values,
+    storefront,
     images,
     variants: variants.map((variant) => ({
       clientKey: variant.clientKey,

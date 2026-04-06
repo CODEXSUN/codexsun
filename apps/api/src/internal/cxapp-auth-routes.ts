@@ -395,7 +395,9 @@ export function createCxappAuthInternalRoutes(): HttpRouteDefinition[] {
           await createMailboxService(
             context.databases.primary,
             context.config
-          ).listMessages()
+          ).listMessages({
+            archived: context.request.url.searchParams.get("archived") === "true",
+          })
         )
       },
     }),
@@ -417,6 +419,120 @@ export function createCxappAuthInternalRoutes(): HttpRouteDefinition[] {
             context.databases.primary,
             context.config
           ).getMessageById(id)
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mailbox/message", {
+      method: "DELETE",
+      summary: "Delete one mailbox message from the admin workspace.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const id = context.request.url.searchParams.get("id")
+
+        if (!id) {
+          throw new ApplicationError("Mailbox message id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await createMailboxService(
+            context.databases.primary,
+            context.config
+          ).deleteMessage(id)
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mailbox/message/archive", {
+      method: "POST",
+      summary: "Archive one mailbox message from the admin workspace.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const id = context.request.url.searchParams.get("id")
+
+        if (!id) {
+          throw new ApplicationError("Mailbox message id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await createMailboxService(
+            context.databases.primary,
+            context.config
+          ).archiveMessage(id)
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mailbox/message/restore", {
+      method: "POST",
+      summary: "Restore one archived mailbox message back to the inbox.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const id = context.request.url.searchParams.get("id")
+
+        if (!id) {
+          throw new ApplicationError("Mailbox message id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await createMailboxService(
+            context.databases.primary,
+            context.config
+          ).restoreMessage(id)
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mailbox/messages/delete", {
+      method: "POST",
+      summary: "Bulk delete mailbox messages from the admin workspace.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await createMailboxService(
+            context.databases.primary,
+            context.config
+          ).deleteMessages(context.request.jsonBody)
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mailbox/messages/archive", {
+      method: "POST",
+      summary: "Bulk archive mailbox messages from the admin workspace.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await createMailboxService(
+            context.databases.primary,
+            context.config
+          ).archiveMessages(context.request.jsonBody)
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mailbox/messages/restore", {
+      method: "POST",
+      summary: "Bulk restore archived mailbox messages back to the inbox.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await createMailboxService(
+            context.databases.primary,
+            context.config
+          ).restoreMessages(context.request.jsonBody)
         )
       },
     }),

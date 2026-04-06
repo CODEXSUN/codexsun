@@ -2,15 +2,23 @@ import type { ServerConfig } from "../../../framework/src/runtime/config/index.j
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { sendSmtpMail } from "../../../framework/src/runtime/notifications/smtp-mailer.js"
 import type {
+  MailboxMessageArchiveResponse,
+  MailboxMessageDeleteResponse,
   MailboxMessageListResponse,
   MailboxMessageResponse,
+  MailboxMessageRestoreResponse,
   MailboxSendPayload,
   MailboxTemplateListResponse,
   MailboxTemplateResponse,
 } from "../../shared/index.js"
 import {
+  mailboxMessageArchivePayloadSchema,
+  mailboxMessageArchiveResponseSchema,
+  mailboxMessageDeletePayloadSchema,
+  mailboxMessageDeleteResponseSchema,
   mailboxMessageListResponseSchema,
   mailboxMessageResponseSchema,
+  mailboxMessageRestoreResponseSchema,
   mailboxSendPayloadSchema,
   mailboxTemplateListResponseSchema,
   mailboxTemplateResponseSchema,
@@ -43,8 +51,8 @@ export class MailboxService {
     private readonly config: ServerConfig
   ) {}
 
-  async listMessages() {
-    const items = await this.repository.listMessages()
+  async listMessages(options?: { archived?: boolean }) {
+    const items = await this.repository.listMessages(options)
     return mailboxMessageListResponseSchema.parse({
       items,
     } satisfies MailboxMessageListResponse)
@@ -120,6 +128,75 @@ export class MailboxService {
     return mailboxMessageResponseSchema.parse({
       item,
     } satisfies MailboxMessageResponse)
+  }
+
+  async deleteMessage(id: string) {
+    const count = await this.repository.deleteMessage(id)
+
+    if (count === 0) {
+      throw new ApplicationError("Mailbox message not found.", { id }, 404)
+    }
+
+    return mailboxMessageDeleteResponseSchema.parse({
+      deleted: true,
+      count,
+    } satisfies MailboxMessageDeleteResponse)
+  }
+
+  async deleteMessages(payload: unknown) {
+    const parsedPayload = mailboxMessageDeletePayloadSchema.parse(payload)
+    const count = await this.repository.deleteMessages(parsedPayload.ids)
+
+    return mailboxMessageDeleteResponseSchema.parse({
+      deleted: true,
+      count,
+    } satisfies MailboxMessageDeleteResponse)
+  }
+
+  async archiveMessage(id: string) {
+    const count = await this.repository.archiveMessage(id)
+
+    if (count === 0) {
+      throw new ApplicationError("Mailbox message not found.", { id }, 404)
+    }
+
+    return mailboxMessageArchiveResponseSchema.parse({
+      archived: true,
+      count,
+    } satisfies MailboxMessageArchiveResponse)
+  }
+
+  async archiveMessages(payload: unknown) {
+    const parsedPayload = mailboxMessageArchivePayloadSchema.parse(payload)
+    const count = await this.repository.archiveMessages(parsedPayload.ids)
+
+    return mailboxMessageArchiveResponseSchema.parse({
+      archived: true,
+      count,
+    } satisfies MailboxMessageArchiveResponse)
+  }
+
+  async restoreMessage(id: string) {
+    const count = await this.repository.restoreMessage(id)
+
+    if (count === 0) {
+      throw new ApplicationError("Mailbox message not found.", { id }, 404)
+    }
+
+    return mailboxMessageRestoreResponseSchema.parse({
+      restored: true,
+      count,
+    } satisfies MailboxMessageRestoreResponse)
+  }
+
+  async restoreMessages(payload: unknown) {
+    const parsedPayload = mailboxMessageArchivePayloadSchema.parse(payload)
+    const count = await this.repository.restoreMessages(parsedPayload.ids)
+
+    return mailboxMessageRestoreResponseSchema.parse({
+      restored: true,
+      count,
+    } satisfies MailboxMessageRestoreResponse)
   }
 
   async sendTemplatedEmail(

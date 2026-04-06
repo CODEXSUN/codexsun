@@ -4,36 +4,35 @@
 
 ### Reference
 
-`#29`
+`#32`
 
 ### Title
 
-`Customer portal isolation, storefront persistence, and commerce UX refinement`
+`Storefront UX polish, framework mail, and deployment wiring`
 
 ### Scope Checklist
 
-- [x] move the customer portal onto canonical `/customer/*` routes and isolate it from admin and desk navigation
-- [x] rebuild the customer profile surface into customer-safe contact-style tabs with shared lookup-backed communication, addressing, and finance sections
-- [x] create a customer-only sidebar shell and themed overview surfaces without leaking admin modules or app switching controls
-- [x] persist storefront wishlist actions into the ecommerce customer-portal store and auto-sync guest wishlist intent after login
-- [x] refine storefront and customer portal visuals, wishlist density, and themed overview cards for a cleaner customer-facing experience
-- [x] harden legacy customer and storefront hydration so widened customer/contact and product summary schemas do not break existing records
-- [x] update ASSIST task tracking, planning, work log, and changelog for the customer-portal and storefront-persistence batch
+- [x] tighten ecommerce storefront desktop and mobile UX including fixed navigation, announcement overflow handling, hero-slider mobile layout, CTA polish, and dock hover behavior
+- [x] connect Razorpay storefront checkout metadata and remove the extra test-only payment screen from the shopper flow
+- [x] add framework mail surfaces and supporting mailbox persistence wiring inside `cxapp`
+- [x] add storefront shipping/admin support surfaces and supporting ecommerce order or service updates
+- [x] add container and customer deployment wiring updates under `.container/`
+- [x] update ASSIST task tracking, planning, work log, and changelog for the batch
 
 ### Validation Note
 
 - [x] `npm.cmd run typecheck`
-- [x] manual verification of customer route and storefront wishlist flow wiring
+- [ ] `npm.cmd run build`
+- [ ] manual verification of the updated storefront flows and framework mail surfaces
 - [ ] full `npm run lint`
 - [ ] full `npm run test`
-- [ ] full `npm run build`
 - [ ] full Playwright suite
 
 ## Next Batch
 
 ### Reference
 
-`#29`
+`#33`
 
 ### Title
 

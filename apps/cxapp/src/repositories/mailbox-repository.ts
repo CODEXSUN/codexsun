@@ -182,12 +182,18 @@ export class MailboxRepository {
     return item
   }
 
-  async listMessages() {
-    const rows = await asQueryDatabase(this.database)
+  async listMessages(options?: { archived?: boolean }) {
+    let query = asQueryDatabase(this.database)
       .selectFrom(cxappTableNames.mailboxMessages)
       .selectAll()
       .orderBy("created_at", "desc")
-      .execute()
+
+    query =
+      options?.archived === true
+        ? query.where("archived_at", "is not", null)
+        : query.where("archived_at", "is", null)
+
+    const rows = await query.execute()
 
     return Promise.all(rows.map((row) => this.mapMessageSummary(row)))
   }
@@ -325,6 +331,75 @@ export class MailboxRepository {
       .execute()
   }
 
+  async deleteMessage(id: string) {
+    const queryDatabase = asQueryDatabase(this.database)
+
+    await queryDatabase
+      .deleteFrom(cxappTableNames.mailboxMessageRecipients)
+      .where("message_id", "=", id)
+      .execute()
+
+    const result = await queryDatabase
+      .deleteFrom(cxappTableNames.mailboxMessages)
+      .where("id", "=", id)
+      .executeTakeFirst()
+
+    return Number(result.numDeletedRows ?? 0)
+  }
+
+  async deleteMessages(ids: string[]) {
+    if (ids.length === 0) {
+      return 0
+    }
+
+    const queryDatabase = asQueryDatabase(this.database)
+
+    await queryDatabase
+      .deleteFrom(cxappTableNames.mailboxMessageRecipients)
+      .where("message_id", "in", ids)
+      .execute()
+
+    const result = await queryDatabase
+      .deleteFrom(cxappTableNames.mailboxMessages)
+      .where("id", "in", ids)
+      .executeTakeFirst()
+
+    return Number(result.numDeletedRows ?? 0)
+  }
+
+  async archiveMessage(id: string) {
+    return this.setMessageArchiveState([id], true)
+  }
+
+  async restoreMessage(id: string) {
+    return this.setMessageArchiveState([id], false)
+  }
+
+  async archiveMessages(ids: string[]) {
+    return this.setMessageArchiveState(ids, true)
+  }
+
+  async restoreMessages(ids: string[]) {
+    return this.setMessageArchiveState(ids, false)
+  }
+
+  private async setMessageArchiveState(ids: string[], archived: boolean) {
+    if (ids.length === 0) {
+      return 0
+    }
+
+    const result = await asQueryDatabase(this.database)
+      .updateTable(cxappTableNames.mailboxMessages)
+      .set({
+        archived_at: archived ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .where("id", "in", ids)
+      .executeTakeFirst()
+
+    return Number(result.numUpdatedRows ?? 0)
+  }
+
   private mapTemplateSummary(row: Record<string, unknown>) {
     return {
       id: asString(row.id),
@@ -370,6 +445,8 @@ export class MailboxRepository {
       referenceType: asNullableString(row.reference_type),
       referenceId: asNullableString(row.reference_id),
       errorMessage: asNullableString(row.error_message),
+      isArchived: asNullableString(row.archived_at) !== null,
+      archivedAt: asNullableString(row.archived_at),
       sentAt: asNullableString(row.sent_at),
       failedAt: asNullableString(row.failed_at),
       createdAt: asString(row.created_at),

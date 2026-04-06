@@ -584,6 +584,8 @@ import TableTable10 from "@/registry/variants/table/table-10"
 import TableTable10Code from "@/registry/variants/table/table-10.tsx?raw"
 import TableTable11 from "@/registry/variants/table/table-11"
 import TableTable11Code from "@/registry/variants/table/table-11.tsx?raw"
+import TableTable12 from "@/registry/variants/table/table-12"
+import TableTable12Code from "@/registry/variants/table/table-12.tsx?raw"
 import TabsTabs01 from "@/registry/variants/tabs/tabs-01"
 import TabsTabs01Code from "@/registry/variants/tabs/tabs-01.tsx?raw"
 import TabsTabs02 from "@/registry/variants/tabs/tabs-02"
@@ -2640,6 +2642,12 @@ export const docsEntries: DocsEntry[] = [
         title: "Columns Visibility",
         code: TableTable11Code,
         preview: <TableTable11 />,
+      },
+      {
+        id: "table-12",
+        title: "Inline Editable Grid",
+        code: TableTable12Code,
+        preview: <TableTable12 />,
       },
     ],
   },

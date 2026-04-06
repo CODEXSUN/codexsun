@@ -584,6 +584,7 @@ export const componentVariants = {
     { title: "Data Table", type: "table", name: "table-09" },
     { title: "Data Table Density", type: "table", name: "table-10" },
     { title: "Columns Visibility", type: "table", name: "table-11" },
+    { title: "Inline Editable Grid", type: "table", name: "table-12" },
   ],
   tabs: [
     { title: "Default", type: "tabs", name: "tabs-01" },

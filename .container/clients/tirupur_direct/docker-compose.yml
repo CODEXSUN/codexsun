@@ -7,11 +7,22 @@ services:
     build:
       context: ../../..
       dockerfile: .container/Dockerfile
+      args:
+        VITE_FRONTEND_TARGET: shop
     container_name: tirupur-direct-app
     ports:
       - "4005:4000"
       - "5005:4000"
     restart: unless-stopped
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_HTTP_PORT: 4000
+      DB_DRIVER: mariadb
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: codexsun_db
+      DB_USER: root
+      DB_PASSWORD: DbPass1@@
     volumes:
       - tirupur_direct_runtime:/opt/codexsun/runtime
     networks:

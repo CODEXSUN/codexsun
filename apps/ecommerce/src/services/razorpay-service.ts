@@ -26,6 +26,9 @@ export function getRazorpayPaymentConfig(config: ServerConfig) {
     enabled: isRazorpayEnabled(config),
     mode: isRazorpayEnabled(config) ? "live" : "mock",
     keyId: config.commerce?.razorpay?.keyId ?? null,
+    businessName: config.commerce?.razorpay?.businessName ?? "Tirupur Direct",
+    checkoutImage: config.commerce?.razorpay?.checkoutImage ?? null,
+    themeColor: config.commerce?.razorpay?.themeColor ?? null,
   })
 }
 
@@ -49,6 +52,9 @@ export async function createRazorpayPaymentSession(
       amount,
       currency: order.currency,
       receipt: order.orderNumber,
+      businessName: paymentConfig.businessName,
+      checkoutImage: paymentConfig.checkoutImage,
+      themeColor: paymentConfig.themeColor,
     })
   }
 
@@ -97,6 +103,9 @@ export async function createRazorpayPaymentSession(
     amount: payload.amount ?? amount,
     currency: payload.currency ?? order.currency,
     receipt: payload.receipt ?? order.orderNumber,
+    businessName: config.commerce.razorpay.businessName,
+    checkoutImage: config.commerce.razorpay.checkoutImage ?? null,
+    themeColor: config.commerce.razorpay.themeColor ?? null,
   })
 }
 

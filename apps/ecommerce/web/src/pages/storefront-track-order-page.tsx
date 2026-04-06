@@ -3,13 +3,12 @@ import { Link, useSearchParams } from "react-router-dom"
 
 import type { StorefrontOrderResponse } from "@ecommerce/shared"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CommerceOrderStatusBadge } from "@/components/ux/commerce-order-status-badge"
-import { CommercePrice } from "@/components/ux/commerce-price"
 
 import { storefrontApi } from "../api/storefront-api"
+import { StorefrontOrderDetailCard } from "../components/storefront-order-detail-card"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { storefrontPaths } from "../lib/storefront-routes"
 
@@ -96,45 +95,7 @@ export function StorefrontTrackOrderPage() {
           </Card>
         ) : null}
         {data?.item ? (
-          <>
-            <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between gap-4">
-                <div>
-                  <CardTitle>{data.item.orderNumber}</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {data.item.shippingAddress.fullName}
-                  </p>
-                </div>
-                <CommerceOrderStatusBadge status={data.item.status} />
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[1.4rem] border border-border/70 bg-background/80 p-4">
-                    <p className="text-sm font-semibold">Payment</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {data.item.paymentStatus}
-                    </p>
-                  </div>
-                  <div className="rounded-[1.4rem] border border-border/70 bg-background/80 p-4">
-                    <p className="text-sm font-semibold">Order total</p>
-                    <CommercePrice amount={data.item.totalAmount} />
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold">Timeline</p>
-                  {data.item.timeline.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="rounded-[1.3rem] border border-border/70 bg-background/85 p-4"
-                    >
-                      <p className="font-medium">{entry.label}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{entry.summary}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </>
+          <StorefrontOrderDetailCard order={data.item} />
         ) : null}
       </div>
     </StorefrontLayout>

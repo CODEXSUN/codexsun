@@ -211,6 +211,8 @@ export function StorefrontProductPage() {
                                 imageUrl: product.primaryImageUrl,
                                 unitPrice: product.sellingPrice,
                                 mrp: product.mrp,
+                                shippingCharge: product.shippingCharge,
+                                handlingCharge: product.handlingCharge,
                               },
                               quantity
                             )
@@ -233,6 +235,8 @@ export function StorefrontProductPage() {
                                 imageUrl: product.primaryImageUrl,
                                 unitPrice: product.sellingPrice,
                                 mrp: product.mrp,
+                                shippingCharge: product.shippingCharge,
+                                handlingCharge: product.handlingCharge,
                               },
                               quantity
                             )
@@ -323,6 +327,8 @@ export function StorefrontProductPage() {
                         imageUrl: item.primaryImageUrl,
                         unitPrice: item.sellingPrice,
                         mrp: item.mrp,
+                        shippingCharge: item.shippingCharge,
+                        handlingCharge: item.handlingCharge,
                       })
                     }
                   />

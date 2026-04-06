@@ -451,10 +451,15 @@ export class AuthService {
     try {
       await this.mailboxService.sendTemplatedEmail(
         {
-          to: [{ email: destination, name: "Workspace User" }],
+          to: [
+            {
+              email: destination,
+              name: parsedPayload.displayName?.trim() || "Workspace User",
+            },
+          ],
           templateCode: "workspace_registration_otp",
           templateData: {
-            displayName: "Workspace User",
+            displayName: parsedPayload.displayName?.trim() || "Workspace User",
             otp,
             expiryMinutes: this.config.auth.otpExpiryMinutes,
           },

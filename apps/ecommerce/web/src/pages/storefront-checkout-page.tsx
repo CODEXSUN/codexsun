@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   ArrowRight,
   Check,
@@ -12,10 +13,10 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 
 import type { CommonModuleItem, ContactAddressInput } from "@core/shared"
-import type { CustomerProfileLookupResponse } from "@ecommerce/shared"
+import type { CustomerProfileLookupResponse, StorefrontSettings } from "@ecommerce/shared"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { CommercePrice } from "@/components/ux/commerce-price"
 import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import { cn } from "@/lib/utils"
+import { queryKeys } from "@cxapp/web/src/query/query-keys"
 
 import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
@@ -45,6 +47,8 @@ import {
   handleStorefrontImageError,
   resolveStorefrontImageUrl,
 } from "../lib/storefront-image"
+import { calculateStorefrontChargeTotals } from "../lib/storefront-shipping"
+import { loadRazorpayCheckoutScript } from "../lib/load-razorpay"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 type CheckoutAddressState = {
@@ -109,17 +113,20 @@ type PaymentOption = {
   enabled: boolean
 }
 
-type PendingPaymentCheckout = {
+type CompletedCheckoutState = {
   orderId: string
   orderNumber: string
-  providerOrderId: string
-  totalAmount: number
   shippingEmail: string
 }
 
-const freeShippingThreshold = 5000
-const fallbackShippingAmount = 199
-const fallbackHandlingAmount = 99
+const fallbackStorefrontSettings: Pick<
+  StorefrontSettings,
+  "freeShippingThreshold" | "defaultShippingAmount" | "defaultHandlingAmount"
+> = {
+  freeShippingThreshold: 3999,
+  defaultShippingAmount: 149,
+  defaultHandlingAmount: 99,
+}
 const addressDraftDefaults: Omit<
   AddressDialogState,
   "firstName" | "lastName" | "phoneNumber" | "countryId"
@@ -140,23 +147,23 @@ const deliveryPreferences: DeliveryPreference[] = [
   {
     id: "standard",
     label: "Standard delivery",
-    description: "3-5 business days. Free over INR 5,000.",
-    shippingAmount: fallbackShippingAmount,
-    handlingAmount: fallbackHandlingAmount,
+    description: "Balanced dispatch window for the regular storefront flow.",
+    shippingAmount: 0,
+    handlingAmount: 0,
   },
   {
     id: "priority",
     label: "Priority delivery",
-    description: "1-2 business days. INR 299.",
-    shippingAmount: 299,
-    handlingAmount: fallbackHandlingAmount,
+    description: "Faster delivery preference for urgent orders.",
+    shippingAmount: 0,
+    handlingAmount: 0,
   },
   {
     id: "signature",
     label: "Signature packaging",
-    description: "Occasion-ready packaging with premium handoff.",
-    shippingAmount: fallbackShippingAmount,
-    handlingAmount: 159,
+    description: "Occasion-ready packaging preference with a premium handoff.",
+    shippingAmount: 0,
+    handlingAmount: 0,
   },
 ]
 const paymentOptions: PaymentOption[] = [
@@ -413,9 +420,21 @@ function ChoiceCard({
 }
 
 export function StorefrontCheckoutPage() {
-  const navigate = useNavigate()
+  return <StorefrontCheckoutContent />
+}
+
+export function StorefrontCheckoutContent({
+  embedded = false,
+  cartHref,
+}: {
+  embedded?: boolean
+  cartHref?: string
+}) {
+  const queryClient = useQueryClient()
   const cart = useStorefrontCart()
   const customerAuth = useStorefrontCustomerAuth()
+  const resolvedCartHref = cartHref ?? storefrontPaths.cart()
+  const [storefrontSettings, setStorefrontSettings] = useState(fallbackStorefrontSettings)
   const [lookupState, setLookupState] = useState<CheckoutLookupState>(() =>
     createLookupState()
   )
@@ -445,13 +464,9 @@ export function StorefrontCheckoutPage() {
   const [isSavingAddress, setIsSavingAddress] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [pendingPaymentCheckout, setPendingPaymentCheckout] =
-    useState<PendingPaymentCheckout | null>(null)
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
-  const [paymentContactEmail, setPaymentContactEmail] = useState("")
-  const [paymentMobileNumber, setPaymentMobileNumber] = useState("")
-  const [paymentSuccessMessage, setPaymentSuccessMessage] = useState<string | null>(null)
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
+  const [completedCheckout, setCompletedCheckout] =
+    useState<CompletedCheckoutState | null>(null)
 
   const defaultCountryId = useMemo(
     () => resolvePreferredCountryId(lookupState.countries),
@@ -463,6 +478,34 @@ export function StorefrontCheckoutPage() {
       setContactEmail(customerAuth.customer.email)
     }
   }, [contactEmail, customerAuth.customer?.email])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPublicSettings() {
+      try {
+        const settings = await storefrontApi.getPublicStorefrontSettings()
+
+        if (!cancelled) {
+          setStorefrontSettings({
+            freeShippingThreshold: settings.freeShippingThreshold,
+            defaultShippingAmount: settings.defaultShippingAmount,
+            defaultHandlingAmount: settings.defaultHandlingAmount,
+          })
+        }
+      } catch {
+        if (!cancelled) {
+          setStorefrontSettings(fallbackStorefrontSettings)
+        }
+      }
+    }
+
+    void loadPublicSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -598,15 +641,11 @@ export function StorefrontCheckoutPage() {
   const selectedPaymentOption =
     paymentOptions.find((option) => option.id === selectedPaymentMethod) ?? paymentOptions[0]
 
-  const shippingAmount =
-    cart.items.length === 0
-      ? 0
-      : selectedDeliveryOption.id === "standard" &&
-          cart.subtotalAmount >= freeShippingThreshold
-        ? 0
-        : selectedDeliveryOption.shippingAmount
-
-  const handlingAmount = cart.items.length === 0 ? 0 : selectedDeliveryOption.handlingAmount
+  const { shippingAmount, handlingAmount } = calculateStorefrontChargeTotals(
+    cart.items,
+    storefrontSettings,
+    cart.subtotalAmount
+  )
   const totalAmount = cart.subtotalAmount + shippingAmount + handlingAmount
   const totalSavings = cart.items.reduce(
     (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
@@ -702,21 +741,32 @@ export function StorefrontCheckoutPage() {
     setAddressDialogState((current) => recipe(current))
   }
 
-  async function routeAfterPayment(orderId: string, shippingEmail: string, orderNumber: string) {
+  async function finalizeCheckout(
+    orderId: string,
+    shippingEmail: string,
+    orderNumber: string
+  ) {
     cart.clear()
 
     if (customerAuth.isAuthenticated) {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.storefrontCustomerPortal }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.storefrontCustomerOrders }),
+      ])
       await customerAuth.refresh()
-      void navigate(storefrontPaths.accountOrder(orderId))
+      setCompletedCheckout({
+        orderId,
+        orderNumber,
+        shippingEmail,
+      })
       return
     }
 
-    void navigate(
-      storefrontPaths.trackOrder({
-        orderNumber,
-        email: shippingEmail,
-      })
-    )
+    setCompletedCheckout({
+      orderId,
+      orderNumber,
+      shippingEmail,
+    })
   }
 
   async function handleSaveAddress() {
@@ -947,17 +997,29 @@ export function StorefrontCheckoutPage() {
         notes: orderNote.trim() || null,
       })
 
-      setPendingPaymentCheckout({
-        orderId: checkout.order.id,
-        orderNumber: checkout.order.orderNumber,
-        providerOrderId: checkout.payment.providerOrderId ?? "",
-        totalAmount: checkout.order.totalAmount,
-        shippingEmail: checkout.order.shippingAddress.email,
-      })
-      setPaymentContactEmail(shippingAddress.email)
-      setPaymentMobileNumber(shippingAddress.phoneNumber)
-      setPaymentSuccessMessage(null)
-      setIsPaymentDialogOpen(true)
+      if (checkout.payment.mode === "live") {
+        await handleOpenRazorpayCheckout({
+          orderId: checkout.order.id,
+          orderNumber: checkout.order.orderNumber,
+          providerOrderId: checkout.payment.providerOrderId ?? "",
+          keyId: checkout.payment.keyId,
+          amount: checkout.payment.amount,
+          currency: checkout.payment.currency,
+          shippingEmail: checkout.order.shippingAddress.email,
+          businessName: checkout.payment.businessName,
+          checkoutImage: checkout.payment.checkoutImage,
+          themeColor: checkout.payment.themeColor,
+          customerEmail: shippingAddress.email,
+          customerPhoneNumber: shippingAddress.phoneNumber,
+        })
+      } else {
+        await handleCompleteDummyPayment({
+          orderId: checkout.order.id,
+          orderNumber: checkout.order.orderNumber,
+          providerOrderId: checkout.payment.providerOrderId ?? "",
+          shippingEmail: checkout.order.shippingAddress.email,
+        })
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -969,44 +1031,45 @@ export function StorefrontCheckoutPage() {
     }
   }
 
-  async function handleCompleteDummyPayment() {
-    if (!pendingPaymentCheckout) {
-      return
-    }
+  async function verifyAndFinalizePayment(input: {
+    orderId: string
+    providerOrderId: string
+    providerPaymentId: string
+    signature: string
+  }) {
+    const verified = await storefrontApi.verifyCheckoutPayment(
+      {
+        orderId: input.orderId,
+        providerOrderId: input.providerOrderId,
+        providerPaymentId: input.providerPaymentId,
+        signature: input.signature,
+      },
+      customerAuth.accessToken
+    )
 
-    if (!isValidEmail(paymentContactEmail)) {
-      setError("Enter a valid payment email before continuing.")
-      return
-    }
+    await finalizeCheckout(
+      verified.item.id,
+      verified.item.shippingAddress.email,
+      verified.item.orderNumber
+    )
+  }
 
-    if (!paymentMobileNumber.trim()) {
-      setError("Enter a mobile number before confirming payment.")
-      return
-    }
-
+  async function handleCompleteDummyPayment(input: {
+    orderId: string
+    orderNumber: string
+    providerOrderId: string
+    shippingEmail: string
+  }) {
     setError(null)
     setIsConfirmingPayment(true)
 
     try {
-      const verified = await storefrontApi.verifyCheckoutPayment({
-        orderId: pendingPaymentCheckout.orderId,
-        providerOrderId: pendingPaymentCheckout.providerOrderId,
+      await verifyAndFinalizePayment({
+        orderId: input.orderId,
+        providerOrderId: input.providerOrderId,
         providerPaymentId: `mock_payment_${Date.now()}`,
         signature: "mock_signature",
-      }, customerAuth.accessToken)
-
-      setPaymentSuccessMessage(
-        `Payment recorded for ${verified.item.orderNumber}. Redirecting to the order summary.`
-      )
-
-      window.setTimeout(() => {
-        setIsPaymentDialogOpen(false)
-        void routeAfterPayment(
-          verified.item.id,
-          verified.item.shippingAddress.email,
-          verified.item.orderNumber
-        )
-      }, 900)
+      })
     } catch (paymentError) {
       setError(
         paymentError instanceof Error
@@ -1018,10 +1081,184 @@ export function StorefrontCheckoutPage() {
     }
   }
 
+  async function handleOpenRazorpayCheckout(input: {
+    orderId: string
+    orderNumber: string
+    providerOrderId: string
+    keyId: string | null
+    amount: number
+    currency: string
+    shippingEmail: string
+    businessName: string
+    checkoutImage: string | null
+    themeColor: string | null
+    customerEmail: string
+    customerPhoneNumber: string
+  }) {
+    if (!isValidEmail(input.customerEmail)) {
+      setError("Enter a valid payment email before continuing.")
+      return
+    }
+
+    if (!input.customerPhoneNumber.trim()) {
+      setError("Enter a mobile number before continuing.")
+      return
+    }
+
+    if (!input.keyId || !input.providerOrderId) {
+      setError("Live Razorpay checkout is not configured for this order.")
+      return
+    }
+
+    setError(null)
+    setIsConfirmingPayment(true)
+
+    try {
+      await loadRazorpayCheckoutScript()
+
+      await new Promise<void>((resolve, reject) => {
+        if (!window.Razorpay) {
+          reject(new Error("Razorpay checkout is unavailable in this browser session."))
+          return
+        }
+
+        const razorpay = new window.Razorpay({
+          key: input.keyId,
+          amount: input.amount,
+          currency: input.currency,
+          name: input.businessName,
+          description: `Order ${input.orderNumber}`,
+          image: input.checkoutImage ?? undefined,
+          order_id: input.providerOrderId,
+          prefill: {
+            name: selectedAddress?.fullName || customerAuth.customer?.displayName || "Customer",
+            email: input.customerEmail.trim(),
+            contact: input.customerPhoneNumber.trim(),
+          },
+          notes: {
+            storefrontOrderId: input.orderId,
+            storefrontOrderNumber: input.orderNumber,
+          },
+          theme: input.themeColor
+            ? { color: input.themeColor }
+            : undefined,
+          handler: async (response: {
+            razorpay_order_id: string
+            razorpay_payment_id: string
+            razorpay_signature: string
+          }) => {
+            try {
+              await verifyAndFinalizePayment({
+                orderId: input.orderId,
+                providerOrderId: response.razorpay_order_id,
+                providerPaymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+              })
+              resolve()
+            } catch (verificationError) {
+              reject(verificationError)
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              reject(new Error("Razorpay checkout was closed before payment completed."))
+            },
+          },
+        })
+
+        razorpay.open()
+      })
+    } catch (paymentError) {
+      setError(
+        paymentError instanceof Error
+          ? paymentError.message
+          : "Failed to complete the Razorpay payment."
+      )
+    } finally {
+      setIsConfirmingPayment(false)
+    }
+  }
+
+  if (completedCheckout) {
+    const successHref = customerAuth.isAuthenticated
+      ? storefrontPaths.accountOrder(completedCheckout.orderId)
+      : storefrontPaths.trackOrder({
+          orderNumber: completedCheckout.orderNumber,
+          email: completedCheckout.shippingEmail,
+        })
+
+    const successState = (
+      <div className="mx-auto grid w-full max-w-4xl gap-6 px-4 pt-10 pb-14 sm:px-6 lg:px-8">
+        <Card className="overflow-hidden rounded-[2.3rem] border border-emerald-200 bg-[linear-gradient(135deg,rgba(236,253,245,0.98),rgba(220,252,231,0.98)_52%,rgba(209,250,229,0.94))] py-0 shadow-[0_28px_70px_-40px_rgba(22,101,52,0.25)]">
+          <CardContent className="space-y-6 p-6 sm:p-8">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
+                Checkout complete
+              </p>
+              <h1 className="font-heading text-3xl font-semibold tracking-tight text-emerald-950 sm:text-4xl">
+                Order confirmed 🎉
+              </h1>
+              <p className="max-w-2xl text-sm leading-7 text-emerald-900/80">
+                Your payment was captured successfully and the order is now in your account flow.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-[1.5rem] border border-emerald-300/70 bg-white/60 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  Order reference
+                </p>
+                <p className="mt-3 text-xl font-semibold tracking-tight text-emerald-950">
+                  {completedCheckout.orderNumber}
+                </p>
+              </div>
+              <div className="rounded-[1.5rem] border border-emerald-300/70 bg-white/60 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  Status
+                </p>
+                <p className="mt-3 text-xl font-semibold tracking-tight text-emerald-950">
+                  Paid and confirmed ✅
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-emerald-300/70 bg-white/55 p-4 text-sm leading-7 text-emerald-900/80">
+              We are keeping you on this screen so you can review the confirmation first. Open the order page when you are ready.
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                asChild
+                className="rounded-full bg-emerald-700 px-5 text-white hover:bg-emerald-800"
+              >
+                <Link to={successHref}>
+                  Open order page
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-full border-emerald-300 bg-white/70 px-5 text-emerald-900 hover:bg-white"
+              >
+                <Link to={resolvedCartHref}>Back to cart</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+
+    if (embedded) {
+      return successState
+    }
+
+    return <StorefrontLayout showCategoryMenu={false}>{successState}</StorefrontLayout>
+  }
+
   if (cart.items.length === 0) {
-    return (
-      <StorefrontLayout showCategoryMenu={false}>
-        <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 pt-8 pb-12 sm:px-6 lg:px-8">
+    const emptyState = (
+      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 pt-8 pb-12 sm:px-6 lg:px-8">
           <Card className="rounded-[2.1rem] border-[#dfd1c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,242,234,0.86))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
             <CardContent className="space-y-5 p-6 sm:p-8">
               <div className="space-y-3">
@@ -1037,7 +1274,7 @@ export function StorefrontCheckoutPage() {
                 </p>
               </div>
               <Button asChild className="w-fit rounded-full px-5">
-                <Link to={storefrontPaths.cart()}>
+                <Link to={resolvedCartHref}>
                   Return to cart
                   <ArrowRight className="size-4" />
                 </Link>
@@ -1045,12 +1282,17 @@ export function StorefrontCheckoutPage() {
             </CardContent>
           </Card>
         </div>
-      </StorefrontLayout>
     )
+
+    if (embedded) {
+      return emptyState
+    }
+
+    return <StorefrontLayout showCategoryMenu={false}>{emptyState}</StorefrontLayout>
   }
 
-  return (
-    <StorefrontLayout showCategoryMenu={false}>
+  const checkoutContent = (
+    <>
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top_left,rgba(225,203,178,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.78),transparent_28%),linear-gradient(180deg,rgba(249,245,239,0.72),transparent_70%)]" />
         <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 pt-8 pb-14 sm:px-6 lg:px-8">
@@ -1380,6 +1622,7 @@ export function StorefrontCheckoutPage() {
                     size="lg"
                     disabled={
                       isSubmitting ||
+                      isConfirmingPayment ||
                       isLoadingLookups ||
                       !selectedAddress ||
                       !selectedAddressIsComplete ||
@@ -1387,7 +1630,11 @@ export function StorefrontCheckoutPage() {
                     }
                     onClick={() => void handlePlaceOrder()}
                   >
-                    {isSubmitting ? "Processing..." : "Continue to pay"}
+                    {isSubmitting
+                      ? "Preparing order..."
+                      : isConfirmingPayment
+                        ? "Opening Razorpay..."
+                        : "Continue to pay"}
                   </Button>
 
                   {!selectedAddressIsComplete ? (
@@ -1402,8 +1649,8 @@ export function StorefrontCheckoutPage() {
                       <div>
                         <p className="font-medium text-foreground">Delivery preview</p>
                         <p className="mt-1 leading-6 text-muted-foreground">
-                          {selectedDeliveryOption.label} keeps the summary totals aligned
-                          with your selected shipment style.
+                          {selectedDeliveryOption.label} stays attached to this checkout so
+                          the order can carry the delivery preference into fulfillment.
                         </p>
                       </div>
                     </div>
@@ -1434,104 +1681,6 @@ export function StorefrontCheckoutPage() {
           </div>
         </div>
       </div>
-
-      <Dialog
-        open={isPaymentDialogOpen}
-        onOpenChange={(open) => {
-          if (isConfirmingPayment) {
-            return
-          }
-
-          setIsPaymentDialogOpen(open)
-
-          if (!open && !paymentSuccessMessage) {
-            setPendingPaymentCheckout(null)
-          }
-        }}
-      >
-        <DialogContent className="w-[min(92vw,32rem)] gap-5 rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(252,248,243,0.96))] p-0 shadow-[0_36px_90px_-52px_rgba(48,31,19,0.28)]">
-          <DialogHeader className="border-b border-[#efe4d8] px-6 pt-6 pb-5">
-            <DialogTitle className="text-[1.6rem] tracking-tight">
-              Complete payment
-            </DialogTitle>
-            <DialogDescription>
-              Temporary storefront payment popup for local checkout testing before the
-              live gateway is re-enabled.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5 px-6 pb-6">
-            <div className="rounded-[1.45rem] border border-[#e6d9cb] bg-[#fffdfa] p-4">
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-muted-foreground">Order</span>
-                <span className="font-medium text-foreground">
-                  {pendingPaymentCheckout?.orderNumber ?? "-"}
-                </span>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-4 text-base font-semibold">
-                <span className="text-foreground">Amount to pay</span>
-                <CommercePrice
-                  amount={pendingPaymentCheckout?.totalAmount ?? 0}
-                  className="justify-end"
-                />
-              </div>
-            </div>
-
-            {paymentSuccessMessage ? (
-              <div className="rounded-[1.4rem] border border-[#cce4d1] bg-[#e7f5ea] px-4 py-3 text-sm text-[#2f7a46]">
-                {paymentSuccessMessage}
-              </div>
-            ) : null}
-
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="payment-mobile-number">Mobile number</Label>
-                <Input
-                  id="payment-mobile-number"
-                  value={paymentMobileNumber}
-                  onChange={(event) => setPaymentMobileNumber(event.target.value)}
-                  className="h-12 rounded-xl border-[#e1d4c6] bg-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="payment-contact-email">Email</Label>
-                <Input
-                  id="payment-contact-email"
-                  type="email"
-                  value={paymentContactEmail}
-                  onChange={(event) => setPaymentContactEmail(event.target.value)}
-                  className="h-12 rounded-xl border-[#e1d4c6] bg-white"
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-[#ddd1c2] bg-white/85 px-5 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white"
-                onClick={() => {
-                  setIsPaymentDialogOpen(false)
-                  if (!paymentSuccessMessage) {
-                    setPendingPaymentCheckout(null)
-                  }
-                }}
-                disabled={isConfirmingPayment}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="rounded-xl bg-[#201712] px-5 text-white hover:bg-[#31231b]"
-                onClick={() => void handleCompleteDummyPayment()}
-                disabled={isConfirmingPayment || Boolean(paymentSuccessMessage)}
-              >
-                {isConfirmingPayment ? "Processing..." : "Pay now"}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
         <DialogContent className="w-[min(94vw,58rem)] gap-5 rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(252,248,243,0.96))] p-0 shadow-[0_36px_90px_-52px_rgba(48,31,19,0.28)]">
@@ -1841,6 +1990,12 @@ export function StorefrontCheckoutPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </StorefrontLayout>
+    </>
   )
+
+  if (embedded) {
+    return checkoutContent
+  }
+
+  return <StorefrontLayout showCategoryMenu={false}>{checkoutContent}</StorefrontLayout>
 }

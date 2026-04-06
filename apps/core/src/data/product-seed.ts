@@ -135,6 +135,8 @@ function createSeedProduct(input: {
       sleeve: null,
       occasion: null,
       shippingNote: "Shared core seed product.",
+      shippingCharge: null,
+      handlingCharge: null,
       isActive: true,
       createdAt: timestamp,
       updatedAt: timestamp,

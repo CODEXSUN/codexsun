@@ -63,6 +63,56 @@ function defineMailboxTemplate(
   })
 }
 
+function buildStorefrontMailFrame(input: {
+  eyebrow: string
+  title: string
+  summary: string
+  accentFrom: string
+  accentTo: string
+  bodyHtml: string
+}) {
+  return `
+    <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#201711;">
+      <div style="margin:0 auto;max-width:680px;overflow:hidden;border:1px solid #e7dcc9;border-radius:30px;background:#fffaf5;box-shadow:0 20px 60px rgba(88, 56, 31, 0.14);">
+        <div style="background:linear-gradient(135deg,${input.accentFrom} 0%,${input.accentTo} 100%);padding:32px 34px;color:#fff7ef;">
+          <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.78;">Tm Next Storefront</div>
+          <h1 style="margin:14px 0 0;font-size:32px;line-height:1.18;font-weight:700;">${input.title}</h1>
+          <p style="margin:12px 0 0;max-width:560px;font-size:14px;line-height:1.75;opacity:0.9;">${input.summary}</p>
+          <div style="margin-top:16px;display:inline-flex;align-items:center;border-radius:999px;background:rgba(255,255,255,0.14);padding:8px 12px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">${input.eyebrow}</div>
+        </div>
+        <div style="padding:32px;">
+          ${input.bodyHtml}
+        </div>
+      </div>
+    </div>
+  `
+}
+
+function buildStorefrontFooter() {
+  return `
+    <div style="margin-top:28px;border-top:1px solid #eadfce;padding-top:20px;">
+      <div style="font-size:12px;line-height:1.8;color:#6f6257;">
+        Need help? <a href="{{supportMailTo}}" style="color:#8b5e34;text-decoration:none;">{{supportEmail}}</a> | <a href="{{supportPhoneHref}}" style="color:#8b5e34;text-decoration:none;">{{supportPhone}}</a>
+      </div>
+      <div style="margin-top:8px;font-size:12px;line-height:1.8;color:#6f6257;">
+        Sent by Tm Next - Mail Service
+      </div>
+    </div>
+  `
+}
+
+function buildStorefrontButton(hrefKey: string, labelKey: string) {
+  return `
+    <a href="{{${hrefKey}}}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#221812;color:#fff7ef;padding:13px 20px;font-size:13px;font-weight:700;text-decoration:none;margin:0 12px 12px 0;">{{${labelKey}}}</a>
+  `
+}
+
+function buildStorefrontSecondaryButton(hrefKey: string, labelKey: string) {
+  return `
+    <a href="{{${hrefKey}}}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid #d8c9b8;color:#3b2a1f;padding:13px 20px;font-size:13px;font-weight:700;text-decoration:none;margin:0 12px 12px 0;">{{${labelKey}}}</a>
+  `
+}
+
 export const authPermissions: AuthPermission[] = [
   definePermission(
     "dashboard:view",
@@ -257,11 +307,29 @@ export const mailboxTemplates: MailboxTemplate[] = [
     name: "Workspace Registration OTP",
     category: "auth",
     description: "OTP message sent while creating a new workspace account.",
-    subjectTemplate: "Your codexsun verification code",
-    htmlTemplate:
-      "<p>Hello {{displayName}},</p><p>Your verification code is <strong>{{otp}}</strong>.</p><p>This code expires in {{expiryMinutes}} minutes.</p>",
+    subjectTemplate: "Your Tm Next verification code",
+    htmlTemplate: `
+      <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#1f2937;">
+        <div style="margin:0 auto;max-width:560px;overflow:hidden;border:1px solid #e7dcc9;border-radius:28px;background:#fffdf8;box-shadow:0 18px 50px rgba(148, 120, 84, 0.14);">
+          <div style="background:linear-gradient(135deg,#264653 0%,#3d6b63 100%);padding:28px 32px;color:#f9f6ef;">
+            <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.74;">Tm Next</div>
+            <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;font-weight:700;">Verify your email address</h1>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">Your account request is almost ready. Use the code below to continue registration.</p>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 18px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+            <div style="margin:0 0 22px;border:1px solid #d9ead3;border-radius:22px;background:#edf8ec;padding:18px 22px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:#3b6b43;">One-time password</div>
+              <div style="margin-top:10px;font-size:34px;letter-spacing:0.36em;font-weight:700;color:#1d4d2b;">{{otp}}</div>
+            </div>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.8;color:#4b5563;">This code expires in <strong>{{expiryMinutes}} minutes</strong>. If you did not request this, you can safely ignore this email.</p>
+            <div style="border-top:1px solid #eee4d5;padding-top:16px;font-size:12px;line-height:1.7;color:#6b7280;">Sent by Tm Next - Mail Service</div>
+          </div>
+        </div>
+      </div>
+    `,
     textTemplate:
-      "Hello {{displayName}}, your verification code is {{otp}}. This code expires in {{expiryMinutes}} minutes.",
+      "Tm Next verification\n\nHello {{displayName}},\nYour verification code is {{otp}}.\nThis code expires in {{expiryMinutes}} minutes.\nIf you did not request this, you can ignore this email.",
     sampleData: {
       displayName: "Workspace User",
       otp: "123456",
@@ -276,11 +344,29 @@ export const mailboxTemplates: MailboxTemplate[] = [
     name: "Password Reset OTP",
     category: "auth",
     description: "OTP message sent while resetting an account password.",
-    subjectTemplate: "Reset your codexsun password",
-    htmlTemplate:
-      "<p>Hello {{displayName}},</p><p>Use <strong>{{otp}}</strong> to reset your password.</p><p>This code expires in {{expiryMinutes}} minutes.</p>",
+    subjectTemplate: "Reset your Tm Next password",
+    htmlTemplate: `
+      <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#1f2937;">
+        <div style="margin:0 auto;max-width:560px;overflow:hidden;border:1px solid #e7dcc9;border-radius:28px;background:#fffdf8;box-shadow:0 18px 50px rgba(148, 120, 84, 0.14);">
+          <div style="background:linear-gradient(135deg,#6b3f1d 0%,#b05f1b 100%);padding:28px 32px;color:#fff7ed;">
+            <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.74;">Tm Next</div>
+            <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;font-weight:700;">Reset your password</h1>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">Use this one-time code to confirm your password reset.</p>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 18px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+            <div style="margin:0 0 22px;border:1px solid #f1d0af;border-radius:22px;background:#fff1e2;padding:18px 22px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:#9a4f17;">Reset code</div>
+              <div style="margin-top:10px;font-size:34px;letter-spacing:0.36em;font-weight:700;color:#7c2d12;">{{otp}}</div>
+            </div>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.8;color:#4b5563;">This code expires in <strong>{{expiryMinutes}} minutes</strong>.</p>
+            <div style="border-top:1px solid #eee4d5;padding-top:16px;font-size:12px;line-height:1.7;color:#6b7280;">Sent by Tm Next - Mail Service</div>
+          </div>
+        </div>
+      </div>
+    `,
     textTemplate:
-      "Hello {{displayName}}, use {{otp}} to reset your password. This code expires in {{expiryMinutes}} minutes.",
+      "Tm Next password reset\n\nHello {{displayName}},\nUse {{otp}} to reset your password.\nThis code expires in {{expiryMinutes}} minutes.",
     sampleData: {
       displayName: "Workspace User",
       otp: "123456",
@@ -295,15 +381,307 @@ export const mailboxTemplates: MailboxTemplate[] = [
     name: "Account Recovery OTP",
     category: "auth",
     description: "OTP message sent while restoring a disabled account.",
-    subjectTemplate: "Restore your codexsun account",
-    htmlTemplate:
-      "<p>Hello {{displayName}},</p><p>Use <strong>{{otp}}</strong> to restore your account.</p><p>This code expires in {{expiryMinutes}} minutes.</p>",
+    subjectTemplate: "Restore your Tm Next account",
+    htmlTemplate: `
+      <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#1f2937;">
+        <div style="margin:0 auto;max-width:560px;overflow:hidden;border:1px solid #e7dcc9;border-radius:28px;background:#fffdf8;box-shadow:0 18px 50px rgba(148, 120, 84, 0.14);">
+          <div style="background:linear-gradient(135deg,#1f4b6e 0%,#326d8f 100%);padding:28px 32px;color:#f0f9ff;">
+            <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.74;">Tm Next</div>
+            <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;font-weight:700;">Restore your account</h1>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">Use this code to restore access to your account.</p>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 18px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+            <div style="margin:0 0 22px;border:1px solid #bfd8ea;border-radius:22px;background:#edf6fb;padding:18px 22px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:#1d5b83;">Restore code</div>
+              <div style="margin-top:10px;font-size:34px;letter-spacing:0.36em;font-weight:700;color:#1f4b6e;">{{otp}}</div>
+            </div>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.8;color:#4b5563;">This code expires in <strong>{{expiryMinutes}} minutes</strong>.</p>
+            <div style="border-top:1px solid #eee4d5;padding-top:16px;font-size:12px;line-height:1.7;color:#6b7280;">Sent by Tm Next - Mail Service</div>
+          </div>
+        </div>
+      </div>
+    `,
     textTemplate:
-      "Hello {{displayName}}, use {{otp}} to restore your account. This code expires in {{expiryMinutes}} minutes.",
+      "Tm Next account recovery\n\nHello {{displayName}},\nUse {{otp}} to restore your account.\nThis code expires in {{expiryMinutes}} minutes.",
     sampleData: {
       displayName: "Workspace User",
       otp: "123456",
       expiryMinutes: 10,
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:storefront-customer-welcome",
+    code: "storefront_customer_welcome",
+    name: "Storefront Customer Welcome",
+    category: "storefront",
+    description: "Warm welcome email sent when a new storefront customer account is created.",
+    subjectTemplate: "Welcome to {{storeName}}",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Customer portal ready",
+      title: "Your storefront account is ready",
+      summary:
+        "A warm welcome from Tm Next. Your customer portal is open and a fresh set of arrivals is waiting for you.",
+      accentFrom: "#5b2f1f",
+      accentTo: "#d38b3a",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#5f5146;">{{summary}}</p>
+        <div style="margin:0 0 22px;border:1px solid #e7dcc9;border-radius:24px;background:#fffdf9;padding:18px 20px;">
+          <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#8b715d;">Storefront note</div>
+          <div style="margin-top:8px;font-size:14px;line-height:1.75;color:#3f3128;">{{announcement}}</div>
+        </div>
+        <div style="margin:0 0 26px;">
+          ${buildStorefrontButton("shopNowUrl", "shopNowLabel")}
+          ${buildStorefrontSecondaryButton("accountUrl", "accountLabel")}
+        </div>
+        <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#8b715d;">Fresh arrivals</div>
+        <div style="margin-top:16px;font-size:0;">
+          {{productCardsHtml}}
+        </div>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "Welcome to {{storeName}}\n\nHello {{displayName}},\n{{summary}}\n\nBrowse the store: {{shopNowUrl}}\nOpen your customer portal: {{accountUrl}}\nSupport: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      storeName: "Tm Next Storefront",
+      displayName: "Sundar",
+      summary:
+        "Your customer portal is live. Browse fresh arrivals, manage orders, and keep your next factory-direct pick just a click away.",
+      announcement: "Free shipping on prepaid orders above Rs. 3,999 across the primary storefront catalog.",
+      shopNowUrl: "http://localhost:5173/shop/catalog",
+      shopNowLabel: "Start shopping",
+      accountUrl: "http://localhost:5173/profile",
+      accountLabel: "Open customer portal",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
+      productCardsHtml:
+        "<div style=\"display:inline-block;vertical-align:top;width:calc(50% - 10px);max-width:calc(50% - 10px);margin:0 10px 16px 0;border:1px solid #e6d8c8;border-radius:18px;padding:16px;background:#fffaf4;\">New arrival spotlight 01</div><div style=\"display:inline-block;vertical-align:top;width:calc(50% - 10px);max-width:calc(50% - 10px);margin:0 0 16px 0;border:1px solid #e6d8c8;border-radius:18px;padding:16px;background:#fffaf4;\">New arrival spotlight 02</div><div style=\"display:inline-block;vertical-align:top;width:calc(50% - 10px);max-width:calc(50% - 10px);margin:0 10px 16px 0;border:1px solid #e6d8c8;border-radius:18px;padding:16px;background:#fffaf4;\">New arrival spotlight 03</div><div style=\"display:inline-block;vertical-align:top;width:calc(50% - 10px);max-width:calc(50% - 10px);margin:0 0 16px 0;border:1px solid #e6d8c8;border-radius:18px;padding:16px;background:#fffaf4;\">New arrival spotlight 04</div>",
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:storefront-campaign-subscription",
+    code: "storefront_campaign_subscription",
+    name: "Storefront Campaign Subscription",
+    category: "storefront",
+    description: "Confirmation email sent when a customer opts into storefront campaigns.",
+    subjectTemplate: "You are subscribed to {{storeName}} updates",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Campaign updates",
+      title: "You are on the list",
+      summary:
+        "Subscribers receive new-arrival drops, curated offers, and campaign-led storefront notes before the wider audience.",
+      accentFrom: "#50301f",
+      accentTo: "#b26c33",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#5f5146;">{{summary}}</p>
+        <div style="margin:0 0 24px;border:1px solid #eed8bf;border-radius:24px;background:#fff5e9;padding:18px 20px;">
+          <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#a45a1f;">What you will get</div>
+          <ul style="margin:12px 0 0;padding-left:18px;color:#4f3f33;font-size:14px;line-height:1.8;">
+            <li>First look at curated new arrivals</li>
+            <li>Limited storefront promotions</li>
+            <li>Customer-only campaign notes and launch reminders</li>
+          </ul>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px;">
+          ${buildStorefrontButton("catalogUrl", "catalogLabel")}
+        </div>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "You are subscribed to {{storeName}} updates\n\nHello {{displayName}},\n{{summary}}\n\nBrowse latest arrivals: {{catalogUrl}}\nSupport: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      storeName: "Tm Next Storefront",
+      displayName: "Sundar",
+      summary:
+        "You are subscribed to launch drops, curated offers, and customer-only campaign notes from the storefront.",
+      catalogUrl: "http://localhost:5173/shop/catalog",
+      catalogLabel: "Browse latest arrivals",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:storefront-order-confirmed",
+    code: "storefront_order_confirmed",
+    name: "Storefront Order Confirmed",
+    category: "storefront",
+    description: "Order confirmation email sent after a storefront payment is verified.",
+    subjectTemplate: "Your order {{orderNumber}} is confirmed",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Order confirmed",
+      title: "Your order is locked in",
+      summary:
+        "Payment is captured and the storefront team can move into fulfillment. The full order summary stays below for a quick review.",
+      accentFrom: "#6d2e1f",
+      accentTo: "#e08a32",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <div style="margin:0 0 24px;border:1px solid #f2d7bf;border-radius:24px;background:#fff3e6;padding:22px;">
+          <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9b561d;">Order reference</div>
+              <div style="margin-top:8px;font-size:22px;line-height:1.2;font-weight:700;color:#4f2618;">{{orderNumber}}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9b561d;">Grand total</div>
+              <div style="margin-top:8px;font-size:22px;line-height:1.2;font-weight:700;color:#4f2618;">{{totalAmount}}</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:13px;line-height:1.8;color:#7a4b2d;">Status: {{orderStatus}} | Payment: {{paymentStatus}} | Purchased: {{purchasedAt}}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0 0 24px;">
+          {{milestoneCardsHtml}}
+        </div>
+        <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#8b715d;">Purchased items</div>
+        <div style="margin-top:18px;">
+          {{orderItemsHtml}}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin:24px 0 0;">
+          ${buildStorefrontButton("orderUrl", "orderUrlLabel")}
+          ${buildStorefrontSecondaryButton("reviewUrl", "orderUrlLabel")}
+        </div>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "Your order {{orderNumber}} is confirmed\n\nHello {{displayName}},\nTotal: {{totalAmount}}\nStatus: {{orderStatus}}\nPayment: {{paymentStatus}}\nPurchased: {{purchasedAt}}\n\nOpen order details: {{orderUrl}}\nSupport: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      storeName: "Tm Next Storefront",
+      displayName: "Sundar",
+      orderNumber: "ECM-20260406-0001",
+      orderStatus: "confirmed",
+      totalAmount: "Rs. 4,499",
+      purchasedAt: "Apr 6, 2026, 5:30 PM",
+      paymentStatus: "paid",
+      orderUrl: "http://localhost:5173/customer/orders/storefront-order%3A123",
+      orderUrlLabel: "Open order details",
+      reviewUrl: "http://localhost:5173/customer/orders/storefront-order%3A123",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
+      milestoneCardsHtml:
+        "<div style=\"border-radius:18px;background:#edf7ee;padding:14px;\">Purchased</div>",
+      orderItemsHtml:
+        "<div style=\"border:1px solid #eadfce;border-radius:18px;padding:14px;background:#fffaf4;\">Order item summary</div>",
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:storefront-order-review-request",
+    code: "storefront_order_review_request",
+    name: "Storefront Order Review Request",
+    category: "storefront",
+    description: "Review request template kept ready for delivered storefront orders.",
+    subjectTemplate: "How did order {{orderNumber}} feel?",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Review request",
+      title: "Tell us how your order felt",
+      summary:
+        "A short review helps the storefront team improve fit, finish, and service details for the next customer.",
+      accentFrom: "#5a321d",
+      accentTo: "#c27a3f",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#5f5146;">Your order <strong>{{orderNumber}}</strong> has reached you. If the fit, fabric, and finish matched expectations, a quick review would help the next buyer.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px;">
+          ${buildStorefrontButton("reviewUrl", "reviewLabel")}
+        </div>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "How did order {{orderNumber}} feel?\n\nHello {{displayName}},\nLeave a quick review here: {{reviewUrl}}\nSupport: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      displayName: "Sundar",
+      orderNumber: "ECM-20260406-0001",
+      reviewUrl: "http://localhost:5173/customer/orders/storefront-order%3A123",
+      reviewLabel: "Leave a review",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:storefront-order-shipped",
+    code: "storefront_order_shipped",
+    name: "Storefront Order Shipped",
+    category: "storefront",
+    description: "Shipment update template ready for storefront fulfillment events.",
+    subjectTemplate: "Order {{orderNumber}} is on the way",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Shipment update",
+      title: "Your order is moving",
+      summary:
+        "A ready-to-use shipment notification template for future fulfillment automation inside the storefront.",
+      accentFrom: "#1f4966",
+      accentTo: "#4f7897",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#5f5146;">Order <strong>{{orderNumber}}</strong> is on the way. Tracking and delivery updates can be shared through this template when shipment events are connected.</p>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "Order {{orderNumber}} is on the way\n\nHello {{displayName}},\nTracking updates will follow.\nSupport: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      displayName: "Sundar",
+      orderNumber: "ECM-20260406-0001",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:storefront-order-delivered",
+    code: "storefront_order_delivered",
+    name: "Storefront Order Delivered",
+    category: "storefront",
+    description: "Delivery confirmation template ready for storefront fulfillment events.",
+    subjectTemplate: "Order {{orderNumber}} was delivered",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Delivered",
+      title: "Your order has arrived",
+      summary:
+        "A delivery confirmation template kept ready for future storefront automation and follow-up care.",
+      accentFrom: "#214d38",
+      accentTo: "#5a876a",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#5f5146;">Order <strong>{{orderNumber}}</strong> shows as delivered. If anything feels off, support is ready below.</p>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "Order {{orderNumber}} was delivered\n\nHello {{displayName}},\nIf anything feels off, contact support: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      displayName: "Sundar",
+      orderNumber: "ECM-20260406-0001",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
     },
     isSystem: true,
     isActive: true,

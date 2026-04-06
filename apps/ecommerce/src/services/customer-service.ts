@@ -18,7 +18,10 @@ import {
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import type { AuthUser } from "../../../cxapp/shared/schemas/auth.js"
-import { createAuthService } from "../../../cxapp/src/services/service-factory.js"
+import {
+  createAuthService,
+  createMailboxService,
+} from "../../../cxapp/src/services/service-factory.js"
 import {
   customerPortalPreferencesUpdatePayloadSchema,
   customerPortalRecordSchema,
@@ -38,6 +41,11 @@ import {
 import { ecommerceTableNames } from "../../database/table-names.js"
 import { readStorefrontOrders } from "./storefront-order-storage.js"
 import { readCoreProducts, toStorefrontProductCard } from "./catalog-service.js"
+import { getStorefrontSettings } from "./storefront-settings-service.js"
+import {
+  sendStorefrontCampaignSubscriptionEmail,
+  sendStorefrontWelcomeEmail,
+} from "./storefront-mail-service.js"
 
 const systemActor: AuthUser = {
   id: "auth-user:ecommerce-system",
@@ -114,6 +122,20 @@ async function writeCustomerPortalRecords(database: Kysely<unknown>, items: Cust
 
 async function readOrders(database: Kysely<unknown>) {
   return readStorefrontOrders(database)
+}
+
+function orderBelongsToAccount(order: StorefrontOrder, account: CustomerAccount) {
+  if (order.customerAccountId === account.id) {
+    return true
+  }
+
+  const accountEmail = account.email.trim().toLowerCase()
+  const shippingEmail = order.shippingAddress.email.trim().toLowerCase()
+
+  return (
+    order.coreContactId === account.coreContactId ||
+    shippingEmail === accountEmail
+  )
 }
 
 function inferRewardsTier(pointsBalance: number) {
@@ -239,6 +261,15 @@ function upsertPortalRecord(
   )
 }
 
+async function listWelcomeMailProducts(database: Kysely<unknown>) {
+  const products = (await readCoreProducts(database))
+    .filter((item) => item.isActive)
+    .map((item) => toStorefrontProductCard(item))
+
+  const newArrivals = products.filter((item) => item.isNewArrival)
+  return (newArrivals.length > 0 ? newArrivals : products).slice(0, 4)
+}
+
 async function ensureCustomerPortalRecord(
   database: Kysely<unknown>,
   account: CustomerAccount
@@ -330,7 +361,7 @@ async function buildCustomerPortalResponse(
     .filter((item) => item.isActive)
     .map(toStorefrontProductCard)
 
-  const customerOrders = orders.filter((item) => item.customerAccountId === account.id)
+  const customerOrders = orders.filter((item) => orderBelongsToAccount(item, account))
 
   return customerPortalResponseSchema.parse({
     profile,
@@ -591,6 +622,23 @@ export async function registerCustomer(
   await writeCustomerAccounts(database, [account, ...accounts])
   await ensureCustomerPortalRecord(database, account)
 
+  try {
+    const [settings, newArrivalItems] = await Promise.all([
+      getStorefrontSettings(database),
+      listWelcomeMailProducts(database),
+    ])
+
+    await sendStorefrontWelcomeEmail({
+      mailboxService: createMailboxService(database, config),
+      config,
+      settings,
+      account,
+      newArrivalItems,
+    })
+  } catch (error) {
+    console.error("Unable to send storefront welcome email.", error)
+  }
+
   return buildCustomerProfile(database, account)
 }
 
@@ -708,6 +756,8 @@ export async function updateCustomerPortalPreferences(
   const account = await resolveAuthenticatedCustomerAccount(database, config, token)
   const records = await readCustomerPortalRecords(database)
   const record = await ensureCustomerPortalRecord(database, account)
+  const shouldSendSubscriptionMail =
+    record.preferences.marketingEmails === false && parsed.marketingEmails === true
   const updatedRecord = customerPortalRecordSchema.parse({
     ...record,
     preferences: {
@@ -721,6 +771,19 @@ export async function updateCustomerPortalPreferences(
     database,
     upsertPortalRecord(records, updatedRecord)
   )
+
+  if (shouldSendSubscriptionMail) {
+    try {
+      await sendStorefrontCampaignSubscriptionEmail({
+        mailboxService: createMailboxService(database, config),
+        config,
+        settings: await getStorefrontSettings(database),
+        account,
+      })
+    } catch (error) {
+      console.error("Unable to send storefront campaign subscription email.", error)
+    }
+  }
 
   return buildCustomerPortalResponse(database, account)
 }

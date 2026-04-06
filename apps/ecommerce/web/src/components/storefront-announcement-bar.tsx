@@ -15,6 +15,7 @@ type StorefrontAnnouncementBarProps = {
 type AnnouncementItem = {
   id: string
   text: string
+  fullText: string
   href?: string
 }
 
@@ -26,6 +27,59 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
+function clampAnnouncementText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}...`
+}
+
+function buildShippingAnnouncement(remainingAmount: number, threshold: number) {
+  const fullText =
+    remainingAmount > 0
+      ? `Add ${formatCurrency(remainingAmount)} more to unlock free shipping on prepaid orders above ${formatCurrency(threshold)}.`
+      : "Free shipping unlocked for your current cart."
+
+  const text =
+    remainingAmount > 0
+      ? `Add ${formatCurrency(remainingAmount)} more for free shipping above ${formatCurrency(threshold)}.`
+      : "Free shipping unlocked for your cart."
+
+  return { text, fullText }
+}
+
+function buildSupportAnnouncement(params: {
+  supportEmail?: string | null
+  supportPhone?: string | null
+}) {
+  const email = params.supportEmail?.trim() || ""
+  const phone = params.supportPhone?.trim() || ""
+  const supportParts = [email, phone].filter(Boolean)
+
+  if (phone) {
+    return {
+      text: clampAnnouncementText(`Need help? Support: ${phone}`, 52),
+      fullText:
+        supportParts.length > 1
+          ? `Need help? Reach support at ${supportParts.join(" or ")}.`
+          : `Need help? Reach support at ${phone}.`,
+    }
+  }
+
+  if (email) {
+    return {
+      text: clampAnnouncementText(`Need help? Support: ${email}`, 52),
+      fullText: `Need help? Reach support at ${email}.`,
+    }
+  }
+
+  return {
+    text: "Need help? Track orders and contact support.",
+    fullText: "Need help? Track your order and reach the storefront support team.",
+  }
+}
+
 export function StorefrontAnnouncementBar({
   landing,
   cartSubtotalAmount,
@@ -35,34 +89,35 @@ export function StorefrontAnnouncementBar({
   const items = useMemo<AnnouncementItem[]>(() => {
     const threshold = Math.max(settings?.freeShippingThreshold ?? 3999, 0)
     const remainingAmount = Math.max(threshold - cartSubtotalAmount, 0)
-    const supportParts = [settings?.supportEmail?.trim(), settings?.supportPhone?.trim()].filter(
-      (value): value is string => Boolean(value)
-    )
     const nextItems: AnnouncementItem[] = []
 
     if (visibility?.announcement && settings?.announcement?.trim()) {
+      const fullText = settings.announcement.trim()
       nextItems.push({
         id: "announcement",
-        text: settings.announcement.trim(),
+        text: clampAnnouncementText(fullText, 78),
+        fullText,
         href: storefrontPaths.catalog(),
       })
     }
 
     if (visibility?.support) {
+      const shippingAnnouncement = buildShippingAnnouncement(remainingAmount, threshold)
+      const supportAnnouncement = buildSupportAnnouncement({
+        supportEmail: settings?.supportEmail,
+        supportPhone: settings?.supportPhone,
+      })
+
       nextItems.push({
         id: "shipping",
-        text:
-          remainingAmount > 0
-            ? `Add ${formatCurrency(remainingAmount)} more to unlock free shipping on prepaid orders above ${formatCurrency(threshold)}.`
-            : "Free shipping unlocked for your current cart.",
+        text: shippingAnnouncement.text,
+        fullText: shippingAnnouncement.fullText,
         href: remainingAmount > 0 ? storefrontPaths.catalog() : storefrontPaths.cart(),
       })
       nextItems.push({
         id: "support",
-        text:
-          supportParts.length > 0
-            ? `Need help? Reach support at ${supportParts.join(" or ")}.`
-            : "Need help? Track your order and reach the storefront support team.",
+        text: supportAnnouncement.text,
+        fullText: supportAnnouncement.fullText,
         href: storefrontPaths.trackOrder(),
       })
     }
@@ -125,20 +180,21 @@ export function StorefrontAnnouncementBar({
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-        className="flex min-w-0 items-center gap-3"
+        className="flex w-full min-w-0 items-center gap-2.5"
+        title={activeItem.fullText}
       >
         <Icon
           className="size-4 shrink-0"
           style={{ color: design?.iconColor ?? "#f6c453" }}
         />
-        <span className="truncate">{activeItem.text}</span>
+        <span className="min-w-0 flex-1 truncate">{activeItem.text}</span>
       </motion.span>
     </AnimatePresence>
   )
 
   return (
     <section
-      className={`${roundedClass} border px-5 py-3 text-sm shadow-lg`}
+      className={`${roundedClass} w-full overflow-hidden border px-4 py-3 text-[13px] shadow-lg sm:px-5 sm:text-sm`}
       style={{
         borderColor: "rgba(214, 200, 182, 0.8)",
         backgroundColor: design?.backgroundColor ?? "#221812",
@@ -148,12 +204,13 @@ export function StorefrontAnnouncementBar({
       {activeItem.href ? (
         <Link
           to={normalizeStorefrontHref(activeItem.href) ?? activeItem.href}
-          className="flex items-center overflow-hidden whitespace-nowrap"
+          className="flex w-full min-w-0 items-center overflow-hidden whitespace-nowrap"
+          title={activeItem.fullText}
         >
           {content}
         </Link>
       ) : (
-        <div className="flex items-center overflow-hidden whitespace-nowrap">
+        <div className="flex w-full min-w-0 items-center overflow-hidden whitespace-nowrap">
           {content}
         </div>
       )}

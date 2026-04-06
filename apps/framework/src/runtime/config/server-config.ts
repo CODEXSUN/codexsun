@@ -139,6 +139,9 @@ export type ServerConfig = {
       enabled: boolean
       keyId?: string
       keySecret?: string
+      businessName: string
+      checkoutImage?: string
+      themeColor?: string
     }
   }
 }
@@ -146,6 +149,13 @@ export type ServerConfig = {
 export function getServerConfig(cwd = process.cwd()): ServerConfig {
   const env = resolveEnv(cwd)
   const tlsEnabled = readBoolean(env.TLS_ENABLED, false)
+  const razorpayKeyId = env.RAZORPAY_KEY_ID?.trim() || undefined
+  const razorpayKeySecret = env.RAZORPAY_KEY_SECRET?.trim() || undefined
+  const legacyPaymentTest = readBoolean(env.PAYMENT_TEST, false)
+  const razorpayEnabled =
+    env.RAZORPAY_ENABLED != null
+      ? readBoolean(env.RAZORPAY_ENABLED, false)
+      : Boolean(razorpayKeyId && razorpayKeySecret && !legacyPaymentTest)
   const sqliteFile = path.resolve(cwd, env.SQLITE_FILE ?? "storage/desktop/codexsun.sqlite")
   const analyticsEnabled = readBoolean(env.ANALYTICS_DB_ENABLED, false)
   const superAdminEmails = Array.from(
@@ -290,9 +300,12 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         ),
       },
       razorpay: {
-        enabled: readBoolean(env.RAZORPAY_ENABLED, false),
-        keyId: env.RAZORPAY_KEY_ID?.trim() || undefined,
-        keySecret: env.RAZORPAY_KEY_SECRET?.trim() || undefined,
+        enabled: razorpayEnabled,
+        keyId: razorpayKeyId,
+        keySecret: razorpayKeySecret,
+        businessName: env.RAZORPAY_BUSINESS_NAME?.trim() || "Tirupur Direct",
+        checkoutImage: env.RAZORPAY_CHECKOUT_IMAGE?.trim() || undefined,
+        themeColor: env.RAZORPAY_THEME_COLOR?.trim() || undefined,
       },
     },
   }

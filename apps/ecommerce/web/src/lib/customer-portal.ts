@@ -16,6 +16,7 @@ export type PortalSectionId =
   | "profile"
   | "wishlist"
   | "cart"
+  | "checkout"
   | "orders"
   | "support"
   | "coupons"
@@ -52,6 +53,12 @@ export const customerPortalSections: CustomerPortalSection[] = [
     id: "cart",
     label: "Cart",
     summary: "Live local cart summary with a direct move to checkout.",
+    icon: ShoppingCart,
+  },
+  {
+    id: "checkout",
+    label: "Checkout",
+    summary: "Complete delivery, payment, and order confirmation without leaving the portal.",
     icon: ShoppingCart,
   },
   {

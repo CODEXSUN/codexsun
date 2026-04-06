@@ -43,6 +43,7 @@ export function RequestAccessPage() {
       const response = await auth.requestRegisterOtp({
         channel: "email",
         destination: form.email.trim().toLowerCase(),
+        displayName: form.name.trim(),
       })
       setVerificationId(response.verificationId)
       setDebugOtp(response.debugOtp)
@@ -68,6 +69,7 @@ export function RequestAccessPage() {
         const response = await auth.requestRegisterOtp({
           channel: "email",
           destination: form.email.trim().toLowerCase(),
+          displayName: form.name.trim(),
         })
         setVerificationId(response.verificationId)
         setDebugOtp(response.debugOtp)

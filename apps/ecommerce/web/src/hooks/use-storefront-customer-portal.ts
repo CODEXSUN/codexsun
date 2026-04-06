@@ -31,6 +31,7 @@ export function useStorefrontCustomerPortal() {
     queryFn: () => storefrontApi.getCustomerPortal(accessToken!),
     enabled: Boolean(accessToken && customerAuth.isAuthenticated),
     staleTime: 30_000,
+    refetchOnMount: "always",
   })
 
   const ordersQuery = useQuery({
@@ -38,6 +39,7 @@ export function useStorefrontCustomerPortal() {
     queryFn: () => storefrontApi.listCustomerOrders(accessToken!),
     enabled: Boolean(accessToken && customerAuth.isAuthenticated),
     staleTime: 30_000,
+    refetchOnMount: "always",
   })
 
   const toggleWishlistMutation = useMutation({

@@ -216,6 +216,8 @@ export function StorefrontCatalogPage() {
                       imageUrl: item.primaryImageUrl,
                       unitPrice: item.sellingPrice,
                       mrp: item.mrp,
+                      shippingCharge: item.shippingCharge,
+                      handlingCharge: item.handlingCharge,
                     })
                   }
                 />

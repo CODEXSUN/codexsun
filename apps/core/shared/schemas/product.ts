@@ -2,6 +2,14 @@ import { z } from "zod"
 
 import { dashStringField } from "./address-book.js"
 
+const nullableChargeField = z.preprocess((value) => {
+  if (value === undefined || value === null || value === "") {
+    return null
+  }
+
+  return value
+}, z.number().finite().nonnegative().nullable())
+
 export const storefrontDepartmentSchema = z.enum([
   "women",
   "men",
@@ -186,6 +194,8 @@ export const productStorefrontSchema = z.object({
   sleeve: z.string().nullable(),
   occasion: z.string().nullable(),
   shippingNote: z.string().nullable(),
+  shippingCharge: nullableChargeField,
+  handlingCharge: nullableChargeField,
   isActive: z.boolean(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -404,6 +414,8 @@ export const productStorefrontInputSchema = z.object({
   sleeve: dashStringField,
   occasion: dashStringField,
   shippingNote: dashStringField,
+  shippingCharge: nullableChargeField.optional().default(null),
+  handlingCharge: nullableChargeField.optional().default(null),
   isActive: z.boolean().optional().default(true),
 })
 

@@ -3,6 +3,7 @@ import { coreCompaniesMigration as cxappCompaniesMigration } from "./02-companie
 import { coreAuthFoundationMigration as cxappAuthFoundationMigration } from "./05-auth-foundation.js"
 import { coreAuthSessionsMigration as cxappAuthSessionsMigration } from "./06-auth-sessions.js"
 import { coreMailboxMigration as cxappMailboxMigration } from "./07-mailbox.js"
+import { coreMailboxArchiveMigration as cxappMailboxArchiveMigration } from "./08-mailbox-archive.js"
 import { coreAuthPermissionScopeMigration as cxappAuthPermissionScopeMigration } from "./13-auth-permission-scope.js"
 import { coreAuthOptionCatalogMigration as cxappAuthOptionCatalogMigration } from "./14-auth-option-catalog.js"
 
@@ -12,6 +13,7 @@ export const cxappDatabaseMigrations = [
   cxappAuthFoundationMigration,
   cxappAuthSessionsMigration,
   cxappMailboxMigration,
+  cxappMailboxArchiveMigration,
   cxappAuthPermissionScopeMigration,
   cxappAuthOptionCatalogMigration,
 ]

@@ -24,6 +24,15 @@ export const storefrontOrderItemSchema = z.object({
   name: z.string().min(1),
   brandName: z.string().nullable(),
   imageUrl: z.string().nullable(),
+  variantLabel: z.string().nullable().default(null),
+  attributes: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        value: z.string().min(1),
+      })
+    )
+    .default([]),
   quantity: z.number().int().min(1),
   unitPrice: z.number().finite().nonnegative(),
   mrp: z.number().finite().nonnegative(),
@@ -46,6 +55,9 @@ export const storefrontPaymentSessionSchema = z.object({
   amount: z.number().int().nonnegative(),
   currency: z.string().min(1),
   receipt: z.string().min(1),
+  businessName: z.string().min(1),
+  checkoutImage: z.string().nullable(),
+  themeColor: z.string().nullable(),
 })
 
 export const storefrontOrderSchema = z.object({
@@ -73,6 +85,7 @@ export const storefrontOrderSchema = z.object({
   subtotalAmount: z.number().finite().nonnegative(),
   discountAmount: z.number().finite().nonnegative(),
   shippingAmount: z.number().finite().nonnegative(),
+  handlingAmount: z.number().finite().nonnegative(),
   totalAmount: z.number().finite().nonnegative(),
   currency: z.string().min(1),
   notes: z.string().nullable(),
@@ -118,6 +131,9 @@ export const storefrontPaymentConfigSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum(["live", "mock"]),
   keyId: z.string().nullable(),
+  businessName: z.string().min(1),
+  checkoutImage: z.string().nullable(),
+  themeColor: z.string().nullable(),
 })
 
 export type StorefrontAddress = z.infer<typeof storefrontAddressSchema>

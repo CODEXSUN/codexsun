@@ -4,6 +4,7 @@ import {
   Home,
   Images,
   KeyRound,
+  Mail,
   RefreshCcw,
   Settings2,
   ShieldCheck,
@@ -53,6 +54,17 @@ const frameworkUtilityGroups = [
         icon: Images,
         name: "Media Manager",
         route: "/dashboard/media",
+      },
+    ],
+  },
+  {
+    id: "mail",
+    label: "Mail",
+    items: [
+      {
+        icon: Mail,
+        name: "Mail Service",
+        route: "/dashboard/mail-service",
       },
     ],
   },
@@ -435,6 +447,7 @@ export function AppSidebar() {
   const demoMenuCounts = useDemoMenuCounts(currentApp?.id === "demo")
   const showFrameworkUtilityGroups =
     showDeskGroup ||
+    isRouteActive(location.pathname, "/dashboard/mail-service") ||
     isRouteActive(location.pathname, links.mediaManager) ||
     isRouteActive(location.pathname, links.settings) ||
     isRouteActive(location.pathname, links.systemUpdate)

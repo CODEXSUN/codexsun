@@ -10,6 +10,8 @@ type StorefrontCartItem = {
   quantity: number
   unitPrice: number
   mrp: number
+  shippingCharge?: number | null
+  handlingCharge?: number | null
 }
 
 type StorefrontCartContextValue = {
@@ -29,6 +31,8 @@ function normalizeCartItem(item: StorefrontCartItem): StorefrontCartItem {
   return {
     ...item,
     imageUrl: item.imageUrl ? resolveStorefrontImageUrl(item.imageUrl, item.name) : null,
+    shippingCharge: item.shippingCharge ?? null,
+    handlingCharge: item.handlingCharge ?? null,
   }
 }
 

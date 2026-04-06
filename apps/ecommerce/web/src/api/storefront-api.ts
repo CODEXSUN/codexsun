@@ -70,6 +70,11 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  getPublicStorefrontSettings() {
+    return requestJson<StorefrontSettings>("/public/v1/storefront/settings", {
+      cache: "no-store",
+    })
+  },
   getCatalog(searchParams: URLSearchParams) {
     const url = new URL("/public/v1/storefront/catalog", window.location.origin)
     searchParams.forEach((value, key) => {

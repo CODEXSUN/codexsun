@@ -1,46 +1,138 @@
-import { useEffect, useState } from "react"
-import { Navigate, useParams } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight, List } from "lucide-react"
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
 import type { StorefrontOrderResponse } from "@ecommerce/shared"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CommerceOrderStatusBadge } from "@/components/ux/commerce-order-status-badge"
-import { CommercePrice } from "@/components/ux/commerce-price"
+import { Button } from "@/components/ui/button"
+import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
 
 import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { CustomerPortalLayout } from "../components/customer-portal-layout"
+import { StorefrontOrderDetailCard } from "../components/storefront-order-detail-card"
+import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { storefrontPaths } from "../lib/storefront-routes"
+
+function normalizeRoutedOrderId(value: string) {
+  let normalizedValue = value.trim()
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const decodedValue = decodeURIComponent(normalizedValue)
+
+      if (decodedValue === normalizedValue) {
+        break
+      }
+
+      normalizedValue = decodedValue
+    } catch {
+      break
+    }
+  }
+
+  return normalizedValue
+}
 
 export function StorefrontAccountOrderPage() {
   const { orderId = "" } = useParams()
+  const navigate = useNavigate()
   const customerAuth = useStorefrontCustomerAuth()
+  const customerPortal = useStorefrontCustomerPortal()
+  const normalizedOrderId = useMemo(() => normalizeRoutedOrderId(orderId), [orderId])
   const [data, setData] = useState<StorefrontOrderResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const portalOrders = customerPortal.ordersQuery.data?.items ?? []
+  const currentOrderIndex = portalOrders.findIndex((item) => item.id === normalizedOrderId)
+  const previousOrder = currentOrderIndex >= 0 ? (portalOrders[currentOrderIndex + 1] ?? null) : null
+  const nextOrder = currentOrderIndex > 0 ? (portalOrders[currentOrderIndex - 1] ?? null) : null
 
   useEffect(() => {
-    if (!customerAuth.accessToken) {
+    if (customerAuth.isLoading) {
       return
     }
 
+    if (!customerAuth.accessToken || !normalizedOrderId) {
+      setIsLoading(false)
+      return
+    }
+
+    let isCancelled = false
+
     async function load() {
-      try {
-        setData(
-          await storefrontApi.getCustomerOrder(customerAuth.accessToken!, orderId)
-        )
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error ? loadError.message : "Failed to load order."
-        )
+      setIsLoading(true)
+      setError(null)
+
+      const maxAttempts = 4
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          const response = await storefrontApi.getCustomerOrder(
+            customerAuth.accessToken!,
+            normalizedOrderId
+          )
+
+          if (!isCancelled) {
+            setData(response)
+            setError(null)
+            setIsLoading(false)
+          }
+          return
+        } catch (loadError) {
+          const message =
+            loadError instanceof Error ? loadError.message : "Failed to load order."
+          const shouldRetry =
+            message.includes("Storefront order could not be found.") &&
+            attempt < maxAttempts - 1
+
+          if (!shouldRetry) {
+            if (!isCancelled) {
+              setData(null)
+              setError(message)
+              setIsLoading(false)
+            }
+            return
+          }
+
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, 350)
+          })
+
+          if (isCancelled) {
+            return
+          }
+        }
       }
     }
 
     void load()
-  }, [customerAuth.accessToken, orderId])
+
+    return () => {
+      isCancelled = true
+    }
+  }, [customerAuth.accessToken, customerAuth.isLoading, normalizedOrderId])
+
+  if (customerAuth.isLoading) {
+    return (
+      <CustomerPortalLayout
+        activeSection="orders"
+        title="Order detail"
+        description="Review purchased items, order status, and delivery updates from your customer portal."
+      >
+        <GlobalLoader
+          fullScreen={false}
+          size="md"
+          label="Loading order..."
+          className="min-h-[48vh]"
+        />
+      </CustomerPortalLayout>
+    )
+  }
 
   if (!customerAuth.isAuthenticated) {
     return (
       <Navigate
-        to={storefrontPaths.accountLogin(storefrontPaths.accountOrder(orderId))}
+        to={storefrontPaths.accountLogin(storefrontPaths.accountOrder(normalizedOrderId))}
         replace
       />
     )
@@ -52,53 +144,59 @@ export function StorefrontAccountOrderPage() {
       title={data?.item.orderNumber ?? "Order detail"}
       description="Review purchased items, order status, and delivery updates from your customer portal."
     >
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {data?.item ? (
-          <>
-            <section className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                  Order detail
-                </p>
-                <h1 className="mt-2 font-heading text-4xl font-semibold tracking-tight">
-                  {data.item.orderNumber}
-                </h1>
-              </div>
-              <CommerceOrderStatusBadge status={data.item.status} />
-            </section>
-            <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>Items</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                {data.item.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
-                    <div className="space-y-1">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{item.quantity} x {item.unitPrice}</p>
-                    </div>
-                    <CommercePrice amount={item.lineTotal} compareAtAmount={item.mrp * item.quantity} />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-            <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>Timeline</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                {data.item.timeline.map((entry) => (
-                  <div key={entry.id} className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
-                    <p className="font-medium">{entry.label}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{entry.summary}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {data?.item ? (
+        <div className="space-y-5">
+          <section className="flex flex-wrap items-center justify-between gap-3 rounded-[1.7rem] border border-primary/14 bg-gradient-to-r from-primary/8 via-background to-background p-3 shadow-[0_16px_36px_-30px_hsl(var(--primary)/0.22)]">
+            <Button asChild variant="outline" className="rounded-full">
+              <Link to={storefrontPaths.accountSection("orders")}>
+                <List className="size-4" />
+                All orders
+              </Link>
+            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                disabled={!previousOrder}
+                onClick={() => {
+                  if (previousOrder) {
+                    void navigate(storefrontPaths.accountOrder(previousOrder.id))
+                  }
+                }}
+              >
+                <ChevronLeft className="size-4" />
+                Previous order
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-full"
+                disabled={!nextOrder}
+                onClick={() => {
+                  if (nextOrder) {
+                    void navigate(storefrontPaths.accountOrder(nextOrder.id))
+                  }
+                }}
+              >
+                Next order
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </section>
+          <StorefrontOrderDetailCard order={data.item} />
+        </div>
+      ) : (
+        isLoading ? (
+          <GlobalLoader
+            fullScreen={false}
+            size="md"
+            label="Loading order..."
+            className="min-h-[48vh]"
+          />
         ) : (
-          <div className="text-sm text-muted-foreground">Loading order...</div>
-        )}
+          <div className="text-sm text-muted-foreground">Order detail is unavailable.</div>
+        )
+      )}
     </CustomerPortalLayout>
   )
 }

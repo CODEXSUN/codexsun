@@ -15,6 +15,7 @@ import {
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import type { AuthUser } from "../../../cxapp/shared/schemas/auth.js"
+import { createMailboxService } from "../../../cxapp/src/services/service-factory.js"
 import {
   storefrontCheckoutPayloadSchema,
   storefrontCheckoutResponseSchema,
@@ -23,6 +24,7 @@ import {
   storefrontOrderSchema,
   storefrontOrderTrackingLookupSchema,
   storefrontPaymentVerificationPayloadSchema,
+  type StorefrontSettings,
   type CustomerAccount,
   type StorefrontOrder,
   type StorefrontOrderTimelineEvent,
@@ -31,6 +33,8 @@ import {
 import { createRazorpayPaymentSession, verifyRazorpaySignature } from "./razorpay-service.js"
 import { resolveAuthenticatedCustomerAccount } from "./customer-service.js"
 import { readCoreProducts } from "./catalog-service.js"
+import { getStorefrontSettings } from "./storefront-settings-service.js"
+import { sendStorefrontOrderConfirmedEmail } from "./storefront-mail-service.js"
 import { readStorefrontOrders } from "./storefront-order-storage.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
@@ -76,6 +80,20 @@ async function writeOrders(database: Kysely<unknown>, items: StorefrontOrder[]) 
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     }))
+  )
+}
+
+function orderBelongsToCustomer(order: StorefrontOrder, customer: CustomerAccount) {
+  if (order.customerAccountId === customer.id) {
+    return true
+  }
+
+  const customerEmail = customer.email.trim().toLowerCase()
+  const shippingEmail = order.shippingAddress.email.trim().toLowerCase()
+
+  return (
+    order.coreContactId === customer.coreContactId ||
+    shippingEmail === customerEmail
   )
 }
 
@@ -189,12 +207,109 @@ function resolveProductPricing(
   }
 }
 
+function resolveOrderItemImage(product: Product) {
+  const activeVariants = product.variants.filter((item) => item.isActive)
+  const singleVariant = activeVariants.length === 1 ? (activeVariants[0] ?? null) : null
+
+  if (singleVariant) {
+    const variantImage =
+      singleVariant.images.find((item) => item.isActive && item.isPrimary) ??
+      singleVariant.images.find((item) => item.isActive) ??
+      null
+
+    if (variantImage?.imageUrl) {
+      return variantImage.imageUrl
+    }
+  }
+
+  return product.primaryImageUrl
+}
+
+function resolveOrderItemVariantLabel(product: Product) {
+  const activeVariants = product.variants.filter((item) => item.isActive)
+  const singleVariant = activeVariants.length === 1 ? (activeVariants[0] ?? null) : null
+
+  if (singleVariant) {
+    return normalizeOptionalString(singleVariant.variantName)
+  }
+
+  return product.hasVariants ? null : "Standard"
+}
+
+function resolveOrderItemAttributes(product: Product) {
+  const activeVariants = product.variants.filter((item) => item.isActive)
+  const sourceVariant = activeVariants.length === 1 ? (activeVariants[0] ?? null) : null
+  const entries: Array<{ name: string; value: string }> = []
+  const seen = new Set<string>()
+
+  function addAttribute(name: string, value: string | null | undefined) {
+    const normalizedValue = normalizeOptionalString(value)
+
+    if (!normalizedValue) {
+      return
+    }
+
+    const key = `${name.trim().toLowerCase()}:${normalizedValue.trim().toLowerCase()}`
+
+    if (seen.has(key)) {
+      return
+    }
+
+    seen.add(key)
+    entries.push({ name, value: normalizedValue })
+  }
+
+  for (const attribute of sourceVariant?.attributes ?? []) {
+    if (attribute.isActive) {
+      addAttribute(attribute.attributeName, attribute.attributeValue)
+    }
+  }
+
+  addAttribute("Fabric", product.storefront?.fabric)
+  addAttribute("Fit", product.storefront?.fit)
+  addAttribute("Sleeve", product.storefront?.sleeve)
+  addAttribute("Occasion", product.storefront?.occasion)
+
+  return entries.slice(0, 4)
+}
+
 function nextOrderNumber(existingOrders: StorefrontOrder[]) {
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, "")
   const countForToday =
     existingOrders.filter((item) => item.orderNumber.includes(today)).length + 1
 
   return `ECM-${today}-${String(countForToday).padStart(4, "0")}`
+}
+
+function calculateChargeTotals(
+  items: Array<{
+    quantity: number
+    shippingCharge: number | null | undefined
+    handlingCharge: number | null | undefined
+  }>,
+  settings: StorefrontSettings,
+  subtotalAmount: number
+) {
+  const fallbackShippingApplies = items.some((item) => item.shippingCharge == null)
+  const fallbackHandlingApplies = items.some((item) => item.handlingCharge == null)
+  const explicitShippingAmount = items.reduce(
+    (sum, item) => sum + (item.shippingCharge != null ? item.shippingCharge * item.quantity : 0),
+    0
+  )
+  const explicitHandlingAmount = items.reduce(
+    (sum, item) => sum + (item.handlingCharge != null ? item.handlingCharge * item.quantity : 0),
+    0
+  )
+  const globalShippingAmount =
+    subtotalAmount >= settings.freeShippingThreshold ? 0 : settings.defaultShippingAmount
+
+  return {
+    shippingAmount:
+      explicitShippingAmount + (fallbackShippingApplies ? globalShippingAmount : 0),
+    handlingAmount:
+      explicitHandlingAmount +
+      (fallbackHandlingApplies && items.length > 0 ? settings.defaultHandlingAmount : 0),
+  }
 }
 
 export async function createCheckoutOrder(
@@ -207,9 +322,16 @@ export async function createCheckoutOrder(
   const customer = token
     ? await resolveAuthenticatedCustomerAccount(database, config, token)
     : null
+  const settings = await getStorefrontSettings(database)
   const existingOrders = await readOrders(database)
   const catalog = await readCoreProducts(database)
   const now = new Date().toISOString()
+
+  const chargeInputs: Array<{
+    quantity: number
+    shippingCharge: number | null
+    handlingCharge: number | null
+  }> = []
 
   const items = parsed.items.map((input) => {
     const product = catalog.find((item) => item.id === input.productId && item.isActive)
@@ -236,13 +358,21 @@ export async function createCheckoutOrder(
       )
     }
 
+    chargeInputs.push({
+      quantity: input.quantity,
+      shippingCharge: product.storefront?.shippingCharge ?? null,
+      handlingCharge: product.storefront?.handlingCharge ?? null,
+    })
+
     return {
       id: `order-item:${randomUUID()}`,
       productId: product.id,
       slug: product.slug,
       name: product.name,
       brandName: product.brandName,
-      imageUrl: product.primaryImageUrl,
+      imageUrl: resolveOrderItemImage(product),
+      variantLabel: resolveOrderItemVariantLabel(product),
+      attributes: resolveOrderItemAttributes(product),
       quantity: input.quantity,
       unitPrice: pricing.unitPrice,
       mrp: pricing.mrp,
@@ -255,12 +385,12 @@ export async function createCheckoutOrder(
     (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
     0
   )
-  const freeShippingThreshold =
-    config.commerce?.storefront?.freeShippingThreshold ?? 3999
-  const defaultShippingAmount =
-    config.commerce?.storefront?.defaultShippingAmount ?? 149
-  const shippingAmount = subtotalAmount >= freeShippingThreshold ? 0 : defaultShippingAmount
-  const totalAmount = subtotalAmount + shippingAmount
+  const { shippingAmount, handlingAmount } = calculateChargeTotals(
+    chargeInputs,
+    settings,
+    subtotalAmount
+  )
+  const totalAmount = subtotalAmount + shippingAmount + handlingAmount
   const coreContactId = await resolveCheckoutContactId(
     database,
     customer,
@@ -284,6 +414,7 @@ export async function createCheckoutOrder(
     subtotalAmount,
     discountAmount,
     shippingAmount,
+    handlingAmount,
     totalAmount,
     currency: "INR",
     notes: normalizeOptionalString(parsed.notes),
@@ -379,6 +510,19 @@ export async function verifyCheckoutPayment(
     orders.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
   )
 
+  try {
+    await sendStorefrontOrderConfirmedEmail({
+      mailboxService: createMailboxService(database, config),
+      config,
+      settings: await getStorefrontSettings(database),
+      order: updatedOrder,
+      customerEmail: updatedOrder.shippingAddress.email,
+      customerName: updatedOrder.shippingAddress.fullName,
+    })
+  } catch (error) {
+    console.error("Unable to send storefront order confirmation email.", error)
+  }
+
   return storefrontOrderResponseSchema.parse({
     item: updatedOrder,
   })
@@ -391,7 +535,7 @@ export async function listCustomerOrders(
 ) {
   const customer = await resolveAuthenticatedCustomerAccount(database, config, token)
   const items = (await readOrders(database))
-    .filter((item) => item.customerAccountId === customer.id)
+    .filter((item) => orderBelongsToCustomer(item, customer))
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
 
   return storefrontOrderListResponseSchema.parse({ items })
@@ -405,7 +549,7 @@ export async function getCustomerOrder(
 ) {
   const customer = await resolveAuthenticatedCustomerAccount(database, config, token)
   const item = (await readOrders(database)).find(
-    (order) => order.id === orderId && order.customerAccountId === customer.id
+    (order) => order.id === orderId && orderBelongsToCustomer(order, customer)
   )
 
   if (!item) {

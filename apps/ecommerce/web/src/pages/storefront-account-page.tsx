@@ -1,11 +1,16 @@
 import { useState } from "react"
+import { ArrowRight, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CommerceOrderStatusBadge } from "@/components/ux/commerce-order-status-badge"
 import { CommercePrice } from "@/components/ux/commerce-price"
+import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepper"
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
+import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
+import { cn } from "@/lib/utils"
 
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
@@ -14,10 +19,51 @@ import { StorefrontProductCard } from "../components/storefront-product-card"
 import { CustomerProfileSection } from "../features/customer-portal/customer-profile-section"
 import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import {
+  handleStorefrontImageError,
+  resolveStorefrontImageUrl,
+} from "../lib/storefront-image"
+import {
   customerPortalSections,
   normalizePortalSectionId,
 } from "../lib/customer-portal"
+import { StorefrontCheckoutContent } from "./storefront-checkout-page"
 import { storefrontPaths } from "../lib/storefront-routes"
+
+const portalFreeShippingThreshold = 5000
+const portalShippingEstimate = 199
+const portalHandlingEstimate = 99
+
+function formatPortalCurrency(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function PortalCartSummaryRow({
+  label,
+  value,
+  emphasized = false,
+}: {
+  label: string
+  value: React.ReactNode
+  emphasized?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 text-sm",
+        emphasized && "border-t border-[#eadfd3] pt-4 text-base font-semibold"
+      )}
+    >
+      <span className={cn("text-muted-foreground", emphasized && "text-foreground")}>
+        {label}
+      </span>
+      <div className="text-right text-foreground">{value}</div>
+    </div>
+  )
+}
 
 function SummaryMetric({
   label,
@@ -47,6 +93,18 @@ export function StorefrontAccountPage() {
   const portal = customerPortal.portalQuery.data
   const orders = customerPortal.ordersQuery.data?.items ?? []
   const [error, setError] = useState<string | null>(null)
+  const estimatedShipping =
+    cart.items.length === 0
+      ? 0
+      : cart.subtotalAmount >= portalFreeShippingThreshold
+        ? 0
+        : portalShippingEstimate
+  const estimatedHandling = cart.items.length === 0 ? 0 : portalHandlingEstimate
+  const estimatedTotal = cart.subtotalAmount + estimatedShipping + estimatedHandling
+  const totalSavings = cart.items.reduce(
+    (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
+    0
+  )
 
   if (!customerAuth.isAuthenticated) {
     return <Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />
@@ -63,11 +121,12 @@ export function StorefrontAccountPage() {
   function renderSection() {
     if (!portal) {
       return (
-        <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Loading customer portal...
-          </CardContent>
-        </Card>
+        <GlobalLoader
+          fullScreen={false}
+          size="md"
+          label="Loading customer portal..."
+          className="min-h-[48vh]"
+        />
       )
     }
 
@@ -165,6 +224,8 @@ export function StorefrontAccountPage() {
                       imageUrl: item.primaryImageUrl,
                       unitPrice: item.sellingPrice,
                       mrp: item.mrp,
+                      shippingCharge: item.shippingCharge,
+                      handlingCharge: item.handlingCharge,
                     })
                   }
                 />
@@ -190,57 +251,288 @@ export function StorefrontAccountPage() {
 
     if (activeSection === "cart") {
       return (
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="grid gap-4">
-            {cart.items.length > 0 ? (
-              cart.items.map((item) => (
-                <Card key={item.productId} className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-                  <CardContent className="flex items-center justify-between gap-4 p-5">
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{item.quantity} items</p>
-                    </div>
-                    <CommercePrice amount={item.unitPrice * item.quantity} compareAtAmount={item.mrp * item.quantity} />
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card className="rounded-[1.8rem] border-dashed border-border/70 py-0 shadow-sm">
-                <CardContent className="p-6 text-sm text-muted-foreground">
-                  Your live storefront cart is empty.
-                </CardContent>
-              </Card>
-            )}
-          </div>
-          <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>Cart summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Items</span>
-                <span className="font-medium">{cart.itemCount}</span>
+        <div className="space-y-6">
+          <Card className="relative overflow-hidden rounded-[2.4rem] border-[#e3d5c6] bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(252,247,241,0.96)_34%,rgba(247,237,225,0.92)_100%)] py-0 shadow-[0_28px_70px_-46px_rgba(48,31,19,0.18)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(213,183,150,0.18),transparent_24%),radial-gradient(circle_at_74%_28%,rgba(255,255,255,0.72),transparent_22%),radial-gradient(circle_at_88%_82%,rgba(176,131,88,0.12),transparent_18%),linear-gradient(120deg,rgba(255,255,255,0.3),transparent_48%)]" />
+            <CardContent className="relative grid gap-6 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="space-y-4">
+                <Badge
+                  variant="outline"
+                  className="border-[#cfb9a0] bg-[#fffdf9] px-4 py-1 text-[11px] font-semibold tracking-[0.24em] uppercase text-[#2f2118]"
+                >
+                  Portal cart
+                </Badge>
+                <div className="space-y-3">
+                  <h2 className="max-w-3xl font-heading text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                    Review and checkout without leaving your account.
+                  </h2>
+                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-[15px]">
+                    The cart now uses the same storefront surfaces, spacing, and summary
+                    treatment, while delivery and payment stay inside your customer portal.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <CommercePrice amount={cart.subtotalAmount} />
+              <div className="grid gap-3 sm:justify-items-end">
+                <Button asChild variant="outline" className="rounded-full border-[#ddd1c2] bg-white/82 px-5 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white">
+                  <Link to={storefrontPaths.catalog()}>Continue shopping</Link>
+                </Button>
+                <Button asChild className="rounded-full bg-[#201712] px-5 text-white hover:bg-[#31231b]">
+                  <Link to={storefrontPaths.accountSection("checkout")}>
+                    Continue to checkout
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
               </div>
-              <Button asChild className="w-full rounded-full">
-                <Link to={storefrontPaths.cart()}>Open cart</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full rounded-full">
-                <Link to={storefrontPaths.checkout()}>Go to checkout</Link>
-              </Button>
             </CardContent>
           </Card>
+
+          <div className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+            <section className="space-y-4">
+              {cart.items.length === 0 ? (
+                <Card className="rounded-[2rem] border-dashed border-[#dfd1c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,231,0.72))] py-0 shadow-[0_20px_50px_-42px_rgba(48,31,19,0.18)]">
+                  <CardContent className="grid gap-5 p-6 sm:p-8">
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                        Cart status
+                      </p>
+                      <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
+                        Your bag is empty.
+                      </h2>
+                      <p className="max-w-xl text-sm leading-7 text-muted-foreground">
+                        Add products from the catalog, then come back here to review quantities,
+                        savings, delivery estimates, and portal checkout totals.
+                      </p>
+                    </div>
+                    <div>
+                      <Button asChild className="rounded-full px-5">
+                        <Link to={storefrontPaths.catalog()}>
+                          Browse catalog
+                          <ArrowRight className="size-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                cart.items.map((item) => {
+                  const lineAmount = item.unitPrice * item.quantity
+                  const lineCompareAmount = item.mrp * item.quantity
+                  const savingsAmount = Math.max(0, lineCompareAmount - lineAmount)
+
+                  return (
+                    <Card
+                      key={item.productId}
+                      className="overflow-hidden rounded-[2rem] border-[#e4d7c9] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(251,247,242,0.92))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.24)] backdrop-blur"
+                    >
+                      <CardContent className="p-4 sm:p-5">
+                        <article className="grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
+                          <div className="rounded-[1.55rem] border border-[#e6d8c8] bg-[linear-gradient(180deg,#f8f1e9,#fcf8f3)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:h-full">
+                            <div className="overflow-hidden rounded-[1.2rem] border border-white/90 bg-white shadow-[inset_0_0_0_1px_rgba(223,208,192,0.8)]">
+                              <img
+                                src={resolveStorefrontImageUrl(item.imageUrl, item.name)}
+                                alt={item.name}
+                                className="aspect-[4/4.8] h-full w-full object-cover"
+                                onError={(event) => handleStorefrontImageError(event, item.name)}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="min-w-0 space-y-4">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                              <div className="min-w-0 space-y-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                                  Bag item
+                                </p>
+                                <Link
+                                  to={storefrontPaths.product(item.slug)}
+                                  className="line-clamp-2 text-xl font-semibold tracking-tight text-foreground transition hover:text-primary"
+                                >
+                                  {item.name}
+                                </Link>
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="border-[#ded0c0] bg-[#fcfaf7] px-3 py-1 text-[11px] tracking-[0.14em] uppercase text-[#725947]"
+                                  >
+                                    Qty {item.quantity}
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="border-[#ded0c0] bg-[#fcfaf7] px-3 py-1 text-[11px] tracking-[0.14em] uppercase text-[#725947]"
+                                  >
+                                    Unit {formatPortalCurrency(item.unitPrice)}
+                                  </Badge>
+                                  {savingsAmount > 0 ? (
+                                    <Badge className="border-transparent bg-[#e4f4e8] px-3 py-1 text-[11px] tracking-[0.14em] uppercase text-[#2f7a46] shadow-[inset_0_0_0_1px_rgba(72,136,92,0.12)]">
+                                      Save {formatPortalCurrency(savingsAmount)}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 text-left sm:text-right">
+                                <CommercePrice
+                                  amount={lineAmount}
+                                  compareAtAmount={lineCompareAmount}
+                                  className="justify-start sm:justify-end"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Totals refresh instantly in your portal.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.45rem] border border-[#e7dacb] bg-[linear-gradient(180deg,#fffdf9,#faf5ef)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                              <CommerceQuantityStepper
+                                value={item.quantity}
+                                onChange={(quantity) => cart.updateQuantity(item.productId, quantity)}
+                                className="border-[#d8c8b8] bg-white shadow-[0_10px_22px_-18px_rgba(48,31,19,0.28)]"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="rounded-full px-3 text-[#3a2b22] hover:bg-[#f4ede5]"
+                                onClick={() => cart.removeItem(item.productId)}
+                              >
+                                <Trash2 className="size-4" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </article>
+                      </CardContent>
+                    </Card>
+                  )
+                })
+              )}
+            </section>
+
+            <aside className="space-y-5">
+              <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(251,247,242,0.93))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
+                <CardContent className="space-y-5 p-5 sm:p-6">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                      Order summary
+                    </h2>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Estimated totals stay visible while final shipping and payment are confirmed during portal checkout.
+                    </p>
+                  </div>
+
+                  {totalSavings > 0 ? (
+                    <div className="rounded-[1.5rem] border border-[#cde6d3] bg-[#e7f5ea] px-4 py-3 text-sm text-[#2f7a46]">
+                      You are currently saving {formatPortalCurrency(totalSavings)} on this bag.
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-4">
+                    <PortalCartSummaryRow
+                      label="Items"
+                      value={<span className="font-medium">{cart.itemCount}</span>}
+                    />
+                    <PortalCartSummaryRow
+                      label="Subtotal"
+                      value={<CommercePrice amount={cart.subtotalAmount} className="justify-end" />}
+                    />
+                    <PortalCartSummaryRow
+                      label="Shipping"
+                      value={
+                        estimatedShipping === 0 ? (
+                          <span className="font-medium">Free</span>
+                        ) : (
+                          <CommercePrice amount={estimatedShipping} className="justify-end" />
+                        )
+                      }
+                    />
+                    <PortalCartSummaryRow
+                      label="Handling"
+                      value={<CommercePrice amount={estimatedHandling} className="justify-end" />}
+                    />
+                    <PortalCartSummaryRow
+                      label="Total"
+                      emphasized
+                      value={<CommercePrice amount={estimatedTotal} className="justify-end" />}
+                    />
+                  </div>
+
+                  <Button
+                    asChild
+                    className="h-12 w-full rounded-full bg-[#201712] text-white hover:bg-[#31231b]"
+                    size="lg"
+                    disabled={cart.items.length === 0}
+                  >
+                    <Link to={storefrontPaths.accountSection("checkout")}>
+                      Continue to checkout
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[1.9rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,231,0.68))] py-0 shadow-[0_20px_50px_-42px_rgba(48,31,19,0.16)]">
+                <CardContent className="grid gap-4 p-5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="size-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                      Portal notes
+                    </h3>
+                  </div>
+                  <div className="grid gap-3 text-sm">
+                    <div className="flex items-start gap-3 rounded-[1.2rem] border border-[#e8ddd2] bg-[#fcfaf7] p-3">
+                      <Truck className="mt-0.5 size-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-foreground">Delivery estimate</p>
+                        <p className="mt-1 leading-6 text-muted-foreground">
+                          Free shipping unlocks above {formatPortalCurrency(portalFreeShippingThreshold)}.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-[1.2rem] border border-[#e8ddd2] bg-[#fcfaf7] p-3">
+                      <ShieldCheck className="mt-0.5 size-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-foreground">Stay inside your account</p>
+                        <p className="mt-1 leading-6 text-muted-foreground">
+                          Delivery, payment, and order confirmation now finish completely inside the customer portal.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
+          </div>
         </div>
+      )
+    }
+
+    if (activeSection === "checkout") {
+      return (
+        <StorefrontCheckoutContent
+          embedded
+          cartHref={storefrontPaths.accountSection("cart")}
+        />
       )
     }
 
     if (activeSection === "orders") {
       return (
         <div className="grid gap-4">
-          {orders.length > 0 ? (
+          {customerPortal.ordersQuery.isLoading ? (
+            <GlobalLoader
+              fullScreen={false}
+              size="md"
+              label="Loading orders..."
+              className="min-h-[36vh]"
+            />
+          ) : customerPortal.ordersQuery.error ? (
+            <Card className="rounded-[1.8rem] border-destructive/30 py-0 shadow-sm">
+              <CardContent className="p-6 text-sm text-destructive">
+                {customerPortal.ordersQuery.error instanceof Error
+                  ? customerPortal.ordersQuery.error.message
+                  : "Orders could not be loaded."}
+              </CardContent>
+            </Card>
+          ) : orders.length > 0 ? (
             orders.map((order) => (
               <Card key={order.id} className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
                 <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">

@@ -165,9 +165,11 @@ export function StorefrontHomePage() {
                     slug: item.slug,
                     name: item.name,
                     imageUrl: item.primaryImageUrl,
-                  unitPrice: item.sellingPrice,
-                  mrp: item.mrp,
-                }),
+                    unitPrice: item.sellingPrice,
+                    mrp: item.mrp,
+                    shippingCharge: item.shippingCharge,
+                    handlingCharge: item.handlingCharge,
+                  }),
               }))}
             />
           </section>
@@ -282,6 +284,8 @@ export function StorefrontHomePage() {
                   imageUrl: item.primaryImageUrl,
                   unitPrice: item.sellingPrice,
                   mrp: item.mrp,
+                  shippingCharge: item.shippingCharge,
+                  handlingCharge: item.handlingCharge,
                 })
               }
             />
@@ -337,6 +341,8 @@ export function StorefrontHomePage() {
                   imageUrl: item.primaryImageUrl,
                   unitPrice: item.sellingPrice,
                   mrp: item.mrp,
+                  shippingCharge: item.shippingCharge,
+                  handlingCharge: item.handlingCharge,
                 })
               }
             />
@@ -367,14 +373,19 @@ export function StorefrontHomePage() {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {hasContent(data?.settings.sections.cta.primaryCtaLabel) ? (
-                      <Button asChild className="rounded-full bg-white text-[#241913] hover:bg-white/90">
+                      <Button
+                        asChild
+                        className="h-11 min-w-[10.75rem] rounded-full border border-white/80 bg-[linear-gradient(180deg,#fffaf5_0%,#f5e5d5_100%)] px-5 text-[#241913] shadow-[0_16px_34px_-20px_rgba(10,6,3,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-[linear-gradient(180deg,#ffffff_0%,#f8e9da_100%)] hover:shadow-[0_22px_40px_-22px_rgba(10,6,3,0.62)]"
+                      >
                         <Link
                           to={
                             normalizeStorefrontHref(data?.settings.sections.cta.primaryCtaHref) ??
                             storefrontPaths.catalog()
                           }
+                          className="inline-flex items-center justify-center gap-2"
                         >
                           {data?.settings.sections.cta.primaryCtaLabel}
+                          <ArrowRight className="size-4 transition-transform duration-300 group-hover/button:translate-x-0.5" />
                         </Link>
                       </Button>
                     ) : null}
@@ -382,15 +393,17 @@ export function StorefrontHomePage() {
                       <Button
                         asChild
                         variant="outline"
-                        className="rounded-full border-white/25 bg-transparent text-white hover:bg-white/10"
+                        className="h-11 min-w-[10.75rem] rounded-full border border-[#b89473]/55 bg-[linear-gradient(180deg,rgba(84,55,36,0.82),rgba(54,35,24,0.96))] px-5 text-[#fff4e8] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_34px_-22px_rgba(0,0,0,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#d7b18b]/75 hover:bg-[linear-gradient(180deg,rgba(102,67,45,0.92),rgba(63,40,28,1))] hover:text-[#fff8f1] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_40px_-24px_rgba(0,0,0,0.62)]"
                       >
                         <Link
                           to={
                             normalizeStorefrontHref(data?.settings.sections.cta.secondaryCtaHref) ??
                             storefrontPaths.cart()
                           }
+                          className="inline-flex items-center justify-center gap-2"
                         >
                           {data?.settings.sections.cta.secondaryCtaLabel}
+                          <ArrowRight className="size-4 opacity-80 transition-transform duration-300 group-hover/button:translate-x-0.5" />
                         </Link>
                       </Button>
                     ) : null}
@@ -409,13 +422,20 @@ export function StorefrontHomePage() {
                         : Sparkles
 
                   return (
-                    <Card key={note.id} className="rounded-[1.6rem] border-[#e4d6c7] py-0 shadow-sm">
+                    <Card
+                      key={note.id}
+                      className="group rounded-[1.6rem] border-[#e4d6c7] py-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#d6c1ab] hover:shadow-[0_18px_38px_-24px_rgba(53,33,20,0.22)]"
+                    >
                       <CardContent className="space-y-3 p-5">
-                        <div className="flex size-11 items-center justify-center rounded-2xl bg-[#f4e8da] text-[#6d5140]">
+                        <div className="flex size-11 items-center justify-center rounded-2xl bg-[#f4e8da] text-[#6d5140] transition-all duration-300 group-hover:scale-[1.06] group-hover:bg-[#efe0cf] group-hover:text-[#4b3527]">
                           <Icon className="size-5" />
                         </div>
-                        <p className="font-medium">{note.title}</p>
-                        <p className="text-sm leading-6 text-muted-foreground">{note.summary}</p>
+                        <p className="font-medium transition-colors duration-300 group-hover:text-[#2f2119]">
+                          {note.title}
+                        </p>
+                        <p className="text-sm leading-6 text-muted-foreground transition-colors duration-300 group-hover:text-[#6b5a4c]">
+                          {note.summary}
+                        </p>
                       </CardContent>
                     </Card>
                   )
