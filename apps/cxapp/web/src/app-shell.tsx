@@ -17,6 +17,10 @@ import { ProjectDefaultsProvider } from "@/design-system/context/project-default
 import { Toaster } from "@/components/ui/sonner"
 import type { DashboardUser } from "@/features/dashboard/types"
 import { StorefrontCartProvider } from "@ecommerce/web/src/cart/storefront-cart"
+import {
+  clearStorefrontPostAuthRedirect,
+  consumeStorefrontPostAuthRedirect,
+} from "@ecommerce/web/src/lib/storefront-auth-redirect"
 import { storefrontPaths } from "@ecommerce/web/src/lib/storefront-routes"
 
 import { useAuth } from "./auth/auth-context"
@@ -27,6 +31,7 @@ import {
   isDeskSurfaceUser,
   isWebSurfaceUser,
   resolveAuthenticatedHomePath,
+  resolvePostAuthPath,
 } from "./auth/auth-surface"
 import {
   isAppFrontendSurface,
@@ -262,9 +267,11 @@ function FrameworkUtilityPage({
 function ProtectedRoute({
   children,
   allow,
+  preserveNext = true,
 }: {
   children: React.ReactNode
   allow?: (user: AuthUser) => boolean
+  preserveNext?: boolean
 }) {
   const location = useLocation()
   const auth = useAuth()
@@ -277,9 +284,11 @@ function ProtectedRoute({
   }
 
   if (!auth.isAuthenticated) {
+    const next = preserveNext ? `?next=${encodeURIComponent(location.pathname)}` : ""
+
     return (
       <Navigate
-        to={`/login?next=${encodeURIComponent(location.pathname)}`}
+        to={`/login${next}`}
         replace
       />
     )
@@ -298,6 +307,52 @@ function ProtectedRoute({
   }
 
   return children
+}
+
+function LoginRouteMiddleware() {
+  const auth = useAuth()
+  const location = useLocation()
+  const homePath = useAppSessionStore((state) => state.homePath)
+
+  if (auth.isLoading || (auth.isAuthenticated && !auth.user)) {
+    return <GlobalLoader size="md" />
+  }
+
+  if (auth.isAuthenticated) {
+    const nextPath = new URLSearchParams(location.search).get("next")
+    const locationState =
+      typeof location.state === "object" && location.state
+        ? (location.state as { postAuthPath?: string | null })
+        : null
+    const locationPostAuthPath =
+      typeof locationState?.postAuthPath === "string"
+        ? locationState.postAuthPath
+        : null
+    const pendingStorefrontRedirect =
+      !nextPath && !locationPostAuthPath && isCustomerSurfaceUser(auth.user)
+        ? consumeStorefrontPostAuthRedirect()
+        : null
+
+    if (!nextPath && !locationPostAuthPath && !isCustomerSurfaceUser(auth.user)) {
+      clearStorefrontPostAuthRedirect()
+    }
+
+    return (
+      <Navigate
+        to={
+          resolvePostAuthPath(
+            auth.user,
+            nextPath ?? locationPostAuthPath ?? pendingStorefrontRedirect
+          ) ||
+          homePath ||
+          "/dashboard"
+        }
+        replace
+      />
+    )
+  }
+
+  return <LoginPage />
 }
 
 function AppProviders({ children }: { children: React.ReactNode }) {
@@ -359,13 +414,13 @@ function AuthenticatedAppShell() {
               <Route path="/track-order" element={<StorefrontTrackOrderPage />} />
               <Route
                 path="/customer/login"
-                element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />}
+                element={<Navigate to={storefrontPaths.accountLogin()} replace />}
               />
               <Route path="/customer/register" element={<StorefrontAccountRegisterPage />} />
               <Route
                 path="/customer"
                 element={
-                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                  <ProtectedRoute allow={isCustomerSurfaceUser} preserveNext={false}>
                     <StorefrontAccountPage />
                   </ProtectedRoute>
                 }
@@ -373,7 +428,7 @@ function AuthenticatedAppShell() {
               <Route
                 path="/customer/:sectionId"
                 element={
-                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                  <ProtectedRoute allow={isCustomerSurfaceUser} preserveNext={false}>
                     <StorefrontAccountPage />
                   </ProtectedRoute>
                 }
@@ -381,12 +436,12 @@ function AuthenticatedAppShell() {
               <Route
                 path="/customer/orders/:orderId"
                 element={
-                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                  <ProtectedRoute allow={isCustomerSurfaceUser} preserveNext={false}>
                     <StorefrontAccountOrderPage />
                   </ProtectedRoute>
                 }
               />
-              <Route path="/profile/login" element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />} />
+              <Route path="/profile/login" element={<Navigate to={storefrontPaths.accountLogin()} replace />} />
               <Route path="/profile/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
               <Route path="/profile" element={<Navigate to={storefrontPaths.account()} replace />} />
               <Route path="/profile/:sectionId" element={<Navigate to={storefrontPaths.account()} replace />} />
@@ -406,13 +461,13 @@ function AuthenticatedAppShell() {
               <Route path="/shop/track-order" element={<StorefrontTrackOrderPage />} />
               <Route
                 path="/shop/customer/login"
-                element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />}
+                element={<Navigate to={storefrontPaths.accountLogin()} replace />}
               />
               <Route path="/shop/customer/register" element={<StorefrontAccountRegisterPage />} />
               <Route
                 path="/shop/customer"
                 element={
-                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                  <ProtectedRoute allow={isCustomerSurfaceUser} preserveNext={false}>
                     <StorefrontAccountPage />
                   </ProtectedRoute>
                 }
@@ -420,7 +475,7 @@ function AuthenticatedAppShell() {
               <Route
                 path="/shop/customer/:sectionId"
                 element={
-                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                  <ProtectedRoute allow={isCustomerSurfaceUser} preserveNext={false}>
                     <StorefrontAccountPage />
                   </ProtectedRoute>
                 }
@@ -428,12 +483,12 @@ function AuthenticatedAppShell() {
               <Route
                 path="/shop/customer/orders/:orderId"
                 element={
-                  <ProtectedRoute allow={isCustomerSurfaceUser}>
+                  <ProtectedRoute allow={isCustomerSurfaceUser} preserveNext={false}>
                     <StorefrontAccountOrderPage />
                   </ProtectedRoute>
                 }
               />
-              <Route path="/shop/profile/login" element={<Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />} />
+              <Route path="/shop/profile/login" element={<Navigate to={storefrontPaths.accountLogin()} replace />} />
               <Route path="/shop/profile/register" element={<Navigate to={storefrontPaths.accountRegister()} replace />} />
               <Route path="/shop/profile" element={<Navigate to={storefrontPaths.account()} replace />} />
               <Route path="/shop/profile/:sectionId" element={<Navigate to={storefrontPaths.account()} replace />} />
@@ -447,7 +502,7 @@ function AuthenticatedAppShell() {
               />
             </>
           ) : null}
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginRouteMiddleware />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/request-access" element={<RequestAccessPage />} />
           <Route

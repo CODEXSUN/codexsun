@@ -3,58 +3,65 @@ import { create } from "zustand"
 import type { AuthUser } from "@cxapp/shared"
 
 import {
-  isAdminSurfaceUser,
-  isCustomerSurfaceUser,
-  isWebSurfaceUser,
-  resolveAuthenticatedHomePath,
+  createAppSessionProfile,
+  type AppLayoutKind,
+  type AppSurface,
 } from "../auth/auth-surface"
-
-type AppSurface = "guest" | "admin" | "customer" | "web" | "desk"
+import { readCachedAppSessionState } from "../auth/app-session-cache"
 
 type AppSessionState = {
   user: AuthUser | null
   email: string | null
   surface: AppSurface
   homePath: string
+  loginPath: string
+  layoutKind: AppLayoutKind
   isAuthenticated: boolean
   isLoading: boolean
+  access: {
+    admin: boolean
+    customer: boolean
+    web: boolean
+    desk: boolean
+  }
+  behaviors: {
+    useAdminShell: boolean
+    useCustomerShell: boolean
+    useWebDashboard: boolean
+    useDeskDashboard: boolean
+  }
   setSessionState: (payload: { user: AuthUser | null; isLoading: boolean }) => void
 }
 
-function resolveSurface(user: AuthUser | null): AppSurface {
-  if (!user) {
-    return "guest"
-  }
-
-  if (isAdminSurfaceUser(user)) {
-    return "admin"
-  }
-
-  if (isCustomerSurfaceUser(user)) {
-    return "customer"
-  }
-
-  if (isWebSurfaceUser(user)) {
-    return "web"
-  }
-
-  return "desk"
-}
+const cachedSessionState = readCachedAppSessionState()
+const guestProfile = createAppSessionProfile(null)
 
 export const useAppSessionStore = create<AppSessionState>((set) => ({
-  user: null,
-  email: null,
-  surface: "guest",
-  homePath: "/login",
-  isAuthenticated: false,
+  user: cachedSessionState?.user ?? null,
+  email: cachedSessionState?.profile.email ?? guestProfile.email,
+  surface: cachedSessionState?.profile.surface ?? guestProfile.surface,
+  homePath: cachedSessionState?.profile.homePath ?? guestProfile.homePath,
+  loginPath: cachedSessionState?.profile.loginPath ?? guestProfile.loginPath,
+  layoutKind: cachedSessionState?.profile.layoutKind ?? guestProfile.layoutKind,
+  isAuthenticated:
+    cachedSessionState?.profile.isAuthenticated ?? guestProfile.isAuthenticated,
   isLoading: true,
+  access: cachedSessionState?.profile.access ?? guestProfile.access,
+  behaviors: cachedSessionState?.profile.behaviors ?? guestProfile.behaviors,
   setSessionState: ({ user, isLoading }) =>
-    set({
+    set(() => {
+      const profile = createAppSessionProfile(user)
+
+      return {
       user,
-      email: user?.email ?? null,
-      surface: resolveSurface(user),
-      homePath: resolveAuthenticatedHomePath(user),
-      isAuthenticated: Boolean(user),
+      email: profile.email,
+      surface: profile.surface,
+      homePath: profile.homePath,
+      loginPath: profile.loginPath,
+      layoutKind: profile.layoutKind,
+      isAuthenticated: profile.isAuthenticated,
       isLoading,
-    }),
+      access: profile.access,
+      behaviors: profile.behaviors,
+    }}),
 }))

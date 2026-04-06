@@ -14,6 +14,7 @@ import {
 } from "../lib/storefront-wishlist-storage"
 
 let isGuestWishlistSyncInFlight = false
+const emptyWishlistProductIds: string[] = []
 
 export function useStorefrontCustomerPortal() {
   const queryClient = useQueryClient()
@@ -22,7 +23,7 @@ export function useStorefrontCustomerPortal() {
   const guestWishlistProductIds = useSyncExternalStore(
     subscribeStorefrontWishlist,
     readStorefrontWishlistProductIds,
-    () => []
+    () => emptyWishlistProductIds
   )
 
   const portalQuery = useQuery({

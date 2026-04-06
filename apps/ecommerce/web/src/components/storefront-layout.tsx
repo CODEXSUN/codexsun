@@ -9,9 +9,11 @@ import { StorefrontHeader } from "./storefront-header"
 export function StorefrontLayout({
   children,
   className,
+  showCategoryMenu = true,
 }: {
   children: React.ReactNode
   className?: string
+  showCategoryMenu?: boolean
 }) {
   const { data } = useStorefrontShellData()
   const fallbackCategories = useStorefrontShellStore((state) => state.categories)
@@ -19,7 +21,7 @@ export function StorefrontLayout({
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f1ea_0%,#f3ede6_18%,#f7f3ee_100%)] text-foreground">
-      <StorefrontHeader categories={categories} />
+      <StorefrontHeader categories={categories} showCategoryMenu={showCategoryMenu} />
       <main className={cn("pb-16", className)}>{children}</main>
       <StorefrontFooter />
     </div>

@@ -3,13 +3,12 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
-import { coreTableNames } from "../../../core/database/table-names.js"
 import {
   createContact,
   getContact,
   listContacts,
 } from "../../../core/src/services/contact-service.js"
-import { productSchema, type Product } from "../../../core/shared/index.js"
+import { type Product } from "../../../core/shared/index.js"
 import {
   listJsonStorePayloads,
   replaceJsonStoreRecords,
@@ -31,6 +30,8 @@ import {
 
 import { createRazorpayPaymentSession, verifyRazorpaySignature } from "./razorpay-service.js"
 import { resolveAuthenticatedCustomerAccount } from "./customer-service.js"
+import { readCoreProducts } from "./catalog-service.js"
+import { readStorefrontOrders } from "./storefront-order-storage.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 
@@ -60,12 +61,7 @@ function normalizeOptionalString(value: string | null | undefined) {
 }
 
 async function readOrders(database: Kysely<unknown>) {
-  const items = await listJsonStorePayloads<StorefrontOrder>(
-    database,
-    ecommerceTableNames.orders
-  )
-
-  return items.map((item) => storefrontOrderSchema.parse(item))
+  return readStorefrontOrders(database)
 }
 
 async function writeOrders(database: Kysely<unknown>, items: StorefrontOrder[]) {
@@ -191,12 +187,6 @@ function resolveProductPricing(
       .filter((item) => item.isActive)
       .reduce((sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity), 0),
   }
-}
-
-async function readCoreProducts(database: Kysely<unknown>) {
-  const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
-
-  return items.map((item) => productSchema.parse(item))
 }
 
 function nextOrderNumber(existingOrders: StorefrontOrder[]) {
@@ -327,7 +317,8 @@ export async function createCheckoutOrder(
 export async function verifyCheckoutPayment(
   database: Kysely<unknown>,
   config: ServerConfig,
-  payload: unknown
+  payload: unknown,
+  token?: string | null
 ) {
   const parsed = storefrontPaymentVerificationPayloadSchema.parse(payload)
   const orders = await readOrders(database)
@@ -355,8 +346,15 @@ export async function verifyCheckoutPayment(
     throw new ApplicationError("Payment signature could not be verified.", {}, 400)
   }
 
+  const verifiedCustomer =
+    token && !order.customerAccountId
+      ? await resolveAuthenticatedCustomerAccount(database, config, token)
+      : null
+
   const updatedOrder = storefrontOrderSchema.parse({
     ...order,
+    customerAccountId: order.customerAccountId ?? verifiedCustomer?.id ?? null,
+    coreContactId: verifiedCustomer?.coreContactId ?? order.coreContactId,
     status: "confirmed",
     paymentStatus: "paid",
     providerPaymentId: parsed.providerPaymentId,

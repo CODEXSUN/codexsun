@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
-import { storefrontOrderSchema, type StorefrontOrder } from "../../shared/index.js"
+import { type StorefrontOrder } from "../../shared/index.js"
 import {
   createContact,
   getContact,
@@ -36,6 +36,7 @@ import {
 } from "../../shared/index.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
+import { readStorefrontOrders } from "./storefront-order-storage.js"
 import { readCoreProducts, toStorefrontProductCard } from "./catalog-service.js"
 
 const systemActor: AuthUser = {
@@ -112,8 +113,7 @@ async function writeCustomerPortalRecords(database: Kysely<unknown>, items: Cust
 }
 
 async function readOrders(database: Kysely<unknown>) {
-  const items = await listJsonStorePayloads<StorefrontOrder>(database, ecommerceTableNames.orders)
-  return items.map((item) => storefrontOrderSchema.parse(item))
+  return readStorefrontOrders(database)
 }
 
 function inferRewardsTier(pointsBalance: number) {

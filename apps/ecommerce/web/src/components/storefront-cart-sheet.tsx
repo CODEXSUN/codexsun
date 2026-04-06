@@ -14,6 +14,10 @@ import { CommercePrice } from "@/components/ux/commerce-price"
 import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepper"
 
 import { useStorefrontCart } from "../cart/storefront-cart"
+import {
+  handleStorefrontImageError,
+  resolveStorefrontImageUrl,
+} from "../lib/storefront-image"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontCartSheet() {
@@ -53,12 +57,10 @@ export function StorefrontCartSheet() {
                 >
                   <div className="flex gap-4">
                     <img
-                      src={
-                        item.imageUrl ??
-                        "https://placehold.co/400x500/e8ddd1/2d211b?text=Cart"
-                      }
+                      src={resolveStorefrontImageUrl(item.imageUrl, item.name)}
                       alt={item.name}
                       className="h-24 w-20 rounded-2xl object-cover"
+                      onError={(event) => handleStorefrontImageError(event, item.name)}
                     />
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="space-y-1">

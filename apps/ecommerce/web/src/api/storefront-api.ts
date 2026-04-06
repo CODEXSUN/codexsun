@@ -184,11 +184,12 @@ export const storefrontApi = {
     providerOrderId: string
     providerPaymentId: string
     signature: string
-  }) {
+  }, accessToken?: string | null) {
     return requestJson<StorefrontOrderResponse>(
       "/api/v1/storefront/checkout/payment/verify",
       {
         method: "POST",
+        accessToken,
         body: JSON.stringify(payload),
       }
     )

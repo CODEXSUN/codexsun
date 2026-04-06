@@ -7,16 +7,31 @@ import { StorefrontTopMenu } from "./storefront-top-menu"
 
 export function StorefrontHeader({
   categories = [],
+  showCategoryMenu = true,
 }: {
   categories?: StorefrontCategorySummary[]
+  showCategoryMenu?: boolean
 }) {
   const [isCategoryCompact, setIsCategoryCompact] = useState(false)
+  const compactScrollThreshold = 10
+  const topRevealThreshold = 6
 
   useEffect(() => {
     let frameId = 0
 
     function handleScroll() {
-      setIsCategoryCompact(window.scrollY > 0)
+      const currentScrollY = window.scrollY
+
+      if (currentScrollY <= topRevealThreshold) {
+        setIsCategoryCompact(false)
+        return
+      }
+
+      if (currentScrollY <= compactScrollThreshold) {
+        return
+      }
+
+      setIsCategoryCompact(true)
     }
 
     function handleScrollFrame() {
@@ -44,7 +59,9 @@ export function StorefrontHeader({
   return (
     <header className="sticky top-0 z-40">
       <StorefrontTopMenu isScrolled={false} />
-      <StorefrontCategoryMenu categories={categories} isScrolled={isCategoryCompact} />
+      {showCategoryMenu ? (
+        <StorefrontCategoryMenu categories={categories} isScrolled={isCategoryCompact} />
+      ) : null}
     </header>
   )
 }

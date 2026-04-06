@@ -1,4 +1,5 @@
 import type {
+  Media,
   MediaFolderListResponse,
   MediaFolderResponse,
   MediaListResponse,
@@ -7,6 +8,7 @@ import type {
 } from "../../../../../framework/shared/media"
 
 import { getStoredAccessToken } from "../../auth/session-storage"
+import { normalizeMediaSummaryUrls, normalizeMediaUrls } from "./media-url"
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const accessToken = getStoredAccessToken()
@@ -57,13 +59,19 @@ function fileToDataUrl(file: File) {
 }
 
 export function listFrameworkMedia() {
-  return requestJson<MediaListResponse>("/internal/v1/framework/media")
+  return requestJson<MediaListResponse>("/internal/v1/framework/media").then((response) => ({
+    ...response,
+    items: response.items.map((item) => normalizeMediaSummaryUrls(item)),
+  }))
 }
 
 export function getFrameworkMediaItem(mediaId: string) {
   return requestJson<MediaResponse>(
     `/internal/v1/framework/media-item?id=${encodeURIComponent(mediaId)}`
-  )
+  ).then((response) => ({
+    ...response,
+    item: normalizeMediaUrls(response.item as Media),
+  }))
 }
 
 export function listFrameworkMediaFolders() {
@@ -107,7 +115,10 @@ export function updateFrameworkMediaItem(
         isActive: payload.isActive ?? true,
       }),
     }
-  )
+  ).then((response) => ({
+    ...response,
+    item: normalizeMediaUrls(response.item as Media),
+  }))
 }
 
 export function deactivateFrameworkMediaItem(mediaId: string) {
@@ -144,5 +155,8 @@ export async function uploadFrameworkMediaImage({
       tags: [],
       isActive: true,
     }),
-  })
+  }).then((response) => ({
+    ...response,
+    item: normalizeMediaUrls(response.item as Media),
+  }))
 }

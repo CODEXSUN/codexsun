@@ -64,16 +64,7 @@ export const storefrontPaths = {
 
     return search ? `${path}?${search}` : path
   },
-  accountLogin: (next?: string | null) => {
-    const path = withStorefrontRoot("/customer/login")
-
-    if (!next) {
-      return path
-    }
-
-    const searchParams = new URLSearchParams({ next })
-    return `${path}?${searchParams.toString()}`
-  },
+  accountLogin: (_next?: string | null) => "/login",
   accountRegister: () => withStorefrontRoot("/customer/register"),
   account: () => withStorefrontRoot("/customer"),
   accountSection: (

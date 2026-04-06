@@ -24,16 +24,27 @@ function CategoryPill({
     <Link
       to={href}
       className={cn(
-        "group shrink-0 transition-all duration-500",
+        "group shrink-0 origin-bottom transform-gpu rounded-[1.55rem] transition-[transform,padding] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+        compact ? "duration-[420ms]" : "duration-[620ms]",
         compact
-          ? "flex items-center justify-center rounded-full px-3 py-2 hover:bg-[#eadfce]/96"
-          : "flex w-20 flex-col items-center gap-3 hover:-translate-y-1 sm:w-24 lg:w-28"
+          ? "w-20 px-1 py-1 hover:-translate-y-0.5 sm:w-24 lg:w-28"
+          : "w-20 px-1 py-1.5 hover:-translate-y-1 sm:w-24 lg:w-28"
       )}
     >
-      {!compact ? (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center text-center transition-[gap] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          compact ? "duration-[420ms]" : "duration-[620ms]",
+          compact ? "gap-0.5" : "gap-3"
+        )}
+      >
         <div
           className={cn(
-            "flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1.4rem] bg-[linear-gradient(180deg,#f5ebe1_0%,#fbf7f1_100%)] shadow-[0_16px_40px_-28px_rgba(60,35,20,0.28)] ring-1 transition-all duration-300",
+            "origin-bottom flex aspect-square items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f5ebe1_0%,#fbf7f1_100%)] ring-1 [transform:perspective(900px)_rotateX(0deg)_scaleY(1)_translateY(0)] transition-[max-height,opacity,border-radius,box-shadow,transform,margin,filter] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+            compact ? "duration-[440ms]" : "duration-[680ms]",
+            compact
+              ? "pointer-events-none -mb-1 m-0 max-h-0 w-full rounded-[0.9rem] opacity-0 shadow-none delay-[70ms] [filter:blur(0.6px)] [transform:perspective(900px)_rotateX(72deg)_scaleY(0.36)_translateY(0.55rem)]"
+              : "w-full rounded-[1.4rem] shadow-[0_16px_40px_-28px_rgba(60,35,20,0.28)]",
             isActive
               ? "ring-[#8b5e34] shadow-[0_20px_44px_-26px_rgba(91,56,31,0.34)]"
               : "ring-[#eadbca]"
@@ -43,31 +54,44 @@ function CategoryPill({
             <img
               src={imageUrl}
               alt={label}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              className={cn(
+                "h-full w-full origin-bottom object-cover transition-[transform,filter] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105",
+                compact ? "duration-[440ms]" : "duration-[680ms]",
+                compact
+                  ? "translate-y-1 scale-[1.04] [filter:saturate(0.92)]"
+                  : "[filter:saturate(1)]"
+              )}
               loading="lazy"
               decoding="async"
             />
           ) : (
-            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6d5140]">
+            <div
+              className={cn(
+                "font-semibold uppercase tracking-[0.16em] text-[#6d5140] transition-[font-size,transform,opacity] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                compact ? "duration-[420ms]" : "duration-[620ms]",
+                compact ? "text-[10px]" : "text-xs"
+              )}
+            >
               {label.slice(0, 2)}
             </div>
           )}
         </div>
-      ) : null}
-      <span
-        className={cn(
-          "text-center font-medium leading-tight transition-all duration-500 ease-out group-hover:text-[#241913]",
-          compact
-            ? isActive
-              ? "origin-center -rotate-[2deg] scale-[1.08] text-base font-semibold text-[#241913]"
-              : "origin-center rotate-0 scale-100 text-base text-[#5a4639] group-hover:-rotate-[1deg] group-hover:scale-[1.04] group-hover:font-semibold"
-            : isActive
-              ? "text-[11px] text-[#241913] sm:text-xs"
-              : "text-[11px] text-[#4e3b2e] sm:text-xs"
-        )}
-      >
-        {label}
-      </span>
+        <span
+          className={cn(
+            "line-clamp-2 text-center font-medium leading-tight transition-[transform,color,font-size,letter-spacing] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-[#241913]",
+            compact ? "duration-[440ms]" : "duration-[680ms]",
+            compact
+              ? isActive
+                ? "-translate-y-0.5 scale-100 text-[13px] font-semibold tracking-[0.01em] text-[#241913] sm:text-[13.5px]"
+                : "-translate-y-0.5 text-[13px] tracking-[0.01em] text-[#5a4639] group-hover:scale-[1.02] sm:text-[13.5px]"
+              : isActive
+                ? "text-[11px] text-[#241913] sm:text-xs"
+                : "text-[11px] text-[#4e3b2e] sm:text-xs"
+          )}
+        >
+          {label}
+        </span>
+      </div>
     </Link>
   )
 }
@@ -136,7 +160,8 @@ export function StorefrontCategoryMenu({
   return (
     <div
       className={cn(
-        "border-b border-[#eadbca] transition-all duration-300",
+        "border-b border-[#eadbca] transform-gpu transition-[background-color,box-shadow,padding] ease-[cubic-bezier(0.22,1,0.36,1)]",
+        isScrolled ? "duration-[420ms]" : "duration-[620ms]",
         isScrolled
           ? "bg-[#fcf8f3]/88 backdrop-blur-xl shadow-[0_16px_36px_-28px_rgba(43,26,12,0.36)]"
           : "bg-[#fcf8f3]/94",
@@ -147,15 +172,17 @@ export function StorefrontCategoryMenu({
         <div
           ref={scrollRef}
           className={cn(
-            "w-full overflow-x-auto px-3 transition-all duration-300 [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent lg:px-4",
+            "w-full overflow-x-auto px-3 transition-[padding] ease-[cubic-bezier(0.22,1,0.36,1)] [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent lg:px-4",
+            isScrolled ? "duration-[420ms]" : "duration-[620ms]",
             isScrolled ? "py-2.5" : "py-4"
           )}
         >
           <div
             className={cn(
-              "mx-auto flex min-w-max items-center",
+              "mx-auto flex min-w-max items-end transition-[gap] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              isScrolled ? "duration-[420ms]" : "duration-[620ms]",
               isScrolled
-                ? "justify-center gap-4 px-6 sm:gap-5 lg:gap-6"
+                ? "justify-center gap-5 px-6 sm:gap-6 lg:gap-8"
                 : "justify-center gap-5 px-6 sm:gap-6 lg:gap-8"
             )}
           >

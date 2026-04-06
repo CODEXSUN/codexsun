@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label"
 
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { StorefrontLayout } from "../components/storefront-layout"
+import { consumeStorefrontPostAuthRedirect } from "../lib/storefront-auth-redirect"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontAccountRegisterPage() {
+  const location = useLocation()
   const navigate = useNavigate()
   const customerAuth = useStorefrontCustomerAuth()
   const [formState, setFormState] = useState({
@@ -29,6 +31,14 @@ export function StorefrontAccountRegisterPage() {
   })
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const locationState =
+    typeof location.state === "object" && location.state
+      ? (location.state as { postAuthPath?: string | null })
+      : null
+  const postAuthPath =
+    typeof locationState?.postAuthPath === "string"
+      ? locationState.postAuthPath
+      : null
 
   async function handleSubmit() {
     setIsSubmitting(true)
@@ -41,7 +51,12 @@ export function StorefrontAccountRegisterPage() {
         gstin: formState.gstin || null,
         addressLine2: formState.addressLine2 || null,
       })
-      void navigate(storefrontPaths.account(), { replace: true })
+      void navigate(
+        postAuthPath ??
+          consumeStorefrontPostAuthRedirect() ??
+          storefrontPaths.account(),
+        { replace: true }
+      )
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -54,7 +69,7 @@ export function StorefrontAccountRegisterPage() {
   }
 
   return (
-    <StorefrontLayout>
+    <StorefrontLayout showCategoryMenu={false}>
       <div className="mx-auto grid min-h-[70vh] w-full max-w-3xl place-items-center px-5 py-10">
         <Card className="w-full rounded-[2rem] border-border/70 py-0 shadow-lg">
           <CardHeader className="space-y-3">

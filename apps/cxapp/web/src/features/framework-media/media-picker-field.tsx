@@ -16,11 +16,13 @@ import {
 } from "@/components/ui/dialog"
 
 import { FrameworkMediaBrowser } from "./media-browser"
+import { handleMediaPreviewError, resolveMediaPreviewUrl } from "./media-url"
 
 export function FrameworkMediaPickerField({
   allowedScopes = ["public"],
   clearLabel = "Clear",
   footer,
+  helperText,
   orderLabel,
   orderValue,
   onOrderChange,
@@ -32,6 +34,7 @@ export function FrameworkMediaPickerField({
   allowedScopes?: MediaStorageScope[]
   clearLabel?: string
   footer?: ReactNode
+  helperText?: ReactNode
   orderLabel?: string
   orderValue?: number | string
   onOrderChange?: (value: string) => void
@@ -57,7 +60,12 @@ export function FrameworkMediaPickerField({
       >
         <div className={cn("aspect-square bg-muted/60", size === "compact" ? "max-h-[13rem]" : "")}>
           {value.trim().length > 0 ? (
-            <img src={value} alt={previewAlt} className="h-full w-full object-cover" />
+            <img
+              src={resolveMediaPreviewUrl(value, previewAlt)}
+              alt={previewAlt}
+              className="h-full w-full object-cover"
+              onError={(event) => handleMediaPreviewError(event, previewAlt)}
+            />
           ) : (
             <div
               className={cn(
@@ -73,6 +81,9 @@ export function FrameworkMediaPickerField({
           <p className="truncate text-xs text-muted-foreground">
             {value.trim().length > 0 ? value : "Choose a media asset to attach here."}
           </p>
+          {helperText ? (
+            <div className="text-xs leading-5 text-muted-foreground">{helperText}</div>
+          ) : null}
           <div className="grid grid-cols-2 gap-1.5">
             <Button
               type="button"

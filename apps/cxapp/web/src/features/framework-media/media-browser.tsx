@@ -52,6 +52,11 @@ import {
   updateFrameworkMediaItem,
   uploadFrameworkMediaImage,
 } from "./media-api"
+import {
+  handleMediaPreviewError,
+  normalizeMediaUrl,
+  resolveMediaPreviewUrl,
+} from "./media-url"
 
 type ScopeFilter = "all" | MediaStorageScope
 type MediaPreviewLayout = "list" | "small-grid" | "presentation"
@@ -76,11 +81,13 @@ function readableFileSize(bytes: number) {
 }
 
 function createAbsoluteAssetUrl(fileUrl: string) {
+  const normalizedUrl = normalizeMediaUrl(fileUrl) ?? fileUrl
+
   if (typeof window === "undefined") {
-    return fileUrl
+    return normalizedUrl
   }
 
-  return new URL(fileUrl, window.location.origin).toString()
+  return new URL(normalizedUrl, window.location.origin).toString()
 }
 
 function normalizeMediaSourceUrl(value: string) {
@@ -124,6 +131,11 @@ function MediaAssetCard({
   onSelect,
   onShare,
 }: MediaAssetCardProps) {
+  const previewUrl = resolveMediaPreviewUrl(
+    asset.thumbnailUrl ?? asset.fileUrl,
+    asset.altText ?? asset.title ?? asset.fileName
+  )
+
   return (
     <div
       className={cn(
@@ -134,9 +146,15 @@ function MediaAssetCard({
       <div className="relative aspect-square overflow-hidden bg-muted/60">
         {canRenderImagePreview(asset) ? (
           <img
-            src={asset.fileUrl}
+            src={previewUrl}
             alt={asset.altText ?? asset.title ?? asset.fileName}
             className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+            onError={(event) =>
+              handleMediaPreviewError(
+                event,
+                asset.altText ?? asset.title ?? asset.fileName
+              )
+            }
           />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -241,6 +259,7 @@ export function FrameworkMediaBrowser({
   const [previewLayout, setPreviewLayout] = useState<MediaPreviewLayout>("small-grid")
   const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const normalizedSelectedUrl = normalizeMediaUrl(selectedUrl)
 
   useEffect(() => {
     setExternalUrl(selectedUrl ?? "")
@@ -857,15 +876,26 @@ export function FrameworkMediaBrowser({
                   key={asset.id}
                   className={cn(
                     "grid gap-3 rounded-[1.2rem] border border-border/70 bg-background/70 p-3 sm:grid-cols-[88px_minmax(0,1fr)_auto]",
-                    selectedUrl === asset.fileUrl ? "border-primary ring-2 ring-primary/15" : undefined
+                    normalizedSelectedUrl === asset.fileUrl
+                      ? "border-primary ring-2 ring-primary/15"
+                      : undefined
                   )}
                 >
                   <div className="h-22 overflow-hidden rounded-xl bg-muted/60">
                     {canRenderImagePreview(asset) ? (
                       <img
-                        src={asset.fileUrl}
+                        src={resolveMediaPreviewUrl(
+                          asset.thumbnailUrl ?? asset.fileUrl,
+                          asset.altText ?? asset.title ?? asset.fileName
+                        )}
                         alt={asset.altText ?? asset.title ?? asset.fileName}
                         className="h-full w-full object-cover"
+                        onError={(event) =>
+                          handleMediaPreviewError(
+                            event,
+                            asset.altText ?? asset.title ?? asset.fileName
+                          )
+                        }
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -890,10 +920,10 @@ export function FrameworkMediaBrowser({
                       <Button
                         type="button"
                         size="sm"
-                        variant={selectedUrl === asset.fileUrl ? "default" : "outline"}
+                        variant={normalizedSelectedUrl === asset.fileUrl ? "default" : "outline"}
                         onClick={() => onSelect(asset)}
                       >
-                        {selectedUrl === asset.fileUrl ? "Selected" : "Use Media"}
+                        {normalizedSelectedUrl === asset.fileUrl ? "Selected" : "Use Media"}
                       </Button>
                     ) : null}
                     <Button type="button" size="icon" variant="outline" onClick={() => openEditDialog(asset)}>
@@ -921,7 +951,7 @@ export function FrameworkMediaBrowser({
                 <MediaAssetCard
                   key={asset.id}
                   asset={asset}
-                  isSelected={selectedUrl === asset.fileUrl}
+                  isSelected={normalizedSelectedUrl === asset.fileUrl}
                   onDelete={(item) => void handleDeleteAsset(item)}
                   onEdit={openEditDialog}
                   onSelect={onSelect}
@@ -942,7 +972,7 @@ export function FrameworkMediaBrowser({
                 <MediaAssetCard
                   key={asset.id}
                   asset={asset}
-                  isSelected={selectedUrl === asset.fileUrl}
+                  isSelected={normalizedSelectedUrl === asset.fileUrl}
                   onDelete={(item) => void handleDeleteAsset(item)}
                   onEdit={openEditDialog}
                   onSelect={onSelect}

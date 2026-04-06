@@ -180,7 +180,8 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
           await verifyCheckoutPayment(
             context.databases.primary,
             context.config,
-            context.request.jsonBody
+            context.request.jsonBody,
+            readBearerToken(context.request.headers)
           )
         ),
     }),

@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState } from "react"
 
+import { resolveStorefrontImageUrl } from "../lib/storefront-image"
+
 type StorefrontCartItem = {
   productId: string
   slug: string
@@ -23,6 +25,13 @@ type StorefrontCartContextValue = {
 const StorefrontCartContext = createContext<StorefrontCartContextValue | null>(null)
 const cartStorageKey = "codexsun.storefront.cart"
 
+function normalizeCartItem(item: StorefrontCartItem): StorefrontCartItem {
+  return {
+    ...item,
+    imageUrl: item.imageUrl ? resolveStorefrontImageUrl(item.imageUrl, item.name) : null,
+  }
+}
+
 function readStoredCart() {
   if (typeof window === "undefined") {
     return [] as StorefrontCartItem[]
@@ -35,7 +44,7 @@ function readStoredCart() {
   }
 
   try {
-    return JSON.parse(rawValue) as StorefrontCartItem[]
+    return (JSON.parse(rawValue) as StorefrontCartItem[]).map(normalizeCartItem)
   } catch {
     window.localStorage.removeItem(cartStorageKey)
     return [] as StorefrontCartItem[]
@@ -47,7 +56,10 @@ function writeStoredCart(items: StorefrontCartItem[]) {
     return
   }
 
-  window.localStorage.setItem(cartStorageKey, JSON.stringify(items))
+  window.localStorage.setItem(
+    cartStorageKey,
+    JSON.stringify(items.map(normalizeCartItem))
+  )
 }
 
 export function StorefrontCartProvider({
@@ -84,7 +96,13 @@ export function StorefrontCartProvider({
           return
         }
 
-        setAndPersist([...items, { ...item, quantity }])
+        setAndPersist([
+          ...items,
+          normalizeCartItem({
+            ...item,
+            quantity,
+          }),
+        ])
       },
       updateQuantity: (productId, quantity) => {
         const nextItems =

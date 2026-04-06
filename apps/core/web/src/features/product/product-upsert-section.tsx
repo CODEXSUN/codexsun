@@ -63,6 +63,9 @@ const lookupModules: ProductLookupModuleKey[] = [
   "warehouses",
 ]
 
+const storefrontProductImageHelperText =
+  "For clear storefront product display, upload at least 1200 x 1500 px in a 4:5 ratio."
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const accessToken = getStoredAccessToken()
   const response = await fetch(path, {
@@ -846,6 +849,7 @@ export function ProductUpsertSection({
                             value={image.imageUrl}
                             previewAlt={`${variant.variantName || form.name || "Variant"} image ${imageIndex + 1}`}
                             clearLabel="Clear"
+                            helperText={storefrontProductImageHelperText}
                             onChange={(value) =>
                               setForm((current) => ({
                                 ...current,
@@ -925,6 +929,7 @@ export function ProductUpsertSection({
                   value={image.imageUrl}
                   previewAlt={`${form.name || "Product"} image ${index + 1}`}
                   clearLabel="Clear"
+                  helperText={storefrontProductImageHelperText}
                   orderValue={image.sortOrder}
                   orderLabel="Order"
                   onOrderChange={(value) =>

@@ -51,7 +51,7 @@ export function StorefrontTrackOrderPage() {
   }, [searchParams])
 
   return (
-    <StorefrontLayout>
+    <StorefrontLayout showCategoryMenu={false}>
       <div className="mx-auto grid w-full max-w-5xl gap-8 px-5 pt-8 lg:px-8">
         <section className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">

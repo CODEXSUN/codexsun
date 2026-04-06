@@ -31,7 +31,9 @@ export function LoginPage() {
         email: email.trim().toLowerCase(),
         password,
       })
-      void navigate(resolvePostAuthPath(response.user, next))
+      if (next) {
+        void navigate(resolvePostAuthPath(response.user, next))
+      }
     } catch (nextError) {
       setError(
         nextError instanceof HttpError
@@ -51,7 +53,7 @@ export function LoginPage() {
             Welcome
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Access your workspace securely.
+            Use one sign in for customer, staff, and admin access. Your role decides the destination automatically.
           </p>
         </div>
 

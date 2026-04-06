@@ -9,6 +9,10 @@ import type { AuthTokenResponse } from "@cxapp/shared"
 import * as authApi from "./auth-api"
 import { AuthContext, type AuthContextValue } from "./auth-context"
 import {
+  clearCachedAppSessionState,
+  persistCachedAppSessionState,
+} from "./app-session-cache"
+import {
   clearStoredAuthSession,
   persistStoredAuthSession,
   readStoredAuthSession,
@@ -39,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const stored = readStoredAuthSession()
 
       if (!stored) {
+        clearCachedAppSessionState()
         if (!cancelled) {
           setSession(null)
           setIsLoading(false)
@@ -53,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user,
         }
         persistStoredAuthSession(nextSession)
+        persistCachedAppSessionState(nextSession.user)
 
         if (!cancelled) {
           setSession(nextSession)
@@ -60,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         clearStoredAuthSession()
+        clearCachedAppSessionState()
 
         if (!cancelled) {
           setSession(null)
@@ -92,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await authApi.login(payload)
         const nextSession = toStoredSession(response)
         persistStoredAuthSession(nextSession)
+        persistCachedAppSessionState(nextSession.user)
         setSession(nextSession)
         return response
       },
@@ -105,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         clearStoredAuthSession()
+        clearCachedAppSessionState()
         setSession(null)
       },
       requestRegisterOtp: authApi.requestRegisterOtp,
@@ -113,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await authApi.register(payload)
         const nextSession = toStoredSession(response)
         persistStoredAuthSession(nextSession)
+        persistCachedAppSessionState(nextSession.user)
         setSession(nextSession)
         return response
       },
