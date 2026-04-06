@@ -120,15 +120,15 @@ export function StorefrontHeroSlider({
 
   return (
     <section
-      className="relative overflow-hidden rounded-[2.6rem] border border-[#e1d3c4] shadow-[0_35px_95px_-46px_rgba(52,26,15,0.42)] lg:h-[520px]"
+      className="relative w-full max-w-full min-w-0 overflow-hidden rounded-[2rem] border border-[#e1d3c4] shadow-[0_35px_95px_-46px_rgba(52,26,15,0.42)] sm:rounded-[2.3rem] lg:h-[520px] lg:rounded-[2.6rem]"
       style={{
         background: sliderStyles.background,
         color: sliderStyles.textColor,
       }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_18%,rgba(255,255,255,0.14),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_32%)]" />
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:flex lg:h-full lg:px-12 lg:py-12">
-        <div className="space-y-5 lg:hidden">
+      <div className="relative mx-auto w-full max-w-7xl min-w-0 px-3 py-3 sm:px-5 sm:py-5 lg:flex lg:h-full lg:px-12 lg:py-12">
+        <div className="flex flex-col gap-4 lg:hidden">
           <div className="relative overflow-hidden rounded-[2rem] shadow-[0_28px_72px_-42px_rgba(24,12,7,0.48)]">
             <div className="absolute inset-x-4 top-3 z-10 flex items-center justify-between gap-3 sm:inset-x-5">
               <Badge
@@ -179,12 +179,11 @@ export function StorefrontHeroSlider({
               <AnimatePresence mode="wait" initial={false} custom={direction}>
                 <motion.div
                   key={`${activeItem.id}:mobile-image`}
-                  custom={direction}
-                  initial={{ opacity: 0, x: direction > 0 ? 18 : -18, scale: 0.992 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: direction > 0 ? -14 : 14, scale: 0.992 }}
+                  initial={{ opacity: 0, scale: 0.992 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.992 }}
                   transition={{ ...smoothImageTransition, delay: 0.05 }}
-                  className="relative mt-3 h-[280px] w-full sm:mt-3 sm:h-[340px]"
+                  className="relative mt-3 h-[clamp(220px,68vw,280px)] w-full max-w-full sm:mt-3 sm:h-[clamp(260px,62vw,340px)]"
                 >
                   <div
                     className="flex h-full w-full overflow-hidden rounded-[1.78rem] p-2 backdrop-blur-[24px]"
@@ -220,99 +219,100 @@ export function StorefrontHeroSlider({
             </div>
           </div>
 
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.div
-              key={`${activeItem.id}:mobile-content`}
-              custom={direction}
-              initial={{ opacity: 0, y: direction > 0 ? 16 : -16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: direction > 0 ? -10 : 10 }}
-              transition={smoothContentTransition}
-              className="space-y-4 px-1 pb-1"
-            >
-              <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
-                <motion.div variants={staggeredContentItem} className="space-y-3">
-                  <h1 className="line-clamp-2 font-heading text-[1.9rem] font-semibold tracking-tight leading-[1.02] sm:text-[2.2rem]">
-                    {activeTitle}
-                  </h1>
-                </motion.div>
-                <motion.p
-                  variants={staggeredContentItem}
-                  className="line-clamp-2 pt-3 text-sm leading-6 sm:text-base sm:leading-7"
-                  style={{ color: sliderStyles.mutedTextColor }}
-                >
-                  {activeSummary}
-                </motion.p>
+          <div className="relative h-[17.75rem] overflow-hidden px-1 pb-1 sm:h-[18.5rem]">
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <motion.div
+                key={`${activeItem.id}:mobile-content`}
+                initial={{ opacity: 0, scale: 0.996 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.996 }}
+                transition={smoothContentTransition}
+                className="absolute inset-0 flex flex-col justify-start space-y-4"
+              >
+                <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
+                  <motion.div variants={staggeredContentItem} className="h-[3.95rem] space-y-3 overflow-hidden sm:h-[4.5rem]">
+                    <h1 className="line-clamp-2 font-heading text-[1.9rem] font-semibold tracking-tight leading-[1.02] sm:text-[2.2rem]">
+                      {activeTitle}
+                    </h1>
+                  </motion.div>
+                  <motion.p
+                    variants={staggeredContentItem}
+                    className="line-clamp-2 h-[3.25rem] overflow-hidden pt-3 text-sm leading-6 sm:h-[3.75rem] sm:text-base sm:leading-7"
+                    style={{ color: sliderStyles.mutedTextColor }}
+                  >
+                    {activeSummary}
+                  </motion.p>
 
-                <motion.div variants={staggeredContentItem} className="flex items-center gap-5 py-5">
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className="text-[10px] font-medium uppercase tracking-[0.16em]"
-                      style={{ color: sliderStyles.mutedTextColor }}
-                    >
-                      Special Price
-                    </span>
-                    <span className="text-2xl font-semibold sm:text-[1.9rem]">
-                      {formatCurrency(activeItem.sellingPrice)}
-                    </span>
-                  </div>
-                  <div className="h-9 w-px" style={{ background: `${sliderStyles.mutedTextColor}33` }} />
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className="text-[10px] font-medium uppercase tracking-[0.16em]"
-                      style={{ color: sliderStyles.mutedTextColor }}
-                    >
-                      Rating & Reviews
-                    </span>
-                    <div className="flex items-center gap-2 text-amber-300">
-                      <Star className="size-4 fill-current" />
-                      <span className="text-lg font-semibold">
-                        {activeItem.isBestSeller ? "4.8" : activeItem.isFeaturedLabel ? "4.6" : "4.5"}
+                  <motion.div variants={staggeredContentItem} className="flex h-[4.75rem] flex-wrap items-center gap-4 overflow-hidden py-4 sm:h-[5rem] sm:gap-5 sm:py-5">
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="text-[10px] font-medium uppercase tracking-[0.16em]"
+                        style={{ color: sliderStyles.mutedTextColor }}
+                      >
+                        Special Price
+                      </span>
+                      <span className="text-2xl font-semibold sm:text-[1.9rem]">
+                        {formatCurrency(activeItem.sellingPrice)}
                       </span>
                     </div>
-                  </div>
-                </motion.div>
+                    <div className="h-9 w-px" style={{ background: `${sliderStyles.mutedTextColor}33` }} />
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="text-[10px] font-medium uppercase tracking-[0.16em]"
+                        style={{ color: sliderStyles.mutedTextColor }}
+                      >
+                        Rating & Reviews
+                      </span>
+                      <div className="flex items-center gap-2 text-amber-300">
+                        <Star className="size-4 fill-current" />
+                        <span className="text-lg font-semibold">
+                          {activeItem.isBestSeller ? "4.8" : activeItem.isFeaturedLabel ? "4.6" : "4.5"}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
 
-                <motion.div variants={staggeredContentItem} className="flex flex-col gap-3 sm:flex-row">
-                  <Button
-                    type="button"
-                    className="h-10 rounded-full px-5 text-sm font-semibold sm:flex-1"
-                    style={{
-                      background: sliderStyles.primaryButtonBackground,
-                      color: sliderStyles.primaryButtonTextColor,
-                    }}
-                    onClick={() =>
-                      cart.addItem({
-                        productId: activeItem.id,
-                        slug: activeItem.slug,
-                        name: activeItem.name,
-                        imageUrl: activeItem.primaryImageUrl,
-                        unitPrice: activeItem.sellingPrice,
-                        mrp: activeItem.mrp,
-                      })
-                    }
-                  >
-                    <ShoppingBag className="size-4" />
-                    {activePrimaryCtaLabel}
-                  </Button>
-                  <Link
-                    to={storefrontPaths.product(activeItem.slug)}
-                    className={cn(
-                      buttonVariants({ variant: "outline" }),
-                      "h-10 rounded-xl px-5 text-sm font-medium backdrop-blur-sm sm:flex-1"
-                    )}
-                    style={{
-                      background: sliderStyles.secondaryButtonBackground,
-                      color: sliderStyles.secondaryButtonTextColor,
-                      borderColor: sliderStyles.innerFrameBorderColor,
-                    }}
-                  >
-                    {sliderStyles.secondaryButtonLabel}
-                  </Link>
+                  <motion.div variants={staggeredContentItem} className="flex h-[5.75rem] flex-col gap-3 overflow-hidden sm:h-[2.5rem] sm:flex-row">
+                    <Button
+                      type="button"
+                      className="h-10 rounded-full px-5 text-sm font-semibold sm:flex-1"
+                      style={{
+                        background: sliderStyles.primaryButtonBackground,
+                        color: sliderStyles.primaryButtonTextColor,
+                      }}
+                      onClick={() =>
+                        cart.addItem({
+                          productId: activeItem.id,
+                          slug: activeItem.slug,
+                          name: activeItem.name,
+                          imageUrl: activeItem.primaryImageUrl,
+                          unitPrice: activeItem.sellingPrice,
+                          mrp: activeItem.mrp,
+                        })
+                      }
+                    >
+                      <ShoppingBag className="size-4" />
+                      {activePrimaryCtaLabel}
+                    </Button>
+                    <Link
+                      to={storefrontPaths.product(activeItem.slug)}
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "h-10 rounded-xl px-5 text-sm font-medium backdrop-blur-sm sm:flex-1"
+                      )}
+                      style={{
+                        background: sliderStyles.secondaryButtonBackground,
+                        color: sliderStyles.secondaryButtonTextColor,
+                        borderColor: sliderStyles.innerFrameBorderColor,
+                      }}
+                    >
+                      {sliderStyles.secondaryButtonLabel}
+                    </Link>
+                  </motion.div>
                 </motion.div>
               </motion.div>
-            </motion.div>
-          </AnimatePresence>
+            </AnimatePresence>
+          </div>
         </div>
 
         <div className="hidden h-full w-full items-center gap-10 lg:grid lg:grid-cols-[0.95fr_1.05fr]">

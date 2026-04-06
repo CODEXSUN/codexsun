@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Heart, ShieldCheck, ShoppingBag, Truck } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 
 import type { StorefrontProductResponse } from "@ecommerce/shared"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
@@ -26,10 +26,13 @@ import { storefrontPaths } from "../lib/storefront-routes"
 export function StorefrontProductPage() {
   const { slug = "" } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const cart = useStorefrontCart()
   const customerPortal = useStorefrontCustomerPortal()
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+  const detailSectionRef = useRef<HTMLElement | null>(null)
+  const [hasAutoScrolledToDetails, setHasAutoScrolledToDetails] = useState(false)
 
   const { data, error, isLoading } = useQuery<StorefrontProductResponse>({
     queryKey: queryKeys.storefrontProduct(slug),
@@ -44,6 +47,38 @@ export function StorefrontProductPage() {
   const product = data?.item
   const gallery = product?.images.length ? product.images : []
   const isWishlisted = product ? customerPortal.isWishlisted(product.id) : false
+  const focusTarget = (location.state as { focus?: string } | null)?.focus
+  const shouldAutoFocusTop = focusTarget === "top"
+  const shouldAutoFocusDetail =
+    location.hash === "#product-detail" || focusTarget === "product-detail"
+
+  useEffect(() => {
+    setHasAutoScrolledToDetails(false)
+  }, [slug])
+
+  useEffect(() => {
+    if (!product || hasAutoScrolledToDetails || !shouldAutoFocusTop) {
+      return
+    }
+
+    window.scrollTo({ top: 0, behavior: "auto" })
+    setHasAutoScrolledToDetails(true)
+  }, [product, shouldAutoFocusTop, hasAutoScrolledToDetails])
+
+  useEffect(() => {
+    if (!product || hasAutoScrolledToDetails || !shouldAutoFocusDetail) {
+      return
+    }
+
+    const section = detailSectionRef.current
+
+    if (!section) {
+      return
+    }
+
+    section.scrollIntoView({ behavior: "smooth", block: "start" })
+    setHasAutoScrolledToDetails(true)
+  }, [product, shouldAutoFocusDetail, hasAutoScrolledToDetails])
 
   async function handleToggleWishlist(productId: string) {
     await customerPortal.toggleWishlist(productId)
@@ -61,7 +96,11 @@ export function StorefrontProductPage() {
         ) : null}
         {product ? (
           <>
-            <section className="grid gap-6 lg:grid-cols-[minmax(0,0.94fr)_minmax(340px,0.82fr)] lg:items-start">
+            <section
+              id="product-detail"
+              ref={detailSectionRef}
+              className="grid gap-6 lg:grid-cols-[minmax(0,0.94fr)_minmax(340px,0.82fr)] lg:items-start"
+            >
               <div className="lg:sticky lg:top-24">
                 <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(251,247,242,0.94))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
                   <CardContent className="space-y-4 p-4 sm:p-5">

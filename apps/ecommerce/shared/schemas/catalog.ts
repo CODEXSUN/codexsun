@@ -93,6 +93,16 @@ export const storefrontSectionCopySchema = z.object({
   cardsPerRow: z.union([z.literal(3), z.literal(4), z.literal(5), z.literal(6)]).default(3),
 })
 
+export const storefrontProductLaneSectionSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  ctaLabel: z.string().min(1).nullable(),
+  ctaHref: z.string().min(1).nullable(),
+  cardsPerRow: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).default(3),
+  rowsToShow: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+})
+
 export const storefrontFeaturedCardDesignSchema = z.object({
   titleColor: hexColorSchema,
   metaColor: hexColorSchema,
@@ -231,8 +241,8 @@ export const storefrontSettingsSchema = z.object({
   sections: z.object({
     featured: storefrontFeaturedSectionSchema,
     categories: storefrontCategorySectionSchema,
-    newArrivals: storefrontSectionCopySchema,
-    bestSellers: storefrontSectionCopySchema,
+    newArrivals: storefrontProductLaneSectionSchema,
+    bestSellers: storefrontProductLaneSectionSchema,
     cta: storefrontPromoSectionSchema,
   }),
   trustNotes: z.array(storefrontTrustNoteSchema).min(1),

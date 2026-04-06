@@ -10,7 +10,7 @@ import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontAnnouncementBar } from "../components/storefront-announcement-bar"
 import { StorefrontHeroSlider } from "../components/storefront-hero-slider"
 import { StorefrontLayout } from "../components/storefront-layout"
-import { StorefrontProductCard } from "../components/storefront-product-card"
+import { StorefrontProductCardGrid } from "../components/storefront-product-card-grid"
 import {
   StorefrontCategoryCardSkeleton,
   StorefrontHeroSkeleton,
@@ -33,11 +33,17 @@ export function StorefrontHomePage() {
   const cart = useStorefrontCart()
   const customerPortal = useStorefrontCustomerPortal()
   const visibility = data?.settings.visibility
+  const newArrivalsSection = data?.settings.sections.newArrivals
+  const bestSellersSection = data?.settings.sections.bestSellers
   const featuredItems = data?.featured ?? []
   const categoryItems =
     data?.categories.filter((category) => category.productCount > 0 && category.slug !== "all-items") ?? []
-  const newArrivalItems = (data?.newArrivals ?? []).slice(0, 2)
-  const bestSellerItems = (data?.bestSellers ?? []).slice(0, 2)
+  const newArrivalItemCount =
+    (newArrivalsSection?.cardsPerRow ?? 3) * (newArrivalsSection?.rowsToShow ?? 1)
+  const bestSellerItemCount =
+    (bestSellersSection?.cardsPerRow ?? 3) * (bestSellersSection?.rowsToShow ?? 1)
+  const newArrivalItems = (data?.newArrivals ?? []).slice(0, newArrivalItemCount)
+  const bestSellerItems = (data?.bestSellers ?? []).slice(0, bestSellerItemCount)
   const trustNotes = data?.settings.trustNotes ?? []
   const hasFeaturedSection =
     Boolean(visibility?.featured) &&
@@ -227,92 +233,113 @@ export function StorefrontHomePage() {
           </section>
         ) : null}
 
-        {hasNewArrivalsSection || hasBestSellersSection ? (
-          <section className="grid gap-5 lg:grid-cols-2">
-            {hasNewArrivalsSection ? (
-              <div className="space-y-5">
-                <div>
-                  {hasContent(data?.settings.sections.newArrivals.eyebrow) ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                      {data?.settings.sections.newArrivals.eyebrow}
-                    </p>
-                  ) : null}
-                  {hasContent(data?.settings.sections.newArrivals.title) ? (
-                    <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
-                      {data?.settings.sections.newArrivals.title}
-                    </h2>
-                  ) : null}
-                  {hasContent(data?.settings.sections.newArrivals.summary) ? (
-                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
-                      {data?.settings.sections.newArrivals.summary}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="grid gap-5">
-                  {newArrivalItems.map((item) => (
-                    <StorefrontProductCard
-                      key={item.id}
-                      item={item}
-                      href={storefrontPaths.product(item.slug)}
-                      isWishlisted={customerPortal.isWishlisted(item.id)}
-                      onToggleWishlist={() => void handleToggleWishlist(item.id)}
-                      onAddToCart={() =>
-                        cart.addItem({
-                          productId: item.id,
-                          slug: item.slug,
-                          name: item.name,
-                          imageUrl: item.primaryImageUrl,
-                          unitPrice: item.sellingPrice,
-                          mrp: item.mrp,
-                        })
-                      }
-                    />
-                  ))}
-                </div>
+        {hasNewArrivalsSection ? (
+          <section className="space-y-5">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                {hasContent(data?.settings.sections.newArrivals.eyebrow) ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                    {data?.settings.sections.newArrivals.eyebrow}
+                  </p>
+                ) : null}
+                {hasContent(data?.settings.sections.newArrivals.title) ? (
+                  <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
+                    {data?.settings.sections.newArrivals.title}
+                  </h2>
+                ) : null}
+                {hasContent(data?.settings.sections.newArrivals.summary) ? (
+                  <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                    {data?.settings.sections.newArrivals.summary}
+                  </p>
+                ) : null}
               </div>
-            ) : null}
-            {hasBestSellersSection ? (
-              <div className="space-y-5">
-                <div>
-                  {hasContent(data?.settings.sections.bestSellers.eyebrow) ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                      {data?.settings.sections.bestSellers.eyebrow}
-                    </p>
-                  ) : null}
-                  {hasContent(data?.settings.sections.bestSellers.title) ? (
-                    <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
-                      {data?.settings.sections.bestSellers.title}
-                    </h2>
-                  ) : null}
-                  {hasContent(data?.settings.sections.bestSellers.summary) ? (
-                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
-                      {data?.settings.sections.bestSellers.summary}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="grid gap-5">
-                  {bestSellerItems.map((item) => (
-                    <StorefrontProductCard
-                      key={item.id}
-                      item={item}
-                      href={storefrontPaths.product(item.slug)}
-                      isWishlisted={customerPortal.isWishlisted(item.id)}
-                      onToggleWishlist={() => void handleToggleWishlist(item.id)}
-                      onAddToCart={() =>
-                        cart.addItem({
-                          productId: item.id,
-                          slug: item.slug,
-                          name: item.name,
-                          imageUrl: item.primaryImageUrl,
-                          unitPrice: item.sellingPrice,
-                          mrp: item.mrp,
-                        })
-                      }
-                    />
-                  ))}
-                </div>
+              {hasContent(data?.settings.sections.newArrivals.ctaLabel) ? (
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link
+                    to={
+                      normalizeStorefrontHref(data?.settings.sections.newArrivals.ctaHref) ??
+                      storefrontPaths.catalog()
+                    }
+                    className="gap-2"
+                  >
+                    {data?.settings.sections.newArrivals.ctaLabel}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+            <StorefrontProductCardGrid
+              items={newArrivalItems}
+              cardsPerRow={newArrivalsSection?.cardsPerRow ?? 3}
+              rowsToShow={newArrivalsSection?.rowsToShow ?? 1}
+              isWishlisted={(productId) => customerPortal.isWishlisted(productId)}
+              onToggleWishlist={(item) => void handleToggleWishlist(item.id)}
+              onAddToCart={(item) =>
+                cart.addItem({
+                  productId: item.id,
+                  slug: item.slug,
+                  name: item.name,
+                  imageUrl: item.primaryImageUrl,
+                  unitPrice: item.sellingPrice,
+                  mrp: item.mrp,
+                })
+              }
+            />
+          </section>
+        ) : null}
+
+        {hasBestSellersSection ? (
+          <section className="space-y-5">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                {hasContent(data?.settings.sections.bestSellers.eyebrow) ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                    {data?.settings.sections.bestSellers.eyebrow}
+                  </p>
+                ) : null}
+                {hasContent(data?.settings.sections.bestSellers.title) ? (
+                  <h2 className="mt-2 font-heading text-3xl font-semibold tracking-tight">
+                    {data?.settings.sections.bestSellers.title}
+                  </h2>
+                ) : null}
+                {hasContent(data?.settings.sections.bestSellers.summary) ? (
+                  <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                    {data?.settings.sections.bestSellers.summary}
+                  </p>
+                ) : null}
               </div>
-            ) : null}
+              {hasContent(data?.settings.sections.bestSellers.ctaLabel) ? (
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link
+                    to={
+                      normalizeStorefrontHref(data?.settings.sections.bestSellers.ctaHref) ??
+                      storefrontPaths.catalog()
+                    }
+                    className="gap-2"
+                  >
+                    {data?.settings.sections.bestSellers.ctaLabel}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+            <StorefrontProductCardGrid
+              items={bestSellerItems}
+              cardsPerRow={bestSellersSection?.cardsPerRow ?? 3}
+              rowsToShow={bestSellersSection?.rowsToShow ?? 1}
+              isWishlisted={(productId) => customerPortal.isWishlisted(productId)}
+              onToggleWishlist={(item) => void handleToggleWishlist(item.id)}
+              onAddToCart={(item) =>
+                cart.addItem({
+                  productId: item.id,
+                  slug: item.slug,
+                  name: item.name,
+                  imageUrl: item.primaryImageUrl,
+                  unitPrice: item.sellingPrice,
+                  mrp: item.mrp,
+                })
+              }
+            />
           </section>
         ) : null}
 

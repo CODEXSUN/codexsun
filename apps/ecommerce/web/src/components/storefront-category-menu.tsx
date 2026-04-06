@@ -168,7 +168,7 @@ export function StorefrontCategoryMenu({
         className
       )}
     >
-      <div className="group relative mx-auto w-full max-w-[75%]">
+      <div className="group relative mx-auto w-full max-w-7xl px-3 sm:px-4 lg:px-6">
         <div
           ref={scrollRef}
           className={cn(

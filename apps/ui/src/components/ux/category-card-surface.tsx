@@ -31,6 +31,8 @@ export function CategoryCardSurface({
   item: CategoryCardSurfaceItem
   design?: CategoryCardDesign
 }) {
+  const categoryNavigationState = { focus: "top" as const }
+
   return (
     <Card className="overflow-hidden rounded-[1.8rem] border-[#e3d5c6] py-0 shadow-[0_22px_50px_-40px_rgba(48,31,19,0.24)]">
       <CardContent className="space-y-4 p-0">
@@ -77,7 +79,9 @@ export function CategoryCardSurface({
                 color: design?.buttonTextColor ?? "#241913",
               }}
             >
-              <Link to={item.href}>{design?.buttonLabel ?? "Explore"}</Link>
+              <Link to={item.href} state={categoryNavigationState}>
+                {design?.buttonLabel ?? "Explore"}
+              </Link>
             </Button>
           ) : null}
         </div>

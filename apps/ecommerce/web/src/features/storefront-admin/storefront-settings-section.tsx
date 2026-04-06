@@ -38,6 +38,11 @@ import {
 import { storefrontApi } from "../../api/storefront-api"
 import { StorefrontSearchBar } from "../../components/storefront-search-bar"
 import {
+  StorefrontProductCardGrid,
+  type StorefrontProductLaneCardsPerRow,
+  type StorefrontProductLaneRowsToShow,
+} from "../../components/storefront-product-card-grid"
+import {
   invalidateStorefrontShellData,
   useStorefrontShellData,
 } from "../../hooks/use-storefront-shell-data"
@@ -570,6 +575,57 @@ function ProductLanePreview({
                 compareAtAmount: item.mrp > item.sellingPrice ? item.mrp : null,
                 availableQuantity: item.availableQuantity,
               }))}
+            />
+          </div>
+        ) : (
+          <EmptyPreviewState message="No live storefront products are available yet for this lane." />
+        )}
+      </div>
+    </SectionPreviewShell>
+  )
+}
+
+function StorefrontProductLanePreview({
+  section,
+  items,
+}: {
+  section: StorefrontSettings["sections"]["newArrivals"] | StorefrontSettings["sections"]["bestSellers"]
+  items: StorefrontProductCard[]
+}) {
+  return (
+    <SectionPreviewShell>
+      <div className="space-y-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            {hasContent(section.eyebrow) ? (
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                {section.eyebrow}
+              </p>
+            ) : null}
+            {hasContent(section.title) ? (
+              <h3 className="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#241913]">
+                {section.title}
+              </h3>
+            ) : null}
+            {hasContent(section.summary) ? (
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-[#6a5241]">
+                {section.summary}
+              </p>
+            ) : null}
+          </div>
+          {hasContent(section.ctaLabel) ? (
+            <Button type="button" variant="outline" className="rounded-full gap-2">
+              {section.ctaLabel}
+              <ArrowRight className="size-4" />
+            </Button>
+          ) : null}
+        </div>
+        {items.length > 0 ? (
+          <div className="pointer-events-none">
+            <StorefrontProductCardGrid
+              items={items}
+              cardsPerRow={section.cardsPerRow}
+              rowsToShow={section.rowsToShow}
             />
           </div>
         ) : (
@@ -1964,13 +2020,80 @@ export function StorefrontSettingsSection() {
               }
               description="Eyebrow, title, summary, and optional CTA for the new arrivals lane."
             />
+            <Row
+              label="Preview Layout"
+              description="Choose how many product cards appear per row and how many rows the storefront should show."
+              field={
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      Cards in row
+                    </p>
+                    <Select
+                      value={String(newArrivalsSection.cardsPerRow)}
+                      onValueChange={(value) =>
+                        setDraft({
+                          ...draft,
+                          sections: {
+                            ...draft.sections,
+                            newArrivals: {
+                              ...newArrivalsSection,
+                              cardsPerRow: Number(value) as StorefrontProductLaneCardsPerRow,
+                            },
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select product card row variant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">ProductCard-1</SelectItem>
+                        <SelectItem value="2">ProductCard-2</SelectItem>
+                        <SelectItem value="3">ProductCard-3</SelectItem>
+                        <SelectItem value="4">ProductCard-4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      Rows to show
+                    </p>
+                    <Select
+                      value={String(newArrivalsSection.rowsToShow)}
+                      onValueChange={(value) =>
+                        setDraft({
+                          ...draft,
+                          sections: {
+                            ...draft.sections,
+                            newArrivals: {
+                              ...newArrivalsSection,
+                              rowsToShow: Number(value) as StorefrontProductLaneRowsToShow,
+                            },
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select preview row count" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Row</SelectItem>
+                        <SelectItem value="2">2 Rows</SelectItem>
+                        <SelectItem value="3">3 Rows</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              }
+            />
           </TableCard>
           <PreviewCard
             eyebrow="New arrivals preview"
             title="New arrivals lane"
-            summary="This preview uses the live storefront new arrivals with your current copy."
+            summary={`This preview uses the live storefront new arrivals in the ProductCard-${newArrivalsSection.cardsPerRow} layout across ${newArrivalsSection.rowsToShow} row${newArrivalsSection.rowsToShow > 1 ? "s" : ""}.`}
           >
-            <ProductLanePreview
+            <StorefrontProductLanePreview
               section={newArrivalsSection}
               items={newArrivalPreviewItems}
             />
@@ -2003,13 +2126,80 @@ export function StorefrontSettingsSection() {
               }
               description="Eyebrow, title, summary, and optional CTA for the best seller lane."
             />
+            <Row
+              label="Preview Layout"
+              description="Choose how many product cards appear per row and how many rows the storefront should show."
+              field={
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      Cards in row
+                    </p>
+                    <Select
+                      value={String(bestSellersSection.cardsPerRow)}
+                      onValueChange={(value) =>
+                        setDraft({
+                          ...draft,
+                          sections: {
+                            ...draft.sections,
+                            bestSellers: {
+                              ...bestSellersSection,
+                              cardsPerRow: Number(value) as StorefrontProductLaneCardsPerRow,
+                            },
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select product card row variant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">ProductCard-1</SelectItem>
+                        <SelectItem value="2">ProductCard-2</SelectItem>
+                        <SelectItem value="3">ProductCard-3</SelectItem>
+                        <SelectItem value="4">ProductCard-4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      Rows to show
+                    </p>
+                    <Select
+                      value={String(bestSellersSection.rowsToShow)}
+                      onValueChange={(value) =>
+                        setDraft({
+                          ...draft,
+                          sections: {
+                            ...draft.sections,
+                            bestSellers: {
+                              ...bestSellersSection,
+                              rowsToShow: Number(value) as StorefrontProductLaneRowsToShow,
+                            },
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select preview row count" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Row</SelectItem>
+                        <SelectItem value="2">2 Rows</SelectItem>
+                        <SelectItem value="3">3 Rows</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              }
+            />
           </TableCard>
           <PreviewCard
             eyebrow="Best sellers preview"
             title="Best sellers lane"
-            summary="This preview uses the live storefront best sellers with your current copy."
+            summary={`This preview uses the live storefront best sellers in the ProductCard-${bestSellersSection.cardsPerRow} layout across ${bestSellersSection.rowsToShow} row${bestSellersSection.rowsToShow > 1 ? "s" : ""}.`}
           >
-            <ProductLanePreview
+            <StorefrontProductLanePreview
               section={bestSellersSection}
               items={bestSellerPreviewItems}
             />

@@ -216,6 +216,7 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
       ctaLabel: null,
       ctaHref: null,
       cardsPerRow: 3,
+      rowsToShow: 1,
     },
     bestSellers: {
       eyebrow: "Best sellers",
@@ -225,6 +226,7 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
       ctaLabel: null,
       ctaHref: null,
       cardsPerRow: 3,
+      rowsToShow: 1,
     },
     cta: {
       eyebrow: "Storefront ready",

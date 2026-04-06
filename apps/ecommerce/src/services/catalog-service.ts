@@ -185,6 +185,16 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
     (settings.sections.featured.cardsPerRow ?? 3) *
       (settings.sections.featured.rowsToShow ?? 1)
   )
+  const newArrivalItemCount = Math.max(
+    1,
+    (settings.sections.newArrivals.cardsPerRow ?? 3) *
+      (settings.sections.newArrivals.rowsToShow ?? 1)
+  )
+  const bestSellerItemCount = Math.max(
+    1,
+    (settings.sections.bestSellers.cardsPerRow ?? 3) *
+      (settings.sections.bestSellers.rowsToShow ?? 1)
+  )
 
   const homeSliderItems = products
     .filter((item) => item.isActive && item.homeSliderEnabled)
@@ -199,8 +209,8 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
   const featured = items
     .filter((item) => item.isFeaturedLabel)
     .slice(0, featuredItemCount)
-  const newArrivals = items.filter((item) => item.isNewArrival).slice(0, 8)
-  const bestSellers = items.filter((item) => item.isBestSeller).slice(0, 6)
+  const newArrivals = items.filter((item) => item.isNewArrival).slice(0, newArrivalItemCount)
+  const bestSellers = items.filter((item) => item.isBestSeller).slice(0, bestSellerItemCount)
   const categories = await listStorefrontCategories(database, items)
 
   return storefrontLandingResponseSchema.parse({
@@ -216,8 +226,8 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
         : featured.length > 0
           ? featured
           : items.slice(0, featuredItemCount),
-    newArrivals: newArrivals.length > 0 ? newArrivals : items.slice(0, 8),
-    bestSellers: bestSellers.length > 0 ? bestSellers : items.slice(0, 6),
+    newArrivals: newArrivals.length > 0 ? newArrivals : items.slice(0, newArrivalItemCount),
+    bestSellers: bestSellers.length > 0 ? bestSellers : items.slice(0, bestSellerItemCount),
     categories: categories.filter(
       (item) =>
         item.showInTopMenu ||

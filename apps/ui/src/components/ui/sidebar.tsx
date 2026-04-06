@@ -73,7 +73,7 @@ function Sidebar({
       data-slot="sidebar"
       data-state={open ? "open" : "closed"}
       className={cn(
-        "sticky top-0 h-screen shrink-0 overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200",
+        "fixed inset-y-0 left-0 z-40 overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
         open ? "w-72" : "w-0 overflow-hidden md:w-16",
         isMobile && !open ? "hidden" : "block",
         className
@@ -85,10 +85,16 @@ function Sidebar({
 }
 
 function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
+  const { open, isMobile } = useSidebar()
+
   return (
     <main
       data-slot="sidebar-inset"
-      className={cn("min-w-0 flex-1 bg-background", className)}
+      className={cn(
+        "min-h-screen min-w-0 flex-1 bg-background transition-[margin] duration-200",
+        !isMobile ? (open ? "md:ml-72" : "md:ml-16") : "",
+        className
+      )}
       {...props}
     />
   )
@@ -147,7 +153,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-content"
       className={cn(
-        "min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden",
+        "min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden overscroll-contain",
         open ? "p-4" : "px-2 py-4",
         className
       )}
@@ -163,7 +169,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-footer"
       className={cn(
-        "shrink-0 border-t border-sidebar-border bg-sidebar/95 backdrop-blur",
+        "mt-auto shrink-0 border-t border-sidebar-border bg-sidebar/95 backdrop-blur",
         open ? "p-4" : "px-1 py-2",
         className
       )}

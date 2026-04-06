@@ -1,6 +1,6 @@
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useSearchParams } from "react-router-dom"
+import { useLocation, useSearchParams } from "react-router-dom"
 
 import type { StorefrontCatalogResponse } from "@ecommerce/shared"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
@@ -25,6 +25,7 @@ import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontCatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
   const queryString = searchParams.toString()
   const cart = useStorefrontCart()
   const customerPortal = useStorefrontCustomerPortal()
@@ -37,6 +38,15 @@ export function StorefrontCatalogPage() {
 
   const categoryOptions = useMemo(() => data?.availableCategories ?? [], [data])
   const showSearchSection = Boolean(data?.settings.visibility.search)
+  const focusTarget = (location.state as { focus?: string } | null)?.focus
+
+  useEffect(() => {
+    if (focusTarget !== "top") {
+      return
+    }
+
+    window.scrollTo({ top: 0, behavior: "auto" })
+  }, [focusTarget, queryString])
 
   async function handleToggleWishlist(productId: string) {
     await customerPortal.toggleWishlist(productId)

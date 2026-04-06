@@ -1,5 +1,6 @@
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Copy, Heart, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
+import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,8 @@ type CommerceProductCardProps = {
   density?: "default" | "compact" | "dense"
   className?: string
   design?: CommerceProductCardDesign
+  onWishlistChange?: (isWishlisted: boolean) => void
+  onShare?: (action: "copy" | "whatsapp", url: string) => void
 }
 
 export function CommerceProductCard({
@@ -61,6 +64,8 @@ export function CommerceProductCard({
   density = "default",
   className,
   design,
+  onWishlistChange,
+  onShare,
 }: CommerceProductCardProps) {
   const isCompact = density === "compact"
   const isDense = density === "dense"
@@ -69,6 +74,11 @@ export function CommerceProductCard({
     Boolean(design?.showCompareAtPrice ?? true) &&
     typeof compareAtAmount === "number" &&
     compareAtAmount > amount
+  const currencyFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  })
   const metaLabel =
     [
       design?.showBrandMeta !== false && brandName ? brandName : null,
@@ -95,202 +105,304 @@ export function CommerceProductCard({
       ? "aspect-[4/4.7]"
       : "aspect-[4/4.9]"
   const contentPaddingClassName = isDense ? "p-4" : isCompact ? "p-4.5" : "p-5"
+  const contentGapClassName = isDense ? "gap-2.5" : "gap-3"
+  const metaSpacingClassName = isDense ? "space-y-2" : "space-y-2.5"
+  const priceRowGapClassName = isDense ? "gap-2" : "gap-2.5"
   const primaryButtonLabel = design?.primaryButtonLabel ?? "Buy Now"
+  const showActions =
+    (design?.showSecondaryActions !== false && onAddToCart) ||
+    design?.showPrimaryAction !== false
+  const hasBothActions =
+    design?.showSecondaryActions !== false &&
+    onAddToCart &&
+    design?.showPrimaryAction !== false
+  const [isWishlisted, setIsWishlisted] = useState(false)
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const featuredNavigationState = { focus: "top" as const }
+  const shareUrl = useMemo(() => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}${href}`
+    }
+    return href
+  }, [href])
+  const inStock =
+    typeof availableQuantity === "number" ? availableQuantity > 0 : undefined
+  const stockBadgeStyle = inStock
+    ? { backgroundColor: "#e6f7ed", color: "#0f5d3d", borderColor: "#cfe8d9" }
+    : { backgroundColor: "#ffecec", color: "#a12c2c", borderColor: "#f5c3c3" }
+  const handleWishlistToggle = () => {
+    const nextState = !isWishlisted
+    setIsWishlisted(nextState)
+    onWishlistChange?.(nextState)
+  }
+  const handleShareCopy = async () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl)
+    }
+    onShare?.("copy", shareUrl)
+    setShareMenuOpen(false)
+  }
+  const handleShareWhatsApp = () => {
+    if (typeof window !== "undefined") {
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(shareUrl)}`,
+        "_blank",
+        "noopener,noreferrer"
+      )
+    }
+    onShare?.("whatsapp", shareUrl)
+    setShareMenuOpen(false)
+  }
 
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden border border-[#e9dccd] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,246,239,0.94)_100%)] py-0 shadow-[0_10px_26px_-22px_rgba(48,31,19,0.3)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_46px_-28px_rgba(48,31,19,0.24)]",
+        "group relative flex h-full flex-col overflow-hidden border border-[#e9dccd] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,246,239,0.94)_100%)] py-0 shadow-[0_10px_26px_-22px_rgba(48,31,19,0.3)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_46px_-28px_rgba(48,31,19,0.24)]",
         cardRadiusClassName,
         className
       )}
     >
       <div className={cn(isDense ? "p-3 pb-0" : "p-3.5 pb-0", isCompact && "p-3 pb-0")}>
-        <Link
-          to={href}
-          className={cn(
-            "relative block overflow-hidden rounded-[1.55rem] border border-[#e3d5c6] bg-[linear-gradient(180deg,#f5ede4_0%,#efe3d8_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]",
-            imageAspectClassName
-          )}
-        >
-          {badge ? (
-            <Badge
-              className={cn(
-                "absolute left-4 top-4 z-10 rounded-full border border-[#e1d5c7] bg-white/92 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_8px_18px_-16px_rgba(48,31,19,0.5)] backdrop-blur",
-                isDense ? "left-3 top-3 px-2.5 py-1" : isCompact ? "left-3.5 top-3.5 px-2.5 py-1" : "px-3 py-1"
-              )}
-              style={{
-                display: design?.showPrimaryBadge === false ? "none" : undefined,
-                backgroundColor: design?.badgeBackgroundColor ?? "rgba(255,255,255,0.92)",
-                color: design?.badgeTextColor ?? "#4f4339",
-              }}
-            >
-              {badge}
-            </Badge>
-          ) : null}
-          {design?.showSecondaryBadge !== false && design?.secondaryBadgeText ? (
-            <Badge
-              className={cn(
-                "absolute right-4 top-4 z-10 rounded-full border border-transparent text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_12px_22px_-18px_rgba(19,12,8,0.65)]",
-                isDense ? "right-3 top-3 px-2.5 py-1" : isCompact ? "right-3.5 top-3.5 px-2.5 py-1" : "px-3 py-1"
-              )}
-              style={{
-                backgroundColor: design.secondaryBadgeBackgroundColor || "#1f1813",
-                color: design.secondaryBadgeTextColor || "#ffffff",
-              }}
-            >
-              {design.secondaryBadgeText}
-            </Badge>
-          ) : null}
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={name}
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-center text-[clamp(2rem,4vw,3.4rem)] font-semibold tracking-tight text-[#3d2c22]">
-              {imageFallbackLabel}
-            </div>
-          )}
-        </Link>
-      </div>
-      <CardContent className={cn("grid gap-4", contentPaddingClassName)}>
-        <div className={cn("space-y-3", isDense && "space-y-2.5", isCompact && "space-y-2.5")}>
-          {metaLabel || stockLabel ? (
-            <div
-              className={cn(
-                "flex items-center justify-between gap-3",
-                isDense ? "text-[10px]" : "text-[11px]"
-              )}
-            >
-              <span
-                className="truncate font-medium uppercase tracking-[0.18em]"
-                style={{ color: design?.metaColor ?? "#8b715d" }}
+        <div className="relative">
+          <Link
+            to={href}
+            state={featuredNavigationState}
+            className={cn(
+              "relative block overflow-hidden rounded-[1.55rem] border border-[#e3d5c6] bg-[linear-gradient(180deg,#f5ede4_0%,#efe3d8_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]",
+              imageAspectClassName
+            )}
+          >
+            {badge ? (
+              <Badge
+                className={cn(
+                  "absolute left-4 top-4 z-10 rounded-full border border-[#e1d5c7] bg-white/92 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_8px_18px_-16px_rgba(48,31,19,0.5)] backdrop-blur",
+                  isDense ? "left-3 top-3 px-2.5 py-1" : isCompact ? "left-3.5 top-3.5 px-2.5 py-1" : "px-3 py-1"
+                )}
+                style={{
+                  display: design?.showPrimaryBadge === false ? "none" : undefined,
+                  backgroundColor: design?.badgeBackgroundColor ?? "rgba(255,255,255,0.92)",
+                  color: design?.badgeTextColor ?? "#4f4339",
+                }}
               >
-                {metaLabel ?? "-"}
-              </span>
-              {stockLabel ? (
-                <span className="shrink-0 text-right" style={{ color: design?.metaColor ?? "#9a8170" }}>
-                  {stockLabel}
-                </span>
+                {badge}
+              </Badge>
+            ) : null}
+            {design?.showSecondaryBadge !== false && design?.secondaryBadgeText ? (
+              <Badge
+                className={cn(
+                  "absolute right-4 top-4 z-10 rounded-full border border-transparent text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_12px_22px_-18px_rgba(19,12,8,0.65)]",
+                  isDense ? "right-3 top-3 px-2.5 py-1" : isCompact ? "right-3.5 top-3.5 px-2.5 py-1" : "px-3 py-1"
+                )}
+                style={{
+                  backgroundColor: design.secondaryBadgeBackgroundColor || "#1f1813",
+                  color: design.secondaryBadgeTextColor || "#ffffff",
+                }}
+              >
+                {design.secondaryBadgeText}
+              </Badge>
+            ) : null}
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={name}
+                className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-center text-[clamp(2rem,4vw,3.4rem)] font-semibold tracking-tight text-[#3d2c22]">
+                {imageFallbackLabel}
+              </div>
+            )}
+          </Link>
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-4 pb-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+            onMouseLeave={() => setShareMenuOpen(false)}
+          >
+            <button
+              type="button"
+              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#1f1813] shadow-lg transition duration-200 hover:scale-105 hover:bg-white"
+              aria-pressed={isWishlisted}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              onClick={handleWishlistToggle}
+            >
+              <Heart className={cn("size-4", isWishlisted && "text-[#c31352]")} />
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#1f1813] shadow-lg transition duration-200 hover:scale-105 hover:bg-white"
+                onClick={() => setShareMenuOpen((value) => !value)}
+                aria-expanded={shareMenuOpen}
+                aria-haspopup="true"
+              >
+                <Share2 className="size-4" />
+              </button>
+              {shareMenuOpen ? (
+                <div className="pointer-events-auto absolute bottom-full right-0 z-10 mb-2 w-36 rounded-xl border border-white/60 bg-white/95 p-2 text-xs text-[#1f1813] shadow-lg backdrop-blur">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-[11px] text-[#1f1813] transition hover:bg-gray-100"
+                    onClick={handleShareCopy}
+                  >
+                    <span className="font-semibold uppercase tracking-[0.2em]">Copy</span>
+                    <Copy className="size-3" />
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-1 flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-[11px] text-[#1f1813] transition hover:bg-gray-100"
+                    onClick={handleShareWhatsApp}
+                  >
+                    <span className="font-semibold uppercase tracking-[0.2em]">WhatsApp</span>
+                    <Share2 className="size-3" />
+                  </button>
+                </div>
               ) : null}
             </div>
-          ) : null}
-          <div className={cn("space-y-1.5", isDense && "space-y-1")}>
-            <Link
-              to={href}
-              className={cn(
-                "block font-semibold tracking-tight transition hover:opacity-85",
-                isDense
-                  ? "line-clamp-2 text-[1.05rem] leading-5"
-                  : isCompact
-                    ? "line-clamp-2 text-[1.1rem] leading-6"
-                    : "line-clamp-2 text-[1.25rem] leading-[1.2]"
-              )}
-              style={{ color: design?.titleColor ?? "#241913" }}
-            >
-              {name}
-            </Link>
-            {design?.showDescription !== false && shortDescription ? (
-              <p
+          </div>
+        </div>
+      </div>
+      <CardContent className={cn("flex flex-1 flex-col", contentGapClassName, contentPaddingClassName)}>
+        <div className="flex flex-1 flex-col gap-3">
+          <div className={cn(metaSpacingClassName)}>
+            {metaLabel || stockLabel ? (
+              <div
                 className={cn(
-                  isDense
-                    ? "line-clamp-2 text-[12px] leading-5"
-                    : isCompact
-                      ? "line-clamp-2 text-[13px] leading-5"
-                      : "line-clamp-2 text-sm leading-6"
+                  "flex items-center justify-between gap-3",
+                  isDense ? "text-[10px]" : "text-[11px]"
                 )}
-                style={{ color: design?.descriptionColor ?? "#7f695a" }}
               >
-                {shortDescription}
-              </p>
+                <span
+                  className="truncate font-medium uppercase tracking-[0.18em]"
+                  style={{ color: design?.metaColor ?? "#8b715d" }}
+                >
+                  {metaLabel ?? "-"}
+                </span>
+                {stockLabel ? (
+                  <Badge
+                    variant="ghost"
+                    className="text-[11px] font-semibold uppercase tracking-[0.2em]"
+                    style={stockBadgeStyle}
+                  >
+                    {stockLabel}
+                  </Badge>
+                ) : null}
+              </div>
             ) : null}
-          </div>
-        </div>
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <span
-              className={cn(
-                "font-bold tracking-tight",
-                isDense ? "text-[1.05rem]" : isCompact ? "text-[1.1rem]" : "text-[1.25rem]"
-              )}
-              style={{ color: design?.priceColor ?? "#241913" }}
-            >
-              {new Intl.NumberFormat("en-IN", {
-                style: "currency",
-                currency: "INR",
-                maximumFractionDigits: 0,
-              }).format(amount)}
-            </span>
-            {hasCompareAt ? (
-              <span
-                className={cn("ml-2 line-through", isDense ? "text-[11px]" : "text-sm")}
-                style={{ color: design?.compareAtColor ?? "#9a8170" }}
+            <div className={cn("space-y-1.5", isDense && "space-y-1")}>
+              <Link
+                to={href}
+                state={featuredNavigationState}
+                className={cn(
+                  "block font-semibold tracking-tight transition hover:opacity-85",
+                  isDense
+                    ? "line-clamp-2 text-[1.05rem] leading-5"
+                    : isCompact
+                      ? "line-clamp-2 text-[1.1rem] leading-6"
+                      : "line-clamp-2 text-[1.25rem] leading-[1.2]"
+                )}
+                style={{ color: design?.titleColor ?? "#241913" }}
               >
-                {new Intl.NumberFormat("en-IN", {
-                  style: "currency",
-                  currency: "INR",
-                  maximumFractionDigits: 0,
-                }).format(compareAtAmount!)}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div
-          className={cn(
-            "flex items-center gap-2.5",
-            design?.showPrimaryAction !== false && design?.showSecondaryActions !== false && onAddToCart
-              ? "justify-between"
-              : "justify-end"
-          )}
-        >
-          {design?.showSecondaryActions !== false && onAddToCart ? (
-            <Button
-              variant="outline"
-              size={isDense ? "sm" : "default"}
-              className={cn(
-                "rounded-full border-[#d9ccbe] bg-white/92 text-[#4f4339] shadow-[0_10px_20px_-18px_rgba(48,31,19,0.38)] hover:border-[#cbbbab] hover:bg-white",
-                isDense ? "h-9 px-4 text-[12px]" : "h-10 px-5"
-              )}
-              disabled={isOutOfStock}
-              onClick={onAddToCart}
-            >
-              {isOutOfStock ? "Out of stock" : "Add to cart"}
-            </Button>
-          ) : null}
-          {design?.showPrimaryAction !== false ? (
-            <Button
-              asChild
-              size={isDense ? "sm" : "default"}
-              className={cn(
-                "rounded-full bg-[#1f1813] text-white shadow-[0_14px_30px_-18px_rgba(31,24,19,0.62)] hover:bg-[#2b221c]",
-                isDense ? "h-9 px-4 text-[12px]" : "h-10 px-5"
-              )}
-            >
-              <Link to={href} className={cn("gap-2", isDense && "gap-1.5")}>
-                {primaryButtonLabel}
-                <ArrowRight className="size-4" />
+                {name}
               </Link>
-            </Button>
-          ) : null}
-          {design?.showPrimaryAction === false &&
-          design?.showSecondaryActions === false &&
-          !onAddToCart ? (
-            <div />
-          ) : null}
-        </div>
-        {hasCompareAt ? (
-          <div className="text-xs font-medium text-[#5f8a54]">
-            Save{" "}
-            {new Intl.NumberFormat("en-IN", {
-              style: "currency",
-              currency: "INR",
-              maximumFractionDigits: 0,
-            }).format(compareAtAmount! - amount)}
+              {design?.showDescription !== false && shortDescription ? (
+                <p
+                  className={cn(
+                    isDense
+                      ? "line-clamp-2 text-[12px] leading-5"
+                      : isCompact
+                        ? "line-clamp-2 text-[13px] leading-5"
+                        : "line-clamp-2 text-sm leading-6"
+                  )}
+                  style={{ color: design?.descriptionColor ?? "#7f695a" }}
+                >
+                  {shortDescription}
+                </p>
+              ) : null}
+            </div>
           </div>
-        ) : null}
+          <div className="flex flex-1 flex-col gap-1.5">
+            <div
+              className={cn(
+                "flex w-full items-center justify-between",
+                priceRowGapClassName,
+                hasCompareAt && "flex-wrap"
+              )}
+            >
+              <div className="min-w-0">
+                <span
+                  className={cn(
+                    "font-bold tracking-tight",
+                    isDense ? "text-[1.05rem]" : isCompact ? "text-[1.1rem]" : "text-[1.25rem]"
+                  )}
+                  style={{ color: design?.priceColor ?? "#241913" }}
+                >
+                  {currencyFormatter.format(amount)}
+                </span>
+                {hasCompareAt ? (
+                  <span
+                    className={cn("ml-2 line-through", isDense ? "text-[11px]" : "text-sm")}
+                    style={{ color: design?.compareAtColor ?? "#9a8170" }}
+                  >
+                    {currencyFormatter.format(compareAtAmount!)}
+                  </span>
+                ) : null}
+              </div>
+              {hasCompareAt ? (
+                <Badge
+                  className={cn(
+                    "rounded-full border border-transparent font-semibold tracking-[0.2em]",
+                    isDense ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]"
+                  )}
+                  style={{ backgroundColor: "#1f8a13", color: "#ffffff" }}
+                >
+                  Save {currencyFormatter.format(compareAtAmount! - amount)}
+                </Badge>
+              ) : null}
+            </div>
+            {showActions ? (
+              <div
+                className={cn(
+                  "mt-auto flex w-full flex-wrap gap-2",
+                  hasBothActions ? "justify-between" : "justify-end"
+                )}
+              >
+                {design?.showSecondaryActions !== false && onAddToCart ? (
+                  <Button
+                    variant="outline"
+                    size={isDense ? "sm" : "default"}
+                    className={cn(
+                      "flex-1 justify-center rounded-full border-[#d9ccbe] bg-white/92 text-[#4f4339] shadow-[0_10px_20px_-18px_rgba(48,31,19,0.38)] hover:border-[#cbbbab] hover:bg-white",
+                      isDense ? "h-9 px-4 text-[12px]" : "h-10 px-5"
+                    )}
+                    disabled={isOutOfStock}
+                    onClick={onAddToCart}
+                  >
+                    {isOutOfStock ? "Out of stock" : "Add to cart"}
+                  </Button>
+                ) : null}
+                {design?.showPrimaryAction !== false ? (
+                  <Button
+                    asChild
+                    size={isDense ? "sm" : "default"}
+                    className={cn(
+                      "flex-1 justify-center rounded-full bg-[#1f1813] text-white shadow-[0_14px_30px_-18px_rgba(31,24,19,0.62)] hover:bg-[#2b221c]",
+                      isDense ? "h-9 px-4 text-[12px]" : "h-10 px-5"
+                    )}
+                  >
+                    <Link
+                      to={href}
+                      state={featuredNavigationState}
+                      className="flex w-full items-center justify-center gap-2"
+                    >
+                      {primaryButtonLabel}
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </CardContent>
       <div
         className={cn(

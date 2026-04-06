@@ -41,8 +41,8 @@ export function FeaturedCardRowSurface({
           : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
 
   return (
-    <div className="pb-2">
-      <div className={`grid gap-4 ${gridClassName}`}>
+    <div className="pb-1.5">
+      <div className={`grid gap-3 ${gridClassName}`}>
         {items.map((item) => (
           <CommerceProductCard
             key={item.id}

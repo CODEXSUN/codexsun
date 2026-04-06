@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#30] 2026-04-06 - Responsive storefront polish, fixed dashboards, and container setup
+
+- expanded ecommerce storefront controls so featured, new-arrivals, and best-seller lanes share backend-configured card density, tighter equal-height cards, and synchronized frontend rendering
+- refined storefront interaction behavior across featured, category, catalog, and product flows with corrected scroll targeting, safer hero-slider sizing, tighter mobile slider stages, and a full-width responsive mobile dock
+- added richer storefront product-card behaviors including compact action placement, inline savings and stock badges, wishlist and share affordances, and more consistent responsive menu behavior
+- fixed shared sidebar shell behavior so dashboard and customer left navigation stays viewport-fixed with an internally scrolling menu area and a footer pinned to the bottom
+- added container and client deployment assets under `.container/` for local and customer-specific runtime packaging, compose configuration, and setup documentation
+
 ### [#29] 2026-04-06 - Customer portal isolation, storefront persistence, and commerce UX refinement
 
 - moved the customer surface onto canonical `/customer/*` routes, isolated it from admin and desk shells, and tightened auth redirect handling so customer users never see application menus or workspace switching

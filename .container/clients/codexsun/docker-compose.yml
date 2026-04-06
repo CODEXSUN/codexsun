@@ -1,0 +1,23 @@
+name: codexsun
+
+services:
+  app:
+    image: codexsun-app:v1
+    pull_policy: never
+    container_name: codexsun-app
+    ports:
+      - "4000:4000"
+      - "5000:4000"
+    restart: unless-stopped
+    volumes:
+      - codexsun_runtime:/opt/codexsun/runtime
+    networks:
+      - codexion-network
+
+volumes:
+  codexsun_runtime:
+
+networks:
+  codexion-network:
+    external: true
+    name: codexion-network

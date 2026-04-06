@@ -16,7 +16,7 @@ export function StorefrontFooter() {
   return (
     <footer className="border-t border-[#2d211b] bg-[#17120e] text-stone-200">
       <div
-        className={`mx-auto grid w-full max-w-7xl gap-10 px-5 py-12 lg:px-8 ${
+        className={`mx-auto grid w-full max-w-7xl gap-10 px-5 py-12 pb-28 lg:px-8 lg:pb-12 ${
           footerGroups.length > 0 ? "lg:grid-cols-[1.1fr_0.9fr]" : ""
         }`}
       >
