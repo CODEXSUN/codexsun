@@ -9,6 +9,7 @@ export async function requireAuthenticatedUser(
   context: HttpRouteHandlerContext,
   options: {
     allowedActorTypes?: string[]
+    requiredPermissionKeys?: string[]
   } = {}
 ) {
   enforceInternalAccessPolicy(context, context.config)
@@ -34,6 +35,27 @@ export async function requireAuthenticatedUser(
       },
       403
     )
+  }
+
+  if (
+    options.requiredPermissionKeys &&
+    options.requiredPermissionKeys.length > 0 &&
+    !user.isSuperAdmin
+  ) {
+    const userPermissionKeys = new Set(user.permissions.map((permission) => permission.key))
+    const missingPermissionKeys = options.requiredPermissionKeys.filter(
+      (permissionKey) => !userPermissionKeys.has(permissionKey)
+    )
+
+    if (missingPermissionKeys.length > 0) {
+      throw new ApplicationError(
+        "You do not have permission to access this route.",
+        {
+          missingPermissionKeys,
+        },
+        403
+      )
+    }
   }
 
   if (user.actorType === "admin") {

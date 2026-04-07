@@ -927,6 +927,12 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
 
       assert.equal(rolesResponse.statusCode, 200)
       assert.ok(rolesPayload.items.some((item) => item.key === "staff_operator"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_admin"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_catalog_manager"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_order_manager"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_support_agent"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_finance_operator"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_analyst"))
 
       const permissionsResponse = await listPermissionsRoute.handler({
         appSuite,
@@ -954,6 +960,8 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
 
       assert.equal(permissionsResponse.statusCode, 200)
       assert.ok(permissionsPayload.items.some((item) => item.key === "users:manage"))
+      assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:orders:manage"))
+      assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:payments:manage"))
 
       const createPermissionResponse = await createPermissionRoute.handler({
         appSuite,
@@ -1329,6 +1337,125 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
       assert.equal(updateUserResponse.statusCode, 200)
       assert.equal(updatedUserPayload.item.displayName, "Route User Updated")
       assert.equal(updatedUserPayload.item.isActive, false)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("ecommerce internal routes enforce operator permissions by role", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-route-permissions-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
+      await authService.createAdminUser({
+        displayName: "Support Agent",
+        email: "support.agent@codexsun.local",
+        phoneNumber: "+919000000010",
+        password: "Password@123",
+        actorType: "staff",
+        roleKeys: ["ecommerce_support_agent"],
+        isSuperAdmin: false,
+        isActive: true,
+        organizationName: "Codexsun",
+        avatarUrl: null,
+      })
+
+      const supportLogin = await authService.login(
+        {
+          email: "support.agent@codexsun.local",
+          password: "Password@123",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
+      const supportHeaders = {
+        authorization: `Bearer ${supportLogin.accessToken}`,
+      }
+
+      const supportReportRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/support/report"
+      )
+      const ordersReportRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/orders/report"
+      )
+
+      assert.ok(supportReportRoute)
+      assert.ok(ordersReportRoute)
+
+      const supportReportResponse = await supportReportRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/ecommerce/support/report",
+          url: new URL("http://localhost/internal/v1/ecommerce/support/report"),
+          headers: supportHeaders,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: supportReportRoute.auth,
+          path: supportReportRoute.path,
+          surface: supportReportRoute.surface,
+          version: supportReportRoute.version,
+        },
+      })
+
+      assert.equal(supportReportResponse.statusCode, 200)
+
+      await assert.rejects(
+        () =>
+          ordersReportRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "GET",
+              pathname: "/internal/v1/ecommerce/orders/report",
+              url: new URL("http://localhost/internal/v1/ecommerce/orders/report"),
+              headers: supportHeaders,
+              bodyText: null,
+              jsonBody: null,
+            },
+            route: {
+              auth: ordersReportRoute.auth,
+              path: ordersReportRoute.path,
+              surface: ordersReportRoute.surface,
+              version: ordersReportRoute.version,
+            },
+          }),
+        /You do not have permission to access this route/
+      )
     } finally {
       await runtime.destroy()
     }

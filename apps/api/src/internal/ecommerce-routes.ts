@@ -49,13 +49,42 @@ import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
+  const requireStorefrontView = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:storefront:manage"],
+    })
+  const requireStorefrontManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:storefront:manage"],
+    })
+  const requireOrdersManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:orders:manage"],
+    })
+  const requireSupportManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:support:manage"],
+    })
+  const requirePaymentsManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:payments:manage"],
+    })
+  const requireCommunicationsView = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:communications:view"],
+    })
+
   return [
     defineInternalRoute("/ecommerce/storefront-settings", {
       summary: "Read ecommerce-owned storefront settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontSettings(context.databases.primary))
       },
@@ -64,9 +93,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned storefront settings used by public surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontSettings(
@@ -79,9 +106,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/home-slider", {
       summary: "Read ecommerce-owned home-slider design settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontHomeSlider(context.databases.primary))
       },
@@ -90,9 +115,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned home-slider design settings used by the public hero.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontHomeSlider(
@@ -105,9 +128,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-footer", {
       summary: "Read ecommerce-owned storefront footer settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontFooter(context.databases.primary))
       },
@@ -116,9 +137,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned storefront footer settings used by public surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontFooter(
@@ -131,9 +150,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-floating-contact", {
       summary: "Read ecommerce-owned floating-contact settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontFloatingContact(context.databases.primary))
       },
@@ -142,9 +159,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned floating-contact settings used by public storefront surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontFloatingContact(
@@ -157,9 +172,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-pickup-location", {
       summary: "Read ecommerce-owned pickup-location settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontPickupLocation(context.databases.primary))
       },
@@ -168,9 +181,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned pickup-location settings used by public storefront checkout surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontPickupLocation(
@@ -183,9 +194,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-coupon-banner", {
       summary: "Read ecommerce-owned coupon-banner settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontCouponBanner(context.databases.primary))
       },
@@ -194,9 +203,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned coupon-banner settings used by public storefront surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontCouponBanner(
@@ -209,9 +216,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-gift-corner", {
       summary: "Read ecommerce-owned gift-corner settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontGiftCorner(context.databases.primary))
       },
@@ -220,9 +225,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned gift-corner settings used by public storefront surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontGiftCorner(
@@ -235,9 +238,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-trending-section", {
       summary: "Read ecommerce-owned trending-section settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontTrendingSection(context.databases.primary))
       },
@@ -246,9 +247,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned trending-section settings used by public storefront surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontTrendingSection(
@@ -261,9 +260,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-brand-showcase", {
       summary: "Read ecommerce-owned brand-showcase settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontBrandShowcase(context.databases.primary))
       },
@@ -272,9 +269,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned brand-showcase settings used by public storefront surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontBrandShowcase(
@@ -287,9 +282,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/storefront-campaign", {
       summary: "Read ecommerce-owned campaign and trust settings for the admin editor.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireStorefrontView(context)
 
         return jsonResponse(await getStorefrontCampaign(context.databases.primary))
       },
@@ -298,9 +291,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update ecommerce-owned campaign and trust settings used by public storefront surfaces.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireStorefrontManage(context)
 
         return jsonResponse(
           await saveStorefrontCampaign(
@@ -313,9 +304,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/communications/health", {
       summary: "Validate required storefront mailbox templates for ecommerce customer communications.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireCommunicationsView(context)
 
         return jsonResponse(
           await assertStorefrontMailboxTemplates(context.databases.primary)
@@ -325,9 +314,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/communications", {
       summary: "List storefront customer communication activity from mailbox records.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireCommunicationsView(context)
 
         return jsonResponse(
           await listStorefrontCommunicationLog(context.databases.primary, {
@@ -346,9 +333,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/orders/report", {
       summary: "Read the ecommerce admin order queue with lifecycle and payment context.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireOrdersManage(context)
 
         return jsonResponse(
           await getStorefrontAdminOrderOperationsReport(context.databases.primary)
@@ -358,9 +343,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/order", {
       summary: "Read one ecommerce order with full timeline and shipment details for admin operations.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireOrdersManage(context)
 
         return jsonResponse(
           await getStorefrontAdminOrder(
@@ -374,9 +357,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Apply an admin order operation such as cancel, fulfilment progression, shipment update, or resend confirmation.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireOrdersManage(context)
 
         return jsonResponse(
           await applyStorefrontAdminOrderAction(
@@ -391,9 +372,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Resend supported storefront customer communications such as order confirmation or payment failed emails.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireCommunicationsView(context)
 
         return jsonResponse(
           await resendStorefrontCommunication(
@@ -408,9 +387,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Run Razorpay payment reconciliation against ecommerce orders.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requirePaymentsManage(context)
 
         return jsonResponse(
           await reconcileRazorpayPayments(
@@ -425,9 +402,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Record a refund initiation request for an ecommerce order.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requirePaymentsManage(context)
 
         return jsonResponse(
           await requestStorefrontRefund(
@@ -441,9 +416,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Update the admin-managed status of an ecommerce refund request.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requirePaymentsManage(context)
 
         return jsonResponse(
           await updateStorefrontRefundStatus(
@@ -456,9 +429,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/payments/report", {
       summary: "Read settlement visibility and failed-payment exception reporting for ecommerce payments.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requirePaymentsManage(context)
 
         return jsonResponse(
           await getStorefrontPaymentOperationsReport(context.databases.primary)
@@ -468,9 +439,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/support/report", {
       summary: "Read the ecommerce support-case queue linked to customers and orders.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireSupportManage(context)
 
         return jsonResponse(
           await getStorefrontSupportQueueReport(context.databases.primary)
@@ -481,9 +450,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Update one ecommerce support case status, priority, or admin note.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireSupportManage(context)
 
         return jsonResponse(
           await updateStorefrontSupportCase(
@@ -496,9 +463,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/ecommerce/order-requests/report", {
       summary: "Read the ecommerce customer return and cancellation request queue.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        await requireOrdersManage(context)
 
         return jsonResponse(
           await getStorefrontOrderRequestQueueReport(context.databases.primary)
@@ -509,9 +474,7 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Review one ecommerce customer return or cancellation request.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin"],
-        })
+        await requireOrdersManage(context)
 
         return jsonResponse(
           await reviewStorefrontOrderRequest(

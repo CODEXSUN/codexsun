@@ -8,6 +8,20 @@
 
 ## v-0.0.1
 
+### [#51] 2026-04-07 - Ecommerce permission enforcement baseline
+
+- completed Stage `2.3.2` by enforcing ecommerce route permissions through the shared internal-session guard instead of relying only on actor type checks
+- mapped ecommerce storefront designer, orders, support, payments, and communications routes to the seeded ecommerce permission keys so operator roles now control real route access
+- added an internal route test proving a support agent can access the support queue but is blocked from order operations without the required permission
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### [#50] 2026-04-07 - Ecommerce operator role baseline
+
+- completed Stage `2.3.1` by defining the ecommerce operator role set in shared auth seed data, using the existing Super Admin baseline plus seeded ecommerce admin, catalog manager, order manager, support agent, finance operator, and analyst roles
+- added dedicated ecommerce permission definitions for workspace, storefront, catalog, orders, support, payments, communications, and analytics so later route enforcement has stable permission keys to target
+- extended the auth-route validation to assert the new ecommerce roles and permissions are exposed through the existing internal RBAC APIs
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
 ### [#49] 2026-04-07 - Customer portal communication history
 
 - completed Stage `2.2.5` by exposing customer-safe storefront communication history through a new authenticated portal route backed by the existing mailbox ledger

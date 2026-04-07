@@ -2,6 +2,18 @@
 
 ## Done Till Here
 
+### `#51` 2026-04-07
+
+- completed Stage `2.3.2` by adding permission-aware internal session enforcement and mapping ecommerce route groups to the new ecommerce permission keys
+- updated ecommerce internal API routes so storefront editor, orders, support, payments, and communications operations now require the matching seeded permissions instead of broad actor-type-only access
+- validated the enforcement baseline with `npm run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### `#50` 2026-04-07
+
+- completed Stage `2.3.1` by defining the ecommerce operator roles in shared auth seed data without changing the current dashboard surface model
+- added ecommerce-specific permission keys covering workspace, storefront, catalog, orders, support, payments, communications, and analytics as the baseline for later enforcement
+- validated the role baseline with `npm run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
 ### `#49` 2026-04-07
 
 - completed Stage `2.2.5` by exposing customer-safe communication history from mailbox activity into the storefront portal
