@@ -1,7 +1,10 @@
 import { randomInt, randomUUID } from "node:crypto"
 
+import type { Kysely } from "kysely"
+
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import { writeActivityLog } from "../../../framework/src/runtime/activity-log/activity-log-service.js"
 import { signJwt, verifyJwt } from "../../../framework/src/runtime/security/jwt.js"
 import {
   hashPassword,
@@ -75,7 +78,8 @@ export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
     private readonly mailboxService: MailboxService,
-    private readonly config: ServerConfig
+    private readonly config: ServerConfig,
+    private readonly database: Kysely<unknown>
   ) {}
 
   async listUsers() {
@@ -614,6 +618,9 @@ export class AuthService {
     requestMeta: {
       ipAddress: string | null
       userAgent: string | null
+    } = {
+      ipAddress: null,
+      userAgent: null,
     }
   ): Promise<AuthTokenResponse> {
     const parsedPayload = authLoginPayloadSchema.parse(payload)
@@ -621,12 +628,24 @@ export class AuthService {
     const storedUsers = await this.repository.findByEmail(normalizedEmail)
 
     if (storedUsers.length === 0) {
+      await this.writeAuthAudit({
+        action: "login_failed",
+        level: "warn",
+        message: "Login failed because the account email was not found.",
+        actorEmail: normalizedEmail,
+        details: {
+          reason: "email_not_found",
+          ipAddress: requestMeta.ipAddress,
+          userAgent: requestMeta.userAgent,
+        },
+      })
       throw new ApplicationError("Invalid credentials.", { email: normalizedEmail }, 401)
     }
 
     let storedUser = null
 
     for (const candidate of storedUsers) {
+      await this.assertNotLocked(candidate, normalizedEmail, requestMeta)
       const passwordMatches = await verifyPassword(
         parsedPayload.password,
         candidate.passwordHash
@@ -639,12 +658,42 @@ export class AuthService {
     }
 
     if (!storedUser) {
+      await this.handleFailedLoginAttempt(storedUsers, normalizedEmail, requestMeta)
       throw new ApplicationError("Invalid credentials.", { email: normalizedEmail }, 401)
     }
 
     if (!storedUser.user.isActive) {
+      await this.writeAuthAudit({
+        action: "login_blocked",
+        level: "warn",
+        message: "Login was blocked because the account is disabled.",
+        actorId: storedUser.user.id,
+        actorEmail: storedUser.user.email,
+        actorType: storedUser.user.actorType,
+        details: {
+          reason: "account_disabled",
+          ipAddress: requestMeta.ipAddress,
+          userAgent: requestMeta.userAgent,
+        },
+      })
       throw new ApplicationError("This account is disabled.", { id: storedUser.user.id }, 403)
     }
+
+    if (storedUser.failedLoginCount > 0 || storedUser.lockedUntil) {
+      await this.repository.clearFailedLoginState(storedUser.user.id)
+    }
+
+    await this.writeAuthAudit({
+      action: "login_succeeded",
+      message: "Authentication succeeded and a new session was issued.",
+      actorId: storedUser.user.id,
+      actorEmail: storedUser.user.email,
+      actorType: storedUser.user.actorType,
+      details: {
+        ipAddress: requestMeta.ipAddress,
+        userAgent: requestMeta.userAgent,
+      },
+    })
 
     return this.createAuthResponse(storedUser.user, requestMeta)
   }
@@ -654,14 +703,51 @@ export class AuthService {
     const session = await this.repository.findSessionById(claims.sid)
 
     if (!session || session.tokenId !== claims.jti) {
+      await this.writeAuthAudit({
+        action: "session_rejected",
+        level: "warn",
+        message: "Authentication failed because the session record was not found.",
+        actorId: claims.sub,
+        actorEmail: claims.email,
+        actorType: claims.actorType,
+        details: {
+          reason: "session_not_found",
+          sessionId: claims.sid,
+        },
+      })
       throw new ApplicationError("Authentication session was not found.", {}, 401)
     }
 
     if (session.revokedAt) {
+      await this.writeAuthAudit({
+        action: "session_rejected",
+        level: "warn",
+        message: "Authentication failed because the session was revoked.",
+        actorId: claims.sub,
+        actorEmail: claims.email,
+        actorType: claims.actorType,
+        details: {
+          reason: "session_revoked",
+          sessionId: session.id,
+        },
+      })
       throw new ApplicationError("Authentication session has been revoked.", {}, 401)
     }
 
     if (new Date(session.expiresAt).getTime() <= Date.now()) {
+      await this.repository.revokeSession(session.id)
+      await this.writeAuthAudit({
+        action: "session_rejected",
+        level: "warn",
+        message: "Authentication failed because the session expired.",
+        actorId: claims.sub,
+        actorEmail: claims.email,
+        actorType: claims.actorType,
+        details: {
+          reason: "session_expired",
+          sessionId: session.id,
+        },
+      })
       throw new ApplicationError("Authentication session has expired.", {}, 401)
     }
 
@@ -676,8 +762,23 @@ export class AuthService {
     }
 
     if (!storedUser.user.isActive) {
+      await this.repository.revokeSessionsForUser(storedUser.user.id)
+      await this.writeAuthAudit({
+        action: "session_rejected",
+        level: "warn",
+        message: "Authentication failed because the account is disabled.",
+        actorId: storedUser.user.id,
+        actorEmail: storedUser.user.email,
+        actorType: storedUser.user.actorType,
+        details: {
+          reason: "account_disabled",
+          sessionId: session.id,
+        },
+      })
       throw new ApplicationError("This account is disabled.", { userId: session.userId }, 403)
     }
+
+    await this.assertSessionStillActive(storedUser, session)
 
     await this.repository.markSessionSeen(session.id)
 
@@ -687,6 +788,16 @@ export class AuthService {
   async logout(token: string) {
     const claims = this.readTokenClaims(token)
     await this.repository.revokeSession(claims.sid)
+    await this.writeAuthAudit({
+      action: "logout",
+      message: "Authentication session was revoked through logout.",
+      actorId: claims.sub,
+      actorEmail: claims.email,
+      actorType: claims.actorType,
+      details: {
+        sessionId: claims.sid,
+      },
+    })
     return authLogoutResponseSchema.parse({
       revoked: true,
     } satisfies AuthLogoutResponse)
@@ -1139,5 +1250,155 @@ export class AuthService {
       .replace(/^_+|_+$/g, "")
 
     return `${namespace}:${resource}:${action}`
+  }
+
+  private async handleFailedLoginAttempt(
+    storedUsers: StoredAuthUser[],
+    normalizedEmail: string,
+    requestMeta: {
+      ipAddress: string | null
+      userAgent: string | null
+    }
+  ) {
+    const maxAttempts = Math.max(1, this.config.security.authMaxLoginAttempts)
+    const lockoutMinutes = Math.max(1, this.config.security.authLockoutMinutes)
+
+    for (const candidate of storedUsers) {
+      const nextFailedLoginCount = candidate.failedLoginCount + 1
+      const lockedUntil =
+        nextFailedLoginCount >= maxAttempts
+          ? new Date(Date.now() + lockoutMinutes * 60_000).toISOString()
+          : null
+
+      await this.repository.recordFailedLoginAttempt(candidate.user.id, {
+        failedLoginCount: nextFailedLoginCount,
+        lockedUntil,
+      })
+
+      await this.writeAuthAudit({
+        action: lockedUntil ? "login_locked" : "login_failed",
+        level: "warn",
+        message: lockedUntil
+          ? "Login attempts exceeded the configured threshold and the account was locked temporarily."
+          : "Login failed because the password did not match.",
+        actorId: candidate.user.id,
+        actorEmail: normalizedEmail,
+        actorType: candidate.user.actorType,
+        details: {
+          failedLoginCount: nextFailedLoginCount,
+          maxAttempts,
+          lockedUntil,
+          ipAddress: requestMeta.ipAddress,
+          userAgent: requestMeta.userAgent,
+          reason: lockedUntil ? "account_locked" : "invalid_password",
+        },
+      })
+    }
+  }
+
+  private async assertNotLocked(
+    storedUser: StoredAuthUser,
+    normalizedEmail: string,
+    requestMeta: {
+      ipAddress: string | null
+      userAgent: string | null
+    }
+  ) {
+    if (!storedUser.lockedUntil) {
+      return
+    }
+
+    const lockedUntilMs = new Date(storedUser.lockedUntil).getTime()
+
+    if (Number.isFinite(lockedUntilMs) && lockedUntilMs > Date.now()) {
+      await this.writeAuthAudit({
+        action: "login_blocked",
+        level: "warn",
+        message: "Login was blocked because the account is temporarily locked.",
+        actorId: storedUser.user.id,
+        actorEmail: normalizedEmail,
+        actorType: storedUser.user.actorType,
+        details: {
+          reason: "account_locked",
+          lockedUntil: storedUser.lockedUntil,
+          ipAddress: requestMeta.ipAddress,
+          userAgent: requestMeta.userAgent,
+        },
+      })
+      throw new ApplicationError(
+        "This account is temporarily locked. Try again later.",
+        { lockedUntil: storedUser.lockedUntil },
+        423
+      )
+    }
+
+    await this.repository.clearFailedLoginState(storedUser.user.id)
+  }
+
+  private async assertSessionStillActive(storedUser: StoredAuthUser, session: { id: string; lastSeenAt: string | null }) {
+    const shouldEnforceIdleTimeout =
+      storedUser.user.actorType === "admin" || storedUser.user.actorType === "staff"
+
+    if (!shouldEnforceIdleTimeout) {
+      return
+    }
+
+    const lastSeenAt = session.lastSeenAt ?? null
+    if (!lastSeenAt) {
+      return
+    }
+
+    const idleThresholdMs = this.config.security.adminSessionIdleMinutes * 60_000
+    if (idleThresholdMs <= 0) {
+      return
+    }
+
+    const idleForMs = Date.now() - new Date(lastSeenAt).getTime()
+    if (!Number.isFinite(idleForMs) || idleForMs < idleThresholdMs) {
+      return
+    }
+
+    await this.repository.revokeSession(session.id)
+    await this.writeAuthAudit({
+      action: "session_rejected",
+      level: "warn",
+      message: "Authentication failed because the admin session was idle beyond the allowed timeout.",
+      actorId: storedUser.user.id,
+      actorEmail: storedUser.user.email,
+      actorType: storedUser.user.actorType,
+      details: {
+        reason: "session_idle_timeout",
+        sessionId: session.id,
+        lastSeenAt,
+        idleThresholdMinutes: this.config.security.adminSessionIdleMinutes,
+      },
+    })
+
+    throw new ApplicationError("Authentication session has expired due to inactivity.", {}, 401)
+  }
+
+  private async writeAuthAudit(input: {
+    action: string
+    message: string
+    level?: "info" | "warn" | "error"
+    actorId?: string | null
+    actorEmail?: string | null
+    actorType?: string | null
+    details?: Record<string, unknown>
+  }) {
+    if (!this.config.operations.audit.adminAuditEnabled) {
+      return
+    }
+
+    await writeActivityLog(this.database, {
+      category: "auth",
+      action: input.action,
+      level: input.level ?? "info",
+      message: input.message,
+      actorId: input.actorId ?? null,
+      actorEmail: input.actorEmail ?? null,
+      actorType: input.actorType ?? null,
+      context: input.details ?? null,
+    })
   }
 }

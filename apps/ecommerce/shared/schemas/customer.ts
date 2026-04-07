@@ -15,6 +15,13 @@ import {
 import { commonModuleItemSchema } from "../../../core/shared/schemas/common-modules.js"
 import { storefrontProductCardSchema } from "./catalog.js"
 
+export const customerLifecycleStateSchema = z.enum([
+  "active",
+  "blocked",
+  "deleted",
+  "anonymized",
+])
+
 export const customerAccountSchema = z.object({
   id: z.string().min(1),
   authUserId: z.string().min(1).nullable().default(null),
@@ -25,6 +32,11 @@ export const customerAccountSchema = z.object({
   companyName: z.string().nullable(),
   gstin: z.string().nullable(),
   isActive: z.boolean(),
+  lifecycleState: customerLifecycleStateSchema.default("active"),
+  lifecycleNote: z.string().nullable().default(null),
+  blockedAt: z.string().nullable().default(null),
+  deletedAt: z.string().nullable().default(null),
+  anonymizedAt: z.string().nullable().default(null),
   lastLoginAt: z.string().nullable(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -45,6 +57,11 @@ export const customerProfileSchema = z.object({
   gstin: z.string().nullable(),
   website: z.string().nullable(),
   isActive: z.boolean(),
+  lifecycleState: customerLifecycleStateSchema.default("active"),
+  lifecycleNote: z.string().nullable().default(null),
+  blockedAt: z.string().nullable().default(null),
+  deletedAt: z.string().nullable().default(null),
+  anonymizedAt: z.string().nullable().default(null),
   addresses: z.array(contactAddressSchema),
   emails: z.array(contactEmailSchema),
   phones: z.array(contactPhoneSchema),
@@ -140,6 +157,59 @@ export const customerPortalResponseSchema = z.object({
   stats: customerPortalStatsSchema,
 })
 
+export const storefrontCustomerAdminViewSchema = z.object({
+  id: z.string().min(1),
+  authUserId: z.string().nullable(),
+  coreContactId: z.string().min(1),
+  displayName: z.string().min(1),
+  email: z.email(),
+  phoneNumber: z.string().min(1),
+  companyName: z.string().nullable(),
+  gstin: z.string().nullable(),
+  isActive: z.boolean(),
+  lifecycleState: customerLifecycleStateSchema,
+  lifecycleNote: z.string().nullable(),
+  blockedAt: z.string().nullable(),
+  deletedAt: z.string().nullable(),
+  anonymizedAt: z.string().nullable(),
+  lastLoginAt: z.string().nullable(),
+  orderCount: z.number().int().min(0),
+  supportCaseCount: z.number().int().min(0),
+  requestCount: z.number().int().min(0),
+  lastOrderAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontCustomerAdminReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalCustomers: z.number().int().min(0),
+    activeCount: z.number().int().min(0),
+    blockedCount: z.number().int().min(0),
+    deletedCount: z.number().int().min(0),
+    anonymizedCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontCustomerAdminViewSchema),
+})
+
+export const storefrontCustomerLifecycleActionSchema = z.enum([
+  "activate",
+  "block",
+  "mark_deleted",
+  "anonymize",
+])
+
+export const storefrontCustomerLifecycleActionPayloadSchema = z.object({
+  customerAccountId: z.string().min(1),
+  action: storefrontCustomerLifecycleActionSchema,
+  note: z.string().trim().nullable().optional().default(null),
+})
+
+export const storefrontCustomerAdminResponseSchema = z.object({
+  item: storefrontCustomerAdminViewSchema,
+})
+
 export const customerWishlistTogglePayloadSchema = z.object({
   productId: z.string().trim().min(1),
 })
@@ -192,6 +262,18 @@ export type CustomerRewards = z.infer<typeof customerRewardsSchema>
 export type CustomerPortalRecord = z.infer<typeof customerPortalRecordSchema>
 export type CustomerPortalStats = z.infer<typeof customerPortalStatsSchema>
 export type CustomerPortalResponse = z.infer<typeof customerPortalResponseSchema>
+export type CustomerLifecycleState = z.infer<typeof customerLifecycleStateSchema>
+export type StorefrontCustomerAdminView = z.infer<typeof storefrontCustomerAdminViewSchema>
+export type StorefrontCustomerAdminReport = z.infer<typeof storefrontCustomerAdminReportSchema>
+export type StorefrontCustomerLifecycleAction = z.infer<
+  typeof storefrontCustomerLifecycleActionSchema
+>
+export type StorefrontCustomerLifecycleActionPayload = z.infer<
+  typeof storefrontCustomerLifecycleActionPayloadSchema
+>
+export type StorefrontCustomerAdminResponse = z.infer<
+  typeof storefrontCustomerAdminResponseSchema
+>
 export type CustomerRegisterPayload = z.infer<typeof customerRegisterPayloadSchema>
 export type CustomerLoginPayload = z.infer<typeof customerLoginPayloadSchema>
 export type CustomerProfileUpdatePayload = z.infer<typeof customerProfileUpdatePayloadSchema>

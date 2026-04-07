@@ -8,6 +8,18 @@
 
 ## v-0.0.1
 
+### [#54] 2026-04-07 - Ecommerce customer lifecycle controls
+
+- completed Stage `2.3.4` by adding ecommerce-owned customer lifecycle states for `active`, `blocked`, `deleted`, and `anonymized`, with synchronized auth-session revocation and identity anonymization handling
+- added protected admin customer report and lifecycle-action routes, a dedicated ecommerce customer operations screen, and a new ecommerce customer-management permission in the auth seed set
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### [#53] 2026-04-07 - Auth session hardening baseline
+
+- completed Stage `2.3.3` by adding auth-user failed-login counters, temporary lockout windows, stale admin-session timeout enforcement, and audit-log coverage for login or session rejection events
+- added the cxapp auth-hardening migration, repository support for failed-login state and forced session revocation, and auth-service checks for lockout, idle timeout, disabled-account rejection, and auth activity logging
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/core/auth-service.test.ts tests/api/internal/routes.test.ts tests/framework/runtime/database-process.test.ts`
+
 ### [#51] 2026-04-07 - Ecommerce permission enforcement baseline
 
 - completed Stage `2.3.2` by enforcing ecommerce route permissions through the shared internal-session guard instead of relying only on actor type checks

@@ -22,6 +22,7 @@ export function createAuthService(
   return new AuthService(
     new AuthRepository(database),
     createMailboxService(database, config),
-    config
+    config,
+    database
   )
 }

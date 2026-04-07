@@ -479,7 +479,7 @@ function buildContactRecord(
   } satisfies Contact
 }
 
-function buildCustomerAccountRecord(contact: Contact, index: number) {
+function buildCustomerAccountRecord(contact: Contact, index: number): CustomerAccount {
   const timestamp = new Date().toISOString()
   const name = `customer-${index}`
 
@@ -493,6 +493,11 @@ function buildCustomerAccountRecord(contact: Contact, index: number) {
     companyName: null,
     gstin: null,
     isActive: true,
+    lifecycleState: "active",
+    lifecycleNote: null,
+    blockedAt: null,
+    deletedAt: null,
+    anonymizedAt: null,
     lastLoginAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,

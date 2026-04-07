@@ -4,6 +4,7 @@ import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import { type StorefrontOrder } from "../../shared/index.js"
+import { AuthRepository } from "../../../cxapp/src/repositories/auth-repository.js"
 import {
   createContact,
   getContact,
@@ -26,16 +27,22 @@ import {
   customerPortalPreferencesUpdatePayloadSchema,
   customerPortalRecordSchema,
   customerPortalResponseSchema,
+  customerLifecycleStateSchema,
   customerAccountSchema,
   customerProfileLookupResponseSchema,
   customerProfileSchema,
   customerProfileUpdatePayloadSchema,
   customerRegisterPayloadSchema,
+  storefrontCustomerAdminReportSchema,
+  storefrontCustomerAdminResponseSchema,
+  storefrontCustomerLifecycleActionPayloadSchema,
   customerWishlistTogglePayloadSchema,
   type CustomerAccount,
+  type CustomerLifecycleState,
   type CustomerPortalRecord,
   type CustomerPortalResponse,
   type CustomerProfile,
+  type StorefrontCustomerAdminView,
 } from "../../shared/index.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
@@ -46,6 +53,12 @@ import {
   sendStorefrontCampaignSubscriptionEmail,
   sendStorefrontWelcomeEmail,
 } from "./storefront-mail-service.js"
+import {
+  storefrontSupportCaseSchema,
+  storefrontOrderRequestSchema,
+  type StorefrontOrderRequest,
+  type StorefrontSupportCase,
+} from "../../shared/index.js"
 
 const systemActor: AuthUser = {
   id: "auth-user:ecommerce-system",
@@ -72,13 +85,66 @@ function normalizeOptionalString(value: string | null | undefined) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function resolveCustomerLifecycleState(
+  value: unknown,
+  fallbackIsActive: boolean
+): CustomerLifecycleState {
+  const parsed = customerLifecycleStateSchema.safeParse(value)
+
+  if (parsed.success) {
+    return parsed.data
+  }
+
+  return fallbackIsActive ? "active" : "blocked"
+}
+
+function isCustomerLifecycleActive(state: CustomerLifecycleState) {
+  return state === "active"
+}
+
+function createAnonymizedCustomerEmail(accountId: string) {
+  return `anonymized+${accountId.replace(/[^a-z0-9]/gi, "").toLowerCase()}@redacted.local`
+}
+
+function createAnonymizedCustomerPhone(accountId: string) {
+  const digits = accountId.replace(/\D/g, "").slice(-10).padStart(10, "0")
+  return digits
+}
+
+async function readSupportCases(database: Kysely<unknown>) {
+  const items = await listJsonStorePayloads<StorefrontSupportCase>(
+    database,
+    ecommerceTableNames.supportCases
+  )
+
+  return items.map((item) => storefrontSupportCaseSchema.parse(item))
+}
+
+async function readOrderRequests(database: Kysely<unknown>) {
+  const items = await listJsonStorePayloads<StorefrontOrderRequest>(
+    database,
+    ecommerceTableNames.orderRequests
+  )
+
+  return items.map((item) => storefrontOrderRequestSchema.parse(item))
+}
+
 export async function readCustomerAccounts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<CustomerAccount>(
     database,
     ecommerceTableNames.customerAccounts
   )
 
-  return items.map((item) => customerAccountSchema.parse(item))
+  return items.map((item) =>
+    customerAccountSchema.parse({
+      ...item,
+      lifecycleState: resolveCustomerLifecycleState(item.lifecycleState, Boolean(item.isActive)),
+      lifecycleNote: item.lifecycleNote ?? null,
+      blockedAt: item.blockedAt ?? null,
+      deletedAt: item.deletedAt ?? null,
+      anonymizedAt: item.anonymizedAt ?? null,
+    })
+  )
 }
 
 async function writeCustomerAccounts(database: Kysely<unknown>, items: CustomerAccount[]) {
@@ -307,6 +373,11 @@ async function buildCustomerProfile(
     gstin: account.gstin,
     website: contact.item.website,
     isActive: contact.item.isActive,
+    lifecycleState: account.lifecycleState,
+    lifecycleNote: account.lifecycleNote,
+    blockedAt: account.blockedAt,
+    deletedAt: account.deletedAt,
+    anonymizedAt: account.anonymizedAt,
     addresses: contact.item.addresses,
     emails: contact.item.emails,
     phones: contact.item.phones,
@@ -477,6 +548,17 @@ async function ensureCustomerAccountForUser(
       companyName:
         matchingAccount.companyName ?? normalizeOptionalString(user.organizationName),
       isActive: user.isActive,
+      lifecycleState: user.isActive
+        ? matchingAccount.lifecycleState === "active"
+          ? "active"
+          : matchingAccount.lifecycleState
+        : matchingAccount.lifecycleState === "active"
+          ? "blocked"
+          : matchingAccount.lifecycleState,
+      lifecycleNote: matchingAccount.lifecycleNote ?? null,
+      blockedAt: matchingAccount.blockedAt ?? null,
+      deletedAt: matchingAccount.deletedAt ?? null,
+      anonymizedAt: matchingAccount.anonymizedAt ?? null,
       lastLoginAt: now,
       updatedAt: now,
     })
@@ -544,6 +626,11 @@ async function ensureCustomerAccountForUser(
     companyName: normalizeOptionalString(user.organizationName),
     gstin: null,
     isActive: user.isActive,
+    lifecycleState: user.isActive ? "active" : "blocked",
+    lifecycleNote: null,
+    blockedAt: user.isActive ? null : now,
+    deletedAt: null,
+    anonymizedAt: null,
     lastLoginAt: now,
     createdAt: now,
     updatedAt: now,
@@ -635,6 +722,11 @@ export async function registerCustomer(
     companyName: normalizeOptionalString(parsed.companyName),
     gstin,
     isActive: true,
+    lifecycleState: "active",
+    lifecycleNote: null,
+    blockedAt: null,
+    deletedAt: null,
+    anonymizedAt: null,
     lastLoginAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -687,7 +779,21 @@ export async function resolveAuthenticatedCustomerAccount(
   token: string
 ) {
   const user = await getAuthenticatedCustomerUser(database, config, token)
-  return ensureCustomerAccountForUser(database, user)
+  const account = await ensureCustomerAccountForUser(database, user)
+
+  if (!isCustomerLifecycleActive(account.lifecycleState)) {
+    throw new ApplicationError(
+      account.lifecycleState === "blocked"
+        ? "This customer account is blocked."
+        : account.lifecycleState === "deleted"
+          ? "This customer account has been deleted."
+          : "This customer account has been anonymized.",
+      { customerAccountId: account.id, lifecycleState: account.lifecycleState },
+      403
+    )
+  }
+
+  return account
 }
 
 export async function updateCustomerProfile(
@@ -834,4 +940,253 @@ export async function toggleCustomerWishlistItem(
   )
 
   return buildCustomerPortalResponse(database, account)
+}
+
+async function syncCustomerAuthState(
+  database: Kysely<unknown>,
+  account: CustomerAccount
+) {
+  if (!account.authUserId) {
+    return
+  }
+
+  const repository = new AuthRepository(database)
+  const storedUser = await repository.findById(account.authUserId)
+
+  if (!storedUser) {
+    return
+  }
+
+  const shouldBeActive = isCustomerLifecycleActive(account.lifecycleState)
+
+  if (storedUser.user.isActive !== shouldBeActive) {
+    await repository.setUserActiveState(account.authUserId, shouldBeActive)
+  }
+
+  if (!shouldBeActive) {
+    await repository.revokeSessionsForUser(account.authUserId)
+  }
+}
+
+async function anonymizeCustomerIdentity(
+  database: Kysely<unknown>,
+  account: CustomerAccount
+) {
+  const anonymizedEmail = createAnonymizedCustomerEmail(account.id)
+  const anonymizedPhone = createAnonymizedCustomerPhone(account.id)
+  const anonymizedDisplayName = `Anonymized Customer ${account.id.slice(-4).toUpperCase()}`
+  const repository = new AuthRepository(database)
+
+  if (account.authUserId) {
+    const storedUser = await repository.findById(account.authUserId)
+
+    if (storedUser) {
+      await repository.updateUser({
+        id: storedUser.user.id,
+        email: anonymizedEmail,
+        phoneNumber: anonymizedPhone,
+        displayName: anonymizedDisplayName,
+        actorType: storedUser.user.actorType,
+        avatarUrl: storedUser.user.avatarUrl,
+        organizationName: null,
+        isSuperAdmin: storedUser.user.isSuperAdmin,
+        isActive: false,
+      })
+      await repository.revokeSessionsForUser(storedUser.user.id)
+    }
+  }
+
+  const contact = await getContact(database, systemActor, account.coreContactId)
+
+  await updateContact(database, systemActor, contact.item.id, {
+    code: contact.item.code,
+    contactTypeId: contact.item.contactTypeId,
+    ledgerId: contact.item.ledgerId,
+    ledgerName: contact.item.ledgerName,
+    name: anonymizedDisplayName,
+    legalName: "",
+    pan: "",
+    gstin: "",
+    msmeType: "",
+    msmeNo: "",
+    openingBalance: contact.item.openingBalance,
+    balanceType: contact.item.balanceType ?? "",
+    creditLimit: contact.item.creditLimit,
+    website: "",
+    description: "Customer account anonymized for privacy handling.",
+    isActive: false,
+    addresses: [],
+    emails: [],
+    phones: [],
+    bankAccounts: [],
+    gstDetails: [],
+  })
+
+  return {
+    email: anonymizedEmail,
+    phoneNumber: anonymizedPhone,
+    displayName: anonymizedDisplayName,
+  }
+}
+
+function buildCustomerAdminView(input: {
+  account: CustomerAccount
+  orders: StorefrontOrder[]
+  supportCases: StorefrontSupportCase[]
+  orderRequests: StorefrontOrderRequest[]
+}): StorefrontCustomerAdminView {
+  const { account, orders, supportCases, orderRequests } = input
+  const matchingOrders = orders.filter((item) => orderBelongsToAccount(item, account))
+  const matchingSupportCases = supportCases.filter(
+    (item) => item.customerAccountId === account.id
+  )
+  const matchingRequests = orderRequests.filter((item) => item.customerAccountId === account.id)
+  const lastOrderAt =
+    matchingOrders
+      .map((item) => item.updatedAt)
+      .sort((left, right) => right.localeCompare(left))[0] ?? null
+
+  return {
+    id: account.id,
+    authUserId: account.authUserId,
+    coreContactId: account.coreContactId,
+    displayName: account.displayName,
+    email: account.email,
+    phoneNumber: account.phoneNumber,
+    companyName: account.companyName,
+    gstin: account.gstin,
+    isActive: account.isActive,
+    lifecycleState: account.lifecycleState,
+    lifecycleNote: account.lifecycleNote,
+    blockedAt: account.blockedAt,
+    deletedAt: account.deletedAt,
+    anonymizedAt: account.anonymizedAt,
+    lastLoginAt: account.lastLoginAt,
+    orderCount: matchingOrders.length,
+    supportCaseCount: matchingSupportCases.length,
+    requestCount: matchingRequests.length,
+    lastOrderAt,
+    createdAt: account.createdAt,
+    updatedAt: account.updatedAt,
+  }
+}
+
+export async function getStorefrontCustomerOperationsReport(database: Kysely<unknown>) {
+  const [accounts, orders, supportCases, orderRequests] = await Promise.all([
+    readCustomerAccounts(database),
+    readOrders(database),
+    readSupportCases(database),
+    readOrderRequests(database),
+  ])
+
+  const items = accounts
+    .map((account) =>
+      buildCustomerAdminView({
+        account,
+        orders,
+        supportCases,
+        orderRequests,
+      })
+    )
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+  return storefrontCustomerAdminReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalCustomers: items.length,
+      activeCount: items.filter((item) => item.lifecycleState === "active").length,
+      blockedCount: items.filter((item) => item.lifecycleState === "blocked").length,
+      deletedCount: items.filter((item) => item.lifecycleState === "deleted").length,
+      anonymizedCount: items.filter((item) => item.lifecycleState === "anonymized").length,
+    },
+    items,
+  })
+}
+
+export async function getStorefrontCustomerAccount(
+  database: Kysely<unknown>,
+  customerAccountId: string
+) {
+  const report = await getStorefrontCustomerOperationsReport(database)
+  const item = report.items.find((entry) => entry.id === customerAccountId) ?? null
+
+  if (!item) {
+    throw new ApplicationError("Customer account could not be found.", { customerAccountId }, 404)
+  }
+
+  return storefrontCustomerAdminResponseSchema.parse({ item })
+}
+
+export async function applyStorefrontCustomerLifecycleAction(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const parsed = storefrontCustomerLifecycleActionPayloadSchema.parse(payload)
+  const accounts = await readCustomerAccounts(database)
+  const existing = accounts.find((item) => item.id === parsed.customerAccountId) ?? null
+
+  if (!existing) {
+    throw new ApplicationError(
+      "Customer account could not be found.",
+      { customerAccountId: parsed.customerAccountId },
+      404
+    )
+  }
+
+  if (existing.lifecycleState === "anonymized" && parsed.action !== "anonymize") {
+    throw new ApplicationError(
+      "An anonymized customer account cannot be restored or edited further.",
+      { customerAccountId: existing.id, lifecycleState: existing.lifecycleState },
+      409
+    )
+  }
+
+  const timestamp = new Date().toISOString()
+  let nextAccount = existing
+
+  if (parsed.action === "anonymize") {
+    const anonymized = await anonymizeCustomerIdentity(database, existing)
+    nextAccount = customerAccountSchema.parse({
+      ...existing,
+      authUserId: existing.authUserId,
+      email: anonymized.email,
+      phoneNumber: anonymized.phoneNumber,
+      displayName: anonymized.displayName,
+      companyName: null,
+      gstin: null,
+      isActive: false,
+      lifecycleState: "anonymized",
+      lifecycleNote: parsed.note,
+      blockedAt: existing.blockedAt,
+      deletedAt: existing.deletedAt,
+      anonymizedAt: timestamp,
+      updatedAt: timestamp,
+    })
+  } else {
+    const lifecycleState: CustomerLifecycleState =
+      parsed.action === "activate"
+        ? "active"
+        : parsed.action === "block"
+          ? "blocked"
+          : "deleted"
+
+    nextAccount = customerAccountSchema.parse({
+      ...existing,
+      isActive: lifecycleState === "active",
+      lifecycleState,
+      lifecycleNote: parsed.note,
+      blockedAt: lifecycleState === "blocked" ? timestamp : null,
+      deletedAt: lifecycleState === "deleted" ? timestamp : null,
+      anonymizedAt: existing.anonymizedAt,
+      updatedAt: timestamp,
+    })
+  }
+
+  await writeCustomerAccounts(
+    database,
+    accounts.map((item) => (item.id === nextAccount.id ? nextAccount : item))
+  )
+  await syncCustomerAuthState(database, nextAccount)
+
+  return getStorefrontCustomerAccount(database, nextAccount.id)
 }

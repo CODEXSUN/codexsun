@@ -33,6 +33,7 @@ import { StorefrontPickupSection } from "./features/storefront-admin/storefront-
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
+import { StorefrontCustomersSection } from "./features/storefront-admin/storefront-customers-section"
 import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-orders-section"
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontSupportSection } from "./features/storefront-admin/storefront-support-section"
@@ -729,37 +730,7 @@ function ProductUpsertSection({ productId }: { productId?: string }) {
 }
 
 function CustomersSection() {
-  return (
-    <div className="space-y-4">
-      <SectionIntro
-        eyebrow="Customers"
-        title="Customer accounts and contacts"
-        description="Customer registration, login, browser session, and portal access are app-owned by ecommerce. Shared identity records still project into core contacts with the correct contact type."
-      />
-      <div className="grid gap-4 md:grid-cols-2">
-        <MetricCard
-          icon={Users}
-          title="Registration flow"
-          summary="B2B and B2C customer registration create or reuse matching core contacts while keeping customer auth separate from cxapp operator auth."
-        />
-        <MetricCard
-          icon={ShoppingBag}
-          title="Portal flow"
-          summary="Customers can sign in, review profile details, and inspect their own order history inside the ecommerce-owned portal."
-        />
-      </div>
-      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>Customer routes</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <ActionLink href={storefrontPaths.accountRegister()} label="Registration page" />
-          <ActionLink href={storefrontPaths.accountLogin()} label="Login page" />
-          <ActionLink href={storefrontPaths.account()} label="Portal home" />
-        </CardContent>
-      </Card>
-    </div>
-  )
+  return <StorefrontCustomersSection />
 }
 
 function OrdersSection() {

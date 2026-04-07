@@ -16,6 +16,9 @@ import { cxappTableNames } from "../../database/table-names.js"
 type StoredAuthUser = {
   user: AuthUser
   passwordHash: string
+  failedLoginCount: number
+  lastFailedLoginAt: string | null
+  lockedUntil: string | null
 }
 
 type ContactVerificationRecord = {
@@ -268,6 +271,9 @@ export class AuthRepository {
         organization_name: input.organizationName,
         is_super_admin: input.isSuperAdmin ? 1 : 0,
         is_active: input.isActive ?? true ? 1 : 0,
+        failed_login_count: 0,
+        last_failed_login_at: null,
+        locked_until: null,
         created_at: timestamp,
         updated_at: timestamp,
       })
@@ -577,6 +583,17 @@ export class AuthRepository {
       .execute()
   }
 
+  async setSessionLastSeen(id: string, lastSeenAt: string | null) {
+    await asQueryDatabase(this.database)
+      .updateTable(cxappTableNames.authSessions)
+      .set({
+        last_seen_at: lastSeenAt,
+        updated_at: new Date().toISOString(),
+      })
+      .where("id", "=", id)
+      .execute()
+  }
+
   async updatePasswordHash(userId: string, passwordHash: string) {
     await asQueryDatabase(this.database)
       .updateTable(cxappTableNames.authUsers)
@@ -596,6 +613,48 @@ export class AuthRepository {
         updated_at: new Date().toISOString(),
       })
       .where("id", "=", userId)
+      .execute()
+  }
+
+  async recordFailedLoginAttempt(userId: string, input: { failedLoginCount: number; lockedUntil: string | null }) {
+    const timestamp = new Date().toISOString()
+
+    await asQueryDatabase(this.database)
+      .updateTable(cxappTableNames.authUsers)
+      .set({
+        failed_login_count: input.failedLoginCount,
+        last_failed_login_at: timestamp,
+        locked_until: input.lockedUntil,
+        updated_at: timestamp,
+      })
+      .where("id", "=", userId)
+      .execute()
+  }
+
+  async clearFailedLoginState(userId: string) {
+    await asQueryDatabase(this.database)
+      .updateTable(cxappTableNames.authUsers)
+      .set({
+        failed_login_count: 0,
+        last_failed_login_at: null,
+        locked_until: null,
+        updated_at: new Date().toISOString(),
+      })
+      .where("id", "=", userId)
+      .execute()
+  }
+
+  async revokeSessionsForUser(userId: string) {
+    const timestamp = new Date().toISOString()
+
+    await asQueryDatabase(this.database)
+      .updateTable(cxappTableNames.authSessions)
+      .set({
+        revoked_at: timestamp,
+        updated_at: timestamp,
+      })
+      .where("user_id", "=", userId)
+      .where("revoked_at", "is", null)
       .execute()
   }
 
@@ -841,6 +900,9 @@ export class AuthRepository {
           updatedAt: asString(row.updated_at),
         } satisfies AuthUser,
         passwordHash: asString(row.password_hash),
+        failedLoginCount: Number(row.failed_login_count ?? 0),
+        lastFailedLoginAt: asNullableString(row.last_failed_login_at),
+        lockedUntil: asNullableString(row.locked_until),
       } satisfies StoredAuthUser
     })
   }

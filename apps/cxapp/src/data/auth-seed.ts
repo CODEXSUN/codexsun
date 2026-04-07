@@ -211,6 +211,14 @@ export const authPermissions: AuthPermission[] = [
     { appId: "ecommerce", route: "/dashboard/apps/ecommerce/orders", actionKey: "manage" }
   ),
   definePermission(
+    "ecommerce:customers:manage",
+    "Ecommerce Customer Operations",
+    "Review customer accounts, lifecycle state, and portal-access actions.",
+    "module",
+    "ecommerce-customers",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/customers", actionKey: "manage" }
+  ),
+  definePermission(
     "ecommerce:support:manage",
     "Ecommerce Support Operations",
     "Review storefront support cases and linked customer service workflows.",
@@ -278,6 +286,7 @@ export const authRoles: AuthRole[] = [
         "ecommerce:workspace:view",
         "ecommerce:storefront:manage",
         "ecommerce:catalog:manage",
+        "ecommerce:customers:manage",
         "ecommerce:orders:manage",
         "ecommerce:support:manage",
         "ecommerce:payments:manage",
@@ -326,6 +335,7 @@ export const authRoles: AuthRole[] = [
         "dashboard:view",
         "customers:view",
         "ecommerce:workspace:view",
+        "ecommerce:customers:manage",
         "ecommerce:support:manage",
         "ecommerce:communications:view",
       ].includes(permission.key)

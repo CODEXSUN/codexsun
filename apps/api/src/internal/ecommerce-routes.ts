@@ -39,6 +39,11 @@ import {
   updateStorefrontSupportCase,
 } from "../../../ecommerce/src/services/storefront-support-service.js"
 import {
+  applyStorefrontCustomerLifecycleAction,
+  getStorefrontCustomerAccount,
+  getStorefrontCustomerOperationsReport,
+} from "../../../ecommerce/src/services/customer-service.js"
+import {
   getStorefrontOrderRequestQueueReport,
   reviewStorefrontOrderRequest,
 } from "../../../ecommerce/src/services/storefront-order-request-service.js"
@@ -68,6 +73,11 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     requireAuthenticatedUser(context, {
       allowedActorTypes: ["admin", "staff"],
       requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:support:manage"],
+    })
+  const requireCustomersManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:customers:manage"],
     })
   const requirePaymentsManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
     requireAuthenticatedUser(context, {
@@ -327,6 +337,43 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
                 ? context.request.url.searchParams.get("customerAccountId")
                 : null,
           })
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/customers/report", {
+      summary: "Read the ecommerce customer lifecycle queue and portal-account summary.",
+      handler: async (context) => {
+        await requireCustomersManage(context)
+
+        return jsonResponse(
+          await getStorefrontCustomerOperationsReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/customer", {
+      summary: "Read one ecommerce customer account with lifecycle and activity summary.",
+      handler: async (context) => {
+        await requireCustomersManage(context)
+
+        return jsonResponse(
+          await getStorefrontCustomerAccount(
+            context.databases.primary,
+            context.request.url.searchParams.get("id") ?? ""
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/customer/lifecycle", {
+      method: "POST",
+      summary: "Apply a lifecycle action such as activate, block, delete, or anonymize to a storefront customer account.",
+      handler: async (context) => {
+        await requireCustomersManage(context)
+
+        return jsonResponse(
+          await applyStorefrontCustomerLifecycleAction(
+            context.databases.primary,
+            context.request.jsonBody
+          )
         )
       },
     }),

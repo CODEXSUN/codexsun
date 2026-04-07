@@ -960,6 +960,7 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
 
       assert.equal(permissionsResponse.statusCode, 200)
       assert.ok(permissionsPayload.items.some((item) => item.key === "users:manage"))
+      assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:customers:manage"))
       assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:orders:manage"))
       assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:payments:manage"))
 
@@ -1404,11 +1405,15 @@ test("ecommerce internal routes enforce operator permissions by role", async () 
       const supportReportRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/support/report"
       )
+      const customersReportRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/customers/report"
+      )
       const ordersReportRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/orders/report"
       )
 
       assert.ok(supportReportRoute)
+      assert.ok(customersReportRoute)
       assert.ok(ordersReportRoute)
 
       const supportReportResponse = await supportReportRoute.handler({
@@ -1432,6 +1437,27 @@ test("ecommerce internal routes enforce operator permissions by role", async () 
       })
 
       assert.equal(supportReportResponse.statusCode, 200)
+      const customersReportResponse = await customersReportRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/ecommerce/customers/report",
+          url: new URL("http://localhost/internal/v1/ecommerce/customers/report"),
+          headers: supportHeaders,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: customersReportRoute.auth,
+          path: customersReportRoute.path,
+          surface: customersReportRoute.surface,
+          version: customersReportRoute.version,
+        },
+      })
+
+      assert.equal(customersReportResponse.statusCode, 200)
 
       await assert.rejects(
         () =>

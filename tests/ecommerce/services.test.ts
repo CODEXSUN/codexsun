@@ -15,8 +15,10 @@ import {
 import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.js"
 import { defaultStorefrontSettings } from "../../apps/ecommerce/src/data/storefront-seed.js"
 import {
+  applyStorefrontCustomerLifecycleAction,
   getAuthenticatedCustomer,
   getAuthenticatedCustomerPortal,
+  getStorefrontCustomerOperationsReport,
   registerCustomer,
   toggleCustomerWishlistItem,
   updateCustomerPortalPreferences,
@@ -1901,6 +1903,94 @@ test("customer communication history only returns messages for the authenticated
 
       assert.equal(otherLog.items.some((item) => item.referenceId === secondCheckout.order.id), true)
       assert.equal(otherLog.items.some((item) => item.referenceId === firstCheckout.order.id), false)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("customer lifecycle actions block portal access and anonymize retained customer identity", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-customer-lifecycle-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+    config.notifications.email.enabled = false
+    config.auth.otpDebug = true
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await registerCustomer(runtime.primary, config, {
+        displayName: "Lifecycle Customer",
+        email: "lifecycle@codexsun.local",
+        phoneNumber: "+919999999996",
+        password: "Password@123",
+        companyName: "Lifecycle Retail",
+        gstin: "",
+        addressLine1: "42 State Road",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      const authService = createAuthService(runtime.primary, config)
+      const customerSession = await authService.login({
+        email: "lifecycle@codexsun.local",
+        password: "Password@123",
+      })
+
+      const customerProfile = await getAuthenticatedCustomer(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(customerProfile.lifecycleState, "active")
+
+      const report = await getStorefrontCustomerOperationsReport(runtime.primary)
+      const customerAccount = report.items.find(
+        (item) => item.email === "lifecycle@codexsun.local"
+      )
+
+      assert.ok(customerAccount)
+
+      const blocked = await applyStorefrontCustomerLifecycleAction(runtime.primary, {
+        customerAccountId: customerAccount!.id,
+        action: "block",
+        note: "Fraud review hold",
+      })
+
+      assert.equal(blocked.item.lifecycleState, "blocked")
+      assert.equal(blocked.item.isActive, false)
+
+      await assert.rejects(
+        () =>
+          authService.login({
+            email: "lifecycle@codexsun.local",
+            password: "Password@123",
+          }),
+        /disabled|temporarily locked|Invalid credentials/
+      )
+
+      const anonymized = await applyStorefrontCustomerLifecycleAction(runtime.primary, {
+        customerAccountId: customerAccount!.id,
+        action: "anonymize",
+        note: "Privacy request",
+      })
+
+      assert.equal(anonymized.item.lifecycleState, "anonymized")
+      assert.match(anonymized.item.email, /redacted\.local$/)
+      assert.match(anonymized.item.displayName, /Anonymized Customer/)
     } finally {
       await runtime.destroy()
     }

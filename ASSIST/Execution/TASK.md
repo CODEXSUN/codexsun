@@ -96,8 +96,8 @@ Stage 1.1 baseline document:
 
 - [x] 2.3.1 define ecommerce operator roles: super admin, ecommerce admin, catalog manager, order manager, support agent, finance operator, analyst
 - [x] 2.3.2 map route and action permissions to those roles
-- [ ] 2.3.3 add admin session hardening, lockout, and audit checks
-- [ ] 2.3.4 add customer lifecycle states: active, blocked, deleted or anonymized
+- [x] 2.3.3 add admin session hardening, lockout, and audit checks
+- [x] 2.3.4 add customer lifecycle states: active, blocked, deleted or anonymized
 - [ ] 2.3.5 define email verification and suspicious-login handling policy
 
 ### Stage 2.4: Finance And Reporting

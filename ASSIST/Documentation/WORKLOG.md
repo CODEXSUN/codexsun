@@ -2,6 +2,18 @@
 
 ## Done Till Here
 
+### `#54` 2026-04-07
+
+- completed Stage `2.3.4` by adding ecommerce customer lifecycle states, admin customer operations, and portal-access enforcement for blocked, deleted, and anonymized accounts
+- added customer lifecycle contracts, ecommerce customer report and action routes, a dedicated storefront customer admin screen, and synced auth-session revocation and identity anonymization behavior
+- validated the lifecycle slice with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#53` 2026-04-07
+
+- completed Stage `2.3.3` by adding auth-user lockout state, failed-login tracking, stale admin-session timeout enforcement, and audit-log writes for login or session rejection events
+- added cxapp auth migration `15-auth-hardening`, repository support for failed-login counters and forced session revocation, and auth-service enforcement for lockout, idle timeout, and disabled-account session rejection
+- validated the hardening slice with `npm run typecheck` and `npx.cmd tsx --test tests/core/auth-service.test.ts tests/api/internal/routes.test.ts tests/framework/runtime/database-process.test.ts`
+
 ### `#51` 2026-04-07
 
 - completed Stage `2.3.2` by adding permission-aware internal session enforcement and mapping ecommerce route groups to the new ecommerce permission keys

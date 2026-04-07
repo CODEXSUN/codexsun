@@ -5,6 +5,8 @@ import type {
   CustomerPortalResponse,
   CustomerProfileUpdatePayload,
   CustomerRegisterPayload,
+  StorefrontCustomerAdminReport,
+  StorefrontCustomerAdminResponse,
   StorefrontSupportCaseCreatePayload,
   StorefrontSupportCaseListResponse,
   StorefrontSupportCaseResponse,
@@ -319,6 +321,35 @@ export const storefrontApi = {
     return requestJson<StorefrontAdminOrderOperationsReport>("/internal/v1/ecommerce/orders/report", {
       accessToken,
       cache: "no-store",
+    })
+  },
+  getCustomersReport(accessToken: string) {
+    return requestJson<StorefrontCustomerAdminReport>("/internal/v1/ecommerce/customers/report", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  getCustomerAccount(accessToken: string, customerAccountId: string) {
+    const url = new URL("/internal/v1/ecommerce/customer", window.location.origin)
+    url.searchParams.set("id", customerAccountId)
+
+    return requestJson<StorefrontCustomerAdminResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  applyCustomerLifecycleAction(
+    accessToken: string,
+    payload: {
+      customerAccountId: string
+      action: "activate" | "block" | "mark_deleted" | "anonymize"
+      note?: string | null
+    }
+  ) {
+    return requestJson<StorefrontCustomerAdminResponse>("/internal/v1/ecommerce/customer/lifecycle", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(payload),
     })
   },
   getAdminOrder(accessToken: string, orderId: string) {
