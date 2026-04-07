@@ -306,6 +306,45 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(checkout.payment.mode, "mock")
       assert.equal(checkout.order.paymentStatus, "pending")
+      assert.equal(checkout.order.status, "payment_pending")
+
+      const duplicateCheckout = await createCheckoutOrder(
+        runtime.primary,
+        config,
+        {
+          items: [{ productId: product.item.id, quantity: 2 }],
+          shippingAddress: {
+            fullName: "Asha Raman",
+            email: "asha@codexsun.local",
+            phoneNumber: "+91 98888 11111",
+            line1: "18 River Road",
+            line2: "Floor 2",
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          billingAddress: {
+            fullName: "Asha Raman",
+            email: "asha@codexsun.local",
+            phoneNumber: "+91 98888 11111",
+            line1: "18 River Road",
+            line2: "Floor 2",
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          notes: null,
+        },
+        customerSession.accessToken
+      )
+
+      assert.equal(duplicateCheckout.order.id, checkout.order.id)
+      assert.equal(
+        duplicateCheckout.payment.providerOrderId,
+        checkout.payment.providerOrderId
+      )
 
       const verified = await verifyCheckoutPayment(runtime.primary, config, {
         orderId: checkout.order.id,
@@ -315,7 +354,21 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       })
 
       assert.equal(verified.item.paymentStatus, "paid")
-      assert.equal(verified.item.status, "confirmed")
+      assert.equal(verified.item.status, "paid")
+
+      const verifiedAgain = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: checkout.order.id,
+        providerOrderId: checkout.payment.providerOrderId,
+        providerPaymentId: "mock_payment_001",
+        signature: "mock_signature",
+      })
+
+      assert.equal(verifiedAgain.item.id, verified.item.id)
+      assert.equal(verifiedAgain.item.providerPaymentId, "mock_payment_001")
+      assert.equal(
+        verifiedAgain.item.timeline.filter((entry) => entry.code === "payment_captured").length,
+        1
+      )
 
       const customerOrders = await listCustomerOrders(
         runtime.primary,
@@ -336,6 +389,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         tracked.item.timeline.some((entry) => entry.code === "payment_captured"),
         true
       )
+      assert.equal(tracked.item.status, "paid")
     } finally {
       await runtime.destroy()
     }

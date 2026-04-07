@@ -212,12 +212,14 @@
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: rgba(151, 129, 111, 0.6) transparent;
   }
   html {
     @apply font-sans;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: rgba(151, 129, 111, 0.6) transparent;
   }

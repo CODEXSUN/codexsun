@@ -79,7 +79,7 @@ export function FloatingContactButton({
   return (
     <div
       className={cn(
-        "fixed bottom-20 right-4 z-[70] flex flex-col items-end gap-3 sm:bottom-24 sm:right-5 lg:bottom-20 lg:right-6",
+        "fixed bottom-20 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-24 sm:right-5 lg:bottom-20 lg:right-6",
         className
       )}
     >

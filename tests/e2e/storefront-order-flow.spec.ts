@@ -40,19 +40,15 @@ async function ensureCheckoutAddress(page: import("@playwright/test").Page) {
     await dialog.getByLabel("Phone").fill("+919876543210")
     await dialog.getByLabel("First name").fill("Customer")
     await dialog.getByLabel("Address line 1").fill("45 Test Street")
+    await chooseLookupOption(dialog, "Country", "India")
+    await chooseLookupOption(dialog, "State", "Tamil Nadu")
+    await chooseLookupOption(dialog, "District", "Chennai")
+    await chooseLookupOption(dialog, "City", "Chennai")
+    await chooseLookupOption(dialog, "Postal code", /600001/)
 
-    const lookupTriggers = dialog
-      .locator("button")
-      .filter({ has: dialog.locator("svg.lucide-chevrons-up-down") })
-
-    for (const [index, optionLabel] of ["India", "Tamil Nadu", "Chennai", "600001"].entries()) {
-      const trigger = lookupTriggers.nth(index)
-      await trigger.click()
-      await page.keyboard.type(optionLabel)
-      await page.keyboard.press("Enter")
-    }
-
-    await dialog.getByRole("button", { name: "Save address" }).click()
+    await dialog
+      .getByRole("button", { name: "Save address" })
+      .evaluate((button: HTMLButtonElement) => button.click())
     await expect(dialog).not.toBeVisible()
     return
   }
@@ -171,6 +167,31 @@ async function ensureCheckoutAddress(page: import("@playwright/test").Page) {
   await savedAddressOptions.first().click()
 }
 
+async function chooseLookupOption(
+  scope: import("@playwright/test").Locator,
+  fieldLabel: string,
+  optionName: string | RegExp
+) {
+  const field = scope.getByText(fieldLabel, { exact: true }).locator("xpath=..")
+  const triggerButton = field.getByRole("button").first()
+
+  if (typeof optionName === "string" && (await triggerButton.textContent())?.trim() === optionName) {
+    return
+  }
+
+  await triggerButton.click()
+
+  const optionButton = scope.getByRole("button", { name: optionName }).last()
+  if (await optionButton.count()) {
+    await optionButton.click()
+    return
+  }
+
+  const searchInput = scope.getByPlaceholder(new RegExp(`Search ${fieldLabel}`, "i"))
+  await searchInput.fill(typeof optionName === "string" ? optionName : "")
+  await scope.getByRole("button", { name: optionName }).last().click()
+}
+
 async function continueFromCartToCheckout(page: import("@playwright/test").Page) {
   await page.goto("/checkout")
 
@@ -260,6 +281,7 @@ test("customer can buy from product page, checkout, and track the order", async 
   await expect(page.getByText(orderNumber)).toBeVisible()
   await expect(page.getByText("Payment Paid")).toBeVisible()
   await expect(page.getByText("Total paid")).toBeVisible()
-  await expect(page.getByText("Timeline")).toBeVisible()
-  await expect(page.getByText("Order confirmed")).toBeVisible()
+  await expect(page.getByText("Timeline", { exact: true })).toBeVisible()
+  await expect(page.getByText("Payment captured")).toBeVisible()
+  await expect(page.getByText("Order paid")).toBeVisible()
 })

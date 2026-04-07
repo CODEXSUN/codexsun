@@ -76,19 +76,23 @@ export const storefrontPaymentSessionSchema = z.object({
   themeColor: z.string().nullable(),
 })
 
+export const storefrontOrderStatusSchema = z.enum([
+  "created",
+  "payment_pending",
+  "paid",
+  "fulfilment_pending",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "refunded",
+])
+
 export const storefrontOrderSchema = z.object({
   id: z.string().min(1),
   orderNumber: z.string().min(1),
   customerAccountId: z.string().nullable(),
   coreContactId: z.string().min(1),
-  status: z.enum([
-    "pending_payment",
-    "confirmed",
-    "processing",
-    "shipped",
-    "delivered",
-    "cancelled",
-  ]),
+  status: storefrontOrderStatusSchema,
   paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
   paymentProvider: z.enum(["razorpay", "store"]),
   paymentMode: z.enum(["live", "mock", "offline"]),
@@ -97,6 +101,7 @@ export const storefrontOrderSchema = z.object({
   pickupLocation: storefrontPickupLocationSnapshotSchema.nullable(),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
+  checkoutFingerprint: z.string().nullable(),
   shippingAddress: storefrontAddressSchema,
   billingAddress: storefrontAddressSchema,
   items: z.array(storefrontOrderItemSchema).min(1),
@@ -165,6 +170,7 @@ export type StorefrontCartItemInput = z.infer<typeof storefrontCartItemInputSche
 export type StorefrontOrderItem = z.infer<typeof storefrontOrderItemSchema>
 export type StorefrontOrderTimelineEvent = z.infer<typeof storefrontOrderTimelineEventSchema>
 export type StorefrontPaymentSession = z.infer<typeof storefrontPaymentSessionSchema>
+export type StorefrontOrderStatus = z.infer<typeof storefrontOrderStatusSchema>
 export type StorefrontOrder = z.infer<typeof storefrontOrderSchema>
 export type StorefrontCheckoutPayload = z.infer<typeof storefrontCheckoutPayloadSchema>
 export type StorefrontCheckoutResponse = z.infer<typeof storefrontCheckoutResponseSchema>

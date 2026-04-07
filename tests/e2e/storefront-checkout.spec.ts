@@ -162,7 +162,7 @@ function createLiveCheckoutFixtures() {
     orderNumber: "ECM-20260407-9001",
     customerAccountId: null,
     coreContactId: "contact:guest-live-001",
-    status: "pending_payment",
+    status: "payment_pending",
     paymentStatus: "pending",
     paymentProvider: "razorpay",
     paymentMode: "live",
@@ -171,6 +171,7 @@ function createLiveCheckoutFixtures() {
     pickupLocation: null,
     providerOrderId: "order_live_001",
     providerPaymentId: null,
+    checkoutFingerprint: "checkout-fingerprint-live-001",
     shippingAddress: {
       fullName: "Guest Customer",
       email: "guest.checkout@codexsun.local",
@@ -249,7 +250,7 @@ function createLiveCheckoutFixtures() {
     verifiedOrderResponse: {
       item: {
         ...order,
-        status: "confirmed",
+        status: "paid",
         paymentStatus: "paid",
         providerPaymentId: "pay_live_success_001",
         timeline: [
@@ -263,9 +264,9 @@ function createLiveCheckoutFixtures() {
           },
           {
             id: "timeline:live-confirmed",
-            code: "order_confirmed",
-            label: "Order confirmed",
-            summary: "The order is confirmed and queued for fulfillment.",
+            code: "order_paid",
+            label: "Order paid",
+            summary: "The order is paid and waiting to enter fulfillment operations.",
             createdAt: "2026-04-07T12:01:00.000Z",
           },
         ],

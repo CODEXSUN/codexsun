@@ -38,14 +38,20 @@ function normalizeNumber(value: unknown, fallback: number) {
 }
 
 function normalizeStatus(value: unknown): StorefrontOrder["status"] {
-  return value === "pending_payment" ||
-    value === "confirmed" ||
-    value === "processing" ||
+  return value === "created" ||
+    value === "payment_pending" ||
+    value === "paid" ||
+    value === "fulfilment_pending" ||
     value === "shipped" ||
     value === "delivered" ||
-    value === "cancelled"
+    value === "cancelled" ||
+    value === "refunded"
     ? value
-    : "confirmed"
+    : value === "pending_payment"
+      ? "payment_pending"
+      : value === "confirmed" || value === "processing"
+        ? "fulfilment_pending"
+        : "payment_pending"
 }
 
 function normalizePaymentStatus(value: unknown): StorefrontOrder["paymentStatus"] {
@@ -238,6 +244,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     pickupLocation: normalizePickupLocation(record.pickupLocation),
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
+    checkoutFingerprint: normalizeOptionalString(record.checkoutFingerprint),
     shippingAddress,
     billingAddress,
     items,

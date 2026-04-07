@@ -509,6 +509,20 @@ export const storefrontProductDetailSchema = storefrontProductCardSchema.extend(
   shippingNote: z.string().nullable(),
   reviewCount: z.number().int().min(0),
   averageRating: z.number().finite().min(0).max(5),
+  specificationGroups: z.array(
+    z.object({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      summary: z.string().min(1).nullable().default(null),
+      items: z.array(
+        z.object({
+          id: z.string().min(1),
+          label: z.string().min(1),
+          value: z.string().min(1),
+        })
+      ),
+    })
+  ),
 })
 
 export const storefrontProductResponseSchema = z.object({

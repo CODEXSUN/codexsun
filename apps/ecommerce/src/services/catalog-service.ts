@@ -16,6 +16,7 @@ import {
   type StorefrontCategorySummary,
   type StorefrontBrandDiscoveryCard,
   type StorefrontProductCard,
+  type StorefrontProductDetail,
   type StorefrontProductResponse,
 } from "../../shared/index.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
@@ -76,6 +77,160 @@ export function toStorefrontProductCard(
     availableQuantity: resolveAvailableQuantity(product),
     tagNames: product.tagNames,
   }
+}
+
+function createSpecificationGroup(
+  id: string,
+  title: string,
+  summary: string | null,
+  items: Array<{ label: string; value: string | null | undefined }>
+): StorefrontProductDetail["specificationGroups"][number] | null {
+  const normalizedItems = items
+    .map((item, index) => ({
+      id: `${id}:${index + 1}`,
+      label: item.label,
+      value: item.value?.trim() ?? "",
+    }))
+    .filter((item) => item.value.length > 0)
+
+  if (normalizedItems.length === 0) {
+    return null
+  }
+
+  return {
+    id,
+    title,
+    summary,
+    items: normalizedItems,
+  }
+}
+
+function buildStorefrontProductSpecifications(
+  product: Product,
+  detailCard: StorefrontProductCard
+) {
+  const attributeValueMap = new Map(
+    product.attributeValues
+      .filter((item) => item.isActive)
+      .map((item) => [item.attributeId, item.value])
+  )
+
+  const identityGroup = createSpecificationGroup(
+    "identity",
+    "Product identity",
+    "Core catalog identifiers and merchandising placement.",
+    [
+      { label: "Brand", value: product.brandName },
+      { label: "Category", value: product.categoryName },
+      { label: "Department", value: product.storefrontDepartment },
+      { label: "SKU", value: product.sku },
+      { label: "Product code", value: product.code },
+      { label: "Type", value: product.productTypeName },
+      { label: "Group", value: product.productGroupName },
+    ]
+  )
+
+  const merchandisingGroup = createSpecificationGroup(
+    "merchandising",
+    "Merchandising",
+    "Storefront-specific presentation and style notes.",
+    [
+      { label: "Badge", value: detailCard.badge },
+      { label: "Promo badge", value: detailCard.promoBadge },
+      { label: "Fabric", value: product.storefront?.fabric },
+      { label: "Fit", value: product.storefront?.fit },
+      { label: "Sleeve", value: product.storefront?.sleeve },
+      { label: "Occasion", value: product.storefront?.occasion },
+      { label: "Tags", value: product.tagNames.join(", ") || null },
+    ]
+  )
+
+  const pricingGroup = createSpecificationGroup(
+    "pricing",
+    "Pricing and fulfilment",
+    "Commercial values, stock posture, and shipping notes.",
+    [
+      { label: "Selling price", value: `INR ${detailCard.sellingPrice.toFixed(2)}` },
+      { label: "MRP", value: `INR ${detailCard.mrp.toFixed(2)}` },
+      {
+        label: "Discount",
+        value: detailCard.discountPercent > 0 ? `${detailCard.discountPercent}%` : null,
+      },
+      { label: "Available quantity", value: String(detailCard.availableQuantity) },
+      {
+        label: "Shipping charge",
+        value:
+          detailCard.shippingCharge && detailCard.shippingCharge > 0
+            ? `INR ${detailCard.shippingCharge.toFixed(2)}`
+            : "Free",
+      },
+      {
+        label: "Handling charge",
+        value:
+          detailCard.handlingCharge && detailCard.handlingCharge > 0
+            ? `INR ${detailCard.handlingCharge.toFixed(2)}`
+            : "None",
+      },
+      { label: "Shipping note", value: product.storefront?.shippingNote },
+      {
+        label: "Stock state",
+        value: detailCard.availableQuantity > 0 ? "In stock" : "Out of stock",
+      },
+      {
+        label: "Review snapshot",
+        value:
+          product.reviews.length > 0
+            ? `${(
+                product.reviews.reduce((sum, item) => sum + item.rating, 0) /
+                product.reviews.length
+              ).toFixed(1)} / 5 from ${product.reviews.length} reviews`
+            : "No reviews yet",
+      },
+    ]
+  )
+
+  const configurationGroup = createSpecificationGroup(
+    "configuration",
+    "Configuration",
+    "Structured attributes managed in the core product master.",
+    product.attributes
+      .filter((item) => item.isActive)
+      .map((attribute) => ({
+        label: attribute.name,
+        value: attributeValueMap.get(attribute.id) ?? null,
+      }))
+  )
+
+  const variantGroup = createSpecificationGroup(
+    "variants",
+    "Variants",
+    "Available sellable options generated from the product master.",
+    product.variants
+      .filter((item) => item.isActive)
+      .map((variant) => ({
+        label: variant.variantName,
+        value: [
+          variant.attributes
+            .map((attribute) => `${attribute.attributeName}: ${attribute.attributeValue}`)
+            .join(", "),
+          variant.stockQuantity > 0 ? `Stock ${variant.stockQuantity}` : "Out of stock",
+        ]
+          .filter((value) => value.length > 0)
+          .join(" | "),
+      }))
+  )
+
+  return [
+    identityGroup,
+    merchandisingGroup,
+    pricingGroup,
+    configurationGroup,
+    variantGroup,
+  ].filter(
+    (
+      group
+    ): group is NonNullable<typeof group> => group !== null
+  )
 }
 
 export async function readCoreProducts(database: Kysely<unknown>) {
@@ -422,6 +577,7 @@ export async function getStorefrontProduct(
             ).toFixed(1)
           )
         : 0,
+    specificationGroups: buildStorefrontProductSpecifications(product, card),
   }
 
   return storefrontProductResponseSchema.parse({

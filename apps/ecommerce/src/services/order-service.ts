@@ -28,6 +28,7 @@ import {
   type StorefrontPaymentSession,
   type CustomerAccount,
   type StorefrontOrder,
+  type StorefrontOrderStatus,
   type StorefrontOrderTimelineEvent,
 } from "../../shared/index.js"
 
@@ -110,6 +111,127 @@ function createTimelineEvent(
     summary,
     createdAt: new Date().toISOString(),
   }
+}
+
+const allowedOrderTransitions: Record<StorefrontOrderStatus, StorefrontOrderStatus[]> = {
+  created: ["payment_pending", "cancelled"],
+  payment_pending: ["paid", "cancelled", "refunded"],
+  paid: ["fulfilment_pending", "cancelled", "refunded"],
+  fulfilment_pending: ["shipped", "cancelled", "refunded"],
+  shipped: ["delivered", "cancelled", "refunded"],
+  delivered: ["refunded"],
+  cancelled: ["refunded"],
+  refunded: [],
+}
+
+function transitionOrderStatus(
+  order: StorefrontOrder,
+  nextStatus: StorefrontOrderStatus
+) {
+  if (order.status === nextStatus) {
+    return order
+  }
+
+  if (!allowedOrderTransitions[order.status].includes(nextStatus)) {
+    throw new ApplicationError(
+      "Order status transition is invalid.",
+      {
+        orderId: order.id,
+        currentStatus: order.status,
+        nextStatus,
+      },
+      409
+    )
+  }
+
+  return storefrontOrderSchema.parse({
+    ...order,
+    status: nextStatus,
+  })
+}
+
+function normalizeFingerprintText(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase()
+}
+
+function buildCheckoutFingerprint(input: {
+  coreContactId: string
+  fulfillmentMethod: StorefrontOrder["fulfillmentMethod"]
+  paymentCollectionMethod: StorefrontOrder["paymentCollectionMethod"]
+  shippingAddress: StorefrontOrder["shippingAddress"]
+  billingAddress: StorefrontOrder["billingAddress"]
+  items: StorefrontOrder["items"]
+  notes: string | null
+}) {
+  const itemSignature = [...input.items]
+    .map((item) => `${item.productId}:${item.quantity}:${item.unitPrice}`)
+    .sort()
+    .join("|")
+  const addressSignature = [
+    normalizeFingerprintText(input.shippingAddress.fullName),
+    normalizeFingerprintText(input.shippingAddress.email),
+    normalizeFingerprintText(input.shippingAddress.phoneNumber),
+    normalizeFingerprintText(input.shippingAddress.line1),
+    normalizeFingerprintText(input.shippingAddress.line2),
+    normalizeFingerprintText(input.shippingAddress.city),
+    normalizeFingerprintText(input.shippingAddress.state),
+    normalizeFingerprintText(input.shippingAddress.country),
+    normalizeFingerprintText(input.shippingAddress.pincode),
+    normalizeFingerprintText(input.billingAddress.line1),
+    normalizeFingerprintText(input.billingAddress.line2),
+    normalizeFingerprintText(input.billingAddress.city),
+    normalizeFingerprintText(input.billingAddress.state),
+    normalizeFingerprintText(input.billingAddress.country),
+    normalizeFingerprintText(input.billingAddress.pincode),
+  ].join("|")
+
+  return [
+    input.coreContactId,
+    input.fulfillmentMethod,
+    input.paymentCollectionMethod,
+    addressSignature,
+    itemSignature,
+    normalizeFingerprintText(input.notes),
+  ].join("::")
+}
+
+function buildPaymentSessionFromExistingOrder(
+  config: ServerConfig,
+  settings: StorefrontSettings,
+  order: StorefrontOrder
+) {
+  if (order.paymentCollectionMethod === "pay_at_store" || order.paymentProvider === "store") {
+    return storefrontCheckoutResponseSchema.shape.payment.parse({
+      provider: "offline",
+      mode: "offline",
+      keyId: null,
+      providerOrderId: null,
+      amount: order.totalAmount,
+      currency: order.currency,
+      receipt: order.orderNumber,
+      businessName: order.pickupLocation?.storeName ?? settings.pickupLocation.storeName,
+      checkoutImage: null,
+      themeColor: null,
+    })
+  }
+
+  const amount = Math.round(order.totalAmount * 100)
+  const businessName = config.commerce?.razorpay?.businessName ?? "Tirupur Direct"
+  const checkoutImage = config.commerce?.razorpay?.checkoutImage ?? null
+  const themeColor = config.commerce?.razorpay?.themeColor ?? null
+
+  return storefrontCheckoutResponseSchema.shape.payment.parse({
+    provider: "razorpay",
+    mode: order.paymentMode,
+    keyId: order.paymentMode === "offline" ? null : (config.commerce?.razorpay?.keyId ?? null),
+    providerOrderId: order.providerOrderId,
+    amount,
+    currency: order.currency,
+    receipt: order.orderNumber,
+    businessName,
+    checkoutImage,
+    themeColor,
+  })
 }
 
 function resolveContactTypeId(gstin: string | null) {
@@ -416,13 +538,42 @@ export async function createCheckoutOrder(
     customer,
     parsed.shippingAddress
   )
-  const order = storefrontOrderSchema.parse({
+  const checkoutFingerprint = buildCheckoutFingerprint({
+    coreContactId,
+    fulfillmentMethod: parsed.fulfillmentMethod,
+    paymentCollectionMethod: parsed.paymentMethod,
+    shippingAddress: parsed.shippingAddress,
+    billingAddress: parsed.billingAddress,
+    items,
+    notes: normalizeOptionalString(parsed.notes),
+  })
+  const duplicatePendingOrder = existingOrders.find((item) => {
+    if (
+      item.checkoutFingerprint !== checkoutFingerprint ||
+      item.paymentStatus !== "pending" ||
+      item.status !== "payment_pending"
+    ) {
+      return false
+    }
+
+    const ageMs = Date.now() - new Date(item.createdAt).getTime()
+    return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= 15 * 60 * 1000
+  })
+
+  if (duplicatePendingOrder) {
+    return storefrontCheckoutResponseSchema.parse({
+      order: duplicatePendingOrder,
+      payment: buildPaymentSessionFromExistingOrder(config, settings, duplicatePendingOrder),
+    })
+  }
+
+  const createdOrder = storefrontOrderSchema.parse({
     id: `storefront-order:${randomUUID()}`,
     orderNumber: nextOrderNumber(existingOrders),
     customerAccountId: customer?.id ?? null,
     coreContactId,
-    status: "pending_payment",
-    paymentStatus: parsed.paymentMethod === "online" ? "pending" : "pending",
+    status: "created",
+    paymentStatus: "pending",
     paymentProvider: parsed.paymentMethod === "online" ? "razorpay" : "store",
     paymentMode:
       parsed.paymentMethod === "online"
@@ -435,6 +586,7 @@ export async function createCheckoutOrder(
     pickupLocation,
     providerOrderId: null,
     providerPaymentId: null,
+    checkoutFingerprint,
     shippingAddress: parsed.shippingAddress,
     billingAddress: parsed.billingAddress,
     items,
@@ -451,13 +603,14 @@ export async function createCheckoutOrder(
         "order_created",
         "Order created",
         parsed.fulfillmentMethod === "store_pickup"
-          ? "Checkout order was created and is awaiting pickup confirmation."
+          ? "Checkout order was created and the pickup reservation is being prepared."
           : "Checkout order was created and is awaiting payment."
       ),
     ],
     createdAt: now,
     updatedAt: now,
   })
+  const order = transitionOrderStatus(createdOrder, "payment_pending")
 
   let payment: StorefrontPaymentSession
   let nextOrder: StorefrontOrder
@@ -477,18 +630,17 @@ export async function createCheckoutOrder(
     }
     nextOrder = storefrontOrderSchema.parse({
       ...order,
-      status: "confirmed",
       timeline: [
         ...order.timeline,
+        createTimelineEvent(
+          "payment_pending",
+          "Payment pending",
+          "Payment will be collected when the customer arrives at the pickup location."
+        ),
         createTimelineEvent(
           "pickup_reserved",
           "Pickup reserved",
           "Order is reserved for store pickup. Payment will be collected at the retail store."
-        ),
-        createTimelineEvent(
-          "order_confirmed",
-          "Order confirmed",
-          "The pickup order is confirmed and waiting for store collection."
         ),
       ],
       updatedAt: new Date().toISOString(),
@@ -499,6 +651,14 @@ export async function createCheckoutOrder(
       ...order,
       paymentMode: payment.mode,
       providerOrderId: payment.providerOrderId,
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          "payment_pending",
+          "Payment pending",
+          "The payment session is open and the order is waiting for payment completion."
+        ),
+      ],
       updatedAt: new Date().toISOString(),
     })
   }
@@ -533,6 +693,38 @@ export async function verifyCheckoutPayment(
     throw new ApplicationError("Payment order mismatch.", {}, 409)
   }
 
+  if (order.providerPaymentId && order.paymentStatus === "paid") {
+    if (
+      order.providerPaymentId === parsed.providerPaymentId ||
+      (order.paymentMode === "mock" && parsed.signature === "mock_signature")
+    ) {
+      return storefrontOrderResponseSchema.parse({
+        item: order,
+      })
+    }
+
+    throw new ApplicationError(
+      "Payment has already been verified for this order.",
+      {
+        orderId: order.id,
+        existingProviderPaymentId: order.providerPaymentId,
+        nextProviderPaymentId: parsed.providerPaymentId,
+      },
+      409
+    )
+  }
+
+  if (order.status === "cancelled" || order.status === "refunded") {
+    throw new ApplicationError(
+      "Payment cannot be verified for a cancelled or refunded order.",
+      {
+        orderId: order.id,
+        status: order.status,
+      },
+      409
+    )
+  }
+
   if (
     !verifyRazorpaySignature(config, {
       providerOrderId: parsed.providerOrderId,
@@ -548,11 +740,12 @@ export async function verifyCheckoutPayment(
       ? await resolveAuthenticatedCustomerAccount(database, config, token)
       : null
 
+  const paidOrder = transitionOrderStatus(order, "paid")
   const updatedOrder = storefrontOrderSchema.parse({
     ...order,
+    ...paidOrder,
     customerAccountId: order.customerAccountId ?? verifiedCustomer?.id ?? null,
     coreContactId: verifiedCustomer?.coreContactId ?? order.coreContactId,
-    status: "confirmed",
     paymentStatus: "paid",
     providerPaymentId: parsed.providerPaymentId,
     timeline: [
@@ -563,9 +756,9 @@ export async function verifyCheckoutPayment(
         "Razorpay payment was verified successfully."
       ),
       createTimelineEvent(
-        "order_confirmed",
-        "Order confirmed",
-        "The order is confirmed and queued for fulfillment."
+        "order_paid",
+        "Order paid",
+        "The order is paid and waiting to enter fulfillment operations."
       ),
     ],
     updatedAt: new Date().toISOString(),

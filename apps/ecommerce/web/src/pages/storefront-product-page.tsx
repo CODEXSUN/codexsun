@@ -15,6 +15,7 @@ import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
 import { StorefrontProductCard } from "../components/storefront-product-card"
+import { StorefrontProductSpecifications } from "../components/storefront-product-specifications"
 import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { StorefrontProductPageSkeleton } from "../components/storefront-skeletons"
 import {
@@ -259,7 +260,9 @@ export function StorefrontProductPage() {
                   </CardContent>
                 </Card>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <StorefrontProductSpecifications product={product} />
+
+                <div className="grid gap-4 sm:grid-cols-2">
                   <Card className="rounded-[1.55rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(251,247,242,0.92))] py-0 shadow-[0_18px_36px_-30px_rgba(48,31,19,0.18)]">
                     <CardContent className="space-y-3 p-5">
                       <Truck className="size-5 text-[#6d5140]" />
@@ -272,20 +275,6 @@ export function StorefrontProductPage() {
                   <Card className="rounded-[1.55rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(251,247,242,0.92))] py-0 shadow-[0_18px_36px_-30px_rgba(48,31,19,0.18)]">
                     <CardContent className="space-y-3 p-5">
                       <ShieldCheck className="size-5 text-[#6d5140]" />
-                      <p className="text-sm font-semibold text-[#241913]">Details</p>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        {product.fabrics.map((item) => (
-                          <p key={item}>Fabric: {item}</p>
-                        ))}
-                        {product.fits.map((item) => (
-                          <p key={item}>Fit: {item}</p>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="rounded-[1.55rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(251,247,242,0.92))] py-0 shadow-[0_18px_36px_-30px_rgba(48,31,19,0.18)]">
-                    <CardContent className="space-y-3 p-5">
-                      <ShoppingBag className="size-5 text-[#6d5140]" />
                       <p className="text-sm font-semibold text-[#241913]">Availability</p>
                       <p className="text-sm leading-6 text-muted-foreground">
                         {product.availableQuantity > 0

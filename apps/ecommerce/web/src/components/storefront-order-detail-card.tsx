@@ -106,7 +106,6 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
     maximumFractionDigits: 0,
   })
   const orderCreatedEntry = findTimelineEntry(order.timeline, ["order_created"])
-  const paymentCapturedEntry = findTimelineEntry(order.timeline, ["payment_captured"])
   const deliveredEntry = findTimelineEntry(order.timeline, [
     "delivered",
     "order_delivered",
@@ -117,6 +116,40 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
     "order_shipped",
     "shipment_shipped",
   ])
+  const paymentPendingEntry = findTimelineEntry(order.timeline, ["payment_pending"])
+  const orderPaidEntry = findTimelineEntry(order.timeline, ["order_paid", "payment_captured"])
+  const deliveryStatusLabel =
+    order.fulfillmentMethod === "store_pickup"
+      ? order.status === "cancelled"
+        ? "Pickup cancelled"
+        : order.status === "refunded"
+          ? "Refunded"
+          : order.paymentCollectionMethod === "pay_at_store" && order.paymentStatus !== "paid"
+            ? "Awaiting pickup payment"
+            : order.status === "delivered"
+              ? "Collected"
+              : order.paymentStatus === "paid" || order.status === "paid" || order.status === "fulfilment_pending"
+                ? "Ready for pickup"
+                : "Pickup reserved"
+      : order.status === "cancelled"
+        ? "Cancelled"
+        : order.status === "refunded"
+          ? "Refunded"
+          : order.status === "delivered"
+            ? "Delivered"
+            : order.status === "shipped"
+              ? "In transit"
+              : order.paymentStatus === "paid" || order.status === "paid" || order.status === "fulfilment_pending"
+                ? "Preparing shipment"
+                : order.status === "payment_pending"
+                  ? "Awaiting payment"
+                  : "Order created"
+  const deliveryStatusTimestamp =
+    deliveredEntry?.createdAt ??
+    shippedEntry?.createdAt ??
+    orderPaidEntry?.createdAt ??
+    paymentPendingEntry?.createdAt ??
+    orderCreatedEntry?.createdAt
 
   return (
     <div className="space-y-6">
@@ -195,18 +228,10 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
                 Delivery status
               </p>
               <p className="mt-3 text-base font-semibold text-foreground">
-                {order.fulfillmentMethod === "store_pickup"
-                  ? order.paymentCollectionMethod === "pay_at_store"
-                    ? "Awaiting pickup payment"
-                    : "Ready for pickup"
-                  : deliveredEntry
-                    ? "Delivered"
-                    : shippedEntry
-                      ? "In transit"
-                      : "Preparing shipment"}
+                {deliveryStatusLabel}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {formatTimestamp(deliveredEntry?.createdAt ?? shippedEntry?.createdAt)}
+                {formatTimestamp(deliveryStatusTimestamp)}
               </p>
             </div>
             <div className="rounded-[1.55rem] border border-primary/14 bg-background/88 p-4">
@@ -233,8 +258,8 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
           icon={CreditCard}
           label="Paid"
           summary="Payment verification status for this order."
-          timestamp={paymentCapturedEntry?.createdAt}
-          isComplete={order.paymentStatus === "paid" || paymentCapturedEntry !== null}
+          timestamp={orderPaidEntry?.createdAt}
+          isComplete={order.paymentStatus === "paid" || orderPaidEntry !== null}
         />
         <TimelineMilestone
           icon={Truck}

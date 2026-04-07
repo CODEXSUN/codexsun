@@ -27,9 +27,9 @@ Stage 1.1 baseline document:
 - [x] 1.2.1 stabilize guest checkout flow end to end
 - [x] 1.2.2 stabilize authenticated checkout flow end to end
 - [x] 1.2.3 cover failed payment, closed payment modal, and retry paths
-- [ ] 1.2.4 cover order-confirmation and order-tracking flows with stable e2e tests
-- [ ] 1.2.5 formalize the order state machine: `created`, `payment_pending`, `paid`, `fulfilment_pending`, `shipped`, `delivered`, `cancelled`, `refunded`
-- [ ] 1.2.6 add idempotent payment verification and duplicate-submit protection
+- [x] 1.2.4 cover order-confirmation and order-tracking flows with stable e2e tests
+- [x] 1.2.5 formalize the order state machine: `created`, `payment_pending`, `paid`, `fulfilment_pending`, `shipped`, `delivered`, `cancelled`, `refunded`
+- [x] 1.2.6 add idempotent payment verification and duplicate-submit protection
 
 ### Stage 1.3: Mailbox And Customer Communications
 

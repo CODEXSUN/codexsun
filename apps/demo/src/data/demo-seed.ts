@@ -317,6 +317,7 @@ function createDemoOrders(): StorefrontOrder[] {
         pickupLocation: null,
         providerOrderId: "order_demo_001",
       providerPaymentId: "pay_demo_001",
+      checkoutFingerprint: null,
       shippingAddress: {
         fullName: "Anaya Menon",
         email: "anaya.menon@example.com",
@@ -403,6 +404,7 @@ function createDemoOrders(): StorefrontOrder[] {
         pickupLocation: null,
         providerOrderId: "order_demo_002",
       providerPaymentId: "pay_demo_002",
+      checkoutFingerprint: null,
       shippingAddress: {
         fullName: "Rahul Bose",
         email: "rahul.bose@example.com",
