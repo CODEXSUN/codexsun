@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#34] 2026-04-07 - Plan 9 execution schedule in task sheet
+
+- replaced `ASSIST/Execution/TASK.md` with the full numbered execution schedule derived from `plan-9`
+- organized the ecommerce go-live program into ordered phases, stages, and checkbox tasks from stabilization through ERP bridge and final release gate
+- updated the ASSIST planning and work-log files so the task sheet now serves as the working execution schedule for future ecommerce delivery batches
+
 ### [#33] 2026-04-07 - Storefront content expansion, billing grid updates, and ecommerce go-live planning
 
 - added and refined ecommerce storefront content systems including reusable shared UI blocks and dedicated designers for footer, floating contact, coupon banner, gift corner, trending, branding, and campaign or trust surfaces

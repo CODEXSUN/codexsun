@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#34` 2026-04-07
+
+- replaced `ASSIST/Execution/TASK.md` with the full numbered execution schedule derived from `plan-9`
+- organized the ecommerce go-live program into phase, stage, and checkbox order from stabilization through ERP bridge and final release gate
+- updated ASSIST planning and documentation so the task sheet now acts as the working delivery schedule for future ecommerce batches
+
 ### `#33` 2026-04-07
 
 - added and refined ecommerce storefront content blocks and designers for footer, floating contact, coupon banner, gift corner, trending, branding, and campaign or trust management, together with supporting shared UI block surfaces
