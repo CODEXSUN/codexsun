@@ -289,6 +289,32 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  getAdminOrder(accessToken: string, orderId: string) {
+    const url = new URL("/internal/v1/ecommerce/order", window.location.origin)
+    url.searchParams.set("id", orderId)
+
+    return requestJson<StorefrontOrderResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  runAdminOrderAction(
+    accessToken: string,
+    payload: {
+      orderId: string
+      action: "cancel" | "mark_fulfilment_pending" | "mark_shipped" | "mark_delivered" | "resend_confirmation"
+      trackingId?: string | null
+      carrierName?: string | null
+      trackingUrl?: string | null
+      note?: string | null
+    }
+  ) {
+    return requestJson<StorefrontOrderResponse>("/internal/v1/ecommerce/order/action", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
   reconcilePayments(
     accessToken: string,
     payload: { orderIds?: string[]; maxOrders?: number } = {}

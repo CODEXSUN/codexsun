@@ -157,6 +157,8 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("GET /internal/v1/ecommerce/communications/health"))
   assert.ok(routePaths.includes("GET /internal/v1/ecommerce/communications"))
   assert.ok(routePaths.includes("GET /internal/v1/ecommerce/orders/report"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/order"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/order/action"))
   assert.ok(routePaths.includes("POST /internal/v1/ecommerce/communications/resend"))
   assert.ok(routePaths.includes("POST /internal/v1/ecommerce/payments/reconcile"))
   assert.ok(routePaths.includes("POST /internal/v1/ecommerce/payments/refund-request"))

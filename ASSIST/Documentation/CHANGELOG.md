@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#44] 2026-04-07 - Ecommerce admin order actions baseline
+
+- completed Stage `2.1.2` by adding admin order detail operations for cancel, fulfilment progression, shipment tracking, delivery completion, and order-confirmation resend
+- extended the shared ecommerce order contract with shipment details and admin action payloads, added protected internal order-detail and order-action routes, and wired the frontend admin orders queue with a detail dialog for lifecycle operations
+- updated demo seed compatibility for shipment metadata and validated the batch with `npm run typecheck` plus targeted ecommerce service and internal route tests
+
 ### [#43] 2026-04-07 - Ecommerce admin order queue baseline
 
 - completed Stage `2.1.1` by replacing the ecommerce orders placeholder with a real admin order queue backed by a typed internal report

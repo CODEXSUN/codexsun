@@ -17,6 +17,7 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import type { AuthUser } from "../../../cxapp/shared/schemas/auth.js"
 import { createMailboxService } from "../../../cxapp/src/services/service-factory.js"
 import {
+  storefrontAdminOrderActionPayloadSchema,
   storefrontAdminOrderOperationsReportSchema,
   storefrontCheckoutPayloadSchema,
   storefrontCheckoutResponseSchema,
@@ -34,6 +35,7 @@ import {
   type StorefrontPaymentSession,
   type StorefrontRefundRecord,
   type CustomerAccount,
+  type StorefrontAdminOrderActionPayload,
   type StorefrontAdminOrderQueueBucket,
   type StorefrontAdminOrderQueueItem,
   type StorefrontOrder,
@@ -44,6 +46,7 @@ import {
   type StorefrontPaymentReconciliationItem,
   type StorefrontOrderStatus,
   type StorefrontOrderTimelineEvent,
+  type StorefrontShipmentDetails,
 } from "../../shared/index.js"
 
 import {
@@ -730,6 +733,7 @@ export async function createCheckoutOrder(
       fulfillmentMethod: parsed.fulfillmentMethod,
       paymentCollectionMethod: parsed.paymentMethod,
       pickupLocation,
+      shipmentDetails: null,
       refund: null,
       providerOrderId: null,
       providerPaymentId: null,
@@ -1536,6 +1540,25 @@ function buildSettlementQueueItem(order: StorefrontOrder): StorefrontPaymentSett
   }
 }
 
+function buildShipmentDetails(
+  order: StorefrontOrder,
+  overrides: Partial<StorefrontShipmentDetails> = {}
+): StorefrontShipmentDetails {
+  const timestamp = new Date().toISOString()
+
+  return {
+    carrierName: overrides.carrierName ?? order.shipmentDetails?.carrierName ?? null,
+    trackingId: overrides.trackingId ?? order.shipmentDetails?.trackingId ?? null,
+    trackingUrl: overrides.trackingUrl ?? order.shipmentDetails?.trackingUrl ?? null,
+    note: overrides.note ?? order.shipmentDetails?.note ?? null,
+    markedFulfilmentAt:
+      overrides.markedFulfilmentAt ?? order.shipmentDetails?.markedFulfilmentAt ?? null,
+    shippedAt: overrides.shippedAt ?? order.shipmentDetails?.shippedAt ?? null,
+    deliveredAt: overrides.deliveredAt ?? order.shipmentDetails?.deliveredAt ?? null,
+    updatedAt: overrides.updatedAt ?? timestamp,
+  }
+}
+
 function buildFailedPaymentExceptionItem(
   order: StorefrontOrder,
   summary: string
@@ -1733,6 +1756,181 @@ export async function getStorefrontAdminOrderOperationsReport(
     },
     items,
   })
+}
+
+export async function getStorefrontAdminOrder(
+  database: Kysely<unknown>,
+  orderId: string
+) {
+  const order = (await readOrders(database)).find((item) => item.id === orderId)
+
+  if (!order) {
+    throw new ApplicationError("Storefront order could not be found.", { orderId }, 404)
+  }
+
+  return storefrontOrderResponseSchema.parse({ item: order })
+}
+
+export async function applyStorefrontAdminOrderAction(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  payload: unknown
+) {
+  const parsed = storefrontAdminOrderActionPayloadSchema.parse(
+    payload ?? {}
+  ) as StorefrontAdminOrderActionPayload
+  const orders = await readOrders(database)
+  const order = orders.find((item) => item.id === parsed.orderId)
+
+  if (!order) {
+    throw new ApplicationError("Storefront order could not be found.", { orderId: parsed.orderId }, 404)
+  }
+
+  if (parsed.action === "resend_confirmation") {
+    const snapshot = await getOrderCustomerSnapshot(database, order.id)
+
+    try {
+      await sendStorefrontOrderConfirmedEmail({
+        mailboxService: createMailboxService(database, config),
+        config,
+        settings: await getStorefrontSettings(database),
+        order: snapshot.order,
+        customerEmail: snapshot.order.shippingAddress.email,
+        customerName: snapshot.order.shippingAddress.fullName,
+      })
+    } catch (error) {
+      console.error("Unable to resend storefront order confirmation email.", error)
+      throw error
+    }
+
+    return storefrontOrderResponseSchema.parse({ item: snapshot.order })
+  }
+
+  const now = new Date().toISOString()
+  let updatedOrder = order
+
+  if (parsed.action === "cancel") {
+    if (order.status === "delivered") {
+      throw new ApplicationError(
+        "Delivered orders cannot be cancelled from admin operations.",
+        { orderId: order.id, status: order.status },
+        409
+      )
+    }
+
+    updatedOrder = storefrontOrderSchema.parse({
+      ...transitionOrderStatus(order, "cancelled"),
+      shipmentDetails: buildShipmentDetails(order, {
+        note: parsed.note ?? order.shipmentDetails?.note ?? "Order cancelled from admin operations.",
+        updatedAt: now,
+      }),
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          "order_cancelled",
+          "Order cancelled",
+          parsed.note?.trim() || "Admin operations cancelled this order."
+        ),
+      ],
+      updatedAt: now,
+    })
+  }
+
+  if (parsed.action === "mark_fulfilment_pending") {
+    updatedOrder = storefrontOrderSchema.parse({
+      ...transitionOrderStatus(order, "fulfilment_pending"),
+      shipmentDetails: buildShipmentDetails(order, {
+        markedFulfilmentAt: order.shipmentDetails?.markedFulfilmentAt ?? now,
+        note:
+          parsed.note ??
+          order.shipmentDetails?.note ??
+          (order.fulfillmentMethod === "store_pickup"
+            ? "Pickup order is ready for customer collection."
+            : "Order is ready for fulfilment and packing."),
+        updatedAt: now,
+      }),
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          order.fulfillmentMethod === "store_pickup" ? "pickup_ready" : "fulfilment_ready",
+          order.fulfillmentMethod === "store_pickup" ? "Pickup ready" : "Marked for fulfilment",
+          parsed.note?.trim() ||
+            (order.fulfillmentMethod === "store_pickup"
+              ? "Admin marked this order as ready for pickup."
+              : "Admin marked this order as ready for fulfilment.")
+        ),
+      ],
+      updatedAt: now,
+    })
+  }
+
+  if (parsed.action === "mark_shipped") {
+    if (order.fulfillmentMethod !== "delivery") {
+      throw new ApplicationError(
+        "Shipment tracking can only be applied to delivery orders.",
+        { orderId: order.id, fulfillmentMethod: order.fulfillmentMethod },
+        409
+      )
+    }
+
+    const trackingId = parsed.trackingId?.trim() ?? ""
+
+    if (!trackingId) {
+      throw new ApplicationError("Tracking id is required before marking an order as shipped.", {}, 422)
+    }
+
+    updatedOrder = storefrontOrderSchema.parse({
+      ...transitionOrderStatus(order, "shipped"),
+      shipmentDetails: buildShipmentDetails(order, {
+        carrierName: parsed.carrierName,
+        trackingId,
+        trackingUrl: parsed.trackingUrl,
+        note: parsed.note ?? order.shipmentDetails?.note ?? null,
+        markedFulfilmentAt: order.shipmentDetails?.markedFulfilmentAt ?? now,
+        shippedAt: now,
+        updatedAt: now,
+      }),
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          "shipment_shipped",
+          "Shipment dispatched",
+          parsed.note?.trim() ||
+            `Admin marked this order as shipped${parsed.carrierName?.trim() ? ` with ${parsed.carrierName.trim()}` : ""}.`
+        ),
+      ],
+      updatedAt: now,
+    })
+  }
+
+  if (parsed.action === "mark_delivered") {
+    updatedOrder = storefrontOrderSchema.parse({
+      ...transitionOrderStatus(order, "delivered"),
+      shipmentDetails: buildShipmentDetails(order, {
+        deliveredAt: now,
+        updatedAt: now,
+      }),
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          order.fulfillmentMethod === "store_pickup" ? "pickup_collected" : "shipment_delivered",
+          order.fulfillmentMethod === "store_pickup" ? "Pickup collected" : "Delivered",
+          parsed.note?.trim() ||
+            (order.fulfillmentMethod === "store_pickup"
+              ? "Admin confirmed that the customer collected the pickup order."
+              : "Admin confirmed that the shipment was delivered.")
+        ),
+      ],
+      updatedAt: now,
+    })
+  }
+
+  await writeOrders(
+    database,
+    orders.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+  )
+
+  return storefrontOrderResponseSchema.parse({ item: updatedOrder })
 }
 
 export async function reconcileRazorpayPayments(

@@ -63,6 +63,17 @@ export const storefrontOrderTimelineEventSchema = z.object({
   createdAt: z.string().min(1),
 })
 
+export const storefrontShipmentDetailsSchema = z.object({
+  carrierName: z.string().trim().min(1).nullable(),
+  trackingId: z.string().trim().min(1).nullable(),
+  trackingUrl: z.string().trim().min(1).nullable(),
+  note: z.string().trim().min(1).nullable(),
+  markedFulfilmentAt: z.string().nullable(),
+  shippedAt: z.string().nullable(),
+  deliveredAt: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
 export const storefrontPaymentWebhookEventSchema = z.object({
   id: z.string().min(1),
   provider: z.enum(["razorpay"]),
@@ -144,6 +155,7 @@ export const storefrontOrderSchema = z.object({
   fulfillmentMethod: storefrontFulfillmentMethodSchema,
   paymentCollectionMethod: storefrontCheckoutPaymentMethodSchema,
   pickupLocation: storefrontPickupLocationSnapshotSchema.nullable(),
+  shipmentDetails: storefrontShipmentDetailsSchema.nullable(),
   refund: storefrontRefundRecordSchema.nullable(),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
@@ -190,6 +202,23 @@ export const storefrontRefundRequestPayloadSchema = z.object({
   amount: z.number().finite().positive().optional(),
   reason: z.string().trim().nullable().optional().default(null),
   requestedBy: storefrontRefundActorSchema.optional().default("admin"),
+})
+
+export const storefrontAdminOrderActionSchema = z.enum([
+  "cancel",
+  "mark_fulfilment_pending",
+  "mark_shipped",
+  "mark_delivered",
+  "resend_confirmation",
+])
+
+export const storefrontAdminOrderActionPayloadSchema = z.object({
+  orderId: z.string().min(1),
+  action: storefrontAdminOrderActionSchema,
+  trackingId: z.string().trim().nullable().optional().default(null),
+  carrierName: z.string().trim().nullable().optional().default(null),
+  trackingUrl: z.string().trim().nullable().optional().default(null),
+  note: z.string().trim().nullable().optional().default(null),
 })
 
 export const storefrontOrderListResponseSchema = z.object({
@@ -407,6 +436,7 @@ export type StorefrontPickupLocationSnapshot = z.infer<typeof storefrontPickupLo
 export type StorefrontCartItemInput = z.infer<typeof storefrontCartItemInputSchema>
 export type StorefrontOrderItem = z.infer<typeof storefrontOrderItemSchema>
 export type StorefrontOrderTimelineEvent = z.infer<typeof storefrontOrderTimelineEventSchema>
+export type StorefrontShipmentDetails = z.infer<typeof storefrontShipmentDetailsSchema>
 export type StorefrontPaymentWebhookEvent = z.infer<typeof storefrontPaymentWebhookEventSchema>
 export type StorefrontPaymentSession = z.infer<typeof storefrontPaymentSessionSchema>
 export type StorefrontRefundActor = z.infer<typeof storefrontRefundActorSchema>
@@ -419,6 +449,10 @@ export type StorefrontCheckoutPayload = z.infer<typeof storefrontCheckoutPayload
 export type StorefrontCheckoutResponse = z.infer<typeof storefrontCheckoutResponseSchema>
 export type StorefrontPaymentVerificationPayload = z.infer<typeof storefrontPaymentVerificationPayloadSchema>
 export type StorefrontRefundRequestPayload = z.infer<typeof storefrontRefundRequestPayloadSchema>
+export type StorefrontAdminOrderAction = z.infer<typeof storefrontAdminOrderActionSchema>
+export type StorefrontAdminOrderActionPayload = z.infer<
+  typeof storefrontAdminOrderActionPayloadSchema
+>
 export type StorefrontOrderListResponse = z.infer<typeof storefrontOrderListResponseSchema>
 export type StorefrontOrderResponse = z.infer<typeof storefrontOrderResponseSchema>
 export type StorefrontOrderTrackingLookup = z.infer<typeof storefrontOrderTrackingLookupSchema>

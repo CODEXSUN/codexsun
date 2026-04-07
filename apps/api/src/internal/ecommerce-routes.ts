@@ -26,6 +26,8 @@ import {
   resendStorefrontCommunication,
 } from "../../../ecommerce/src/services/storefront-communication-service.js"
 import {
+  applyStorefrontAdminOrderAction,
+  getStorefrontAdminOrder,
   getStorefrontAdminOrderOperationsReport,
   getStorefrontPaymentOperationsReport,
   requestStorefrontRefund,
@@ -341,6 +343,38 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontAdminOrderOperationsReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/order", {
+      summary: "Read one ecommerce order with full timeline and shipment details for admin operations.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await getStorefrontAdminOrder(
+            context.databases.primary,
+            context.request.url.searchParams.get("id") ?? ""
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/order/action", {
+      method: "POST",
+      summary: "Apply an admin order operation such as cancel, fulfilment progression, shipment update, or resend confirmation.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await applyStorefrontAdminOrderAction(
+            context.databases.primary,
+            context.config,
+            context.request.jsonBody
+          )
         )
       },
     }),

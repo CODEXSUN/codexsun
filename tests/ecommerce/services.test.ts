@@ -34,7 +34,9 @@ import {
   resendStorefrontCommunication,
 } from "../../apps/ecommerce/src/services/storefront-communication-service.js"
 import {
+  applyStorefrontAdminOrderAction,
   createCheckoutOrder,
+  getStorefrontAdminOrder,
   getStorefrontAdminOrderOperationsReport,
   getStorefrontPaymentOperationsReport,
   handleRazorpayWebhook,
@@ -406,6 +408,42 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(paidQueueItem?.queueBucket, "fulfilment")
       assert.equal(paidQueueItem?.paymentStatus, "paid")
 
+      const markedFulfilment = await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: checkout.order.id,
+        action: "mark_fulfilment_pending",
+        note: "Packed and ready for courier allocation.",
+      })
+
+      assert.equal(markedFulfilment.item.status, "fulfilment_pending")
+      assert.equal(markedFulfilment.item.shipmentDetails?.note, "Packed and ready for courier allocation.")
+
+      const markedShipped = await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: checkout.order.id,
+        action: "mark_shipped",
+        carrierName: "Delhivery",
+        trackingId: "DLV-001",
+        trackingUrl: "https://tracking.example.com/DLV-001",
+        note: "Handed to line-haul courier.",
+      })
+
+      assert.equal(markedShipped.item.status, "shipped")
+      assert.equal(markedShipped.item.shipmentDetails?.trackingId, "DLV-001")
+      assert.equal(markedShipped.item.shipmentDetails?.carrierName, "Delhivery")
+
+      const markedDelivered = await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: checkout.order.id,
+        action: "mark_delivered",
+        note: "Customer accepted the shipment.",
+      })
+
+      assert.equal(markedDelivered.item.status, "delivered")
+      assert.equal(Boolean(markedDelivered.item.shipmentDetails?.deliveredAt), true)
+
+      const adminOrderDetail = await getStorefrontAdminOrder(runtime.primary, checkout.order.id)
+
+      assert.equal(adminOrderDetail.item.id, checkout.order.id)
+      assert.equal(adminOrderDetail.item.shipmentDetails?.trackingUrl, "https://tracking.example.com/DLV-001")
+
       const monitoringDashboard = await getMonitoringDashboard(runtime.primary, config, {
         windowHours: 24,
       })
@@ -442,7 +480,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         tracked.item.timeline.some((entry) => entry.code === "payment_captured"),
         true
       )
-      assert.equal(tracked.item.status, "paid")
+      assert.equal(tracked.item.status, "delivered")
     } finally {
       await runtime.destroy()
     }

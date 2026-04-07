@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#44` 2026-04-07
+
+- completed Stage `2.1.2` by adding actionable admin order detail operations on top of the ecommerce order queue
+- extended storefront orders with shipment metadata, added internal admin order-detail and order-action endpoints, and wired the admin queue with a detail dialog for cancel, fulfilment, shipment, delivery, and resend operations
+- updated demo seeded orders for shipment compatibility and validated the batch with `npm run typecheck` plus `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### `#43` 2026-04-07
 
 - completed Stage `2.1.1` by turning the ecommerce admin orders area into a real operations queue instead of a static lifecycle summary

@@ -99,6 +99,25 @@ function normalizePickupLocation(value: unknown): StorefrontOrder["pickupLocatio
   }
 }
 
+function normalizeShipmentDetails(value: unknown): StorefrontOrder["shipmentDetails"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  return {
+    carrierName: normalizeOptionalString(record.carrierName),
+    trackingId: normalizeOptionalString(record.trackingId),
+    trackingUrl: normalizeOptionalString(record.trackingUrl),
+    note: normalizeOptionalString(record.note),
+    markedFulfilmentAt: normalizeOptionalString(record.markedFulfilmentAt),
+    shippedAt: normalizeOptionalString(record.shippedAt),
+    deliveredAt: normalizeOptionalString(record.deliveredAt),
+    updatedAt: normalizeRequiredString(record.updatedAt, new Date().toISOString()),
+  }
+}
+
 function normalizeRefundRecord(
   value: unknown,
   orderFallback: {
@@ -317,6 +336,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     fulfillmentMethod: normalizeFulfillmentMethod(record.fulfillmentMethod),
     paymentCollectionMethod: normalizePaymentCollectionMethod(record.paymentCollectionMethod),
     pickupLocation: normalizePickupLocation(record.pickupLocation),
+    shipmentDetails: normalizeShipmentDetails(record.shipmentDetails),
     refund: normalizeRefundRecord(record.refund, {
       totalAmount,
       currency: normalizeRequiredString(record.currency, "INR"),

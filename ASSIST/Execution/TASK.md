@@ -69,7 +69,7 @@ Stage 1.1 baseline document:
 ### Stage 2.1: Admin Order Operations
 
 - [x] 2.1.1 build ecommerce admin order queue
-- [ ] 2.1.2 add order detail operations: cancel, mark fulfilled, add tracking id, resend confirmation
+- [x] 2.1.2 add order detail operations: cancel, mark fulfilled, add tracking id, resend confirmation
 - [ ] 2.1.3 add payment exception queue
 - [ ] 2.1.4 add refund queue and refund-status operations
 - [ ] 2.1.5 add customer service queue linked to orders
