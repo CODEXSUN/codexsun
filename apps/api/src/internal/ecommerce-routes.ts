@@ -1,6 +1,7 @@
 import {
   getStorefrontFooter,
   getStorefrontFloatingContact,
+  getStorefrontPickupLocation,
   getStorefrontCouponBanner,
   getStorefrontGiftCorner,
   getStorefrontBrandShowcase,
@@ -10,6 +11,7 @@ import {
   getStorefrontSettings,
   saveStorefrontFooter,
   saveStorefrontFloatingContact,
+  saveStorefrontPickupLocation,
   saveStorefrontCouponBanner,
   saveStorefrontGiftCorner,
   saveStorefrontBrandShowcase,
@@ -124,6 +126,32 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await saveStorefrontFloatingContact(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-pickup-location", {
+      summary: "Read ecommerce-owned pickup-location settings for the admin editor.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await getStorefrontPickupLocation(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-pickup-location", {
+      method: "PATCH",
+      summary: "Update ecommerce-owned pickup-location settings used by public storefront checkout surfaces.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await saveStorefrontPickupLocation(
             context.databases.primary,
             context.request.jsonBody
           )

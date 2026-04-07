@@ -247,12 +247,14 @@ function CheckoutAccessDialog({
   open,
   onOpenChange,
   viewVariant,
+  onContinueAsGuest,
   onExistingCustomer,
   onRegisterNew,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   viewVariant: CartViewVariant
+  onContinueAsGuest: () => void
   onExistingCustomer: () => void
   onRegisterNew: () => void
 }) {
@@ -278,11 +280,11 @@ function CheckoutAccessDialog({
               Checkout access
             </Badge>
             <DialogTitle className="text-[1.55rem] tracking-tight text-foreground">
-              Sign in before checkout.
+              Choose how to continue.
             </DialogTitle>
             <DialogDescription className="max-w-md text-sm leading-6">
-              Use your existing customer account or create a new one first. Your bag
-              stays intact and checkout opens right after auth.
+              Continue as a guest for a faster purchase, or sign in first if you want
+              order history and saved address reuse in your customer account.
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -293,6 +295,24 @@ function CheckoutAccessDialog({
             isEditorial ? "sm:p-5" : "p-4"
           )}
         >
+          <button
+            type="button"
+            className="flex items-start gap-3 rounded-[1.35rem] border border-[#d7c7b6] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,244,237,0.96))] px-4 py-4 text-left transition hover:border-[#ccb9a6] hover:bg-white"
+            onClick={onContinueAsGuest}
+          >
+            <span className="rounded-full bg-[#f4ece2] p-2 text-[#6c5544]">
+              <ArrowRight className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold tracking-tight text-foreground">
+                Continue as guest
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-muted-foreground">
+                Go straight to checkout. Delivery details apply to this order only.
+              </span>
+            </span>
+          </button>
+
           <button
             type="button"
             className={cn(
@@ -416,6 +436,11 @@ export function StorefrontCartPage() {
     void navigate(storefrontPaths.accountRegister(), {
       state: { postAuthPath: storefrontPaths.checkout() },
     })
+  }
+
+  function handleGuestCheckout() {
+    setIsCheckoutAccessDialogOpen(false)
+    void navigate(storefrontPaths.checkout())
   }
 
   return (
@@ -645,6 +670,7 @@ export function StorefrontCartPage() {
         open={isCheckoutAccessDialogOpen}
         onOpenChange={setIsCheckoutAccessDialogOpen}
         viewVariant={viewVariant}
+        onContinueAsGuest={handleGuestCheckout}
         onExistingCustomer={handleExistingCustomerCheckout}
         onRegisterNew={handleRegisterCheckout}
       />

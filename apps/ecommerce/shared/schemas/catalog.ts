@@ -287,6 +287,22 @@ export const storefrontFloatingContactSchema = z.object({
   actionIconColor: hexColorSchema,
 })
 
+export const storefrontPickupLocationSchema = z.object({
+  enabled: z.boolean().default(false),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  storeName: z.string().min(1),
+  line1: z.string().min(1),
+  line2: z.string().nullable().default(null),
+  city: z.string().min(1),
+  state: z.string().min(1),
+  country: z.string().min(1),
+  pincode: z.string().min(1),
+  contactPhone: z.string().min(1),
+  contactEmail: z.email(),
+  pickupNote: z.string().min(1),
+})
+
 export const storefrontCouponBannerSchema = z.object({
   enabled: z.boolean().default(true),
   eyebrow: z.string().min(1),
@@ -437,6 +453,7 @@ export const storefrontSettingsSchema = z.object({
   trustNotes: z.array(storefrontTrustNoteSchema).min(1),
   footer: storefrontFooterSchema,
   floatingContact: storefrontFloatingContactSchema,
+  pickupLocation: storefrontPickupLocationSchema,
   couponBanner: storefrontCouponBannerSchema,
   giftCorner: storefrontGiftCornerSchema,
   trendingSection: storefrontTrendingSectionSchema,
@@ -525,6 +542,7 @@ export type StorefrontFooterGroup = z.infer<typeof storefrontFooterGroupSchema>
 export type StorefrontFooterLink = z.infer<typeof storefrontFooterLinkSchema>
 export type StorefrontFooterSocialLink = z.infer<typeof storefrontFooterSocialLinkSchema>
 export type StorefrontFloatingContact = z.infer<typeof storefrontFloatingContactSchema>
+export type StorefrontPickupLocation = z.infer<typeof storefrontPickupLocationSchema>
 export type StorefrontCouponBanner = z.infer<typeof storefrontCouponBannerSchema>
 export type StorefrontGiftCorner = z.infer<typeof storefrontGiftCornerSchema>
 export type StorefrontTrendingCard = z.infer<typeof storefrontTrendingCardSchema>

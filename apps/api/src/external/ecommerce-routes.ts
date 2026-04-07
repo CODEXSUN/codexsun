@@ -2,6 +2,7 @@ import {
   getAuthenticatedCustomer,
   getAuthenticatedCustomerProfileLookups,
   getAuthenticatedCustomerPortal,
+  getStorefrontCustomerProfileLookups,
   registerCustomer,
   toggleCustomerWishlistItem,
   updateCustomerProfile,
@@ -73,6 +74,12 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
           )
         )
       },
+    }),
+    defineExternalRoute("/storefront/checkout/lookups", {
+      auth: "none",
+      summary: "Resolve public checkout lookup options for guest and authenticated storefront checkout.",
+      handler: async (context) =>
+        jsonResponse(await getStorefrontCustomerProfileLookups(context.databases.primary)),
     }),
     defineExternalRoute("/storefront/customers/me", {
       auth: "external",

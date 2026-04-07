@@ -28,7 +28,7 @@ test("cart checkout prompts unauthenticated customers to sign in and returns to 
 
   await page.getByRole("button", { name: "Proceed to checkout" }).click()
 
-  await expect(page.getByRole("heading", { name: "Sign in before checkout." })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Choose how to continue." })).toBeVisible()
   await page.getByRole("button", { name: "Existing customer" }).click()
 
   await expect(page).toHaveURL(/\/login$/)
@@ -50,7 +50,7 @@ test("cart checkout lets unauthenticated customers choose registration", async (
 
   await page.getByRole("button", { name: "Proceed to checkout" }).click()
 
-  await expect(page.getByRole("heading", { name: "Sign in before checkout." })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Choose how to continue." })).toBeVisible()
   await page.getByRole("button", { name: "Register new" }).click()
 
   await expect(page).toHaveURL(/\/customer\/register$/)

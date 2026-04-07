@@ -344,6 +344,27 @@ export async function getAuthenticatedCustomerProfileLookups(
   return customerProfileLookupResponseSchema.parse(Object.fromEntries(entries))
 }
 
+export async function getStorefrontCustomerProfileLookups(database: Kysely<unknown>) {
+  const moduleKeys = [
+    "addressTypes",
+    "bankNames",
+    "countries",
+    "states",
+    "districts",
+    "cities",
+    "pincodes",
+  ] as const satisfies CommonModuleKey[]
+
+  const entries = await Promise.all(
+    moduleKeys.map(async (moduleKey) => [
+      moduleKey,
+      (await listCommonModuleItems(database, moduleKey)).items,
+    ] as const)
+  )
+
+  return customerProfileLookupResponseSchema.parse(Object.fromEntries(entries))
+}
+
 async function buildCustomerPortalResponse(
   database: Kysely<unknown>,
   account: CustomerAccount

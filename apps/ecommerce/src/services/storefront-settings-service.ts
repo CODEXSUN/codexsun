@@ -7,6 +7,7 @@ import {
 import {
   storefrontFooterSchema,
   storefrontFloatingContactSchema,
+  storefrontPickupLocationSchema,
   storefrontCouponBannerSchema,
   storefrontGiftCornerSchema,
   storefrontTrendingSectionSchema,
@@ -439,6 +440,28 @@ export async function saveStorefrontFloatingContact(
   })
 
   return storefrontFloatingContactSchema.parse(nextSettings.floatingContact)
+}
+
+export async function getStorefrontPickupLocation(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontPickupLocationSchema.parse(settings.pickupLocation)
+}
+
+export async function saveStorefrontPickupLocation(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    pickupLocation: storefrontPickupLocationSchema.parse({
+      ...current.pickupLocation,
+      ...(asRecord(payload) ?? {}),
+    }),
+  })
+
+  return storefrontPickupLocationSchema.parse(nextSettings.pickupLocation)
 }
 
 export async function getStorefrontCouponBanner(

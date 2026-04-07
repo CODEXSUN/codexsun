@@ -148,14 +148,19 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
                 Payment {toLabel(order.paymentStatus)}
               </Badge>
               <Badge variant="outline" className="rounded-full border-primary/15 bg-background/82 px-3 py-1">
-                {order.paymentProvider.toUpperCase()} {toLabel(order.paymentMode)}
+                {order.paymentProvider === "store"
+                  ? "Store payment"
+                  : `${order.paymentProvider.toUpperCase()} ${toLabel(order.paymentMode)}`}
+              </Badge>
+              <Badge variant="outline" className="rounded-full border-primary/15 bg-background/82 px-3 py-1">
+                {order.fulfillmentMethod === "store_pickup" ? "Store pickup" : "Home delivery"}
               </Badge>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.4rem] border border-primary/14 bg-background/88 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/75">
-                  Shipping to
+                  {order.fulfillmentMethod === "store_pickup" ? "Pickup for" : "Shipping to"}
                 </p>
                 <p className="mt-3 font-medium text-foreground">{order.shippingAddress.fullName}</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -190,7 +195,15 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
                 Delivery status
               </p>
               <p className="mt-3 text-base font-semibold text-foreground">
-                {deliveredEntry ? "Delivered" : shippedEntry ? "In transit" : "Preparing shipment"}
+                {order.fulfillmentMethod === "store_pickup"
+                  ? order.paymentCollectionMethod === "pay_at_store"
+                    ? "Awaiting pickup payment"
+                    : "Ready for pickup"
+                  : deliveredEntry
+                    ? "Delivered"
+                    : shippedEntry
+                      ? "In transit"
+                      : "Preparing shipment"}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {formatTimestamp(deliveredEntry?.createdAt ?? shippedEntry?.createdAt)}
@@ -341,21 +354,38 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
             <CardHeader className="border-b border-border/70 pb-4">
               <CardTitle className="flex items-center gap-2 text-[1.35rem] tracking-tight">
                 <MapPin className="size-4 text-primary" />
-                Delivery address
+                {order.fulfillmentMethod === "store_pickup" ? "Pickup details" : "Delivery address"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 p-5">
-              <div className="rounded-[1.35rem] border border-border/70 bg-background/85 p-4">
-                <p className="font-semibold text-foreground">{order.shippingAddress.fullName}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {order.shippingAddress.line1}
-                  {order.shippingAddress.line2 ? `, ${order.shippingAddress.line2}` : ""}
-                  <br />
-                  {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.pincode}
-                  <br />
-                  {order.shippingAddress.country}
-                </p>
-              </div>
+              {order.fulfillmentMethod === "store_pickup" && order.pickupLocation ? (
+                <div className="rounded-[1.35rem] border border-border/70 bg-background/85 p-4">
+                  <p className="font-semibold text-foreground">{order.pickupLocation.storeName}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {order.pickupLocation.line1}
+                    {order.pickupLocation.line2 ? `, ${order.pickupLocation.line2}` : ""}
+                    <br />
+                    {order.pickupLocation.city}, {order.pickupLocation.state} {order.pickupLocation.pincode}
+                    <br />
+                    {order.pickupLocation.country}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    {order.pickupLocation.pickupNote}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-[1.35rem] border border-border/70 bg-background/85 p-4">
+                  <p className="font-semibold text-foreground">{order.shippingAddress.fullName}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {order.shippingAddress.line1}
+                    {order.shippingAddress.line2 ? `, ${order.shippingAddress.line2}` : ""}
+                    <br />
+                    {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.pincode}
+                    <br />
+                    {order.shippingAddress.country}
+                  </p>
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-[1.25rem] border border-border/70 bg-background/85 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">

@@ -73,6 +73,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Floating contact button designer for icon, labels, channels, and storefront contact styling.",
   },
   {
+    id: "pickup",
+    name: "Pickup",
+    route: "/dashboard/apps/ecommerce/pickup",
+    summary: "Standalone pickup designer for store-pickup availability, retail location details, and checkout pickup guidance.",
+  },
+  {
     id: "coupon-banner",
     name: "Coupon Banner",
     route: "/dashboard/apps/ecommerce/coupon-banner",

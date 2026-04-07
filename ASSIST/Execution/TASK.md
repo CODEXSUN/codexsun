@@ -14,16 +14,19 @@
 
 ### Stage 1.1: Release Baseline
 
-- [ ] 1.1.1 freeze non-critical storefront block additions until P0 commerce stability is complete
-- [ ] 1.1.2 define production target environment, domains, SSL, env ownership, and release cutover checklist
-- [ ] 1.1.3 confirm ownership boundaries between `ecommerce`, `cxapp`, `core`, and `frappe` for all go-live work
-- [ ] 1.1.4 create the P0 issue list and assign execution order from this file
+- [x] 1.1.1 freeze non-critical storefront block additions until P0 commerce stability is complete
+- [x] 1.1.2 define production target environment, domains, SSL, env ownership, and release cutover checklist
+- [x] 1.1.3 confirm ownership boundaries between `ecommerce`, `cxapp`, `core`, and `frappe` for all go-live work
+- [x] 1.1.4 create the P0 issue list and assign execution order from this file
+
+Stage 1.1 baseline document:
+- [phase-1-stage-1-1-release-baseline.md](/E:/Workspace/codexsun/ASSIST/Planning/phase-1-stage-1-1-release-baseline.md)
 
 ### Stage 1.2: Checkout And Order Reliability
 
-- [ ] 1.2.1 stabilize guest checkout flow end to end
-- [ ] 1.2.2 stabilize authenticated checkout flow end to end
-- [ ] 1.2.3 cover failed payment, closed payment modal, and retry paths
+- [x] 1.2.1 stabilize guest checkout flow end to end
+- [x] 1.2.2 stabilize authenticated checkout flow end to end
+- [x] 1.2.3 cover failed payment, closed payment modal, and retry paths
 - [ ] 1.2.4 cover order-confirmation and order-tracking flows with stable e2e tests
 - [ ] 1.2.5 formalize the order state machine: `created`, `payment_pending`, `paid`, `fulfilment_pending`, `shipped`, `delivered`, `cancelled`, `refunded`
 - [ ] 1.2.6 add idempotent payment verification and duplicate-submit protection

@@ -55,7 +55,41 @@ function normalizePaymentStatus(value: unknown): StorefrontOrder["paymentStatus"
 }
 
 function normalizePaymentMode(value: unknown): StorefrontOrder["paymentMode"] {
-  return value === "live" || value === "mock" ? value : "mock"
+  return value === "live" || value === "mock" || value === "offline" ? value : "mock"
+}
+
+function normalizePaymentProvider(value: unknown): StorefrontOrder["paymentProvider"] {
+  return value === "store" || value === "razorpay" ? value : "razorpay"
+}
+
+function normalizeFulfillmentMethod(value: unknown): StorefrontOrder["fulfillmentMethod"] {
+  return value === "store_pickup" || value === "delivery" ? value : "delivery"
+}
+
+function normalizePaymentCollectionMethod(
+  value: unknown
+): StorefrontOrder["paymentCollectionMethod"] {
+  return value === "pay_at_store" || value === "online" ? value : "online"
+}
+
+function normalizePickupLocation(value: unknown): StorefrontOrder["pickupLocation"] {
+  const record = asRecord(value)
+  if (!record) {
+    return null
+  }
+
+  return {
+    storeName: normalizeRequiredString(record.storeName, "Store pickup"),
+    line1: normalizeRequiredString(record.line1, "Address pending"),
+    line2: normalizeOptionalString(record.line2),
+    city: normalizeRequiredString(record.city, "Unknown city"),
+    state: normalizeRequiredString(record.state, "Unknown state"),
+    country: normalizeRequiredString(record.country, "India"),
+    pincode: normalizeRequiredString(record.pincode, "000000"),
+    contactPhone: normalizeRequiredString(record.contactPhone, "0000000000"),
+    contactEmail: normalizeRequiredString(record.contactEmail, "storefront@codexsun.local"),
+    pickupNote: normalizeRequiredString(record.pickupNote, "Pickup note pending."),
+  }
 }
 
 function normalizeTimelineEntry(
@@ -197,8 +231,11 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     coreContactId: normalizeRequiredString(record.coreContactId, `contact:legacy-${index + 1}`),
     status: normalizeStatus(record.status),
     paymentStatus: normalizePaymentStatus(record.paymentStatus),
-    paymentProvider: "razorpay",
+    paymentProvider: normalizePaymentProvider(record.paymentProvider),
     paymentMode: normalizePaymentMode(record.paymentMode),
+    fulfillmentMethod: normalizeFulfillmentMethod(record.fulfillmentMethod),
+    paymentCollectionMethod: normalizePaymentCollectionMethod(record.paymentCollectionMethod),
+    pickupLocation: normalizePickupLocation(record.pickupLocation),
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
     shippingAddress,

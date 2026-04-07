@@ -12,6 +12,22 @@ export const storefrontAddressSchema = z.object({
   pincode: z.string().min(1),
 })
 
+export const storefrontFulfillmentMethodSchema = z.enum(["delivery", "store_pickup"])
+export const storefrontCheckoutPaymentMethodSchema = z.enum(["online", "pay_at_store"])
+
+export const storefrontPickupLocationSnapshotSchema = z.object({
+  storeName: z.string().min(1),
+  line1: z.string().min(1),
+  line2: z.string().nullable(),
+  city: z.string().min(1),
+  state: z.string().min(1),
+  country: z.string().min(1),
+  pincode: z.string().min(1),
+  contactPhone: z.string().min(1),
+  contactEmail: z.email(),
+  pickupNote: z.string().min(1),
+})
+
 export const storefrontCartItemInputSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().min(1).max(20),
@@ -48,8 +64,8 @@ export const storefrontOrderTimelineEventSchema = z.object({
 })
 
 export const storefrontPaymentSessionSchema = z.object({
-  provider: z.literal("razorpay"),
-  mode: z.enum(["live", "mock"]),
+  provider: z.enum(["razorpay", "offline"]),
+  mode: z.enum(["live", "mock", "offline"]),
   keyId: z.string().nullable(),
   providerOrderId: z.string().nullable(),
   amount: z.number().int().nonnegative(),
@@ -74,8 +90,11 @@ export const storefrontOrderSchema = z.object({
     "cancelled",
   ]),
   paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
-  paymentProvider: z.literal("razorpay"),
-  paymentMode: z.enum(["live", "mock"]),
+  paymentProvider: z.enum(["razorpay", "store"]),
+  paymentMode: z.enum(["live", "mock", "offline"]),
+  fulfillmentMethod: storefrontFulfillmentMethodSchema,
+  paymentCollectionMethod: storefrontCheckoutPaymentMethodSchema,
+  pickupLocation: storefrontPickupLocationSnapshotSchema.nullable(),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
   shippingAddress: storefrontAddressSchema,
@@ -96,6 +115,8 @@ export const storefrontOrderSchema = z.object({
 
 export const storefrontCheckoutPayloadSchema = z.object({
   items: z.array(storefrontCartItemInputSchema).min(1),
+  fulfillmentMethod: storefrontFulfillmentMethodSchema.default("delivery"),
+  paymentMethod: storefrontCheckoutPaymentMethodSchema.default("online"),
   shippingAddress: storefrontAddressSchema,
   billingAddress: storefrontAddressSchema,
   notes: z.string().trim().nullable().optional().default(null),
@@ -137,6 +158,9 @@ export const storefrontPaymentConfigSchema = z.object({
 })
 
 export type StorefrontAddress = z.infer<typeof storefrontAddressSchema>
+export type StorefrontFulfillmentMethod = z.infer<typeof storefrontFulfillmentMethodSchema>
+export type StorefrontCheckoutPaymentMethod = z.infer<typeof storefrontCheckoutPaymentMethodSchema>
+export type StorefrontPickupLocationSnapshot = z.infer<typeof storefrontPickupLocationSnapshotSchema>
 export type StorefrontCartItemInput = z.infer<typeof storefrontCartItemInputSchema>
 export type StorefrontOrderItem = z.infer<typeof storefrontOrderItemSchema>
 export type StorefrontOrderTimelineEvent = z.infer<typeof storefrontOrderTimelineEventSchema>

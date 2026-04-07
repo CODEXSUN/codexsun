@@ -29,6 +29,7 @@ import { StorefrontCampaignSection as StorefrontCampaignDesignerSection } from "
 import { StorefrontCouponBannerSection } from "./features/storefront-admin/storefront-coupon-banner-section"
 import { StorefrontFooterSection } from "./features/storefront-admin/storefront-footer-section"
 import { StorefrontFloatingContactSection } from "./features/storefront-admin/storefront-floating-contact-section"
+import { StorefrontPickupSection } from "./features/storefront-admin/storefront-pickup-section"
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
@@ -317,6 +318,10 @@ function CouponBannerDesignerSection() {
 
 function GiftCornerDesignerSection() {
   return <StorefrontGiftCornerSection />
+}
+
+function PickupDesignerSection() {
+  return <StorefrontPickupSection />
 }
 
 function TrendingSectionDesignerSection() {
@@ -852,6 +857,7 @@ function SettingsSection() {
           <ActionLink href="/dashboard/apps/ecommerce/campaign" label="Open campaign designer" />
           <ActionLink href="/dashboard/apps/ecommerce/footer" label="Open footer designer" />
           <ActionLink href="/dashboard/apps/ecommerce/floating-contact" label="Open floating contact" />
+          <ActionLink href="/dashboard/apps/ecommerce/pickup" label="Open pickup designer" />
           <ActionLink href="/dashboard/apps/ecommerce/coupon-banner" label="Open coupon banner" />
           <ActionLink href="/dashboard/apps/ecommerce/gift-corner" label="Open gift corner" />
           <ActionLink href="/dashboard/apps/ecommerce/trending" label="Open trending designer" />
@@ -906,6 +912,8 @@ export function EcommerceWorkspaceSection({
       return <StorefrontFooterSection />
     case "floating-contact":
       return <StorefrontFloatingContactSection />
+    case "pickup":
+      return <PickupDesignerSection />
     case "settings":
       return <SettingsSection />
     case "overview":

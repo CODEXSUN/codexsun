@@ -16,7 +16,12 @@ import {
 import { Link } from "react-router-dom"
 
 import type { CommonModuleItem, ContactAddressInput } from "@core/shared"
-import type { CustomerProfileLookupResponse, StorefrontSettings } from "@ecommerce/shared"
+import type {
+  CustomerProfileLookupResponse,
+  StorefrontCheckoutPaymentMethod,
+  StorefrontFulfillmentMethod,
+  StorefrontSettings,
+} from "@ecommerce/shared"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -58,6 +63,7 @@ type CheckoutAddressState = {
   line1: string
   line2: string
   city: string
+  district: string
   state: string
   country: string
   pincode: string
@@ -75,9 +81,28 @@ type CheckoutLookupState = {
 type DeliveryAddressOption = CheckoutAddressState & {
   key: string
   label: string
+  addressTypeId: string | null
+  countryId: string | null
+  stateId: string | null
+  districtId: string | null
+  cityId: string | null
+  pincodeId: string | null
   isDefault: boolean
   isComplete: boolean
 }
+
+type AddressDialogField =
+  | "label"
+  | "phoneNumber"
+  | "firstName"
+  | "line1"
+  | "countryId"
+  | "stateId"
+  | "districtId"
+  | "cityId"
+  | "pincodeId"
+
+type AddressDialogFieldErrors = Partial<Record<AddressDialogField, string>>
 
 type AddressDialogState = {
   label: string
@@ -88,10 +113,12 @@ type AddressDialogState = {
   line2: string
   countryId: string
   stateId: string
+  districtId: string
   cityId: string
   pincodeId: string
   country: string
   state: string
+  district: string
   city: string
   pincode: string
   setAsDefault: boolean
@@ -117,15 +144,50 @@ type CompletedCheckoutState = {
   orderId: string
   orderNumber: string
   shippingEmail: string
+  paymentStatusLabel: string
+  summary: string
 }
+
+type RetryablePaymentSession = {
+  attemptKey: string
+  orderId: string
+  orderNumber: string
+  providerOrderId: string
+  keyId: string | null
+  amount: number
+  currency: string
+  shippingEmail: string
+  businessName: string
+  checkoutImage: string | null
+  themeColor: string | null
+  customerEmail: string
+  customerPhoneNumber: string
+}
+
+type CheckoutPaymentFailureKind = "dismissed" | "failed"
 
 const fallbackStorefrontSettings: Pick<
   StorefrontSettings,
-  "freeShippingThreshold" | "defaultShippingAmount" | "defaultHandlingAmount"
+  "freeShippingThreshold" | "defaultShippingAmount" | "defaultHandlingAmount" | "pickupLocation"
 > = {
   freeShippingThreshold: 3999,
   defaultShippingAmount: 149,
   defaultHandlingAmount: 99,
+  pickupLocation: {
+    enabled: false,
+    title: "Store pickup available",
+    summary: "",
+    storeName: "",
+    line1: "",
+    line2: null,
+    city: "",
+    state: "",
+    country: "India",
+    pincode: "",
+    contactPhone: "",
+    contactEmail: "storefront@codexsun.local",
+    pickupNote: "",
+  },
 }
 const addressDraftDefaults: Omit<
   AddressDialogState,
@@ -135,10 +197,12 @@ const addressDraftDefaults: Omit<
   line1: "",
   line2: "",
   stateId: "1",
+  districtId: "1",
   cityId: "1",
   pincodeId: "1",
   country: "India",
   state: "",
+  district: "",
   city: "",
   pincode: "",
   setAsDefault: true,
@@ -162,6 +226,13 @@ const deliveryPreferences: DeliveryPreference[] = [
     id: "signature",
     label: "Signature packaging",
     description: "Occasion-ready packaging preference with a premium handoff.",
+    shippingAmount: 0,
+    handlingAmount: 0,
+  },
+  {
+    id: "store-pickup",
+    label: "Store pickup",
+    description: "Reserve the order and collect it from the configured retail pickup location.",
     shippingAmount: 0,
     handlingAmount: 0,
   },
@@ -255,6 +326,52 @@ function filterLookupItems(
   )
 }
 
+function createGuestLookupOption(
+  module: "countries" | "states" | "districts" | "cities" | "pincodes",
+  label: string,
+  references: Partial<Record<"country_id" | "state_id" | "district_id" | "city_id", string>>
+) {
+  const trimmedLabel = label.trim()
+  const normalizedLabel =
+    module === "pincodes" ? trimmedLabel.replace(/\s+/g, "") : trimmedLabel
+  const timestamp = new Date().toISOString()
+
+  return {
+    id: `guest-${module}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    isActive: true,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    name: normalizedLabel,
+    label: normalizedLabel,
+    ...(module === "pincodes"
+      ? { code: normalizedLabel, area_name: normalizedLabel }
+      : { code: normalizedLabel.toUpperCase().replace(/\s+/g, "-") }),
+    ...references,
+  } satisfies CommonModuleItem
+}
+
+function upsertLookupItem(
+  items: CommonModuleItem[],
+  nextItem: CommonModuleItem,
+  module: keyof CheckoutLookupState
+) {
+  const nextLabel = getCommonModuleLabel(nextItem, module)
+    .trim()
+    .toLowerCase()
+
+  const existingIndex = items.findIndex((item) => {
+    const currentLabel = getCommonModuleLabel(item, module).trim().toLowerCase()
+
+    return item.id === nextItem.id || currentLabel === nextLabel
+  })
+
+  if (existingIndex === -1) {
+    return [...items, nextItem]
+  }
+
+  return items.map((item, index) => (index === existingIndex ? nextItem : item))
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -346,6 +463,33 @@ function createAddressDialogState(params: {
     lastName,
     phoneNumber: params.phoneNumber ?? "",
     countryId: params.defaultCountryId,
+  } satisfies AddressDialogState
+}
+
+function createAddressDialogStateFromOption(
+  address: DeliveryAddressOption,
+  defaultCountryId: string
+) {
+  const { firstName, lastName } = splitDisplayName(address.fullName)
+
+  return {
+    label: address.label,
+    firstName,
+    lastName,
+    phoneNumber: address.phoneNumber,
+    line1: address.line1,
+    line2: address.line2,
+    countryId: address.countryId ?? defaultCountryId,
+    stateId: address.stateId ?? "1",
+    districtId: address.districtId ?? "1",
+    cityId: address.cityId ?? "1",
+    pincodeId: address.pincodeId ?? "1",
+    country: address.country,
+    state: address.state,
+    district: address.district,
+    city: address.city,
+    pincode: address.pincode,
+    setAsDefault: address.isDefault,
   } satisfies AddressDialogState
 }
 
@@ -453,6 +597,7 @@ export function StorefrontCheckoutContent({
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>("upi-wallet")
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
+  const [editingAddressKey, setEditingAddressKey] = useState<string | null>(null)
   const [addressDialogState, setAddressDialogState] = useState<AddressDialogState>(() =>
     createAddressDialogState({
       displayName: null,
@@ -461,12 +606,18 @@ export function StorefrontCheckoutContent({
     })
   )
   const [addressDialogError, setAddressDialogError] = useState<string | null>(null)
+  const [addressDialogFieldErrors, setAddressDialogFieldErrors] =
+    useState<AddressDialogFieldErrors>({})
   const [isSavingAddress, setIsSavingAddress] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
   const [completedCheckout, setCompletedCheckout] =
     useState<CompletedCheckoutState | null>(null)
+  const [retryablePaymentSession, setRetryablePaymentSession] =
+    useState<RetryablePaymentSession | null>(null)
+  const [paymentFailureKind, setPaymentFailureKind] =
+    useState<CheckoutPaymentFailureKind | null>(null)
 
   const defaultCountryId = useMemo(
     () => resolvePreferredCountryId(lookupState.countries),
@@ -491,6 +642,7 @@ export function StorefrontCheckoutContent({
             freeShippingThreshold: settings.freeShippingThreshold,
             defaultShippingAmount: settings.defaultShippingAmount,
             defaultHandlingAmount: settings.defaultHandlingAmount,
+            pickupLocation: settings.pickupLocation,
           })
         }
       } catch {
@@ -511,18 +663,13 @@ export function StorefrontCheckoutContent({
     let cancelled = false
 
     async function loadLookups() {
-      if (!customerAuth.accessToken || !customerAuth.isAuthenticated) {
-        setLookupState(createLookupState())
-        setIsLoadingLookups(false)
-        return
-      }
-
       setIsLoadingLookups(true)
 
       try {
-        const response = await storefrontApi.getCustomerProfileLookups(
-          customerAuth.accessToken
-        )
+        const response =
+          customerAuth.accessToken && customerAuth.isAuthenticated
+            ? await storefrontApi.getCustomerProfileLookups(customerAuth.accessToken)
+            : await storefrontApi.getGuestCheckoutLookups()
 
         if (!cancelled) {
           setLookupState(createLookupState(response))
@@ -559,11 +706,18 @@ export function StorefrontCheckoutContent({
         return {
           key: address.id,
           label: addressLabels[address.id] ?? fallbackLabel,
+          addressTypeId: address.addressTypeId ?? null,
           fullName: customerAuth.customer?.displayName ?? "",
           email: customerAuth.customer?.email ?? contactEmail,
           phoneNumber: customerAuth.customer?.phoneNumber ?? "",
           line1: address.addressLine1,
           line2: address.addressLine2 ?? "",
+          countryId: address.countryId ?? null,
+          stateId: address.stateId ?? null,
+          districtId: address.districtId ?? null,
+          cityId: address.cityId ?? null,
+          pincodeId: address.pincodeId ?? null,
+          district: resolveLookupLabel(lookupState.districts, address.districtId, "districts"),
           city: resolveLookupLabel(lookupState.cities, address.cityId, "cities"),
           state: resolveLookupLabel(lookupState.states, address.stateId, "states"),
           country: resolveLookupLabel(
@@ -588,6 +742,7 @@ export function StorefrontCheckoutContent({
     lookupState.addressTypes,
     lookupState.cities,
     lookupState.countries,
+    lookupState.districts,
     lookupState.pincodes,
     lookupState.states,
     temporaryAddresses,
@@ -633,13 +788,82 @@ export function StorefrontCheckoutContent({
   const selectedAddress =
     deliveryAddresses.find((address) => address.key === selectedAddressKey) ?? null
   const selectedAddressIsComplete = isCompleteDeliveryAddress(selectedAddress)
+  const addressDialogErrorMessages = Object.values(addressDialogFieldErrors).filter(Boolean)
+  const isStorePickup = selectedDeliveryPreference === "store-pickup"
+  const availableDeliveryPreferences = useMemo(
+    () =>
+      deliveryPreferences.filter((option) =>
+        option.id === "store-pickup" ? storefrontSettings.pickupLocation.enabled : true
+      ),
+    [storefrontSettings.pickupLocation.enabled]
+  )
+  const availablePaymentOptions = useMemo(() => {
+    if (!isStorePickup) {
+      return paymentOptions
+    }
 
+    return [
+      {
+        id: "upi-wallet",
+        label: "Pay online now",
+        description: "Pay online now and collect the order from the store counter later.",
+        summaryLabel: "Online pickup payment",
+        enabled: true,
+      },
+      {
+        id: "pay-at-store",
+        label: "Pay at store pickup",
+        description: "Reserve the order now and complete payment when you arrive at the retail store.",
+        summaryLabel: "Pay at store",
+        enabled: true,
+      },
+    ] satisfies PaymentOption[]
+  }, [isStorePickup])
   const selectedDeliveryOption =
-    deliveryPreferences.find((option) => option.id === selectedDeliveryPreference) ??
-    deliveryPreferences[0]
-
+    availableDeliveryPreferences.find((option) => option.id === selectedDeliveryPreference) ??
+    availableDeliveryPreferences[0]
   const selectedPaymentOption =
-    paymentOptions.find((option) => option.id === selectedPaymentMethod) ?? paymentOptions[0]
+    availablePaymentOptions.find((option) => option.id === selectedPaymentMethod) ??
+    availablePaymentOptions[0]
+  const checkoutAttemptKey = useMemo(() => {
+    const cartSignature = cart.items
+      .map((item) => `${item.productId}:${item.quantity}`)
+      .sort()
+      .join("|")
+
+    return [
+      selectedAddressKey ?? "",
+      contactEmail.trim().toLowerCase(),
+      selectedDeliveryPreference,
+      selectedPaymentMethod,
+      orderNote.trim(),
+      cartSignature,
+    ].join("::")
+  }, [
+    cart.items,
+    contactEmail,
+    orderNote,
+    selectedAddressKey,
+    selectedDeliveryPreference,
+    selectedPaymentMethod,
+  ])
+  const canRetryPayment =
+    retryablePaymentSession?.attemptKey === checkoutAttemptKey
+
+  useEffect(() => {
+    if (
+      selectedDeliveryPreference === "store-pickup" &&
+      !storefrontSettings.pickupLocation.enabled
+    ) {
+      setSelectedDeliveryPreference("standard")
+    }
+  }, [selectedDeliveryPreference, storefrontSettings.pickupLocation.enabled])
+
+  useEffect(() => {
+    if (!availablePaymentOptions.some((option) => option.id === selectedPaymentMethod)) {
+      setSelectedPaymentMethod(availablePaymentOptions[0]?.id ?? "upi-wallet")
+    }
+  }, [availablePaymentOptions, selectedPaymentMethod])
 
   const { shippingAmount, handlingAmount } = calculateStorefrontChargeTotals(
     cart.items,
@@ -658,20 +882,34 @@ export function StorefrontCheckoutContent({
       ]),
     [addressDialogState.countryId, lookupState.states]
   )
+  const filteredDistrictOptions = useMemo(
+    () =>
+      filterLookupItems(lookupState.districts, [
+        { field: "state_id", value: addressDialogState.stateId },
+      ]),
+    [addressDialogState.stateId, lookupState.districts]
+  )
   const filteredCityOptions = useMemo(
     () =>
       filterLookupItems(lookupState.cities, [
         { field: "state_id", value: addressDialogState.stateId },
+        { field: "district_id", value: addressDialogState.districtId },
       ]),
-    [addressDialogState.stateId, lookupState.cities]
+    [addressDialogState.districtId, addressDialogState.stateId, lookupState.cities]
   )
   const filteredPincodeOptions = useMemo(
     () =>
       filterLookupItems(lookupState.pincodes, [
         { field: "state_id", value: addressDialogState.stateId },
+        { field: "district_id", value: addressDialogState.districtId },
         { field: "city_id", value: addressDialogState.cityId },
       ]),
-    [addressDialogState.cityId, addressDialogState.stateId, lookupState.pincodes]
+    [
+      addressDialogState.cityId,
+      addressDialogState.districtId,
+      addressDialogState.stateId,
+      lookupState.pincodes,
+    ]
   )
 
   useEffect(() => {
@@ -686,6 +924,25 @@ export function StorefrontCheckoutContent({
   }, [
     addressDialogState.stateId,
     filteredStateOptions,
+    isAddressDialogOpen,
+  ])
+
+  useEffect(() => {
+    if (
+      !isAddressDialogOpen ||
+      addressDialogState.districtId !== "1" ||
+      filteredDistrictOptions.length === 0
+    ) {
+      return
+    }
+
+    setAddressDialogState((current) => ({
+      ...current,
+      districtId: filteredDistrictOptions[0]!.id,
+    }))
+  }, [
+    addressDialogState.districtId,
+    filteredDistrictOptions,
     isAddressDialogOpen,
   ])
 
@@ -723,14 +980,18 @@ export function StorefrontCheckoutContent({
     isAddressDialogOpen,
   ])
 
-  function openAddressDialog() {
+  function openAddressDialog(address?: DeliveryAddressOption | null) {
     setAddressDialogError(null)
+    setAddressDialogFieldErrors({})
+    setEditingAddressKey(address?.key ?? null)
     setAddressDialogState(
-      createAddressDialogState({
-        displayName: customerAuth.customer?.displayName,
-        phoneNumber: customerAuth.customer?.phoneNumber,
-        defaultCountryId,
-      })
+      address
+        ? createAddressDialogStateFromOption(address, defaultCountryId)
+        : createAddressDialogState({
+            displayName: customerAuth.customer?.displayName,
+            phoneNumber: customerAuth.customer?.phoneNumber,
+            defaultCountryId,
+          })
     )
     setIsAddressDialogOpen(true)
   }
@@ -738,14 +999,183 @@ export function StorefrontCheckoutContent({
   function updateAddressDialogState(
     recipe: (current: AddressDialogState) => AddressDialogState
   ) {
+    setAddressDialogError(null)
+    setAddressDialogFieldErrors({})
     setAddressDialogState((current) => recipe(current))
+  }
+
+  function createGuestAddressLookup(
+    module: "countries" | "states" | "districts" | "cities" | "pincodes",
+    query: string
+  ) {
+    if (customerAuth.isAuthenticated) {
+      return
+    }
+
+    const trimmedQuery = query.trim()
+    if (!trimmedQuery) {
+      return
+    }
+
+    const references = {
+      country_id: addressDialogState.countryId,
+      state_id: addressDialogState.stateId,
+      district_id: addressDialogState.districtId,
+      city_id: addressDialogState.cityId,
+    }
+
+    const nextItem = createGuestLookupOption(module, trimmedQuery, {
+      ...(module === "states" ? { country_id: references.country_id } : {}),
+      ...(module === "districts" ? { state_id: references.state_id } : {}),
+      ...(module === "cities"
+        ? { state_id: references.state_id, district_id: references.district_id }
+        : {}),
+      ...(module === "pincodes"
+        ? {
+            state_id: references.state_id,
+            district_id: references.district_id,
+            city_id: references.city_id,
+          }
+        : {}),
+    })
+
+    setLookupState((current) => ({
+      ...current,
+      [module]: upsertLookupItem(current[module], nextItem, module),
+    }))
+
+    setAddressDialogState((current) => {
+      if (module === "countries") {
+        return {
+          ...current,
+          countryId: nextItem.id,
+          country: trimmedQuery,
+          stateId: "1",
+          districtId: "1",
+          cityId: "1",
+          pincodeId: "1",
+          state: "",
+          district: "",
+          city: "",
+          pincode: "",
+        }
+      }
+
+      if (module === "states") {
+        return {
+          ...current,
+          stateId: nextItem.id,
+          state: trimmedQuery,
+          districtId: "1",
+          cityId: "1",
+          pincodeId: "1",
+          district: "",
+          city: "",
+          pincode: "",
+        }
+      }
+
+      if (module === "districts") {
+        return {
+          ...current,
+          districtId: nextItem.id,
+          district: trimmedQuery,
+          cityId: "1",
+          pincodeId: "1",
+          city: "",
+          pincode: "",
+        }
+      }
+
+      if (module === "cities") {
+        return {
+          ...current,
+          cityId: nextItem.id,
+          city: trimmedQuery,
+          pincodeId: "1",
+          pincode: "",
+        }
+      }
+
+      return {
+        ...current,
+        pincodeId: nextItem.id,
+        pincode: trimmedQuery,
+      }
+    })
+  }
+
+  function validateAddressDialog() {
+    const fullName = buildFullName(
+      addressDialogState.firstName,
+      addressDialogState.lastName
+    )
+    const countryLabel =
+      resolveLookupLabel(lookupState.countries, addressDialogState.countryId, "countries") ||
+      addressDialogState.country.trim()
+    const stateLabel =
+      resolveLookupLabel(lookupState.states, addressDialogState.stateId, "states") ||
+      addressDialogState.state.trim()
+    const districtLabel =
+      resolveLookupLabel(lookupState.districts, addressDialogState.districtId, "districts") ||
+      addressDialogState.district.trim()
+    const cityLabel =
+      resolveLookupLabel(lookupState.cities, addressDialogState.cityId, "cities") ||
+      addressDialogState.city.trim()
+    const pincodeLabel =
+      resolveLookupLabel(lookupState.pincodes, addressDialogState.pincodeId, "pincodes") ||
+      addressDialogState.pincode.trim()
+
+    const errors: AddressDialogFieldErrors = {}
+
+    if (!addressDialogState.label.trim()) {
+      errors.label = "Address label is required."
+    }
+    if (!addressDialogState.firstName.trim()) {
+      errors.firstName = "First name is required."
+    }
+    if (!addressDialogState.phoneNumber.trim()) {
+      errors.phoneNumber = "Phone is required."
+    }
+    if (!addressDialogState.line1.trim()) {
+      errors.line1 = "Address line 1 is required."
+    }
+    if (!countryLabel) {
+      errors.countryId = "Country is required."
+    }
+    if (!stateLabel) {
+      errors.stateId = "State is required."
+    }
+    if (!districtLabel) {
+      errors.districtId = "District is required."
+    }
+    if (!cityLabel) {
+      errors.cityId = "City is required."
+    }
+    if (!pincodeLabel) {
+      errors.pincodeId = "Postal code is required."
+    }
+
+    return {
+      fullName,
+      countryLabel,
+      stateLabel,
+      districtLabel,
+      cityLabel,
+      pincodeLabel,
+      errors,
+    }
   }
 
   async function finalizeCheckout(
     orderId: string,
     shippingEmail: string,
-    orderNumber: string
+    orderNumber: string,
+    paymentStatusLabel = "Paid and confirmed",
+    summary = "Your payment was captured successfully and the order is now in your account flow."
   ) {
+    setRetryablePaymentSession(null)
+    setPaymentFailureKind(null)
     cart.clear()
 
     if (customerAuth.isAuthenticated) {
@@ -758,6 +1188,8 @@ export function StorefrontCheckoutContent({
         orderId,
         orderNumber,
         shippingEmail,
+        paymentStatusLabel,
+        summary,
       })
       return
     }
@@ -766,60 +1198,43 @@ export function StorefrontCheckoutContent({
       orderId,
       orderNumber,
       shippingEmail,
+      paymentStatusLabel,
+      summary,
     })
   }
 
   async function handleSaveAddress() {
-    const fullName = buildFullName(
-      addressDialogState.firstName,
-      addressDialogState.lastName
-    )
-    const countryLabel =
-      resolveLookupLabel(lookupState.countries, addressDialogState.countryId, "countries") ||
-      addressDialogState.country.trim()
-    const stateLabel =
-      resolveLookupLabel(lookupState.states, addressDialogState.stateId, "states") ||
-      addressDialogState.state.trim()
-    const cityLabel =
-      resolveLookupLabel(lookupState.cities, addressDialogState.cityId, "cities") ||
-      addressDialogState.city.trim()
-    const pincodeLabel =
-      resolveLookupLabel(lookupState.pincodes, addressDialogState.pincodeId, "pincodes") ||
-      addressDialogState.pincode.trim()
+    const {
+      fullName,
+      countryLabel,
+      stateLabel,
+      districtLabel,
+      cityLabel,
+      pincodeLabel,
+      errors,
+    } = validateAddressDialog()
 
-    if (!addressDialogState.label.trim()) {
-      setAddressDialogError("Address label is required.")
-      return
-    }
-
-    if (!fullName) {
-      setAddressDialogError("First name is required.")
-      return
-    }
-
-    if (!addressDialogState.phoneNumber.trim()) {
-      setAddressDialogError("Phone is required.")
-      return
-    }
-
-    if (!addressDialogState.line1.trim()) {
-      setAddressDialogError("Address line 1 is required.")
-      return
-    }
-
-    if (!countryLabel || !stateLabel || !cityLabel || !pincodeLabel) {
-      setAddressDialogError("Country, state, city, and postal code are required.")
+    if (Object.keys(errors).length > 0) {
+      setAddressDialogFieldErrors(errors)
+      setAddressDialogError("Complete the missing address fields before saving.")
       return
     }
 
     const nextAddress: DeliveryAddressOption = {
-      key: `temp-${Date.now()}`,
+      key: editingAddressKey ?? `temp-${Date.now()}`,
       label: addressDialogState.label.trim(),
+      addressTypeId: resolveAddressTypeId(addressDialogState.label, lookupState.addressTypes),
       fullName,
       email: contactEmail.trim(),
       phoneNumber: addressDialogState.phoneNumber.trim(),
       line1: addressDialogState.line1.trim(),
       line2: addressDialogState.line2.trim(),
+      countryId: addressDialogState.countryId || "1",
+      stateId: addressDialogState.stateId || "1",
+      districtId: addressDialogState.districtId || "1",
+      cityId: addressDialogState.cityId || "1",
+      pincodeId: addressDialogState.pincodeId || "1",
+      district: districtLabel,
       city: cityLabel,
       state: stateLabel,
       country: countryLabel,
@@ -829,10 +1244,27 @@ export function StorefrontCheckoutContent({
     }
 
     setAddressDialogError(null)
+    setAddressDialogFieldErrors({})
     setIsSavingAddress(true)
 
     try {
       if (customerAuth.isAuthenticated && customerAuth.customer) {
+        const nextAddressInput = {
+          addressTypeId: nextAddress.addressTypeId ?? "1",
+          addressLine1: nextAddress.line1,
+          addressLine2: nextAddress.line2 || "-",
+          cityId: addressDialogState.cityId || "1",
+          districtId: addressDialogState.districtId || "1",
+          stateId: addressDialogState.stateId || "1",
+          countryId: addressDialogState.countryId || "1",
+          pincodeId: addressDialogState.pincodeId || "1",
+          latitude: null,
+          longitude: null,
+          isDefault: addressDialogState.setAsDefault,
+        } satisfies ContactAddressInput
+        const isEditingSavedAddress = customerAuth.customer.addresses.some(
+          (address) => address.id === editingAddressKey
+        )
         const existingAddresses = customerAuth.customer.addresses.map((address) => ({
           addressTypeId: address.addressTypeId ?? "1",
           addressLine1: address.addressLine1,
@@ -846,34 +1278,12 @@ export function StorefrontCheckoutContent({
           longitude: address.longitude,
           isDefault: addressDialogState.setAsDefault ? false : address.isDefault,
         }))
-        const pincodeRecord = lookupState.pincodes.find(
-          (item) => item.id === addressDialogState.pincodeId
-        )
-        const cityRecord = lookupState.cities.find(
-          (item) => item.id === addressDialogState.cityId
-        )
-
-        const nextProfileAddresses = [
-          ...existingAddresses,
-          {
-            addressTypeId: resolveAddressTypeId(
-              addressDialogState.label,
-              lookupState.addressTypes
-            ),
-            addressLine1: nextAddress.line1,
-            addressLine2: nextAddress.line2 || "-",
-            cityId: addressDialogState.cityId || "1",
-            districtId:
-              getCommonModuleValue(pincodeRecord ?? cityRecord ?? ({} as CommonModuleItem), "district_id") ||
-              "1",
-            stateId: addressDialogState.stateId || "1",
-            countryId: addressDialogState.countryId || "1",
-            pincodeId: addressDialogState.pincodeId || "1",
-            latitude: null,
-            longitude: null,
-            isDefault: addressDialogState.setAsDefault,
-          } satisfies ContactAddressInput,
-        ]
+        const nextProfileAddresses = isEditingSavedAddress
+          ? existingAddresses.map((address, index) => {
+              const savedAddress = customerAuth.customer!.addresses[index]
+              return savedAddress?.id === editingAddressKey ? nextAddressInput : address
+            })
+          : [...existingAddresses, nextAddressInput]
 
         await customerAuth.updateProfile({
           displayName: fullName,
@@ -920,30 +1330,49 @@ export function StorefrontCheckoutContent({
           })),
         })
 
-        setTemporaryAddresses((current) => [
-          ...current.map((address) => ({
-            ...address,
-            isDefault: addressDialogState.setAsDefault ? false : address.isDefault,
-          })),
-          nextAddress,
-        ])
-        setSelectedAddressKey(nextAddress.key)
+        if (isEditingSavedAddress) {
+          setSelectedAddressKey(editingAddressKey)
+          setAddressLabels((current) => ({
+            ...current,
+            [editingAddressKey as string]: nextAddress.label,
+          }))
+        } else {
+          setTemporaryAddresses((current) => [
+            ...current.map((address) => ({
+              ...address,
+              isDefault: addressDialogState.setAsDefault ? false : address.isDefault,
+            })),
+            nextAddress,
+          ])
+          setSelectedAddressKey(nextAddress.key)
 
-        setPendingAddressFingerprint({
-          fingerprint: buildAddressFingerprint(nextAddress),
-          label: nextAddress.label,
-        })
+          setPendingAddressFingerprint({
+            fingerprint: buildAddressFingerprint(nextAddress),
+            label: nextAddress.label,
+          })
+        }
       } else {
-        setTemporaryAddresses((current) => [
-          ...current.map((address) => ({
+        setTemporaryAddresses((current) => {
+          const normalizedAddresses = current.map((address) => ({
             ...address,
             isDefault: addressDialogState.setAsDefault ? false : address.isDefault,
-          })),
-          nextAddress,
-        ])
+          }))
+          const existingIndex = normalizedAddresses.findIndex(
+            (address) => address.key === nextAddress.key
+          )
+
+          if (existingIndex === -1) {
+            return [...normalizedAddresses, nextAddress]
+          }
+
+          return normalizedAddresses.map((address, index) =>
+            index === existingIndex ? nextAddress : address
+          )
+        })
         setSelectedAddressKey(nextAddress.key)
       }
 
+      setEditingAddressKey(null)
       setIsAddressDialogOpen(false)
     } catch (saveError) {
       setAddressDialogError(
@@ -963,7 +1392,7 @@ export function StorefrontCheckoutContent({
 
     if (!isCompleteDeliveryAddress(selectedAddress)) {
       setError("Select a complete delivery address or add a new one before continuing.")
-      openAddressDialog()
+      openAddressDialog(selectedAddress)
       return
     }
 
@@ -976,8 +1405,21 @@ export function StorefrontCheckoutContent({
       ...selectedAddress,
       email: contactEmail.trim(),
     }
+    const fulfillmentMethod: StorefrontFulfillmentMethod = isStorePickup
+      ? "store_pickup"
+      : "delivery"
+    const paymentMethod: StorefrontCheckoutPaymentMethod =
+      isStorePickup && selectedPaymentMethod === "pay-at-store"
+        ? "pay_at_store"
+        : "online"
 
     setError(null)
+
+    if (canRetryPayment && retryablePaymentSession) {
+      await handleOpenRazorpayCheckout(retryablePaymentSession)
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -986,6 +1428,8 @@ export function StorefrontCheckoutContent({
           productId: item.productId,
           quantity: item.quantity,
         })),
+        fulfillmentMethod,
+        paymentMethod,
         shippingAddress: {
           ...shippingAddress,
           line2: shippingAddress.line2 || null,
@@ -994,11 +1438,31 @@ export function StorefrontCheckoutContent({
           ...shippingAddress,
           line2: shippingAddress.line2 || null,
         },
-        notes: orderNote.trim() || null,
+        notes:
+          [
+            isStorePickup
+              ? `Fulfillment: Store pickup from ${storefrontSettings.pickupLocation.storeName}`
+              : null,
+            paymentMethod === "pay_at_store" ? "Payment: Pay at store pickup" : null,
+            orderNote.trim() || null,
+          ]
+            .filter(Boolean)
+            .join(" | ") || null,
       })
 
-      if (checkout.payment.mode === "live") {
-        await handleOpenRazorpayCheckout({
+      if (checkout.payment.mode === "offline") {
+        setRetryablePaymentSession(null)
+        setPaymentFailureKind(null)
+        await finalizeCheckout(
+          checkout.order.id,
+          checkout.order.shippingAddress.email,
+          checkout.order.orderNumber,
+          "Reserved for pickup",
+          `Your order is reserved at ${storefrontSettings.pickupLocation.storeName}. Payment will be collected when you arrive at the store.`
+        )
+      } else if (checkout.payment.mode === "live") {
+        const nextPaymentSession = {
+          attemptKey: checkoutAttemptKey,
           orderId: checkout.order.id,
           orderNumber: checkout.order.orderNumber,
           providerOrderId: checkout.payment.providerOrderId ?? "",
@@ -1011,8 +1475,14 @@ export function StorefrontCheckoutContent({
           themeColor: checkout.payment.themeColor,
           customerEmail: shippingAddress.email,
           customerPhoneNumber: shippingAddress.phoneNumber,
-        })
+        } satisfies RetryablePaymentSession
+
+        setRetryablePaymentSession(nextPaymentSession)
+        setPaymentFailureKind(null)
+        await handleOpenRazorpayCheckout(nextPaymentSession)
       } else {
+        setRetryablePaymentSession(null)
+        setPaymentFailureKind(null)
         await handleCompleteDummyPayment({
           orderId: checkout.order.id,
           orderNumber: checkout.order.orderNumber,
@@ -1050,7 +1520,13 @@ export function StorefrontCheckoutContent({
     await finalizeCheckout(
       verified.item.id,
       verified.item.shippingAddress.email,
-      verified.item.orderNumber
+      verified.item.orderNumber,
+      verified.item.fulfillmentMethod === "store_pickup"
+        ? "Paid, ready for pickup"
+        : "Paid and confirmed",
+      verified.item.fulfillmentMethod === "store_pickup" && verified.item.pickupLocation
+        ? `Your order is paid and waiting for pickup at ${verified.item.pickupLocation.storeName}.`
+        : "Your payment was captured successfully and the order is now in your account flow."
     )
   }
 
@@ -1112,6 +1588,7 @@ export function StorefrontCheckoutContent({
 
     setError(null)
     setIsConfirmingPayment(true)
+    setPaymentFailureKind(null)
 
     try {
       await loadRazorpayCheckoutScript()
@@ -1169,11 +1646,15 @@ export function StorefrontCheckoutContent({
         razorpay.open()
       })
     } catch (paymentError) {
-      setError(
+      const paymentErrorMessage =
         paymentError instanceof Error
           ? paymentError.message
           : "Failed to complete the Razorpay payment."
-      )
+      const dismissed =
+        paymentErrorMessage === "Razorpay checkout was closed before payment completed."
+
+      setPaymentFailureKind(dismissed ? "dismissed" : "failed")
+      setError(paymentErrorMessage)
     } finally {
       setIsConfirmingPayment(false)
     }
@@ -1199,7 +1680,7 @@ export function StorefrontCheckoutContent({
                 Order confirmed 🎉
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-emerald-900/80">
-                Your payment was captured successfully and the order is now in your account flow.
+                {completedCheckout.summary}
               </p>
             </div>
 
@@ -1313,7 +1794,29 @@ export function StorefrontCheckoutContent({
           {error ? (
             <Alert variant="destructive" className="border-red-200/70 bg-red-50/80">
               <AlertTitle>Checkout needs attention</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="space-y-3">
+                <p>{error}</p>
+                {canRetryPayment && retryablePaymentSession ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-red-300 bg-white/90 text-red-900 hover:border-red-400 hover:bg-white"
+                      onClick={() => void handleOpenRazorpayCheckout(retryablePaymentSession)}
+                    >
+                      {paymentFailureKind === "dismissed"
+                        ? "Reopen payment"
+                        : "Retry payment"}
+                    </Button>
+                    <span className="text-xs text-red-900/80">
+                      {paymentFailureKind === "dismissed"
+                        ? "Your pending order is still open. Reopen the same Razorpay checkout to continue."
+                        : "Your pending order is still open. Retry the same Razorpay checkout instead of creating a new order."}
+                    </span>
+                  </div>
+                ) : null}
+              </AlertDescription>
             </Alert>
           ) : null}
 
@@ -1341,7 +1844,7 @@ export function StorefrontCheckoutContent({
                       type="button"
                       variant="outline"
                       className="rounded-xl border-[#ddd1c2] bg-white/85 px-4 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white"
-                      onClick={openAddressDialog}
+                      onClick={() => openAddressDialog()}
                     >
                       <Plus className="size-4" />
                       Add new address
@@ -1403,13 +1906,30 @@ export function StorefrontCheckoutContent({
                                   {address.line2 ? `, ${address.line2}` : ""}
                                 </p>
                                 <p>
-                                  {address.city}, {address.state}, {address.country}{" "}
+                                  {address.city}
+                                  {address.district ? `, ${address.district}` : ""}
+                                  , {address.state}, {address.country}{" "}
                                   {address.pincode}
                                 </p>
                                 {incomplete ? (
-                                  <p className="text-[#8c6a2f]">
-                                    Complete this saved address or add a new one before paying.
-                                  </p>
+                                  <div className="flex flex-wrap items-center gap-3">
+                                    <p className="text-[#8c6a2f]">
+                                      Complete this saved address or add a new one before paying.
+                                    </p>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 rounded-full border-[#e0c9ab] bg-[#fff8ec] px-3 text-[#8c6a2f] hover:border-[#d7ba91] hover:bg-[#fff3df]"
+                                      onClick={(event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        openAddressDialog(address)
+                                      }}
+                                    >
+                                      Edit address
+                                    </Button>
+                                  </div>
                                 ) : null}
                               </div>
                             </div>
@@ -1480,7 +2000,7 @@ export function StorefrontCheckoutContent({
                     onValueChange={setSelectedDeliveryPreference}
                     className="grid gap-3"
                   >
-                    {deliveryPreferences.map((option) => (
+                    {availableDeliveryPreferences.map((option) => (
                       <ChoiceCard
                         key={option.id}
                         value={option.id}
@@ -1491,6 +2011,27 @@ export function StorefrontCheckoutContent({
                       />
                     ))}
                   </RadioGroup>
+                  {isStorePickup && storefrontSettings.pickupLocation.enabled ? (
+                    <div className="rounded-[1.45rem] border border-[#d7c4b1] bg-[#fffaf4] p-4 text-sm text-[#4b3527]">
+                      <p className="font-semibold text-foreground">
+                        {storefrontSettings.pickupLocation.storeName}
+                      </p>
+                      <p className="mt-1 leading-6">
+                        {storefrontSettings.pickupLocation.line1}
+                        {storefrontSettings.pickupLocation.line2
+                          ? `, ${storefrontSettings.pickupLocation.line2}`
+                          : ""}
+                        <br />
+                        {storefrontSettings.pickupLocation.city}, {storefrontSettings.pickupLocation.state}{" "}
+                        {storefrontSettings.pickupLocation.pincode}
+                        <br />
+                        {storefrontSettings.pickupLocation.country}
+                      </p>
+                      <p className="mt-2 text-[#6b5a4c]">
+                        {storefrontSettings.pickupLocation.pickupNote}
+                      </p>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
 
@@ -1519,7 +2060,7 @@ export function StorefrontCheckoutContent({
                     }}
                     className="grid gap-3"
                   >
-                    {paymentOptions.map((option) => (
+                    {availablePaymentOptions.map((option) => (
                       <ChoiceCard
                         key={option.id}
                         value={option.id}
@@ -1633,8 +2174,14 @@ export function StorefrontCheckoutContent({
                     {isSubmitting
                       ? "Preparing order..."
                       : isConfirmingPayment
-                        ? "Opening Razorpay..."
-                        : "Continue to pay"}
+                        ? canRetryPayment
+                          ? "Reopening Razorpay..."
+                          : "Opening Razorpay..."
+                        : canRetryPayment
+                          ? "Retry payment"
+                        : isStorePickup && selectedPaymentMethod === "pay-at-store"
+                          ? "Reserve pickup"
+                          : "Continue to pay"}
                   </Button>
 
                   {!selectedAddressIsComplete ? (
@@ -1686,10 +2233,12 @@ export function StorefrontCheckoutContent({
         <DialogContent className="w-[min(94vw,58rem)] gap-5 rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(252,248,243,0.96))] p-0 shadow-[0_36px_90px_-52px_rgba(48,31,19,0.28)]">
           <DialogHeader className="border-b border-[#efe4d8] px-6 pt-6 pb-5">
             <DialogTitle className="text-[1.75rem] tracking-tight">
-              Add delivery address
+              {editingAddressKey ? "Edit delivery address" : "Add delivery address"}
             </DialogTitle>
             <DialogDescription>
-              Save a complete delivery address once and reuse it for future orders.
+              {editingAddressKey
+                ? "Update the missing address details and save the completed delivery address."
+                : "Save a complete delivery address once and reuse it for future orders."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1700,10 +2249,25 @@ export function StorefrontCheckoutContent({
                 <span>{addressDialogError}</span>
               </div>
             ) : null}
+            {addressDialogErrorMessages.length > 0 ? (
+              <div className="rounded-[1.25rem] border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-950">
+                <p className="font-medium">Missing fields</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {addressDialogErrorMessages.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="delivery-address-label">Address label</Label>
+                <Label
+                  htmlFor="delivery-address-label"
+                  className={addressDialogFieldErrors.label ? "text-destructive" : undefined}
+                >
+                  Address label
+                </Label>
                 <Input
                   id="delivery-address-label"
                   value={addressDialogState.label}
@@ -1713,11 +2277,20 @@ export function StorefrontCheckoutContent({
                       label: event.target.value,
                     }))
                   }
+                  aria-invalid={Boolean(addressDialogFieldErrors.label)}
                   className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                 />
+                {addressDialogFieldErrors.label ? (
+                  <p className="text-xs text-destructive">{addressDialogFieldErrors.label}</p>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="delivery-address-phone">Phone</Label>
+                <Label
+                  htmlFor="delivery-address-phone"
+                  className={addressDialogFieldErrors.phoneNumber ? "text-destructive" : undefined}
+                >
+                  Phone
+                </Label>
                 <Input
                   id="delivery-address-phone"
                   value={addressDialogState.phoneNumber}
@@ -1727,11 +2300,22 @@ export function StorefrontCheckoutContent({
                       phoneNumber: event.target.value,
                     }))
                   }
+                  aria-invalid={Boolean(addressDialogFieldErrors.phoneNumber)}
                   className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                 />
+                {addressDialogFieldErrors.phoneNumber ? (
+                  <p className="text-xs text-destructive">
+                    {addressDialogFieldErrors.phoneNumber}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="delivery-address-first-name">First name</Label>
+                <Label
+                  htmlFor="delivery-address-first-name"
+                  className={addressDialogFieldErrors.firstName ? "text-destructive" : undefined}
+                >
+                  First name
+                </Label>
                 <Input
                   id="delivery-address-first-name"
                   value={addressDialogState.firstName}
@@ -1741,8 +2325,12 @@ export function StorefrontCheckoutContent({
                       firstName: event.target.value,
                     }))
                   }
+                  aria-invalid={Boolean(addressDialogFieldErrors.firstName)}
                   className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                 />
+                {addressDialogFieldErrors.firstName ? (
+                  <p className="text-xs text-destructive">{addressDialogFieldErrors.firstName}</p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="delivery-address-last-name">Last name</Label>
@@ -1759,7 +2347,12 @@ export function StorefrontCheckoutContent({
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="delivery-address-line1">Address line 1</Label>
+                <Label
+                  htmlFor="delivery-address-line1"
+                  className={addressDialogFieldErrors.line1 ? "text-destructive" : undefined}
+                >
+                  Address line 1
+                </Label>
                 <Textarea
                   id="delivery-address-line1"
                   rows={3}
@@ -1770,8 +2363,12 @@ export function StorefrontCheckoutContent({
                       line1: event.target.value,
                     }))
                   }
+                  aria-invalid={Boolean(addressDialogFieldErrors.line1)}
                   className="rounded-xl border-[#e1d4c6] bg-white"
                 />
+                {addressDialogFieldErrors.line1 ? (
+                  <p className="text-xs text-destructive">{addressDialogFieldErrors.line1}</p>
+                ) : null}
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="delivery-address-line2">Address line 2</Label>
@@ -1791,18 +2388,29 @@ export function StorefrontCheckoutContent({
               {lookupState.countries.length > 0 ? (
                 <>
                   <div className="space-y-2">
-                    <Label>Country</Label>
+                    <Label className={addressDialogFieldErrors.countryId ? "text-destructive" : undefined}>
+                      Country
+                    </Label>
                     <SearchableLookupField
                       value={addressDialogState.countryId}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
+                        const nextCountry = lookupState.countries.find((item) => item.id === value)
                         updateAddressDialogState((current) => ({
                           ...current,
                           countryId: value,
+                          country: nextCountry
+                            ? getCommonModuleLabel(nextCountry, "countries")
+                            : current.country,
                           stateId: "1",
+                          districtId: "1",
                           cityId: "1",
                           pincodeId: "1",
+                          state: "",
+                          district: "",
+                          city: "",
+                          pincode: "",
                         }))
-                      }
+                      }}
                       options={lookupState.countries.map((item) => ({
                         value: item.id,
                         label: getCommonModuleLabel(item, "countries"),
@@ -1810,20 +2418,38 @@ export function StorefrontCheckoutContent({
                       placeholder="Search country"
                       searchPlaceholder="Search country"
                       noResultsMessage="No country found."
+                      error={addressDialogFieldErrors.countryId}
+                      createActionLabel='Create new "Country"'
+                      onCreateNew={
+                        customerAuth.isAuthenticated
+                          ? undefined
+                          : (query) => createGuestAddressLookup("countries", query)
+                      }
                     />
+                    {addressDialogFieldErrors.countryId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.countryId}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label>State</Label>
+                    <Label className={addressDialogFieldErrors.stateId ? "text-destructive" : undefined}>
+                      State
+                    </Label>
                     <SearchableLookupField
                       value={addressDialogState.stateId}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
+                        const nextState = filteredStateOptions.find((item) => item.id === value)
                         updateAddressDialogState((current) => ({
                           ...current,
                           stateId: value,
+                          state: nextState ? getCommonModuleLabel(nextState, "states") : current.state,
+                          districtId: "1",
                           cityId: "1",
                           pincodeId: "1",
+                          district: "",
+                          city: "",
+                          pincode: "",
                         }))
-                      }
+                      }}
                       options={filteredStateOptions.map((item) => ({
                         value: item.id,
                         label: getCommonModuleLabel(item, "states"),
@@ -1831,19 +2457,76 @@ export function StorefrontCheckoutContent({
                       placeholder="Search state"
                       searchPlaceholder="Search state"
                       noResultsMessage="No state found."
+                      error={addressDialogFieldErrors.stateId}
+                      createActionLabel='Create new "State"'
+                      onCreateNew={
+                        customerAuth.isAuthenticated
+                          ? undefined
+                          : (query) => createGuestAddressLookup("states", query)
+                      }
                     />
+                    {addressDialogFieldErrors.stateId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.stateId}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label>City</Label>
+                    <Label className={addressDialogFieldErrors.districtId ? "text-destructive" : undefined}>
+                      District
+                    </Label>
+                    <SearchableLookupField
+                      value={addressDialogState.districtId}
+                      onValueChange={(value) => {
+                        const nextDistrict = filteredDistrictOptions.find((item) => item.id === value)
+                        updateAddressDialogState((current) => ({
+                          ...current,
+                          districtId: value,
+                          district: nextDistrict
+                            ? getCommonModuleLabel(nextDistrict, "districts")
+                            : current.district,
+                          cityId: "1",
+                          pincodeId: "1",
+                          city: "",
+                          pincode: "",
+                        }))
+                      }}
+                      options={filteredDistrictOptions.map((item) => ({
+                        value: item.id,
+                        label: getCommonModuleLabel(item, "districts"),
+                      }))}
+                      placeholder="Search district"
+                      searchPlaceholder="Search district"
+                      noResultsMessage="No district found."
+                      error={addressDialogFieldErrors.districtId}
+                      createActionLabel='Create new "District"'
+                      onCreateNew={
+                        customerAuth.isAuthenticated
+                          ? undefined
+                          : (query) => createGuestAddressLookup("districts", query)
+                      }
+                    />
+                    {addressDialogFieldErrors.districtId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.districtId}</p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={addressDialogFieldErrors.cityId ? "text-destructive" : undefined}>
+                      City
+                    </Label>
                     <SearchableLookupField
                       value={addressDialogState.cityId}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
+                        const nextCity = filteredCityOptions.find((item) => item.id === value)
                         updateAddressDialogState((current) => ({
                           ...current,
                           cityId: value,
+                          city: nextCity ? getCommonModuleLabel(nextCity, "cities") : current.city,
+                          districtId:
+                            getCommonModuleValue(nextCity ?? ({} as CommonModuleItem), "district_id") ||
+                            current.districtId,
                           pincodeId: "1",
+                          pincode: "",
                         }))
-                      }
+                      }}
                       options={filteredCityOptions.map((item) => ({
                         value: item.id,
                         label: getCommonModuleLabel(item, "cities"),
@@ -1851,18 +2534,46 @@ export function StorefrontCheckoutContent({
                       placeholder="Search city"
                       searchPlaceholder="Search city"
                       noResultsMessage="No city found."
+                      error={addressDialogFieldErrors.cityId}
+                      createActionLabel='Create new "City"'
+                      onCreateNew={
+                        customerAuth.isAuthenticated
+                          ? undefined
+                          : (query) => createGuestAddressLookup("cities", query)
+                      }
                     />
+                    {addressDialogFieldErrors.cityId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.cityId}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label>Postal code</Label>
+                    <Label className={addressDialogFieldErrors.pincodeId ? "text-destructive" : undefined}>
+                      Postal code
+                    </Label>
                     <SearchableLookupField
                       value={addressDialogState.pincodeId}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
+                        const nextPincode = filteredPincodeOptions.find((item) => item.id === value)
                         updateAddressDialogState((current) => ({
                           ...current,
                           pincodeId: value,
+                          pincode: nextPincode
+                            ? getCommonModuleLabel(nextPincode, "pincodes")
+                            : current.pincode,
+                          cityId:
+                            getCommonModuleValue(nextPincode ?? ({} as CommonModuleItem), "city_id") ||
+                            current.cityId,
+                          districtId:
+                            getCommonModuleValue(nextPincode ?? ({} as CommonModuleItem), "district_id") ||
+                            current.districtId,
+                          stateId:
+                            getCommonModuleValue(nextPincode ?? ({} as CommonModuleItem), "state_id") ||
+                            current.stateId,
+                          countryId:
+                            getCommonModuleValue(nextPincode ?? ({} as CommonModuleItem), "country_id") ||
+                            current.countryId,
                         }))
-                      }
+                      }}
                       options={filteredPincodeOptions.map((item) => ({
                         value: item.id,
                         label: getCommonModuleLabel(item, "pincodes"),
@@ -1870,13 +2581,28 @@ export function StorefrontCheckoutContent({
                       placeholder="Search postal code"
                       searchPlaceholder="Search postal code"
                       noResultsMessage="No postal code found."
+                      error={addressDialogFieldErrors.pincodeId}
+                      createActionLabel='Create new "Postal code"'
+                      onCreateNew={
+                        customerAuth.isAuthenticated
+                          ? undefined
+                          : (query) => createGuestAddressLookup("pincodes", query)
+                      }
                     />
+                    {addressDialogFieldErrors.pincodeId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.pincodeId}</p>
+                    ) : null}
                   </div>
                 </>
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-address-country">Country</Label>
+                    <Label
+                      htmlFor="delivery-address-country"
+                      className={addressDialogFieldErrors.countryId ? "text-destructive" : undefined}
+                    >
+                      Country
+                    </Label>
                     <Input
                       id="delivery-address-country"
                       value={addressDialogState.country}
@@ -1886,11 +2612,20 @@ export function StorefrontCheckoutContent({
                           country: event.target.value,
                         }))
                       }
+                      aria-invalid={Boolean(addressDialogFieldErrors.countryId)}
                       className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                     />
+                    {addressDialogFieldErrors.countryId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.countryId}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-address-state">State</Label>
+                    <Label
+                      htmlFor="delivery-address-state"
+                      className={addressDialogFieldErrors.stateId ? "text-destructive" : undefined}
+                    >
+                      State
+                    </Label>
                     <Input
                       id="delivery-address-state"
                       value={addressDialogState.state}
@@ -1900,11 +2635,43 @@ export function StorefrontCheckoutContent({
                           state: event.target.value,
                         }))
                       }
+                      aria-invalid={Boolean(addressDialogFieldErrors.stateId)}
                       className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                     />
+                    {addressDialogFieldErrors.stateId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.stateId}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-address-city">City</Label>
+                    <Label
+                      htmlFor="delivery-address-district"
+                      className={addressDialogFieldErrors.districtId ? "text-destructive" : undefined}
+                    >
+                      District
+                    </Label>
+                    <Input
+                      id="delivery-address-district"
+                      value={addressDialogState.district}
+                      onChange={(event) =>
+                        updateAddressDialogState((current) => ({
+                          ...current,
+                          district: event.target.value,
+                        }))
+                      }
+                      aria-invalid={Boolean(addressDialogFieldErrors.districtId)}
+                      className="h-12 rounded-xl border-[#e1d4c6] bg-white"
+                    />
+                    {addressDialogFieldErrors.districtId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.districtId}</p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="delivery-address-city"
+                      className={addressDialogFieldErrors.cityId ? "text-destructive" : undefined}
+                    >
+                      City
+                    </Label>
                     <Input
                       id="delivery-address-city"
                       value={addressDialogState.city}
@@ -1914,11 +2681,20 @@ export function StorefrontCheckoutContent({
                           city: event.target.value,
                         }))
                       }
+                      aria-invalid={Boolean(addressDialogFieldErrors.cityId)}
                       className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                     />
+                    {addressDialogFieldErrors.cityId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.cityId}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-address-pincode">Postal code</Label>
+                    <Label
+                      htmlFor="delivery-address-pincode"
+                      className={addressDialogFieldErrors.pincodeId ? "text-destructive" : undefined}
+                    >
+                      Postal code
+                    </Label>
                     <Input
                       id="delivery-address-pincode"
                       value={addressDialogState.pincode}
@@ -1928,8 +2704,12 @@ export function StorefrontCheckoutContent({
                           pincode: event.target.value,
                         }))
                       }
+                      aria-invalid={Boolean(addressDialogFieldErrors.pincodeId)}
                       className="h-12 rounded-xl border-[#e1d4c6] bg-white"
                     />
+                    {addressDialogFieldErrors.pincodeId ? (
+                      <p className="text-xs text-destructive">{addressDialogFieldErrors.pincodeId}</p>
+                    ) : null}
                   </div>
                 </>
               )}
@@ -1955,7 +2735,7 @@ export function StorefrontCheckoutContent({
             {isLoadingLookups ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
-                Loading country, state, city, and postal lookups.
+                Loading country, state, district, city, and postal lookups.
               </div>
             ) : null}
 
@@ -1984,7 +2764,11 @@ export function StorefrontCheckoutContent({
                 disabled={isSavingAddress || isLoadingLookups}
                 onClick={() => void handleSaveAddress()}
               >
-                {isSavingAddress ? "Saving..." : "Save address"}
+                {isSavingAddress
+                  ? "Saving..."
+                  : editingAddressKey
+                    ? "Update address"
+                    : "Save address"}
               </Button>
             </DialogFooter>
           </div>

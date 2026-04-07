@@ -25,6 +25,7 @@ import {
   storefrontOrderTrackingLookupSchema,
   storefrontPaymentVerificationPayloadSchema,
   type StorefrontSettings,
+  type StorefrontPaymentSession,
   type CustomerAccount,
   type StorefrontOrder,
   type StorefrontOrderTimelineEvent,
@@ -385,12 +386,31 @@ export async function createCheckoutOrder(
     (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
     0
   )
-  const { shippingAmount, handlingAmount } = calculateChargeTotals(
-    chargeInputs,
-    settings,
-    subtotalAmount
-  )
+  const { shippingAmount, handlingAmount } =
+    parsed.fulfillmentMethod === "store_pickup"
+      ? { shippingAmount: 0, handlingAmount: 0 }
+      : calculateChargeTotals(chargeInputs, settings, subtotalAmount)
   const totalAmount = subtotalAmount + shippingAmount + handlingAmount
+  const pickupLocation =
+    parsed.fulfillmentMethod === "store_pickup" && settings.pickupLocation.enabled
+      ? {
+          storeName: settings.pickupLocation.storeName,
+          line1: settings.pickupLocation.line1,
+          line2: settings.pickupLocation.line2,
+          city: settings.pickupLocation.city,
+          state: settings.pickupLocation.state,
+          country: settings.pickupLocation.country,
+          pincode: settings.pickupLocation.pincode,
+          contactPhone: settings.pickupLocation.contactPhone,
+          contactEmail: settings.pickupLocation.contactEmail,
+          pickupNote: settings.pickupLocation.pickupNote,
+        }
+      : null
+
+  if (parsed.fulfillmentMethod === "store_pickup" && !pickupLocation) {
+    throw new ApplicationError("Store pickup is not configured for this storefront.", {}, 409)
+  }
+
   const coreContactId = await resolveCheckoutContactId(
     database,
     customer,
@@ -402,9 +422,17 @@ export async function createCheckoutOrder(
     customerAccountId: customer?.id ?? null,
     coreContactId,
     status: "pending_payment",
-    paymentStatus: "pending",
-    paymentProvider: "razorpay",
-    paymentMode: config.commerce?.razorpay?.enabled ? "live" : "mock",
+    paymentStatus: parsed.paymentMethod === "online" ? "pending" : "pending",
+    paymentProvider: parsed.paymentMethod === "online" ? "razorpay" : "store",
+    paymentMode:
+      parsed.paymentMethod === "online"
+        ? config.commerce?.razorpay?.enabled
+          ? "live"
+          : "mock"
+        : "offline",
+    fulfillmentMethod: parsed.fulfillmentMethod,
+    paymentCollectionMethod: parsed.paymentMethod,
+    pickupLocation,
     providerOrderId: null,
     providerPaymentId: null,
     shippingAddress: parsed.shippingAddress,
@@ -422,20 +450,58 @@ export async function createCheckoutOrder(
       createTimelineEvent(
         "order_created",
         "Order created",
-        "Checkout order was created and is awaiting payment."
+        parsed.fulfillmentMethod === "store_pickup"
+          ? "Checkout order was created and is awaiting pickup confirmation."
+          : "Checkout order was created and is awaiting payment."
       ),
     ],
     createdAt: now,
     updatedAt: now,
   })
 
-  const payment = await createRazorpayPaymentSession(config, order)
-  const nextOrder = storefrontOrderSchema.parse({
-    ...order,
-    paymentMode: payment.mode,
-    providerOrderId: payment.providerOrderId,
-    updatedAt: new Date().toISOString(),
-  })
+  let payment: StorefrontPaymentSession
+  let nextOrder: StorefrontOrder
+
+  if (parsed.paymentMethod === "pay_at_store") {
+    payment = {
+      provider: "offline",
+      mode: "offline",
+      keyId: null,
+      providerOrderId: null,
+      amount: order.totalAmount,
+      currency: order.currency,
+      receipt: order.orderNumber,
+      businessName: settings.pickupLocation.storeName,
+      checkoutImage: null,
+      themeColor: null,
+    }
+    nextOrder = storefrontOrderSchema.parse({
+      ...order,
+      status: "confirmed",
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          "pickup_reserved",
+          "Pickup reserved",
+          "Order is reserved for store pickup. Payment will be collected at the retail store."
+        ),
+        createTimelineEvent(
+          "order_confirmed",
+          "Order confirmed",
+          "The pickup order is confirmed and waiting for store collection."
+        ),
+      ],
+      updatedAt: new Date().toISOString(),
+    })
+  } else {
+    payment = await createRazorpayPaymentSession(config, order)
+    nextOrder = storefrontOrderSchema.parse({
+      ...order,
+      paymentMode: payment.mode,
+      providerOrderId: payment.providerOrderId,
+      updatedAt: new Date().toISOString(),
+    })
+  }
 
   await writeOrders(database, [nextOrder, ...existingOrders])
 

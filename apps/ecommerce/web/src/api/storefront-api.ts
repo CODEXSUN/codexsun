@@ -9,6 +9,7 @@ import type {
   StorefrontSettings,
   StorefrontFooter,
   StorefrontFloatingContact,
+  StorefrontPickupLocation,
   StorefrontCouponBanner,
   StorefrontGiftCorner,
   StorefrontBrandShowcase,
@@ -150,6 +151,19 @@ export const storefrontApi = {
       body: JSON.stringify(payload),
     })
   },
+  getStorefrontPickupLocation(accessToken: string) {
+    return requestJson<StorefrontPickupLocation>("/internal/v1/ecommerce/storefront-pickup-location", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontPickupLocation(accessToken: string, payload: StorefrontPickupLocation) {
+    return requestJson<StorefrontPickupLocation>("/internal/v1/ecommerce/storefront-pickup-location", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
   getStorefrontCouponBanner(accessToken: string) {
     return requestJson<StorefrontCouponBanner>("/internal/v1/ecommerce/storefront-coupon-banner", {
       accessToken,
@@ -242,6 +256,11 @@ export const storefrontApi = {
   getCustomerProfileLookups(accessToken: string) {
     return requestJson<CustomerProfileLookupResponse>("/api/v1/storefront/customers/me/lookups", {
       accessToken,
+      cache: "no-store",
+    })
+  },
+  getGuestCheckoutLookups() {
+    return requestJson<CustomerProfileLookupResponse>("/api/v1/storefront/checkout/lookups", {
       cache: "no-store",
     })
   },

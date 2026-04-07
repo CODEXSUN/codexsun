@@ -2,6 +2,19 @@
 
 ## Done Till Here
 
+### `#36` 2026-04-07
+
+- added storefront pickup support through ecommerce-owned settings, checkout flow updates, order fields, order-detail display, and a dedicated pickup designer route in the ecommerce admin
+- finished checkout address reliability work for guest and authenticated users with shared country/state/district/city/postal-code lookup selection and incomplete-address repair from checkout
+- added explicit live payment recovery in checkout so Razorpay modal dismiss and verification failure can reopen or retry the same pending payment instead of creating duplicate orders
+- added stable Playwright coverage for guest checkout, authenticated checkout, live modal close recovery, and live verification-failure retry, then marked `1.2.2` and `1.2.3` complete in `TASK.md`
+
+### `#35` 2026-04-07
+
+- completed Phase 1 Stage 1.1 of the ecommerce go-live schedule as a planning block
+- added `ASSIST/Planning/phase-1-stage-1-1-release-baseline.md` with the freeze rule, production environment model, domain and SSL baseline, environment ownership, cutover checklist, ownership confirmation, and ordered P0 issue list
+- updated `TASK.md` so Stage 1.1 is marked complete and linked to the new release-baseline document
+
 ### `#34` 2026-04-07
 
 - replaced `ASSIST/Execution/TASK.md` with the full numbered execution schedule derived from `plan-9`

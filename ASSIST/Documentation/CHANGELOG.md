@@ -8,6 +8,19 @@
 
 ## v-0.0.1
 
+### [#36] 2026-04-07 - Pickup support and checkout payment recovery
+
+- added storefront pickup support across ecommerce settings, checkout, order contracts, order detail rendering, and admin routing, including a standalone pickup designer under the ecommerce side menu
+- completed authenticated and guest checkout reliability updates with shared lookup-driven address capture, incomplete-address repair, and stable cart-to-checkout auth coverage
+- hardened live Razorpay recovery in checkout so dismiss and verify-failure paths reuse the same pending payment session instead of creating duplicate orders
+- added deterministic storefront checkout e2e coverage for live modal close, verification failure, and retry recovery flows, then marked `1.2.2` and `1.2.3` complete in `TASK.md`
+
+### [#35] 2026-04-07 - Phase 1 Stage 1.1 release baseline
+
+- completed Phase 1 Stage 1.1 of the ecommerce go-live schedule as a planning and release-governance batch
+- added `ASSIST/Planning/phase-1-stage-1-1-release-baseline.md` covering the freeze rule, production target environment, domain and SSL baseline, environment ownership, release cutover checklist, ownership confirmation, and ordered P0 issue list
+- updated `ASSIST/Execution/TASK.md` so the Stage 1.1 checklist is marked complete and linked to the new baseline document
+
 ### [#34] 2026-04-07 - Plan 9 execution schedule in task sheet
 
 - replaced `ASSIST/Execution/TASK.md` with the full numbered execution schedule derived from `plan-9`
