@@ -28,7 +28,9 @@ import {
 import {
   applyStorefrontAdminOrderAction,
   getStorefrontAdminOrder,
+  getStorefrontFailedPaymentReportDocument,
   getStorefrontAdminOrderOperationsReport,
+  getStorefrontPaymentDailySummaryDocument,
   getStorefrontPaymentOperationsReport,
   requestStorefrontRefund,
   reconcileRazorpayPayments,
@@ -42,6 +44,7 @@ import {
   applyStorefrontCustomerLifecycleAction,
   getStorefrontCustomerAccount,
   getStorefrontCustomerOperationsReport,
+  markStorefrontCustomerSecurityReview,
 } from "../../../ecommerce/src/services/customer-service.js"
 import {
   getStorefrontOrderRequestQueueReport,
@@ -50,7 +53,7 @@ import {
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
-import { jsonResponse } from "../shared/http-responses.js"
+import { jsonResponse, textResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
@@ -377,6 +380,20 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/ecommerce/customer/security-review", {
+      method: "POST",
+      summary: "Mark storefront customer suspicious-login activity as reviewed.",
+      handler: async (context) => {
+        await requireCustomersManage(context)
+
+        return jsonResponse(
+          await markStorefrontCustomerSecurityReview(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
     defineInternalRoute("/ecommerce/orders/report", {
       summary: "Read the ecommerce admin order queue with lifecycle and payment context.",
       handler: async (context) => {
@@ -480,6 +497,41 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontPaymentOperationsReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/daily-summary-export", {
+      summary: "Download the ecommerce daily payment summary export as CSV.",
+      handler: async (context) => {
+        await requirePaymentsManage(context)
+
+        const daysValue = Number(context.request.url.searchParams.get("days") ?? "30")
+        const document = await getStorefrontPaymentDailySummaryDocument(context.databases.primary, {
+          days: Number.isFinite(daysValue) ? daysValue : 30,
+        })
+
+        return textResponse(
+          document.csv,
+          "text/csv; charset=utf-8",
+          200,
+          document.fileName
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/failed-report-export", {
+      summary: "Download the ecommerce failed-payment report as CSV.",
+      handler: async (context) => {
+        await requirePaymentsManage(context)
+
+        const document = await getStorefrontFailedPaymentReportDocument(
+          context.databases.primary
+        )
+
+        return textResponse(
+          document.csv,
+          "text/csv; charset=utf-8",
+          200,
+          document.fileName
         )
       },
     }),

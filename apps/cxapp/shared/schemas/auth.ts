@@ -198,6 +198,7 @@ export const authRegisterOtpRequestPayloadSchema = z.object({
   channel: authOtpChannelSchema,
   destination: z.string().trim().min(1),
   displayName: z.string().trim().min(2).max(120).optional(),
+  actorType: authRegisterActorTypeSchema.default("staff"),
 })
 
 export const authRegisterOtpRequestResponseSchema = z.object({

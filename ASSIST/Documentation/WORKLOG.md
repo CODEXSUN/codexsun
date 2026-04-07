@@ -230,3 +230,10 @@
 - registered the editable grid as a new `table-12` design-system variant inside the shared docs catalog and component-variant metadata
 - added a dedicated data block entry so the UI workspace side menu now exposes the editable table as a reusable block preview
 - updated ASSIST task tracking, planning, and changelog for the new shared UI batch
+
+### `#55` 2026-04-07
+
+- completed Stage `2.3.5` by adding customer email verification state, storefront OTP registration flow, suspicious-login review state, and admin customer security review actions
+- completed Stage `2.4.1` by adding daily payment summary CSV export to the ecommerce payments operations screen
+- completed Stage `2.4.2` by adding failed-payment CSV export to the same payments operations screen
+- validated the batch with `npm run typecheck` and targeted `tsx` tests for ecommerce services and internal routes

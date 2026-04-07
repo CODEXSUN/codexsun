@@ -16,6 +16,12 @@ type StorefrontCustomerAuthContextValue = {
   accessToken: string | null
   customer: CustomerProfile | null
   login: (payload: { email: string; password: string }) => Promise<void>
+  requestRegisterOtp: (payload: { email: string; displayName: string }) => Promise<{
+    verificationId: string
+    debugOtp: string | null
+    expiresAt: string
+  }>
+  verifyRegisterOtp: (payload: { verificationId: string; otp: string }) => Promise<void>
   register: (payload: CustomerRegisterPayload) => Promise<void>
   logout: () => Promise<void>
   refresh: () => Promise<void>
@@ -83,6 +89,16 @@ export function useStorefrontCustomerAuth(): StorefrontCustomerAuthContextValue 
           password: payload.password,
         })
       },
+      requestRegisterOtp: async (payload) =>
+        auth.requestRegisterOtp({
+          channel: "email",
+          actorType: "customer",
+          destination: payload.email.trim().toLowerCase(),
+          displayName: payload.displayName.trim(),
+        }),
+      verifyRegisterOtp: async (payload) => {
+        await auth.verifyRegisterOtp(payload)
+      },
       register: async (payload) => {
         await storefrontApi.registerCustomer(payload)
         await auth.login({
@@ -113,6 +129,8 @@ export function useStorefrontCustomerAuth(): StorefrontCustomerAuthContextValue 
       auth.isLoading,
       auth.login,
       auth.logout,
+      auth.requestRegisterOtp,
+      auth.verifyRegisterOtp,
       customer,
       isPortalUser,
       isProfileLoading,

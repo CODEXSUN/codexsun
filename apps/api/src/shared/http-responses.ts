@@ -28,3 +28,21 @@ export function htmlResponse(
     body,
   }
 }
+
+export function textResponse(
+  body: string,
+  contentType: string,
+  statusCode = 200,
+  fileName?: string | null
+): HttpRouteResponse {
+  return {
+    statusCode,
+    headers: {
+      "content-type": contentType,
+      ...(fileName
+        ? { "content-disposition": `attachment; filename="${fileName}"` }
+        : {}),
+    },
+    body,
+  }
+}

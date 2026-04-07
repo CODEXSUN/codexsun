@@ -358,6 +358,37 @@ export const storefrontPaymentOperationsReportSchema = z.object({
   refundQueue: z.array(storefrontRefundQueueItemSchema),
 })
 
+export const storefrontPaymentDailySummaryItemSchema = z.object({
+  day: z.string().min(1),
+  currency: z.string().min(1),
+  orderCount: z.number().int().min(0),
+  paidCount: z.number().int().min(0),
+  failedCount: z.number().int().min(0),
+  pendingCount: z.number().int().min(0),
+  refundedCount: z.number().int().min(0),
+  grossAmount: z.number().finite().nonnegative(),
+  paidAmount: z.number().finite().nonnegative(),
+  failedAmount: z.number().finite().nonnegative(),
+  pendingAmount: z.number().finite().nonnegative(),
+  refundedAmount: z.number().finite().nonnegative(),
+})
+
+export const storefrontPaymentDailySummaryReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  days: z.number().int().min(1),
+  items: z.array(storefrontPaymentDailySummaryItemSchema),
+})
+
+export const storefrontPaymentDailySummaryDocumentSchema = z.object({
+  fileName: z.string().min(1),
+  csv: z.string().min(1),
+})
+
+export const storefrontFailedPaymentReportDocumentSchema = z.object({
+  fileName: z.string().min(1),
+  csv: z.string().min(1),
+})
+
 export const storefrontAdminOrderQueueBucketSchema = z.enum([
   "payment_attention",
   "fulfilment",
@@ -674,6 +705,18 @@ export type StorefrontRefundStatusUpdatePayload = z.infer<
 >
 export type StorefrontPaymentOperationsReport = z.infer<
   typeof storefrontPaymentOperationsReportSchema
+>
+export type StorefrontPaymentDailySummaryItem = z.infer<
+  typeof storefrontPaymentDailySummaryItemSchema
+>
+export type StorefrontPaymentDailySummaryReport = z.infer<
+  typeof storefrontPaymentDailySummaryReportSchema
+>
+export type StorefrontPaymentDailySummaryDocument = z.infer<
+  typeof storefrontPaymentDailySummaryDocumentSchema
+>
+export type StorefrontFailedPaymentReportDocument = z.infer<
+  typeof storefrontFailedPaymentReportDocumentSchema
 >
 export type StorefrontAdminOrderQueueBucket = z.infer<
   typeof storefrontAdminOrderQueueBucketSchema

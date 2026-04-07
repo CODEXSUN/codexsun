@@ -168,6 +168,9 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("POST /internal/v1/ecommerce/payments/refund-request"))
   assert.ok(routePaths.includes("POST /internal/v1/ecommerce/payments/refund-status"))
   assert.ok(routePaths.includes("GET /internal/v1/ecommerce/payments/report"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/payments/daily-summary-export"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/payments/failed-report-export"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/customer/security-review"))
 })
 
 test("authenticated core runtime settings routes read and save env-backed settings", async () => {

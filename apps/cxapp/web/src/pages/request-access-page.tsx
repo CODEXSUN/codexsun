@@ -42,6 +42,7 @@ export function RequestAccessPage() {
     try {
       const response = await auth.requestRegisterOtp({
         channel: "email",
+        actorType: "staff",
         destination: form.email.trim().toLowerCase(),
         displayName: form.name.trim(),
       })
@@ -68,6 +69,7 @@ export function RequestAccessPage() {
       try {
         const response = await auth.requestRegisterOtp({
           channel: "email",
+          actorType: "staff",
           destination: form.email.trim().toLowerCase(),
           displayName: form.name.trim(),
         })

@@ -22,6 +22,16 @@ export const customerLifecycleStateSchema = z.enum([
   "anonymized",
 ])
 
+export const storefrontCustomerSuspiciousLoginEventSchema = z.object({
+  id: z.string().min(1),
+  action: z.enum(["login_failed", "login_locked", "login_blocked", "session_rejected"]),
+  level: z.enum(["info", "warn", "error"]),
+  message: z.string().min(1),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  createdAt: z.string().min(1),
+})
+
 export const customerAccountSchema = z.object({
   id: z.string().min(1),
   authUserId: z.string().min(1).nullable().default(null),
@@ -37,6 +47,9 @@ export const customerAccountSchema = z.object({
   blockedAt: z.string().nullable().default(null),
   deletedAt: z.string().nullable().default(null),
   anonymizedAt: z.string().nullable().default(null),
+  emailVerifiedAt: z.string().nullable().default(null),
+  suspiciousLoginReviewedAt: z.string().nullable().default(null),
+  suspiciousLoginReviewNote: z.string().nullable().default(null),
   lastLoginAt: z.string().nullable(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -62,6 +75,7 @@ export const customerProfileSchema = z.object({
   blockedAt: z.string().nullable().default(null),
   deletedAt: z.string().nullable().default(null),
   anonymizedAt: z.string().nullable().default(null),
+  emailVerifiedAt: z.string().nullable().default(null),
   addresses: z.array(contactAddressSchema),
   emails: z.array(contactEmailSchema),
   phones: z.array(contactPhoneSchema),
@@ -172,10 +186,15 @@ export const storefrontCustomerAdminViewSchema = z.object({
   blockedAt: z.string().nullable(),
   deletedAt: z.string().nullable(),
   anonymizedAt: z.string().nullable(),
+  emailVerifiedAt: z.string().nullable(),
   lastLoginAt: z.string().nullable(),
   orderCount: z.number().int().min(0),
   supportCaseCount: z.number().int().min(0),
   requestCount: z.number().int().min(0),
+  suspiciousLoginOpenCount: z.number().int().min(0),
+  latestSuspiciousLoginAt: z.string().nullable(),
+  suspiciousLoginReviewedAt: z.string().nullable(),
+  suspiciousLoginReviewNote: z.string().nullable(),
   lastOrderAt: z.string().nullable(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -189,6 +208,8 @@ export const storefrontCustomerAdminReportSchema = z.object({
     blockedCount: z.number().int().min(0),
     deletedCount: z.number().int().min(0),
     anonymizedCount: z.number().int().min(0),
+    verifiedCount: z.number().int().min(0),
+    suspiciousReviewCount: z.number().int().min(0),
   }),
   items: z.array(storefrontCustomerAdminViewSchema),
 })
@@ -208,6 +229,12 @@ export const storefrontCustomerLifecycleActionPayloadSchema = z.object({
 
 export const storefrontCustomerAdminResponseSchema = z.object({
   item: storefrontCustomerAdminViewSchema,
+  suspiciousLoginEvents: z.array(storefrontCustomerSuspiciousLoginEventSchema),
+})
+
+export const storefrontCustomerSecurityReviewPayloadSchema = z.object({
+  customerAccountId: z.string().min(1),
+  note: z.string().trim().nullable().optional().default(null),
 })
 
 export const customerWishlistTogglePayloadSchema = z.object({
@@ -222,6 +249,7 @@ export const customerRegisterPayloadSchema = z.object({
   email: z.email(),
   phoneNumber: z.string().trim().min(6),
   password: z.string().min(8),
+  emailVerificationId: z.string().trim().min(1),
   companyName: z.string().trim().nullable().optional().default(null),
   gstin: z.string().trim().nullable().optional().default(null),
   addressLine1: z.string().trim().min(3),
@@ -263,6 +291,9 @@ export type CustomerPortalRecord = z.infer<typeof customerPortalRecordSchema>
 export type CustomerPortalStats = z.infer<typeof customerPortalStatsSchema>
 export type CustomerPortalResponse = z.infer<typeof customerPortalResponseSchema>
 export type CustomerLifecycleState = z.infer<typeof customerLifecycleStateSchema>
+export type StorefrontCustomerSuspiciousLoginEvent = z.infer<
+  typeof storefrontCustomerSuspiciousLoginEventSchema
+>
 export type StorefrontCustomerAdminView = z.infer<typeof storefrontCustomerAdminViewSchema>
 export type StorefrontCustomerAdminReport = z.infer<typeof storefrontCustomerAdminReportSchema>
 export type StorefrontCustomerLifecycleAction = z.infer<
@@ -273,6 +304,9 @@ export type StorefrontCustomerLifecycleActionPayload = z.infer<
 >
 export type StorefrontCustomerAdminResponse = z.infer<
   typeof storefrontCustomerAdminResponseSchema
+>
+export type StorefrontCustomerSecurityReviewPayload = z.infer<
+  typeof storefrontCustomerSecurityReviewPayloadSchema
 >
 export type CustomerRegisterPayload = z.infer<typeof customerRegisterPayloadSchema>
 export type CustomerLoginPayload = z.infer<typeof customerLoginPayloadSchema>

@@ -18,7 +18,9 @@ import {
   applyStorefrontCustomerLifecycleAction,
   getAuthenticatedCustomer,
   getAuthenticatedCustomerPortal,
+  getStorefrontCustomerAccount,
   getStorefrontCustomerOperationsReport,
+  markStorefrontCustomerSecurityReview,
   registerCustomer,
   toggleCustomerWishlistItem,
   updateCustomerPortalPreferences,
@@ -54,6 +56,8 @@ import {
   getStorefrontAdminOrder,
   getStorefrontAdminOrderOperationsReport,
   getCustomerOrderReceiptDocument,
+  getStorefrontFailedPaymentReportDocument,
+  getStorefrontPaymentDailySummaryDocument,
   getStorefrontPaymentOperationsReport,
   handleRazorpayWebhook,
   listCustomerOrders,
@@ -72,6 +76,44 @@ import {
 } from "../../apps/framework/src/runtime/database/index.js"
 import { getMonitoringDashboard } from "../../apps/framework/src/runtime/monitoring/monitoring-service.js"
 import { replaceJsonStoreRecords } from "../../apps/framework/src/runtime/database/process/json-store.js"
+
+async function registerVerifiedCustomer(
+  runtime: ReturnType<typeof createRuntimeDatabases>,
+  config: ReturnType<typeof getServerConfig>,
+  payload: Omit<
+    Parameters<typeof registerCustomer>[2] extends infer T ? T & Record<string, unknown> : never,
+    "emailVerificationId"
+  >
+) {
+  const authService = createAuthService(runtime.primary, config)
+  const previousEmailEnabled = config.notifications.email.enabled
+  const previousOtpDebug = config.auth.otpDebug
+
+  config.notifications.email.enabled = false
+  config.auth.otpDebug = true
+
+  try {
+    const verification = await authService.requestRegisterOtp({
+      channel: "email",
+      actorType: "customer",
+      destination: String(payload.email ?? ""),
+      displayName: String(payload.displayName ?? ""),
+    })
+
+    await authService.verifyRegisterOtp({
+      verificationId: verification.verificationId,
+      otp: verification.debugOtp ?? "000000",
+    })
+
+    return registerCustomer(runtime.primary, config, {
+      ...payload,
+      emailVerificationId: verification.verificationId,
+    })
+  } finally {
+    config.notifications.email.enabled = previousEmailEnabled
+    config.auth.otpDebug = previousOtpDebug
+  }
+}
 
 test("ecommerce storefront supports customer registration, mock checkout, portal orders, and public tracking", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-services-"))
@@ -226,7 +268,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         defaultStorefrontSettings.homeSlider.slides.length
       )
 
-      const registration = await registerCustomer(runtime.primary, config, {
+      const registration = await registerVerifiedCustomer(runtime, config, {
         displayName: "Asha Raman",
         email: "asha@codexsun.local",
         phoneNumber: "+91 98888 77777",
@@ -538,7 +580,7 @@ test("storefront customer support cases link portal requests to orders and admin
 
       assert.ok(productId)
 
-      await registerCustomer(runtime.primary, config, {
+      await registerVerifiedCustomer(runtime, config, {
         displayName: "Support Customer",
         email: "support@codexsun.local",
         phoneNumber: "+91 97777 22222",
@@ -681,7 +723,7 @@ test("customer cancellation and return requests flow through review and order op
 
       assert.ok(productId)
 
-      await registerCustomer(runtime.primary, config, {
+      await registerVerifiedCustomer(runtime, config, {
         displayName: "Request Customer",
         email: "requests@codexsun.local",
         phoneNumber: "+91 96666 22222",
@@ -1384,6 +1426,167 @@ test("payment operations report groups settlement queue and payment exceptions",
   }
 })
 
+test("daily payment summary export returns grouped csv output for finance ops", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-payment-summary-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const checkout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Daily Summary Customer",
+          email: "daily-summary@codexsun.local",
+          phoneNumber: "+919999999991",
+          line1: "9 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Daily Summary Customer",
+          email: "daily-summary@codexsun.local",
+          phoneNumber: "+919999999991",
+          line1: "9 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const paid = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: checkout.order.id,
+        providerOrderId: checkout.payment.providerOrderId,
+        providerPaymentId: "pay_daily_summary_001",
+        signature: "mock_signature",
+      })
+
+      const document = await getStorefrontPaymentDailySummaryDocument(runtime.primary, {
+        days: 30,
+      })
+
+      assert.match(document.fileName, /storefront-payment-daily-summary-/)
+      assert.match(document.csv, /day,currency,order_count/)
+      assert.match(document.csv, /INR/)
+      assert.match(document.csv, new RegExp(paid.item.totalAmount.toFixed(2).replace(".", "\\.")))
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("failed-payment report export returns csv rows for payment exceptions", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-failed-payment-report-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const checkout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Failed Payment Customer",
+          email: "failed-report@codexsun.local",
+          phoneNumber: "+919999999990",
+          line1: "10 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Failed Payment Customer",
+          email: "failed-report@codexsun.local",
+          phoneNumber: "+919999999990",
+          line1: "10 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const livePendingOrder = {
+        ...checkout.order,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        paymentStatus: "failed" as const,
+        status: "payment_pending" as const,
+        providerOrderId: "order_failed_report_001",
+        providerPaymentId: "pay_failed_report_001",
+        timeline: [
+          ...checkout.order.timeline,
+          {
+            id: "timeline:failed-report",
+            code: "payment_failed",
+            label: "Payment failed",
+            summary: "Gateway declined the payment during testing.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }
+
+      await replaceJsonStoreRecords(runtime.primary, ecommerceTableNames.orders, [
+        {
+          id: livePendingOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 1,
+          payload: livePendingOrder,
+          createdAt: livePendingOrder.createdAt,
+          updatedAt: livePendingOrder.updatedAt,
+        },
+      ])
+
+      const document = await getStorefrontFailedPaymentReportDocument(runtime.primary)
+
+      assert.match(document.fileName, /storefront-failed-payments-/)
+      assert.match(document.csv, /order_number,order_status,payment_status/)
+      assert.match(document.csv, /ECM-/)
+      assert.match(document.csv, /failed-report@codexsun\.local/)
+      assert.match(document.csv, /pay_failed_report_001/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("refund initiation records refund metadata and refund webhook completes it", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-refund-model-"))
 
@@ -1757,7 +1960,7 @@ test("customer communication history only returns messages for the authenticated
     try {
       await prepareApplicationDatabase(runtime)
 
-      await registerCustomer(runtime.primary, config, {
+      await registerVerifiedCustomer(runtime, config, {
         displayName: "Portal Comms",
         email: "portal-comms@codexsun.local",
         phoneNumber: "+919999999994",
@@ -1772,7 +1975,7 @@ test("customer communication history only returns messages for the authenticated
         pincode: "600001",
       })
 
-      await registerCustomer(runtime.primary, config, {
+      await registerVerifiedCustomer(runtime, config, {
         displayName: "Other Customer",
         email: "other-comms@codexsun.local",
         phoneNumber: "+919999999995",
@@ -1928,7 +2131,7 @@ test("customer lifecycle actions block portal access and anonymize retained cust
     try {
       await prepareApplicationDatabase(runtime)
 
-      await registerCustomer(runtime.primary, config, {
+      await registerVerifiedCustomer(runtime, config, {
         displayName: "Lifecycle Customer",
         email: "lifecycle@codexsun.local",
         phoneNumber: "+919999999996",
@@ -1991,6 +2194,85 @@ test("customer lifecycle actions block portal access and anonymize retained cust
       assert.equal(anonymized.item.lifecycleState, "anonymized")
       assert.match(anonymized.item.email, /redacted\.local$/)
       assert.match(anonymized.item.displayName, /Anonymized Customer/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("customer registration stores verified email state and suspicious login events can be reviewed", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-customer-security-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+    config.notifications.email.enabled = false
+    config.auth.otpDebug = true
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await registerVerifiedCustomer(runtime, config, {
+        displayName: "Security Customer",
+        email: "security@codexsun.local",
+        phoneNumber: "+919999999997",
+        password: "Password@123",
+        companyName: "",
+        gstin: "",
+        addressLine1: "17 Secure Street",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      const authService = createAuthService(runtime.primary, config)
+      await assert.rejects(
+        () =>
+          authService.login(
+            {
+              email: "security@codexsun.local",
+              password: "WrongPassword@123",
+            },
+            {
+              ipAddress: "127.0.0.9",
+              userAgent: "node:test suspicious login",
+            }
+          ),
+        /Invalid credentials/
+      )
+
+      const report = await getStorefrontCustomerOperationsReport(runtime.primary)
+      const customer = report.items.find((item) => item.email === "security@codexsun.local")
+
+      assert.ok(customer)
+      assert.ok(customer?.emailVerifiedAt)
+      assert.equal(customer?.suspiciousLoginOpenCount, 1)
+
+      const detail = await getStorefrontCustomerAccount(runtime.primary, customer!.id)
+
+      assert.equal(detail.suspiciousLoginEvents.length, 1)
+      assert.equal(detail.suspiciousLoginEvents[0]?.action, "login_failed")
+
+      const reviewed = await markStorefrontCustomerSecurityReview(runtime.primary, {
+        customerAccountId: customer!.id,
+        note: "Customer mistyped the password once and confirmed identity.",
+      })
+
+      assert.ok(reviewed.item.suspiciousLoginReviewedAt)
+      assert.equal(reviewed.item.suspiciousLoginOpenCount, 0)
+      assert.equal(
+        reviewed.item.suspiciousLoginReviewNote,
+        "Customer mistyped the password once and confirmed identity."
+      )
     } finally {
       await runtime.destroy()
     }

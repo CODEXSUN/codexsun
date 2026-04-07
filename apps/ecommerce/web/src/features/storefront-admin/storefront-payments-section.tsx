@@ -344,10 +344,19 @@ export function StorefrontPaymentsSection() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isReconciling, setIsReconciling] = useState(false)
+  const [isExportingSummary, setIsExportingSummary] = useState(false)
+  const [isExportingFailedPayments, setIsExportingFailedPayments] = useState(false)
   const [reconcilingOrderId, setReconcilingOrderId] = useState<string | null>(null)
   const [refundSearchTerm, setRefundSearchTerm] = useState("")
   const [updatingRefundOrderId, setUpdatingRefundOrderId] = useState<string | null>(null)
-  useGlobalLoading(isLoading || isReconciling || Boolean(reconcilingOrderId) || Boolean(updatingRefundOrderId))
+  useGlobalLoading(
+      isLoading ||
+      isReconciling ||
+      isExportingSummary ||
+      isExportingFailedPayments ||
+      Boolean(reconcilingOrderId) ||
+      Boolean(updatingRefundOrderId)
+  )
 
   async function loadReport() {
     setIsLoading(true)
@@ -406,6 +415,86 @@ export function StorefrontPaymentsSection() {
       })
     } finally {
       setIsReconciling(false)
+    }
+  }
+
+  async function handleExportDailySummary() {
+    setIsExportingSummary(true)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const document = await storefrontApi.downloadPaymentsDailySummary(accessToken, 30)
+      const href = window.URL.createObjectURL(document.blob)
+      const anchor = window.document.createElement("a")
+      anchor.href = href
+      anchor.download = document.fileName
+      anchor.click()
+      window.URL.revokeObjectURL(href)
+
+      showRecordToast({
+        entity: "Daily payment summary",
+        action: "exported",
+        recordName: document.fileName,
+      })
+    } catch (exportError) {
+      const message =
+        exportError instanceof Error
+          ? exportError.message
+          : "Failed to export the daily payment summary."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Daily payment summary export failed.",
+        description: message,
+      })
+    } finally {
+      setIsExportingSummary(false)
+    }
+  }
+
+  async function handleExportFailedPayments() {
+    setIsExportingFailedPayments(true)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const document = await storefrontApi.downloadFailedPaymentsReport(accessToken)
+      const href = window.URL.createObjectURL(document.blob)
+      const anchor = window.document.createElement("a")
+      anchor.href = href
+      anchor.download = document.fileName
+      anchor.click()
+      window.URL.revokeObjectURL(href)
+
+      showRecordToast({
+        entity: "Failed-payment report",
+        action: "exported",
+        recordName: document.fileName,
+      })
+    } catch (exportError) {
+      const message =
+        exportError instanceof Error
+          ? exportError.message
+          : "Failed to export the failed-payment report."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Failed-payment export failed.",
+        description: message,
+      })
+    } finally {
+      setIsExportingFailedPayments(false)
     }
   }
 
@@ -620,6 +709,26 @@ export function StorefrontPaymentsSection() {
               <Button type="button" variant="outline" className="gap-2" onClick={() => void loadReport()}>
                 <RefreshCw className="size-4" />
                 Refresh report
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => void handleExportDailySummary()}
+                disabled={isExportingSummary}
+              >
+                <Wallet className="size-4" />
+                {isExportingSummary ? "Exporting..." : "Export daily summary"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => void handleExportFailedPayments()}
+                disabled={isExportingFailedPayments}
+              >
+                <AlertTriangle className="size-4" />
+                {isExportingFailedPayments ? "Exporting..." : "Export failed payments"}
               </Button>
               <Button type="button" className="gap-2" onClick={() => void handleReconcile()} disabled={isReconciling}>
                 <RefreshCw className={`size-4 ${isReconciling ? "animate-spin" : ""}`} />

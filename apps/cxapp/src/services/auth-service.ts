@@ -430,7 +430,7 @@ export class AuthService {
 
     await this.repository.deactivatePendingContactVerifications({
       purpose: "workspace_registration",
-      actorType: "staff",
+      actorType: parsedPayload.actorType,
       channel: parsedPayload.channel,
       destination,
     })
@@ -438,7 +438,7 @@ export class AuthService {
     const verification = await this.repository.createContactVerification({
       id: randomUUID(),
       purpose: "workspace_registration",
-      actorType: "staff",
+      actorType: parsedPayload.actorType,
       channel: parsedPayload.channel,
       destination,
       otpHash,
@@ -611,6 +611,18 @@ export class AuthService {
       roleKeys: [this.resolveDefaultPortalRoleKey(input.actorType)],
       isSuperAdmin: false,
     })
+  }
+
+  async assertVerifiedRegistrationEmail(verificationId: string, email: string) {
+    const verification = await this.repository.getContactVerification(verificationId)
+    this.assertVerifiedRegistrationContact(
+      verification,
+      email.trim().toLowerCase()
+    )
+  }
+
+  async consumeVerifiedRegistrationEmail(verificationId: string) {
+    await this.repository.consumeContactVerification(verificationId)
   }
 
   async login(

@@ -402,3 +402,10 @@
 ### [#1] 2026-03-29 - Repository initialization
 
 - initialized the repository and the first ASSIST documentation baseline
+
+### [#55] 2026-04-07 - Customer verification and payment reporting exports
+
+- completed ecommerce customer email verification with OTP-gated storefront registration, verified-email state, and suspicious-login review handling in the admin customer operations surface
+- extended auth OTP registration to support customer actor flows without duplicating the existing verification system
+- added finance-facing ecommerce payment exports for daily payment summary and failed-payment reporting, both downloadable from the existing admin payments operations screen
+- added backend CSV export routes, typed document contracts, and targeted service plus route coverage for the new reporting and customer-security flows

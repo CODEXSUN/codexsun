@@ -26,6 +26,9 @@ import {
   storefrontOrderResponseSchema,
   storefrontOrderSchema,
   storefrontPaymentOperationsReportSchema,
+  storefrontPaymentDailySummaryDocumentSchema,
+  storefrontPaymentDailySummaryReportSchema,
+  storefrontFailedPaymentReportDocumentSchema,
   storefrontRefundStatusUpdatePayloadSchema,
   storefrontOrderTrackingLookupSchema,
   storefrontRefundRequestPayloadSchema,
@@ -35,6 +38,7 @@ import {
   storefrontPaymentVerificationPayloadSchema,
   type StorefrontSettings,
   type StorefrontPaymentSession,
+  type StorefrontPaymentDailySummaryItem,
   type StorefrontRefundRecord,
   type CustomerAccount,
   type StorefrontAdminOrderActionPayload,
@@ -1772,6 +1776,109 @@ function buildOrderQueueItem(order: StorefrontOrder): StorefrontAdminOrderQueueI
   }
 }
 
+function formatBusinessDay(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10)
+  }
+
+  return date.toISOString().slice(0, 10)
+}
+
+function resolveDailyPaymentSummaryDay(order: StorefrontOrder) {
+  if (order.refund?.completedAt) {
+    return formatBusinessDay(order.refund.completedAt)
+  }
+
+  const paymentCapturedEvent = order.timeline.find((entry) => entry.code === "payment_captured")
+  if (paymentCapturedEvent?.createdAt) {
+    return formatBusinessDay(paymentCapturedEvent.createdAt)
+  }
+
+  const paymentFailedEvent = [...order.timeline]
+    .reverse()
+    .find((entry) => entry.code === "payment_failed")
+  if (paymentFailedEvent?.createdAt) {
+    return formatBusinessDay(paymentFailedEvent.createdAt)
+  }
+
+  return formatBusinessDay(order.createdAt)
+}
+
+function buildPaymentDailySummaryItems(
+  orders: StorefrontOrder[],
+  days: number
+): StorefrontPaymentDailySummaryItem[] {
+  const now = Date.now()
+  const dayWindowMs = Math.max(1, days) * 24 * 60 * 60 * 1000
+  const rows = new Map<string, StorefrontPaymentDailySummaryItem>()
+
+  for (const order of orders) {
+    if (order.paymentProvider !== "razorpay") {
+      continue
+    }
+
+    const day = resolveDailyPaymentSummaryDay(order)
+    const dayTimestamp = new Date(`${day}T00:00:00.000Z`).getTime()
+
+    if (Number.isFinite(dayTimestamp) && now - dayTimestamp > dayWindowMs) {
+      continue
+    }
+
+    const rowKey = `${day}:${order.currency}`
+    const existing =
+      rows.get(rowKey) ??
+      storefrontPaymentDailySummaryReportSchema.shape.items.element.parse({
+        day,
+        currency: order.currency,
+        orderCount: 0,
+        paidCount: 0,
+        failedCount: 0,
+        pendingCount: 0,
+        refundedCount: 0,
+        grossAmount: 0,
+        paidAmount: 0,
+        failedAmount: 0,
+        pendingAmount: 0,
+        refundedAmount: 0,
+      })
+
+    existing.orderCount += 1
+    existing.grossAmount += order.totalAmount
+
+    if (order.paymentStatus === "paid") {
+      existing.paidCount += 1
+      existing.paidAmount += order.totalAmount
+    } else if (order.paymentStatus === "failed") {
+      existing.failedCount += 1
+      existing.failedAmount += order.totalAmount
+    } else if (order.paymentStatus === "pending") {
+      existing.pendingCount += 1
+      existing.pendingAmount += order.totalAmount
+    } else if (order.paymentStatus === "refunded") {
+      existing.refundedCount += 1
+      existing.refundedAmount += order.totalAmount
+    }
+
+    rows.set(rowKey, existing)
+  }
+
+  return [...rows.values()].sort((left, right) => {
+    const byDay = right.day.localeCompare(left.day)
+    return byDay !== 0 ? byDay : left.currency.localeCompare(right.currency)
+  })
+}
+
+function escapeCsvCell(value: string | number) {
+  const stringValue = String(value)
+  if (!/[",\n]/.test(stringValue)) {
+    return stringValue
+  }
+
+  return `"${stringValue.replaceAll('"', '""')}"`
+}
+
 export async function getStorefrontPaymentOperationsReport(
   database: Kysely<unknown>
 ) {
@@ -1844,6 +1951,112 @@ export async function getStorefrontPaymentOperationsReport(
     failedPayments,
     webhookExceptions,
     refundQueue,
+  })
+}
+
+export async function getStorefrontPaymentDailySummaryReport(
+  database: Kysely<unknown>,
+  input: { days?: number } = {}
+) {
+  const days = Math.max(1, Math.min(90, input.days ?? 30))
+  const orders = await readOrders(database)
+  const items = buildPaymentDailySummaryItems(orders, days)
+
+  return storefrontPaymentDailySummaryReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    days,
+    items,
+  })
+}
+
+export async function getStorefrontPaymentDailySummaryDocument(
+  database: Kysely<unknown>,
+  input: { days?: number } = {}
+) {
+  const report = await getStorefrontPaymentDailySummaryReport(database, input)
+  const lines = [
+    [
+      "day",
+      "currency",
+      "order_count",
+      "paid_count",
+      "failed_count",
+      "pending_count",
+      "refunded_count",
+      "gross_amount",
+      "paid_amount",
+      "failed_amount",
+      "pending_amount",
+      "refunded_amount",
+    ].join(","),
+    ...report.items.map((item) =>
+      [
+        item.day,
+        item.currency,
+        item.orderCount,
+        item.paidCount,
+        item.failedCount,
+        item.pendingCount,
+        item.refundedCount,
+        item.grossAmount.toFixed(2),
+        item.paidAmount.toFixed(2),
+        item.failedAmount.toFixed(2),
+        item.pendingAmount.toFixed(2),
+        item.refundedAmount.toFixed(2),
+      ]
+        .map(escapeCsvCell)
+        .join(",")
+    ),
+  ]
+
+  return storefrontPaymentDailySummaryDocumentSchema.parse({
+    fileName: `storefront-payment-daily-summary-${report.generatedAt.slice(0, 10)}.csv`,
+    csv: lines.join("\n"),
+  })
+}
+
+export async function getStorefrontFailedPaymentReportDocument(database: Kysely<unknown>) {
+  const report = await getStorefrontPaymentOperationsReport(database)
+  const lines = [
+    [
+      "order_number",
+      "order_status",
+      "payment_status",
+      "customer_name",
+      "customer_email",
+      "currency",
+      "total_amount",
+      "provider_order_id",
+      "provider_payment_id",
+      "last_attempt_at",
+      "created_at",
+      "updated_at",
+      "summary",
+    ].join(","),
+    ...report.failedPayments.map((item) =>
+      [
+        item.orderNumber,
+        item.orderStatus,
+        item.paymentStatus,
+        item.customerName,
+        item.customerEmail,
+        item.currency,
+        item.totalAmount.toFixed(2),
+        item.providerOrderId ?? "",
+        item.providerPaymentId ?? "",
+        item.lastAttemptAt ?? "",
+        item.createdAt,
+        item.updatedAt,
+        item.summary,
+      ]
+        .map(escapeCsvCell)
+        .join(",")
+    ),
+  ]
+
+  return storefrontFailedPaymentReportDocumentSchema.parse({
+    fileName: `storefront-failed-payments-${new Date().toISOString().slice(0, 10)}.csv`,
+    csv: lines.join("\n"),
   })
 }
 

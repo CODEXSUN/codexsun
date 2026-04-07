@@ -2,6 +2,7 @@ import { RefreshCw, Search, ShieldAlert, Users } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import type {
+  StorefrontCustomerAdminResponse,
   StorefrontCustomerAdminReport,
   StorefrontCustomerAdminView,
 } from "@ecommerce/shared"
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -78,6 +80,37 @@ function LifecycleBadge({ state }: { state: StorefrontCustomerAdminView["lifecyc
   )
 }
 
+function VerificationBadge({ verifiedAt }: { verifiedAt: string | null }) {
+  return (
+    <Badge
+      variant="outline"
+      className={
+        verifiedAt
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-700"
+      }
+    >
+      {verifiedAt ? "email verified" : "email pending"}
+    </Badge>
+  )
+}
+
+function SecurityBadge({ openCount }: { openCount: number }) {
+  if (openCount <= 0) {
+    return (
+      <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700">
+        security clear
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700">
+      {openCount} suspicious event{openCount > 1 ? "s" : ""}
+    </Badge>
+  )
+}
+
 export function StorefrontCustomersSection() {
   const [report, setReport] = useState<StorefrontCustomerAdminReport | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -85,8 +118,9 @@ export function StorefrontCustomersSection() {
   const [searchValue, setSearchValue] = useState("")
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilterValue>("all")
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
-  const [selectedCustomer, setSelectedCustomer] = useState<StorefrontCustomerAdminView | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<StorefrontCustomerAdminResponse | null>(null)
   const [lifecycleNote, setLifecycleNote] = useState("")
+  const [securityReviewNote, setSecurityReviewNote] = useState("")
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   useGlobalLoading(isLoading || Boolean(pendingAction))
 
@@ -112,11 +146,13 @@ export function StorefrontCustomersSection() {
       setSelectedCustomerId(nextSelectedId)
       if (nextSelectedId) {
         const response = await storefrontApi.getCustomerAccount(accessToken, nextSelectedId)
-        setSelectedCustomer(response.item)
+        setSelectedCustomer(response)
         setLifecycleNote(response.item.lifecycleNote ?? "")
+        setSecurityReviewNote(response.item.suspiciousLoginReviewNote ?? "")
       } else {
         setSelectedCustomer(null)
         setLifecycleNote("")
+        setSecurityReviewNote("")
       }
     } catch (loadError) {
       setError(
@@ -144,8 +180,9 @@ export function StorefrontCustomersSection() {
       }
 
       const response = await storefrontApi.getCustomerAccount(accessToken, customerAccountId)
-      setSelectedCustomer(response.item)
+      setSelectedCustomer(response)
       setLifecycleNote(response.item.lifecycleNote ?? "")
+      setSecurityReviewNote(response.item.suspiciousLoginReviewNote ?? "")
     } catch (loadError) {
       showAppToast({
         variant: "error",
@@ -176,7 +213,7 @@ export function StorefrontCustomersSection() {
   async function handleLifecycleAction(
     action: "activate" | "block" | "mark_deleted" | "anonymize"
   ) {
-    if (!selectedCustomer) {
+    if (!selectedCustomer?.item) {
       return
     }
 
@@ -190,13 +227,14 @@ export function StorefrontCustomersSection() {
       }
 
       const response = await storefrontApi.applyCustomerLifecycleAction(accessToken, {
-        customerAccountId: selectedCustomer.id,
+        customerAccountId: selectedCustomer.item.id,
         action,
         note: lifecycleNote,
       })
 
-      setSelectedCustomer(response.item)
+      setSelectedCustomer(response)
       setLifecycleNote(response.item.lifecycleNote ?? "")
+      setSecurityReviewNote(response.item.suspiciousLoginReviewNote ?? "")
       setReport((current) => {
         if (!current) {
           return current
@@ -215,6 +253,8 @@ export function StorefrontCustomersSection() {
             blockedCount: nextItems.filter((item) => item.lifecycleState === "blocked").length,
             deletedCount: nextItems.filter((item) => item.lifecycleState === "deleted").length,
             anonymizedCount: nextItems.filter((item) => item.lifecycleState === "anonymized").length,
+            verifiedCount: nextItems.filter((item) => Boolean(item.emailVerifiedAt)).length,
+            suspiciousReviewCount: nextItems.filter((item) => item.suspiciousLoginOpenCount > 0).length,
           },
         }
       })
@@ -232,6 +272,66 @@ export function StorefrontCustomersSection() {
           actionError instanceof Error
             ? actionError.message
             : "Failed to update customer lifecycle.",
+      })
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
+  async function handleSecurityReview() {
+    if (!selectedCustomer?.item) {
+      return
+    }
+
+    setPendingAction("mark_security_reviewed")
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const response = await storefrontApi.markCustomerSecurityReview(accessToken, {
+        customerAccountId: selectedCustomer.item.id,
+        note: securityReviewNote,
+      })
+
+      setSelectedCustomer(response)
+      setSecurityReviewNote(response.item.suspiciousLoginReviewNote ?? "")
+      setReport((current) => {
+        if (!current) {
+          return current
+        }
+
+        const nextItems = current.items
+          .map((item) => (item.id === response.item.id ? response.item : item))
+          .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+        return {
+          ...current,
+          items: nextItems,
+          summary: {
+            ...current.summary,
+            verifiedCount: nextItems.filter((item) => Boolean(item.emailVerifiedAt)).length,
+            suspiciousReviewCount: nextItems.filter((item) => item.suspiciousLoginOpenCount > 0).length,
+          },
+        }
+      })
+
+      showRecordToast({
+        entity: "Customer security review",
+        action: "updated",
+        recordName: response.item.displayName,
+      })
+    } catch (actionError) {
+      showAppToast({
+        variant: "error",
+        title: "Security review update failed.",
+        description:
+          actionError instanceof Error
+            ? actionError.message
+            : "Failed to update customer security review.",
       })
     } finally {
       setPendingAction(null)
@@ -268,7 +368,7 @@ export function StorefrontCustomersSection() {
         </CardHeader>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
         <SummaryCard
           title="Total customers"
           value={String(report?.summary.totalCustomers ?? 0)}
@@ -293,6 +393,16 @@ export function StorefrontCustomersSection() {
           title="Anonymized"
           value={String(report?.summary.anonymizedCount ?? 0)}
           description="Identity-scrubbed records kept only for transactional retention."
+        />
+        <SummaryCard
+          title="Verified"
+          value={String(report?.summary.verifiedCount ?? 0)}
+          description="Customers whose email is already confirmed for portal access."
+        />
+        <SummaryCard
+          title="Security review"
+          value={String(report?.summary.suspiciousReviewCount ?? 0)}
+          description="Accounts with suspicious-login events that still need review."
         />
       </div>
 
@@ -343,6 +453,8 @@ export function StorefrontCustomersSection() {
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium text-foreground">{item.displayName}</p>
                       <LifecycleBadge state={item.lifecycleState} />
+                      <VerificationBadge verifiedAt={item.emailVerifiedAt} />
+                      <SecurityBadge openCount={item.suspiciousLoginOpenCount} />
                     </div>
                     <p className="truncate text-sm text-muted-foreground">
                       {item.email} | {item.phoneNumber}
@@ -380,48 +492,64 @@ export function StorefrontCustomersSection() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            {selectedCustomer ? (
+            {selectedCustomer?.item ? (
               <>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg font-semibold text-foreground">
-                      {selectedCustomer.displayName}
+                      {selectedCustomer.item.displayName}
                     </p>
-                    <LifecycleBadge state={selectedCustomer.lifecycleState} />
+                    <LifecycleBadge state={selectedCustomer.item.lifecycleState} />
+                    <VerificationBadge verifiedAt={selectedCustomer.item.emailVerifiedAt} />
+                    <SecurityBadge openCount={selectedCustomer.item.suspiciousLoginOpenCount} />
                   </div>
-                  <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
-                  <p className="text-sm text-muted-foreground">{selectedCustomer.phoneNumber}</p>
+                  <p className="text-sm text-muted-foreground">{selectedCustomer.item.email}</p>
+                  <p className="text-sm text-muted-foreground">{selectedCustomer.item.phoneNumber}</p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
                     <p className="font-medium text-foreground">Company</p>
                     <p className="mt-1 text-muted-foreground">
-                      {selectedCustomer.companyName ?? "-"}
+                      {selectedCustomer.item.companyName ?? "-"}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
                     <p className="font-medium text-foreground">GSTIN</p>
-                    <p className="mt-1 text-muted-foreground">{selectedCustomer.gstin ?? "-"}</p>
+                    <p className="mt-1 text-muted-foreground">{selectedCustomer.item.gstin ?? "-"}</p>
                   </div>
                   <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
                     <p className="font-medium text-foreground">Orders</p>
-                    <p className="mt-1 text-muted-foreground">{selectedCustomer.orderCount}</p>
+                    <p className="mt-1 text-muted-foreground">{selectedCustomer.item.orderCount}</p>
                   </div>
                   <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
                     <p className="font-medium text-foreground">Support / Requests</p>
                     <p className="mt-1 text-muted-foreground">
-                      {selectedCustomer.supportCaseCount} / {selectedCustomer.requestCount}
+                      {selectedCustomer.item.supportCaseCount} / {selectedCustomer.item.requestCount}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
+                    <p className="font-medium text-foreground">Email verified</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {formatDateTime(selectedCustomer.item.emailVerifiedAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
+                    <p className="font-medium text-foreground">Suspicious login</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {selectedCustomer.item.suspiciousLoginOpenCount} open | latest{" "}
+                      {formatDateTime(selectedCustomer.item.latestSuspiciousLoginAt)}
                     </p>
                   </div>
                 </div>
 
                 <div className="grid gap-2 text-sm text-muted-foreground">
-                  <p>Created: {formatDateTime(selectedCustomer.createdAt)}</p>
-                  <p>Last login: {formatDateTime(selectedCustomer.lastLoginAt)}</p>
-                  <p>Blocked at: {formatDateTime(selectedCustomer.blockedAt)}</p>
-                  <p>Deleted at: {formatDateTime(selectedCustomer.deletedAt)}</p>
-                  <p>Anonymized at: {formatDateTime(selectedCustomer.anonymizedAt)}</p>
+                  <p>Created: {formatDateTime(selectedCustomer.item.createdAt)}</p>
+                  <p>Last login: {formatDateTime(selectedCustomer.item.lastLoginAt)}</p>
+                  <p>Blocked at: {formatDateTime(selectedCustomer.item.blockedAt)}</p>
+                  <p>Deleted at: {formatDateTime(selectedCustomer.item.deletedAt)}</p>
+                  <p>Anonymized at: {formatDateTime(selectedCustomer.item.anonymizedAt)}</p>
+                  <p>Security reviewed: {formatDateTime(selectedCustomer.item.suspiciousLoginReviewedAt)}</p>
                 </div>
 
                 <div className="space-y-2">
@@ -442,7 +570,9 @@ export function StorefrontCustomersSection() {
                     type="button"
                     variant="outline"
                     onClick={() => void handleLifecycleAction("activate")}
-                    disabled={pendingAction !== null || selectedCustomer.lifecycleState === "anonymized"}
+                    disabled={
+                      pendingAction !== null || selectedCustomer.item.lifecycleState === "anonymized"
+                    }
                   >
                     Activate
                   </Button>
@@ -450,7 +580,9 @@ export function StorefrontCustomersSection() {
                     type="button"
                     variant="outline"
                     onClick={() => void handleLifecycleAction("block")}
-                    disabled={pendingAction !== null || selectedCustomer.lifecycleState === "anonymized"}
+                    disabled={
+                      pendingAction !== null || selectedCustomer.item.lifecycleState === "anonymized"
+                    }
                   >
                     Block
                   </Button>
@@ -458,7 +590,9 @@ export function StorefrontCustomersSection() {
                     type="button"
                     variant="outline"
                     onClick={() => void handleLifecycleAction("mark_deleted")}
-                    disabled={pendingAction !== null || selectedCustomer.lifecycleState === "anonymized"}
+                    disabled={
+                      pendingAction !== null || selectedCustomer.item.lifecycleState === "anonymized"
+                    }
                   >
                     Mark deleted
                   </Button>
@@ -470,6 +604,56 @@ export function StorefrontCustomersSection() {
                   >
                     Anonymize
                   </Button>
+                </div>
+
+                <div className="space-y-3 rounded-[1.5rem] border border-border/70 bg-muted/15 p-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Suspicious login review</p>
+                    <p className="text-sm text-muted-foreground">
+                      Review recent failed or blocked customer logins and record your outcome.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer-security-note">Security review note</Label>
+                    <Textarea
+                      id="customer-security-note"
+                      value={securityReviewNote}
+                      onChange={(event) => setSecurityReviewNote(event.target.value)}
+                      placeholder="Record how this login pattern was reviewed."
+                      rows={3}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleSecurityReview()}
+                    disabled={pendingAction !== null}
+                  >
+                    Mark reviewed
+                  </Button>
+                  <div className="space-y-2">
+                    {selectedCustomer.suspiciousLoginEvents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No suspicious-login activity is recorded for this customer.
+                      </p>
+                    ) : (
+                      selectedCustomer.suspiciousLoginEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline">{event.action.replaceAll("_", " ")}</Badge>
+                            <span className="text-muted-foreground">{formatDateTime(event.createdAt)}</span>
+                          </div>
+                          <p className="mt-2 font-medium text-foreground">{event.message}</p>
+                          <p className="mt-1 text-muted-foreground">
+                            IP {event.ipAddress ?? "-"} | Agent {event.userAgent ?? "-"}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </>
             ) : (

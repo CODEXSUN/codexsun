@@ -317,6 +317,59 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  async downloadPaymentsDailySummary(accessToken: string, days = 30) {
+    const url = new URL("/internal/v1/ecommerce/payments/daily-summary-export", window.location.origin)
+    url.searchParams.set("days", String(days))
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+    }
+
+    const text = await response.text()
+    return {
+      fileName: extractDownloadFileName(
+        response.headers.get("content-disposition"),
+        "storefront-payment-daily-summary.csv"
+      ),
+      blob: new Blob([text], {
+        type: response.headers.get("content-type") ?? "text/csv;charset=utf-8",
+      }),
+    }
+  },
+  async downloadFailedPaymentsReport(accessToken: string) {
+    const url = new URL("/internal/v1/ecommerce/payments/failed-report-export", window.location.origin)
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+    }
+
+    const text = await response.text()
+    return {
+      fileName: extractDownloadFileName(
+        response.headers.get("content-disposition"),
+        "storefront-failed-payments.csv"
+      ),
+      blob: new Blob([text], {
+        type: response.headers.get("content-type") ?? "text/csv;charset=utf-8",
+      }),
+    }
+  },
   getOrdersReport(accessToken: string) {
     return requestJson<StorefrontAdminOrderOperationsReport>("/internal/v1/ecommerce/orders/report", {
       accessToken,
@@ -351,6 +404,22 @@ export const storefrontApi = {
       accessToken,
       body: JSON.stringify(payload),
     })
+  },
+  markCustomerSecurityReview(
+    accessToken: string,
+    payload: {
+      customerAccountId: string
+      note?: string | null
+    }
+  ) {
+    return requestJson<StorefrontCustomerAdminResponse>(
+      "/internal/v1/ecommerce/customer/security-review",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify(payload),
+      }
+    )
   },
   getAdminOrder(accessToken: string, orderId: string) {
     const url = new URL("/internal/v1/ecommerce/order", window.location.origin)

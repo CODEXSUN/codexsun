@@ -98,12 +98,12 @@ Stage 1.1 baseline document:
 - [x] 2.3.2 map route and action permissions to those roles
 - [x] 2.3.3 add admin session hardening, lockout, and audit checks
 - [x] 2.3.4 add customer lifecycle states: active, blocked, deleted or anonymized
-- [ ] 2.3.5 define email verification and suspicious-login handling policy
+- [x] 2.3.5 define email verification and suspicious-login handling policy
 
 ### Stage 2.4: Finance And Reporting
 
-- [ ] 2.4.1 add daily payment summary export
-- [ ] 2.4.2 add failed-payment report
+- [x] 2.4.1 add daily payment summary export
+- [x] 2.4.2 add failed-payment report
 - [ ] 2.4.3 add refund and settlement gap reports
 - [ ] 2.4.4 add fulfilment-aging and refund-aging operational reports
 - [ ] 2.4.5 add dashboard KPIs for conversion, AOV, order count, paid vs failed, fulfilment aging, and refund aging

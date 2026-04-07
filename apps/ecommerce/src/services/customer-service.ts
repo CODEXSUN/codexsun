@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
+import { listActivityLogs } from "../../../framework/src/runtime/activity-log/activity-log-service.js"
 import { type StorefrontOrder } from "../../shared/index.js"
 import { AuthRepository } from "../../../cxapp/src/repositories/auth-repository.js"
 import {
@@ -33,9 +34,11 @@ import {
   customerProfileSchema,
   customerProfileUpdatePayloadSchema,
   customerRegisterPayloadSchema,
+  storefrontCustomerSuspiciousLoginEventSchema,
   storefrontCustomerAdminReportSchema,
   storefrontCustomerAdminResponseSchema,
   storefrontCustomerLifecycleActionPayloadSchema,
+  storefrontCustomerSecurityReviewPayloadSchema,
   customerWishlistTogglePayloadSchema,
   type CustomerAccount,
   type CustomerLifecycleState,
@@ -43,6 +46,7 @@ import {
   type CustomerPortalResponse,
   type CustomerProfile,
   type StorefrontCustomerAdminView,
+  type StorefrontCustomerSuspiciousLoginEvent,
 } from "../../shared/index.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
@@ -102,6 +106,10 @@ function isCustomerLifecycleActive(state: CustomerLifecycleState) {
   return state === "active"
 }
 
+function normalizeEmailVerificationTimestamp(value: string | null | undefined, fallback: string) {
+  return normalizeOptionalString(value) ?? fallback
+}
+
 function createAnonymizedCustomerEmail(accountId: string) {
   return `anonymized+${accountId.replace(/[^a-z0-9]/gi, "").toLowerCase()}@redacted.local`
 }
@@ -143,6 +151,9 @@ export async function readCustomerAccounts(database: Kysely<unknown>) {
       blockedAt: item.blockedAt ?? null,
       deletedAt: item.deletedAt ?? null,
       anonymizedAt: item.anonymizedAt ?? null,
+      emailVerifiedAt: normalizeEmailVerificationTimestamp(item.emailVerifiedAt, item.createdAt),
+      suspiciousLoginReviewedAt: item.suspiciousLoginReviewedAt ?? null,
+      suspiciousLoginReviewNote: item.suspiciousLoginReviewNote ?? null,
     })
   )
 }
@@ -202,6 +213,66 @@ function orderBelongsToAccount(order: StorefrontOrder, account: CustomerAccount)
     order.coreContactId === account.coreContactId ||
     shippingEmail === accountEmail
   )
+}
+
+const suspiciousLoginActions = new Set([
+  "login_failed",
+  "login_locked",
+  "login_blocked",
+  "session_rejected",
+])
+
+function eventBelongsToCustomer(
+  account: CustomerAccount,
+  event: StorefrontCustomerSuspiciousLoginEvent & { actorId?: string | null; actorEmail?: string | null }
+) {
+  if (account.authUserId && event.actorId === account.authUserId) {
+    return true
+  }
+
+  return event.actorEmail?.trim().toLowerCase() === account.email.trim().toLowerCase()
+}
+
+async function listCustomerSuspiciousLoginEvents(database: Kysely<unknown>) {
+  const logs = await listActivityLogs(database, {
+    category: "auth",
+    limit: 500,
+  })
+
+  return logs.items
+    .filter(
+      (item) =>
+        item.actorType === "customer" && suspiciousLoginActions.has(item.action)
+    )
+    .map((item) => ({
+      ...storefrontCustomerSuspiciousLoginEventSchema.parse({
+        id: item.id,
+        action: item.action,
+        level: item.level,
+        message: item.message,
+        ipAddress:
+          typeof item.context?.ipAddress === "string" ? item.context.ipAddress : null,
+        userAgent:
+          typeof item.context?.userAgent === "string" ? item.context.userAgent : null,
+        createdAt: item.createdAt,
+      }),
+      actorId: item.actorId,
+      actorEmail: item.actorEmail,
+    }))
+}
+
+function getCustomerSuspiciousLoginEvents(
+  account: CustomerAccount,
+  events: Array<
+    StorefrontCustomerSuspiciousLoginEvent & {
+      actorId?: string | null
+      actorEmail?: string | null
+    }
+  >
+) {
+  return events
+    .filter((event) => eventBelongsToCustomer(account, event))
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
 }
 
 function inferRewardsTier(pointsBalance: number) {
@@ -378,6 +449,7 @@ async function buildCustomerProfile(
     blockedAt: account.blockedAt,
     deletedAt: account.deletedAt,
     anonymizedAt: account.anonymizedAt,
+    emailVerifiedAt: account.emailVerifiedAt,
     addresses: contact.item.addresses,
     emails: contact.item.emails,
     phones: contact.item.phones,
@@ -559,6 +631,10 @@ async function ensureCustomerAccountForUser(
       blockedAt: matchingAccount.blockedAt ?? null,
       deletedAt: matchingAccount.deletedAt ?? null,
       anonymizedAt: matchingAccount.anonymizedAt ?? null,
+      emailVerifiedAt:
+        matchingAccount.emailVerifiedAt ?? matchingAccount.createdAt ?? now,
+      suspiciousLoginReviewedAt: matchingAccount.suspiciousLoginReviewedAt ?? null,
+      suspiciousLoginReviewNote: matchingAccount.suspiciousLoginReviewNote ?? null,
       lastLoginAt: now,
       updatedAt: now,
     })
@@ -631,6 +707,9 @@ async function ensureCustomerAccountForUser(
     blockedAt: user.isActive ? null : now,
     deletedAt: null,
     anonymizedAt: null,
+    emailVerifiedAt: now,
+    suspiciousLoginReviewedAt: null,
+    suspiciousLoginReviewNote: null,
     lastLoginAt: now,
     createdAt: now,
     updatedAt: now,
@@ -653,6 +732,10 @@ export async function registerCustomer(
   }
 
   const authService = createAuthService(database, config)
+  await authService.assertVerifiedRegistrationEmail(
+    parsed.emailVerificationId,
+    parsed.email
+  )
   const authUser = await authService.createPortalUser({
     email: parsed.email,
     phoneNumber: parsed.phoneNumber,
@@ -727,6 +810,9 @@ export async function registerCustomer(
     blockedAt: null,
     deletedAt: null,
     anonymizedAt: null,
+    emailVerifiedAt: timestamp,
+    suspiciousLoginReviewedAt: null,
+    suspiciousLoginReviewNote: null,
     lastLoginAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -734,6 +820,7 @@ export async function registerCustomer(
 
   await writeCustomerAccounts(database, [account, ...accounts])
   await ensureCustomerPortalRecord(database, account)
+  await authService.consumeVerifiedRegistrationEmail(parsed.emailVerificationId)
 
   try {
     const [settings, newArrivalItems] = await Promise.all([
@@ -789,6 +876,14 @@ export async function resolveAuthenticatedCustomerAccount(
           ? "This customer account has been deleted."
           : "This customer account has been anonymized.",
       { customerAccountId: account.id, lifecycleState: account.lifecycleState },
+      403
+    )
+  }
+
+  if (!account.emailVerifiedAt) {
+    throw new ApplicationError(
+      "Verify this email address before using the customer portal.",
+      { customerAccountId: account.id },
       403
     )
   }
@@ -1034,13 +1129,29 @@ function buildCustomerAdminView(input: {
   orders: StorefrontOrder[]
   supportCases: StorefrontSupportCase[]
   orderRequests: StorefrontOrderRequest[]
+  suspiciousLoginEvents: Array<
+    StorefrontCustomerSuspiciousLoginEvent & {
+      actorId?: string | null
+      actorEmail?: string | null
+    }
+  >
 }): StorefrontCustomerAdminView {
-  const { account, orders, supportCases, orderRequests } = input
+  const { account, orders, supportCases, orderRequests, suspiciousLoginEvents } = input
   const matchingOrders = orders.filter((item) => orderBelongsToAccount(item, account))
   const matchingSupportCases = supportCases.filter(
     (item) => item.customerAccountId === account.id
   )
   const matchingRequests = orderRequests.filter((item) => item.customerAccountId === account.id)
+  const matchingSuspiciousEvents = getCustomerSuspiciousLoginEvents(
+    account,
+    suspiciousLoginEvents
+  )
+  const suspiciousLoginOpenCount =
+    account.suspiciousLoginReviewedAt == null
+      ? matchingSuspiciousEvents.length
+      : matchingSuspiciousEvents.filter(
+          (item) => item.createdAt > account.suspiciousLoginReviewedAt!
+        ).length
   const lastOrderAt =
     matchingOrders
       .map((item) => item.updatedAt)
@@ -1061,10 +1172,15 @@ function buildCustomerAdminView(input: {
     blockedAt: account.blockedAt,
     deletedAt: account.deletedAt,
     anonymizedAt: account.anonymizedAt,
+    emailVerifiedAt: account.emailVerifiedAt,
     lastLoginAt: account.lastLoginAt,
     orderCount: matchingOrders.length,
     supportCaseCount: matchingSupportCases.length,
     requestCount: matchingRequests.length,
+    suspiciousLoginOpenCount,
+    latestSuspiciousLoginAt: matchingSuspiciousEvents[0]?.createdAt ?? null,
+    suspiciousLoginReviewedAt: account.suspiciousLoginReviewedAt,
+    suspiciousLoginReviewNote: account.suspiciousLoginReviewNote,
     lastOrderAt,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
@@ -1072,11 +1188,12 @@ function buildCustomerAdminView(input: {
 }
 
 export async function getStorefrontCustomerOperationsReport(database: Kysely<unknown>) {
-  const [accounts, orders, supportCases, orderRequests] = await Promise.all([
+  const [accounts, orders, supportCases, orderRequests, suspiciousLoginEvents] = await Promise.all([
     readCustomerAccounts(database),
     readOrders(database),
     readSupportCases(database),
     readOrderRequests(database),
+    listCustomerSuspiciousLoginEvents(database),
   ])
 
   const items = accounts
@@ -1086,6 +1203,7 @@ export async function getStorefrontCustomerOperationsReport(database: Kysely<unk
         orders,
         supportCases,
         orderRequests,
+        suspiciousLoginEvents,
       })
     )
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
@@ -1098,6 +1216,8 @@ export async function getStorefrontCustomerOperationsReport(database: Kysely<unk
       blockedCount: items.filter((item) => item.lifecycleState === "blocked").length,
       deletedCount: items.filter((item) => item.lifecycleState === "deleted").length,
       anonymizedCount: items.filter((item) => item.lifecycleState === "anonymized").length,
+      verifiedCount: items.filter((item) => Boolean(item.emailVerifiedAt)).length,
+      suspiciousReviewCount: items.filter((item) => item.suspiciousLoginOpenCount > 0).length,
     },
     items,
   })
@@ -1108,13 +1228,23 @@ export async function getStorefrontCustomerAccount(
   customerAccountId: string
 ) {
   const report = await getStorefrontCustomerOperationsReport(database)
+  const accounts = await readCustomerAccounts(database)
   const item = report.items.find((entry) => entry.id === customerAccountId) ?? null
+  const account = accounts.find((entry) => entry.id === customerAccountId) ?? null
 
-  if (!item) {
+  if (!item || !account) {
     throw new ApplicationError("Customer account could not be found.", { customerAccountId }, 404)
   }
 
-  return storefrontCustomerAdminResponseSchema.parse({ item })
+  const suspiciousLoginEvents = getCustomerSuspiciousLoginEvents(
+    account,
+    await listCustomerSuspiciousLoginEvents(database)
+  )
+
+  return storefrontCustomerAdminResponseSchema.parse({
+    item,
+    suspiciousLoginEvents,
+  })
 }
 
 export async function applyStorefrontCustomerLifecycleAction(
@@ -1160,6 +1290,9 @@ export async function applyStorefrontCustomerLifecycleAction(
       blockedAt: existing.blockedAt,
       deletedAt: existing.deletedAt,
       anonymizedAt: timestamp,
+      emailVerifiedAt: existing.emailVerifiedAt,
+      suspiciousLoginReviewedAt: existing.suspiciousLoginReviewedAt,
+      suspiciousLoginReviewNote: existing.suspiciousLoginReviewNote,
       updatedAt: timestamp,
     })
   } else {
@@ -1178,6 +1311,9 @@ export async function applyStorefrontCustomerLifecycleAction(
       blockedAt: lifecycleState === "blocked" ? timestamp : null,
       deletedAt: lifecycleState === "deleted" ? timestamp : null,
       anonymizedAt: existing.anonymizedAt,
+      emailVerifiedAt: existing.emailVerifiedAt,
+      suspiciousLoginReviewedAt: existing.suspiciousLoginReviewedAt,
+      suspiciousLoginReviewNote: existing.suspiciousLoginReviewNote,
       updatedAt: timestamp,
     })
   }
@@ -1189,4 +1325,35 @@ export async function applyStorefrontCustomerLifecycleAction(
   await syncCustomerAuthState(database, nextAccount)
 
   return getStorefrontCustomerAccount(database, nextAccount.id)
+}
+
+export async function markStorefrontCustomerSecurityReview(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const parsed = storefrontCustomerSecurityReviewPayloadSchema.parse(payload)
+  const accounts = await readCustomerAccounts(database)
+  const existing = accounts.find((item) => item.id === parsed.customerAccountId) ?? null
+
+  if (!existing) {
+    throw new ApplicationError(
+      "Customer account could not be found.",
+      { customerAccountId: parsed.customerAccountId },
+      404
+    )
+  }
+
+  const updatedAccount = customerAccountSchema.parse({
+    ...existing,
+    suspiciousLoginReviewedAt: new Date().toISOString(),
+    suspiciousLoginReviewNote: parsed.note,
+    updatedAt: new Date().toISOString(),
+  })
+
+  await writeCustomerAccounts(
+    database,
+    accounts.map((item) => (item.id === updatedAccount.id ? updatedAccount : item))
+  )
+
+  return getStorefrontCustomerAccount(database, updatedAccount.id)
 }
