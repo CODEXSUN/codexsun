@@ -178,6 +178,70 @@ export const authPermissions: AuthPermission[] = [
     "framework-settings",
     { appId: "framework", route: "/dashboard/settings/core-settings", actionKey: "manage" }
   ),
+  definePermission(
+    "ecommerce:workspace:view",
+    "Ecommerce Workspace",
+    "Open the ecommerce operational workspace and review its dashboards.",
+    "workspace",
+    "ecommerce-workspace",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce", actionKey: "view" }
+  ),
+  definePermission(
+    "ecommerce:storefront:manage",
+    "Storefront Management",
+    "Manage storefront blocks, campaign content, and publishing-facing ecommerce settings.",
+    "workspace",
+    "ecommerce-storefront",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/storefront", actionKey: "manage" }
+  ),
+  definePermission(
+    "ecommerce:catalog:manage",
+    "Ecommerce Catalog Management",
+    "Maintain ecommerce product merchandising, collections, and catalog presentation controls.",
+    "module",
+    "ecommerce-catalog",
+    { appId: "ecommerce", route: "/dashboard/apps/core/products", actionKey: "manage" }
+  ),
+  definePermission(
+    "ecommerce:orders:manage",
+    "Ecommerce Order Operations",
+    "Review and operate ecommerce orders, shipment progress, and fulfilment workflows.",
+    "module",
+    "ecommerce-orders",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/orders", actionKey: "manage" }
+  ),
+  definePermission(
+    "ecommerce:support:manage",
+    "Ecommerce Support Operations",
+    "Review storefront support cases and linked customer service workflows.",
+    "module",
+    "ecommerce-support",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/support", actionKey: "manage" }
+  ),
+  definePermission(
+    "ecommerce:payments:manage",
+    "Ecommerce Payments Operations",
+    "Review payment exceptions, refunds, reconciliation, and settlement operations.",
+    "module",
+    "ecommerce-payments",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/payments", actionKey: "manage" }
+  ),
+  definePermission(
+    "ecommerce:communications:view",
+    "Ecommerce Communications Visibility",
+    "Review storefront communication health, failures, and customer-facing message activity.",
+    "module",
+    "ecommerce-communications",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/communications", actionKey: "view" }
+  ),
+  definePermission(
+    "ecommerce:analytics:view",
+    "Ecommerce Analytics",
+    "Review ecommerce summaries, KPIs, and reporting surfaces.",
+    "module",
+    "ecommerce-analytics",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce", actionKey: "view" }
+  ),
 ]
 
 export const authRoles: AuthRole[] = [
@@ -199,6 +263,102 @@ export const authRoles: AuthRole[] = [
         "customers:view",
         "vendors:view",
         "mailbox:manage",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "ecommerce_admin",
+    actorType: "staff",
+    name: "Ecommerce Admin",
+    summary: "Broad ecommerce operational control across storefront, orders, support, payments, and communications.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "customers:view",
+        "ecommerce:workspace:view",
+        "ecommerce:storefront:manage",
+        "ecommerce:catalog:manage",
+        "ecommerce:orders:manage",
+        "ecommerce:support:manage",
+        "ecommerce:payments:manage",
+        "ecommerce:communications:view",
+        "ecommerce:analytics:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "ecommerce_catalog_manager",
+    actorType: "staff",
+    name: "Catalog Manager",
+    summary: "Owns ecommerce merchandising, product readiness, and storefront catalog presentation.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "ecommerce:workspace:view",
+        "ecommerce:storefront:manage",
+        "ecommerce:catalog:manage",
+        "ecommerce:analytics:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "ecommerce_order_manager",
+    actorType: "staff",
+    name: "Order Manager",
+    summary: "Owns daily ecommerce order handling, fulfilment progression, and delivery operations.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "customers:view",
+        "ecommerce:workspace:view",
+        "ecommerce:orders:manage",
+        "ecommerce:analytics:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "ecommerce_support_agent",
+    actorType: "staff",
+    name: "Support Agent",
+    summary: "Handles order-linked support cases, customer follow-up, and communication visibility.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "customers:view",
+        "ecommerce:workspace:view",
+        "ecommerce:support:manage",
+        "ecommerce:communications:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "ecommerce_finance_operator",
+    actorType: "staff",
+    name: "Finance Operator",
+    summary: "Handles payment exceptions, refunds, reconciliation, and settlement visibility for ecommerce.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "customers:view",
+        "ecommerce:workspace:view",
+        "ecommerce:payments:manage",
+        "ecommerce:communications:view",
+        "ecommerce:analytics:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "ecommerce_analyst",
+    actorType: "staff",
+    name: "Analyst",
+    summary: "Reviews ecommerce dashboards, operational trends, and reporting without mutation access.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "customers:view",
+        "ecommerce:workspace:view",
+        "ecommerce:communications:view",
+        "ecommerce:analytics:view",
       ].includes(permission.key)
     ),
   }),
