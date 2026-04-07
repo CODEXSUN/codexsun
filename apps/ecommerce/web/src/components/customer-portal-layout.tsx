@@ -20,7 +20,7 @@ export function CustomerPortalLayout({
       <SidebarInset>
         <div className="theme-shell min-h-screen bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_30%),radial-gradient(circle_at_top_right,hsl(var(--accent)/0.12),transparent_28%),radial-gradient(circle_at_bottom_left,hsl(var(--secondary)/0.14),transparent_30%),linear-gradient(180deg,hsl(var(--background)/0.98)_0%,hsl(var(--primary)/0.04)_45%,hsl(var(--background)/0.98)_100%)]">
           <CustomerPortalHeader activeSection={activeSection} />
-          <main className="mx-auto w-full max-w-7xl px-4 py-4 md:px-6 md:py-6">
+          <main className="mx-auto w-full max-w-[96rem] px-4 py-4 md:px-6 md:py-6 2xl:px-10">
             <section
               className="min-w-0 space-y-6"
               aria-label={`${title} ${description}`.trim()}

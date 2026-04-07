@@ -15,7 +15,7 @@ export default function StorefrontSearch01() {
   const [department, setDepartment] = useState("all")
 
   return (
-    <div className="space-y-10">
+    <div className="mx-auto w-full space-y-10 xl:w-9/12">
       <StorefrontSearchSurface
         searchValue={searchValue}
         onSearchValueChange={setSearchValue}

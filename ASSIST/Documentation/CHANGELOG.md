@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#45] 2026-04-07 - Storefront desktop width standardization
+
+- standardized the main storefront desktop rails to `max-w-[96rem]` across homepage, catalog, PDP, cart, checkout, category rail, and customer portal layout so large screens use a consistent 1536px content width
+- widened the homepage hero internals with larger media framing, broader copy allowance, and decorative fill layers so added desktop space reads as intentional storefront design instead of empty gutters
+- updated shared design-system storefront preview blocks to use the requested responsive width behavior without changing live commerce grid density rules outside preview mode
+- validated the batch with `npm run typecheck` and `npm run build`
+
 ### [#44] 2026-04-07 - Ecommerce admin order actions baseline
 
 - completed Stage `2.1.2` by adding admin order detail operations for cancel, fulfilment progression, shipment tracking, delivery completion, and order-confirmation resend

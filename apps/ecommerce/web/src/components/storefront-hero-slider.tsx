@@ -120,14 +120,29 @@ export function StorefrontHeroSlider({
 
   return (
     <section
-      className="relative w-full max-w-full min-w-0 overflow-hidden rounded-[2rem] border border-[#e1d3c4] shadow-[0_35px_95px_-46px_rgba(52,26,15,0.42)] sm:rounded-[2.3rem] lg:h-[520px] lg:rounded-[2.6rem]"
+      className="relative isolate w-full max-w-full min-w-0 overflow-hidden rounded-[2rem] border border-[#e1d3c4] shadow-[0_35px_95px_-46px_rgba(52,26,15,0.42)] sm:rounded-[2.3rem] lg:min-h-[540px] lg:rounded-[2.6rem] xl:min-h-[580px]"
       style={{
         background: sliderStyles.background,
         color: sliderStyles.textColor,
       }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_18%,rgba(255,255,255,0.14),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_32%)]" />
-      <div className="relative mx-auto w-full max-w-7xl min-w-0 px-3 py-3 sm:px-5 sm:py-5 lg:flex lg:h-full lg:px-12 lg:py-12">
+      <div
+        className="pointer-events-none absolute -left-24 top-10 hidden h-64 w-64 rounded-full blur-3xl lg:block"
+        style={{ background: "rgba(255,255,255,0.08)" }}
+      />
+      <div
+        className="pointer-events-none absolute -right-20 bottom-6 hidden h-72 w-72 rounded-full blur-3xl lg:block"
+        style={{ background: "rgba(255,255,255,0.12)" }}
+      />
+      <div
+        className="pointer-events-none absolute inset-y-10 left-[50%] hidden w-px -translate-x-1/2 lg:block"
+        style={{
+          background: `linear-gradient(180deg, transparent 0%, ${sliderStyles.innerFrameBorderColor} 18%, ${sliderStyles.innerFrameBorderColor} 82%, transparent 100%)`,
+          opacity: 0.55,
+        }}
+      />
+      <div className="relative mx-auto flex w-full max-w-none min-w-0 px-3 py-3 sm:px-5 sm:py-5 lg:h-full lg:px-8 lg:py-10 xl:px-12 xl:py-12 2xl:px-16">
         <div className="flex flex-col gap-3 lg:hidden">
           <div className="relative overflow-hidden rounded-[1.7rem] shadow-[0_28px_72px_-42px_rgba(24,12,7,0.48)] sm:rounded-[2rem]">
             <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2 sm:inset-x-5 sm:items-center sm:gap-3">
@@ -326,7 +341,7 @@ export function StorefrontHeroSlider({
           </div>
         </div>
 
-        <div className="hidden h-full w-full items-center gap-10 lg:grid lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="hidden h-full w-full items-center gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(460px,1.06fr)] xl:gap-14 2xl:grid-cols-[minmax(0,1.02fr)_minmax(540px,1.08fr)]">
           <div className="flex h-full flex-col">
             <Badge
               className="mt-1 w-fit self-start rounded-full border px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] backdrop-blur-sm"
@@ -346,17 +361,17 @@ export function StorefrontHeroSlider({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: direction > 0 ? -16 : 16 }}
                 transition={smoothContentTransition}
-                className="my-auto -translate-y-4 space-y-6"
+                className="my-auto -translate-y-2 space-y-7 xl:space-y-8"
               >
                 <motion.div initial="initial" animate="animate" exit="exit" transition={staggeredContentTransition}>
                   <motion.div variants={staggeredContentItem} className="space-y-5">
-                    <h1 className="line-clamp-2 max-w-xl font-heading text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.6rem] lg:leading-[0.98]">
+                    <h1 className="line-clamp-2 max-w-2xl font-heading text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.7rem] lg:leading-[0.98] xl:text-[4.1rem]">
                       {activeTitle}
                     </h1>
                   </motion.div>
                   <motion.p
                     variants={staggeredContentItem}
-                    className="line-clamp-2 max-w-2xl overflow-hidden pt-5 text-base leading-8 sm:text-lg"
+                    className="line-clamp-2 max-w-2xl overflow-hidden pt-5 text-base leading-8 sm:text-lg xl:max-w-3xl"
                     style={{ color: sliderStyles.mutedTextColor }}
                   >
                     {activeSummary}
@@ -435,8 +450,16 @@ export function StorefrontHeroSlider({
             </AnimatePresence>
           </div>
 
-          <div className="relative flex h-full items-center justify-center sm:-my-4 lg:-my-7">
+          <div className="relative flex h-full items-center justify-center sm:-my-4 lg:-my-4 xl:-my-6">
             <div className="relative flex h-full w-full items-center justify-center">
+              <div
+                className="pointer-events-none absolute inset-x-8 top-1/2 hidden h-[72%] -translate-y-1/2 rounded-[2.4rem] border lg:block"
+                style={{
+                  borderColor: sliderStyles.outerFrameBorderColor,
+                  background: "linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01))",
+                  opacity: 0.55,
+                }}
+              />
               <AnimatePresence mode="wait" initial={false} custom={direction}>
                 <motion.div
                   key={`${activeItem.id}:image`}
@@ -445,7 +468,7 @@ export function StorefrontHeroSlider({
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{ opacity: 0, x: direction > 0 ? -18 : 18, scale: 0.992 }}
                   transition={{ ...smoothImageTransition, delay: 0.06 }}
-                  className="relative z-[1] h-[360px] w-full max-w-[360px] rounded-[2rem] p-3 backdrop-blur-[24px] sm:h-[420px] sm:max-w-[440px] lg:h-[480px] lg:w-[520px] lg:max-w-[520px]"
+                  className="relative z-[1] h-[360px] w-full max-w-[360px] rounded-[2rem] p-3 backdrop-blur-[24px] sm:h-[420px] sm:max-w-[440px] lg:h-[500px] lg:w-[560px] lg:max-w-[560px] xl:h-[540px] xl:w-[620px] xl:max-w-[620px]"
                   style={{
                     background: sliderStyles.frameBackground,
                     boxShadow:
@@ -477,7 +500,7 @@ export function StorefrontHeroSlider({
               </AnimatePresence>
 
               {featuredItems.length > 1 ? (
-                <div className="absolute bottom-[-1rem] right-[-1rem] z-10 flex items-center gap-3 sm:bottom-[-0.5rem] sm:right-[-0.75rem] lg:bottom-[-1rem] lg:right-[-1.5rem]">
+                <div className="absolute bottom-[-1rem] right-0 z-10 flex items-center gap-3 sm:bottom-[-0.5rem] lg:bottom-[-1rem] lg:right-2 xl:right-4">
                   <Button
                     type="button"
                     size="icon"

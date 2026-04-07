@@ -1739,7 +1739,7 @@ export function StorefrontCheckoutContent({
 
   if (cart.items.length === 0) {
     const emptyState = (
-      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 pt-8 pb-12 sm:px-6 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 pt-8 pb-12 sm:px-6 lg:px-8 2xl:px-10">
           <Card className="rounded-[2.1rem] border-[#dfd1c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,242,234,0.86))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
             <CardContent className="space-y-5 p-6 sm:p-8">
               <div className="space-y-3">
@@ -1776,7 +1776,7 @@ export function StorefrontCheckoutContent({
     <>
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top_left,rgba(225,203,178,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.78),transparent_28%),linear-gradient(180deg,rgba(249,245,239,0.72),transparent_70%)]" />
-        <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 pt-8 pb-14 sm:px-6 lg:px-8">
+        <div className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 pt-8 pb-14 sm:px-6 lg:px-8 2xl:px-10">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
               Checkout

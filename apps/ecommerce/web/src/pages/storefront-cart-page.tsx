@@ -446,7 +446,7 @@ export function StorefrontCartPage() {
 
   return (
     <StorefrontLayout showCategoryMenu={false}>
-      <div className="mx-auto grid w-full max-w-7xl gap-7 px-4 pt-8 pb-12 sm:px-6 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[96rem] gap-7 px-4 pt-8 pb-12 sm:px-6 lg:px-8 2xl:px-10">
         <Card className="relative overflow-hidden rounded-[2.4rem] border-[#e3d5c6] bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(252,247,241,0.96)_34%,rgba(247,237,225,0.92)_100%)] py-0 shadow-[0_28px_70px_-46px_rgba(48,31,19,0.18)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(213,183,150,0.18),transparent_24%),radial-gradient(circle_at_74%_28%,rgba(255,255,255,0.72),transparent_22%),radial-gradient(circle_at_88%_82%,rgba(176,131,88,0.12),transparent_18%),linear-gradient(120deg,rgba(255,255,255,0.3),transparent_48%)]" />
           <div className="pointer-events-none absolute -left-10 top-10 h-40 w-40 rounded-full bg-[#f4e3cf]/35 blur-3xl" />

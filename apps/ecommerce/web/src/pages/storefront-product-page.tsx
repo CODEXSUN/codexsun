@@ -87,7 +87,7 @@ export function StorefrontProductPage() {
 
   return (
     <StorefrontLayout showCategoryMenu={false}>
-      <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 pt-8 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[96rem] gap-8 px-5 pt-8 lg:px-8 2xl:px-10">
         {error ? (
           <Card className="border-destructive/20 bg-destructive/5">
             <CardContent className="p-6 text-sm text-destructive">

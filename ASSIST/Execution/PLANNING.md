@@ -4,58 +4,63 @@
 
 ### Reference
 
-`#44`
+`#45`
 
 ### Goal
 
-Complete Stage `2.1.2` by adding actionable admin order detail operations for cancel, fulfilment progression, tracking assignment, delivery completion, and order-confirmation resend.
+Standardize the live storefront desktop layout rails to `max-w-[96rem]` and tune the homepage hero so wider desktop space is filled by intentional design instead of empty gutters.
 
 ### Scope
 
 - `ASSIST/Execution/TASK.md`
 - `ASSIST/Execution/PLANNING.md`
-- `apps/ecommerce/shared/schemas/order.ts`
-- `apps/ecommerce/src/services/order-service.ts`
-- `apps/ecommerce/src/services/storefront-order-storage.ts`
-- `apps/api/src/internal/ecommerce-routes.ts`
-- `apps/ecommerce/web/src/api/storefront-api.ts`
-- `apps/ecommerce/web/src/features/storefront-admin/storefront-orders-section.tsx`
-- `apps/demo/src/data/demo-seed.ts`
-- `tests/ecommerce/services.test.ts`
-- `tests/api/internal/routes.test.ts`
+- `ASSIST/Documentation/CHANGELOG.md`
+- `apps/ecommerce/web/src/components/customer-portal-layout.tsx`
+- `apps/ecommerce/web/src/components/storefront-category-menu.tsx`
+- `apps/ecommerce/web/src/components/storefront-hero-slider.tsx`
+- `apps/ecommerce/web/src/pages/storefront-cart-page.tsx`
+- `apps/ecommerce/web/src/pages/storefront-catalog-page.tsx`
+- `apps/ecommerce/web/src/pages/storefront-checkout-page.tsx`
+- `apps/ecommerce/web/src/pages/storefront-home-page.tsx`
+- `apps/ecommerce/web/src/pages/storefront-product-page.tsx`
+- `apps/ui/src/components/ux/featured-card-row-surface.tsx`
+- `apps/ui/src/registry/blocks/commerce/featured-card-1.tsx`
+- `apps/ui/src/registry/blocks/commerce/featured-card-3.tsx`
+- `apps/ui/src/registry/blocks/commerce/featured-card-4.tsx`
+- `apps/ui/src/registry/blocks/commerce/featured-card-5.tsx`
+- `apps/ui/src/registry/blocks/commerce/featured-card-6.tsx`
+- `apps/ui/src/registry/blocks/data/storefront-search-01.tsx`
 
 ### Canonical Decisions
 
-- admin actions should reuse the existing order state machine rather than bypassing it with direct status writes
-- shipment metadata must be stored on the order record itself so tracking and delivery state survive queue refresh, portal reads, and later reporting work
-- the admin UI should operate inside the existing orders queue via a detail dialog instead of splitting actions across a second unrelated page
+- main storefront desktop rails should stop at `max-w-[96rem]` so large screens gain usable width without drifting into overly loose layouts
+- mobile and tablet layouts should remain full width with existing responsive padding and stacking behavior unchanged
+- the homepage hero should use decorative fill and larger media framing so added desktop width reads as design, not empty whitespace
+- design-system storefront preview blocks may use preview-only width rules without changing live storefront commerce layouts
 
 ### Execution Plan
 
-1. extend the shared order contract with shipment details and typed admin action payloads
-2. add backward-compatible shipment normalization for existing stored orders
-3. expose internal admin order detail and action handlers through ecommerce routes and frontend API methods
-4. upgrade the orders admin queue with a detail dialog and action controls for cancel, fulfilment, shipment, delivery, and resend
-5. add targeted service and route coverage for the new admin order operations
-6. mark `2.1.2` complete in `TASK.md`
+1. update shared storefront preview blocks so design-system previews respect the requested width behavior
+2. widen the live storefront homepage, hero, and category rail to `max-w-[96rem]`
+3. standardize remaining main storefront commerce pages and the customer portal layout to the same desktop rail
+4. record the batch in task tracking, planning, and changelog
+5. validate the storefront width batch with `npm run typecheck` and `npm run build`
 
 ### Validation Plan
 
 - run `npm run typecheck`
-- run `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
-- confirm the internal route registry includes the admin order detail and order action endpoints
-- confirm service coverage exercises fulfilment, shipment, delivery, and admin order detail reads
-- confirm `2.1.2` is marked complete in `TASK.md`
+- run `npm run build`
+- confirm main storefront rails use `max-w-[96rem]`
+- confirm the homepage hero no longer leaves broad desktop side gutters
 
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
-- [x] internal route registry includes `GET /internal/v1/ecommerce/order` and `POST /internal/v1/ecommerce/order/action`
-- [x] service coverage exercises fulfilment, shipment, delivery, and admin order detail reads
-- [x] `2.1.2` marked complete in `TASK.md`
+- [x] `npm run build`
+- [x] main storefront rails updated to `max-w-[96rem]`
+- [x] homepage hero widened and visually filled for large desktop screens
 
 ### Risks And Follow-Up
 
-- admin actions are in place, but payment-exception triage still lives primarily in the payments screen; `2.1.3` should bind that queue more tightly to the order-operations workflow
-- if order volume grows, the current queue and detail loading should evolve into server-side filtering and pagination rather than full client-side filtering
+- legal and tracking pages still use narrower layout widths by design; widen them only if the content strategy changes
+- if the storefront adopts a central container utility later, these page-level width classes should be consolidated into that shared layout primitive

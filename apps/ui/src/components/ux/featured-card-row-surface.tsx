@@ -24,21 +24,31 @@ export function FeaturedCardRowSurface({
   items,
   cardsPerRow,
   cardDesign,
+  previewLayout = false,
 }: {
   items: FeaturedCardRowItem[]
   cardsPerRow: FeaturedCardRowVariant
   cardDesign?: CommerceProductCardDesign
+  previewLayout?: boolean
 }) {
   const density =
     cardsPerRow >= 5 ? "dense" : cardsPerRow === 4 ? "compact" : "default"
   const gridClassName =
-    cardsPerRow === 6
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
-      : cardsPerRow === 5
-        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-        : cardsPerRow === 4
-          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+    previewLayout
+      ? cardsPerRow === 6
+        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6"
+        : cardsPerRow === 5
+          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          : cardsPerRow === 4
+            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+            : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+      : cardsPerRow === 6
+        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        : cardsPerRow === 5
+          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+          : cardsPerRow === 4
+            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
 
   return (
     <div className="pb-1.5">

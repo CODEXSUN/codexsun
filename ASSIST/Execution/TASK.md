@@ -1,5 +1,15 @@
 # Task
 
+## Active Batch
+
+### Reference
+
+`#45`
+
+### Title
+
+`Storefront desktop width standardization to 96rem`
+
 ## Ecommerce Go-Live Schedule
 
 ### Reference

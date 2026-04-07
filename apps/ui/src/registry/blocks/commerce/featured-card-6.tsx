@@ -3,5 +3,13 @@ import { FeaturedCardRowSurface } from "@/components/ux/featured-card-row-surfac
 import { featuredCardSampleItems } from "./featured-card-sample"
 
 export default function FeaturedCard6() {
-  return <FeaturedCardRowSurface items={featuredCardSampleItems} cardsPerRow={6} />
+  return (
+    <div className="mx-auto w-full xl:w-9/12">
+      <FeaturedCardRowSurface
+        items={featuredCardSampleItems}
+        cardsPerRow={6}
+        previewLayout
+      />
+    </div>
+  )
 }

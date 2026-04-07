@@ -54,7 +54,7 @@ export function StorefrontCatalogPage() {
 
   return (
     <StorefrontLayout>
-      <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 pt-8 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[96rem] gap-8 px-5 pt-8 lg:px-8 2xl:px-10">
         {showSearchSection ? (
           <>
             <section className="space-y-4">
