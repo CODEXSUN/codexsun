@@ -1,8 +1,11 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowRight, Download, RefreshCcw, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
-import type { StorefrontSupportCaseView } from "@ecommerce/shared"
+import type {
+  StorefrontCommunicationLogItem,
+  StorefrontSupportCaseView,
+} from "@ecommerce/shared"
 import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -123,6 +126,7 @@ export function StorefrontAccountPage() {
   const portal = customerPortal.portalQuery.data
   const orders = customerPortal.ordersQuery.data?.items ?? []
   const supportCases = customerPortal.supportCasesQuery.data?.items ?? []
+  const [communicationItems, setCommunicationItems] = useState<StorefrontCommunicationLogItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [supportDraft, setSupportDraft] = useState({
     orderId: "none",
@@ -144,6 +148,39 @@ export function StorefrontAccountPage() {
     (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
     0
   )
+
+  useEffect(() => {
+    if (!customerAuth.accessToken) {
+      setCommunicationItems([])
+      return
+    }
+
+    let isCancelled = false
+
+    async function loadCommunicationHistory() {
+      try {
+        const response = await storefrontApi.getCustomerCommunicationLog(customerAuth.accessToken!)
+
+        if (!isCancelled) {
+          setCommunicationItems(response.items)
+        }
+      } catch (loadError) {
+        if (!isCancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Failed to load communication history."
+          )
+        }
+      }
+    }
+
+    void loadCommunicationHistory()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [customerAuth.accessToken])
 
   if (!customerAuth.isAuthenticated) {
     return <Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />
@@ -953,6 +990,43 @@ export function StorefrontAccountPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Recent communication history</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              {communicationItems.length > 0 ? (
+                communicationItems.slice(0, 6).map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-[1.2rem] border border-border/70 bg-background/85 p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-foreground">
+                        {item.templateName ?? item.templateCode}
+                      </p>
+                      <Badge variant="outline" className="rounded-full text-[11px] uppercase">
+                        {item.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{item.subject}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.recipientSummary}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatPortalDateTime(item.sentAt ?? item.createdAt)}
+                    </p>
+                    {item.errorMessage ? (
+                      <p className="mt-2 text-xs text-destructive">{item.errorMessage}</p>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No customer-facing communication messages are recorded yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
             <CardHeader>

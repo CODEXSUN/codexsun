@@ -42,6 +42,7 @@ import {
 } from "../../apps/ecommerce/src/services/storefront-settings-service.js"
 import {
   assertStorefrontMailboxTemplates,
+  listCustomerCommunicationLog,
   listStorefrontCommunicationLog,
   resendStorefrontCommunication,
 } from "../../apps/ecommerce/src/services/storefront-communication-service.js"
@@ -1731,6 +1732,175 @@ test("storefront communications validate template readiness and log failed payme
         communicationLogAfterResend.items.filter((item) => item.templateCode === "storefront_payment_failed").length >= 2,
         true
       )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("customer communication history only returns messages for the authenticated customer and selected order", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-customer-communications-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await registerCustomer(runtime.primary, config, {
+        displayName: "Portal Comms",
+        email: "portal-comms@codexsun.local",
+        phoneNumber: "+919999999994",
+        password: "Password@123",
+        companyName: "",
+        gstin: "",
+        addressLine1: "10 Mail Street",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      await registerCustomer(runtime.primary, config, {
+        displayName: "Other Customer",
+        email: "other-comms@codexsun.local",
+        phoneNumber: "+919999999995",
+        password: "Password@123",
+        companyName: "",
+        gstin: "",
+        addressLine1: "11 Mail Street",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      const authService = createAuthService(runtime.primary, config)
+      const customerSession = await authService.login({
+        email: "portal-comms@codexsun.local",
+        password: "Password@123",
+      })
+      const otherCustomerSession = await authService.login({
+        email: "other-comms@codexsun.local",
+        password: "Password@123",
+      })
+
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+      assert.ok(productId)
+
+      const firstCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Portal Comms",
+          email: "portal-comms@codexsun.local",
+          phoneNumber: "+919999999994",
+          line1: "10 Mail Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Portal Comms",
+          email: "portal-comms@codexsun.local",
+          phoneNumber: "+919999999994",
+          line1: "10 Mail Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: firstCheckout.order.id,
+        providerOrderId: firstCheckout.payment.providerOrderId,
+        providerPaymentId: "pay_customer_comms_001",
+        signature: "mock_signature",
+      })
+
+      const secondCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Other Customer",
+          email: "other-comms@codexsun.local",
+          phoneNumber: "+919999999995",
+          line1: "11 Mail Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Other Customer",
+          email: "other-comms@codexsun.local",
+          phoneNumber: "+919999999995",
+          line1: "11 Mail Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: secondCheckout.order.id,
+        providerOrderId: secondCheckout.payment.providerOrderId,
+        providerPaymentId: "pay_customer_comms_002",
+        signature: "mock_signature",
+      })
+
+      const customerLog = await listCustomerCommunicationLog(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(customerLog.items.some((item) => item.referenceId === firstCheckout.order.id), true)
+      assert.equal(customerLog.items.some((item) => item.referenceId === secondCheckout.order.id), false)
+
+      const filteredLog = await listCustomerCommunicationLog(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        { orderId: firstCheckout.order.id }
+      )
+
+      assert.equal(filteredLog.items.every((item) => item.referenceId === firstCheckout.order.id), true)
+
+      await assert.rejects(
+        () =>
+          listCustomerCommunicationLog(runtime.primary, config, customerSession.accessToken, {
+            orderId: secondCheckout.order.id,
+          }),
+        /Communication history can only be viewed for your own orders/
+      )
+
+      const otherLog = await listCustomerCommunicationLog(
+        runtime.primary,
+        config,
+        otherCustomerSession.accessToken
+      )
+
+      assert.equal(otherLog.items.some((item) => item.referenceId === secondCheckout.order.id), true)
+      assert.equal(otherLog.items.some((item) => item.referenceId === firstCheckout.order.id), false)
     } finally {
       await runtime.destroy()
     }

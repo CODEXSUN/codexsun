@@ -2,6 +2,13 @@
 
 ## Done Till Here
 
+### `#49` 2026-04-07
+
+- completed Stage `2.2.5` by exposing customer-safe communication history from mailbox activity into the storefront portal
+- added an authenticated external communications route, frontend API support, order-detail communication history, and a recent-communications block in the portal support area
+- added targeted tests proving route exposure and customer ownership filtering for communication history
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts`
+
 ### `#48` 2026-04-07
 
 - completed Stage `2.2.2` by adding storefront order-linked return and cancellation requests with customer portal entry, admin review controls, and request queue visibility in ecommerce operations

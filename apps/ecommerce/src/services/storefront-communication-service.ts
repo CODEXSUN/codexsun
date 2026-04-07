@@ -21,6 +21,7 @@ import {
   sendStorefrontWelcomeEmail,
 } from "./storefront-mail-service.js"
 import { listWelcomeMailProducts, readCustomerAccounts } from "./customer-service.js"
+import { resolveAuthenticatedCustomerAccount } from "./customer-service.js"
 
 const requiredTemplateCodes = [
   "storefront_customer_welcome",
@@ -131,6 +132,104 @@ export async function listStorefrontCommunicationLog(
       "storefront_order_shipped",
       "storefront_order_delivered",
     ])
+  }
+
+  const rows = await query.execute()
+  const messages = await Promise.all(
+    rows.map(async (row) => {
+      const recipients = await queryDatabase
+        .selectFrom(cxappTableNames.mailboxMessageRecipients)
+        .select(["email", "name"])
+        .where("message_id", "=", String(row.id))
+        .orderBy("created_at")
+        .execute()
+      const recipientSummary = recipients
+        .map((recipient) => recipient.name || recipient.email)
+        .join(", ")
+
+      return mapCommunicationLogRow({
+        ...row,
+        recipient_summary: recipientSummary || "No recipients",
+      })
+    })
+  )
+
+  return storefrontCommunicationLogResponseSchema.parse({
+    items: messages,
+  })
+}
+
+export async function listCustomerCommunicationLog(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string,
+  input?: {
+    orderId?: string | null
+  }
+) {
+  const [account, orders] = await Promise.all([
+    resolveAuthenticatedCustomerAccount(database, config, token),
+    readStorefrontOrders(database),
+  ])
+  const customerOrders = orders.filter(
+    (item) =>
+      item.customerAccountId === account.id ||
+      item.coreContactId === account.coreContactId ||
+      item.shippingAddress.email.trim().toLowerCase() === account.email.trim().toLowerCase()
+  )
+  const allowedOrderIds = new Set(customerOrders.map((item) => item.id))
+
+  if (input?.orderId?.trim() && !allowedOrderIds.has(input.orderId)) {
+    throw new ApplicationError(
+      "Communication history can only be viewed for your own orders.",
+      { orderId: input.orderId },
+      403
+    )
+  }
+
+  const queryDatabase = asQueryDatabase(database)
+  let query = queryDatabase
+    .selectFrom(cxappTableNames.mailboxMessages)
+    .leftJoin(
+      cxappTableNames.mailboxTemplates,
+      `${cxappTableNames.mailboxTemplates}.id`,
+      `${cxappTableNames.mailboxMessages}.template_id`
+    )
+    .select([
+      `${cxappTableNames.mailboxMessages}.id as id`,
+      `${cxappTableNames.mailboxMessages}.template_code as template_code`,
+      `${cxappTableNames.mailboxTemplates}.name as template_name`,
+      `${cxappTableNames.mailboxMessages}.subject as subject`,
+      `${cxappTableNames.mailboxMessages}.status as status`,
+      `${cxappTableNames.mailboxMessages}.reference_type as reference_type`,
+      `${cxappTableNames.mailboxMessages}.reference_id as reference_id`,
+      `${cxappTableNames.mailboxMessages}.error_message as error_message`,
+      `${cxappTableNames.mailboxMessages}.sent_at as sent_at`,
+      `${cxappTableNames.mailboxMessages}.failed_at as failed_at`,
+      `${cxappTableNames.mailboxMessages}.created_at as created_at`,
+      `${cxappTableNames.mailboxMessages}.updated_at as updated_at`,
+    ])
+    .where(`${cxappTableNames.mailboxMessages}.template_code`, "in", [
+      ...requiredTemplateCodes,
+      "storefront_campaign_subscription",
+      "storefront_order_review_request",
+      "storefront_order_shipped",
+      "storefront_order_delivered",
+    ])
+    .orderBy(`${cxappTableNames.mailboxMessages}.created_at`, "desc")
+
+  if (input?.orderId?.trim()) {
+    query = query.where(`${cxappTableNames.mailboxMessages}.reference_id`, "=", input.orderId)
+  } else {
+    const allowedReferenceIds = [account.id, ...customerOrders.map((item) => item.id)]
+
+    if (allowedReferenceIds.length === 0) {
+      return storefrontCommunicationLogResponseSchema.parse({
+        items: [],
+      })
+    }
+
+    query = query.where(`${cxappTableNames.mailboxMessages}.reference_id`, "in", allowedReferenceIds)
   }
 
   const rows = await query.execute()

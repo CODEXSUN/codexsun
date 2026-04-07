@@ -9,6 +9,9 @@ import {
   updateCustomerPortalPreferences,
 } from "../../../ecommerce/src/services/customer-service.js"
 import {
+  listCustomerCommunicationLog,
+} from "../../../ecommerce/src/services/storefront-communication-service.js"
+import {
   createCustomerSupportCase,
   listCustomerSupportCases,
 } from "../../../ecommerce/src/services/storefront-support-service.js"
@@ -211,6 +214,28 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
             context.request.jsonBody
           ),
           201
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/communications", {
+      auth: "external",
+      summary: "List customer-safe storefront communication history for the authenticated portal user.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await listCustomerCommunicationLog(
+            context.databases.primary,
+            context.config,
+            token,
+            {
+              orderId: context.request.url.searchParams.get("orderId"),
+            }
+          )
         )
       },
     }),

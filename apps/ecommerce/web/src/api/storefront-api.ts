@@ -284,6 +284,21 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  getCustomerCommunicationLog(
+    accessToken: string,
+    input: { orderId?: string | null } = {}
+  ) {
+    const url = new URL("/api/v1/storefront/customers/me/communications", window.location.origin)
+
+    if (input.orderId?.trim()) {
+      url.searchParams.set("orderId", input.orderId)
+    }
+
+    return requestJson<StorefrontCommunicationLogResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
   resendCommunication(
     accessToken: string,
     payload: { templateCode: string; orderId?: string | null; customerAccountId?: string | null }

@@ -12,6 +12,7 @@ import {
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
 import type {
+  StorefrontCommunicationLogItem,
   StorefrontOrderRequestView,
   StorefrontOrderResponse,
   StorefrontSupportCaseView,
@@ -72,6 +73,7 @@ export function StorefrontAccountOrderPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false)
   const [orderRequests, setOrderRequests] = useState<StorefrontOrderRequestView[]>([])
+  const [communications, setCommunications] = useState<StorefrontCommunicationLogItem[]>([])
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
   const [requestType, setRequestType] = useState<"cancellation" | "return">("cancellation")
@@ -126,10 +128,17 @@ export function StorefrontAccountOrderPage() {
             customerAuth.accessToken!,
             normalizedOrderId
           )
+          const communicationsResponse = await storefrontApi.getCustomerCommunicationLog(
+            customerAuth.accessToken!,
+            {
+              orderId: normalizedOrderId,
+            }
+          )
 
           if (!isCancelled) {
             setData(response)
             setOrderRequests(requestsResponse.items)
+            setCommunications(communicationsResponse.items)
             setError(null)
             setIsLoading(false)
           }
@@ -482,6 +491,47 @@ export function StorefrontAccountOrderPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">
                   No return or cancellation requests have been raised for this order.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="rounded-[1.7rem] border-border/70 py-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-[1.1rem] tracking-tight">Communication history</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              {communications.length > 0 ? (
+                communications.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-[1.2rem] border border-border/70 bg-background/85 p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-foreground">
+                        {item.templateName ?? item.templateCode}
+                      </p>
+                      <Badge variant="outline" className="rounded-full text-[11px] uppercase">
+                        {item.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{item.subject}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Recipients: {item.recipientSummary}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Created: {new Intl.DateTimeFormat("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(item.createdAt))}
+                    </p>
+                    {item.errorMessage ? (
+                      <p className="mt-2 text-xs text-destructive">{item.errorMessage}</p>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No customer communication entries are recorded for this order yet.
                 </p>
               )}
             </CardContent>

@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#49] 2026-04-07 - Customer portal communication history
+
+- completed Stage `2.2.5` by exposing customer-safe storefront communication history through a new authenticated portal route backed by the existing mailbox ledger
+- added communication history visibility on portal order detail and support surfaces so customers can review order confirmation and related customer-facing mail activity without admin resend controls
+- added ownership-filtered service coverage for customer communication history plus external route registration validation
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/framework/runtime/http-routes.test.ts`
+
 ### [#48] 2026-04-07 - Customer portal reorder and wishlist cart utilities
 
 - completed Stage `2.2.2` by adding customer return and cancellation request workflows with portal request creation, admin review queue actions, and order-linked request visibility

@@ -90,7 +90,7 @@ Stage 1.1 baseline document:
 - [x] 2.2.2 add returns and cancellation request workflow
 - [x] 2.2.3 add support request entry linked to order number
 - [x] 2.2.4 add repeat-order and wishlist-to-cart utilities
-- [ ] 2.2.5 add clearer communication history where practical
+- [x] 2.2.5 add clearer communication history where practical
 
 ### Stage 2.3: User And Role Management
 
