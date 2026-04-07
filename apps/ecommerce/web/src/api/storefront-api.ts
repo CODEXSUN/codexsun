@@ -5,6 +5,10 @@ import type {
   CustomerPortalResponse,
   CustomerProfileUpdatePayload,
   CustomerRegisterPayload,
+  StorefrontSupportCaseCreatePayload,
+  StorefrontSupportCaseListResponse,
+  StorefrontSupportCaseResponse,
+  StorefrontSupportQueueReport,
   StorefrontHomeSlider,
   StorefrontSettings,
   StorefrontFooter,
@@ -77,6 +81,15 @@ async function requestJson<T>(url: string, options: JsonRequestOptions = {}) {
   }
 
   return payload as T
+}
+
+function extractDownloadFileName(disposition: string | null, fallback: string) {
+  if (!disposition) {
+    return fallback
+  }
+
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/)
+  return match?.[1] ?? fallback
 }
 
 export const storefrontApi = {
@@ -345,6 +358,27 @@ export const storefrontApi = {
       body: JSON.stringify(payload),
     })
   },
+  getSupportReport(accessToken: string) {
+    return requestJson<StorefrontSupportQueueReport>("/internal/v1/ecommerce/support/report", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateSupportCase(
+    accessToken: string,
+    payload: {
+      caseId: string
+      status: "open" | "in_progress" | "waiting_customer" | "resolved" | "closed"
+      priority?: "low" | "normal" | "high" | "urgent"
+      adminNote?: string | null
+    }
+  ) {
+    return requestJson<StorefrontSupportCaseResponse>("/internal/v1/ecommerce/support/case", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
   getPaymentConfig() {
     return requestJson<StorefrontPaymentConfig>("/public/v1/storefront/payment-config", {
       cache: "no-store",
@@ -385,6 +419,28 @@ export const storefrontApi = {
       accessToken,
       cache: "no-store",
     })
+  },
+  getCustomerSupportCases(accessToken: string) {
+    return requestJson<StorefrontSupportCaseListResponse>(
+      "/api/v1/storefront/customers/me/support-cases",
+      {
+        accessToken,
+        cache: "no-store",
+      }
+    )
+  },
+  createCustomerSupportCase(
+    accessToken: string,
+    payload: StorefrontSupportCaseCreatePayload
+  ) {
+    return requestJson<StorefrontSupportCaseResponse>(
+      "/api/v1/storefront/customers/me/support-cases",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify(payload),
+      }
+    )
   },
   updateCustomerProfile(accessToken: string, payload: CustomerProfileUpdatePayload) {
     return requestJson<CustomerProfile>("/api/v1/storefront/customers/me", {
@@ -446,5 +502,32 @@ export const storefrontApi = {
       accessToken,
       cache: "no-store",
     })
+  },
+  async downloadCustomerOrderReceipt(accessToken: string, orderId: string) {
+    const url = new URL("/api/v1/storefront/order-receipt", window.location.origin)
+    url.searchParams.set("id", orderId)
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+    }
+
+    const html = await response.text()
+    return {
+      fileName: extractDownloadFileName(
+        response.headers.get("content-disposition"),
+        "storefront-receipt.html"
+      ),
+      blob: new Blob([html], {
+        type: response.headers.get("content-type") ?? "text/html;charset=utf-8",
+      }),
+    }
   },
 }

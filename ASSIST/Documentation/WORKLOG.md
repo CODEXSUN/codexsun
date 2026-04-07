@@ -2,6 +2,13 @@
 
 ## Done Till Here
 
+### `#47` 2026-04-07
+
+- completed Stage `2.1.5` by adding storefront support cases with customer portal creation, admin queue visibility, order linkage, and status progression
+- added ecommerce-owned support-case storage, external customer support-case routes, internal support queue and update routes, plus a dedicated ecommerce `Support` admin workspace screen
+- completed Stage `2.2.1` by adding authenticated receipt downloads in the customer portal order list and full order detail view
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts tests/framework/runtime/http-routes.test.ts`
+
 ### `#46` 2026-04-07
 
 - completed Stage `2.1.4` by extending the ecommerce payments operations surface with a refund queue and refund-status controls

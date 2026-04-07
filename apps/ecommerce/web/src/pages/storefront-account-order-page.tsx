@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, List } from "lucide-react"
+import { ChevronLeft, ChevronRight, Download, List } from "lucide-react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
 import type { StorefrontOrderResponse } from "@ecommerce/shared"
@@ -42,6 +42,7 @@ export function StorefrontAccountOrderPage() {
   const [data, setData] = useState<StorefrontOrderResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false)
   const portalOrders = customerPortal.ordersQuery.data?.items ?? []
   const currentOrderIndex = portalOrders.findIndex((item) => item.id === normalizedOrderId)
   const previousOrder = currentOrderIndex >= 0 ? (portalOrders[currentOrderIndex + 1] ?? null) : null
@@ -129,6 +130,37 @@ export function StorefrontAccountOrderPage() {
     )
   }
 
+  async function handleDownloadReceipt() {
+    if (!customerAuth.accessToken || !data?.item) {
+      return
+    }
+
+    setIsDownloadingReceipt(true)
+
+    try {
+      const document = await storefrontApi.downloadCustomerOrderReceipt(
+        customerAuth.accessToken,
+        data.item.id
+      )
+      const href = window.URL.createObjectURL(document.blob)
+      const anchor = window.document.createElement("a")
+      anchor.href = href
+      anchor.download = document.fileName
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(href)
+    } catch (downloadError) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Failed to download receipt."
+      )
+    } finally {
+      setIsDownloadingReceipt(false)
+    }
+  }
+
   if (!customerAuth.isAuthenticated) {
     return (
       <Navigate
@@ -183,7 +215,21 @@ export function StorefrontAccountOrderPage() {
               </Button>
             </div>
           </section>
-          <StorefrontOrderDetailCard order={data.item} />
+          <StorefrontOrderDetailCard
+            order={data.item}
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full"
+                onClick={() => void handleDownloadReceipt()}
+                disabled={isDownloadingReceipt}
+              >
+                <Download className="size-4" />
+                {isDownloadingReceipt ? "Preparing receipt..." : "Download receipt"}
+              </Button>
+            }
+          />
         </div>
       ) : (
         isLoading ? (

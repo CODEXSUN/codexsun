@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#47] 2026-04-07 - Ecommerce support queue and portal receipt downloads
+
+- completed Stage `2.1.5` by adding an ecommerce-owned customer support queue linked to customers and orders, with portal case creation, admin queue actions, and shared support-case contracts
+- added support-case json-store persistence, authenticated customer support-case routes, protected internal support queue and update routes, and a dedicated ecommerce admin `Support` workspace screen
+- completed Stage `2.2.1` by adding authenticated customer receipt downloads from portal order list and order detail surfaces through a new storefront order-receipt route and receipt document generator
+
 ### [#46] 2026-04-07 - Ecommerce refund queue baseline
 
 - completed Stage `2.1.4` by extending the payments operations surface with a refund queue and admin refund-status progression

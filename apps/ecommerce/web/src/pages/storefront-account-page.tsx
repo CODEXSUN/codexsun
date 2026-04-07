@@ -1,10 +1,21 @@
 import { useState } from "react"
-import { ArrowRight, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
+import { ArrowRight, Download, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
+import type { StorefrontSupportCaseView } from "@ecommerce/shared"
+import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { CommerceOrderStatusBadge } from "@/components/ux/commerce-order-status-badge"
 import { CommercePrice } from "@/components/ux/commerce-price"
 import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepper"
@@ -12,6 +23,7 @@ import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader"
 import { cn } from "@/lib/utils"
 
+import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCustomerAuth } from "../auth/customer-auth-context"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { CustomerPortalLayout } from "../components/customer-portal-layout"
@@ -39,6 +51,24 @@ function formatPortalCurrency(value: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+function formatPortalDateTime(value: string | null) {
+  if (!value) {
+    return "-"
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date)
+}
+
+function formatSupportCaseLabel(value: string) {
+  return value.replaceAll("_", " ")
 }
 
 function PortalCartSummaryRow({
@@ -92,7 +122,16 @@ export function StorefrontAccountPage() {
   const { brand } = useRuntimeBrand()
   const portal = customerPortal.portalQuery.data
   const orders = customerPortal.ordersQuery.data?.items ?? []
+  const supportCases = customerPortal.supportCasesQuery.data?.items ?? []
   const [error, setError] = useState<string | null>(null)
+  const [supportDraft, setSupportDraft] = useState({
+    orderId: "none",
+    category: "order" as "order" | "payment" | "shipment" | "refund" | "account" | "other",
+    priority: "normal" as "low" | "normal" | "high" | "urgent",
+    subject: "",
+    message: "",
+  })
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null)
   const estimatedShipping =
     cart.items.length === 0
       ? 0
@@ -115,6 +154,76 @@ export function StorefrontAccountPage() {
       await customerPortal.toggleWishlist(productId)
     } catch (wishlistError) {
       setError(wishlistError instanceof Error ? wishlistError.message : "Failed to update wishlist.")
+    }
+  }
+
+  async function handleCreateSupportCase() {
+    try {
+      setError(null)
+
+      const response = await customerPortal.createSupportCase({
+        orderId: supportDraft.orderId === "none" ? null : supportDraft.orderId,
+        category: supportDraft.category,
+        priority: supportDraft.priority,
+        subject: supportDraft.subject,
+        message: supportDraft.message,
+      })
+
+      setSupportDraft({
+        orderId: "none",
+        category: "order",
+        priority: "normal",
+        subject: "",
+        message: "",
+      })
+      showRecordToast({
+        entity: "Support case",
+        action: "created",
+        recordName: response.item.caseNumber,
+      })
+    } catch (supportError) {
+      const message =
+        supportError instanceof Error ? supportError.message : "Failed to create support case."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Support request failed.",
+        description: message,
+      })
+    }
+  }
+
+  async function handleDownloadReceipt(orderId: string) {
+    if (!customerAuth.accessToken) {
+      return
+    }
+
+    setDownloadingOrderId(orderId)
+
+    try {
+      const document = await storefrontApi.downloadCustomerOrderReceipt(
+        customerAuth.accessToken,
+        orderId
+      )
+      const href = window.URL.createObjectURL(document.blob)
+      const anchor = window.document.createElement("a")
+      anchor.href = href
+      anchor.download = document.fileName
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(href)
+    } catch (downloadError) {
+      const message =
+        downloadError instanceof Error ? downloadError.message : "Failed to download receipt."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Receipt download failed.",
+        description: message,
+      })
+    } finally {
+      setDownloadingOrderId(null)
     }
   }
 
@@ -548,7 +657,19 @@ export function StorefrontAccountPage() {
                       <CommercePrice amount={order.totalAmount} />
                     </div>
                   </div>
-                  <CommerceOrderStatusBadge status={order.status} />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => void handleDownloadReceipt(order.id)}
+                      disabled={downloadingOrderId === order.id}
+                    >
+                      <Download className="size-4" />
+                      {downloadingOrderId === order.id ? "Preparing..." : "Receipt"}
+                    </Button>
+                    <CommerceOrderStatusBadge status={order.status} />
+                  </div>
                 </CardContent>
               </Card>
             ))
@@ -565,80 +686,242 @@ export function StorefrontAccountPage() {
 
     if (activeSection === "support") {
       return (
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>Need help?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm leading-7 text-muted-foreground">
-                Reach the support desk for order help, account access, payment questions, or delivery updates.
-              </p>
-              {brand?.primaryEmail ? (
-                <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Support Email
-                  </p>
-                  <a
-                    href={`mailto:${brand.primaryEmail}`}
-                    className="mt-2 block text-base font-medium text-foreground transition hover:text-primary"
-                  >
-                    {brand.primaryEmail}
-                  </a>
-                </div>
-              ) : null}
-              {brand?.primaryPhone ? (
-                <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Support Phone
-                  </p>
-                  <a
-                    href={`tel:${brand.primaryPhone}`}
-                    className="mt-2 block text-base font-medium text-foreground transition hover:text-primary"
-                  >
-                    {brand.primaryPhone}
-                  </a>
-                </div>
-              ) : null}
-              <div className="flex flex-wrap gap-3">
-                <Button asChild className="rounded-full">
-                  <Link to={storefrontPaths.trackOrder()}>Track an order</Link>
-                </Button>
-                <Button asChild variant="outline" className="rounded-full">
-                  <Link to={storefrontPaths.accountSection("orders")}>Open orders</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>Support details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Company
+        <div className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
+              <CardHeader>
+                <CardTitle>Create a support request</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm leading-7 text-muted-foreground">
+                  Raise one case for order help, payment recovery, shipment issues, refund follow-up, or account support without leaving the portal.
                 </p>
-                <p className="mt-2 font-medium text-foreground">{brand?.brandName ?? "Support Desk"}</p>
-                {brand?.tagline ? (
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{brand.tagline}</p>
-                ) : null}
-              </div>
-              {brand?.website ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Linked order</p>
+                    <Select
+                      value={supportDraft.orderId}
+                      onValueChange={(value) =>
+                        setSupportDraft((current) => ({ ...current, orderId: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Optional linked order" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No linked order</SelectItem>
+                        {orders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            {order.orderNumber}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Category</p>
+                    <Select
+                      value={supportDraft.category}
+                      onValueChange={(value) =>
+                        setSupportDraft((current) => ({
+                          ...current,
+                          category: value as typeof current.category,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="order">Order</SelectItem>
+                        <SelectItem value="payment">Payment</SelectItem>
+                        <SelectItem value="shipment">Shipment</SelectItem>
+                        <SelectItem value="refund">Refund</SelectItem>
+                        <SelectItem value="account">Account</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Subject</p>
+                    <Input
+                      value={supportDraft.subject}
+                      onChange={(event) =>
+                        setSupportDraft((current) => ({
+                          ...current,
+                          subject: event.target.value,
+                        }))
+                      }
+                      placeholder="Short summary of the issue"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Priority</p>
+                    <Select
+                      value={supportDraft.priority}
+                      onValueChange={(value) =>
+                        setSupportDraft((current) => ({
+                          ...current,
+                          priority: value as typeof current.priority,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">What happened?</p>
+                  <Textarea
+                    rows={5}
+                    value={supportDraft.message}
+                    onChange={(event) =>
+                      setSupportDraft((current) => ({
+                        ...current,
+                        message: event.target.value,
+                      }))
+                    }
+                    placeholder="Include the order context, payment issue, shipment problem, or exact account question."
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    className="rounded-full"
+                    onClick={() => void handleCreateSupportCase()}
+                    disabled={customerPortal.isSubmittingSupportCase}
+                  >
+                    {customerPortal.isSubmittingSupportCase ? "Submitting..." : "Submit support case"}
+                  </Button>
+                  <Button asChild variant="outline" className="rounded-full">
+                    <Link to={storefrontPaths.accountSection("orders")}>Open orders</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="rounded-full">
+                    <Link to={storefrontPaths.trackOrder()}>Track an order</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
+              <CardHeader>
+                <CardTitle>Support details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Website
+                    Company
                   </p>
-                  <a
-                    href={brand.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block text-sm font-medium text-foreground transition hover:text-primary"
-                  >
-                    {brand.website}
-                  </a>
+                  <p className="mt-2 font-medium text-foreground">{brand?.brandName ?? "Support Desk"}</p>
+                  {brand?.tagline ? (
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{brand.tagline}</p>
+                  ) : null}
                 </div>
-              ) : null}
+                {brand?.primaryEmail ? (
+                  <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Support Email
+                    </p>
+                    <a
+                      href={`mailto:${brand.primaryEmail}`}
+                      className="mt-2 block text-base font-medium text-foreground transition hover:text-primary"
+                    >
+                      {brand.primaryEmail}
+                    </a>
+                  </div>
+                ) : null}
+                {brand?.primaryPhone ? (
+                  <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Support Phone
+                    </p>
+                    <a
+                      href={`tel:${brand.primaryPhone}`}
+                      className="mt-2 block text-base font-medium text-foreground transition hover:text-primary"
+                    >
+                      {brand.primaryPhone}
+                    </a>
+                  </div>
+                ) : null}
+                {brand?.website ? (
+                  <div className="rounded-[1.3rem] border border-border/70 bg-background/80 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Website
+                    </p>
+                    <a
+                      href={brand.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block text-sm font-medium text-foreground transition hover:text-primary"
+                    >
+                      {brand.website}
+                    </a>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Your support cases</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {customerPortal.supportCasesQuery.isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading support cases...</p>
+              ) : customerPortal.supportCasesQuery.error ? (
+                <p className="text-sm text-destructive">
+                  {customerPortal.supportCasesQuery.error instanceof Error
+                    ? customerPortal.supportCasesQuery.error.message
+                    : "Support cases could not be loaded."}
+                </p>
+              ) : supportCases.length > 0 ? (
+                supportCases.map((item: StorefrontSupportCaseView) => (
+                  <div
+                    key={item.id}
+                    className="rounded-[1.4rem] border border-border/70 bg-background/80 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-foreground">{item.caseNumber}</p>
+                          <Badge variant="outline">{formatSupportCaseLabel(item.category)}</Badge>
+                          <Badge variant={item.priority === "urgent" ? "destructive" : "secondary"}>
+                            {item.priority}
+                          </Badge>
+                          <Badge variant="outline">{formatSupportCaseLabel(item.status)}</Badge>
+                        </div>
+                        <p className="font-medium text-foreground">{item.subject}</p>
+                        <p className="text-sm leading-6 text-muted-foreground">{item.message}</p>
+                        {item.adminNote ? (
+                          <p className="text-sm leading-6 text-foreground">
+                            Support note: {item.adminNote}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="space-y-1 text-right text-xs text-muted-foreground">
+                        <p>Created {formatPortalDateTime(item.createdAt)}</p>
+                        <p>Updated {formatPortalDateTime(item.updatedAt)}</p>
+                        <p>Order {item.orderNumber ?? "Not linked"}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No support cases yet. Your first request will appear here after submission.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

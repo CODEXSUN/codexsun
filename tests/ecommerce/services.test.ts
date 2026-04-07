@@ -23,6 +23,12 @@ import {
   updateCustomerProfile,
 } from "../../apps/ecommerce/src/services/customer-service.js"
 import {
+  createCustomerSupportCase,
+  getStorefrontSupportQueueReport,
+  listCustomerSupportCases,
+  updateStorefrontSupportCase,
+} from "../../apps/ecommerce/src/services/storefront-support-service.js"
+import {
   getStorefrontHomeSlider,
   getStorefrontSettings,
   saveStorefrontHomeSlider,
@@ -38,6 +44,7 @@ import {
   createCheckoutOrder,
   getStorefrontAdminOrder,
   getStorefrontAdminOrderOperationsReport,
+  getCustomerOrderReceiptDocument,
   getStorefrontPaymentOperationsReport,
   handleRazorpayWebhook,
   listCustomerOrders,
@@ -471,6 +478,17 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(customerOrders.items.length, 1)
       assert.equal(customerOrders.items[0]?.orderNumber, verified.item.orderNumber)
 
+      const receiptDocument = await getCustomerOrderReceiptDocument(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        verified.item.id
+      )
+
+      assert.match(receiptDocument.fileName, /html$/)
+      assert.match(receiptDocument.html, new RegExp(verified.item.orderNumber))
+      assert.match(receiptDocument.html, /Storefront receipt/)
+
       const tracked = await trackOrderByReference(runtime.primary, {
         orderNumber: verified.item.orderNumber,
         email: "asha@codexsun.local",
@@ -482,6 +500,149 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         true
       )
       assert.equal(tracked.item.status, "delivered")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("storefront customer support cases link portal requests to orders and admin queue updates", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-support-cases-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+    const authRequestMeta = { ipAddress: null, userAgent: null }
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const authService = createAuthService(runtime.primary, config)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      await registerCustomer(runtime.primary, config, {
+        displayName: "Support Customer",
+        email: "support@codexsun.local",
+        phoneNumber: "+91 97777 22222",
+        password: "Password@123",
+        companyName: "",
+        gstin: "",
+        addressLine1: "11 Market Road",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      const customerSession = await authService.login(
+        {
+          email: "support@codexsun.local",
+          password: "Password@123",
+        },
+        authRequestMeta
+      )
+
+      const checkout = await createCheckoutOrder(
+        runtime.primary,
+        config,
+        {
+          items: [{ productId, quantity: 1 }],
+          shippingAddress: {
+            fullName: "Support Customer",
+            email: "support@codexsun.local",
+            phoneNumber: "+91 97777 22222",
+            line1: "11 Market Road",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          billingAddress: {
+            fullName: "Support Customer",
+            email: "support@codexsun.local",
+            phoneNumber: "+91 97777 22222",
+            line1: "11 Market Road",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          notes: null,
+        },
+        customerSession.accessToken
+      )
+
+      const verified = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: checkout.order.id,
+        providerOrderId: checkout.payment.providerOrderId,
+        providerPaymentId: "pay_support_case_001",
+        signature: "mock_signature",
+      })
+
+      const createdCase = await createCustomerSupportCase(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        {
+          orderId: verified.item.id,
+          category: "shipment",
+          priority: "high",
+          subject: "Shipment update needed",
+          message: "Please confirm whether the parcel can still be redirected before dispatch.",
+        }
+      )
+
+      assert.equal(createdCase.item.orderId, verified.item.id)
+      assert.equal(createdCase.item.orderNumber, verified.item.orderNumber)
+      assert.equal(createdCase.item.status, "open")
+
+      const customerCases = await listCustomerSupportCases(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(customerCases.items.length, 1)
+      assert.equal(customerCases.items[0]?.caseNumber, createdCase.item.caseNumber)
+      assert.equal(customerCases.items[0]?.orderStatus, "paid")
+
+      const queueReport = await getStorefrontSupportQueueReport(runtime.primary)
+
+      assert.equal(queueReport.summary.totalCases, 1)
+      assert.equal(queueReport.summary.openCount, 1)
+      assert.equal(queueReport.items[0]?.customerEmail, "support@codexsun.local")
+
+      const updatedCase = await updateStorefrontSupportCase(runtime.primary, {
+        caseId: createdCase.item.id,
+        status: "in_progress",
+        adminNote: "Ops team is checking courier reassignment now.",
+      })
+
+      assert.equal(updatedCase.item.status, "in_progress")
+      assert.equal(updatedCase.item.adminNote, "Ops team is checking courier reassignment now.")
+
+      const resolvedCase = await updateStorefrontSupportCase(runtime.primary, {
+        caseId: createdCase.item.id,
+        status: "resolved",
+        priority: "normal",
+        adminNote: "Redirection approved and customer informed.",
+      })
+
+      assert.equal(resolvedCase.item.status, "resolved")
+      assert.equal(resolvedCase.item.priority, "normal")
+      assert.equal(Boolean(resolvedCase.item.resolvedAt), true)
     } finally {
       await runtime.destroy()
     }

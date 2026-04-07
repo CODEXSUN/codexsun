@@ -19,6 +19,7 @@ import { createMailboxService } from "../../../cxapp/src/services/service-factor
 import {
   storefrontAdminOrderActionPayloadSchema,
   storefrontAdminOrderOperationsReportSchema,
+  storefrontReceiptDocumentSchema,
   storefrontCheckoutPayloadSchema,
   storefrontCheckoutResponseSchema,
   storefrontOrderListResponseSchema,
@@ -2259,6 +2260,122 @@ export async function getCustomerOrder(
   }
 
   return storefrontOrderResponseSchema.parse({ item })
+}
+
+export async function getCustomerOrderReceiptDocument(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string,
+  orderId: string
+) {
+  const { item } = await getCustomerOrder(database, config, token, orderId)
+  const timelineDate = new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+  const currencyFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: item.currency,
+    maximumFractionDigits: 2,
+  })
+  const lineItemsHtml = item.items
+    .map(
+      (line) => `
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">${line.name}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;text-align:center;">${line.quantity}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${currencyFormatter.format(line.unitPrice)}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${currencyFormatter.format(line.lineTotal)}</td>
+        </tr>`
+    )
+    .join("")
+  const shippingBlock =
+    item.fulfillmentMethod === "store_pickup" && item.pickupLocation
+      ? `
+        <p style="margin:0;font-size:14px;line-height:1.7;color:#4b5563;">
+          <strong>Store pickup</strong><br />
+          ${item.pickupLocation.storeName}<br />
+          ${item.pickupLocation.line1}${item.pickupLocation.line2 ? `, ${item.pickupLocation.line2}` : ""}<br />
+          ${item.pickupLocation.city}, ${item.pickupLocation.state} ${item.pickupLocation.pincode}<br />
+          ${item.pickupLocation.country}
+        </p>`
+      : `
+        <p style="margin:0;font-size:14px;line-height:1.7;color:#4b5563;">
+          ${item.shippingAddress.fullName}<br />
+          ${item.shippingAddress.line1}${item.shippingAddress.line2 ? `, ${item.shippingAddress.line2}` : ""}<br />
+          ${item.shippingAddress.city}, ${item.shippingAddress.state} ${item.shippingAddress.pincode}<br />
+          ${item.shippingAddress.country}<br />
+          ${item.shippingAddress.email}<br />
+          ${item.shippingAddress.phoneNumber}
+        </p>`
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Receipt ${item.orderNumber}</title>
+  </head>
+  <body style="margin:0;background:#f5f1ea;padding:32px 18px;font-family:Segoe UI,Arial,sans-serif;color:#111827;">
+    <div style="margin:0 auto;max-width:860px;border:1px solid #e5e7eb;background:#ffffff;padding:32px;">
+      <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-start;border-bottom:2px solid #111827;padding-bottom:18px;">
+        <div>
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#6b7280;">Storefront receipt</p>
+          <h1 style="margin:0;font-size:30px;line-height:1.15;">${item.orderNumber}</h1>
+          <p style="margin:10px 0 0;font-size:14px;line-height:1.7;color:#4b5563;">Generated ${timelineDate.format(new Date(item.updatedAt))}</p>
+        </div>
+        <div style="min-width:220px;text-align:right;">
+          <p style="margin:0;font-size:13px;line-height:1.8;color:#4b5563;">Order date: ${timelineDate.format(new Date(item.createdAt))}</p>
+          <p style="margin:0;font-size:13px;line-height:1.8;color:#4b5563;">Payment: ${item.paymentStatus.replaceAll("_", " ")}</p>
+          <p style="margin:0;font-size:13px;line-height:1.8;color:#4b5563;">Status: ${item.status.replaceAll("_", " ")}</p>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:24px 0;border-bottom:1px solid #e5e7eb;">
+        <div>
+          <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Billing</p>
+          <p style="margin:0;font-size:14px;line-height:1.7;color:#4b5563;">
+            ${item.billingAddress.fullName}<br />
+            ${item.billingAddress.line1}${item.billingAddress.line2 ? `, ${item.billingAddress.line2}` : ""}<br />
+            ${item.billingAddress.city}, ${item.billingAddress.state} ${item.billingAddress.pincode}<br />
+            ${item.billingAddress.country}<br />
+            ${item.billingAddress.email}<br />
+            ${item.billingAddress.phoneNumber}
+          </p>
+        </div>
+        <div>
+          <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Fulfilment</p>
+          ${shippingBlock}
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;margin-top:24px;">
+        <thead>
+          <tr>
+            <th style="padding:0 0 12px;text-align:left;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Item</th>
+            <th style="padding:0 0 12px;text-align:center;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Qty</th>
+            <th style="padding:0 0 12px;text-align:right;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Rate</th>
+            <th style="padding:0 0 12px;text-align:right;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${lineItemsHtml}</tbody>
+      </table>
+
+      <div style="margin-left:auto;max-width:320px;padding-top:24px;">
+        <div style="display:flex;justify-content:space-between;gap:18px;padding:6px 0;font-size:14px;color:#4b5563;"><span>Subtotal</span><strong style="color:#111827;">${currencyFormatter.format(item.subtotalAmount)}</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:18px;padding:6px 0;font-size:14px;color:#4b5563;"><span>Discount</span><strong style="color:#111827;">-${currencyFormatter.format(item.discountAmount)}</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:18px;padding:6px 0;font-size:14px;color:#4b5563;"><span>Shipping</span><strong style="color:#111827;">${currencyFormatter.format(item.shippingAmount)}</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:18px;padding:6px 0;font-size:14px;color:#4b5563;"><span>Handling</span><strong style="color:#111827;">${currencyFormatter.format(item.handlingAmount)}</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:18px;padding:12px 0 0;margin-top:8px;border-top:2px solid #111827;font-size:16px;"><span><strong>Total</strong></span><strong>${currencyFormatter.format(item.totalAmount)}</strong></div>
+      </div>
+    </div>
+  </body>
+</html>`
+
+  return storefrontReceiptDocumentSchema.parse({
+    fileName: `${item.orderNumber.toLowerCase()}.html`,
+    html,
+  })
 }
 
 export async function trackOrderByReference(database: Kysely<unknown>, query: unknown) {

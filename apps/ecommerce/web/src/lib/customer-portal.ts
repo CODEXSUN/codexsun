@@ -88,7 +88,7 @@ export const customerPortalSections: CustomerPortalSection[] = [
   {
     id: "support",
     label: "Support",
-    summary: "Reach company support using the shared contact channels.",
+    summary: "Create portal support cases linked to your orders and track their status.",
     icon: Headphones,
   },
 ]

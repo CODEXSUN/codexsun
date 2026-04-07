@@ -457,6 +457,99 @@ export const storefrontCommunicationHealthResponseSchema = z.object({
   checkedTemplateCodes: z.array(storefrontCommunicationTemplateCodeSchema),
 })
 
+export const storefrontSupportCaseStatusSchema = z.enum([
+  "open",
+  "in_progress",
+  "waiting_customer",
+  "resolved",
+  "closed",
+])
+
+export const storefrontSupportCasePrioritySchema = z.enum([
+  "low",
+  "normal",
+  "high",
+  "urgent",
+])
+
+export const storefrontSupportCaseCategorySchema = z.enum([
+  "order",
+  "payment",
+  "shipment",
+  "refund",
+  "account",
+  "other",
+])
+
+export const storefrontSupportCaseSchema = z.object({
+  id: z.string().min(1),
+  caseNumber: z.string().min(1),
+  customerAccountId: z.string().min(1),
+  coreContactId: z.string().min(1),
+  orderId: z.string().nullable(),
+  orderNumber: z.string().nullable(),
+  status: storefrontSupportCaseStatusSchema,
+  priority: storefrontSupportCasePrioritySchema,
+  category: storefrontSupportCaseCategorySchema,
+  subject: z.string().min(1),
+  message: z.string().min(1),
+  adminNote: z.string().nullable(),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  customerPhone: z.string().min(1),
+  resolvedAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontSupportCaseViewSchema = storefrontSupportCaseSchema.extend({
+  orderStatus: storefrontOrderStatusSchema.nullable(),
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]).nullable(),
+  orderTotalAmount: z.number().finite().nonnegative().nullable(),
+  currency: z.string().nullable(),
+})
+
+export const storefrontSupportCaseListResponseSchema = z.object({
+  items: z.array(storefrontSupportCaseViewSchema),
+})
+
+export const storefrontSupportCaseResponseSchema = z.object({
+  item: storefrontSupportCaseViewSchema,
+})
+
+export const storefrontSupportCaseCreatePayloadSchema = z.object({
+  orderId: z.string().trim().min(1).nullable().optional().default(null),
+  category: storefrontSupportCaseCategorySchema,
+  priority: storefrontSupportCasePrioritySchema.default("normal"),
+  subject: z.string().trim().min(3),
+  message: z.string().trim().min(10),
+})
+
+export const storefrontSupportCaseAdminUpdatePayloadSchema = z.object({
+  caseId: z.string().min(1),
+  status: storefrontSupportCaseStatusSchema,
+  priority: storefrontSupportCasePrioritySchema.optional(),
+  adminNote: z.string().trim().nullable().optional().default(null),
+})
+
+export const storefrontSupportQueueReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalCases: z.number().int().min(0),
+    openCount: z.number().int().min(0),
+    inProgressCount: z.number().int().min(0),
+    waitingCustomerCount: z.number().int().min(0),
+    resolvedCount: z.number().int().min(0),
+    urgentCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontSupportCaseViewSchema),
+})
+
+export const storefrontReceiptDocumentSchema = z.object({
+  fileName: z.string().min(1),
+  html: z.string().min(1),
+})
+
 export type StorefrontAddress = z.infer<typeof storefrontAddressSchema>
 export type StorefrontFulfillmentMethod = z.infer<typeof storefrontFulfillmentMethodSchema>
 export type StorefrontCheckoutPaymentMethod = z.infer<typeof storefrontCheckoutPaymentMethodSchema>
@@ -539,3 +632,24 @@ export type StorefrontCommunicationResendResponse = z.infer<
 export type StorefrontCommunicationHealthResponse = z.infer<
   typeof storefrontCommunicationHealthResponseSchema
 >
+export type StorefrontSupportCaseStatus = z.infer<typeof storefrontSupportCaseStatusSchema>
+export type StorefrontSupportCasePriority = z.infer<typeof storefrontSupportCasePrioritySchema>
+export type StorefrontSupportCaseCategory = z.infer<typeof storefrontSupportCaseCategorySchema>
+export type StorefrontSupportCase = z.infer<typeof storefrontSupportCaseSchema>
+export type StorefrontSupportCaseView = z.infer<typeof storefrontSupportCaseViewSchema>
+export type StorefrontSupportCaseListResponse = z.infer<
+  typeof storefrontSupportCaseListResponseSchema
+>
+export type StorefrontSupportCaseResponse = z.infer<
+  typeof storefrontSupportCaseResponseSchema
+>
+export type StorefrontSupportCaseCreatePayload = z.infer<
+  typeof storefrontSupportCaseCreatePayloadSchema
+>
+export type StorefrontSupportCaseAdminUpdatePayload = z.infer<
+  typeof storefrontSupportCaseAdminUpdatePayloadSchema
+>
+export type StorefrontSupportQueueReport = z.infer<
+  typeof storefrontSupportQueueReportSchema
+>
+export type StorefrontReceiptDocument = z.infer<typeof storefrontReceiptDocumentSchema>

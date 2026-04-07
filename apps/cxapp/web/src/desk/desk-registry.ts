@@ -7,6 +7,7 @@ import {
   Building2,
   Cable,
   ClipboardList,
+  Headphones,
   Cog,
   ContactRound,
   Database,
@@ -474,6 +475,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       products: Package,
       catalog: PackageCheck,
       customers: Users,
+      support: Headphones,
       communications: ContactRound,
       orders: ShoppingBag,
       payments: Wallet,
@@ -746,6 +748,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               items: modules.filter((item) =>
                 [
                   `/dashboard/apps/${app.id}/customers`,
+                  `/dashboard/apps/${app.id}/support`,
                   `/dashboard/apps/${app.id}/communications`,
                   `/dashboard/apps/${app.id}/orders`,
                   `/dashboard/apps/${app.id}/payments`,

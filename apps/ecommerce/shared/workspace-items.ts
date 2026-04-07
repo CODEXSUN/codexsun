@@ -43,6 +43,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Customer accounts, registration flow, core contact linkage, and portal access behavior.",
   },
   {
+    id: "support",
+    name: "Support",
+    route: "/dashboard/apps/ecommerce/support",
+    summary: "Customer service queue linked to orders, case status updates, and portal-created support requests.",
+  },
+  {
     id: "communications",
     name: "Communications",
     route: "/dashboard/apps/ecommerce/communications",

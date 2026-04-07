@@ -1,4 +1,5 @@
 import { CalendarClock, CheckCheck, CreditCard, MapPin, PackageCheck, PackageOpen, Truck } from "lucide-react"
+import type { ReactNode } from "react"
 
 import type { StorefrontOrder, StorefrontOrderTimelineEvent } from "@ecommerce/shared"
 import { Badge } from "@/components/ui/badge"
@@ -99,7 +100,13 @@ function TimelineEntryRow({ entry }: { entry: StorefrontOrderTimelineEvent }) {
   )
 }
 
-export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder }) {
+export function StorefrontOrderDetailCard({
+  order,
+  actions,
+}: {
+  order: StorefrontOrder
+  actions?: ReactNode
+}) {
   const currencyFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: order.currency,
@@ -189,6 +196,7 @@ export function StorefrontOrderDetailCard({ order }: { order: StorefrontOrder })
                 {order.fulfillmentMethod === "store_pickup" ? "Store pickup" : "Home delivery"}
               </Badge>
             </div>
+            {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.4rem] border border-primary/14 bg-background/88 p-4">

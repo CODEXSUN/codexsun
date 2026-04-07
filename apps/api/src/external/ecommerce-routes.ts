@@ -9,8 +9,13 @@ import {
   updateCustomerPortalPreferences,
 } from "../../../ecommerce/src/services/customer-service.js"
 import {
+  createCustomerSupportCase,
+  listCustomerSupportCases,
+} from "../../../ecommerce/src/services/storefront-support-service.js"
+import {
   createCheckoutOrder,
   getCustomerOrder,
+  getCustomerOrderReceiptDocument,
   handleRazorpayWebhook,
   listCustomerOrders,
   verifyCheckoutPayment,
@@ -19,7 +24,7 @@ import { getRazorpayPaymentConfig } from "../../../ecommerce/src/services/razorp
 import { defineExternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
-import { jsonResponse } from "../shared/http-responses.js"
+import { htmlResponse, jsonResponse } from "../shared/http-responses.js"
 import { readBearerToken, readHeader } from "../shared/request.js"
 
 export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
@@ -164,6 +169,47 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineExternalRoute("/storefront/customers/me/support-cases", {
+      auth: "external",
+      summary: "List the authenticated storefront customer's support cases.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await listCustomerSupportCases(
+            context.databases.primary,
+            context.config,
+            token
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/support-cases", {
+      auth: "external",
+      method: "POST",
+      summary: "Create one support case from the authenticated storefront customer portal.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await createCustomerSupportCase(
+            context.databases.primary,
+            context.config,
+            token,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
     defineExternalRoute("/storefront/checkout", {
       auth: "none",
       method: "POST",
@@ -250,6 +296,31 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
             orderId
           )
         )
+      },
+    }),
+    defineExternalRoute("/storefront/order-receipt", {
+      auth: "external",
+      summary: "Download one authenticated storefront order receipt as an attachment.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+        const orderId = context.request.url.searchParams.get("id")
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        if (!orderId) {
+          return jsonResponse({ error: "Order id is required." }, 400)
+        }
+
+        const document = await getCustomerOrderReceiptDocument(
+          context.databases.primary,
+          context.config,
+          token,
+          orderId
+        )
+
+        return htmlResponse(document.html, 200, document.fileName)
       },
     }),
   ]

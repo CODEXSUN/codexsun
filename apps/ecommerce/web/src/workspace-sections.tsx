@@ -35,6 +35,7 @@ import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/stor
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
 import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-orders-section"
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
+import { StorefrontSupportSection } from "./features/storefront-admin/storefront-support-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
@@ -769,6 +770,10 @@ function CommunicationsSection() {
   return <StorefrontCommunicationsSection />
 }
 
+function SupportSection() {
+  return <StorefrontSupportSection />
+}
+
 function PaymentsSection() {
   return <StorefrontPaymentsSection />
 }
@@ -888,6 +893,8 @@ export function EcommerceWorkspaceSection({
       return <ProductsSection />
     case "customers":
       return <CustomersSection />
+    case "support":
+      return <SupportSection />
     case "communications":
       return <CommunicationsSection />
     case "orders":

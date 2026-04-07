@@ -82,11 +82,11 @@ Stage 1.1 baseline document:
 - [x] 2.1.2 add order detail operations: cancel, mark fulfilled, add tracking id, resend confirmation
 - [x] 2.1.3 add payment exception queue
 - [x] 2.1.4 add refund queue and refund-status operations
-- [ ] 2.1.5 add customer service queue linked to orders
+- [x] 2.1.5 add customer service queue linked to orders
 
 ### Stage 2.2: Customer Portal Maturity
 
-- [ ] 2.2.1 add invoice or receipt download in customer portal
+- [x] 2.2.1 add invoice or receipt download in customer portal
 - [ ] 2.2.2 add returns and cancellation request workflow
 - [ ] 2.2.3 add support request entry linked to order number
 - [ ] 2.2.4 add repeat-order and wishlist-to-cart utilities

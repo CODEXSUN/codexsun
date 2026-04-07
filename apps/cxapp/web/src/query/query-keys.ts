@@ -9,4 +9,5 @@ export const queryKeys = {
   storefrontLegalPage: (pageId: string) => ["storefront", "legal-page", pageId] as const,
   storefrontCustomerPortal: ["storefront", "customer-portal"] as const,
   storefrontCustomerOrders: ["storefront", "customer-orders"] as const,
+  storefrontCustomerSupportCases: ["storefront", "customer-support-cases"] as const,
 }

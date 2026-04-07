@@ -1,7 +1,10 @@
 import { useEffect, useSyncExternalStore } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import type { CustomerPortalPreferencesUpdatePayload } from "@ecommerce/shared"
+import type {
+  CustomerPortalPreferencesUpdatePayload,
+  StorefrontSupportCaseCreatePayload,
+} from "@ecommerce/shared"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
 
 import { storefrontApi } from "../api/storefront-api"
@@ -37,6 +40,14 @@ export function useStorefrontCustomerPortal() {
   const ordersQuery = useQuery({
     queryKey: queryKeys.storefrontCustomerOrders,
     queryFn: () => storefrontApi.listCustomerOrders(accessToken!),
+    enabled: Boolean(accessToken && customerAuth.isAuthenticated),
+    staleTime: 30_000,
+    refetchOnMount: "always",
+  })
+
+  const supportCasesQuery = useQuery({
+    queryKey: queryKeys.storefrontCustomerSupportCases,
+    queryFn: () => storefrontApi.getCustomerSupportCases(accessToken!),
     enabled: Boolean(accessToken && customerAuth.isAuthenticated),
     staleTime: 30_000,
     refetchOnMount: "always",
@@ -125,13 +136,33 @@ export function useStorefrontCustomerPortal() {
     },
   })
 
+  const supportCaseMutation = useMutation({
+    mutationFn: (payload: StorefrontSupportCaseCreatePayload) =>
+      storefrontApi.createCustomerSupportCase(accessToken!, payload),
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.storefrontCustomerSupportCases, (current) => {
+        const currentItems =
+          current && typeof current === "object" && "items" in current && Array.isArray(current.items)
+            ? current.items
+            : []
+
+        return {
+          items: [data.item, ...currentItems.filter((item) => item.id !== data.item.id)],
+        }
+      })
+    },
+  })
+
   return {
     portalQuery,
     ordersQuery,
+    supportCasesQuery,
     toggleWishlist,
+    createSupportCase: supportCaseMutation.mutateAsync,
     updatePreferences: preferencesMutation.mutateAsync,
     isMutatingWishlist: toggleWishlistMutation.isPending,
     isSavingPreferences: preferencesMutation.isPending,
+    isSubmittingSupportCase: supportCaseMutation.isPending,
     wishlistCount:
       customerAuth.isAuthenticated && accessToken
         ? (portalQuery.data?.stats.wishlistCount ?? 0)

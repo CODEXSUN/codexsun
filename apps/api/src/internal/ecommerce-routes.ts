@@ -34,6 +34,10 @@ import {
   reconcileRazorpayPayments,
   updateStorefrontRefundStatus,
 } from "../../../ecommerce/src/services/order-service.js"
+import {
+  getStorefrontSupportQueueReport,
+  updateStorefrontSupportCase,
+} from "../../../ecommerce/src/services/storefront-support-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
@@ -454,6 +458,34 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontPaymentOperationsReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/support/report", {
+      summary: "Read the ecommerce support-case queue linked to customers and orders.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await getStorefrontSupportQueueReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/support/case", {
+      method: "POST",
+      summary: "Update one ecommerce support case status, priority, or admin note.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await updateStorefrontSupportCase(
+            context.databases.primary,
+            context.request.jsonBody
+          )
         )
       },
     }),
