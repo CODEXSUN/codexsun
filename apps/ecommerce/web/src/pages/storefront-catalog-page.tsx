@@ -90,7 +90,10 @@ export function StorefrontCatalogPage() {
                       setSearchParams(next)
                     }}
                   >
-                    <SelectTrigger className="w-full rounded-full bg-[#fbf7f1]">
+                    <SelectTrigger
+                      aria-label={data?.settings.search.categoryFilterLabel ?? "Category"}
+                      className="w-full rounded-full bg-[#fbf7f1]"
+                    >
                       <SelectValue placeholder={data?.settings.search.categoryFilterLabel ?? "Category"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -116,7 +119,10 @@ export function StorefrontCatalogPage() {
                       setSearchParams(next)
                     }}
                   >
-                    <SelectTrigger className="w-full rounded-full bg-[#fbf7f1]">
+                    <SelectTrigger
+                      aria-label={data?.settings.search.departmentFilterLabel ?? "Department"}
+                      className="w-full rounded-full bg-[#fbf7f1]"
+                    >
                       <SelectValue placeholder={data?.settings.search.departmentFilterLabel ?? "Department"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -138,7 +144,10 @@ export function StorefrontCatalogPage() {
                       setSearchParams(next)
                     }}
                   >
-                    <SelectTrigger className="w-full rounded-full bg-[#fbf7f1]">
+                    <SelectTrigger
+                      aria-label={data?.settings.search.sortFilterLabel ?? "Sort"}
+                      className="w-full rounded-full bg-[#fbf7f1]"
+                    >
                       <SelectValue placeholder={data?.settings.search.sortFilterLabel ?? "Sort"} />
                     </SelectTrigger>
                     <SelectContent>

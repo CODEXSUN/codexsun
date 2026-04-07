@@ -33,6 +33,7 @@ import { StorefrontPickupSection } from "./features/storefront-admin/storefront-
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
+import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-orders-section"
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
@@ -761,32 +762,7 @@ function CustomersSection() {
 }
 
 function OrdersSection() {
-  return (
-    <div className="space-y-4">
-      <SectionIntro
-        eyebrow="Orders"
-        title="Order lifecycle"
-        description="Checkout produces ecommerce-owned orders, verifies payment state, records timeline entries, and exposes both public tracking and portal order history from the same app boundary."
-      />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <MetricCard
-          icon={ShoppingBag}
-          title="Checkout origin"
-          summary="Orders are created from the storefront cart and normalized against live core product data before payment."
-        />
-        <MetricCard
-          icon={CreditCard}
-          title="Verification"
-          summary="Payment verification updates order status and timeline events in ecommerce without leaking payment workflow into framework or core."
-        />
-        <MetricCard
-          icon={Package}
-          title="Tracking"
-          summary="Both customer portal order views and public tracking resolve the same ecommerce order records."
-        />
-      </div>
-    </div>
-  )
+  return <StorefrontOrdersSection />
 }
 
 function CommunicationsSection() {

@@ -4,58 +4,57 @@
 
 ### Reference
 
-`#40`
+`#43`
 
 ### Goal
 
-Complete Stage `1.6.3` by extending the storefront metadata baseline into canonical URLs, Open Graph tags, and crawl-discovery endpoints for `robots.txt` and `sitemap.xml`.
+Complete Stage `2.1.1` by replacing the ecommerce admin orders placeholder with a real order queue backed by a typed internal report and a filterable operations surface.
 
 ### Scope
 
 - `ASSIST/Execution/TASK.md`
 - `ASSIST/Execution/PLANNING.md`
-- `apps/api/src/external/public-routes.ts`
-- `apps/ecommerce/shared/index.ts`
-- `apps/ecommerce/shared/storefront-seo.ts`
-- `apps/ecommerce/src/services/storefront-seo-service.ts`
-- `apps/ecommerce/web/src/components/storefront-route-metadata.tsx`
-- `apps/ecommerce/web/src/lib/storefront-metadata.ts`
-- `tests/ecommerce/storefront-metadata.test.ts`
-- `tests/ecommerce/storefront-seo-service.test.ts`
-- `tests/framework/runtime/http-routes.test.ts`
+- `apps/ecommerce/shared/schemas/order.ts`
+- `apps/ecommerce/src/services/order-service.ts`
+- `apps/api/src/internal/ecommerce-routes.ts`
+- `apps/ecommerce/web/src/api/storefront-api.ts`
+- `apps/ecommerce/web/src/features/storefront-admin/storefront-orders-section.tsx`
+- `apps/ecommerce/web/src/workspace-sections.tsx`
+- `tests/ecommerce/services.test.ts`
+- `tests/api/internal/routes.test.ts`
 
 ### Canonical Decisions
 
-- canonical storefront URLs must normalize `/shop/*` aliases to the active storefront target instead of allowing duplicate crawl paths
-- the storefront head controller must own canonical, Open Graph, and robots meta tags so future SEO changes can build on one metadata layer
-- `robots.txt` and `sitemap.xml` should be served through public routes using runtime config and seeded catalog data rather than static placeholder files
-- sitemap baseline should include canonical public discovery pages and active product detail routes, but exclude cart, checkout, account, and tracking surfaces
+- the first admin order queue should expose normalized operational records from ecommerce-owned order data without introducing a separate persistence layer
+- queue bucketing should be derived from existing order status, payment status, and fulfilment method so later actions can reuse the same queue model
+- the admin surface should follow the same card-and-contained-tabs pattern already used by payments and communications rather than introducing a new workspace layout
 
 ### Execution Plan
 
-1. add a shared storefront SEO helper for canonical path normalization and absolute URL building
-2. add an ecommerce SEO service for public origin resolution, robots generation, and sitemap generation
-3. expose `robots.txt` and `sitemap.xml` through public routes with root legacy paths
-4. extend the storefront metadata controller to set canonical, OG, and robots head tags
-5. add targeted route, metadata, and sitemap tests
-6. mark `1.6.3` complete in `TASK.md`
+1. extend the shared ecommerce order contract with admin queue report types
+2. derive queue buckets and summary counts from live storefront orders in the order service
+3. expose the report through a protected internal ecommerce route and frontend API method
+4. replace the placeholder orders workspace page with a searchable, tabbed admin queue
+5. add targeted service and route coverage for the new report
+6. mark `2.1.1` complete in `TASK.md`
 
 ### Validation Plan
 
 - run `npm run typecheck`
-- run `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/storefront-metadata.test.ts tests/ecommerce/storefront-seo-service.test.ts`
-- confirm `robots.txt` and `sitemap.xml` register through public legacy paths
-- confirm `1.6.3` is marked complete in `TASK.md`
+- run `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+- confirm the internal route registry includes the orders report endpoint
+- confirm the service report buckets orders correctly before and after payment verification
+- confirm `2.1.1` is marked complete in `TASK.md`
 
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/storefront-metadata.test.ts tests/ecommerce/storefront-seo-service.test.ts`
-- [x] public legacy paths registered for `/robots.txt` and `/sitemap.xml`
-- [x] `1.6.3` marked complete in `TASK.md`
+- [x] `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+- [x] internal route registry includes `GET /internal/v1/ecommerce/orders/report`
+- [x] service report buckets orders correctly across payment-pending and paid states
+- [x] `2.1.1` marked complete in `TASK.md`
 
 ### Risks And Follow-Up
 
-- Open Graph values are currently route-level baseline values; product-specific SEO enrichment can be added later if PDP-level SEO fields become part of the storefront payload
-- the static file under `public/robots.txt` still exists, but the public route now provides the crawl baseline at runtime and should be treated as authoritative
-- `1.6.4` should now focus on accessibility behavior with these crawl and metadata changes left stable
+- the queue is intentionally read-focused in this batch; record-level actions such as cancel, fulfil, tracking assignment, and resend stay for `2.1.2`
+- if order volume grows, the current report should evolve into server-side filtering and pagination rather than loading every order into the admin client

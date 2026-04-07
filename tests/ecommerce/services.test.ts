@@ -35,6 +35,7 @@ import {
 } from "../../apps/ecommerce/src/services/storefront-communication-service.js"
 import {
   createCheckoutOrder,
+  getStorefrontAdminOrderOperationsReport,
   getStorefrontPaymentOperationsReport,
   handleRazorpayWebhook,
   listCustomerOrders,
@@ -367,6 +368,14 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         checkout.payment.providerOrderId
       )
 
+      const pendingOrderQueue = await getStorefrontAdminOrderOperationsReport(runtime.primary)
+      const pendingQueueItem = pendingOrderQueue.items.find(
+        (item) => item.orderId === checkout.order.id
+      )
+
+      assert.equal(pendingOrderQueue.summary.actionRequiredCount > 0, true)
+      assert.equal(pendingQueueItem?.queueBucket, "payment_attention")
+
       const verified = await verifyCheckoutPayment(runtime.primary, config, {
         orderId: checkout.order.id,
         providerOrderId: checkout.payment.providerOrderId,
@@ -390,6 +399,12 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         verifiedAgain.item.timeline.filter((entry) => entry.code === "payment_captured").length,
         1
       )
+
+      const paidOrderQueue = await getStorefrontAdminOrderOperationsReport(runtime.primary)
+      const paidQueueItem = paidOrderQueue.items.find((item) => item.orderId === checkout.order.id)
+
+      assert.equal(paidQueueItem?.queueBucket, "fulfilment")
+      assert.equal(paidQueueItem?.paymentStatus, "paid")
 
       const monitoringDashboard = await getMonitoringDashboard(runtime.primary, config, {
         windowHours: 24,

@@ -17,6 +17,7 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import type { AuthUser } from "../../../cxapp/shared/schemas/auth.js"
 import { createMailboxService } from "../../../cxapp/src/services/service-factory.js"
 import {
+  storefrontAdminOrderOperationsReportSchema,
   storefrontCheckoutPayloadSchema,
   storefrontCheckoutResponseSchema,
   storefrontOrderListResponseSchema,
@@ -33,6 +34,8 @@ import {
   type StorefrontPaymentSession,
   type StorefrontRefundRecord,
   type CustomerAccount,
+  type StorefrontAdminOrderQueueBucket,
+  type StorefrontAdminOrderQueueItem,
   type StorefrontOrder,
   type StorefrontPaymentExceptionItem,
   type StorefrontPaymentSettlementItem,
@@ -1574,6 +1577,77 @@ function buildWebhookExceptionItem(
   }
 }
 
+function buildOrderQueueBucket(order: StorefrontOrder): StorefrontAdminOrderQueueBucket {
+  if (order.status === "cancelled" || order.status === "refunded") {
+    return "closed"
+  }
+
+  if (order.paymentStatus === "failed" || order.status === "created" || order.status === "payment_pending") {
+    return "payment_attention"
+  }
+
+  if (
+    order.fulfillmentMethod === "store_pickup" &&
+    order.status !== "delivered"
+  ) {
+    return "pickup"
+  }
+
+  if (order.status === "shipped") {
+    return "shipment"
+  }
+
+  if (order.status === "delivered") {
+    return "completed"
+  }
+
+  return "fulfilment"
+}
+
+function buildOrderQueueItem(order: StorefrontOrder): StorefrontAdminOrderQueueItem {
+  const latestTimelineEvent =
+    [...order.timeline].sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ??
+    {
+      label: "Order updated",
+      summary: "Order activity is available in the ecommerce timeline.",
+      createdAt: order.updatedAt,
+    }
+  const queueBucket = buildOrderQueueBucket(order)
+  const firstItem = order.items[0]
+  const extraItemCount = Math.max(0, order.items.length - 1)
+
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus,
+    paymentProvider: order.paymentProvider,
+    paymentMode: order.paymentMode,
+    fulfillmentMethod: order.fulfillmentMethod,
+    paymentCollectionMethod: order.paymentCollectionMethod,
+    refundStatus: order.refund?.status ?? null,
+    customerName: order.shippingAddress.fullName,
+    customerEmail: order.shippingAddress.email,
+    customerPhone: order.shippingAddress.phoneNumber,
+    itemCount: order.itemCount,
+    totalAmount: order.totalAmount,
+    currency: order.currency,
+    itemSummary: firstItem
+      ? extraItemCount > 0
+        ? `${firstItem.name} + ${extraItemCount} more`
+        : firstItem.name
+      : "Order items unavailable",
+    latestTimelineLabel: latestTimelineEvent.label,
+    latestTimelineSummary: latestTimelineEvent.summary,
+    latestTimelineAt: latestTimelineEvent.createdAt,
+    queueBucket,
+    needsAttention: queueBucket === "payment_attention" || queueBucket === "pickup",
+    ageHours: getOrderAgeHours(order),
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  }
+}
+
 export async function getStorefrontPaymentOperationsReport(
   database: Kysely<unknown>
 ) {
@@ -1635,6 +1709,29 @@ export async function getStorefrontPaymentOperationsReport(
     settlementQueue,
     failedPayments,
     webhookExceptions,
+  })
+}
+
+export async function getStorefrontAdminOrderOperationsReport(
+  database: Kysely<unknown>
+) {
+  const orders = await readOrders(database)
+  const items = orders
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .map((order) => buildOrderQueueItem(order))
+
+  return storefrontAdminOrderOperationsReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalOrders: items.length,
+      actionRequiredCount: items.filter((item) => item.queueBucket === "payment_attention").length,
+      fulfilmentQueueCount: items.filter((item) => item.queueBucket === "fulfilment").length,
+      shipmentQueueCount: items.filter((item) => item.queueBucket === "shipment").length,
+      pickupQueueCount: items.filter((item) => item.queueBucket === "pickup").length,
+      completedCount: items.filter((item) => item.queueBucket === "completed").length,
+      closedCount: items.filter((item) => item.queueBucket === "closed").length,
+    },
+    items,
   })
 }
 

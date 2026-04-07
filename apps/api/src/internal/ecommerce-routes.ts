@@ -26,6 +26,7 @@ import {
   resendStorefrontCommunication,
 } from "../../../ecommerce/src/services/storefront-communication-service.js"
 import {
+  getStorefrontAdminOrderOperationsReport,
   getStorefrontPaymentOperationsReport,
   requestStorefrontRefund,
   reconcileRazorpayPayments,
@@ -328,6 +329,18 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
                 ? context.request.url.searchParams.get("customerAccountId")
                 : null,
           })
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/orders/report", {
+      summary: "Read the ecommerce admin order queue with lifecycle and payment context.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await getStorefrontAdminOrderOperationsReport(context.databases.primary)
         )
       },
     }),

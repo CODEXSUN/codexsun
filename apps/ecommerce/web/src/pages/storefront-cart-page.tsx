@@ -229,6 +229,7 @@ function CartItemCard({
               <Button
                 type="button"
                 variant="ghost"
+                aria-label={`Remove ${item.name} from cart`}
                 className="rounded-full px-3 text-[#3a2b22] hover:bg-[#f4ede5]"
                 onClick={onRemove}
               >

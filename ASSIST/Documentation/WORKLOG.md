@@ -2,6 +2,25 @@
 
 ## Done Till Here
 
+### `#43` 2026-04-07
+
+- completed Stage `2.1.1` by turning the ecommerce admin orders area into a real operations queue instead of a static lifecycle summary
+- added a typed ecommerce orders report, derived queue buckets from live order status and payment state, and exposed the report through a protected internal ecommerce API route
+- added a searchable, contained-tab admin queue for action-required, fulfilment, shipment, pickup, completed, and closed orders
+- validated the order queue baseline with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#42` 2026-04-07
+
+- completed Stage `1.6.5` by adding a fixed mobile device-matrix audit for the core storefront flows
+- covered homepage, catalog, PDP, cart, checkout handoff, and tracking in one Playwright spec, with a shared assertion that rejects horizontal viewport overflow
+- validated the responsive baseline with `npm run test:e2e -- tests/e2e/storefront-mobile-matrix.spec.ts`
+
+### `#41` 2026-04-07
+
+- completed Stage `1.6.4` by fixing the highest-impact storefront accessibility issues across homepage, catalog, PDP, cart, checkout, and tracking
+- added a shared skip link in the storefront shell, improved explicit control names for hero-slider, PDP gallery, cart removal, and storefront search interactions, and tightened visible label wiring on the tracking form
+- validated the accessibility pass with `npm run typecheck` and `npm run test:e2e -- tests/e2e/storefront-accessibility.spec.ts`
+
 ### `#40` 2026-04-07
 
 - completed Stage `1.6.3` by extending the storefront metadata baseline into canonical-path helpers, canonical link tags, Open Graph tags, robots meta handling, and public crawl endpoints

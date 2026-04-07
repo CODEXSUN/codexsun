@@ -8,6 +8,24 @@
 
 ## v-0.0.1
 
+### [#43] 2026-04-07 - Ecommerce admin order queue baseline
+
+- completed Stage `2.1.1` by replacing the ecommerce orders placeholder with a real admin order queue backed by a typed internal report
+- added shared order-queue schemas, report bucketing in the ecommerce order service, a protected `GET /internal/v1/ecommerce/orders/report` route, and a frontend API method for admin order operations
+- added a searchable, tabbed orders workspace surface covering action-required, fulfilment, shipment, pickup, completed, and closed queues, then validated the slice with `npm run typecheck` and targeted service or route tests
+
+### [#42] 2026-04-07 - Storefront mobile matrix baseline
+
+- completed Stage `1.6.5` by adding a fixed device-matrix storefront audit for homepage, catalog, PDP, cart, checkout, and tracking
+- added a shared viewport-overflow assertion in the new Playwright mobile matrix spec and aligned the cart assertion to stable shopper controls instead of brittle heading copy
+- validated the responsive baseline with `npm run test:e2e -- tests/e2e/storefront-mobile-matrix.spec.ts` and marked `1.6.5` complete in `TASK.md`
+
+### [#41] 2026-04-07 - Storefront accessibility baseline
+
+- completed Stage `1.6.4` with a storefront accessibility pass covering keyboard bypass, control naming, and form labeling across homepage, catalog, PDP, cart, checkout, and tracking
+- added a shared skip-to-content link in the storefront shell, improved hero-slider and PDP control labels, and tightened tracking and storefront search field accessibility
+- added a focused Playwright storefront accessibility smoke test and marked `1.6.4` complete in `TASK.md`
+
 ### [#40] 2026-04-07 - Storefront SEO crawl baseline
 
 - completed Stage `1.6.3` by adding shared storefront canonical-path helpers, browser-side canonical and Open Graph tags, and robots meta handling on top of the storefront route metadata layer

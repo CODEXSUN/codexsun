@@ -101,6 +101,7 @@ export function StorefrontSearchSurface({
     <Input
       value={searchValue}
       onChange={(event) => onSearchValueChange?.(event.target.value)}
+      aria-label={placeholder}
       className="h-12 border-0 bg-transparent px-0 text-[14px] font-medium text-[#1f1a16] shadow-none placeholder:text-[#9b9084] focus-visible:ring-0 sm:h-14 sm:text-[15px]"
       placeholder={placeholder}
     />
@@ -110,6 +111,7 @@ export function StorefrontSearchSurface({
     <Button
       type={readOnly ? "button" : "submit"}
       size="icon"
+      aria-label={readOnly ? "Open storefront search" : "Submit storefront search"}
       className="relative z-10 mr-1 h-[calc(100%-8px)] min-h-10 w-11 shrink-0 self-center rounded-full border border-[#efbb72] bg-[#f3c27c] text-[#241913] shadow-[0_12px_20px_-16px_rgba(161,98,23,0.7)] transition-all duration-200 hover:scale-[1.02] hover:border-[#e6ac57] hover:bg-[#efb15a] hover:shadow-[0_16px_24px_-16px_rgba(240,177,90,0.7)] active:scale-[0.97] sm:mr-1.5 sm:h-[calc(100%-12px)] sm:min-h-11 sm:w-12"
       onClick={() => {
         if (readOnly) {
@@ -204,6 +206,7 @@ export function StorefrontSearchSurface({
           <Button
             type="button"
             variant="ghost"
+            aria-label="Clear storefront search"
             className="mr-1 hidden h-12 rounded-full px-4 text-[#6f655b] transition-colors duration-200 hover:bg-[#f4ece3] hover:text-[#1f1a16] sm:inline-flex"
             onClick={() => onClear?.()}
           >

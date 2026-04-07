@@ -14,6 +14,7 @@ import type {
   StorefrontGiftCorner,
   StorefrontBrandShowcase,
   StorefrontCampaignSection,
+  StorefrontAdminOrderOperationsReport,
   StorefrontLegalPageResponse,
   StorefrontTrendingSection,
   StorefrontCatalogResponse,
@@ -278,6 +279,12 @@ export const storefrontApi = {
   },
   getPaymentsReport(accessToken: string) {
     return requestJson<StorefrontPaymentOperationsReport>("/internal/v1/ecommerce/payments/report", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  getOrdersReport(accessToken: string) {
+    return requestJson<StorefrontAdminOrderOperationsReport>("/internal/v1/ecommerce/orders/report", {
       accessToken,
       cache: "no-store",
     })

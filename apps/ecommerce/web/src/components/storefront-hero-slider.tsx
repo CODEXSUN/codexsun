@@ -147,6 +147,7 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
+                    aria-label="Previous featured product"
                     className="size-8 rounded-full border shadow-sm sm:size-9"
                     style={{
                       background: sliderStyles.navBackground,
@@ -161,6 +162,7 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
+                    aria-label="Next featured product"
                     className="size-8 rounded-full border shadow-sm sm:size-9"
                     style={{
                       background: sliderStyles.navBackground,
@@ -278,6 +280,7 @@ export function StorefrontHeroSlider({
                   <motion.div variants={staggeredContentItem} className="mt-4 grid h-10 grid-cols-2 gap-2.5 overflow-hidden sm:mt-0 sm:flex sm:h-[2.5rem] sm:flex-row sm:gap-3">
                     <Button
                       type="button"
+                      aria-label={`Buy now: ${activeItem.name}`}
                       className="h-10 min-w-0 rounded-full px-4 text-sm font-semibold sm:flex-1 sm:px-5"
                       style={{
                         background: sliderStyles.primaryButtonBackground,
@@ -301,6 +304,7 @@ export function StorefrontHeroSlider({
                     </Button>
                     <Link
                       to={storefrontPaths.product(activeItem.slug)}
+                      aria-label={`View details for ${activeItem.name}`}
                       className={cn(
                         buttonVariants({ variant: "outline" }),
                         "h-10 min-w-0 rounded-xl px-4 text-sm font-medium leading-none backdrop-blur-sm sm:flex-1 sm:px-5"
@@ -388,6 +392,7 @@ export function StorefrontHeroSlider({
                   <motion.div variants={staggeredContentItem} className="flex flex-wrap items-center gap-3 pt-3">
                     <Button
                       type="button"
+                      aria-label={`Buy now: ${activeItem.name}`}
                       className="h-11 rounded-full px-6 text-base font-semibold"
                       style={{
                         background: sliderStyles.primaryButtonBackground,
@@ -411,6 +416,7 @@ export function StorefrontHeroSlider({
                     </Button>
                     <Link
                       to={storefrontPaths.product(activeItem.slug)}
+                      aria-label={`View details for ${activeItem.name}`}
                       className={cn(
                         buttonVariants({ variant: "outline" }),
                         "h-11 rounded-xl px-6 text-base font-medium backdrop-blur-sm"
@@ -476,6 +482,7 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
+                    aria-label="Previous featured product"
                     className="size-11 rounded-full border shadow-sm"
                     style={{
                       background: sliderStyles.navBackground,
@@ -490,6 +497,7 @@ export function StorefrontHeroSlider({
                     {featuredItems.map((item, index) => (
                       <span
                         key={item.id}
+                        aria-hidden="true"
                         className="h-1.5 rounded-full transition-all duration-300"
                         style={{
                           width: index === selectedIndex ? "1.5rem" : "0.375rem",
@@ -505,6 +513,7 @@ export function StorefrontHeroSlider({
                     type="button"
                     size="icon"
                     variant="outline"
+                    aria-label="Next featured product"
                     className="size-11 rounded-full border shadow-sm"
                     style={{
                       background: sliderStyles.navBackground,

@@ -301,6 +301,56 @@ export const storefrontPaymentOperationsReportSchema = z.object({
   webhookExceptions: z.array(storefrontPaymentWebhookExceptionItemSchema),
 })
 
+export const storefrontAdminOrderQueueBucketSchema = z.enum([
+  "payment_attention",
+  "fulfilment",
+  "shipment",
+  "pickup",
+  "completed",
+  "closed",
+])
+
+export const storefrontAdminOrderQueueItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  paymentProvider: z.enum(["razorpay", "store"]),
+  paymentMode: z.enum(["live", "mock", "offline"]),
+  fulfillmentMethod: storefrontFulfillmentMethodSchema,
+  paymentCollectionMethod: storefrontCheckoutPaymentMethodSchema,
+  refundStatus: storefrontRefundStatusSchema.nullable(),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  customerPhone: z.string().min(1),
+  itemCount: z.number().int().min(1),
+  totalAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  itemSummary: z.string().min(1),
+  latestTimelineLabel: z.string().min(1),
+  latestTimelineSummary: z.string().min(1),
+  latestTimelineAt: z.string().min(1),
+  queueBucket: storefrontAdminOrderQueueBucketSchema,
+  needsAttention: z.boolean(),
+  ageHours: z.number().finite().nonnegative(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontAdminOrderOperationsReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalOrders: z.number().int().min(0),
+    actionRequiredCount: z.number().int().min(0),
+    fulfilmentQueueCount: z.number().int().min(0),
+    shipmentQueueCount: z.number().int().min(0),
+    pickupQueueCount: z.number().int().min(0),
+    completedCount: z.number().int().min(0),
+    closedCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontAdminOrderQueueItemSchema),
+})
+
 export const storefrontCommunicationTemplateCodeSchema = z.enum([
   "storefront_customer_welcome",
   "storefront_campaign_subscription",
@@ -393,6 +443,15 @@ export type StorefrontPaymentWebhookExceptionItem = z.infer<
 >
 export type StorefrontPaymentOperationsReport = z.infer<
   typeof storefrontPaymentOperationsReportSchema
+>
+export type StorefrontAdminOrderQueueBucket = z.infer<
+  typeof storefrontAdminOrderQueueBucketSchema
+>
+export type StorefrontAdminOrderQueueItem = z.infer<
+  typeof storefrontAdminOrderQueueItemSchema
+>
+export type StorefrontAdminOrderOperationsReport = z.infer<
+  typeof storefrontAdminOrderOperationsReportSchema
 >
 export type StorefrontCommunicationTemplateCode = z.infer<
   typeof storefrontCommunicationTemplateCodeSchema

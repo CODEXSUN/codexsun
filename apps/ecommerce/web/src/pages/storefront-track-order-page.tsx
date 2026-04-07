@@ -66,29 +66,45 @@ export function StorefrontTrackOrderPage() {
           </div>
         </section>
         <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
-          <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto]">
-            <div>
-              <Label>Order number</Label>
-              <Input value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input value={email} onChange={(event) => setEmail(event.target.value)} />
-            </div>
-            <Button
-              className="self-end rounded-full"
-              onClick={() => {
+          <CardContent className="p-5">
+            <form
+              className="grid gap-4 md:grid-cols-[1fr_1fr_auto]"
+              onSubmit={(event) => {
+                event.preventDefault()
                 const next = new URLSearchParams()
                 next.set("orderNumber", orderNumber)
                 next.set("email", email)
                 setSearchParams(next)
               }}
             >
-              Track
-            </Button>
+              <div>
+                <Label htmlFor="track-order-number">Order number</Label>
+                <Input
+                  id="track-order-number"
+                  value={orderNumber}
+                  onChange={(event) => setOrderNumber(event.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="track-order-email">Email</Label>
+                <Input
+                  id="track-order-email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
+              <Button type="submit" className="self-end rounded-full">
+                Track
+              </Button>
+            </form>
           </CardContent>
         </Card>
-        {isLoading ? <div className="text-sm text-muted-foreground">Looking up order...</div> : null}
+        {isLoading ? (
+          <div aria-live="polite" className="text-sm text-muted-foreground">
+            Looking up order...
+          </div>
+        ) : null}
         {error ? (
           <Card className="border-destructive/20 bg-destructive/5">
             <CardContent className="p-6 text-sm text-destructive">{error}</CardContent>

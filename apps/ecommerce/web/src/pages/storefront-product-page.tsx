@@ -122,6 +122,8 @@ export function StorefrontProductPage() {
                           <button
                             key={imageUrl}
                             type="button"
+                            aria-label={`View product image ${index + 1} of ${gallery.length}`}
+                            aria-pressed={selectedImage === index}
                             className={`overflow-hidden rounded-[1.2rem] border bg-white/88 transition ${
                               selectedImage === index
                                 ? "border-[#c9af95] shadow-[0_14px_28px_-22px_rgba(48,31,19,0.25)]"

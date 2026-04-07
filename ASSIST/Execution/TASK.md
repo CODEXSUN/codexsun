@@ -61,14 +61,14 @@ Stage 1.1 baseline document:
 - [x] 1.6.1 add legal and trust pages: shipping, returns, privacy, terms, and contact
 - [x] 1.6.2 add route-level metadata for storefront pages
 - [x] 1.6.3 add canonical URLs, Open Graph, and sitemap or robots baseline
-- [ ] 1.6.4 audit accessibility for homepage, catalog, PDP, cart, checkout, and tracking
-- [ ] 1.6.5 audit mobile responsiveness for core storefront flows with fixed device matrix
+- [x] 1.6.4 audit accessibility for homepage, catalog, PDP, cart, checkout, and tracking
+- [x] 1.6.5 audit mobile responsiveness for core storefront flows with fixed device matrix
 
 ## Phase 2: Commerce Operations
 
 ### Stage 2.1: Admin Order Operations
 
-- [ ] 2.1.1 build ecommerce admin order queue
+- [x] 2.1.1 build ecommerce admin order queue
 - [ ] 2.1.2 add order detail operations: cancel, mark fulfilled, add tracking id, resend confirmation
 - [ ] 2.1.3 add payment exception queue
 - [ ] 2.1.4 add refund queue and refund-status operations
