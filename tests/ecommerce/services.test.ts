@@ -43,6 +43,7 @@ import {
   listCustomerOrders,
   reconcileRazorpayPayments,
   requestStorefrontRefund,
+  updateStorefrontRefundStatus,
   trackOrderByReference,
   verifyCheckoutPayment,
 } from "../../apps/ecommerce/src/services/order-service.js"
@@ -1072,6 +1073,26 @@ test("refund initiation records refund metadata and refund webhook completes it"
         requestedRefund.item.timeline.some((entry) => entry.code === "refund_requested"),
         true
       )
+
+      const queuedRefund = await updateStorefrontRefundStatus(runtime.primary, {
+        orderId: livePaidOrder.id,
+        status: "queued",
+      })
+
+      assert.equal(queuedRefund.item.refund?.status, "queued")
+
+      const processingRefund = await updateStorefrontRefundStatus(runtime.primary, {
+        orderId: livePaidOrder.id,
+        status: "processing",
+      })
+
+      assert.equal(processingRefund.item.refund?.status, "processing")
+
+      const refundReport = await getStorefrontPaymentOperationsReport(runtime.primary)
+      const refundQueueItem = refundReport.refundQueue.find((item) => item.orderId === livePaidOrder.id)
+
+      assert.equal(refundReport.summary.refundQueueCount > 0, true)
+      assert.equal(refundQueueItem?.refundStatus, "processing")
 
       config.commerce.razorpay.enabled = true
 

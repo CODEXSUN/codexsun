@@ -25,6 +25,7 @@ import {
   storefrontOrderResponseSchema,
   storefrontOrderSchema,
   storefrontPaymentOperationsReportSchema,
+  storefrontRefundStatusUpdatePayloadSchema,
   storefrontOrderTrackingLookupSchema,
   storefrontRefundRequestPayloadSchema,
   storefrontPaymentWebhookEventSchema,
@@ -44,6 +45,7 @@ import {
   type StorefrontPaymentWebhookEvent,
   type StorefrontPaymentWebhookExceptionItem,
   type StorefrontPaymentReconciliationItem,
+  type StorefrontRefundQueueItem,
   type StorefrontOrderStatus,
   type StorefrontOrderTimelineEvent,
   type StorefrontShipmentDetails,
@@ -1109,6 +1111,76 @@ export async function requestStorefrontRefund(
   })
 }
 
+export async function updateStorefrontRefundStatus(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const parsed = storefrontRefundStatusUpdatePayloadSchema.parse(payload ?? {})
+  const orders = await readOrders(database)
+  const order = orders.find((item) => item.id === parsed.orderId)
+
+  if (!order) {
+    throw new ApplicationError("Storefront order could not be found.", { orderId: parsed.orderId }, 404)
+  }
+
+  if (!order.refund) {
+    throw new ApplicationError("No refund request exists for this order.", { orderId: order.id }, 409)
+  }
+
+  if (order.refund.status === "refunded") {
+    throw new ApplicationError("Completed refunds cannot be updated from admin operations.", { orderId: order.id }, 409)
+  }
+
+  const now = new Date().toISOString()
+  const statusSummary =
+    parsed.status === "queued"
+      ? "Refund request is queued for settlement review."
+      : parsed.status === "processing"
+        ? "Refund is currently being processed."
+        : normalizeOptionalString(parsed.reason) ?? "Refund request was rejected by admin operations."
+
+  const updatedOrder = storefrontOrderSchema.parse({
+    ...order,
+    refund: buildRefundRecord(order, {
+      ...order.refund,
+      status: parsed.status,
+      reason:
+        parsed.status === "rejected"
+          ? normalizeOptionalString(parsed.reason) ?? order.refund.reason
+          : order.refund.reason,
+      initiatedAt:
+        parsed.status === "processing"
+          ? order.refund.initiatedAt ?? now
+          : order.refund.initiatedAt,
+      failedAt: parsed.status === "rejected" ? now : order.refund.failedAt,
+      statusSummary,
+      updatedAt: now,
+    }),
+    timeline: [
+      ...order.timeline,
+      createTimelineEvent(
+        `refund_${parsed.status}`,
+        parsed.status === "queued"
+          ? "Refund queued"
+          : parsed.status === "processing"
+            ? "Refund processing"
+            : "Refund rejected",
+        statusSummary
+      ),
+    ],
+    updatedAt: now,
+  })
+
+  await writeOrders(
+    database,
+    orders.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+  )
+
+  return storefrontOrderResponseSchema.parse({
+    item: updatedOrder,
+  })
+}
+
 function findOrderForRazorpayWebhook(
   orders: StorefrontOrder[],
   payload: RazorpayWebhookPayload
@@ -1600,6 +1672,34 @@ function buildWebhookExceptionItem(
   }
 }
 
+function buildRefundQueueItem(order: StorefrontOrder): StorefrontRefundQueueItem | null {
+  if (!order.refund) {
+    return null
+  }
+
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus,
+    refundStatus: order.refund.status,
+    refundType: order.refund.type,
+    requestedAmount: order.refund.requestedAmount,
+    currency: order.refund.currency,
+    customerName: order.shippingAddress.fullName,
+    customerEmail: order.shippingAddress.email,
+    providerPaymentId: order.providerPaymentId,
+    providerRefundId: order.refund.providerRefundId,
+    summary:
+      order.refund.statusSummary ??
+      (order.refund.status === "refunded"
+        ? "Refund completed."
+        : "Refund request is active and waiting on the next admin or gateway step."),
+    requestedAt: order.refund.requestedAt,
+    updatedAt: order.refund.updatedAt,
+  }
+}
+
 function buildOrderQueueBucket(order: StorefrontOrder): StorefrontAdminOrderQueueBucket {
   if (order.status === "cancelled" || order.status === "refunded") {
     return "closed"
@@ -1716,6 +1816,11 @@ export async function getStorefrontPaymentOperationsReport(
     .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt))
     .map((event) => buildWebhookExceptionItem(event))
 
+  const refundQueue = livePaymentOrders
+    .map((order) => buildRefundQueueItem(order))
+    .filter((item): item is StorefrontRefundQueueItem => item !== null)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
   return storefrontPaymentOperationsReportSchema.parse({
     generatedAt: new Date().toISOString(),
     summary: {
@@ -1728,10 +1833,16 @@ export async function getStorefrontPaymentOperationsReport(
       failedPaymentCount: failedPayments.filter((item) => item.paymentStatus === "failed").length,
       paymentPendingCount: failedPayments.filter((item) => item.paymentStatus === "pending").length,
       webhookExceptionCount: webhookExceptions.length,
+      refundQueueCount: refundQueue.length,
+      refundInFlightCount: refundQueue.filter((item) =>
+        ["requested", "queued", "processing"].includes(item.refundStatus)
+      ).length,
+      refundedCount: refundQueue.filter((item) => item.refundStatus === "refunded").length,
     },
     settlementQueue,
     failedPayments,
     webhookExceptions,
+    refundQueue,
   })
 }
 

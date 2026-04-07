@@ -32,6 +32,7 @@ import {
   getStorefrontPaymentOperationsReport,
   requestStorefrontRefund,
   reconcileRazorpayPayments,
+  updateStorefrontRefundStatus,
 } from "../../../ecommerce/src/services/order-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
@@ -422,6 +423,22 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await requestStorefrontRefund(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/refund-status", {
+      method: "POST",
+      summary: "Update the admin-managed status of an ecommerce refund request.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await updateStorefrontRefundStatus(
             context.databases.primary,
             context.request.jsonBody
           )

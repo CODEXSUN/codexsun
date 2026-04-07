@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#46] 2026-04-07 - Ecommerce refund queue baseline
+
+- completed Stage `2.1.4` by extending the payments operations surface with a refund queue and admin refund-status progression
+- added refund queue items and refund summary counters to the ecommerce payments report, exposed a protected refund-status update route, and wired frontend client support for refund request and refund queue actions
+- extracted a shared admin order operations dialog reused by both orders and payments, then added full-refund request entry from order detail plus queued, processing, and rejected refund actions in the payments screen
+
 ### [#45] 2026-04-07 - Storefront desktop width standardization
 
 - standardized the main storefront desktop rails to `max-w-[96rem]` across homepage, catalog, PDP, cart, checkout, category rail, and customer portal layout so large screens use a consistent 1536px content width

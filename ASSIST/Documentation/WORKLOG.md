@@ -2,6 +2,13 @@
 
 ## Done Till Here
 
+### `#46` 2026-04-07
+
+- completed Stage `2.1.4` by extending the ecommerce payments operations surface with a refund queue and refund-status controls
+- added shared refund queue reporting, protected admin refund-status updates, and storefront admin client support for refund request and refund queue actions
+- extracted a reusable admin order operations dialog so both the orders and payments screens open the same order detail and lifecycle controls
+- validated the refund queue baseline with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### `#44` 2026-04-07
 
 - completed Stage `2.1.2` by adding actionable admin order detail operations on top of the ecommerce order queue

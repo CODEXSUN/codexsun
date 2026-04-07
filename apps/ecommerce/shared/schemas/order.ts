@@ -315,6 +315,30 @@ export const storefrontPaymentWebhookExceptionItemSchema = z.object({
   processedAt: z.string().nullable(),
 })
 
+export const storefrontRefundQueueItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  refundStatus: storefrontRefundStatusSchema,
+  refundType: storefrontRefundTypeSchema,
+  requestedAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  providerPaymentId: z.string().nullable(),
+  providerRefundId: z.string().nullable(),
+  summary: z.string().min(1),
+  requestedAt: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontRefundStatusUpdatePayloadSchema = z.object({
+  orderId: z.string().min(1),
+  status: z.enum(["queued", "processing", "rejected"]),
+  reason: z.string().trim().nullable().optional().default(null),
+})
+
 export const storefrontPaymentOperationsReportSchema = z.object({
   generatedAt: z.string().min(1),
   summary: z.object({
@@ -324,10 +348,14 @@ export const storefrontPaymentOperationsReportSchema = z.object({
     failedPaymentCount: z.number().int().min(0),
     paymentPendingCount: z.number().int().min(0),
     webhookExceptionCount: z.number().int().min(0),
+    refundQueueCount: z.number().int().min(0),
+    refundInFlightCount: z.number().int().min(0),
+    refundedCount: z.number().int().min(0),
   }),
   settlementQueue: z.array(storefrontPaymentSettlementItemSchema),
   failedPayments: z.array(storefrontPaymentExceptionItemSchema),
   webhookExceptions: z.array(storefrontPaymentWebhookExceptionItemSchema),
+  refundQueue: z.array(storefrontRefundQueueItemSchema),
 })
 
 export const storefrontAdminOrderQueueBucketSchema = z.enum([
@@ -474,6 +502,12 @@ export type StorefrontPaymentExceptionItem = z.infer<
 >
 export type StorefrontPaymentWebhookExceptionItem = z.infer<
   typeof storefrontPaymentWebhookExceptionItemSchema
+>
+export type StorefrontRefundQueueItem = z.infer<
+  typeof storefrontRefundQueueItemSchema
+>
+export type StorefrontRefundStatusUpdatePayload = z.infer<
+  typeof storefrontRefundStatusUpdatePayloadSchema
 >
 export type StorefrontPaymentOperationsReport = z.infer<
   typeof storefrontPaymentOperationsReportSchema

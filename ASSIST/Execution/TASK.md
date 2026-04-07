@@ -80,8 +80,8 @@ Stage 1.1 baseline document:
 
 - [x] 2.1.1 build ecommerce admin order queue
 - [x] 2.1.2 add order detail operations: cancel, mark fulfilled, add tracking id, resend confirmation
-- [ ] 2.1.3 add payment exception queue
-- [ ] 2.1.4 add refund queue and refund-status operations
+- [x] 2.1.3 add payment exception queue
+- [x] 2.1.4 add refund queue and refund-status operations
 - [ ] 2.1.5 add customer service queue linked to orders
 
 ### Stage 2.2: Customer Portal Maturity

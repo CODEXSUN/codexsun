@@ -315,6 +315,26 @@ export const storefrontApi = {
       body: JSON.stringify(payload),
     })
   },
+  requestRefund(
+    accessToken: string,
+    payload: { orderId: string; amount?: number; reason?: string | null }
+  ) {
+    return requestJson<StorefrontOrderResponse>("/internal/v1/ecommerce/payments/refund-request", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  updateRefundStatus(
+    accessToken: string,
+    payload: { orderId: string; status: "queued" | "processing" | "rejected"; reason?: string | null }
+  ) {
+    return requestJson<StorefrontOrderResponse>("/internal/v1/ecommerce/payments/refund-status", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
   reconcilePayments(
     accessToken: string,
     payload: { orderIds?: string[]; maxOrders?: number } = {}

@@ -1,10 +1,11 @@
-import { AlertTriangle, CheckCircle2, RefreshCw, Wallet } from "lucide-react"
+import { AlertTriangle, CheckCircle2, RefreshCw, Search, Wallet } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import type {
   StorefrontPaymentExceptionItem,
   StorefrontPaymentOperationsReport,
   StorefrontPaymentSettlementItem,
+  StorefrontRefundQueueItem,
   StorefrontPaymentWebhookExceptionItem,
 } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
@@ -12,10 +13,12 @@ import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
 
 import { storefrontApi } from "../../api/storefront-api"
+import { StorefrontAdminOrderOperationsDialog } from "./storefront-admin-order-operations-dialog"
 
 function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat("en-IN", {
@@ -64,7 +67,13 @@ function SummaryCard({
   )
 }
 
-function SettlementQueueList({ items }: { items: StorefrontPaymentSettlementItem[] }) {
+function SettlementQueueList({
+  items,
+  onOpenOrder,
+}: {
+  items: StorefrontPaymentSettlementItem[]
+  onOpenOrder: (orderId: string) => void
+}) {
   if (items.length === 0) {
     return (
       <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
@@ -100,8 +109,11 @@ function SettlementQueueList({ items }: { items: StorefrontPaymentSettlementItem
               <p className="truncate">Provider order: {item.providerOrderId ?? "-"}</p>
               <p className="truncate">Provider payment: {item.providerPaymentId ?? "-"}</p>
             </div>
-            <div className="flex items-start justify-start md:justify-end">
+            <div className="flex flex-col items-start gap-2 md:items-end">
               <Badge variant="secondary">{item.paymentStatus}</Badge>
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                View order
+              </Button>
             </div>
           </div>
         ))}
@@ -110,7 +122,17 @@ function SettlementQueueList({ items }: { items: StorefrontPaymentSettlementItem
   )
 }
 
-function PaymentExceptionList({ items }: { items: StorefrontPaymentExceptionItem[] }) {
+function PaymentExceptionList({
+  items,
+  onOpenOrder,
+  onReconcileOrder,
+  reconcilingOrderId,
+}: {
+  items: StorefrontPaymentExceptionItem[]
+  onOpenOrder: (orderId: string) => void
+  onReconcileOrder: (orderId: string) => void
+  reconcilingOrderId: string | null
+}) {
   if (items.length === 0) {
     return (
       <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
@@ -146,8 +168,126 @@ function PaymentExceptionList({ items }: { items: StorefrontPaymentExceptionItem
               <p>Order status: {item.orderStatus.replaceAll("_", " ")}</p>
               <p>Last attempt: {formatDateTime(item.lastAttemptAt)}</p>
             </div>
-            <div className="flex items-start justify-start md:justify-end">
+            <div className="flex flex-col items-start gap-2 md:items-end">
               <Badge variant="outline">{item.providerPaymentId ?? "No payment id"}</Badge>
+              <div className="flex flex-wrap gap-2 md:justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                  View order
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => onReconcileOrder(item.orderId)}
+                  disabled={reconcilingOrderId === item.orderId}
+                >
+                  {reconcilingOrderId === item.orderId ? "Reconciling..." : "Reconcile"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function RefundQueueList({
+  items,
+  onOpenOrder,
+  onUpdateRefundStatus,
+  updatingRefundOrderId,
+}: {
+  items: StorefrontRefundQueueItem[]
+  onOpenOrder: (orderId: string) => void
+  onUpdateRefundStatus: (
+    orderId: string,
+    status: "queued" | "processing" | "rejected"
+  ) => void
+  updatingRefundOrderId: string | null
+}) {
+  if (items.length === 0) {
+    return (
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardContent className="p-5 text-sm text-muted-foreground">
+          No refund requests are active right now.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="divide-y divide-border/70 p-0">
+        {items.map((item) => (
+          <div
+            key={item.orderId}
+            className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_auto]"
+          >
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium text-foreground">{item.orderNumber}</p>
+                <Badge
+                  variant={
+                    item.refundStatus === "rejected"
+                      ? "destructive"
+                      : item.refundStatus === "refunded"
+                        ? "secondary"
+                        : "outline"
+                  }
+                >
+                  {item.refundStatus}
+                </Badge>
+              </div>
+              <p className="truncate text-sm text-muted-foreground">
+                {item.customerName} | {item.customerEmail}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">{item.summary}</p>
+            </div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>{formatMoney(item.requestedAmount, item.currency)}</p>
+              <p>Order status: {item.orderStatus.replaceAll("_", " ")}</p>
+              <p>Requested: {formatDateTime(item.requestedAt)}</p>
+              <p>Updated: {formatDateTime(item.updatedAt)}</p>
+            </div>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <Badge variant="outline">{item.providerRefundId ?? "Pending provider refund"}</Badge>
+              <div className="flex flex-wrap gap-2 md:justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                  View order
+                </Button>
+                {item.refundStatus === "requested" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onUpdateRefundStatus(item.orderId, "queued")}
+                    disabled={updatingRefundOrderId === item.orderId}
+                  >
+                    {updatingRefundOrderId === item.orderId ? "Updating..." : "Queue"}
+                  </Button>
+                ) : null}
+                {["requested", "queued"].includes(item.refundStatus) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onUpdateRefundStatus(item.orderId, "processing")}
+                    disabled={updatingRefundOrderId === item.orderId}
+                  >
+                    Process
+                  </Button>
+                ) : null}
+                {["requested", "queued", "processing"].includes(item.refundStatus) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onUpdateRefundStatus(item.orderId, "rejected")}
+                    disabled={updatingRefundOrderId === item.orderId}
+                  >
+                    Reject
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
         ))}
@@ -199,10 +339,15 @@ function WebhookExceptionList({ items }: { items: StorefrontPaymentWebhookExcept
 
 export function StorefrontPaymentsSection() {
   const [report, setReport] = useState<StorefrontPaymentOperationsReport | null>(null)
+  const [exceptionSearchTerm, setExceptionSearchTerm] = useState("")
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isReconciling, setIsReconciling] = useState(false)
-  useGlobalLoading(isLoading || isReconciling)
+  const [reconcilingOrderId, setReconcilingOrderId] = useState<string | null>(null)
+  const [refundSearchTerm, setRefundSearchTerm] = useState("")
+  const [updatingRefundOrderId, setUpdatingRefundOrderId] = useState<string | null>(null)
+  useGlobalLoading(isLoading || isReconciling || Boolean(reconcilingOrderId) || Boolean(updatingRefundOrderId))
 
   async function loadReport() {
     setIsLoading(true)
@@ -264,22 +409,187 @@ export function StorefrontPaymentsSection() {
     }
   }
 
+  async function handleReconcileOrder(orderId: string) {
+    setReconcilingOrderId(orderId)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const result = await storefrontApi.reconcilePayments(accessToken, {
+        orderIds: [orderId],
+        maxOrders: 1,
+      })
+      await loadReport()
+      showRecordToast({
+        entity: "Payment exception",
+        action: "reconciled",
+        recordName: `${result.updatedCount} order updated`,
+      })
+    } catch (reconcileError) {
+      const message =
+        reconcileError instanceof Error
+          ? reconcileError.message
+          : "Failed to reconcile the selected payment exception."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Payment exception reconcile failed.",
+        description: message,
+      })
+    } finally {
+      setReconcilingOrderId(null)
+    }
+  }
+
+  async function handleRefundStatusUpdate(
+    orderId: string,
+    status: "queued" | "processing" | "rejected"
+  ) {
+    setUpdatingRefundOrderId(orderId)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const response = await storefrontApi.updateRefundStatus(accessToken, {
+        orderId,
+        status,
+      })
+      await loadReport()
+      showRecordToast({
+        entity: "Refund",
+        action: "updated",
+        recordName: response.item.orderNumber,
+      })
+    } catch (refundError) {
+      const message =
+        refundError instanceof Error ? refundError.message : "Failed to update refund status."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Refund update failed.",
+        description: message,
+      })
+    } finally {
+      setUpdatingRefundOrderId(null)
+    }
+  }
+
+  const normalizedExceptionQuery = exceptionSearchTerm.trim().toLowerCase()
+  const filteredExceptions = report
+    ? report.failedPayments.filter((item) => {
+        if (!normalizedExceptionQuery) {
+          return true
+        }
+
+        return [
+          item.orderNumber,
+          item.customerName,
+          item.customerEmail,
+          item.summary,
+          item.providerPaymentId ?? "",
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedExceptionQuery)
+      })
+    : []
+  const normalizedRefundQuery = refundSearchTerm.trim().toLowerCase()
+  const filteredRefunds = report
+    ? report.refundQueue.filter((item) => {
+        if (!normalizedRefundQuery) {
+          return true
+        }
+
+        return [
+          item.orderNumber,
+          item.customerName,
+          item.customerEmail,
+          item.summary,
+          item.providerRefundId ?? "",
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedRefundQuery)
+      })
+    : []
+
   const tabs: AnimatedContentTab[] = report
     ? [
         {
           value: "settlements",
           label: "Settlement visibility",
-          content: <SettlementQueueList items={report.settlementQueue} />,
+          content: <SettlementQueueList items={report.settlementQueue} onOpenOrder={setSelectedOrderId} />,
         },
         {
           value: "exceptions",
           label: "Payment exceptions",
-          content: <PaymentExceptionList items={report.failedPayments} />,
+          content: (
+            <div className="space-y-4">
+              <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={exceptionSearchTerm}
+                      onChange={(event) => setExceptionSearchTerm(event.target.value)}
+                      placeholder="Search exceptions by order, customer, email, or payment id"
+                      className="pl-9"
+                      aria-label="Search payment exception queue"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              <PaymentExceptionList
+                items={filteredExceptions}
+                onOpenOrder={setSelectedOrderId}
+                onReconcileOrder={handleReconcileOrder}
+                reconcilingOrderId={reconcilingOrderId}
+              />
+            </div>
+          ),
         },
         {
           value: "webhooks",
           label: "Webhook exceptions",
           content: <WebhookExceptionList items={report.webhookExceptions} />,
+        },
+        {
+          value: "refunds",
+          label: "Refund queue",
+          content: (
+            <div className="space-y-4">
+              <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={refundSearchTerm}
+                      onChange={(event) => setRefundSearchTerm(event.target.value)}
+                      placeholder="Search refunds by order, customer, email, or provider refund id"
+                      className="pl-9"
+                      aria-label="Search refund queue"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              <RefundQueueList
+                items={filteredRefunds}
+                onOpenOrder={setSelectedOrderId}
+                onUpdateRefundStatus={handleRefundStatusUpdate}
+                updatingRefundOrderId={updatingRefundOrderId}
+              />
+            </div>
+          ),
         },
       ]
     : []
@@ -345,6 +655,11 @@ export function StorefrontPaymentsSection() {
             value={String(report.summary.webhookExceptionCount)}
             description="Ignored or failed webhook events that need reconciliation or investigation."
           />
+          <SummaryCard
+            title="Refund queue"
+            value={String(report.summary.refundQueueCount)}
+            description={`${report.summary.refundInFlightCount} active refund requests and ${report.summary.refundedCount} completed refunds are tracked here.`}
+          />
         </div>
       ) : null}
 
@@ -383,6 +698,19 @@ export function StorefrontPaymentsSection() {
       ) : null}
 
       <div>{report ? <AnimatedTabs defaultTabValue="settlements" tabs={tabs} /> : null}</div>
+
+      <StorefrontAdminOrderOperationsDialog
+        orderId={selectedOrderId}
+        open={Boolean(selectedOrderId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedOrderId(null)
+          }
+        }}
+        onOrderUpdated={async () => {
+          await loadReport()
+        }}
+      />
     </div>
   )
 }
