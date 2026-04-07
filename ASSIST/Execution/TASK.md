@@ -59,8 +59,8 @@ Stage 1.1 baseline document:
 ### Stage 1.6: Storefront Production Minimum
 
 - [x] 1.6.1 add legal and trust pages: shipping, returns, privacy, terms, and contact
-- [ ] 1.6.2 add route-level metadata for storefront pages
-- [ ] 1.6.3 add canonical URLs, Open Graph, and sitemap or robots baseline
+- [x] 1.6.2 add route-level metadata for storefront pages
+- [x] 1.6.3 add canonical URLs, Open Graph, and sitemap or robots baseline
 - [ ] 1.6.4 audit accessibility for homepage, catalog, PDP, cart, checkout, and tracking
 - [ ] 1.6.5 audit mobile responsiveness for core storefront flows with fixed device matrix
 

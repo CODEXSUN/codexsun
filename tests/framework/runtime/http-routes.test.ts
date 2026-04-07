@@ -21,6 +21,12 @@ test("http route assemblies expose versioned internal, external, and public surf
   const publicLegalPage = routes.find(
     (route) => route.path === "/public/v1/storefront/legal-page"
   )
+  const publicRobots = routes.find(
+    (route) => route.path === "/public/v1/storefront/robots.txt"
+  )
+  const publicSitemap = routes.find(
+    (route) => route.path === "/public/v1/storefront/sitemap.xml"
+  )
 
   assert.ok(internalApps)
   assert.equal(internalApps.surface, "internal")
@@ -44,6 +50,16 @@ test("http route assemblies expose versioned internal, external, and public surf
   assert.equal(publicLegalPage.surface, "public")
   assert.equal(publicLegalPage.auth, "none")
 
+  assert.ok(publicRobots)
+  assert.equal(publicRobots.surface, "public")
+  assert.equal(publicRobots.auth, "none")
+  assert.deepEqual(publicRobots.legacyPaths, ["/robots.txt"])
+
+  assert.ok(publicSitemap)
+  assert.equal(publicSitemap.surface, "public")
+  assert.equal(publicSitemap.auth, "none")
+  assert.deepEqual(publicSitemap.legacyPaths, ["/sitemap.xml"])
+
   assert.equal(
     matchHttpRoute(routes, "GET", "/internal/apps")?.path,
     "/internal/v1/apps"
@@ -51,5 +67,13 @@ test("http route assemblies expose versioned internal, external, and public surf
   assert.equal(
     matchHttpRoute(routes, "GET", "/api/apps")?.path,
     "/api/v1/apps"
+  )
+  assert.equal(
+    matchHttpRoute(routes, "GET", "/robots.txt")?.path,
+    "/public/v1/storefront/robots.txt"
+  )
+  assert.equal(
+    matchHttpRoute(routes, "GET", "/sitemap.xml")?.path,
+    "/public/v1/storefront/sitemap.xml"
   )
 })

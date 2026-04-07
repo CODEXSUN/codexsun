@@ -8,6 +8,18 @@
 
 ## v-0.0.1
 
+### [#40] 2026-04-07 - Storefront SEO crawl baseline
+
+- completed Stage `1.6.3` by adding shared storefront canonical-path helpers, browser-side canonical and Open Graph tags, and robots meta handling on top of the storefront route metadata layer
+- added runtime-backed public `robots.txt` and `sitemap.xml` routes so crawl policy and sitemap discovery now come from framework config, storefront target rules, and active seeded catalog data
+- added targeted tests for storefront metadata resolution, sitemap generation, robots generation, and public route registration, then marked `1.6.3` complete in `TASK.md`
+
+### [#39] 2026-04-07 - Storefront route metadata baseline
+
+- completed Stage `1.6.2` by adding a shared storefront route-metadata map and browser-side metadata controller instead of page-by-page title handling
+- normalized metadata resolution for both root storefront routes and `/shop/*` storefront routes, then restored the existing document title and description outside storefront pages
+- added targeted tests for storefront metadata resolution and title formatting, and marked `1.6.2` complete in `TASK.md`
+
 ### [#38] 2026-04-07 - Storefront legal pages baseline
 
 - completed Stage `1.6.1` by adding backend-owned storefront legal and trust pages for shipping, returns, privacy, terms, and contact, backed by seeded ecommerce settings instead of hardcoded frontend copy

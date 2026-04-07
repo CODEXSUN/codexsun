@@ -2,6 +2,18 @@
 
 ## Done Till Here
 
+### `#40` 2026-04-07
+
+- completed Stage `1.6.3` by extending the storefront metadata baseline into canonical-path helpers, canonical link tags, Open Graph tags, robots meta handling, and public crawl endpoints
+- added runtime-backed `robots.txt` and `sitemap.xml` public routes that use framework frontend-domain settings, storefront target normalization, legal-page routes, and active product slugs
+- validated the SEO crawl baseline with `npm run typecheck` and `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/storefront-metadata.test.ts tests/ecommerce/storefront-seo-service.test.ts`
+
+### `#39` 2026-04-07
+
+- completed Stage `1.6.2` with a shared storefront route-metadata resolver plus a browser-side metadata controller hooked into router location changes
+- covered root storefront routes and `/shop/*` storefront routes with the same title and description behavior, while restoring the previous document metadata outside storefront pages
+- validated the metadata slice with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/storefront-metadata.test.ts`
+
 ### `#38` 2026-04-07
 
 - completed Stage `1.6.1` by adding backend-seeded storefront legal and trust pages for shipping, returns, privacy, terms, and contact

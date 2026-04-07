@@ -4,65 +4,58 @@
 
 ### Reference
 
-`#38`
+`#40`
 
 ### Goal
 
-Complete Stage `1.6.1` by adding backend-owned storefront legal and trust pages for shipping, returns, privacy, terms, and contact, then begin Stage `1.6.2` route-metadata review.
+Complete Stage `1.6.3` by extending the storefront metadata baseline into canonical URLs, Open Graph tags, and crawl-discovery endpoints for `robots.txt` and `sitemap.xml`.
 
 ### Scope
 
 - `ASSIST/Execution/TASK.md`
 - `ASSIST/Execution/PLANNING.md`
-- `apps/ecommerce/shared/schemas/catalog.ts`
-- `apps/ecommerce/src/data/storefront-seed.ts`
-- `apps/ecommerce/src/services/storefront-settings-service.ts`
-- `apps/ecommerce/src/services/catalog-service.ts`
 - `apps/api/src/external/public-routes.ts`
-- `apps/ecommerce/web/src/api/storefront-api.ts`
-- `apps/ecommerce/web/src/lib/storefront-routes.ts`
-- `apps/ecommerce/web/src/pages/storefront-legal-page.tsx`
-- `apps/cxapp/web/src/app-shell.tsx`
-- `apps/cxapp/web/src/query/query-keys.ts`
+- `apps/ecommerce/shared/index.ts`
+- `apps/ecommerce/shared/storefront-seo.ts`
+- `apps/ecommerce/src/services/storefront-seo-service.ts`
+- `apps/ecommerce/web/src/components/storefront-route-metadata.tsx`
+- `apps/ecommerce/web/src/lib/storefront-metadata.ts`
+- `tests/ecommerce/storefront-metadata.test.ts`
+- `tests/ecommerce/storefront-seo-service.test.ts`
 - `tests/framework/runtime/http-routes.test.ts`
-- `tests/ecommerce/services.test.ts`
 
 ### Canonical Decisions
 
-- legal and trust pages remain ecommerce-owned storefront content, not static site-only copy
-- page content must be seeded from backend settings so the later storefront-designer phase can build on the same contract
-- public consumption uses a single generic legal-page endpoint and a single reusable storefront page component to avoid five diverging implementations
-- footer trade links should point to the real storefront trust pages immediately so the new surfaces are discoverable
-- the next stage starts from route metadata on top of these concrete storefront routes instead of inventing metadata for pages that do not yet exist
+- canonical storefront URLs must normalize `/shop/*` aliases to the active storefront target instead of allowing duplicate crawl paths
+- the storefront head controller must own canonical, Open Graph, and robots meta tags so future SEO changes can build on one metadata layer
+- `robots.txt` and `sitemap.xml` should be served through public routes using runtime config and seeded catalog data rather than static placeholder files
+- sitemap baseline should include canonical public discovery pages and active product detail routes, but exclude cart, checkout, account, and tracking surfaces
 
 ### Execution Plan
 
-1. extend the ecommerce storefront settings schema with typed legal-page content
-2. seed production-safe default content and repoint footer links to those storefront routes
-3. expose a public legal-page payload from ecommerce services and public routes
-4. wire frontend API, query keys, storefront routes, and a reusable legal-page surface
-5. register both root and `/shop/*` storefront routes
-6. add targeted service and route-registration tests
-7. mark `1.6.1` complete in `TASK.md`
-8. initiate `1.6.2` by reviewing current storefront route registration and metadata entry points
+1. add a shared storefront SEO helper for canonical path normalization and absolute URL building
+2. add an ecommerce SEO service for public origin resolution, robots generation, and sitemap generation
+3. expose `robots.txt` and `sitemap.xml` through public routes with root legacy paths
+4. extend the storefront metadata controller to set canonical, OG, and robots head tags
+5. add targeted route, metadata, and sitemap tests
+6. mark `1.6.3` complete in `TASK.md`
 
 ### Validation Plan
 
 - run `npm run typecheck`
-- run `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/services.test.ts`
-- confirm footer links and storefront routes resolve to the new page set
-- confirm `1.6.1` is marked complete in `TASK.md`
+- run `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/storefront-metadata.test.ts tests/ecommerce/storefront-seo-service.test.ts`
+- confirm `robots.txt` and `sitemap.xml` register through public legacy paths
+- confirm `1.6.3` is marked complete in `TASK.md`
 
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/services.test.ts`
-- [x] storefront footer links now target the new trust pages
-- [x] `1.6.1` marked complete in `TASK.md`
-- [ ] `1.6.2` route-level metadata implementation started
+- [x] `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/storefront-metadata.test.ts tests/ecommerce/storefront-seo-service.test.ts`
+- [x] public legacy paths registered for `/robots.txt` and `/sitemap.xml`
+- [x] `1.6.3` marked complete in `TASK.md`
 
 ### Risks And Follow-Up
 
-- there is still no dedicated storefront designer for these legal pages; that should be handled in a later storefront-management stage rather than mixed into the production-minimum route slice
-- test runs still emit local SMTP authentication noise from the current mailbox configuration, but the targeted legal-page and route tests pass
-- `1.6.2` should now focus on one shared metadata mechanism for storefront routes so canonical tags, OG, and crawl directives in `1.6.3` can reuse it instead of duplicating page-level constants
+- Open Graph values are currently route-level baseline values; product-specific SEO enrichment can be added later if PDP-level SEO fields become part of the storefront payload
+- the static file under `public/robots.txt` still exists, but the public route now provides the crawl baseline at runtime and should be treated as authoritative
+- `1.6.4` should now focus on accessibility behavior with these crawl and metadata changes left stable

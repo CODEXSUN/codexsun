@@ -10,6 +10,10 @@ import {
 } from "../../../ecommerce/src/services/catalog-service.js"
 import { trackOrderByReference } from "../../../ecommerce/src/services/order-service.js"
 import { getRazorpayPaymentConfig } from "../../../ecommerce/src/services/razorpay-service.js"
+import {
+  getStorefrontRobotsTxt,
+  getStorefrontSitemapXml,
+} from "../../../ecommerce/src/services/storefront-seo-service.js"
 import { getStorefrontSettings } from "../../../ecommerce/src/services/storefront-settings-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { readMediaContent } from "../../../framework/src/runtime/media/media-service.js"
@@ -138,6 +142,24 @@ export function createPublicApiRoutes(appSuite: AppSuite): HttpRouteDefinition[]
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify(getRazorpayPaymentConfig(config)),
+      }),
+    }),
+    definePublicRoute("/storefront/robots.txt", {
+      legacyPaths: ["/robots.txt"],
+      summary: "Public crawl policy for the storefront surface.",
+      handler: async ({ config }) => ({
+        statusCode: 200,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+        body: getStorefrontRobotsTxt(config),
+      }),
+    }),
+    definePublicRoute("/storefront/sitemap.xml", {
+      legacyPaths: ["/sitemap.xml"],
+      summary: "Public storefront sitemap baseline for canonical public pages.",
+      handler: async ({ config, databases }) => ({
+        statusCode: 200,
+        headers: { "content-type": "application/xml; charset=utf-8" },
+        body: await getStorefrontSitemapXml(databases.primary, config),
       }),
     }),
     definePublicRoute("/brand-profile", {

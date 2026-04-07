@@ -23,6 +23,7 @@ import { ProjectDefaultsProvider } from "@/design-system/context/project-default
 import { Toaster } from "@/components/ui/sonner";
 import type { DashboardUser } from "@/features/dashboard/types";
 import { StorefrontCartProvider } from "@ecommerce/web/src/cart/storefront-cart";
+import { StorefrontRouteMetadata } from "@ecommerce/web/src/components/storefront-route-metadata";
 import {
   clearStorefrontPostAuthRedirect,
   consumeStorefrontPostAuthRedirect,
@@ -510,6 +511,7 @@ function AuthenticatedAppShell() {
 
   return (
     <AppProviders>
+      <StorefrontRouteMetadata />
       <Suspense fallback={<GlobalLoader size="md" />}>
         <Routes>
           <Route
