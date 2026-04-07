@@ -41,11 +41,15 @@ test("registered database processes stay ordered by app and module", () => {
     [
       "framework:runtime:01-system-ledger",
       "framework:runtime:02-media-library",
+      "framework:runtime:03-activity-log",
+      "framework:runtime:04-monitoring-events",
+      "framework:runtime:05-operations-governance",
       "cxapp:bootstrap:01-bootstrap",
       "cxapp:companies:02-companies",
       "cxapp:auth:05-auth-foundation",
       "cxapp:auth:06-auth-sessions",
       "cxapp:mailbox:07-mailbox",
+      "cxapp:mailbox:08-mailbox-archive",
       "cxapp:auth:13-auth-permission-scope",
       "cxapp:auth:14-auth-option-catalog",
       "core:contacts:03-contacts",
@@ -61,6 +65,7 @@ test("registered database processes stay ordered by app and module", () => {
       "billing:voucher-types:03-voucher-types",
       "billing:vouchers:03-vouchers",
       "ecommerce:storefront:01-storefront-foundation",
+      "ecommerce:customer-portal:02-customer-portal",
       "frappe:settings:01-settings",
       "frappe:todos:02-todos",
       "frappe:items:03-items",
@@ -175,7 +180,7 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
       assert.equal(companyRows.length, 2)
       assert.equal(billingVoucherRows.length, 6)
       assert.equal(storefrontSettingsRows.length, 1)
-      assert.equal(commonCategoryRows.length, 5)
+      assert.equal(commonCategoryRows.length, 6)
       assert.equal(productRows.length, 3)
       assert.equal(seededSuperAdmin?.email, "sundar@sundar.com")
       assert.equal(Number(seededSuperAdmin?.is_super_admin ?? 0), 1)

@@ -21,7 +21,12 @@ import type {
   StorefrontLandingResponse,
   StorefrontOrderListResponse,
   StorefrontOrderResponse,
+  StorefrontCommunicationHealthResponse,
+  StorefrontCommunicationLogResponse,
+  StorefrontCommunicationResendResponse,
   StorefrontPaymentConfig,
+  StorefrontPaymentOperationsReport,
+  StorefrontPaymentReconciliationResponse,
   StorefrontProductResponse,
 } from "@ecommerce/shared"
 
@@ -225,6 +230,57 @@ export const storefrontApi = {
   updateStorefrontCampaign(accessToken: string, payload: StorefrontCampaignSection) {
     return requestJson<StorefrontCampaignSection>("/internal/v1/ecommerce/storefront-campaign", {
       method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getCommunicationsHealth(accessToken: string) {
+    return requestJson<StorefrontCommunicationHealthResponse>("/internal/v1/ecommerce/communications/health", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  getCommunicationsLog(
+    accessToken: string,
+    input: { orderId?: string | null; customerAccountId?: string | null } = {}
+  ) {
+    const url = new URL("/internal/v1/ecommerce/communications", window.location.origin)
+
+    if (input.orderId?.trim()) {
+      url.searchParams.set("orderId", input.orderId)
+    }
+
+    if (input.customerAccountId?.trim()) {
+      url.searchParams.set("customerAccountId", input.customerAccountId)
+    }
+
+    return requestJson<StorefrontCommunicationLogResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  resendCommunication(
+    accessToken: string,
+    payload: { templateCode: string; orderId?: string | null; customerAccountId?: string | null }
+  ) {
+    return requestJson<StorefrontCommunicationResendResponse>("/internal/v1/ecommerce/communications/resend", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getPaymentsReport(accessToken: string) {
+    return requestJson<StorefrontPaymentOperationsReport>("/internal/v1/ecommerce/payments/report", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  reconcilePayments(
+    accessToken: string,
+    payload: { orderIds?: string[]; maxOrders?: number } = {}
+  ) {
+    return requestJson<StorefrontPaymentReconciliationResponse>("/internal/v1/ecommerce/payments/reconcile", {
+      method: "POST",
       accessToken,
       body: JSON.stringify(payload),
     })

@@ -583,6 +583,64 @@ export const mailboxTemplates: MailboxTemplate[] = [
     isActive: true,
   }),
   defineMailboxTemplate({
+    id: "mailbox-template:storefront-payment-failed",
+    code: "storefront_payment_failed",
+    name: "Storefront Payment Failed",
+    category: "storefront",
+    description: "Payment recovery email sent when a storefront payment attempt fails.",
+    subjectTemplate: "Payment issue for order {{orderNumber}}",
+    htmlTemplate: buildStorefrontMailFrame({
+      eyebrow: "Payment action needed",
+      title: "Your order is waiting for payment recovery",
+      summary:
+        "The order is still safe in the storefront, but the last payment attempt did not complete successfully.",
+      accentFrom: "#6d241f",
+      accentTo: "#d06d42",
+      bodyHtml: `
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.8;color:#5f5146;">We could not complete payment for order <strong>{{orderNumber}}</strong>. {{failureReason}}</p>
+        <div style="margin:0 0 24px;border:1px solid #f2d7bf;border-radius:24px;background:#fff3e6;padding:22px;">
+          <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9b561d;">Order reference</div>
+              <div style="margin-top:8px;font-size:22px;line-height:1.2;font-weight:700;color:#4f2618;">{{orderNumber}}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9b561d;">Amount pending</div>
+              <div style="margin-top:8px;font-size:22px;line-height:1.2;font-weight:700;color:#4f2618;">{{totalAmount}}</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:13px;line-height:1.8;color:#7a4b2d;">Current order status: {{orderStatus}} | Payment status: {{paymentStatus}}</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px;">
+          ${buildStorefrontButton("checkoutUrl", "checkoutLabel")}
+          ${buildStorefrontSecondaryButton("orderUrl", "orderLabel")}
+        </div>
+        ${buildStorefrontFooter()}
+      `,
+    }),
+    textTemplate:
+      "Payment issue for order {{orderNumber}}\n\nHello {{displayName}},\nWe could not complete payment for your order. {{failureReason}}\nAmount pending: {{totalAmount}}\nOrder status: {{orderStatus}}\nPayment status: {{paymentStatus}}\n\nRetry checkout: {{checkoutUrl}}\nOpen order: {{orderUrl}}\nSupport: {{supportEmail}} | {{supportPhone}}",
+    sampleData: {
+      displayName: "Sundar",
+      orderNumber: "ECM-20260406-0002",
+      totalAmount: "Rs. 4,499",
+      orderStatus: "payment pending",
+      paymentStatus: "failed",
+      failureReason: "Your bank declined the transaction. You can retry using the same order.",
+      checkoutUrl: "http://localhost:5173/shop/checkout",
+      checkoutLabel: "Retry payment",
+      orderUrl: "http://localhost:5173/customer/orders/storefront-order%3A123",
+      orderLabel: "Open order",
+      supportEmail: "info@tmnext.in",
+      supportMailTo: "mailto:info@tmnext.in",
+      supportPhone: "+91 90000 12345",
+      supportPhoneHref: "tel:+919000012345",
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
     id: "mailbox-template:storefront-order-review-request",
     code: "storefront_order_review_request",
     name: "Storefront Order Review Request",

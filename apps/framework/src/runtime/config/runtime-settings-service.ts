@@ -42,6 +42,7 @@ function toStringValue(value: unknown) {
 function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()) {
   const config = getServerConfig(cwd)
   const valueMap: Record<string, string | boolean> = {
+    APP_ENV: config.environment,
     APP_NAME: config.appName,
     APP_HOST: config.appHost,
     APP_DOMAIN: config.appDomain,
@@ -81,6 +82,15 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     ANALYTICS_DB_SSL: config.analytics.ssl,
     JWT_SECRET: config.security.jwtSecret,
     JWT_EXPIRES_IN_SECONDS: String(config.security.jwtExpiresInSeconds),
+    AUTH_MAX_LOGIN_ATTEMPTS: String(config.security.authMaxLoginAttempts),
+    AUTH_LOCKOUT_MINUTES: String(config.security.authLockoutMinutes),
+    ADMIN_SESSION_IDLE_MINUTES: String(config.security.adminSessionIdleMinutes),
+    ADMIN_ALLOWED_IPS: config.security.adminAllowedIps.join(", "),
+    INTERNAL_API_ALLOWED_IPS: config.security.internalApiAllowedIps.join(", "),
+    SECRET_ROTATION_DAYS: String(config.security.secretRotationDays),
+    SECRETS_LAST_ROTATED_AT: config.security.secretsLastRotatedAt ?? "",
+    SECRET_OWNER_EMAIL: config.security.secretOwnerEmail ?? "",
+    OPERATIONS_OWNER_EMAIL: config.security.operationsOwnerEmail ?? "",
     AUTH_OTP_DEBUG: config.auth.otpDebug,
     AUTH_OTP_EXPIRY_MINUTES: String(config.auth.otpExpiryMinutes),
     SUPER_ADMIN_EMAILS: config.auth.superAdminEmails.join(", "),
@@ -91,6 +101,36 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     SMTP_PASS: config.notifications.email.password ?? "",
     SMTP_FROM_EMAIL: config.notifications.email.fromEmail ?? "",
     SMTP_FROM_NAME: config.notifications.email.fromName,
+    APP_LOG_LEVEL: config.observability.logLevel,
+    OPS_ALERT_EMAILS: config.observability.alertEmails.join(", "),
+    OPS_ALERT_WEBHOOK_URL: config.observability.alertWebhookUrl ?? "",
+    ALERT_CHECKOUT_FAILURE_THRESHOLD: String(
+      config.observability.thresholds.checkoutFailures
+    ),
+    ALERT_PAYMENT_VERIFY_FAILURE_THRESHOLD: String(
+      config.observability.thresholds.paymentVerifyFailures
+    ),
+    ALERT_WEBHOOK_FAILURE_THRESHOLD: String(
+      config.observability.thresholds.webhookFailures
+    ),
+    ALERT_ORDER_CREATION_FAILURE_THRESHOLD: String(
+      config.observability.thresholds.orderCreationFailures
+    ),
+    ALERT_MAIL_FAILURE_THRESHOLD: String(config.observability.thresholds.mailFailures),
+    DB_BACKUP_ENABLED: config.operations.backups.enabled,
+    DB_BACKUP_CADENCE_HOURS: String(config.operations.backups.cadenceHours),
+    DB_BACKUP_RETENTION_DAYS: String(config.operations.backups.retentionDays),
+    DB_BACKUP_MAX_FILES: String(config.operations.backups.maxBackups),
+    DB_BACKUP_LAST_VERIFIED_AT: config.operations.backups.lastVerifiedAt ?? "",
+    GDRIVE_BACKUP_ENABLED: config.operations.backups.googleDrive.enabled,
+    GDRIVE_CLIENT_ID: config.operations.backups.googleDrive.clientId ?? "",
+    GDRIVE_CLIENT_SECRET: config.operations.backups.googleDrive.clientSecret ?? "",
+    GDRIVE_REFRESH_TOKEN: config.operations.backups.googleDrive.refreshToken ?? "",
+    GDRIVE_FOLDER_ID: config.operations.backups.googleDrive.folderId ?? "",
+    ADMIN_AUDIT_LOG_ENABLED: config.operations.audit.adminAuditEnabled,
+    SUPPORT_EVENT_LOG_ENABLED: config.operations.audit.supportEventLoggingEnabled,
+    SECURITY_CHECKLIST_LAST_REVIEWED_AT:
+      config.operations.audit.securityChecklistLastReviewedAt ?? "",
     ECOMMERCE_FREE_SHIPPING_THRESHOLD: String(
       config.commerce.storefront.freeShippingThreshold
     ),
@@ -100,6 +140,7 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     RAZORPAY_ENABLED: config.commerce.razorpay.enabled,
     RAZORPAY_KEY_ID: config.commerce.razorpay.keyId ?? "",
     RAZORPAY_KEY_SECRET: config.commerce.razorpay.keySecret ?? "",
+    RAZORPAY_WEBHOOK_SECRET: config.commerce.razorpay.webhookSecret ?? "",
     BILLING_FINANCIAL_YEAR_START_MONTH: String(
       config.billing.compliance.financialYearStartMonth
     ),

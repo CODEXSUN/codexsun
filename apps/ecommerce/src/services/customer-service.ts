@@ -72,7 +72,7 @@ function normalizeOptionalString(value: string | null | undefined) {
   return trimmed.length > 0 ? trimmed : null
 }
 
-async function readCustomerAccounts(database: Kysely<unknown>) {
+export async function readCustomerAccounts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<CustomerAccount>(
     database,
     ecommerceTableNames.customerAccounts
@@ -261,7 +261,7 @@ function upsertPortalRecord(
   )
 }
 
-async function listWelcomeMailProducts(database: Kysely<unknown>) {
+export async function listWelcomeMailProducts(database: Kysely<unknown>) {
   const products = (await readCoreProducts(database))
     .filter((item) => item.isActive)
     .map((item) => toStorefrontProductCard(item))

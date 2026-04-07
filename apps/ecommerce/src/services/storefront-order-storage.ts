@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely"
 
 import {
+  storefrontRefundRecordSchema,
   storefrontOrderSchema,
   type StorefrontAddress,
   type StorefrontOrder,
@@ -96,6 +97,76 @@ function normalizePickupLocation(value: unknown): StorefrontOrder["pickupLocatio
     contactEmail: normalizeRequiredString(record.contactEmail, "storefront@codexsun.local"),
     pickupNote: normalizeRequiredString(record.pickupNote, "Pickup note pending."),
   }
+}
+
+function normalizeRefundRecord(
+  value: unknown,
+  orderFallback: {
+    totalAmount: number
+    currency: string
+    paymentStatus: StorefrontOrder["paymentStatus"]
+    status: StorefrontOrder["status"]
+    updatedAt: string
+  }
+): StorefrontOrder["refund"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    if (orderFallback.paymentStatus !== "refunded" && orderFallback.status !== "refunded") {
+      return null
+    }
+
+    return storefrontRefundRecordSchema.parse({
+      type: "full",
+      status: "refunded",
+      requestedAmount: orderFallback.totalAmount,
+      currency: orderFallback.currency,
+      reason: null,
+      requestedBy: "system",
+      requestedAt: null,
+      initiatedAt: null,
+      completedAt: orderFallback.updatedAt,
+      failedAt: null,
+      providerRefundId: null,
+      statusSummary: "Refund state restored from a legacy storefront order record.",
+      updatedAt: orderFallback.updatedAt,
+    })
+  }
+
+  return storefrontRefundRecordSchema.parse({
+    type: record.type === "partial" ? "partial" : "full",
+    status:
+      record.status === "requested" ||
+      record.status === "queued" ||
+      record.status === "processing" ||
+      record.status === "refunded" ||
+      record.status === "failed" ||
+      record.status === "rejected" ||
+      record.status === "none"
+        ? record.status
+        : orderFallback.paymentStatus === "refunded" || orderFallback.status === "refunded"
+          ? "refunded"
+          : "none",
+    requestedAmount: Math.max(
+      0,
+      normalizeNumber(record.requestedAmount, orderFallback.totalAmount)
+    ),
+    currency: normalizeRequiredString(record.currency, orderFallback.currency),
+    reason: normalizeOptionalString(record.reason),
+    requestedBy:
+      record.requestedBy === "admin" ||
+      record.requestedBy === "customer" ||
+      record.requestedBy === "system"
+        ? record.requestedBy
+        : "system",
+    requestedAt: normalizeOptionalString(record.requestedAt),
+    initiatedAt: normalizeOptionalString(record.initiatedAt),
+    completedAt: normalizeOptionalString(record.completedAt),
+    failedAt: normalizeOptionalString(record.failedAt),
+    providerRefundId: normalizeOptionalString(record.providerRefundId),
+    statusSummary: normalizeOptionalString(record.statusSummary),
+    updatedAt: normalizeRequiredString(record.updatedAt, orderFallback.updatedAt),
+  })
 }
 
 function normalizeTimelineEntry(
@@ -224,6 +295,10 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
   )
   const shippingAddress = normalizeAddress(record.shippingAddress)
   const billingAddress = normalizeAddress(record.billingAddress, shippingAddress)
+  const updatedAt = normalizeRequiredString(
+    record.updatedAt,
+    normalizeRequiredString(record.createdAt, new Date().toISOString())
+  )
   const timeline = Array.isArray(record.timeline)
     ? record.timeline
         .map((entry, entryIndex) => normalizeTimelineEntry(entry, orderId, entryIndex))
@@ -242,6 +317,13 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     fulfillmentMethod: normalizeFulfillmentMethod(record.fulfillmentMethod),
     paymentCollectionMethod: normalizePaymentCollectionMethod(record.paymentCollectionMethod),
     pickupLocation: normalizePickupLocation(record.pickupLocation),
+    refund: normalizeRefundRecord(record.refund, {
+      totalAmount,
+      currency: normalizeRequiredString(record.currency, "INR"),
+      paymentStatus: normalizePaymentStatus(record.paymentStatus),
+      status: normalizeStatus(record.status),
+      updatedAt,
+    }),
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
     checkoutFingerprint: normalizeOptionalString(record.checkoutFingerprint),
@@ -269,7 +351,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
             },
           ],
     createdAt: normalizeRequiredString(record.createdAt, new Date().toISOString()),
-    updatedAt: normalizeRequiredString(record.updatedAt, normalizeRequiredString(record.createdAt, new Date().toISOString())),
+    updatedAt,
   })
 }
 

@@ -12,7 +12,7 @@ export function createMailboxService(
   database: Kysely<unknown>,
   config: ServerConfig
 ) {
-  return new MailboxService(new MailboxRepository(database), config)
+  return new MailboxService(new MailboxRepository(database), config, database)
 }
 
 export function createAuthService(

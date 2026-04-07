@@ -33,28 +33,28 @@ Stage 1.1 baseline document:
 
 ### Stage 1.3: Mailbox And Customer Communications
 
-- [ ] 1.3.1 create all missing storefront mailbox templates including `storefront_order_confirmed`
-- [ ] 1.3.2 add resend tools for order confirmation and payment-related customer mails
-- [ ] 1.3.3 add failure logging and retry handling for customer-facing commerce notifications
-- [ ] 1.3.4 verify communication content for checkout, tracking, support, and account flows
+- [x] 1.3.1 create all missing storefront mailbox templates including `storefront_order_confirmed`
+- [x] 1.3.2 add resend tools for order confirmation and payment-related customer mails
+- [x] 1.3.3 add failure logging and retry handling for customer-facing commerce notifications
+- [x] 1.3.4 verify communication content for checkout, tracking, support, and account flows
 
 ### Stage 1.4: Payments And Reconciliation
 
-- [ ] 1.4.1 add Razorpay webhook endpoint with signature verification
-- [ ] 1.4.2 add webhook event store with idempotency and replay safety
-- [ ] 1.4.3 add payment reconciliation job between internal orders and Razorpay state
-- [ ] 1.4.4 add settlement visibility and failed-payment exception reporting
-- [ ] 1.4.5 define refund initiation and refund-status data model
+- [x] 1.4.1 add Razorpay webhook endpoint with signature verification
+- [x] 1.4.2 add webhook event store with idempotency and replay safety
+- [x] 1.4.3 add payment reconciliation job between internal orders and Razorpay state
+- [x] 1.4.4 add settlement visibility and failed-payment exception reporting
+- [x] 1.4.5 define refund initiation and refund-status data model
 
 ### Stage 1.5: Security And Operations Baseline
 
-- [ ] 1.5.1 enforce HTTPS-only production settings
-- [ ] 1.5.2 define secret rotation, env segregation, and access policy
-- [ ] 1.5.3 add structured application logs with correlation ids
-- [ ] 1.5.4 add monitoring and alerts for checkout, payment verify, webhook, order creation, and mail send
-- [ ] 1.5.5 define database backup cadence and run one restore drill
-- [ ] 1.5.6 add audit logging for admin-critical actions
-- [ ] 1.5.7 add security review checklist based on OWASP ASVS areas
+- [x] 1.5.1 enforce HTTPS-only production settings
+- [x] 1.5.2 define secret rotation, env segregation, and access policy
+- [x] 1.5.3 add structured application logs with correlation ids
+- [x] 1.5.4 add monitoring and alerts for checkout, payment verify, webhook, order creation, and mail send
+- [x] 1.5.5 define database backup cadence and run one restore drill
+- [x] 1.5.6 add audit logging for admin-critical actions
+- [x] 1.5.7 add security review checklist based on OWASP ASVS areas
 
 ### Stage 1.6: Storefront Production Minimum
 

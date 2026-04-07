@@ -2,6 +2,22 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import {
+  listActivityLogs,
+  writeFrameworkActivityFromContext,
+} from "../../../framework/src/runtime/activity-log/activity-log-service.js"
+import { getMonitoringDashboard } from "../../../framework/src/runtime/monitoring/monitoring-service.js"
+import {
+  createDatabaseBackup,
+  listDatabaseBackupDashboard,
+  restoreDatabaseBackup,
+  runDatabaseRestoreDrill,
+} from "../../../framework/src/runtime/operations/database-backup-service.js"
+import {
+  completeSecurityReview,
+  getSecurityReviewDashboard,
+  updateSecurityReviewItem,
+} from "../../../framework/src/runtime/operations/security-review-service.js"
+import {
   createMediaFolder,
   getMedia,
   listMedia,
@@ -53,7 +69,20 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
           allowedActorTypes: ["admin"],
         })
 
-        return jsonResponse(await runSystemUpdate(context.config, undefined, user.email))
+        const response = await runSystemUpdate(context.config, undefined, user.email)
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "system-update.run",
+          message: "System update was triggered from the admin workspace.",
+          details: {
+            canAutoUpdate: response.status.canAutoUpdate,
+            hasRemoteUpdate: response.status.hasRemoteUpdate,
+            branch: response.status.branch,
+          },
+        })
+
+        return jsonResponse(response)
       },
     }),
     defineInternalRoute("/framework/system-update/reset", {
@@ -64,14 +93,250 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
           allowedActorTypes: ["admin"],
         })
 
-        return jsonResponse(
-          await resetSystemToLastCommit(
-            context.config,
-            context.request.jsonBody,
-            undefined,
-            user.email
-          )
+        const response = await resetSystemToLastCommit(
+          context.config,
+          context.request.jsonBody,
+          undefined,
+          user.email
         )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "system-update.reset",
+          level: "warn",
+          message: "System reset was triggered from the admin workspace.",
+          details: {
+            branch: response.status.branch,
+            localChanges: response.status.localChanges.length,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/activity-log", {
+      summary: "List framework activity log records recorded by runtime and admin actions.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await listActivityLogs(context.databases.primary, {
+            category: context.request.url.searchParams.get("category"),
+            level: context.request.url.searchParams.get("level"),
+            limit: context.request.url.searchParams.get("limit")
+              ? Number(context.request.url.searchParams.get("limit"))
+              : undefined,
+          })
+        )
+      },
+    }),
+    defineInternalRoute("/framework/activity-log/test", {
+      method: "POST",
+      summary: "Write a test framework activity log record from the admin workspace.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await writeFrameworkActivityFromContext(context, user, {
+            category: "validation",
+            action: "activity-log.test",
+            message: "A test activity log entry was created from the admin workspace.",
+            details: {
+              source: "cxapp",
+            },
+          }),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/framework/alerts-dashboard", {
+      summary: "Read monitoring status and alert thresholds for checkout, payment, webhook, order, and mail flows.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        const windowHours = context.request.url.searchParams.get("windowHours")
+          ? Number(context.request.url.searchParams.get("windowHours"))
+          : undefined
+
+        return jsonResponse(
+          await getMonitoringDashboard(context.databases.primary, context.config, {
+            windowHours,
+          })
+        )
+      },
+    }),
+    defineInternalRoute("/framework/database-backups", {
+      summary: "Read database backup status, restore history, and scheduler configuration.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await listDatabaseBackupDashboard(context.databases.primary, context.config)
+        )
+      },
+    }),
+    defineInternalRoute("/framework/database-backups/run", {
+      method: "POST",
+      summary: "Run a manual database backup immediately.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const item = await createDatabaseBackup(context.databases.primary, context.config, {
+          trigger: "manual",
+        })
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "database-backup.run",
+          message: "Manual database backup was started from the admin workspace.",
+          details: {
+            backupId: item.id,
+            fileName: item.fileName,
+          },
+        })
+
+        return jsonResponse({ item }, 201)
+      },
+    }),
+    defineInternalRoute("/framework/database-backups/restore-drill", {
+      method: "POST",
+      summary: "Run a restore drill from a selected database backup.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const backupId = context.request.url.searchParams.get("id")
+
+        if (!backupId) {
+          throw new ApplicationError("Backup id is required.", {}, 400)
+        }
+
+        const run = await runDatabaseRestoreDrill(
+          context.databases.primary,
+          context.config,
+          backupId
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "database-backup.restore-drill",
+          message: "Database restore drill was executed from the admin workspace.",
+          details: {
+            backupId,
+            runId: run.id,
+          },
+        })
+
+        return jsonResponse({ item: run }, 201)
+      },
+    }),
+    defineInternalRoute("/framework/database-backups/restore", {
+      method: "POST",
+      summary: "Restore the primary database from a selected backup and schedule restart.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const backupId = context.request.url.searchParams.get("id")
+
+        if (!backupId) {
+          throw new ApplicationError("Backup id is required.", {}, 400)
+        }
+
+        const run = await restoreDatabaseBackup(
+          context.databases,
+          context.config,
+          backupId
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "database-backup.restore",
+          level: "warn",
+          message: "Live database restore was scheduled from the admin workspace.",
+          details: {
+            backupId,
+            runId: run.id,
+          },
+        })
+
+        return jsonResponse({ item: run }, 202)
+      },
+    }),
+    defineInternalRoute("/framework/security-review", {
+      summary: "Read the framework security review checklist and review history.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(await getSecurityReviewDashboard(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/framework/security-review/item", {
+      method: "POST",
+      summary: "Update one security review checklist item.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const itemId = context.request.url.searchParams.get("id")
+
+        if (!itemId) {
+          throw new ApplicationError("Security review item id is required.", {}, 400)
+        }
+
+        const result = await updateSecurityReviewItem(
+          context.databases.primary,
+          itemId,
+          context.request.jsonBody
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "security",
+          action: "security-review.item-update",
+          message: "Security review checklist item was updated from the admin workspace.",
+          details: {
+            itemId,
+            status: result.item.status,
+          },
+        })
+
+        return jsonResponse(result)
+      },
+    }),
+    defineInternalRoute("/framework/security-review/complete", {
+      method: "POST",
+      summary: "Record a completed security review run.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const result = await completeSecurityReview(
+          context.databases.primary,
+          context.request.jsonBody
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "security",
+          action: "security-review.complete",
+          message: "Security review was completed from the admin workspace.",
+          details: {
+            runId: result.run.id,
+            overallStatus: result.run.overallStatus,
+          },
+        })
+
+        return jsonResponse(result, 201)
       },
     }),
     defineInternalRoute("/framework/media", {

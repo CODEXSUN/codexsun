@@ -32,6 +32,8 @@ import { StorefrontFloatingContactSection } from "./features/storefront-admin/st
 import { StorefrontPickupSection } from "./features/storefront-admin/storefront-pickup-section"
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
+import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
+import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
@@ -787,6 +789,14 @@ function OrdersSection() {
   )
 }
 
+function CommunicationsSection() {
+  return <StorefrontCommunicationsSection />
+}
+
+function PaymentsSection() {
+  return <StorefrontPaymentsSection />
+}
+
 function CheckoutSection() {
   return (
     <div className="space-y-4">
@@ -902,8 +912,12 @@ export function EcommerceWorkspaceSection({
       return <ProductsSection />
     case "customers":
       return <CustomersSection />
+    case "communications":
+      return <CommunicationsSection />
     case "orders":
       return <OrdersSection />
+    case "payments":
+      return <PaymentsSection />
     case "checkout":
       return <CheckoutSection />
     case "shipping":

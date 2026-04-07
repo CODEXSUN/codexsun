@@ -17,7 +17,7 @@ export function createAuthExternalRoutes(): HttpRouteDefinition[] {
           context.config
         )
         return jsonResponse(
-          await authService.login(context.request.jsonBody, getRequestMeta(context.request.headers))
+          await authService.login(context.request.jsonBody, getRequestMeta(context.request))
         )
       },
     }),

@@ -1,5 +1,6 @@
 import {
   BrowserRouter,
+  Link,
   Navigate,
   Route,
   Routes,
@@ -204,9 +205,25 @@ const FrameworkMailMessagePage = lazyNamed(
   () => import("./pages/framework-mail-message-page"),
   "FrameworkMailMessagePage",
 );
+const FrameworkActivityLogPage = lazyNamed(
+  () => import("./pages/framework-activity-log-page"),
+  "FrameworkActivityLogPage",
+);
+const FrameworkAlertsDashboardPage = lazyNamed(
+  () => import("./pages/framework-alerts-dashboard-page"),
+  "FrameworkAlertsDashboardPage",
+);
+const FrameworkDataBackupPage = lazyNamed(
+  () => import("./pages/framework-data-backup-page"),
+  "FrameworkDataBackupPage",
+);
 const FrameworkRbacPage = lazyNamed(
   () => import("./pages/framework-rbac-page"),
   "FrameworkRbacPage",
+);
+const FrameworkSecurityReviewPage = lazyNamed(
+  () => import("./pages/framework-security-review-page"),
+  "FrameworkSecurityReviewPage",
 );
 const FrameworkPermissionFormPage = lazyNamed(
   () => import("./pages/framework-permission-form-page"),
@@ -279,16 +296,76 @@ function FrameworkUtilityPage({
   description: string;
 }) {
   return (
-    <div className="border-border bg-background/90 rounded-3xl border p-6 shadow-sm">
-      <p className="text-muted-foreground text-xs font-semibold tracking-[0.24em] uppercase">
-        Framework
-      </p>
-      <h1 className="font-heading mt-3 text-3xl font-semibold tracking-tight">
-        {title}
-      </h1>
-      <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-7">
-        {description}
-      </p>
+    <div className="space-y-6">
+      <div className="border-border bg-background/90 rounded-3xl border p-6 shadow-sm">
+        <p className="text-muted-foreground text-xs font-semibold tracking-[0.24em] uppercase">
+          Framework
+        </p>
+        <h1 className="font-heading mt-3 text-3xl font-semibold tracking-tight">
+          {title}
+        </h1>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-7">
+          {description}
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {[
+          {
+            title: "Core Setup",
+            href: "/dashboard/settings/core-setup",
+            summary: "Bootstrap and readiness foundations for the shared suite.",
+          },
+          {
+            title: "Core Settings",
+            href: "/dashboard/settings/core-settings",
+            summary: "Runtime environment settings and operational controls.",
+          },
+          {
+            title: "Activity Log",
+            href: "/dashboard/settings/activity-log",
+            summary: "Validate framework activity and audit records from the admin shell.",
+          },
+          {
+            title: "Alerts Dashboard",
+            href: "/dashboard/settings/alerts-dashboard",
+            summary: "Operational alert coverage and monitoring entry point for production flows.",
+          },
+          {
+            title: "Data Backup",
+            href: "/dashboard/settings/data-backup",
+            summary: "Backup cadence, restore drills, retention, and off-machine backup controls.",
+          },
+          {
+            title: "Security Review",
+            href: "/dashboard/settings/security-review",
+            summary: "OWASP-aligned checklist, evidence capture, and security review signoff history.",
+          },
+          {
+            title: "Companies",
+            href: "/dashboard/settings/companies",
+            summary: "Organization records, branding, and company masters.",
+          },
+          {
+            title: "Users",
+            href: "/dashboard/settings/users",
+            summary: "Framework-authenticated user administration and access review.",
+          },
+          {
+            title: "Permissions",
+            href: "/dashboard/settings/permissions",
+            summary: "Permission definitions and role mapping controls.",
+          },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            to={item.href}
+            className="rounded-[1rem] border border-border/70 bg-card/70 p-4 transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-card"
+          >
+            <p className="font-semibold text-foreground">{item.title}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -689,7 +766,7 @@ function AuthenticatedAppShell() {
                 <AdminLayout>
                   <FrameworkUtilityPage
                     title="Settings"
-                    description="Framework-level configuration, cross-app governance, and suite defaults are staged here. This page is the placeholder for the next real settings modules."
+                    description="Framework-level configuration, audit visibility, and cross-app governance modules are staged here for the shared admin shell."
                   />
                 </AdminLayout>
               </ProtectedRoute>
@@ -714,6 +791,46 @@ function AuthenticatedAppShell() {
                     appId="core"
                     sectionId="core-settings"
                   />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/activity-log"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkActivityLogPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/alerts-dashboard"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkAlertsDashboardPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/data-backup"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkDataBackupPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/security-review"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkSecurityReviewPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

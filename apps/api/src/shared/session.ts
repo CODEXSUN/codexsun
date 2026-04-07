@@ -2,6 +2,7 @@ import { createAuthService } from "../../../cxapp/src/services/service-factory.j
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import type { HttpRouteHandlerContext } from "../../../framework/src/runtime/http/route-types.js"
 
+import { enforceAdminAccessPolicy, enforceInternalAccessPolicy } from "./ip-policy.js"
 import { readBearerToken } from "./request.js"
 
 export async function requireAuthenticatedUser(
@@ -10,6 +11,8 @@ export async function requireAuthenticatedUser(
     allowedActorTypes?: string[]
   } = {}
 ) {
+  enforceInternalAccessPolicy(context, context.config)
+
   const token = readBearerToken(context.request.headers)
 
   if (!token) {
@@ -31,6 +34,10 @@ export async function requireAuthenticatedUser(
       },
       403
     )
+  }
+
+  if (user.actorType === "admin") {
+    enforceAdminAccessPolicy(context, context.config)
   }
 
   return {

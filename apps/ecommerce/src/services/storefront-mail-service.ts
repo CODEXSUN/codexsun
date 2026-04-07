@@ -334,3 +334,54 @@ export async function sendStorefrontOrderConfirmedEmail(input: {
     referenceId: input.order.id,
   })
 }
+
+export async function sendStorefrontPaymentFailedEmail(input: {
+  mailboxService: MailboxService
+  config: ServerConfig
+  settings: StorefrontSettings
+  order: StorefrontOrder
+  customerEmail: string
+  customerName: string
+  failureReason?: string | null
+}) {
+  const support = buildSupportFooter(input.settings, input.config)
+  const orderUrl = resolveAbsoluteUrl(
+    input.config,
+    `/customer/orders/${encodeURIComponent(input.order.id)}`
+  )
+  const checkoutUrl = resolveAbsoluteUrl(input.config, "/shop/checkout")
+
+  await input.mailboxService.sendTemplatedEmail({
+    to: [
+      {
+        email: input.customerEmail,
+        name: input.customerName,
+      },
+    ],
+    templateCode: "storefront_payment_failed",
+    templateData: {
+      storeName: "Tm Next Storefront",
+      displayName: input.customerName,
+      orderNumber: input.order.orderNumber,
+      orderStatus: input.order.status.replace(/_/g, " "),
+      paymentStatus: input.order.paymentStatus,
+      totalAmount: formatCurrency(input.order.totalAmount),
+      failureReason:
+        normalizeText(
+          input.failureReason,
+          "The last payment attempt could not be completed. You can retry using the same order."
+        ),
+      checkoutUrl,
+      checkoutLabel: "Retry payment",
+      orderUrl,
+      orderLabel: "Open order",
+      supportEmail: support.supportEmail,
+      supportPhone: support.supportPhone,
+      supportMailTo: support.supportMailTo,
+      supportPhoneHref: support.supportPhoneHref,
+      storefrontHomeUrl: support.storefrontHomeUrl,
+    },
+    referenceType: "storefront_payment_failed",
+    referenceId: input.order.id,
+  })
+}

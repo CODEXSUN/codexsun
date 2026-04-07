@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import type { IncomingMessage, ServerResponse } from "node:http"
@@ -18,6 +19,8 @@ import {
 } from "../runtime/database/index.js"
 import { ApplicationError } from "../runtime/errors/application-error.js"
 import { ensurePublicMediaSymlink } from "../runtime/media/media-storage.js"
+import { createRuntimeLogger, resolveRequestId } from "../runtime/observability/runtime-logger.js"
+import { startDatabaseBackupScheduler } from "../runtime/operations/database-backup-service.js"
 import {
   createRequestContext,
   matchHttpRoute,
@@ -94,6 +97,51 @@ type RuntimeStartupState = {
   status: "starting" | "ready" | "failed"
 }
 
+export function readForwardedProtocol(headers: IncomingMessage["headers"]) {
+  const forwardedProto = headers["x-forwarded-proto"]
+  const cfVisitor = headers["cf-visitor"]
+  const resolvedForwardedProto = Array.isArray(forwardedProto)
+    ? forwardedProto[0]
+    : forwardedProto
+  const resolvedCfVisitor = Array.isArray(cfVisitor) ? cfVisitor[0] : cfVisitor
+
+  if (resolvedForwardedProto?.trim()) {
+    return resolvedForwardedProto.split(",")[0]?.trim().toLowerCase() ?? null
+  }
+
+  if (resolvedCfVisitor?.includes("https")) {
+    return "https"
+  }
+
+  return null
+}
+
+export function isRequestSecure(
+  headers: IncomingMessage["headers"],
+  protocol: "http" | "https"
+) {
+  if (protocol === "https") {
+    return true
+  }
+
+  return readForwardedProtocol(headers) === "https"
+}
+
+export function createHttpsRedirectUrl(
+  requestUrl: URL,
+  headers: IncomingMessage["headers"],
+  config: ServerConfig
+) {
+  const hostHeader = headers.host ?? ""
+  const requestHost = hostHeader.split(",")[0]?.trim() ?? ""
+  const canonicalHost = requestHost || config.frontendDomain || config.appDomain
+  const hostWithoutPort = canonicalHost.replace(/:\d+$/, "")
+  const portSuffix =
+    config.tlsEnabled && config.appHttpsPort !== 443 ? `:${config.appHttpsPort}` : ""
+
+  return `https://${hostWithoutPort}${portSuffix}${requestUrl.pathname}${requestUrl.search}`
+}
+
 async function resolveResponse(
   urlPath: string,
   method: HttpRouteDefinition["method"],
@@ -111,6 +159,8 @@ async function resolveResponse(
     frontendHttpPort: number
     frontendHttpsPort: number
     httpRoutes: HttpRouteDefinition[]
+    remoteAddress: string | null
+    requestId: string
     requestBody: string | null
     requestHeaders: IncomingMessage["headers"]
     requestUrl: URL
@@ -132,6 +182,8 @@ async function resolveResponse(
     frontendHttpPort,
     frontendHttpsPort,
     httpRoutes,
+    remoteAddress,
+    requestId,
     requestBody,
     requestHeaders,
     requestUrl,
@@ -164,6 +216,8 @@ async function resolveResponse(
           jsonBody,
           method,
           pathname: urlPath,
+          remoteAddress,
+          requestId,
           url: requestUrl,
         },
       })
@@ -269,6 +323,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
     startedAt: new Date().toISOString(),
     status: "starting",
   }
+  const logger = createRuntimeLogger(config)
 
   type ListenerServer =
     | ReturnType<typeof createHttpServer>
@@ -277,22 +332,48 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   const sockets = new Set<Socket>()
   const listeningServers = new Set<ListenerServer>()
   let isShuttingDown = false
+  let stopBackupScheduler: (() => void) | null = null
 
   const requestHandler = async (
     request: IncomingMessage,
-    response: ServerResponse<IncomingMessage>
+    response: ServerResponse<IncomingMessage>,
+    protocol: "http" | "https"
   ) => {
+    const requestId =
+      resolveRequestId(request.headers["x-request-id"]) ?? randomUUID()
+    const startedAt = Date.now()
+    const remoteAddress = request.socket.remoteAddress ?? null
     const requestUrl = new URL(
       request.url ?? "/",
       `http://${request.headers.host ?? "localhost"}`
     )
 
+    response.setHeader("x-request-id", requestId)
+
     if (isShuttingDown) {
       response.writeHead(503, {
         "content-type": "application/json; charset=utf-8",
         connection: "close",
+        "x-request-id": requestId,
       })
       response.end(JSON.stringify({ message: "Server is shutting down" }))
+      return
+    }
+
+    if (config.security.httpsOnly && !isRequestSecure(request.headers, protocol)) {
+      const location = createHttpsRedirectUrl(requestUrl, request.headers, config)
+      logger.info("http.request.redirected_to_https", {
+        requestId,
+        method: request.method ?? "GET",
+        pathname: requestUrl.pathname,
+        remoteAddress,
+        location,
+      })
+      response.writeHead(308, {
+        location,
+        "x-request-id": requestId,
+      })
+      response.end()
       return
     }
 
@@ -304,6 +385,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       response.writeHead(startupState.status === "failed" ? 500 : 503, {
         "content-type": "application/json; charset=utf-8",
         "retry-after": "2",
+        "x-request-id": requestId,
       })
       response.end(
         JSON.stringify(
@@ -342,7 +424,10 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       request.method !== "PUT" &&
       request.method !== "DELETE"
     ) {
-      response.writeHead(405, { "content-type": "application/json; charset=utf-8" })
+      response.writeHead(405, {
+        "content-type": "application/json; charset=utf-8",
+        "x-request-id": requestId,
+      })
       response.end(JSON.stringify({ message: "Method not allowed" }))
       return
     }
@@ -370,6 +455,8 @@ export async function startFrameworkServer(cwd = process.cwd()) {
           frontendHttpPort,
           frontendHttpsPort,
           httpRoutes,
+          remoteAddress,
+          requestId,
           requestBody,
           requestHeaders: request.headers,
           requestUrl,
@@ -378,7 +465,19 @@ export async function startFrameworkServer(cwd = process.cwd()) {
         }
       )
 
-      response.writeHead(resolved.statusCode, resolved.headers)
+      response.writeHead(resolved.statusCode, {
+        ...resolved.headers,
+        "x-request-id": requestId,
+      })
+
+      logger.info("http.request.completed", {
+        requestId,
+        method: request.method ?? "GET",
+        pathname: requestUrl.pathname,
+        statusCode: resolved.statusCode,
+        durationMs: Date.now() - startedAt,
+        remoteAddress,
+      })
 
       if (request.method === "HEAD") {
         response.end()
@@ -390,6 +489,16 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       if (error instanceof ApplicationError) {
         response.writeHead(error.statusCode, {
           "content-type": "application/json; charset=utf-8",
+          "x-request-id": requestId,
+        })
+        logger.warn("http.request.application_error", {
+          requestId,
+          method: request.method ?? "GET",
+          pathname: requestUrl.pathname,
+          statusCode: error.statusCode,
+          durationMs: Date.now() - startedAt,
+          remoteAddress,
+          error: error.message,
         })
         response.end(
           JSON.stringify({
@@ -403,6 +512,16 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       if (error instanceof ZodError) {
         response.writeHead(400, {
           "content-type": "application/json; charset=utf-8",
+          "x-request-id": requestId,
+        })
+        logger.warn("http.request.validation_error", {
+          requestId,
+          method: request.method ?? "GET",
+          pathname: requestUrl.pathname,
+          statusCode: 400,
+          durationMs: Date.now() - startedAt,
+          remoteAddress,
+          issues: error.issues.length,
         })
         response.end(
           JSON.stringify({
@@ -415,7 +534,19 @@ export async function startFrameworkServer(cwd = process.cwd()) {
         return
       }
 
-      response.writeHead(500, { "content-type": "application/json; charset=utf-8" })
+      response.writeHead(500, {
+        "content-type": "application/json; charset=utf-8",
+        "x-request-id": requestId,
+      })
+      logger.error("http.request.unhandled_error", {
+        requestId,
+        method: request.method ?? "GET",
+        pathname: requestUrl.pathname,
+        statusCode: 500,
+        durationMs: Date.now() - startedAt,
+        remoteAddress,
+        error: error instanceof Error ? error.message : "Unknown error",
+      })
       response.end(
         JSON.stringify({
           error: "Internal server error",
@@ -428,7 +559,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   }
 
   const httpServer = createHttpServer((request, response) => {
-    void requestHandler(request, response)
+    void requestHandler(request, response, "http")
   })
   const servers: ListenerServer[] = [httpServer]
   let httpsServer: ReturnType<typeof createHttpsServer> | undefined
@@ -441,7 +572,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
         minVersion: "TLSv1.2",
       },
       (request, response) => {
-        void requestHandler(request, response)
+        void requestHandler(request, response, "https")
       }
     )
     servers.push(httpsServer)
@@ -474,10 +605,15 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   let shutdownTimer: NodeJS.Timeout | undefined
 
   async function destroyRuntimeResources() {
+    stopBackupScheduler?.()
+    stopBackupScheduler = null
+
     try {
       await databases.destroy()
     } catch (error) {
-      console.error(`${appName} database shutdown error:`, error)
+      logger.error("runtime.database_shutdown_error", {
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
   }
 
@@ -512,7 +648,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
     }
 
     isShuttingDown = true
-    console.log(`${appName} received ${signal}, shutting down gracefully`)
+    logger.warn("runtime.shutdown_requested", { signal })
 
     shutdownTimer = setTimeout(() => {
       for (const socket of sockets) {
@@ -535,7 +671,9 @@ export async function startFrameworkServer(cwd = process.cwd()) {
           clearTimeout(shutdownTimer)
         }
 
-        console.error(`${appName} shutdown error:`, error)
+        logger.error("runtime.shutdown_error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
         process.exitCode = 1
         process.exit()
       })
@@ -550,22 +688,28 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   })
 
   process.on("uncaughtException", (error) => {
-    console.error(`${appName} uncaught exception:`, error)
+    logger.error("runtime.uncaught_exception", {
+      error: error instanceof Error ? error.message : String(error),
+    })
     shutdown("uncaughtException")
   })
 
   process.on("unhandledRejection", (reason) => {
-    console.error(`${appName} unhandled rejection:`, reason)
+    logger.error("runtime.unhandled_rejection", {
+      reason: reason instanceof Error ? reason.message : String(reason),
+    })
   })
 
   function listen(server: ListenerServer, port: number, protocol: "http" | "https") {
     server.once("error", async (error: NodeJS.ErrnoException) => {
       if (error.code === "EADDRINUSE") {
-        console.error(
-          `${appName} ${protocol} port ${port} is already in use. Stop the existing process or change ${protocol === "http" ? "APP_HTTP_PORT" : "APP_HTTPS_PORT"}.`
-        )
+        logger.error("runtime.listen_port_in_use", { protocol, port })
       } else {
-        console.error(`${appName} ${protocol} startup error:`, error)
+        logger.error("runtime.listen_startup_error", {
+          protocol,
+          port,
+          error: error.message,
+        })
       }
 
       await destroyRuntimeResources()
@@ -574,7 +718,11 @@ export async function startFrameworkServer(cwd = process.cwd()) {
 
     server.listen(port, appHost, () => {
       listeningServers.add(server)
-      console.log(`${appName} ${protocol} listening on ${protocol}://${appHost}:${port}`)
+      logger.info("runtime.listening", {
+        protocol,
+        host: appHost,
+        port,
+      })
     })
   }
 
@@ -587,13 +735,20 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   try {
     await ensurePublicMediaSymlink(config)
     await prepareApplicationDatabase(databases, { logger: console })
+    stopBackupScheduler = startDatabaseBackupScheduler({
+      config,
+      databases,
+      logger,
+    })
     startupState.status = "ready"
-    console.log(`${appName} runtime ready`)
+    logger.info("runtime.ready")
   } catch (error) {
     startupState.status = "failed"
     startupState.errorMessage =
       error instanceof Error ? error.message : "Unknown startup error"
-    console.error(`${appName} startup preparation error:`, error)
+    logger.error("runtime.startup_preparation_error", {
+      error: error instanceof Error ? error.message : String(error),
+    })
     shutdown("startupFailure")
     throw error
   }

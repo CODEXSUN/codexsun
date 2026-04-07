@@ -2,6 +2,14 @@
 
 ## Done Till Here
 
+### `#37` 2026-04-07
+
+- completed the remaining Stage `1.2` reliability tasks by adding stable storefront order-confirmation and tracking coverage, formalizing the ecommerce order state machine, and enforcing idempotent duplicate-submit and payment-verify behavior
+- updated storefront order storage normalization, payment verification flow, and order-detail status rendering so the storefront now uses explicit `created`, `payment_pending`, `paid`, `fulfilment_pending`, `shipped`, `delivered`, `cancelled`, and `refunded` states
+- added grouped product specification payloads to the storefront PDP from live core product data and introduced a reusable accordion plus right-side specification drawer on the product page
+- simplified the product specification drawer into a narrow key-value sheet, widened it slightly for comfort, pushed the floating contact button behind overlay surfaces, and removed the layout jump on drawer open or close with shared scrollbar-gutter handling
+- validated the batch with `npm run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npm run test:e2e -- tests/e2e/storefront-checkout.spec.ts tests/e2e/storefront-order-flow.spec.ts`
+
 ### `#36` 2026-04-07
 
 - added storefront pickup support through ecommerce-owned settings, checkout flow updates, order fields, order-detail display, and a dedicated pickup designer route in the ecommerce admin
@@ -114,6 +122,10 @@
 - refined the customer portal shell, sidebar, overview cards, and wishlist presentation to match the shared dashboard tone without leaking admin controls or app switching
 - hardened widened customer/contact hydration paths so older stored records with missing nested arrays no longer break relogin or customer profile reads
 - added shared storefront wishlist storage, synced guest wishlist intent after login, and connected the storefront home, catalog, product, and header surfaces to the same persisted customer-portal wishlist flow
+
+- completed Stage `1.5.5` with framework-owned backup cadence controls, local backup retention under `storage/backups/database`, restore drill execution, and optional Google Drive upload setup
+- completed Stage `1.5.7` with a framework security review ledger, OWASP-style checklist items, review evidence capture, and signoff history
+- added dedicated admin pages and side-menu entries for `Data Backup` and `Security Review`, then validated them with typecheck, backend tests, and Playwright e2e
 
 ### `#31` 2026-04-06
 

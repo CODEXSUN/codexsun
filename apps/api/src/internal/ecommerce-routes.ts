@@ -20,6 +20,16 @@ import {
   saveStorefrontHomeSlider,
   saveStorefrontSettings,
 } from "../../../ecommerce/src/services/storefront-settings-service.js"
+import {
+  assertStorefrontMailboxTemplates,
+  listStorefrontCommunicationLog,
+  resendStorefrontCommunication,
+} from "../../../ecommerce/src/services/storefront-communication-service.js"
+import {
+  getStorefrontPaymentOperationsReport,
+  requestStorefrontRefund,
+  reconcileRazorpayPayments,
+} from "../../../ecommerce/src/services/order-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
@@ -285,6 +295,101 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
             context.databases.primary,
             context.request.jsonBody
           )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/communications/health", {
+      summary: "Validate required storefront mailbox templates for ecommerce customer communications.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await assertStorefrontMailboxTemplates(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/communications", {
+      summary: "List storefront customer communication activity from mailbox records.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await listStorefrontCommunicationLog(context.databases.primary, {
+            orderId:
+              typeof context.request.url.searchParams.get("orderId") === "string"
+                ? context.request.url.searchParams.get("orderId")
+                : null,
+            customerAccountId:
+              typeof context.request.url.searchParams.get("customerAccountId") === "string"
+                ? context.request.url.searchParams.get("customerAccountId")
+                : null,
+          })
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/communications/resend", {
+      method: "POST",
+      summary: "Resend supported storefront customer communications such as order confirmation or payment failed emails.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await resendStorefrontCommunication(
+            context.databases.primary,
+            context.config,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/reconcile", {
+      method: "POST",
+      summary: "Run Razorpay payment reconciliation against ecommerce orders.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await reconcileRazorpayPayments(
+            context.databases.primary,
+            context.config,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/refund-request", {
+      method: "POST",
+      summary: "Record a refund initiation request for an ecommerce order.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await requestStorefrontRefund(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/report", {
+      summary: "Read settlement visibility and failed-payment exception reporting for ecommerce payments.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await getStorefrontPaymentOperationsReport(context.databases.primary)
         )
       },
     }),

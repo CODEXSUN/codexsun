@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#37] 2026-04-07 - Stage 1.2 completion and PDP specification drawer
+
+- completed the remaining Phase 1 Stage 1.2 ecommerce reliability tasks by adding stable order-confirmation and tracking coverage, formalizing the storefront order state machine, and enforcing idempotent checkout or payment verification behavior
+- updated storefront order storage, payment verification, duplicate-submit handling, and customer-facing order status surfaces so retries no longer duplicate pending orders or replay successful payment capture
+- added grouped product specification data to the storefront PDP response and built a new accordion-driven specification surface with a right-side product details drawer sourced from live core product data
+- refined the specification drawer into a narrow, simpler key-value sheet, fixed its interaction with the floating contact button, and prevented page shift on open or close by stabilizing scrollbar gutter in the shared UI CSS
+- marked `1.2.4`, `1.2.5`, and `1.2.6` complete in `TASK.md`
+
 ### [#36] 2026-04-07 - Pickup support and checkout payment recovery
 
 - added storefront pickup support across ecommerce settings, checkout, order contracts, order detail rendering, and admin routing, including a standalone pickup designer under the ecommerce side menu
@@ -209,6 +217,12 @@
 - added a narrow app-owned ecommerce product admin write path so Frappe item sync can create and update products without moving product ownership into the connector app
 - adapted the connector UI into the shared desk through `apps/frappe/web` and `apps/cxapp/web`, with overview, connection, todo, item, and purchase receipt workspace sections
 - added connector coverage for route registration, database registration, settings save, item sync, and purchase receipt sync
+
+### [#37] 2026-04-07 - Framework backup and security review operations
+
+- added framework-owned database backup and security review contracts, persistence tables, scheduler wiring, and protected internal operations routes
+- added dedicated framework admin pages for `Data Backup` and `Security Review` with tabbed controls, restore drill actions, runtime-setting-backed backup automation, and OWASP-style checklist evidence capture
+- registered both pages in the framework settings routes, sidebar navigation, desk metadata, runtime fallback catalog, and admin e2e coverage
 
 ### [#15] 2026-03-30 - App-owned auth, sessions, mailbox, and cxapp auth flows
 

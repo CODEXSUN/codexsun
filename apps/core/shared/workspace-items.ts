@@ -32,5 +32,29 @@ export const coreWorkspaceItems: CoreWorkspaceItem[] = [
     route: "/dashboard/apps/core/common-modules",
     summary: "Geography and reusable master data shared across apps.",
   },
+  {
+    id: "core-settings",
+    name: "Core Settings",
+    route: "/dashboard/apps/core/core-settings",
+    summary: "Full runtime environment settings and cross-suite control surface.",
+  },
+  {
+    id: "security-policy",
+    name: "Security Policy",
+    route: "/dashboard/apps/core/security-policy",
+    summary: "HTTPS, secret rotation, login policy, and internal/admin access controls.",
+  },
+  {
+    id: "observability-settings",
+    name: "Observability",
+    route: "/dashboard/apps/core/observability-settings",
+    summary: "Structured logging, alert contacts, and monitoring thresholds.",
+  },
+  {
+    id: "operations-governance",
+    name: "Operations",
+    route: "/dashboard/apps/core/operations-governance",
+    summary: "Backup cadence, audit controls, and restore/security review checkpoints.",
+  },
   ...coreCommonModuleMenuItems,
 ]

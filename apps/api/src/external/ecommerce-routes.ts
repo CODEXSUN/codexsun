@@ -11,6 +11,7 @@ import {
 import {
   createCheckoutOrder,
   getCustomerOrder,
+  handleRazorpayWebhook,
   listCustomerOrders,
   verifyCheckoutPayment,
 } from "../../../ecommerce/src/services/order-service.js"
@@ -19,7 +20,7 @@ import { defineExternalRoute } from "../../../framework/src/runtime/http/index.j
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
-import { readBearerToken } from "../shared/request.js"
+import { readBearerToken, readHeader } from "../shared/request.js"
 
 export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
   return [
@@ -190,6 +191,19 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
             context.request.jsonBody,
             readBearerToken(context.request.headers)
           )
+        ),
+    }),
+    defineExternalRoute("/storefront/payments/razorpay/webhook", {
+      auth: "none",
+      method: "POST",
+      summary: "Receive and verify Razorpay webhook events for storefront payments.",
+      handler: async (context) =>
+        jsonResponse(
+          await handleRazorpayWebhook(context.databases.primary, context.config, {
+            bodyText: context.request.bodyText,
+            signature: readHeader(context.request.headers, "x-razorpay-signature") ?? null,
+            providerEventId: readHeader(context.request.headers, "x-razorpay-event-id") ?? null,
+          })
         ),
     }),
     defineExternalRoute("/storefront/payment-config", {

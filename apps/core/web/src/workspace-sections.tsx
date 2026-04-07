@@ -73,6 +73,9 @@ import { toProductFormValues } from "@core/web/src/features/product/product-form
 import { ProductUpsertSection as ProductUpsertFeatureSection } from "@core/web/src/features/product/product-upsert-section"
 import { storefrontDepartmentOptions } from "@core/web/src/features/product/product-form-state"
 import { CoreSettingsSection as CoreSettingsFeatureSection } from "@core/web/src/features/settings/core-settings-section"
+import { SecurityPolicySection as SecurityPolicyFeatureSection } from "@core/web/src/features/settings/security-policy-section"
+import { ObservabilitySettingsSection as ObservabilitySettingsFeatureSection } from "@core/web/src/features/settings/observability-settings-section"
+import { OperationsGovernanceSection as OperationsGovernanceFeatureSection } from "@core/web/src/features/settings/operations-governance-section"
 import { cn } from "@/lib/utils"
 
 type ResourceState<T> = {
@@ -4447,6 +4450,18 @@ function CoreSettingsSection() {
   return <CoreSettingsFeatureSection />
 }
 
+function SecurityPolicySettingsSection() {
+  return <SecurityPolicyFeatureSection />
+}
+
+function ObservabilitySettingsSection() {
+  return <ObservabilitySettingsFeatureSection />
+}
+
+function OperationsGovernanceSection() {
+  return <OperationsGovernanceFeatureSection />
+}
+
 export function CoreWorkspaceSection({
   companyId,
   contactId,
@@ -4495,6 +4510,12 @@ export function CoreWorkspaceSection({
       return <SetupSection />
     case "core-settings":
       return <CoreSettingsSection />
+    case "security-policy":
+      return <SecurityPolicySettingsSection />
+    case "observability-settings":
+      return <ObservabilitySettingsSection />
+    case "operations-governance":
+      return <OperationsGovernanceSection />
     case "overview":
       return <OverviewSection />
     default:

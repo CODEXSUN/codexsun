@@ -12,6 +12,9 @@ test("http route assemblies expose versioned internal, external, and public surf
 
   const internalApps = routes.find((route) => route.path === "/internal/v1/apps")
   const externalApps = routes.find((route) => route.path === "/api/v1/apps")
+  const razorpayWebhook = routes.find(
+    (route) => route.path === "/api/v1/storefront/payments/razorpay/webhook"
+  )
   const publicBootstrap = routes.find(
     (route) => route.path === "/public/v1/bootstrap"
   )
@@ -25,6 +28,10 @@ test("http route assemblies expose versioned internal, external, and public surf
   assert.equal(externalApps.surface, "external")
   assert.equal(externalApps.auth, "external")
   assert.deepEqual(externalApps.legacyPaths, ["/api/apps"])
+
+  assert.ok(razorpayWebhook)
+  assert.equal(razorpayWebhook.surface, "external")
+  assert.equal(razorpayWebhook.auth, "none")
 
   assert.ok(publicBootstrap)
   assert.equal(publicBootstrap.surface, "public")

@@ -7,11 +7,12 @@ export const ecommerceStorefrontFoundationMigration = defineDatabaseMigration({
   id: "ecommerce:storefront:01-storefront-foundation",
   appId: "ecommerce",
   moduleKey: "storefront",
-  name: "Create ecommerce storefront, customer, and order stores",
+  name: "Create ecommerce storefront, customer, order, and webhook stores",
   order: 10,
   up: async ({ database }) => {
     await ensureJsonStoreTable(database, ecommerceTableNames.storefrontSettings)
     await ensureJsonStoreTable(database, ecommerceTableNames.customerAccounts)
     await ensureJsonStoreTable(database, ecommerceTableNames.orders)
+    await ensureJsonStoreTable(database, ecommerceTableNames.paymentWebhookEvents)
   },
 })

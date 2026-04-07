@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
+import { recordMonitoringEvent } from "../../../framework/src/runtime/monitoring/monitoring-service.js"
 import {
   createContact,
   getContact,
@@ -10,7 +11,6 @@ import {
 } from "../../../core/src/services/contact-service.js"
 import { type Product } from "../../../core/shared/index.js"
 import {
-  listJsonStorePayloads,
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
@@ -22,22 +22,45 @@ import {
   storefrontOrderListResponseSchema,
   storefrontOrderResponseSchema,
   storefrontOrderSchema,
+  storefrontPaymentOperationsReportSchema,
   storefrontOrderTrackingLookupSchema,
+  storefrontRefundRequestPayloadSchema,
+  storefrontPaymentWebhookEventSchema,
+  storefrontPaymentReconciliationPayloadSchema,
+  storefrontPaymentReconciliationResponseSchema,
   storefrontPaymentVerificationPayloadSchema,
   type StorefrontSettings,
   type StorefrontPaymentSession,
+  type StorefrontRefundRecord,
   type CustomerAccount,
   type StorefrontOrder,
+  type StorefrontPaymentExceptionItem,
+  type StorefrontPaymentSettlementItem,
+  type StorefrontPaymentWebhookEvent,
+  type StorefrontPaymentWebhookExceptionItem,
+  type StorefrontPaymentReconciliationItem,
   type StorefrontOrderStatus,
   type StorefrontOrderTimelineEvent,
 } from "../../shared/index.js"
 
-import { createRazorpayPaymentSession, verifyRazorpaySignature } from "./razorpay-service.js"
+import {
+  createRazorpayPaymentSession,
+  fetchRazorpayOrderPayments,
+  verifyRazorpaySignature,
+  verifyRazorpayWebhookSignature,
+} from "./razorpay-service.js"
 import { resolveAuthenticatedCustomerAccount } from "./customer-service.js"
 import { readCoreProducts } from "./catalog-service.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
-import { sendStorefrontOrderConfirmedEmail } from "./storefront-mail-service.js"
+import {
+  sendStorefrontOrderConfirmedEmail,
+  sendStorefrontPaymentFailedEmail,
+} from "./storefront-mail-service.js"
 import { readStorefrontOrders } from "./storefront-order-storage.js"
+import {
+  readStorefrontPaymentWebhookEvents,
+  writeStorefrontPaymentWebhookEvents,
+} from "./storefront-webhook-event-storage.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 
@@ -55,6 +78,46 @@ const systemActor: AuthUser = {
   permissions: [],
   createdAt: "2026-04-04T10:00:00.000Z",
   updatedAt: "2026-04-04T10:00:00.000Z",
+}
+
+function buildMonitoringErrorContext(error: unknown) {
+  if (error instanceof ApplicationError) {
+    return {
+      detail: error.message,
+      statusCode: error.statusCode,
+      ...error.context,
+    }
+  }
+
+  if (error instanceof Error) {
+    return {
+      detail: error.message,
+    }
+  }
+
+  return {
+    detail: "Unknown error",
+  }
+}
+
+async function recordCommerceMonitoringEvent(
+  database: Kysely<unknown>,
+  input: {
+    operation: "checkout" | "payment_verify" | "webhook" | "order_creation"
+    status: "success" | "failure"
+    message: string
+    referenceId?: string | null
+    context?: Record<string, unknown> | null
+  }
+) {
+  await recordMonitoringEvent(database, {
+    sourceApp: "ecommerce",
+    operation: input.operation,
+    status: input.status,
+    message: input.message,
+    referenceId: input.referenceId ?? null,
+    context: input.context ?? null,
+  })
 }
 
 function normalizeOptionalString(value: string | null | undefined) {
@@ -110,6 +173,70 @@ function createTimelineEvent(
     label,
     summary,
     createdAt: new Date().toISOString(),
+  }
+}
+
+function buildRefundRecord(
+  order: StorefrontOrder,
+  overrides: Partial<StorefrontRefundRecord>
+): StorefrontRefundRecord {
+  const fallbackRequestedAmount =
+    overrides.type === "partial"
+      ? Math.min(order.totalAmount, Math.max(0, overrides.requestedAmount ?? order.totalAmount))
+      : order.totalAmount
+
+  return {
+    type: overrides.type ?? "full",
+    status: overrides.status ?? "none",
+    requestedAmount: fallbackRequestedAmount,
+    currency: overrides.currency ?? order.currency,
+    reason: overrides.reason ?? null,
+    requestedBy: overrides.requestedBy ?? "system",
+    requestedAt: overrides.requestedAt ?? null,
+    initiatedAt: overrides.initiatedAt ?? null,
+    completedAt: overrides.completedAt ?? null,
+    failedAt: overrides.failedAt ?? null,
+    providerRefundId: overrides.providerRefundId ?? null,
+    statusSummary: overrides.statusSummary ?? null,
+    updatedAt: overrides.updatedAt ?? new Date().toISOString(),
+  }
+}
+
+type RazorpayWebhookPayload = {
+  event?: string
+  created_at?: number
+  payload?: {
+    payment?: {
+      entity?: {
+        id?: string
+        order_id?: string
+        status?: string
+        amount?: number
+        currency?: string
+        notes?: {
+          storefrontOrderId?: string
+        }
+        error_description?: string
+      }
+    }
+    order?: {
+      entity?: {
+        id?: string
+        receipt?: string
+        notes?: {
+          storefrontOrderId?: string
+        }
+      }
+    }
+    refund?: {
+      entity?: {
+        id?: string
+        payment_id?: string
+        notes?: {
+          storefrontOrderId?: string
+        }
+      }
+    }
   }
 }
 
@@ -441,234 +568,290 @@ export async function createCheckoutOrder(
   payload: unknown,
   token?: string | null
 ) {
-  const parsed = storefrontCheckoutPayloadSchema.parse(payload)
-  const customer = token
-    ? await resolveAuthenticatedCustomerAccount(database, config, token)
-    : null
-  const settings = await getStorefrontSettings(database)
-  const existingOrders = await readOrders(database)
-  const catalog = await readCoreProducts(database)
-  const now = new Date().toISOString()
+  let orderCreationAttempted = false
 
-  const chargeInputs: Array<{
-    quantity: number
-    shippingCharge: number | null
-    handlingCharge: number | null
-  }> = []
-
-  const items = parsed.items.map((input) => {
-    const product = catalog.find((item) => item.id === input.productId && item.isActive)
-
-    if (!product) {
-      throw new ApplicationError(
-        "A checkout item could not be found in the storefront catalog.",
-        input,
-        404
-      )
-    }
-
-    const pricing = resolveProductPricing(product)
-
-    if (input.quantity > pricing.availableQuantity) {
-      throw new ApplicationError(
-        "Requested quantity is not available for checkout.",
-        {
-          productId: product.id,
-          requestedQuantity: input.quantity,
-          availableQuantity: pricing.availableQuantity,
-        },
-        409
-      )
-    }
-
-    chargeInputs.push({
-      quantity: input.quantity,
-      shippingCharge: product.storefront?.shippingCharge ?? null,
-      handlingCharge: product.storefront?.handlingCharge ?? null,
-    })
-
-    return {
-      id: `order-item:${randomUUID()}`,
-      productId: product.id,
-      slug: product.slug,
-      name: product.name,
-      brandName: product.brandName,
-      imageUrl: resolveOrderItemImage(product),
-      variantLabel: resolveOrderItemVariantLabel(product),
-      attributes: resolveOrderItemAttributes(product),
-      quantity: input.quantity,
-      unitPrice: pricing.unitPrice,
-      mrp: pricing.mrp,
-      lineTotal: pricing.unitPrice * input.quantity,
-    }
-  })
-
-  const subtotalAmount = items.reduce((sum, item) => sum + item.lineTotal, 0)
-  const discountAmount = items.reduce(
-    (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
-    0
-  )
-  const { shippingAmount, handlingAmount } =
-    parsed.fulfillmentMethod === "store_pickup"
-      ? { shippingAmount: 0, handlingAmount: 0 }
-      : calculateChargeTotals(chargeInputs, settings, subtotalAmount)
-  const totalAmount = subtotalAmount + shippingAmount + handlingAmount
-  const pickupLocation =
-    parsed.fulfillmentMethod === "store_pickup" && settings.pickupLocation.enabled
-      ? {
-          storeName: settings.pickupLocation.storeName,
-          line1: settings.pickupLocation.line1,
-          line2: settings.pickupLocation.line2,
-          city: settings.pickupLocation.city,
-          state: settings.pickupLocation.state,
-          country: settings.pickupLocation.country,
-          pincode: settings.pickupLocation.pincode,
-          contactPhone: settings.pickupLocation.contactPhone,
-          contactEmail: settings.pickupLocation.contactEmail,
-          pickupNote: settings.pickupLocation.pickupNote,
-        }
+  try {
+    const parsed = storefrontCheckoutPayloadSchema.parse(payload)
+    const customer = token
+      ? await resolveAuthenticatedCustomerAccount(database, config, token)
       : null
+    const settings = await getStorefrontSettings(database)
+    const existingOrders = await readOrders(database)
+    const catalog = await readCoreProducts(database)
+    const now = new Date().toISOString()
 
-  if (parsed.fulfillmentMethod === "store_pickup" && !pickupLocation) {
-    throw new ApplicationError("Store pickup is not configured for this storefront.", {}, 409)
-  }
+    const chargeInputs: Array<{
+      quantity: number
+      shippingCharge: number | null
+      handlingCharge: number | null
+    }> = []
 
-  const coreContactId = await resolveCheckoutContactId(
-    database,
-    customer,
-    parsed.shippingAddress
-  )
-  const checkoutFingerprint = buildCheckoutFingerprint({
-    coreContactId,
-    fulfillmentMethod: parsed.fulfillmentMethod,
-    paymentCollectionMethod: parsed.paymentMethod,
-    shippingAddress: parsed.shippingAddress,
-    billingAddress: parsed.billingAddress,
-    items,
-    notes: normalizeOptionalString(parsed.notes),
-  })
-  const duplicatePendingOrder = existingOrders.find((item) => {
-    if (
-      item.checkoutFingerprint !== checkoutFingerprint ||
-      item.paymentStatus !== "pending" ||
-      item.status !== "payment_pending"
-    ) {
-      return false
+    const items = parsed.items.map((input) => {
+      const product = catalog.find((item) => item.id === input.productId && item.isActive)
+
+      if (!product) {
+        throw new ApplicationError(
+          "A checkout item could not be found in the storefront catalog.",
+          input,
+          404
+        )
+      }
+
+      const pricing = resolveProductPricing(product)
+
+      if (input.quantity > pricing.availableQuantity) {
+        throw new ApplicationError(
+          "Requested quantity is not available for checkout.",
+          {
+            productId: product.id,
+            requestedQuantity: input.quantity,
+            availableQuantity: pricing.availableQuantity,
+          },
+          409
+        )
+      }
+
+      chargeInputs.push({
+        quantity: input.quantity,
+        shippingCharge: product.storefront?.shippingCharge ?? null,
+        handlingCharge: product.storefront?.handlingCharge ?? null,
+      })
+
+      return {
+        id: `order-item:${randomUUID()}`,
+        productId: product.id,
+        slug: product.slug,
+        name: product.name,
+        brandName: product.brandName,
+        imageUrl: resolveOrderItemImage(product),
+        variantLabel: resolveOrderItemVariantLabel(product),
+        attributes: resolveOrderItemAttributes(product),
+        quantity: input.quantity,
+        unitPrice: pricing.unitPrice,
+        mrp: pricing.mrp,
+        lineTotal: pricing.unitPrice * input.quantity,
+      }
+    })
+
+    const subtotalAmount = items.reduce((sum, item) => sum + item.lineTotal, 0)
+    const discountAmount = items.reduce(
+      (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
+      0
+    )
+    const { shippingAmount, handlingAmount } =
+      parsed.fulfillmentMethod === "store_pickup"
+        ? { shippingAmount: 0, handlingAmount: 0 }
+        : calculateChargeTotals(chargeInputs, settings, subtotalAmount)
+    const totalAmount = subtotalAmount + shippingAmount + handlingAmount
+    const pickupLocation =
+      parsed.fulfillmentMethod === "store_pickup" && settings.pickupLocation.enabled
+        ? {
+            storeName: settings.pickupLocation.storeName,
+            line1: settings.pickupLocation.line1,
+            line2: settings.pickupLocation.line2,
+            city: settings.pickupLocation.city,
+            state: settings.pickupLocation.state,
+            country: settings.pickupLocation.country,
+            pincode: settings.pickupLocation.pincode,
+            contactPhone: settings.pickupLocation.contactPhone,
+            contactEmail: settings.pickupLocation.contactEmail,
+            pickupNote: settings.pickupLocation.pickupNote,
+          }
+        : null
+
+    if (parsed.fulfillmentMethod === "store_pickup" && !pickupLocation) {
+      throw new ApplicationError("Store pickup is not configured for this storefront.", {}, 409)
     }
 
-    const ageMs = Date.now() - new Date(item.createdAt).getTime()
-    return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= 15 * 60 * 1000
-  })
-
-  if (duplicatePendingOrder) {
-    return storefrontCheckoutResponseSchema.parse({
-      order: duplicatePendingOrder,
-      payment: buildPaymentSessionFromExistingOrder(config, settings, duplicatePendingOrder),
+    const coreContactId = await resolveCheckoutContactId(
+      database,
+      customer,
+      parsed.shippingAddress
+    )
+    const checkoutFingerprint = buildCheckoutFingerprint({
+      coreContactId,
+      fulfillmentMethod: parsed.fulfillmentMethod,
+      paymentCollectionMethod: parsed.paymentMethod,
+      shippingAddress: parsed.shippingAddress,
+      billingAddress: parsed.billingAddress,
+      items,
+      notes: normalizeOptionalString(parsed.notes),
     })
-  }
+    const duplicatePendingOrder = existingOrders.find((item) => {
+      if (
+        item.checkoutFingerprint !== checkoutFingerprint ||
+        item.paymentStatus !== "pending" ||
+        item.status !== "payment_pending"
+      ) {
+        return false
+      }
 
-  const createdOrder = storefrontOrderSchema.parse({
-    id: `storefront-order:${randomUUID()}`,
-    orderNumber: nextOrderNumber(existingOrders),
-    customerAccountId: customer?.id ?? null,
-    coreContactId,
-    status: "created",
-    paymentStatus: "pending",
-    paymentProvider: parsed.paymentMethod === "online" ? "razorpay" : "store",
-    paymentMode:
-      parsed.paymentMethod === "online"
-        ? config.commerce?.razorpay?.enabled
-          ? "live"
-          : "mock"
-        : "offline",
-    fulfillmentMethod: parsed.fulfillmentMethod,
-    paymentCollectionMethod: parsed.paymentMethod,
-    pickupLocation,
-    providerOrderId: null,
-    providerPaymentId: null,
-    checkoutFingerprint,
-    shippingAddress: parsed.shippingAddress,
-    billingAddress: parsed.billingAddress,
-    items,
-    itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
-    subtotalAmount,
-    discountAmount,
-    shippingAmount,
-    handlingAmount,
-    totalAmount,
-    currency: "INR",
-    notes: normalizeOptionalString(parsed.notes),
-    timeline: [
-      createTimelineEvent(
-        "order_created",
-        "Order created",
-        parsed.fulfillmentMethod === "store_pickup"
-          ? "Checkout order was created and the pickup reservation is being prepared."
-          : "Checkout order was created and is awaiting payment."
-      ),
-    ],
-    createdAt: now,
-    updatedAt: now,
-  })
-  const order = transitionOrderStatus(createdOrder, "payment_pending")
+      const ageMs = Date.now() - new Date(item.createdAt).getTime()
+      return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= 15 * 60 * 1000
+    })
 
-  let payment: StorefrontPaymentSession
-  let nextOrder: StorefrontOrder
+    if (duplicatePendingOrder) {
+      await recordCommerceMonitoringEvent(database, {
+        operation: "checkout",
+        status: "success",
+        message: `Checkout reopened existing pending order ${duplicatePendingOrder.orderNumber}.`,
+        referenceId: duplicatePendingOrder.id,
+        context: {
+          reusedPendingOrder: true,
+          fulfillmentMethod: parsed.fulfillmentMethod,
+          paymentMethod: parsed.paymentMethod,
+        },
+      })
 
-  if (parsed.paymentMethod === "pay_at_store") {
-    payment = {
-      provider: "offline",
-      mode: "offline",
-      keyId: null,
+      return storefrontCheckoutResponseSchema.parse({
+        order: duplicatePendingOrder,
+        payment: buildPaymentSessionFromExistingOrder(config, settings, duplicatePendingOrder),
+      })
+    }
+
+    orderCreationAttempted = true
+    const createdOrder = storefrontOrderSchema.parse({
+      id: `storefront-order:${randomUUID()}`,
+      orderNumber: nextOrderNumber(existingOrders),
+      customerAccountId: customer?.id ?? null,
+      coreContactId,
+      status: "created",
+      paymentStatus: "pending",
+      paymentProvider: parsed.paymentMethod === "online" ? "razorpay" : "store",
+      paymentMode:
+        parsed.paymentMethod === "online"
+          ? config.commerce?.razorpay?.enabled
+            ? "live"
+            : "mock"
+          : "offline",
+      fulfillmentMethod: parsed.fulfillmentMethod,
+      paymentCollectionMethod: parsed.paymentMethod,
+      pickupLocation,
+      refund: null,
       providerOrderId: null,
-      amount: order.totalAmount,
-      currency: order.currency,
-      receipt: order.orderNumber,
-      businessName: settings.pickupLocation.storeName,
-      checkoutImage: null,
-      themeColor: null,
+      providerPaymentId: null,
+      checkoutFingerprint,
+      shippingAddress: parsed.shippingAddress,
+      billingAddress: parsed.billingAddress,
+      items,
+      itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+      subtotalAmount,
+      discountAmount,
+      shippingAmount,
+      handlingAmount,
+      totalAmount,
+      currency: "INR",
+      notes: normalizeOptionalString(parsed.notes),
+      timeline: [
+        createTimelineEvent(
+          "order_created",
+          "Order created",
+          parsed.fulfillmentMethod === "store_pickup"
+            ? "Checkout order was created and the pickup reservation is being prepared."
+            : "Checkout order was created and is awaiting payment."
+        ),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    })
+    const order = transitionOrderStatus(createdOrder, "payment_pending")
+
+    let payment: StorefrontPaymentSession
+    let nextOrder: StorefrontOrder
+
+    if (parsed.paymentMethod === "pay_at_store") {
+      payment = {
+        provider: "offline",
+        mode: "offline",
+        keyId: null,
+        providerOrderId: null,
+        amount: order.totalAmount,
+        currency: order.currency,
+        receipt: order.orderNumber,
+        businessName: settings.pickupLocation.storeName,
+        checkoutImage: null,
+        themeColor: null,
+      }
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        timeline: [
+          ...order.timeline,
+          createTimelineEvent(
+            "payment_pending",
+            "Payment pending",
+            "Payment will be collected when the customer arrives at the pickup location."
+          ),
+          createTimelineEvent(
+            "pickup_reserved",
+            "Pickup reserved",
+            "Order is reserved for store pickup. Payment will be collected at the retail store."
+          ),
+        ],
+        updatedAt: new Date().toISOString(),
+      })
+    } else {
+      payment = await createRazorpayPaymentSession(config, order)
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        paymentMode: payment.mode,
+        providerOrderId: payment.providerOrderId,
+        timeline: [
+          ...order.timeline,
+          createTimelineEvent(
+            "payment_pending",
+            "Payment pending",
+            "The payment session is open and the order is waiting for payment completion."
+          ),
+        ],
+        updatedAt: new Date().toISOString(),
+      })
     }
-    nextOrder = storefrontOrderSchema.parse({
-      ...order,
-      timeline: [
-        ...order.timeline,
-        createTimelineEvent(
-          "payment_pending",
-          "Payment pending",
-          "Payment will be collected when the customer arrives at the pickup location."
-        ),
-        createTimelineEvent(
-          "pickup_reserved",
-          "Pickup reserved",
-          "Order is reserved for store pickup. Payment will be collected at the retail store."
-        ),
-      ],
-      updatedAt: new Date().toISOString(),
+
+    await writeOrders(database, [nextOrder, ...existingOrders])
+    await recordCommerceMonitoringEvent(database, {
+      operation: "order_creation",
+      status: "success",
+      message: `Order ${nextOrder.orderNumber} was created successfully.`,
+      referenceId: nextOrder.id,
+      context: {
+        fulfillmentMethod: parsed.fulfillmentMethod,
+        paymentMethod: parsed.paymentMethod,
+        totalAmount: nextOrder.totalAmount,
+      },
     })
-  } else {
-    payment = await createRazorpayPaymentSession(config, order)
-    nextOrder = storefrontOrderSchema.parse({
-      ...order,
-      paymentMode: payment.mode,
-      providerOrderId: payment.providerOrderId,
-      timeline: [
-        ...order.timeline,
-        createTimelineEvent(
-          "payment_pending",
-          "Payment pending",
-          "The payment session is open and the order is waiting for payment completion."
-        ),
-      ],
-      updatedAt: new Date().toISOString(),
+    await recordCommerceMonitoringEvent(database, {
+      operation: "checkout",
+      status: "success",
+      message: `Checkout created order ${nextOrder.orderNumber}.`,
+      referenceId: nextOrder.id,
+      context: {
+        fulfillmentMethod: parsed.fulfillmentMethod,
+        paymentMethod: parsed.paymentMethod,
+        totalAmount: nextOrder.totalAmount,
+      },
     })
+
+    return storefrontCheckoutResponseSchema.parse({
+      order: nextOrder,
+      payment,
+    })
+  } catch (error) {
+    if (orderCreationAttempted) {
+      await recordCommerceMonitoringEvent(database, {
+        operation: "order_creation",
+        status: "failure",
+        message: "Order creation failed during checkout.",
+        context: buildMonitoringErrorContext(error),
+      })
+    }
+    await recordCommerceMonitoringEvent(database, {
+      operation: "checkout",
+      status: "failure",
+      message: "Checkout failed before completion.",
+      context: buildMonitoringErrorContext(error),
+    })
+    throw error
   }
-
-  await writeOrders(database, [nextOrder, ...existingOrders])
-
-  return storefrontCheckoutResponseSchema.parse({
-    order: nextOrder,
-    payment,
-  })
 }
 
 export async function verifyCheckoutPayment(
@@ -677,38 +860,166 @@ export async function verifyCheckoutPayment(
   payload: unknown,
   token?: string | null
 ) {
-  const parsed = storefrontPaymentVerificationPayloadSchema.parse(payload)
+  try {
+    const parsed = storefrontPaymentVerificationPayloadSchema.parse(payload)
+    const orders = await readOrders(database)
+    const order = orders.find((item) => item.id === parsed.orderId)
+
+    if (!order) {
+      throw new ApplicationError(
+        "Storefront order could not be found.",
+        { orderId: parsed.orderId },
+        404
+      )
+    }
+
+    if (order.providerOrderId !== parsed.providerOrderId) {
+      throw new ApplicationError("Payment order mismatch.", {}, 409)
+    }
+
+    if (order.providerPaymentId && order.paymentStatus === "paid") {
+      if (
+        order.providerPaymentId === parsed.providerPaymentId ||
+        (order.paymentMode === "mock" && parsed.signature === "mock_signature")
+      ) {
+        await recordCommerceMonitoringEvent(database, {
+          operation: "payment_verify",
+          status: "success",
+          message: `Payment verification reused existing success for order ${order.orderNumber}.`,
+          referenceId: order.id,
+          context: {
+            reusedVerification: true,
+            providerPaymentId: order.providerPaymentId,
+          },
+        })
+
+        return storefrontOrderResponseSchema.parse({
+          item: order,
+        })
+      }
+
+      throw new ApplicationError(
+        "Payment has already been verified for this order.",
+        {
+          orderId: order.id,
+          existingProviderPaymentId: order.providerPaymentId,
+          nextProviderPaymentId: parsed.providerPaymentId,
+        },
+        409
+      )
+    }
+
+    if (order.status === "cancelled" || order.status === "refunded") {
+      throw new ApplicationError(
+        "Payment cannot be verified for a cancelled or refunded order.",
+        {
+          orderId: order.id,
+          status: order.status,
+        },
+        409
+      )
+    }
+
+    if (
+      !verifyRazorpaySignature(config, {
+        providerOrderId: parsed.providerOrderId,
+        providerPaymentId: parsed.providerPaymentId,
+        signature: parsed.signature,
+      })
+    ) {
+      throw new ApplicationError("Payment signature could not be verified.", {}, 400)
+    }
+
+    const verifiedCustomer =
+      token && !order.customerAccountId
+        ? await resolveAuthenticatedCustomerAccount(database, config, token)
+        : null
+
+    const paidOrder = transitionOrderStatus(order, "paid")
+    const updatedOrder = storefrontOrderSchema.parse({
+      ...order,
+      ...paidOrder,
+      customerAccountId: order.customerAccountId ?? verifiedCustomer?.id ?? null,
+      coreContactId: verifiedCustomer?.coreContactId ?? order.coreContactId,
+      paymentStatus: "paid",
+      refund: order.refund,
+      providerPaymentId: parsed.providerPaymentId,
+      timeline: [
+        ...order.timeline,
+        createTimelineEvent(
+          "payment_captured",
+          "Payment captured",
+          "Razorpay payment was verified successfully."
+        ),
+        createTimelineEvent(
+          "order_paid",
+          "Order paid",
+          "The order is paid and waiting to enter fulfillment operations."
+        ),
+      ],
+      updatedAt: new Date().toISOString(),
+    })
+
+    await writeOrders(
+      database,
+      orders.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+    )
+    await recordCommerceMonitoringEvent(database, {
+      operation: "payment_verify",
+      status: "success",
+      message: `Payment was verified successfully for order ${updatedOrder.orderNumber}.`,
+      referenceId: updatedOrder.id,
+      context: {
+        providerOrderId: updatedOrder.providerOrderId,
+        providerPaymentId: updatedOrder.providerPaymentId,
+      },
+    })
+
+    try {
+      await sendStorefrontOrderConfirmedEmail({
+        mailboxService: createMailboxService(database, config),
+        config,
+        settings: await getStorefrontSettings(database),
+        order: updatedOrder,
+        customerEmail: updatedOrder.shippingAddress.email,
+        customerName: updatedOrder.shippingAddress.fullName,
+      })
+    } catch (error) {
+      console.error("Unable to send storefront order confirmation email.", error)
+    }
+
+    return storefrontOrderResponseSchema.parse({
+      item: updatedOrder,
+    })
+  } catch (error) {
+    await recordCommerceMonitoringEvent(database, {
+      operation: "payment_verify",
+      status: "failure",
+      message: "Payment verification failed.",
+      context: buildMonitoringErrorContext(error),
+    })
+    throw error
+  }
+}
+
+export async function requestStorefrontRefund(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const parsed = storefrontRefundRequestPayloadSchema.parse(payload)
   const orders = await readOrders(database)
   const order = orders.find((item) => item.id === parsed.orderId)
 
   if (!order) {
-    throw new ApplicationError(
-      "Storefront order could not be found.",
-      { orderId: parsed.orderId },
-      404
-    )
+    throw new ApplicationError("Storefront order could not be found.", { orderId: parsed.orderId }, 404)
   }
 
-  if (order.providerOrderId !== parsed.providerOrderId) {
-    throw new ApplicationError("Payment order mismatch.", {}, 409)
-  }
-
-  if (order.providerPaymentId && order.paymentStatus === "paid") {
-    if (
-      order.providerPaymentId === parsed.providerPaymentId ||
-      (order.paymentMode === "mock" && parsed.signature === "mock_signature")
-    ) {
-      return storefrontOrderResponseSchema.parse({
-        item: order,
-      })
-    }
-
+  if (order.paymentStatus !== "paid") {
     throw new ApplicationError(
-      "Payment has already been verified for this order.",
+      "Refund can only be initiated for a paid order.",
       {
         orderId: order.id,
-        existingProviderPaymentId: order.providerPaymentId,
-        nextProviderPaymentId: parsed.providerPaymentId,
+        paymentStatus: order.paymentStatus,
       },
       409
     )
@@ -716,7 +1027,7 @@ export async function verifyCheckoutPayment(
 
   if (order.status === "cancelled" || order.status === "refunded") {
     throw new ApplicationError(
-      "Payment cannot be verified for a cancelled or refunded order.",
+      "Refund cannot be initiated for a cancelled or already refunded order.",
       {
         orderId: order.id,
         status: order.status,
@@ -725,43 +1036,60 @@ export async function verifyCheckoutPayment(
     )
   }
 
-  if (
-    !verifyRazorpaySignature(config, {
-      providerOrderId: parsed.providerOrderId,
-      providerPaymentId: parsed.providerPaymentId,
-      signature: parsed.signature,
-    })
-  ) {
-    throw new ApplicationError("Payment signature could not be verified.", {}, 400)
+  const requestedAmount = Math.round((parsed.amount ?? order.totalAmount) * 100) / 100
+
+  if (requestedAmount <= 0 || requestedAmount > order.totalAmount) {
+    throw new ApplicationError(
+      "Refund amount must be greater than zero and cannot exceed the order total.",
+      {
+        orderId: order.id,
+        requestedAmount,
+        totalAmount: order.totalAmount,
+      },
+      400
+    )
   }
 
-  const verifiedCustomer =
-    token && !order.customerAccountId
-      ? await resolveAuthenticatedCustomerAccount(database, config, token)
-      : null
+  if (
+    order.refund &&
+    ["requested", "queued", "processing", "refunded"].includes(order.refund.status)
+  ) {
+    throw new ApplicationError(
+      "Refund is already active for this order.",
+      {
+        orderId: order.id,
+        refundStatus: order.refund.status,
+      },
+      409
+    )
+  }
 
-  const paidOrder = transitionOrderStatus(order, "paid")
+  const now = new Date().toISOString()
+  const isPartial = requestedAmount < order.totalAmount
   const updatedOrder = storefrontOrderSchema.parse({
     ...order,
-    ...paidOrder,
-    customerAccountId: order.customerAccountId ?? verifiedCustomer?.id ?? null,
-    coreContactId: verifiedCustomer?.coreContactId ?? order.coreContactId,
-    paymentStatus: "paid",
-    providerPaymentId: parsed.providerPaymentId,
+    refund: buildRefundRecord(order, {
+      type: isPartial ? "partial" : "full",
+      status: "requested",
+      requestedAmount,
+      currency: order.currency,
+      reason: normalizeOptionalString(parsed.reason),
+      requestedBy: parsed.requestedBy,
+      requestedAt: now,
+      statusSummary: "Refund request recorded and awaiting operator or gateway action.",
+      updatedAt: now,
+    }),
     timeline: [
       ...order.timeline,
       createTimelineEvent(
-        "payment_captured",
-        "Payment captured",
-        "Razorpay payment was verified successfully."
-      ),
-      createTimelineEvent(
-        "order_paid",
-        "Order paid",
-        "The order is paid and waiting to enter fulfillment operations."
+        "refund_requested",
+        "Refund requested",
+        isPartial
+          ? `A partial refund request for ${requestedAmount.toFixed(2)} ${order.currency} was recorded.`
+          : "A full refund request was recorded for this order."
       ),
     ],
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
   })
 
   await writeOrders(
@@ -769,21 +1097,730 @@ export async function verifyCheckoutPayment(
     orders.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
   )
 
-  try {
-    await sendStorefrontOrderConfirmedEmail({
-      mailboxService: createMailboxService(database, config),
-      config,
-      settings: await getStorefrontSettings(database),
-      order: updatedOrder,
-      customerEmail: updatedOrder.shippingAddress.email,
-      customerName: updatedOrder.shippingAddress.fullName,
-    })
-  } catch (error) {
-    console.error("Unable to send storefront order confirmation email.", error)
-  }
-
   return storefrontOrderResponseSchema.parse({
     item: updatedOrder,
+  })
+}
+
+function findOrderForRazorpayWebhook(
+  orders: StorefrontOrder[],
+  payload: RazorpayWebhookPayload
+) {
+  const storefrontOrderId =
+    payload.payload?.payment?.entity?.notes?.storefrontOrderId ??
+    payload.payload?.order?.entity?.notes?.storefrontOrderId ??
+    payload.payload?.refund?.entity?.notes?.storefrontOrderId ??
+    null
+
+  if (storefrontOrderId) {
+    const byId = orders.find((item) => item.id === storefrontOrderId)
+
+    if (byId) {
+      return byId
+    }
+  }
+
+  const providerOrderId =
+    payload.payload?.payment?.entity?.order_id ??
+    payload.payload?.order?.entity?.id ??
+    null
+
+  if (providerOrderId) {
+    const byProviderOrderId = orders.find((item) => item.providerOrderId === providerOrderId)
+
+    if (byProviderOrderId) {
+      return byProviderOrderId
+    }
+  }
+
+  const providerPaymentId =
+    payload.payload?.payment?.entity?.id ??
+    payload.payload?.refund?.entity?.payment_id ??
+    null
+
+  if (providerPaymentId) {
+    return orders.find((item) => item.providerPaymentId === providerPaymentId) ?? null
+  }
+
+  return null
+}
+
+function appendTimelineIfMissing(
+  order: StorefrontOrder,
+  input: { code: string; label: string; summary: string }
+) {
+  if (order.timeline.some((entry) => entry.code === input.code)) {
+    return order.timeline
+  }
+
+  return [...order.timeline, createTimelineEvent(input.code, input.label, input.summary)]
+}
+
+function deriveWebhookEventId(input: {
+  provider: "razorpay"
+  providerEventId: string | null
+  eventType: string
+  payloadBody: string
+}) {
+  if (input.providerEventId?.trim()) {
+    return `${input.provider}:${input.providerEventId.trim()}`
+  }
+
+  return `${input.provider}:${input.eventType}:${Buffer.from(input.payloadBody).toString("base64").slice(0, 48)}`
+}
+
+function createWebhookEventRecord(input: {
+  provider: "razorpay"
+  providerEventId: string | null
+  eventType: string
+  signature: string
+  payloadBody: string
+  orderId: string | null
+  providerOrderId: string | null
+  providerPaymentId: string | null
+}): StorefrontPaymentWebhookEvent {
+  const timestamp = new Date().toISOString()
+
+  return storefrontPaymentWebhookEventSchema.parse({
+    id: `storefront-payment-webhook:${randomUUID()}`,
+    provider: input.provider,
+    providerEventId: deriveWebhookEventId(input),
+    eventType: input.eventType,
+    signature: input.signature,
+    orderId: input.orderId,
+    providerOrderId: input.providerOrderId,
+    providerPaymentId: input.providerPaymentId,
+    processingStatus: "received",
+    processingSummary: null,
+    payloadBody: input.payloadBody,
+    receivedAt: timestamp,
+    processedAt: null,
+    updatedAt: timestamp,
+  })
+}
+
+export async function handleRazorpayWebhook(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  input: {
+    bodyText: string | null
+    signature: string | null
+    providerEventId?: string | null
+  }
+) {
+  const payloadBody = input.bodyText?.trim() ?? ""
+
+  try {
+    const signature = input.signature?.trim() ?? ""
+
+    if (!config.commerce?.razorpay?.enabled || !config.commerce.razorpay.webhookSecret) {
+      throw new ApplicationError(
+        "Razorpay webhook handling is not configured.",
+        {},
+        503
+      )
+    }
+
+    if (!payloadBody) {
+      throw new ApplicationError("Webhook body is required.", {}, 400)
+    }
+
+    if (!signature) {
+      throw new ApplicationError("Razorpay webhook signature is required.", {}, 400)
+    }
+
+    if (
+      !verifyRazorpayWebhookSignature(config, {
+        payloadBody,
+        signature,
+      })
+    ) {
+      throw new ApplicationError("Razorpay webhook signature could not be verified.", {}, 401)
+    }
+
+    let payload: RazorpayWebhookPayload
+
+    try {
+      payload = JSON.parse(payloadBody) as RazorpayWebhookPayload
+    } catch (error) {
+      throw new ApplicationError(
+        "Webhook payload is not valid JSON.",
+        {
+          detail: error instanceof Error ? error.message : "Unknown parse error",
+        },
+        400
+      )
+    }
+
+    const event = payload.event?.trim() ?? "unknown"
+    const orders = await readOrders(database)
+    const storedEvents = await readStorefrontPaymentWebhookEvents(database)
+    const eventRecordId = deriveWebhookEventId({
+      provider: "razorpay",
+      providerEventId: input.providerEventId ?? null,
+      eventType: event,
+      payloadBody,
+    })
+    const existingEvent = storedEvents.find((item) => item.providerEventId === eventRecordId)
+
+    if (existingEvent && existingEvent.processingStatus !== "failed") {
+      await recordCommerceMonitoringEvent(database, {
+        operation: "webhook",
+        status: "success",
+        message: `Duplicate webhook ${event} was received and ignored safely.`,
+        referenceId: existingEvent.orderId,
+        context: {
+          duplicate: true,
+          event,
+          providerEventId: eventRecordId,
+        },
+      })
+
+      return {
+        received: true,
+        processed: false,
+        duplicate: true,
+        event,
+        orderId: existingEvent.orderId,
+        reason: `already_${existingEvent.processingStatus}`,
+      }
+    }
+
+    const order = findOrderForRazorpayWebhook(orders, payload)
+    const providerOrderId =
+      payload.payload?.payment?.entity?.order_id ??
+      payload.payload?.order?.entity?.id ??
+      null
+    const providerPaymentId =
+      payload.payload?.payment?.entity?.id ??
+      payload.payload?.refund?.entity?.payment_id ??
+      null
+    const baseEventRecord = createWebhookEventRecord({
+      provider: "razorpay",
+      providerEventId: input.providerEventId ?? null,
+      eventType: event,
+      signature,
+      payloadBody,
+      orderId: order?.id ?? null,
+      providerOrderId,
+      providerPaymentId,
+    })
+
+    if (!order) {
+      await writeStorefrontPaymentWebhookEvents(database, [
+        storefrontPaymentWebhookEventSchema.parse({
+          ...baseEventRecord,
+          processingStatus: "ignored",
+          processingSummary: "No matching storefront order was found for this webhook event.",
+          processedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+        ...storedEvents.filter((item) => item.providerEventId !== baseEventRecord.providerEventId),
+      ])
+      await recordCommerceMonitoringEvent(database, {
+        operation: "webhook",
+        status: "success",
+        message: `Webhook ${event} was accepted without a matching order.`,
+        context: {
+          event,
+          reason: "matching_order_not_found",
+          providerEventId: eventRecordId,
+        },
+      })
+
+      return {
+        received: true,
+        processed: false,
+        duplicate: false,
+        event,
+        orderId: null,
+        reason: "matching_order_not_found",
+      }
+    }
+
+    let nextOrder = order
+
+    if (event === "payment.captured") {
+      if (order.paymentStatus !== "paid") {
+        const paidOrder = transitionOrderStatus(order, "paid")
+        nextOrder = storefrontOrderSchema.parse({
+          ...order,
+          ...paidOrder,
+          paymentStatus: "paid",
+          providerPaymentId:
+            payload.payload?.payment?.entity?.id ?? order.providerPaymentId,
+          timeline: appendTimelineIfMissing(order, {
+            code: "payment_captured",
+            label: "Payment captured",
+            summary: "Razorpay webhook confirmed that payment was captured.",
+          }),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    } else if (event === "payment.failed") {
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        paymentStatus: "failed",
+        refund: order.refund,
+        providerPaymentId:
+          payload.payload?.payment?.entity?.id ?? order.providerPaymentId,
+        timeline: appendTimelineIfMissing(order, {
+          code: "payment_failed",
+          label: "Payment failed",
+          summary:
+            payload.payload?.payment?.entity?.error_description?.trim() ||
+            "Razorpay webhook reported a failed payment attempt.",
+        }),
+        updatedAt: new Date().toISOString(),
+      })
+    } else if (event === "refund.processed" || event === "payment.refunded") {
+      if (order.status !== "refunded" || order.paymentStatus !== "refunded") {
+        const now = new Date().toISOString()
+        const refundedOrder = transitionOrderStatus(order, "refunded")
+        nextOrder = storefrontOrderSchema.parse({
+          ...order,
+          ...refundedOrder,
+          paymentStatus: "refunded",
+          refund: buildRefundRecord(order, {
+            type: order.refund?.type ?? "full",
+            status: "refunded",
+            requestedAmount: order.refund?.requestedAmount ?? order.totalAmount,
+            currency: order.currency,
+            reason: order.refund?.reason ?? null,
+            requestedBy: order.refund?.requestedBy ?? "system",
+            requestedAt: order.refund?.requestedAt ?? now,
+            initiatedAt: order.refund?.initiatedAt ?? now,
+            completedAt: now,
+            providerRefundId:
+              payload.payload?.refund?.entity?.id ?? order.refund?.providerRefundId ?? null,
+            statusSummary: "Razorpay webhook confirmed that the refund was completed.",
+            updatedAt: now,
+          }),
+          timeline: appendTimelineIfMissing(order, {
+            code: "payment_refunded",
+            label: "Payment refunded",
+            summary: "Razorpay webhook confirmed that the payment was refunded.",
+          }),
+          updatedAt: now,
+        })
+      }
+    }
+
+    if (nextOrder !== order) {
+      await writeOrders(
+        database,
+        orders.map((item) => (item.id === nextOrder.id ? nextOrder : item))
+      )
+
+      if (event === "payment.failed") {
+        try {
+          await sendStorefrontPaymentFailedEmail({
+            mailboxService: createMailboxService(database, config),
+            config,
+            settings: await getStorefrontSettings(database),
+            order: nextOrder,
+            customerEmail: nextOrder.shippingAddress.email,
+            customerName: nextOrder.shippingAddress.fullName,
+            failureReason:
+              payload.payload?.payment?.entity?.error_description?.trim() ??
+              "The last payment attempt failed. You can retry payment using the same order.",
+          })
+        } catch (error) {
+          console.error("Unable to send storefront payment failed email.", error)
+        }
+      }
+    }
+
+    await writeStorefrontPaymentWebhookEvents(database, [
+      storefrontPaymentWebhookEventSchema.parse({
+        ...(existingEvent ?? baseEventRecord),
+        orderId: order.id,
+        providerOrderId,
+        providerPaymentId,
+        processingStatus: nextOrder === order ? "ignored" : "processed",
+        processingSummary:
+          nextOrder === order
+            ? "Webhook was valid but did not require any additional state transition."
+            : "Webhook was processed and the matching storefront order state was updated.",
+        processedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+      ...storedEvents.filter((item) => item.providerEventId !== eventRecordId),
+    ])
+    await recordCommerceMonitoringEvent(database, {
+      operation: "webhook",
+      status: "success",
+      message: `Webhook ${event} was handled successfully.`,
+      referenceId: order.id,
+      context: {
+        duplicate: false,
+        processed: nextOrder !== order,
+        providerEventId: eventRecordId,
+      },
+    })
+
+    return {
+      received: true,
+      processed: nextOrder !== order,
+      duplicate: false,
+      event,
+      orderId: order.id,
+      reason: nextOrder === order ? "no_state_change" : null,
+    }
+  } catch (error) {
+    await recordCommerceMonitoringEvent(database, {
+      operation: "webhook",
+      status: "failure",
+      message: "Webhook processing failed.",
+      context: {
+        payloadPresent: payloadBody.length > 0,
+        ...buildMonitoringErrorContext(error),
+      },
+    })
+    throw error
+  }
+}
+
+function buildReconciliationItem(
+  order: StorefrontOrder,
+  nextOrder: StorefrontOrder,
+  action: StorefrontPaymentReconciliationItem["action"],
+  summary: string
+): StorefrontPaymentReconciliationItem {
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    providerOrderId: order.providerOrderId,
+    action,
+    paymentStatusBefore: order.paymentStatus,
+    paymentStatusAfter: nextOrder.paymentStatus,
+    orderStatusBefore: order.status,
+    orderStatusAfter: nextOrder.status,
+    summary,
+  }
+}
+
+function getOrderAgeHours(order: StorefrontOrder) {
+  const ageMs = Date.now() - new Date(order.createdAt).getTime()
+
+  if (!Number.isFinite(ageMs) || ageMs <= 0) {
+    return 0
+  }
+
+  return Math.round((ageMs / (60 * 60 * 1000)) * 10) / 10
+}
+
+function getTimelineTimestamp(order: StorefrontOrder, code: string) {
+  return order.timeline.find((entry) => entry.code === code)?.createdAt ?? null
+}
+
+function buildSettlementQueueItem(order: StorefrontOrder): StorefrontPaymentSettlementItem {
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus,
+    customerName: order.shippingAddress.fullName,
+    customerEmail: order.shippingAddress.email,
+    totalAmount: order.totalAmount,
+    currency: order.currency,
+    providerOrderId: order.providerOrderId,
+    providerPaymentId: order.providerPaymentId,
+    paidAt: getTimelineTimestamp(order, "payment_captured") ?? getTimelineTimestamp(order, "order_paid"),
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    ageHours: getOrderAgeHours(order),
+  }
+}
+
+function buildFailedPaymentExceptionItem(
+  order: StorefrontOrder,
+  summary: string
+): StorefrontPaymentExceptionItem {
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus,
+    customerName: order.shippingAddress.fullName,
+    customerEmail: order.shippingAddress.email,
+    totalAmount: order.totalAmount,
+    currency: order.currency,
+    providerOrderId: order.providerOrderId,
+    providerPaymentId: order.providerPaymentId,
+    summary,
+    lastAttemptAt:
+      getTimelineTimestamp(order, "payment_failed") ??
+      getTimelineTimestamp(order, "payment_captured"),
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  }
+}
+
+function buildWebhookExceptionItem(
+  event: StorefrontPaymentWebhookEvent
+): StorefrontPaymentWebhookExceptionItem {
+  return {
+    id: event.id,
+    providerEventId: event.providerEventId,
+    eventType: event.eventType,
+    processingStatus: event.processingStatus,
+    processingSummary: event.processingSummary,
+    orderId: event.orderId,
+    providerOrderId: event.providerOrderId,
+    providerPaymentId: event.providerPaymentId,
+    receivedAt: event.receivedAt,
+    processedAt: event.processedAt,
+  }
+}
+
+export async function getStorefrontPaymentOperationsReport(
+  database: Kysely<unknown>
+) {
+  const [orders, webhookEvents] = await Promise.all([
+    readOrders(database),
+    readStorefrontPaymentWebhookEvents(database),
+  ])
+
+  const livePaymentOrders = orders.filter(
+    (order) =>
+      order.paymentProvider === "razorpay" &&
+      order.paymentMode === "live"
+  )
+
+  const settlementQueue = livePaymentOrders
+    .filter(
+      (order) =>
+        order.paymentStatus === "paid" &&
+        order.status !== "cancelled" &&
+        order.status !== "refunded"
+    )
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .map((order) => buildSettlementQueueItem(order))
+
+  const failedPayments = livePaymentOrders
+    .filter(
+      (order) =>
+        order.paymentStatus === "failed" ||
+        (order.paymentStatus === "pending" && order.status === "payment_pending")
+    )
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .map((order) =>
+      buildFailedPaymentExceptionItem(
+        order,
+        order.paymentStatus === "failed"
+          ? "Payment attempt failed and needs customer recovery or admin follow-up."
+          : "Payment is still pending and should be checked against Razorpay or customer retry flow."
+      )
+    )
+
+  const webhookExceptions = webhookEvents
+    .filter((event) => event.processingStatus === "ignored" || event.processingStatus === "failed")
+    .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt))
+    .map((event) => buildWebhookExceptionItem(event))
+
+  return storefrontPaymentOperationsReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      livePaymentOrderCount: livePaymentOrders.length,
+      settlementPendingCount: settlementQueue.length,
+      settlementPendingAmount: settlementQueue.reduce(
+        (sum, item) => sum + item.totalAmount,
+        0
+      ),
+      failedPaymentCount: failedPayments.filter((item) => item.paymentStatus === "failed").length,
+      paymentPendingCount: failedPayments.filter((item) => item.paymentStatus === "pending").length,
+      webhookExceptionCount: webhookExceptions.length,
+    },
+    settlementQueue,
+    failedPayments,
+    webhookExceptions,
+  })
+}
+
+export async function reconcileRazorpayPayments(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  payload: unknown
+) {
+  const parsed = storefrontPaymentReconciliationPayloadSchema.parse(payload ?? {})
+
+  if (
+    !config.commerce?.razorpay?.enabled ||
+    !config.commerce.razorpay.keyId ||
+    !config.commerce.razorpay.keySecret
+  ) {
+    throw new ApplicationError(
+      "Razorpay reconciliation requires live Razorpay credentials.",
+      {},
+      503
+    )
+  }
+
+  const orders = await readOrders(database)
+  const targetOrders = orders
+    .filter((order) => {
+      if (parsed.orderIds.length > 0) {
+        return parsed.orderIds.includes(order.id)
+      }
+
+      return (
+        order.paymentProvider === "razorpay" &&
+        order.paymentMode === "live" &&
+        Boolean(order.providerOrderId) &&
+        order.status !== "cancelled" &&
+        order.status !== "refunded"
+      )
+    })
+    .slice(0, parsed.maxOrders)
+
+  const updatedOrders = [...orders]
+  const items: StorefrontPaymentReconciliationItem[] = []
+
+  for (const order of targetOrders) {
+    const providerOrderId = order.providerOrderId
+
+    if (!providerOrderId) {
+      items.push(
+        buildReconciliationItem(
+          order,
+          order,
+          "skipped",
+          "Order does not have a Razorpay provider order id."
+        )
+      )
+      continue
+    }
+
+    const razorpayPayments = await fetchRazorpayOrderPayments(config, providerOrderId)
+    const capturedPayment = razorpayPayments.find((item) => item.status === "captured") ?? null
+    const refundedPayment =
+      razorpayPayments.find(
+        (item) => item.status === "refunded" || item.amountRefunded > 0
+      ) ?? null
+    const failedPayment = razorpayPayments.find((item) => item.status === "failed") ?? null
+
+    let nextOrder = order
+    let action: StorefrontPaymentReconciliationItem["action"] = "noop"
+    let summary = "Razorpay and storefront states are already aligned."
+
+    if (refundedPayment && (order.paymentStatus !== "refunded" || order.status !== "refunded")) {
+      const now = new Date().toISOString()
+      const refundedOrder = transitionOrderStatus(order, "refunded")
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        ...refundedOrder,
+        paymentStatus: "refunded",
+        providerPaymentId: refundedPayment.id || order.providerPaymentId,
+        refund: buildRefundRecord(order, {
+          type: order.refund?.type ?? "full",
+          status: "refunded",
+          requestedAmount: order.refund?.requestedAmount ?? order.totalAmount,
+          currency: order.currency,
+          reason: order.refund?.reason ?? null,
+          requestedBy: order.refund?.requestedBy ?? "system",
+          requestedAt: order.refund?.requestedAt ?? now,
+          initiatedAt: order.refund?.initiatedAt ?? now,
+          completedAt: now,
+          providerRefundId: order.refund?.providerRefundId ?? refundedPayment.id ?? null,
+          statusSummary: "Reconciliation confirmed that the refund was completed in Razorpay.",
+          updatedAt: now,
+        }),
+        timeline: appendTimelineIfMissing(order, {
+          code: "payment_refunded",
+          label: "Payment refunded",
+          summary: "Reconciliation confirmed the payment was refunded in Razorpay.",
+        }),
+        updatedAt: now,
+      })
+      action = "refunded"
+      summary = "Reconciliation updated the order to refunded."
+    } else if (capturedPayment && order.paymentStatus !== "paid") {
+      const paidOrder =
+        order.status === "created" || order.status === "payment_pending"
+          ? transitionOrderStatus(order, "paid")
+          : order
+
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        ...paidOrder,
+        paymentStatus: "paid",
+        providerPaymentId: capturedPayment.id || order.providerPaymentId,
+        timeline: [
+          ...appendTimelineIfMissing(order, {
+            code: "payment_captured",
+            label: "Payment captured",
+            summary: "Reconciliation confirmed the payment was captured in Razorpay.",
+          }),
+          ...(
+            order.timeline.some((entry) => entry.code === "order_paid")
+              ? []
+              : [
+                  createTimelineEvent(
+                    "order_paid",
+                    "Order paid",
+                    "Reconciliation confirmed the order is paid and awaiting fulfillment."
+                  ),
+                ]
+          ),
+        ],
+        updatedAt: new Date().toISOString(),
+      })
+      action = "paid"
+      summary = "Reconciliation updated the order to paid."
+    } else if (failedPayment && order.paymentStatus === "pending") {
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        paymentStatus: "failed",
+        refund: order.refund,
+        providerPaymentId: failedPayment.id || order.providerPaymentId,
+        timeline: appendTimelineIfMissing(order, {
+          code: "payment_failed",
+          label: "Payment failed",
+          summary: "Reconciliation confirmed a failed payment attempt in Razorpay.",
+        }),
+        updatedAt: new Date().toISOString(),
+      })
+      action = "failed"
+      summary = "Reconciliation updated the order payment status to failed."
+    }
+
+    if (nextOrder !== order) {
+      const targetIndex = updatedOrders.findIndex((item) => item.id === order.id)
+
+      if (targetIndex >= 0) {
+        updatedOrders[targetIndex] = nextOrder
+      }
+
+      if (action === "failed") {
+        try {
+          await sendStorefrontPaymentFailedEmail({
+            mailboxService: createMailboxService(database, config),
+            config,
+            settings: await getStorefrontSettings(database),
+            order: nextOrder,
+            customerEmail: nextOrder.shippingAddress.email,
+            customerName: nextOrder.shippingAddress.fullName,
+            failureReason: "Payment is still incomplete. Please retry payment or contact support.",
+          })
+        } catch (error) {
+          console.error("Unable to send storefront payment failed email.", error)
+        }
+      }
+    }
+
+    items.push(buildReconciliationItem(order, nextOrder, action, summary))
+  }
+
+  if (items.some((item) => item.action !== "noop" && item.action !== "skipped")) {
+    await writeOrders(database, updatedOrders)
+  }
+
+  return storefrontPaymentReconciliationResponseSchema.parse({
+    processedCount: targetOrders.length,
+    matchedCount: items.filter((item) => item.action !== "skipped").length,
+    updatedCount: items.filter((item) => !["noop", "skipped"].includes(item.action)).length,
+    items,
   })
 }
 

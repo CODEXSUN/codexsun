@@ -26,6 +26,8 @@ export type HttpRouteRequestContext = {
   pathname: string
   url: URL
   headers: IncomingHttpHeaders
+  remoteAddress?: string | null
+  requestId?: string
   bodyText: string | null
   jsonBody: unknown | null
 }

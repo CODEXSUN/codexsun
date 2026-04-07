@@ -342,6 +342,10 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       contacts: Users,
       products: PackageCheck,
       "common-modules": Blocks,
+      "core-settings": Settings2,
+      "security-policy": ShieldCheck,
+      "observability-settings": LineChart,
+      "operations-governance": Database,
       "common-countries": Flag,
       "common-states": MapPin,
       "common-districts": Building2,
@@ -470,7 +474,9 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       products: Package,
       catalog: PackageCheck,
       customers: Users,
+      communications: ContactRound,
       orders: ShoppingBag,
+      payments: Wallet,
       checkout: CreditCard,
       shipping: Truck,
       settings: Settings2,
@@ -649,7 +655,14 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               id: `${app.id}-settings`,
               label: "Core",
               shared: false,
-              items: [],
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/core-settings`,
+                  `/dashboard/apps/${app.id}/security-policy`,
+                  `/dashboard/apps/${app.id}/observability-settings`,
+                  `/dashboard/apps/${app.id}/operations-governance`,
+                ].includes(item.route)
+              ),
             },
           ]
       : app.id === "frappe"
@@ -733,7 +746,9 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               items: modules.filter((item) =>
                 [
                   `/dashboard/apps/${app.id}/customers`,
+                  `/dashboard/apps/${app.id}/communications`,
                   `/dashboard/apps/${app.id}/orders`,
+                  `/dashboard/apps/${app.id}/payments`,
                   `/dashboard/apps/${app.id}/settings`,
                 ].includes(item.route)
               ),
@@ -1135,6 +1150,42 @@ export function resolveDeskLocation(
         section: "Framework",
         title: "Core Settings",
         description: "Runtime environment settings and shared operational guardrails for the suite.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/activity-log" || pathname.startsWith("/dashboard/settings/activity-log/")) {
+      return {
+        section: "Framework",
+        title: "Activity Log",
+        description: "Framework runtime and admin activity captured in the platform audit ledger.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/alerts-dashboard" || pathname.startsWith("/dashboard/settings/alerts-dashboard/")) {
+      return {
+        section: "Framework",
+        title: "Alerts Dashboard",
+        description: "Operational monitoring surface for alert coverage and threshold visibility.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/data-backup" || pathname.startsWith("/dashboard/settings/data-backup/")) {
+      return {
+        section: "Framework",
+        title: "Data Backup",
+        description: "Backup cadence, restore drills, retention, and off-machine archive controls.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/security-review" || pathname.startsWith("/dashboard/settings/security-review/")) {
+      return {
+        section: "Framework",
+        title: "Security Review",
+        description: "OWASP-aligned checklist, evidence capture, and signoff history for security operations.",
         app: null,
       }
     }

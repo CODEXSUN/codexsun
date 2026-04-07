@@ -1,5 +1,8 @@
+import type { Kysely } from "kysely"
+
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import { recordMonitoringEvent } from "../../../framework/src/runtime/monitoring/monitoring-service.js"
 import { sendSmtpMail } from "../../../framework/src/runtime/notifications/smtp-mailer.js"
 import type {
   MailboxMessageArchiveResponse,
@@ -48,7 +51,8 @@ interface EmailDispatchInput {
 export class MailboxService {
   constructor(
     private readonly repository: MailboxRepository,
-    private readonly config: ServerConfig
+    private readonly config: ServerConfig,
+    private readonly database: Kysely<unknown>
   ) {}
 
   async listMessages(options?: { archived?: boolean }) {
@@ -291,6 +295,19 @@ export class MailboxService {
       } else {
         throw new Error("SMTP delivery is not configured.")
       }
+
+      await recordMonitoringEvent(this.database, {
+        sourceApp: "cxapp",
+        operation: "mail_send",
+        status: "success",
+        message: `Mailbox message ${message.id} was delivered successfully.`,
+        referenceId: message.id,
+        context: {
+          templateCode: resolved.templateCode,
+          provider: this.config.notifications.email.enabled ? "smtp" : "debug",
+          referenceType: input.referenceType ?? null,
+        },
+      })
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "Unknown email delivery error"
@@ -298,6 +315,19 @@ export class MailboxService {
         provider: this.config.notifications.email.enabled ? "smtp" : null,
         errorMessage: detail,
         metadata: baseMetadata,
+      })
+      await recordMonitoringEvent(this.database, {
+        sourceApp: "cxapp",
+        operation: "mail_send",
+        status: "failure",
+        message: `Mailbox message ${message.id} failed to deliver.`,
+        referenceId: message.id,
+        context: {
+          detail,
+          templateCode: resolved.templateCode,
+          provider: this.config.notifications.email.enabled ? "smtp" : "none",
+          referenceType: input.referenceType ?? null,
+        },
       })
       throw new ApplicationError(
         "Unable to send email right now.",

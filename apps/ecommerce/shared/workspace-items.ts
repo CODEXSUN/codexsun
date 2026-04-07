@@ -43,10 +43,22 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Customer accounts, registration flow, core contact linkage, and portal access behavior.",
   },
   {
+    id: "communications",
+    name: "Communications",
+    route: "/dashboard/apps/ecommerce/communications",
+    summary: "Storefront customer mail health, failed notification visibility, and resend tools for commerce communications.",
+  },
+  {
     id: "orders",
     name: "Orders",
     route: "/dashboard/apps/ecommerce/orders",
     summary: "Checkout-created orders, payment verification, tracking flow, and customer order history behavior.",
+  },
+  {
+    id: "payments",
+    name: "Payments",
+    route: "/dashboard/apps/ecommerce/payments",
+    summary: "Settlement visibility, failed-payment exceptions, webhook health, and manual reconciliation for ecommerce payments.",
   },
   {
     id: "checkout",

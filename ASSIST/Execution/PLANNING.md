@@ -4,67 +4,70 @@
 
 ### Reference
 
-`#36`
+`#37`
 
 ### Goal
 
-Advance ecommerce checkout reliability through pickup support and complete Phase 1 Stage 1.2.3 with live payment-dismiss, failure, and retry coverage.
+Complete Stage `1.5.5` and `1.5.7` with framework-owned database backup and security-review operations, including admin pages, side-menu wiring, runtime settings control, and end-to-end validation.
 
 ### Scope
 
 - `ASSIST/Execution/TASK.md`
 - `ASSIST/Execution/PLANNING.md`
-- `ASSIST/Documentation/CHANGELOG.md`
-- `ASSIST/Documentation/WORKLOG.md`
-- `apps/ecommerce/shared/schemas/catalog.ts`
-- `apps/ecommerce/shared/schemas/order.ts`
-- `apps/ecommerce/shared/workspace-items.ts`
-- `apps/ecommerce/src/data/storefront-seed.ts`
-- `apps/ecommerce/src/services/customer-service.ts`
-- `apps/ecommerce/src/services/order-service.ts`
-- `apps/ecommerce/src/services/storefront-order-storage.ts`
-- `apps/ecommerce/src/services/storefront-settings-service.ts`
-- `apps/ecommerce/web/src/api/storefront-api.ts`
-- `apps/ecommerce/web/src/components/storefront-order-detail-card.tsx`
-- `apps/ecommerce/web/src/features/storefront-admin/storefront-pickup-section.tsx`
-- `apps/ecommerce/web/src/pages/storefront-cart-page.tsx`
-- `apps/ecommerce/web/src/pages/storefront-checkout-page.tsx`
-- `apps/ecommerce/web/src/workspace-sections.tsx`
-- `apps/api/src/external/ecommerce-routes.ts`
-- `apps/api/src/internal/ecommerce-routes.ts`
+- `apps/framework/shared/database-operations.ts`
+- `apps/framework/shared/runtime-settings.ts`
+- `apps/framework/src/runtime/config/server-config.ts`
+- `apps/framework/src/runtime/config/runtime-settings-service.ts`
+- `apps/framework/src/runtime/database/process/migrations/05-operations-governance.ts`
+- `apps/framework/src/runtime/operations/database-backup-service.ts`
+- `apps/framework/src/runtime/operations/security-review-service.ts`
+- `apps/framework/src/server/index.ts`
+- `apps/api/src/internal/framework-routes.ts`
+- `apps/cxapp/web/src/app-shell.tsx`
 - `apps/cxapp/web/src/desk/desk-registry.ts`
-- `apps/demo/src/data/demo-seed.ts`
-- `tests/e2e/storefront-cart-auth.spec.ts`
-- `tests/e2e/storefront-checkout.spec.ts`
+- `apps/cxapp/web/src/features/framework-data-backup/framework-data-backup-section.tsx`
+- `apps/cxapp/web/src/features/framework-security-review/framework-security-review-section.tsx`
+- `apps/cxapp/web/src/features/runtime-app-settings/runtime-app-settings-fallback.ts`
+- `apps/cxapp/web/src/pages/framework-data-backup-page.tsx`
+- `apps/cxapp/web/src/pages/framework-security-review-page.tsx`
+- `apps/ui/src/features/dashboard/components/navigation/app-sidebar.tsx`
+- `tests/framework/runtime/database-process.test.ts`
+- `tests/framework/runtime/operations.test.ts`
+- `tests/api/internal/routes.test.ts`
+- `tests/e2e/framework-operations.spec.ts`
 
 ### Canonical Decisions
 
-- checkout payment recovery should reuse one pending live payment session when the checkout inputs have not changed, instead of creating duplicate pending orders
-- live Razorpay dismiss and verify-failure flows need explicit storefront recovery UI and deterministic e2e coverage
-- store pickup stays storefront-owned in `ecommerce` with its own settings surface, order contract fields, and pickup-aware checkout or order-detail rendering
+- database backup remains framework-owned operations infrastructure, not an app-local concern
+- local backups must be retained under `storage/backups/database` and pruned to the configured maximum file count
+- Google Drive upload remains optional and is controlled through runtime settings instead of hardcoded env edits
+- security review uses an explicit framework-owned checklist ledger based on OWASP ASVS-style control areas, with evidence and review-run history
+- backup and security-review controls must be available as dedicated framework admin pages, not only inside generic runtime settings
 
 ### Execution Plan
 
-1. finish the shared guest and authenticated checkout lookup/address flow and pickup support already in progress
-2. add a standalone storefront pickup designer with side-menu wiring
-3. make live checkout preserve a retryable payment session across modal dismiss or verify failure
-4. add e2e coverage for dismiss, retry, and verify-failure recovery using deterministic Razorpay stubs
-5. mark the completed Stage 1.2 tasks in `TASK.md`
-6. update planning, work log, and changelog for the batch
+1. finish the framework backup and security-review contracts, persistence, and internal routes
+2. wire the runtime backup scheduler and Google Drive configuration through runtime settings
+3. build dedicated `Data Backup` and `Security Review` admin pages with tabbed operations UIs
+4. register both pages in framework routes, side menu, desk metadata, and settings discovery
+5. add migration, service, route, and admin e2e coverage
+6. mark `1.5.5` and `1.5.7` complete in `TASK.md`
 
 ### Validation Plan
 
 - run `npm run typecheck`
-- run `npm run test:e2e -- tests/e2e/storefront-checkout.spec.ts`
-- confirm `TASK.md` marks `1.2.2` and `1.2.3` complete
+- run `npx.cmd tsx --test tests/framework/runtime/database-process.test.ts tests/framework/runtime/operations.test.ts tests/api/internal/routes.test.ts`
+- run `npm run test:e2e -- tests/e2e/framework-operations.spec.ts`
+- confirm `TASK.md` marks `1.5.5` and `1.5.7` complete
 
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npm run test:e2e -- tests/e2e/storefront-checkout.spec.ts`
-- [x] `1.2.2` and `1.2.3` marked complete in `TASK.md`
+- [x] `npx.cmd tsx --test tests/framework/runtime/database-process.test.ts tests/framework/runtime/operations.test.ts tests/api/internal/routes.test.ts`
+- [x] `npm run test:e2e -- tests/e2e/framework-operations.spec.ts`
+- [x] `1.5.5` and `1.5.7` marked complete in `TASK.md`
 
 ### Risks And Follow-Up
 
-- order confirmation email still logs a missing mailbox template `storefront_order_confirmed`, which remains a Stage `1.3.1` blocker
-- Stage `1.2.4` still needs broader order-confirmation and tracking coverage beyond the focused checkout spec
+- automated backup and live restore are currently implemented for SQLite runtime only; MariaDB and PostgreSQL still need driver-specific backup strategies before production use on those drivers
+- Google Drive upload is wired and configurable, but operators still need valid OAuth credentials and target folder setup before off-machine archival becomes active

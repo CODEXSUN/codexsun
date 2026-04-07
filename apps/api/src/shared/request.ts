@@ -39,13 +39,13 @@ export function requireJsonBody<T>(
 }
 
 export function getRequestMeta(
-  headers: HttpRouteHandlerContext["request"]["headers"]
+  request: Pick<HttpRouteHandlerContext["request"], "headers" | "remoteAddress">
 ) {
-  const forwardedFor = readHeader(headers, "x-forwarded-for")
-  const userAgent = readHeader(headers, "user-agent")
+  const forwardedFor = readHeader(request.headers, "x-forwarded-for")
+  const userAgent = readHeader(request.headers, "user-agent")
 
   return {
-    ipAddress: forwardedFor?.split(",")[0]?.trim() ?? null,
+    ipAddress: forwardedFor?.split(",")[0]?.trim() ?? request.remoteAddress ?? null,
     userAgent: userAgent?.trim() ?? null,
   }
 }

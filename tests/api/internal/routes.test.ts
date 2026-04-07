@@ -8,6 +8,7 @@ import { createInternalApiRoutes } from "../../../apps/api/src/internal/routes.j
 import { createAuthService } from "../../../apps/cxapp/src/services/service-factory.js"
 import { createAppSuite } from "../../../apps/framework/src/application/app-suite.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
+import { recordMonitoringEvent } from "../../../apps/framework/src/runtime/monitoring/monitoring-service.js"
 import {
   createRuntimeDatabases,
   prepareApplicationDatabase,
@@ -134,6 +135,16 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("GET /internal/v1/framework/system-update/history"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/system-update"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/system-update/reset"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/activity-log"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/activity-log/test"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/alerts-dashboard"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/database-backups"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/database-backups/run"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/database-backups/restore-drill"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/database-backups/restore"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/security-review"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/security-review/item"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/security-review/complete"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/media-item"))
   assert.ok(routePaths.includes("PATCH /internal/v1/framework/media-item"))
   assert.ok(routePaths.includes("DELETE /internal/v1/framework/media-item"))
@@ -143,12 +154,27 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("PATCH /internal/v1/framework/media-folder"))
   assert.ok(routePaths.includes("DELETE /internal/v1/framework/media-folder"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/media-folder/restore"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/communications/health"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/communications"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/communications/resend"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/payments/reconcile"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/payments/refund-request"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/payments/report"))
 })
 
 test("authenticated core runtime settings routes read and save env-backed settings", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-runtime-settings-"))
+  const previousAppName = process.env.APP_NAME
+  const previousAppHttpPort = process.env.APP_HTTP_PORT
+  const previousDbDriver = process.env.DB_DRIVER
+  const previousSqliteFile = process.env.SQLITE_FILE
 
   try {
+    delete process.env.APP_NAME
+    delete process.env.APP_HTTP_PORT
+    delete process.env.DB_DRIVER
+    delete process.env.SQLITE_FILE
+
     writeFileSync(
       path.join(tempRoot, ".env"),
       ["DB_DRIVER=sqlite", "SQLITE_FILE=storage/runtime.sqlite", "APP_NAME=codexsun"].join("\n"),
@@ -268,11 +294,520 @@ test("authenticated core runtime settings routes read and save env-backed settin
         }
       }
 
+      const activityLogRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/framework/activity-log"
+      )
+
       assert.equal(saveResponse.statusCode, 200)
       assert.equal(savePayload.saved, true)
       assert.equal(savePayload.restartScheduled, false)
       assert.equal(savePayload.snapshot.values.APP_NAME, "codexsun-updated")
       assert.match(readFileSync(path.join(tempRoot, ".env"), "utf8"), /APP_NAME=codexsun-updated/)
+      assert.ok(activityLogRoute)
+
+      const activityLogResponse = await activityLogRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/framework/activity-log",
+          url: new URL("http://localhost/internal/v1/framework/activity-log?category=settings"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: activityLogRoute.auth,
+          path: activityLogRoute.path,
+          surface: activityLogRoute.surface,
+          version: activityLogRoute.version,
+        },
+      })
+
+      const activityLogPayload = JSON.parse(activityLogResponse.body) as {
+        items: Array<{
+          category: string
+          action: string
+          actorEmail: string | null
+        }>
+      }
+
+      assert.equal(activityLogResponse.statusCode, 200)
+      assert.ok(
+        activityLogPayload.items.some(
+          (item) =>
+            item.category === "settings" &&
+            item.action === "runtime-settings.save" &&
+            item.actorEmail === "sundar@sundar.com"
+        )
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    if (previousAppName === undefined) {
+      delete process.env.APP_NAME
+    } else {
+      process.env.APP_NAME = previousAppName
+    }
+    if (previousAppHttpPort === undefined) {
+      delete process.env.APP_HTTP_PORT
+    } else {
+      process.env.APP_HTTP_PORT = previousAppHttpPort
+    }
+    if (previousDbDriver === undefined) {
+      delete process.env.DB_DRIVER
+    } else {
+      process.env.DB_DRIVER = previousDbDriver
+    }
+    if (previousSqliteFile === undefined) {
+      delete process.env.SQLITE_FILE
+    } else {
+      process.env.SQLITE_FILE = previousSqliteFile
+    }
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("authenticated framework activity log routes write and list validation events", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-framework-activity-log-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const writeRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/framework/activity-log/test"
+      )
+      const listRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" &&
+          candidate.path === "/internal/v1/framework/activity-log"
+      )
+
+      assert.ok(writeRoute)
+      assert.ok(listRoute)
+
+      const writeResponse = await writeRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/framework/activity-log/test",
+          url: new URL("http://localhost/internal/v1/framework/activity-log/test"),
+          headers,
+          bodyText: JSON.stringify({}),
+          jsonBody: {},
+        },
+        route: {
+          auth: writeRoute.auth,
+          path: writeRoute.path,
+          surface: writeRoute.surface,
+          version: writeRoute.version,
+        },
+      })
+
+      const writePayload = JSON.parse(writeResponse.body) as {
+        item: {
+          category: string
+          action: string
+          actorEmail: string | null
+          routePath: string | null
+        }
+      }
+
+      assert.equal(writeResponse.statusCode, 201)
+      assert.equal(writePayload.item.category, "validation")
+      assert.equal(writePayload.item.action, "activity-log.test")
+      assert.equal(writePayload.item.actorEmail, "sundar@sundar.com")
+      assert.equal(writePayload.item.routePath, "/internal/v1/framework/activity-log/test")
+
+      const listResponse = await listRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/framework/activity-log",
+          url: new URL("http://localhost/internal/v1/framework/activity-log?category=validation&limit=10"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: listRoute.auth,
+          path: listRoute.path,
+          surface: listRoute.surface,
+          version: listRoute.version,
+        },
+      })
+
+      const listPayload = JSON.parse(listResponse.body) as {
+        items: Array<{
+          category: string
+          action: string
+          message: string
+        }>
+      }
+
+      assert.equal(listResponse.statusCode, 200)
+      assert.ok(
+        listPayload.items.some(
+          (item) =>
+            item.category === "validation" &&
+            item.action === "activity-log.test" &&
+            item.message ===
+              "A test activity log entry was created from the admin workspace."
+        )
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("authenticated framework alerts dashboard route returns monitoring summaries", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-framework-alerts-dashboard-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.observability.thresholds.checkoutFailures = 1
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      await recordMonitoringEvent(runtime.primary, {
+        sourceApp: "ecommerce",
+        operation: "checkout",
+        status: "failure",
+        message: "Checkout failed for alerts route coverage.",
+      })
+
+      const dashboardRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" &&
+          candidate.path === "/internal/v1/framework/alerts-dashboard"
+      )
+
+      assert.ok(dashboardRoute)
+
+      const dashboardResponse = await dashboardRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/framework/alerts-dashboard",
+          url: new URL("http://localhost/internal/v1/framework/alerts-dashboard?windowHours=24"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: dashboardRoute.auth,
+          path: dashboardRoute.path,
+          surface: dashboardRoute.surface,
+          version: dashboardRoute.version,
+        },
+      })
+
+      const dashboardPayload = JSON.parse(dashboardResponse.body) as {
+        summaries: Array<{
+          operation: string
+          failureCount: number
+          alertState: string
+        }>
+      }
+
+      const checkoutSummary = dashboardPayload.summaries.find(
+        (item) => item.operation === "checkout"
+      )
+
+      assert.equal(dashboardResponse.statusCode, 200)
+      assert.equal(checkoutSummary?.failureCount, 1)
+      assert.equal(checkoutSummary?.alertState, "breached")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("authenticated framework backup and security review routes return operational data", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-framework-ops-routes-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.operations.backups.enabled = true
+    config.operations.backups.googleDrive.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const runBackupRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/framework/database-backups/run"
+      )
+      const listBackupRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" &&
+          candidate.path === "/internal/v1/framework/database-backups"
+      )
+      const updateItemRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/framework/security-review/item"
+      )
+      const completeReviewRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/framework/security-review/complete"
+      )
+      const readReviewRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" &&
+          candidate.path === "/internal/v1/framework/security-review"
+      )
+
+      assert.ok(runBackupRoute)
+      assert.ok(listBackupRoute)
+      assert.ok(updateItemRoute)
+      assert.ok(completeReviewRoute)
+      assert.ok(readReviewRoute)
+
+      const runBackupResponse = await runBackupRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/framework/database-backups/run",
+          url: new URL("http://localhost/internal/v1/framework/database-backups/run"),
+          headers,
+          bodyText: JSON.stringify({}),
+          jsonBody: {},
+        },
+        route: {
+          auth: runBackupRoute.auth,
+          path: runBackupRoute.path,
+          surface: runBackupRoute.surface,
+          version: runBackupRoute.version,
+        },
+      })
+
+      const runBackupPayload = JSON.parse(runBackupResponse.body) as {
+        item: { id: string; status: string }
+      }
+
+      assert.equal(runBackupResponse.statusCode, 201)
+      assert.equal(runBackupPayload.item.status, "completed")
+
+      const listBackupResponse = await listBackupRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/framework/database-backups",
+          url: new URL("http://localhost/internal/v1/framework/database-backups"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: listBackupRoute.auth,
+          path: listBackupRoute.path,
+          surface: listBackupRoute.surface,
+          version: listBackupRoute.version,
+        },
+      })
+
+      const listBackupPayload = JSON.parse(listBackupResponse.body) as {
+        backups: Array<{ id: string }>
+      }
+
+      assert.equal(listBackupResponse.statusCode, 200)
+      assert.equal(listBackupPayload.backups.length >= 1, true)
+
+      const readReviewResponse = await readReviewRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/framework/security-review",
+          url: new URL("http://localhost/internal/v1/framework/security-review"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readReviewRoute.auth,
+          path: readReviewRoute.path,
+          surface: readReviewRoute.surface,
+          version: readReviewRoute.version,
+        },
+      })
+
+      const readReviewPayload = JSON.parse(readReviewResponse.body) as {
+        items: Array<{ id: string; status: string }>
+      }
+
+      assert.equal(readReviewResponse.statusCode, 200)
+      assert.equal(readReviewPayload.items.length >= 1, true)
+
+      const firstItem = readReviewPayload.items[0]
+      assert.ok(firstItem)
+
+      const updateItemResponse = await updateItemRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/framework/security-review/item",
+          url: new URL(
+            `http://localhost/internal/v1/framework/security-review/item?id=${encodeURIComponent(firstItem.id)}`
+          ),
+          headers,
+          bodyText: JSON.stringify({
+            status: "passed",
+            evidence: "Route test validation.",
+            notes: "No issue.",
+            reviewedBy: "security.owner@codexsun.local",
+          }),
+          jsonBody: {
+            status: "passed",
+            evidence: "Route test validation.",
+            notes: "No issue.",
+            reviewedBy: "security.owner@codexsun.local",
+          },
+        },
+        route: {
+          auth: updateItemRoute.auth,
+          path: updateItemRoute.path,
+          surface: updateItemRoute.surface,
+          version: updateItemRoute.version,
+        },
+      })
+
+      const updateItemPayload = JSON.parse(updateItemResponse.body) as {
+        item: { status: string }
+      }
+
+      assert.equal(updateItemResponse.statusCode, 200)
+      assert.equal(updateItemPayload.item.status, "passed")
+
+      const completeReviewResponse = await completeReviewRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/framework/security-review/complete",
+          url: new URL("http://localhost/internal/v1/framework/security-review/complete"),
+          headers,
+          bodyText: JSON.stringify({
+            reviewedBy: "security.owner@codexsun.local",
+            summary: "Route test security review checkpoint.",
+          }),
+          jsonBody: {
+            reviewedBy: "security.owner@codexsun.local",
+            summary: "Route test security review checkpoint.",
+          },
+        },
+        route: {
+          auth: completeReviewRoute.auth,
+          path: completeReviewRoute.path,
+          surface: completeReviewRoute.surface,
+          version: completeReviewRoute.version,
+        },
+      })
+
+      const completeReviewPayload = JSON.parse(completeReviewResponse.body) as {
+        run: { overallStatus: string; summary: string }
+      }
+
+      assert.equal(completeReviewResponse.statusCode, 201)
+      assert.equal(completeReviewPayload.run.overallStatus, "healthy")
+      assert.equal(completeReviewPayload.run.summary, "Route test security review checkpoint.")
     } finally {
       await runtime.destroy()
     }

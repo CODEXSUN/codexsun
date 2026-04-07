@@ -63,6 +63,23 @@ export const storefrontOrderTimelineEventSchema = z.object({
   createdAt: z.string().min(1),
 })
 
+export const storefrontPaymentWebhookEventSchema = z.object({
+  id: z.string().min(1),
+  provider: z.enum(["razorpay"]),
+  providerEventId: z.string().min(1),
+  eventType: z.string().min(1),
+  signature: z.string().min(1),
+  orderId: z.string().nullable(),
+  providerOrderId: z.string().nullable(),
+  providerPaymentId: z.string().nullable(),
+  processingStatus: z.enum(["received", "processed", "ignored", "failed"]),
+  processingSummary: z.string().nullable(),
+  payloadBody: z.string().min(1),
+  receivedAt: z.string().min(1),
+  processedAt: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
 export const storefrontPaymentSessionSchema = z.object({
   provider: z.enum(["razorpay", "offline"]),
   mode: z.enum(["live", "mock", "offline"]),
@@ -74,6 +91,34 @@ export const storefrontPaymentSessionSchema = z.object({
   businessName: z.string().min(1),
   checkoutImage: z.string().nullable(),
   themeColor: z.string().nullable(),
+})
+
+export const storefrontRefundActorSchema = z.enum(["admin", "system", "customer"])
+export const storefrontRefundTypeSchema = z.enum(["full", "partial"])
+export const storefrontRefundStatusSchema = z.enum([
+  "none",
+  "requested",
+  "queued",
+  "processing",
+  "refunded",
+  "failed",
+  "rejected",
+])
+
+export const storefrontRefundRecordSchema = z.object({
+  type: storefrontRefundTypeSchema,
+  status: storefrontRefundStatusSchema,
+  requestedAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  reason: z.string().nullable(),
+  requestedBy: storefrontRefundActorSchema,
+  requestedAt: z.string().nullable(),
+  initiatedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  failedAt: z.string().nullable(),
+  providerRefundId: z.string().nullable(),
+  statusSummary: z.string().nullable(),
+  updatedAt: z.string().min(1),
 })
 
 export const storefrontOrderStatusSchema = z.enum([
@@ -99,6 +144,7 @@ export const storefrontOrderSchema = z.object({
   fulfillmentMethod: storefrontFulfillmentMethodSchema,
   paymentCollectionMethod: storefrontCheckoutPaymentMethodSchema,
   pickupLocation: storefrontPickupLocationSnapshotSchema.nullable(),
+  refund: storefrontRefundRecordSchema.nullable(),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
   checkoutFingerprint: z.string().nullable(),
@@ -139,6 +185,13 @@ export const storefrontPaymentVerificationPayloadSchema = z.object({
   signature: z.string().min(1),
 })
 
+export const storefrontRefundRequestPayloadSchema = z.object({
+  orderId: z.string().min(1),
+  amount: z.number().finite().positive().optional(),
+  reason: z.string().trim().nullable().optional().default(null),
+  requestedBy: storefrontRefundActorSchema.optional().default("admin"),
+})
+
 export const storefrontOrderListResponseSchema = z.object({
   items: z.array(storefrontOrderSchema),
 })
@@ -162,6 +215,141 @@ export const storefrontPaymentConfigSchema = z.object({
   themeColor: z.string().nullable(),
 })
 
+export const storefrontPaymentReconciliationPayloadSchema = z.object({
+  orderIds: z.array(z.string().min(1)).optional().default([]),
+  maxOrders: z.number().int().min(1).max(200).optional().default(50),
+})
+
+export const storefrontPaymentReconciliationItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  providerOrderId: z.string().nullable(),
+  action: z.enum(["paid", "failed", "refunded", "noop", "skipped"]),
+  paymentStatusBefore: z.enum(["pending", "paid", "failed", "refunded"]),
+  paymentStatusAfter: z.enum(["pending", "paid", "failed", "refunded"]),
+  orderStatusBefore: storefrontOrderStatusSchema,
+  orderStatusAfter: storefrontOrderStatusSchema,
+  summary: z.string().min(1),
+})
+
+export const storefrontPaymentReconciliationResponseSchema = z.object({
+  processedCount: z.number().int().min(0),
+  matchedCount: z.number().int().min(0),
+  updatedCount: z.number().int().min(0),
+  items: z.array(storefrontPaymentReconciliationItemSchema),
+})
+
+export const storefrontPaymentSettlementItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  totalAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  providerOrderId: z.string().nullable(),
+  providerPaymentId: z.string().nullable(),
+  paidAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  ageHours: z.number().finite().nonnegative(),
+})
+
+export const storefrontPaymentExceptionItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  totalAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  providerOrderId: z.string().nullable(),
+  providerPaymentId: z.string().nullable(),
+  summary: z.string().min(1),
+  lastAttemptAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontPaymentWebhookExceptionItemSchema = z.object({
+  id: z.string().min(1),
+  providerEventId: z.string().min(1),
+  eventType: z.string().min(1),
+  processingStatus: z.enum(["received", "processed", "ignored", "failed"]),
+  processingSummary: z.string().nullable(),
+  orderId: z.string().nullable(),
+  providerOrderId: z.string().nullable(),
+  providerPaymentId: z.string().nullable(),
+  receivedAt: z.string().min(1),
+  processedAt: z.string().nullable(),
+})
+
+export const storefrontPaymentOperationsReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    livePaymentOrderCount: z.number().int().min(0),
+    settlementPendingCount: z.number().int().min(0),
+    settlementPendingAmount: z.number().finite().nonnegative(),
+    failedPaymentCount: z.number().int().min(0),
+    paymentPendingCount: z.number().int().min(0),
+    webhookExceptionCount: z.number().int().min(0),
+  }),
+  settlementQueue: z.array(storefrontPaymentSettlementItemSchema),
+  failedPayments: z.array(storefrontPaymentExceptionItemSchema),
+  webhookExceptions: z.array(storefrontPaymentWebhookExceptionItemSchema),
+})
+
+export const storefrontCommunicationTemplateCodeSchema = z.enum([
+  "storefront_customer_welcome",
+  "storefront_campaign_subscription",
+  "storefront_order_confirmed",
+  "storefront_payment_failed",
+  "storefront_order_review_request",
+  "storefront_order_shipped",
+  "storefront_order_delivered",
+])
+
+export const storefrontCommunicationLogItemSchema = z.object({
+  id: z.string().min(1),
+  templateCode: storefrontCommunicationTemplateCodeSchema,
+  templateName: z.string().min(1).nullable(),
+  subject: z.string().min(1),
+  status: z.enum(["queued", "sent", "failed"]),
+  recipientSummary: z.string().min(1),
+  referenceType: z.string().nullable(),
+  referenceId: z.string().nullable(),
+  errorMessage: z.string().nullable(),
+  sentAt: z.string().nullable(),
+  failedAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontCommunicationLogResponseSchema = z.object({
+  items: z.array(storefrontCommunicationLogItemSchema),
+})
+
+export const storefrontCommunicationResendPayloadSchema = z.object({
+  templateCode: storefrontCommunicationTemplateCodeSchema,
+  orderId: z.string().trim().min(1).nullable().optional().default(null),
+  customerAccountId: z.string().trim().min(1).nullable().optional().default(null),
+})
+
+export const storefrontCommunicationResendResponseSchema = z.object({
+  resent: z.boolean(),
+  templateCode: storefrontCommunicationTemplateCodeSchema,
+  referenceId: z.string().min(1),
+  deliveryStatus: z.enum(["sent", "failed"]),
+  message: z.string().min(1),
+})
+
+export const storefrontCommunicationHealthResponseSchema = z.object({
+  ready: z.literal(true),
+  checkedTemplateCodes: z.array(storefrontCommunicationTemplateCodeSchema),
+})
+
 export type StorefrontAddress = z.infer<typeof storefrontAddressSchema>
 export type StorefrontFulfillmentMethod = z.infer<typeof storefrontFulfillmentMethodSchema>
 export type StorefrontCheckoutPaymentMethod = z.infer<typeof storefrontCheckoutPaymentMethodSchema>
@@ -169,13 +357,58 @@ export type StorefrontPickupLocationSnapshot = z.infer<typeof storefrontPickupLo
 export type StorefrontCartItemInput = z.infer<typeof storefrontCartItemInputSchema>
 export type StorefrontOrderItem = z.infer<typeof storefrontOrderItemSchema>
 export type StorefrontOrderTimelineEvent = z.infer<typeof storefrontOrderTimelineEventSchema>
+export type StorefrontPaymentWebhookEvent = z.infer<typeof storefrontPaymentWebhookEventSchema>
 export type StorefrontPaymentSession = z.infer<typeof storefrontPaymentSessionSchema>
+export type StorefrontRefundActor = z.infer<typeof storefrontRefundActorSchema>
+export type StorefrontRefundType = z.infer<typeof storefrontRefundTypeSchema>
+export type StorefrontRefundStatus = z.infer<typeof storefrontRefundStatusSchema>
+export type StorefrontRefundRecord = z.infer<typeof storefrontRefundRecordSchema>
 export type StorefrontOrderStatus = z.infer<typeof storefrontOrderStatusSchema>
 export type StorefrontOrder = z.infer<typeof storefrontOrderSchema>
 export type StorefrontCheckoutPayload = z.infer<typeof storefrontCheckoutPayloadSchema>
 export type StorefrontCheckoutResponse = z.infer<typeof storefrontCheckoutResponseSchema>
 export type StorefrontPaymentVerificationPayload = z.infer<typeof storefrontPaymentVerificationPayloadSchema>
+export type StorefrontRefundRequestPayload = z.infer<typeof storefrontRefundRequestPayloadSchema>
 export type StorefrontOrderListResponse = z.infer<typeof storefrontOrderListResponseSchema>
 export type StorefrontOrderResponse = z.infer<typeof storefrontOrderResponseSchema>
 export type StorefrontOrderTrackingLookup = z.infer<typeof storefrontOrderTrackingLookupSchema>
 export type StorefrontPaymentConfig = z.infer<typeof storefrontPaymentConfigSchema>
+export type StorefrontPaymentReconciliationPayload = z.infer<
+  typeof storefrontPaymentReconciliationPayloadSchema
+>
+export type StorefrontPaymentReconciliationItem = z.infer<
+  typeof storefrontPaymentReconciliationItemSchema
+>
+export type StorefrontPaymentReconciliationResponse = z.infer<
+  typeof storefrontPaymentReconciliationResponseSchema
+>
+export type StorefrontPaymentSettlementItem = z.infer<
+  typeof storefrontPaymentSettlementItemSchema
+>
+export type StorefrontPaymentExceptionItem = z.infer<
+  typeof storefrontPaymentExceptionItemSchema
+>
+export type StorefrontPaymentWebhookExceptionItem = z.infer<
+  typeof storefrontPaymentWebhookExceptionItemSchema
+>
+export type StorefrontPaymentOperationsReport = z.infer<
+  typeof storefrontPaymentOperationsReportSchema
+>
+export type StorefrontCommunicationTemplateCode = z.infer<
+  typeof storefrontCommunicationTemplateCodeSchema
+>
+export type StorefrontCommunicationLogItem = z.infer<
+  typeof storefrontCommunicationLogItemSchema
+>
+export type StorefrontCommunicationLogResponse = z.infer<
+  typeof storefrontCommunicationLogResponseSchema
+>
+export type StorefrontCommunicationResendPayload = z.infer<
+  typeof storefrontCommunicationResendPayloadSchema
+>
+export type StorefrontCommunicationResendResponse = z.infer<
+  typeof storefrontCommunicationResendResponseSchema
+>
+export type StorefrontCommunicationHealthResponse = z.infer<
+  typeof storefrontCommunicationHealthResponseSchema
+>

@@ -4,6 +4,7 @@ import {
   resolveRuntimeSettingsRoot,
   saveRuntimeSettings,
 } from "../../../framework/src/runtime/config/runtime-settings-service.js"
+import { writeFrameworkActivityFromContext } from "../../../framework/src/runtime/activity-log/activity-log-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import { getBootstrapSnapshot } from "../../../cxapp/src/services/bootstrap-service.js"
@@ -50,16 +51,25 @@ export function createCxappInternalRoutes(): HttpRouteDefinition[] {
       legacyPaths: ["/internal/v1/core/runtime-settings"],
       summary: "Save runtime .env-backed settings and optionally restart the application.",
       handler: async (context) => {
-        await requireAuthenticatedUser(context, {
+        const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin"],
         })
 
-        return jsonResponse(
-          await saveRuntimeSettings(
-            context.request.jsonBody,
-            resolveRuntimeSettingsRoot(context.config)
-          )
+        const response = await saveRuntimeSettings(
+          context.request.jsonBody,
+          resolveRuntimeSettingsRoot(context.config)
         )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "settings",
+          action: "runtime-settings.save",
+          message: "Runtime settings were updated from the admin workspace.",
+          details: {
+            restartScheduled: response.restartScheduled,
+          },
+        })
+
+        return jsonResponse(response)
       },
     }),
     defineInternalRoute("/cxapp/companies", {

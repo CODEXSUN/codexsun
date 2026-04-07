@@ -1,6 +1,8 @@
 import {
+  BellRing,
   Building2,
   ChevronRight,
+  Database,
   Home,
   Images,
   KeyRound,
@@ -102,6 +104,26 @@ const frameworkUtilityGroups = [
         icon: Settings2,
         name: "Core Settings",
         route: "/dashboard/settings/core-settings",
+      },
+      {
+        icon: ShieldCheck,
+        name: "Audit Log",
+        route: "/dashboard/settings/activity-log",
+      },
+      {
+        icon: BellRing,
+        name: "Alerts Dashboard",
+        route: "/dashboard/settings/alerts-dashboard",
+      },
+      {
+        icon: Database,
+        name: "Data Backup",
+        route: "/dashboard/settings/data-backup",
+      },
+      {
+        icon: ShieldCheck,
+        name: "Security Review",
+        route: "/dashboard/settings/security-review",
       },
       {
         icon: RefreshCcw,

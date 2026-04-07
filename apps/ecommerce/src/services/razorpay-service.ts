@@ -134,3 +134,84 @@ export function verifyRazorpaySignature(
 
   return digest === input.signature
 }
+
+export function verifyRazorpayWebhookSignature(
+  config: ServerConfig,
+  input: {
+    payloadBody: string
+    signature: string
+  }
+) {
+  const webhookSecret = config.commerce?.razorpay?.webhookSecret?.trim()
+
+  if (!config.commerce?.razorpay?.enabled || !webhookSecret) {
+    return false
+  }
+
+  const digest = createHmac("sha256", webhookSecret)
+    .update(input.payloadBody)
+    .digest("hex")
+
+  return digest === input.signature
+}
+
+export async function fetchRazorpayOrderPayments(
+  config: ServerConfig,
+  providerOrderId: string
+) {
+  if (
+    !config.commerce?.razorpay?.enabled ||
+    !config.commerce.razorpay.keyId ||
+    !config.commerce.razorpay.keySecret
+  ) {
+    throw new ApplicationError(
+      "Razorpay reconciliation requires live Razorpay credentials.",
+      {},
+      503
+    )
+  }
+
+  const response = await fetch(
+    `https://api.razorpay.com/v1/orders/${encodeURIComponent(providerOrderId)}/payments`,
+    {
+      method: "GET",
+      headers: {
+        authorization: toBasicAuthHeader(
+          config.commerce.razorpay.keyId,
+          config.commerce.razorpay.keySecret
+        ),
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new ApplicationError(
+      "Failed to fetch Razorpay order payments.",
+      {
+        providerOrderId,
+        status: response.status,
+        body: await response.text(),
+      },
+      502
+    )
+  }
+
+  const payload = (await response.json()) as {
+    items?: Array<{
+      id?: string
+      order_id?: string
+      status?: string
+      amount_refunded?: number
+    }>
+  }
+
+  return (payload.items ?? []).map((item) => ({
+    id: item.id ?? "",
+    orderId: item.order_id ?? providerOrderId,
+    status: item.status ?? "created",
+    amountRefunded:
+      typeof item.amount_refunded === "number" && Number.isFinite(item.amount_refunded)
+        ? item.amount_refunded
+        : 0,
+  }))
+}
