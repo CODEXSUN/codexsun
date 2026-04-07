@@ -550,6 +550,76 @@ export const storefrontReceiptDocumentSchema = z.object({
   html: z.string().min(1),
 })
 
+export const storefrontOrderRequestTypeSchema = z.enum(["cancellation", "return"])
+export const storefrontOrderRequestStatusSchema = z.enum([
+  "requested",
+  "in_review",
+  "approved",
+  "rejected",
+])
+
+export const storefrontOrderRequestSchema = z.object({
+  id: z.string().min(1),
+  requestNumber: z.string().min(1),
+  type: storefrontOrderRequestTypeSchema,
+  status: storefrontOrderRequestStatusSchema,
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderItemId: z.string().nullable(),
+  customerAccountId: z.string().min(1),
+  coreContactId: z.string().min(1),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  customerPhone: z.string().min(1),
+  reason: z.string().min(1),
+  adminNote: z.string().nullable(),
+  requestedAt: z.string().min(1),
+  reviewedAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontOrderRequestViewSchema = storefrontOrderRequestSchema.extend({
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  totalAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  itemName: z.string().nullable(),
+})
+
+export const storefrontOrderRequestListResponseSchema = z.object({
+  items: z.array(storefrontOrderRequestViewSchema),
+})
+
+export const storefrontOrderRequestResponseSchema = z.object({
+  item: storefrontOrderRequestViewSchema,
+})
+
+export const storefrontOrderRequestCreatePayloadSchema = z.object({
+  orderId: z.string().min(1),
+  type: storefrontOrderRequestTypeSchema,
+  orderItemId: z.string().trim().min(1).nullable().optional().default(null),
+  reason: z.string().trim().min(10),
+})
+
+export const storefrontOrderRequestReviewPayloadSchema = z.object({
+  requestId: z.string().min(1),
+  status: z.enum(["in_review", "approved", "rejected"]),
+  adminNote: z.string().trim().nullable().optional().default(null),
+})
+
+export const storefrontOrderRequestQueueReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalRequests: z.number().int().min(0),
+    cancellationCount: z.number().int().min(0),
+    returnCount: z.number().int().min(0),
+    requestedCount: z.number().int().min(0),
+    inReviewCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontOrderRequestViewSchema),
+})
+
 export type StorefrontAddress = z.infer<typeof storefrontAddressSchema>
 export type StorefrontFulfillmentMethod = z.infer<typeof storefrontFulfillmentMethodSchema>
 export type StorefrontCheckoutPaymentMethod = z.infer<typeof storefrontCheckoutPaymentMethodSchema>
@@ -653,3 +723,22 @@ export type StorefrontSupportQueueReport = z.infer<
   typeof storefrontSupportQueueReportSchema
 >
 export type StorefrontReceiptDocument = z.infer<typeof storefrontReceiptDocumentSchema>
+export type StorefrontOrderRequestType = z.infer<typeof storefrontOrderRequestTypeSchema>
+export type StorefrontOrderRequestStatus = z.infer<typeof storefrontOrderRequestStatusSchema>
+export type StorefrontOrderRequest = z.infer<typeof storefrontOrderRequestSchema>
+export type StorefrontOrderRequestView = z.infer<typeof storefrontOrderRequestViewSchema>
+export type StorefrontOrderRequestListResponse = z.infer<
+  typeof storefrontOrderRequestListResponseSchema
+>
+export type StorefrontOrderRequestResponse = z.infer<
+  typeof storefrontOrderRequestResponseSchema
+>
+export type StorefrontOrderRequestCreatePayload = z.infer<
+  typeof storefrontOrderRequestCreatePayloadSchema
+>
+export type StorefrontOrderRequestReviewPayload = z.infer<
+  typeof storefrontOrderRequestReviewPayloadSchema
+>
+export type StorefrontOrderRequestQueueReport = z.infer<
+  typeof storefrontOrderRequestQueueReportSchema
+>

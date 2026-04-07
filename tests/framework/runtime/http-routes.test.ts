@@ -18,6 +18,9 @@ test("http route assemblies expose versioned internal, external, and public surf
   const orderReceipt = routes.find(
     (route) => route.path === "/api/v1/storefront/order-receipt"
   )
+  const orderRequests = routes.find(
+    (route) => route.path === "/api/v1/storefront/customers/me/order-requests"
+  )
   const publicBootstrap = routes.find(
     (route) => route.path === "/public/v1/bootstrap"
   )
@@ -48,6 +51,10 @@ test("http route assemblies expose versioned internal, external, and public surf
   assert.ok(orderReceipt)
   assert.equal(orderReceipt.surface, "external")
   assert.equal(orderReceipt.auth, "external")
+
+  assert.ok(orderRequests)
+  assert.equal(orderRequests.surface, "external")
+  assert.equal(orderRequests.auth, "external")
 
   assert.ok(publicBootstrap)
   assert.equal(publicBootstrap.surface, "public")

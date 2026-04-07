@@ -2,6 +2,13 @@
 
 ## Done Till Here
 
+### `#48` 2026-04-07
+
+- completed Stage `2.2.2` by adding storefront order-linked return and cancellation requests with customer portal entry, admin review controls, and request queue visibility in ecommerce operations
+- completed Stage `2.2.3` by adding direct customer support-case creation from the portal order-detail page, with automatic order linkage and same-page visibility of support cases for that order
+- completed Stage `2.2.4` by adding reorder actions on portal order list and order detail pages, plus a bulk wishlist-to-cart utility routed through the shared storefront cart store
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts tests/framework/runtime/http-routes.test.ts`
+
 ### `#47` 2026-04-07
 
 - completed Stage `2.1.5` by adding storefront support cases with customer portal creation, admin queue visibility, order linkage, and status progression

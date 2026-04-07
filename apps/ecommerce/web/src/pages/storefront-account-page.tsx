@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ArrowRight, Download, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
+import { ArrowRight, Download, RefreshCcw, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 
 import type { StorefrontSupportCaseView } from "@ecommerce/shared"
@@ -227,6 +227,72 @@ export function StorefrontAccountPage() {
     }
   }
 
+  async function handleRepeatOrder(orderId: string) {
+    if (!customerAuth.accessToken) {
+      return
+    }
+
+    setDownloadingOrderId(orderId)
+
+    try {
+      const response = await storefrontApi.getCustomerOrder(customerAuth.accessToken, orderId)
+
+      response.item.items.forEach((item) => {
+        cart.addItem(
+          {
+            productId: item.productId,
+            slug: item.slug,
+            name: item.name,
+            imageUrl: item.imageUrl,
+            unitPrice: item.unitPrice,
+            mrp: item.mrp,
+          },
+          item.quantity
+        )
+      })
+
+      showRecordToast({
+        entity: "Order",
+        action: "repeated",
+        recordName: response.item.orderNumber,
+      })
+      void navigate(storefrontPaths.accountSection("cart"))
+    } catch (repeatError) {
+      const message =
+        repeatError instanceof Error ? repeatError.message : "Failed to add the order back to cart."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Repeat order failed.",
+        description: message,
+      })
+    } finally {
+      setDownloadingOrderId(null)
+    }
+  }
+
+  function handleMoveWishlistToCart() {
+    portal?.wishlist.forEach((item) => {
+      cart.addItem({
+        productId: item.id,
+        slug: item.slug,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+        unitPrice: item.sellingPrice,
+        mrp: item.mrp,
+        shippingCharge: item.shippingCharge,
+        handlingCharge: item.handlingCharge,
+      })
+    })
+
+    showAppToast({
+      variant: "success",
+      title: "Wishlist moved to cart.",
+      description: "Saved products were added to your cart for checkout review.",
+    })
+    void navigate(storefrontPaths.accountSection("cart"))
+  }
+
   function renderSection() {
     if (!portal) {
       return (
@@ -308,13 +374,19 @@ export function StorefrontAccountPage() {
       return portal.wishlist.length > 0 ? (
         <Card className="overflow-hidden rounded-[2rem] border-[#e3d4c3] bg-[linear-gradient(180deg,#fbf6ef_0%,#f3ebe2_100%)] py-0 shadow-[0_20px_44px_-34px_rgba(51,32,17,0.35)]">
           <CardContent className="space-y-5 p-5 md:p-6">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f6c56]">
-                Saved for later
-              </p>
-              <p className="text-sm leading-6 text-[#7d6658]">
-                Your wishlist stays ready here for quick comparison, easy return visits, and faster checkout.
-              </p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f6c56]">
+                  Saved for later
+                </p>
+                <p className="text-sm leading-6 text-[#7d6658]">
+                  Your wishlist stays ready here for quick comparison, easy return visits, and faster checkout.
+                </p>
+              </div>
+              <Button type="button" className="rounded-full" onClick={handleMoveWishlistToCart}>
+                Move all to cart
+                <ArrowRight className="size-4" />
+              </Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {portal.wishlist.map((item) => (
@@ -667,6 +739,16 @@ export function StorefrontAccountPage() {
                     >
                       <Download className="size-4" />
                       {downloadingOrderId === order.id ? "Preparing..." : "Receipt"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => void handleRepeatOrder(order.id)}
+                      disabled={downloadingOrderId === order.id}
+                    >
+                      <RefreshCcw className="size-4" />
+                      Reorder
                     </Button>
                     <CommerceOrderStatusBadge status={order.status} />
                   </div>

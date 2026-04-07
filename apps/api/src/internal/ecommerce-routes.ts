@@ -38,6 +38,10 @@ import {
   getStorefrontSupportQueueReport,
   updateStorefrontSupportCase,
 } from "../../../ecommerce/src/services/storefront-support-service.js"
+import {
+  getStorefrontOrderRequestQueueReport,
+  reviewStorefrontOrderRequest,
+} from "../../../ecommerce/src/services/storefront-order-request-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
@@ -484,6 +488,35 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(
           await updateStorefrontSupportCase(
             context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/order-requests/report", {
+      summary: "Read the ecommerce customer return and cancellation request queue.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await getStorefrontOrderRequestQueueReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/order-request/review", {
+      method: "POST",
+      summary: "Review one ecommerce customer return or cancellation request.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          await reviewStorefrontOrderRequest(
+            context.databases.primary,
+            context.config,
             context.request.jsonBody
           )
         )

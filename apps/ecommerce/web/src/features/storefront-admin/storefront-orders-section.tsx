@@ -5,6 +5,8 @@ import type {
   StorefrontAdminOrderOperationsReport,
   StorefrontAdminOrderQueueBucket,
   StorefrontAdminOrderQueueItem,
+  StorefrontOrderRequestQueueReport,
+  StorefrontOrderRequestView,
   StorefrontOrderStatus,
 } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
@@ -179,14 +181,110 @@ function OrderQueueList({
   )
 }
 
+function OrderRequestList({
+  items,
+  onOpenOrder,
+  onReviewRequest,
+  reviewingRequestId,
+}: {
+  items: StorefrontOrderRequestView[]
+  onOpenOrder: (orderId: string) => void
+  onReviewRequest: (
+    requestId: string,
+    status: "in_review" | "approved" | "rejected"
+  ) => void
+  reviewingRequestId: string | null
+}) {
+  if (items.length === 0) {
+    return (
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardContent className="p-5 text-sm text-muted-foreground">
+          No return or cancellation requests match the current queue filters.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="divide-y divide-border/70 p-0">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="grid gap-4 px-5 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)]"
+          >
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium text-foreground">{item.requestNumber}</p>
+                <Badge variant="outline">{item.type}</Badge>
+                <Badge variant="outline">{item.status.replaceAll("_", " ")}</Badge>
+              </div>
+              <p className="truncate text-sm text-muted-foreground">
+                {item.customerName} | {item.customerEmail} | {item.customerPhone}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">{item.reason}</p>
+              {item.adminNote ? (
+                <p className="text-sm leading-6 text-foreground">Admin note: {item.adminNote}</p>
+              ) : null}
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>Order: {item.orderNumber}</p>
+              <p>Status: {item.orderStatus}</p>
+              <p>Payment: {item.paymentStatus}</p>
+              <p>Item: {item.itemName ?? "Whole order"}</p>
+              <p>Requested: {formatDateTime(item.requestedAt)}</p>
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground xl:text-right">
+              <p>Reviewed: {item.reviewedAt ? formatDateTime(item.reviewedAt) : "-"}</p>
+              <div className="flex flex-wrap gap-2 xl:justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                  View order
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={reviewingRequestId === item.id}
+                  onClick={() => onReviewRequest(item.id, "in_review")}
+                >
+                  Review
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={reviewingRequestId === item.id}
+                  onClick={() => onReviewRequest(item.id, "approved")}
+                >
+                  Approve
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={reviewingRequestId === item.id}
+                  onClick={() => onReviewRequest(item.id, "rejected")}
+                >
+                  Reject
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function StorefrontOrdersSection() {
   const [report, setReport] = useState<StorefrontAdminOrderOperationsReport | null>(null)
+  const [requestReport, setRequestReport] = useState<StorefrontOrderRequestQueueReport | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  useGlobalLoading(isLoading)
+  useGlobalLoading(isLoading || Boolean(reviewingRequestId))
 
   async function loadReport() {
     setIsLoading(true)
@@ -199,8 +297,12 @@ export function StorefrontOrdersSection() {
         throw new Error("Admin access token is required.")
       }
 
-      const nextReport = await storefrontApi.getOrdersReport(accessToken)
+      const [nextReport, nextRequestReport] = await Promise.all([
+        storefrontApi.getOrdersReport(accessToken),
+        storefrontApi.getOrderRequestReport(accessToken),
+      ])
       setReport(nextReport)
+      setRequestReport(nextRequestReport)
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load ecommerce orders."
@@ -248,6 +350,53 @@ export function StorefrontOrdersSection() {
     })
   }
 
+  const filteredRequests = (requestReport?.items ?? []).filter((item) => {
+    if (!normalizedQuery) {
+      return true
+    }
+
+    const haystack = [
+      item.requestNumber,
+      item.orderNumber,
+      item.customerName,
+      item.customerEmail,
+      item.customerPhone,
+      item.reason,
+      item.itemName ?? "",
+    ]
+      .join(" ")
+      .toLowerCase()
+
+    return haystack.includes(normalizedQuery)
+  })
+
+  async function handleReviewRequest(
+    requestId: string,
+    status: "in_review" | "approved" | "rejected"
+  ) {
+    setReviewingRequestId(requestId)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      await storefrontApi.reviewOrderRequest(accessToken, { requestId, status })
+      await loadReport()
+    } catch (reviewError) {
+      setError(
+        reviewError instanceof Error
+          ? reviewError.message
+          : "Failed to review customer order request."
+      )
+    } finally {
+      setReviewingRequestId(null)
+    }
+  }
+
   const tabs: AnimatedContentTab[] = [
     {
       value: "all",
@@ -284,6 +433,18 @@ export function StorefrontOrdersSection() {
       label: `Closed (${report?.summary.closedCount ?? 0})`,
       content: <OrderQueueList items={getFilteredItems("closed")} onOpenOrder={setSelectedOrderId} />,
     },
+    {
+      value: "requests",
+      label: `Requests (${requestReport?.summary.totalRequests ?? 0})`,
+      content: (
+        <OrderRequestList
+          items={filteredRequests}
+          onOpenOrder={setSelectedOrderId}
+          onReviewRequest={handleReviewRequest}
+          reviewingRequestId={reviewingRequestId}
+        />
+      ),
+    },
   ]
 
   return (
@@ -317,7 +478,7 @@ export function StorefrontOrdersSection() {
       </Card>
 
       {report ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <SummaryCard
             title="Action required"
             value={String(report.summary.actionRequiredCount)}
@@ -337,6 +498,11 @@ export function StorefrontOrdersSection() {
             title="Completed and closed"
             value={String(report.summary.completedCount + report.summary.closedCount)}
             description="Delivered, cancelled, and refunded orders that no longer sit in the active queue."
+          />
+          <SummaryCard
+            title="Customer requests"
+            value={String(requestReport?.summary.totalRequests ?? 0)}
+            description="Return and cancellation requests waiting for operational review."
           />
         </div>
       ) : null}

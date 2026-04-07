@@ -13,6 +13,10 @@ import {
   listCustomerSupportCases,
 } from "../../../ecommerce/src/services/storefront-support-service.js"
 import {
+  createCustomerOrderRequest,
+  listCustomerOrderRequests,
+} from "../../../ecommerce/src/services/storefront-order-request-service.js"
+import {
   createCheckoutOrder,
   getCustomerOrder,
   getCustomerOrderReceiptDocument,
@@ -201,6 +205,48 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await createCustomerSupportCase(
+            context.databases.primary,
+            context.config,
+            token,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/order-requests", {
+      auth: "external",
+      summary: "List authenticated storefront customer return and cancellation requests.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await listCustomerOrderRequests(
+            context.databases.primary,
+            context.config,
+            token,
+            context.request.url.searchParams.get("orderId")
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me/order-requests", {
+      auth: "external",
+      method: "POST",
+      summary: "Create an authenticated storefront customer return or cancellation request.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await createCustomerOrderRequest(
             context.databases.primary,
             context.config,
             token,

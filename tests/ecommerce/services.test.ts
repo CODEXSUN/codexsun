@@ -29,6 +29,12 @@ import {
   updateStorefrontSupportCase,
 } from "../../apps/ecommerce/src/services/storefront-support-service.js"
 import {
+  createCustomerOrderRequest,
+  getStorefrontOrderRequestQueueReport,
+  listCustomerOrderRequests,
+  reviewStorefrontOrderRequest,
+} from "../../apps/ecommerce/src/services/storefront-order-request-service.js"
+import {
   getStorefrontHomeSlider,
   getStorefrontSettings,
   saveStorefrontHomeSlider,
@@ -643,6 +649,236 @@ test("storefront customer support cases link portal requests to orders and admin
       assert.equal(resolvedCase.item.status, "resolved")
       assert.equal(resolvedCase.item.priority, "normal")
       assert.equal(Boolean(resolvedCase.item.resolvedAt), true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("customer cancellation and return requests flow through review and order operations", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-order-requests-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+    const authRequestMeta = { ipAddress: null, userAgent: null }
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const authService = createAuthService(runtime.primary, config)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      await registerCustomer(runtime.primary, config, {
+        displayName: "Request Customer",
+        email: "requests@codexsun.local",
+        phoneNumber: "+91 96666 22222",
+        password: "Password@123",
+        companyName: "",
+        gstin: "",
+        addressLine1: "14 Market Road",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      const customerSession = await authService.login(
+        {
+          email: "requests@codexsun.local",
+          password: "Password@123",
+        },
+        authRequestMeta
+      )
+
+      const cancellationCheckout = await createCheckoutOrder(
+        runtime.primary,
+        config,
+        {
+          items: [{ productId, quantity: 1 }],
+          shippingAddress: {
+            fullName: "Request Customer",
+            email: "requests@codexsun.local",
+            phoneNumber: "+91 96666 22222",
+            line1: "14 Market Road",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          billingAddress: {
+            fullName: "Request Customer",
+            email: "requests@codexsun.local",
+            phoneNumber: "+91 96666 22222",
+            line1: "14 Market Road",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          notes: null,
+        },
+        customerSession.accessToken
+      )
+
+      const paidCancellationOrder = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: cancellationCheckout.order.id,
+        providerOrderId: cancellationCheckout.payment.providerOrderId,
+        providerPaymentId: "pay_cancel_request_001",
+        signature: "mock_signature",
+      })
+
+      const cancellationRequest = await createCustomerOrderRequest(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        {
+          orderId: paidCancellationOrder.item.id,
+          type: "cancellation",
+          reason: "Need to stop this order before dispatch due to a quantity mistake.",
+        }
+      )
+
+      assert.equal(cancellationRequest.item.status, "requested")
+      assert.equal(cancellationRequest.item.type, "cancellation")
+
+      const inReviewCancellation = await reviewStorefrontOrderRequest(runtime.primary, config, {
+        requestId: cancellationRequest.item.id,
+        status: "in_review",
+        adminNote: "Reviewing dispatch hold with operations.",
+      })
+
+      assert.equal(inReviewCancellation.item.status, "in_review")
+
+      const approvedCancellation = await reviewStorefrontOrderRequest(runtime.primary, config, {
+        requestId: cancellationRequest.item.id,
+        status: "approved",
+        adminNote: "Cancellation approved before dispatch.",
+      })
+
+      assert.equal(approvedCancellation.item.status, "approved")
+
+      const cancelledOrder = await getStorefrontAdminOrder(
+        runtime.primary,
+        paidCancellationOrder.item.id
+      )
+
+      assert.equal(cancelledOrder.item.status, "cancelled")
+      assert.equal(cancelledOrder.item.refund?.status, "requested")
+
+      const returnCheckout = await createCheckoutOrder(
+        runtime.primary,
+        config,
+        {
+          items: [{ productId, quantity: 1 }],
+          shippingAddress: {
+            fullName: "Request Customer",
+            email: "requests@codexsun.local",
+            phoneNumber: "+91 96666 22222",
+            line1: "14 Market Road",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          billingAddress: {
+            fullName: "Request Customer",
+            email: "requests@codexsun.local",
+            phoneNumber: "+91 96666 22222",
+            line1: "14 Market Road",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          notes: null,
+        },
+        customerSession.accessToken
+      )
+
+      const paidReturnOrder = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: returnCheckout.order.id,
+        providerOrderId: returnCheckout.payment.providerOrderId,
+        providerPaymentId: "pay_return_request_001",
+        signature: "mock_signature",
+      })
+
+      await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: paidReturnOrder.item.id,
+        action: "mark_fulfilment_pending",
+        note: "Packed and queued.",
+      })
+      await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: paidReturnOrder.item.id,
+        action: "mark_shipped",
+        trackingId: "DLV-RET-001",
+        carrierName: "Delhivery",
+        trackingUrl: "https://tracking.example.com/DLV-RET-001",
+        note: "Dispatched for delivery.",
+      })
+      const deliveredReturnOrder = await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: paidReturnOrder.item.id,
+        action: "mark_delivered",
+        note: "Delivered to customer.",
+      })
+
+      const returnRequest = await createCustomerOrderRequest(
+        runtime.primary,
+        config,
+        customerSession.accessToken,
+        {
+          orderId: deliveredReturnOrder.item.id,
+          type: "return",
+          orderItemId: deliveredReturnOrder.item.items[0]?.id ?? null,
+          reason: "Received a defective unit and need a return review.",
+        }
+      )
+
+      assert.equal(returnRequest.item.type, "return")
+      assert.equal(returnRequest.item.itemName, deliveredReturnOrder.item.items[0]?.name ?? null)
+
+      const queueReport = await getStorefrontOrderRequestQueueReport(runtime.primary)
+      assert.equal(queueReport.summary.totalRequests, 2)
+      assert.equal(queueReport.summary.cancellationCount, 1)
+      assert.equal(queueReport.summary.returnCount, 1)
+
+      const approvedReturn = await reviewStorefrontOrderRequest(runtime.primary, config, {
+        requestId: returnRequest.item.id,
+        status: "approved",
+        adminNote: "Return approved after delivered-item review.",
+      })
+
+      assert.equal(approvedReturn.item.status, "approved")
+
+      const returnOrderAfterApproval = await getStorefrontAdminOrder(
+        runtime.primary,
+        deliveredReturnOrder.item.id
+      )
+
+      assert.equal(returnOrderAfterApproval.item.status, "delivered")
+      assert.equal(returnOrderAfterApproval.item.refund?.status, "requested")
+
+      const customerRequests = await listCustomerOrderRequests(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(customerRequests.items.length, 2)
     } finally {
       await runtime.destroy()
     }

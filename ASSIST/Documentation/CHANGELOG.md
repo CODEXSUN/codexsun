@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#48] 2026-04-07 - Customer portal reorder and wishlist cart utilities
+
+- completed Stage `2.2.2` by adding customer return and cancellation request workflows with portal request creation, admin review queue actions, and order-linked request visibility
+- completed Stage `2.2.3` by adding direct support-case entry from customer order detail so portal support requests can be opened with the order number and order context already linked
+- completed Stage `2.2.4` by adding repeat-order utilities on portal order list and order detail surfaces, plus a bulk wishlist-to-cart action using the shared storefront cart store
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts tests/framework/runtime/http-routes.test.ts`
+
 ### [#47] 2026-04-07 - Ecommerce support queue and portal receipt downloads
 
 - completed Stage `2.1.5` by adding an ecommerce-owned customer support queue linked to customers and orders, with portal case creation, admin queue actions, and shared support-case contracts

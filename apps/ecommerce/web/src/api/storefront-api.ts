@@ -9,6 +9,10 @@ import type {
   StorefrontSupportCaseListResponse,
   StorefrontSupportCaseResponse,
   StorefrontSupportQueueReport,
+  StorefrontOrderRequestCreatePayload,
+  StorefrontOrderRequestListResponse,
+  StorefrontOrderRequestQueueReport,
+  StorefrontOrderRequestResponse,
   StorefrontHomeSlider,
   StorefrontSettings,
   StorefrontFooter,
@@ -379,6 +383,32 @@ export const storefrontApi = {
       body: JSON.stringify(payload),
     })
   },
+  getOrderRequestReport(accessToken: string) {
+    return requestJson<StorefrontOrderRequestQueueReport>(
+      "/internal/v1/ecommerce/order-requests/report",
+      {
+        accessToken,
+        cache: "no-store",
+      }
+    )
+  },
+  reviewOrderRequest(
+    accessToken: string,
+    payload: {
+      requestId: string
+      status: "in_review" | "approved" | "rejected"
+      adminNote?: string | null
+    }
+  ) {
+    return requestJson<StorefrontOrderRequestResponse>(
+      "/internal/v1/ecommerce/order-request/review",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify(payload),
+      }
+    )
+  },
   getPaymentConfig() {
     return requestJson<StorefrontPaymentConfig>("/public/v1/storefront/payment-config", {
       cache: "no-store",
@@ -435,6 +465,31 @@ export const storefrontApi = {
   ) {
     return requestJson<StorefrontSupportCaseResponse>(
       "/api/v1/storefront/customers/me/support-cases",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify(payload),
+      }
+    )
+  },
+  getCustomerOrderRequests(accessToken: string, orderId?: string | null) {
+    const url = new URL("/api/v1/storefront/customers/me/order-requests", window.location.origin)
+
+    if (orderId?.trim()) {
+      url.searchParams.set("orderId", orderId)
+    }
+
+    return requestJson<StorefrontOrderRequestListResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  createCustomerOrderRequest(
+    accessToken: string,
+    payload: StorefrontOrderRequestCreatePayload
+  ) {
+    return requestJson<StorefrontOrderRequestResponse>(
+      "/api/v1/storefront/customers/me/order-requests",
       {
         method: "POST",
         accessToken,
