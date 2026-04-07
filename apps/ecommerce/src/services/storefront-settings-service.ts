@@ -5,6 +5,14 @@ import {
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
+  storefrontFooterSchema,
+  storefrontFloatingContactSchema,
+  storefrontCouponBannerSchema,
+  storefrontGiftCornerSchema,
+  storefrontTrendingSectionSchema,
+  storefrontBrandShowcaseSchema,
+  storefrontCampaignSectionSchema,
+  storefrontAnnouncementItemSchema,
   storefrontSettingsSchema,
   storefrontHomeSliderSchema,
   storefrontHomeSliderSlideSchema,
@@ -136,9 +144,18 @@ function buildMergedStorefrontSettings(
   const heroRecord = asRecord(payloadRecord.hero)
   const searchRecord = asRecord(payloadRecord.search)
   const announcementDesignRecord = asRecord(payloadRecord.announcementDesign)
+  const announcementItemsRecord = Array.isArray(payloadRecord.announcementItems)
+    ? payloadRecord.announcementItems
+    : null
   const visibilityRecord = asRecord(payloadRecord.visibility)
   const sectionsRecord = asRecord(payloadRecord.sections)
   const footerRecord = asRecord(payloadRecord.footer)
+  const floatingContactRecord = asRecord(payloadRecord.floatingContact)
+  const couponBannerRecord = asRecord(payloadRecord.couponBanner)
+  const giftCornerRecord = asRecord(payloadRecord.giftCorner)
+  const trendingSectionRecord = asRecord(payloadRecord.trendingSection)
+  const brandShowcaseRecord = asRecord(payloadRecord.brandShowcase)
+  const campaignDesignRecord = asRecord(payloadRecord.campaignDesign)
   const featuredRecord = asRecord(sectionsRecord?.featured)
   const categoriesRecord = asRecord(sectionsRecord?.categories)
   const newArrivalsRecord = asRecord(sectionsRecord?.newArrivals)
@@ -181,6 +198,9 @@ function buildMergedStorefrontSettings(
           ...announcementDesignRecord,
         }
       : base.announcementDesign,
+    announcementItems: announcementItemsRecord
+      ? announcementItemsRecord.map((item) => storefrontAnnouncementItemSchema.parse(item))
+      : base.announcementItems,
     sections: sectionsRecord
       ? {
           ...base.sections,
@@ -253,11 +273,62 @@ function buildMergedStorefrontSettings(
       ? {
           ...base.footer,
           ...footerRecord,
+          design: asRecord(footerRecord.design)
+            ? {
+                ...base.footer.design,
+                ...asRecord(footerRecord.design),
+              }
+            : base.footer.design,
           groups: Array.isArray(footerRecord.groups)
             ? footerRecord.groups
             : base.footer.groups,
+          socialLinks: Array.isArray(footerRecord.socialLinks)
+            ? footerRecord.socialLinks
+            : base.footer.socialLinks,
         }
       : base.footer,
+    floatingContact: floatingContactRecord
+      ? {
+          ...base.floatingContact,
+          ...floatingContactRecord,
+        }
+      : base.floatingContact,
+    couponBanner: couponBannerRecord
+      ? {
+          ...base.couponBanner,
+          ...couponBannerRecord,
+        }
+      : base.couponBanner,
+    giftCorner: giftCornerRecord
+      ? {
+          ...base.giftCorner,
+          ...giftCornerRecord,
+        }
+      : base.giftCorner,
+    trendingSection: trendingSectionRecord
+      ? {
+          ...base.trendingSection,
+          ...trendingSectionRecord,
+          cards: Array.isArray(trendingSectionRecord.cards)
+            ? trendingSectionRecord.cards
+            : base.trendingSection.cards,
+        }
+      : base.trendingSection,
+    brandShowcase: brandShowcaseRecord
+      ? {
+          ...base.brandShowcase,
+          ...brandShowcaseRecord,
+          cards: Array.isArray(brandShowcaseRecord.cards)
+            ? brandShowcaseRecord.cards
+            : base.brandShowcase.cards,
+        }
+      : base.brandShowcase,
+    campaignDesign: campaignDesignRecord
+      ? {
+          ...base.campaignDesign,
+          ...campaignDesignRecord,
+        }
+      : base.campaignDesign,
     id: base.id,
     createdAt: base.createdAt,
     updatedAt: timestamp,
@@ -314,4 +385,213 @@ export async function saveStorefrontHomeSlider(
   })
 
   return storefrontHomeSliderSchema.parse(nextSettings.homeSlider)
+}
+
+export async function getStorefrontFooter(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontFooterSchema.parse(settings.footer)
+}
+
+export async function saveStorefrontFooter(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    footer: storefrontFooterSchema.parse({
+      ...current.footer,
+      ...(asRecord(payload) ?? {}),
+      design: {
+        ...current.footer.design,
+        ...(asRecord(asRecord(payload)?.design) ?? {}),
+      },
+      socialLinks: Array.isArray(asRecord(payload)?.socialLinks)
+        ? asRecord(payload)?.socialLinks
+        : current.footer.socialLinks,
+      groups: Array.isArray(asRecord(payload)?.groups)
+        ? asRecord(payload)?.groups
+        : current.footer.groups,
+    }),
+  })
+
+  return storefrontFooterSchema.parse(nextSettings.footer)
+}
+
+export async function getStorefrontFloatingContact(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontFloatingContactSchema.parse(settings.floatingContact)
+}
+
+export async function saveStorefrontFloatingContact(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    floatingContact: storefrontFloatingContactSchema.parse({
+      ...current.floatingContact,
+      ...(asRecord(payload) ?? {}),
+    }),
+  })
+
+  return storefrontFloatingContactSchema.parse(nextSettings.floatingContact)
+}
+
+export async function getStorefrontCouponBanner(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontCouponBannerSchema.parse(settings.couponBanner)
+}
+
+export async function saveStorefrontCouponBanner(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    couponBanner: storefrontCouponBannerSchema.parse({
+      ...current.couponBanner,
+      ...(asRecord(payload) ?? {}),
+    }),
+  })
+
+  return storefrontCouponBannerSchema.parse(nextSettings.couponBanner)
+}
+
+export async function getStorefrontGiftCorner(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontGiftCornerSchema.parse(settings.giftCorner)
+}
+
+export async function saveStorefrontGiftCorner(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    giftCorner: storefrontGiftCornerSchema.parse({
+      ...current.giftCorner,
+      ...(asRecord(payload) ?? {}),
+    }),
+  })
+
+  return storefrontGiftCornerSchema.parse(nextSettings.giftCorner)
+}
+
+export async function getStorefrontTrendingSection(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontTrendingSectionSchema.parse(settings.trendingSection)
+}
+
+export async function saveStorefrontTrendingSection(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    trendingSection: storefrontTrendingSectionSchema.parse({
+      ...current.trendingSection,
+      ...(asRecord(payload) ?? {}),
+      cards: Array.isArray(asRecord(payload)?.cards)
+        ? asRecord(payload)?.cards
+        : current.trendingSection.cards,
+    }),
+  })
+
+  return storefrontTrendingSectionSchema.parse(nextSettings.trendingSection)
+}
+
+export async function getStorefrontBrandShowcase(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+  return storefrontBrandShowcaseSchema.parse(settings.brandShowcase)
+}
+
+export async function saveStorefrontBrandShowcase(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    brandShowcase: storefrontBrandShowcaseSchema.parse({
+      ...current.brandShowcase,
+      ...(asRecord(payload) ?? {}),
+      cards: Array.isArray(asRecord(payload)?.cards)
+        ? asRecord(payload)?.cards
+        : current.brandShowcase.cards,
+    }),
+  })
+
+  return storefrontBrandShowcaseSchema.parse(nextSettings.brandShowcase)
+}
+
+export async function getStorefrontCampaign(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontSettings(database)
+
+  return storefrontCampaignSectionSchema.parse({
+    visibility: {
+      cta: settings.visibility.cta,
+      trust: settings.visibility.trust,
+    },
+    campaign: settings.sections.cta,
+    trustNotes: settings.trustNotes,
+    design: settings.campaignDesign,
+  })
+}
+
+export async function saveStorefrontCampaign(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontSettings(database)
+  const payloadRecord = asRecord(payload)
+  const parsedPayload = storefrontCampaignSectionSchema.parse({
+    visibility: {
+      cta: current.visibility.cta,
+      trust: current.visibility.trust,
+      ...(asRecord(payloadRecord?.visibility) ?? {}),
+    },
+    campaign: {
+      ...current.sections.cta,
+      ...(asRecord(payloadRecord?.campaign) ?? {}),
+    },
+    trustNotes: Array.isArray(payloadRecord?.trustNotes)
+      ? payloadRecord.trustNotes
+      : current.trustNotes,
+    design: {
+      ...current.campaignDesign,
+      ...(asRecord(payloadRecord?.design) ?? {}),
+    },
+  })
+
+  const nextSettings = await saveStorefrontSettings(database, {
+    visibility: parsedPayload.visibility,
+    sections: {
+      cta: parsedPayload.campaign,
+    },
+    trustNotes: parsedPayload.trustNotes,
+    campaignDesign: parsedPayload.design,
+  })
+
+  return storefrontCampaignSectionSchema.parse({
+    visibility: {
+      cta: nextSettings.visibility.cta,
+      trust: nextSettings.visibility.trust,
+    },
+    campaign: nextSettings.sections.cta,
+    trustNotes: nextSettings.trustNotes,
+    design: nextSettings.campaignDesign,
+  })
 }

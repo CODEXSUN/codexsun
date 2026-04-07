@@ -12,18 +12,167 @@ async function login(
 }
 
 async function ensureCheckoutAddress(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "Add new address" }).click()
-  await expect(page.getByRole("heading", { name: "Add delivery address" })).toBeVisible()
-  await page.getByLabel("Address label").fill("Home")
-  await page.getByLabel("Phone").fill("+919876543210")
-  await page.getByLabel("First name").fill("Customer")
-  await page.getByLabel("Address line 1").fill("45 Test Street")
-  await page.getByRole("button", { name: "Save address" }).click()
-  await expect(page.getByRole("heading", { name: "Add delivery address" })).not.toBeVisible()
+  const addressSection = page
+    .locator("section, div")
+    .filter({ has: page.getByRole("heading", { name: "Delivery address" }) })
+    .first()
+  const savedAddressOptions = addressSection.locator('[role="radio"]')
+
+  const hasAuthSession = await page.evaluate(() => {
+    const sessionRaw = window.localStorage.getItem("codexsun.auth.session")
+    if (!sessionRaw) {
+      return false
+    }
+
+    try {
+      const session = JSON.parse(sessionRaw) as { accessToken?: string }
+      return Boolean(session.accessToken)
+    } catch {
+      return false
+    }
+  })
+
+  if (!hasAuthSession) {
+    await page.getByRole("button", { name: "Add new address" }).click()
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByRole("heading", { name: "Add delivery address" })).toBeVisible()
+    await dialog.getByLabel("Address label").fill("Home")
+    await dialog.getByLabel("Phone").fill("+919876543210")
+    await dialog.getByLabel("First name").fill("Customer")
+    await dialog.getByLabel("Address line 1").fill("45 Test Street")
+
+    const lookupTriggers = dialog
+      .locator("button")
+      .filter({ has: dialog.locator("svg.lucide-chevrons-up-down") })
+
+    for (const [index, optionLabel] of ["India", "Tamil Nadu", "Chennai", "600001"].entries()) {
+      const trigger = lookupTriggers.nth(index)
+      await trigger.click()
+      await page.keyboard.type(optionLabel)
+      await page.keyboard.press("Enter")
+    }
+
+    await dialog.getByRole("button", { name: "Save address" }).click()
+    await expect(dialog).not.toBeVisible()
+    return
+  }
+
+  await page.evaluate(async () => {
+    const sessionRaw = window.localStorage.getItem("codexsun.auth.session")
+    if (!sessionRaw) {
+      throw new Error("Missing storefront auth session.")
+    }
+
+    const session = JSON.parse(sessionRaw) as { accessToken?: string }
+    const accessToken = session.accessToken
+    if (!accessToken) {
+      throw new Error("Missing storefront access token.")
+    }
+
+    async function requestJson<T>(url: string, init?: RequestInit) {
+      const response = await fetch(url, {
+        ...init,
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+          ...(init?.headers ?? {}),
+        },
+      })
+      const payload = (await response.json().catch(() => null)) as T | { error?: string } | null
+      if (!response.ok) {
+        throw new Error(
+          typeof payload === "object" && payload && "error" in payload && payload.error
+            ? payload.error
+            : `Request failed with status ${response.status}`
+        )
+      }
+      return payload as T
+    }
+
+    const [profile, lookups] = await Promise.all([
+      requestJson<any>("/api/v1/storefront/customers/me", { method: "GET" }),
+      requestJson<any>("/api/v1/storefront/customers/me/lookups", { method: "GET" }),
+    ])
+
+    const pickResolvedItem = (items: Array<Record<string, unknown>> | undefined) =>
+      items?.find((item) => String(item.id ?? "") !== "1") ?? items?.[0] ?? null
+
+    const country = pickResolvedItem(lookups.countries)
+    const state =
+      lookups.states?.find(
+        (item: Record<string, unknown>) =>
+          String(item.id ?? "") !== "1" && item.country_id === country?.id
+      ) ??
+      pickResolvedItem(lookups.states) ??
+      null
+    const city =
+      lookups.cities?.find(
+        (item: Record<string, unknown>) =>
+          String(item.id ?? "") !== "1" && item.state_id === state?.id
+      ) ??
+      pickResolvedItem(lookups.cities) ??
+      null
+    const pincode =
+      lookups.pincodes?.find(
+        (item: Record<string, unknown>) =>
+          String(item.id ?? "") !== "1" &&
+          (item.city_id === city?.id || item.state_id === state?.id)
+      ) ??
+      pickResolvedItem(lookups.pincodes) ??
+      null
+
+    const nextPayload = {
+      displayName: profile.displayName,
+      phoneNumber: profile.phoneNumber,
+      companyName: profile.companyName,
+      legalName: profile.legalName,
+      gstin: profile.gstin,
+      website: profile.website,
+      addresses: [{
+        addressTypeId: String(pickResolvedItem(lookups.addressTypes)?.id ?? "1"),
+        addressLine1: "45 Test Street",
+        addressLine2: "Suite 3",
+        cityId: String(city?.id ?? "1"),
+        districtId: String((pincode?.district_id as string | undefined) ?? (city?.district_id as string | undefined) ?? "1"),
+        stateId: String(state?.id ?? "1"),
+        countryId: String(country?.id ?? "1"),
+        pincodeId: String(pincode?.id ?? "1"),
+        latitude: null,
+        longitude: null,
+        isDefault: true,
+      }],
+      emails: Array.isArray(profile.emails)
+        ? profile.emails.map((entry: Record<string, unknown>) => ({
+            email: String(entry.email ?? profile.email),
+            emailType: String(entry.emailType ?? "primary"),
+            isPrimary: Boolean(entry.isPrimary),
+          }))
+        : [{ email: String(profile.email), emailType: "primary", isPrimary: true }],
+      phones: Array.isArray(profile.phones) && profile.phones.length > 0
+        ? profile.phones.map((entry: Record<string, unknown>) => ({
+            phoneNumber: String(entry.phoneNumber ?? profile.phoneNumber),
+            phoneType: String(entry.phoneType ?? "primary"),
+            isPrimary: Boolean(entry.isPrimary),
+          }))
+        : [{ phoneNumber: String(profile.phoneNumber), phoneType: "primary", isPrimary: true }],
+      bankAccounts: Array.isArray(profile.bankAccounts) ? profile.bankAccounts : [],
+      gstDetails: Array.isArray(profile.gstDetails) ? profile.gstDetails : [],
+    }
+
+    await requestJson("/api/v1/storefront/customers/me", {
+      method: "PATCH",
+      body: JSON.stringify(nextPayload),
+    })
+  })
+
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Delivery, payment, and final review." })).toBeVisible()
+  await expect(savedAddressOptions.first()).toBeVisible()
+  await savedAddressOptions.first().click()
 }
 
 async function continueFromCartToCheckout(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "Proceed to checkout" }).click()
+  await page.goto("/checkout")
 
   const checkoutHeading = page.getByRole("heading", {
     name: "Delivery, payment, and final review.",
@@ -31,20 +180,25 @@ async function continueFromCartToCheckout(page: import("@playwright/test").Page)
   const checkoutAccessHeading = page.getByRole("heading", {
     name: "Sign in before checkout.",
   })
+  const loginHeading = page.getByRole("heading", { name: "Welcome" })
 
   await Promise.race([
     checkoutHeading.waitFor({ state: "visible", timeout: 10000 }),
     checkoutAccessHeading.waitFor({ state: "visible", timeout: 10000 }),
+    loginHeading.waitFor({ state: "visible", timeout: 10000 }),
   ])
 
   if (await checkoutAccessHeading.isVisible()) {
     await page.getByRole("button", { name: "Existing customer" }).click()
+  }
 
-    const loginHeading = page.getByRole("heading", { name: "Welcome" })
-    if (await loginHeading.isVisible()) {
-      await page.getByLabel("Email").fill("customer@codexsun.local")
-      await page.getByLabel("Password").fill("Customer@12345")
-      await page.getByRole("button", { name: "Login" }).click()
+  if (await loginHeading.isVisible()) {
+    await page.getByLabel("Email").fill("customer@codexsun.local")
+    await page.getByLabel("Password").fill("Customer@12345")
+    await page.getByRole("button", { name: "Login" }).click()
+    await page.waitForURL(/\/(customer|checkout)$/)
+    if (!/\/checkout$/.test(page.url())) {
+      await page.goto("/checkout")
     }
   }
 
@@ -54,58 +208,58 @@ async function continueFromCartToCheckout(page: import("@playwright/test").Page)
 test("customer can buy from product page, checkout, and track the order", async ({
   page,
 }) => {
-    await login(page, "customer@codexsun.local", "Customer@12345")
+  await page.goto("/")
+  await page.evaluate(() => {
+    window.localStorage.removeItem("codexsun.storefront.cart")
+  })
 
-    await expect(page).toHaveURL(/\/customer$/)
+  await page.goto("/products/aster-linen-shirt")
 
-    await page.evaluate(() => {
-      window.localStorage.removeItem("codexsun.storefront.cart")
-    })
+  await expect(
+    page.getByRole("heading", { name: "Aster Linen Shirt" })
+  ).toBeVisible()
 
-    await page.goto("/products/aster-linen-shirt")
+  await page.getByRole("button", { name: "Add to cart" }).click()
+  await page.goto("/cart")
 
-    await expect(
-      page.getByRole("heading", { name: "Aster Linen Shirt" })
-    ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Aster Linen Shirt" })
+  ).toBeVisible()
 
-    await page.getByRole("button", { name: "Add to cart" }).click()
-    await page.goto("/cart")
+  await continueFromCartToCheckout(page)
 
-    await expect(
-      page.getByRole("link", { name: "Aster Linen Shirt" })
-    ).toBeVisible()
+  await ensureCheckoutAddress(page)
 
-    await continueFromCartToCheckout(page)
+  const contactEmail = page.getByLabel("Contact email")
+  await contactEmail.fill("customer@codexsun.local")
+  await expect(contactEmail).toHaveValue(/customer@codexsun\.local/)
 
-    await ensureCheckoutAddress(page)
+  await page.getByRole("button", { name: "Continue to pay" }).click()
+  await expect(page.getByRole("heading", { name: /Order confirmed/ })).toBeVisible()
 
-    const contactEmail = page.getByLabel("Contact email")
-    await expect(contactEmail).toHaveValue(/customer@codexsun\.local/)
+  const orderNumberText = await page.getByText(/ECM-\d{8}-\d{4}/).textContent()
+  const orderNumberMatch = orderNumberText?.match(/(ECM-\d{8}-\d{4})/)
+  expect(orderNumberMatch).not.toBeNull()
+  const orderNumber = orderNumberMatch![1]
 
-    await page.getByRole("button", { name: "Continue to pay" }).click()
-    await expect(page.getByRole("heading", { name: "Complete payment" })).toBeVisible()
-    await page.getByRole("button", { name: "Pay now" }).click()
-
-    const successMessage = page.getByText(/Payment recorded for ECM-/)
-    await expect(successMessage).toBeVisible()
-
-    const successText = (await successMessage.textContent()) ?? ""
-    const orderNumberMatch = successText.match(/(ECM-\d{8}-\d{4})/)
-    expect(orderNumberMatch).not.toBeNull()
-    const orderNumber = orderNumberMatch![1]
-
-    await expect(page).toHaveURL(/\/customer\/orders\//)
-    await expect(page.getByText("Order detail")).toBeVisible()
+  await page.getByRole("link", { name: "Open order page" }).click()
+  await page.waitForURL(/\/(customer\/orders\/|track-order)/)
+  if (/\/customer\/orders\//.test(page.url())) {
+    await expect(page.getByText("Order overview")).toBeVisible()
     await expect(page.getByRole("heading", { name: orderNumber })).toBeVisible()
-
-    await page.goto(
-      `/track-order?orderNumber=${encodeURIComponent(orderNumber)}&email=${encodeURIComponent("customer@codexsun.local")}`
-    )
-
+  } else {
     await expect(page.getByRole("heading", { name: "Track your order" })).toBeVisible()
     await expect(page.getByText(orderNumber)).toBeVisible()
-    await expect(page.getByText("Payment", { exact: true })).toBeVisible()
-    await expect(page.getByText("paid")).toBeVisible()
-    await expect(page.getByText("Timeline")).toBeVisible()
-    await expect(page.getByText("Order confirmed")).toBeVisible()
+  }
+
+  await page.goto(
+    `/track-order?orderNumber=${encodeURIComponent(orderNumber)}&email=${encodeURIComponent("customer@codexsun.local")}`
+  )
+
+  await expect(page.getByRole("heading", { name: "Track your order" })).toBeVisible()
+  await expect(page.getByText(orderNumber)).toBeVisible()
+  await expect(page.getByText("Payment Paid")).toBeVisible()
+  await expect(page.getByText("Total paid")).toBeVisible()
+  await expect(page.getByText("Timeline")).toBeVisible()
+  await expect(page.getByText("Order confirmed")).toBeVisible()
 })

@@ -62,12 +62,9 @@ test("checkout matches the storefront flow and exposes the add-address dialog", 
   await expect(page.getByRole("heading", { name: "Add delivery address" })).not.toBeVisible()
 
   await page.getByRole("button", { name: "Continue to pay" }).click()
-  await expect(page.getByRole("heading", { name: "Complete payment" })).toBeVisible()
-  await expect(page.getByLabel("Mobile number")).toBeVisible()
-  await expect(page.locator("#payment-contact-email")).toBeVisible()
-
-  await page.getByRole("button", { name: "Pay now" }).click()
-  await expect(page.getByText(/Payment recorded for ECM-/)).toBeVisible()
+  await expect(page.getByRole("heading", { name: /Order confirmed/ })).toBeVisible()
+  await expect(page.getByText(/ECM-\d{8}-\d{4}/)).toBeVisible()
+  await page.getByRole("link", { name: "Open order page" }).click()
   await expect(page).toHaveURL(/\/customer\/orders\//)
-  await expect(page.getByText("Order detail")).toBeVisible()
+  await expect(page.getByText("Order overview")).toBeVisible()
 })

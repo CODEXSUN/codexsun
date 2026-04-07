@@ -32,6 +32,7 @@ import type {
   BillingVoucherUpsertPayload,
 } from "@billing/shared"
 import { billingVoucherModules, billingWorkspaceItems } from "@billing/shared"
+import type { CommonModuleItem, CommonModuleListResponse, ProductListResponse } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
@@ -65,15 +66,19 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { CommonList, MasterList } from "@/components/blocks/master-list"
+import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 
 type ResourceState = {
   error: string | null
   isLoading: boolean
   categories: BillingCategory[]
+  hsnCodes: CommonModuleItem[]
   ledgers: BillingLedger[]
+  products: ProductListResponse["items"]
   voucherGroups: BillingVoucherGroup[]
   voucherTypes: BillingVoucherMasterType[]
   reports: BillingAccountingReports
+  units: CommonModuleItem[]
   vouchers: BillingVoucher[]
 }
 
@@ -181,6 +186,7 @@ type SalesItemForm = {
   description: string
   hsnOrSac: string
   itemName: string
+  productId: string
   quantity: string
   rate: string
   unit: string
@@ -295,6 +301,7 @@ const defaultSalesItem: SalesItemForm = {
   description: "",
   hsnOrSac: "",
   itemName: "",
+  productId: "",
   quantity: "1",
   rate: "",
   unit: "Nos",
@@ -316,11 +323,31 @@ const defaultSalesForm: SalesFormState = {
   voucherTypeId: "",
 }
 
+const voucherInlineInputClassName =
+  "h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+
+const voucherInlineSelectClassName =
+  "flex h-9 w-full rounded-none border-0 bg-transparent px-0 py-2 text-sm shadow-none outline-none focus-visible:ring-0"
+
 function createDefaultSalesForm(): SalesFormState {
   return {
     ...defaultSalesForm,
     items: [{ ...defaultSalesItem }],
   }
+}
+
+function getCommonModuleText(
+  item: CommonModuleItem | null | undefined,
+  preferredKeys: string[]
+) {
+  for (const key of preferredKeys) {
+    const value = item?.[key]
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim()
+    }
+  }
+
+  return ""
 }
 
 function createDefaultVoucherForm(): VoucherFormState {
@@ -513,11 +540,11 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
       transporterId: voucher.eWayBill.transporterId ?? "",
       vehicleNumber: voucher.eWayBill.vehicleNumber ?? "",
     },
-    lines: voucher.lines.map((line) => ({
-      amount: String(line.amount),
-      ledgerId: line.ledgerId,
-      note: line.note,
-      side: line.side,
+      lines: voucher.lines.map((line) => ({
+        amount: String(line.amount),
+        ledgerId: line.ledgerId,
+        note: line.note,
+        side: line.side,
     })),
     narration: voucher.narration,
     sales: voucher.sales
@@ -537,6 +564,7 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
             description: item.description,
             hsnOrSac: item.hsnOrSac,
             itemName: item.itemName,
+            productId: "",
             quantity: String(item.quantity),
             rate: String(item.rate),
             unit: item.unit,
@@ -1142,28 +1170,25 @@ function VoucherEditor({
         ) : null}
 
         {["payment", "receipt"].includes(form.type) ? (
-          <div className="space-y-3 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold text-foreground">Bill-wise adjustments</p>
-                <p className="text-sm text-muted-foreground">
-                  Match receipt and payment vouchers against bill references the way Tally operators expect.
-                </p>
-              </div>
-              <Button type="button" variant="outline" onClick={onBillAllocationCreate}>
-                Add bill ref
-              </Button>
-            </div>
-            {form.billAllocations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No bill-wise adjustments added yet.</p>
-            ) : (
-              form.billAllocations.map((allocation, index) => (
-                <div
-                  key={`${allocation.referenceNumber}:${index}`}
-                  className="grid gap-3 rounded-[1rem] border border-border/70 bg-background/80 p-4 md:grid-cols-[0.9fr_1fr_0.9fr_0.9fr_1fr_auto]"
-                >
+          <VoucherInlineEditableTable
+            title="Bill-wise adjustments"
+            description="Match receipt and payment vouchers against bill references the way Tally operators expect."
+            addLabel="Add bill ref"
+            rows={form.billAllocations}
+            onAddRow={onBillAllocationCreate}
+            onRemoveRow={onBillAllocationRemove}
+            removeButtonLabel="Remove"
+            getRowKey={(allocation, index) => `${allocation.referenceNumber || "bill-ref"}:${index}`}
+            emptyMessage="No bill-wise adjustments added yet."
+            columns={[
+              {
+                id: "referenceType",
+                header: "Reference type",
+                headerClassName: "w-36 min-w-36",
+                cellClassName: "w-36 min-w-36",
+                renderCell: (allocation, index) => (
                   <select
-                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className={voucherInlineSelectClassName}
                     value={allocation.referenceType}
                     onChange={(event) =>
                       onBillAllocationChange(index, "referenceType", event.target.value)
@@ -1173,28 +1198,63 @@ function VoucherEditor({
                     <option value="new_ref">New ref</option>
                     <option value="on_account">On account</option>
                   </select>
+                ),
+              },
+              {
+                id: "referenceNumber",
+                header: "Reference number",
+                headerClassName: "min-w-40",
+                renderCell: (allocation, index) => (
                   <Input
+                    className={voucherInlineInputClassName}
                     value={allocation.referenceNumber}
                     onChange={(event) =>
                       onBillAllocationChange(index, "referenceNumber", event.target.value)
                     }
                     placeholder="Reference number"
                   />
+                ),
+              },
+              {
+                id: "referenceDate",
+                header: "Reference date",
+                headerClassName: "w-36 min-w-36",
+                cellClassName: "w-36 min-w-36",
+                renderCell: (allocation, index) => (
                   <Input
+                    className={voucherInlineInputClassName}
                     type="date"
                     value={allocation.referenceDate}
                     onChange={(event) =>
                       onBillAllocationChange(index, "referenceDate", event.target.value)
                     }
                   />
+                ),
+              },
+              {
+                id: "dueDate",
+                header: "Due date",
+                headerClassName: "w-36 min-w-36",
+                cellClassName: "w-36 min-w-36",
+                renderCell: (allocation, index) => (
                   <Input
+                    className={voucherInlineInputClassName}
                     type="date"
                     value={allocation.dueDate}
                     onChange={(event) =>
                       onBillAllocationChange(index, "dueDate", event.target.value)
                     }
                   />
+                ),
+              },
+              {
+                id: "amount",
+                header: "Amount",
+                headerClassName: "w-32 min-w-32",
+                cellClassName: "w-32 min-w-32",
+                renderCell: (allocation, index) => (
                   <Input
+                    className={voucherInlineInputClassName}
                     type="number"
                     min="0"
                     step="0.01"
@@ -1204,86 +1264,106 @@ function VoucherEditor({
                     }
                     placeholder="Amount"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onBillAllocationRemove(index)}
-                  >
-                    Remove
-                  </Button>
+                ),
+              },
+              {
+                id: "note",
+                header: "Note",
+                headerClassName: "min-w-48",
+                renderCell: (allocation, index) => (
                   <Input
-                    className="md:col-span-6"
+                    className={voucherInlineInputClassName}
                     value={allocation.note}
                     onChange={(event) =>
                       onBillAllocationChange(index, "note", event.target.value)
                     }
                     placeholder="Adjustment note"
                   />
-                </div>
-              ))
-            )}
-          </div>
+                ),
+              },
+            ]}
+          />
         ) : null}
 
         {!gstModeEnabled ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-foreground">Ledger lines</p>
-              <p className="text-sm text-muted-foreground">
-                Every voucher must contain balanced debit and credit lines.
-              </p>
-            </div>
-            <Button type="button" variant="outline" onClick={onLineCreate}>
-              Add line
-            </Button>
-          </div>
-          {form.lines.map((line, index) => (
-            <div
-              key={`${index}:${line.ledgerId}:${line.side}`}
-              className="grid gap-3 rounded-[1rem] border border-border/70 bg-card/70 p-4 md:grid-cols-[1.2fr_0.7fr_0.8fr_1.4fr_auto]"
-            >
-              <AutocompleteLookupField
-                emptyLabel="Select ledger"
-                onChange={(nextValue) => onLineChange(index, "ledgerId", nextValue)}
-                options={ledgers.map((ledger) => ({
-                  value: ledger.id,
-                  label: ledger.name,
-                }))}
-                searchPlaceholder="Search ledger"
-                value={line.ledgerId}
-              />
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={line.side}
-                onChange={(event) => onLineChange(index, "side", event.target.value)}
-              >
-                <option value="debit">Debit</option>
-                <option value="credit">Credit</option>
-              </select>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={line.amount}
-                onChange={(event) => onLineChange(index, "amount", event.target.value)}
-              />
-              <Input
-                value={line.note}
-                onChange={(event) => onLineChange(index, "note", event.target.value)}
-                placeholder="Posting note"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onLineRemove(index)}
-                disabled={form.lines.length <= 2}
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
-        </div>
+        <VoucherInlineEditableTable
+          title="Ledger lines"
+          description="Every voucher must contain balanced debit and credit lines."
+          addLabel="Add line"
+          rows={form.lines}
+          onAddRow={onLineCreate}
+          onRemoveRow={(index) => {
+            if (form.lines.length > 2) {
+              onLineRemove(index)
+            }
+          }}
+          removeButtonLabel={form.lines.length <= 2 ? "Locked" : "Remove"}
+          getRowKey={(line, index) => `${index}:${line.ledgerId}:${line.side}`}
+          columns={[
+            {
+              id: "ledger",
+              header: "Ledger",
+              headerClassName: "min-w-60",
+              renderCell: (line, index) => (
+                <AutocompleteLookupField
+                  emptyLabel="Select ledger"
+                  onChange={(nextValue) => onLineChange(index, "ledgerId", nextValue)}
+                  options={ledgers.map((ledger) => ({
+                    value: ledger.id,
+                    label: ledger.name,
+                  }))}
+                  searchPlaceholder="Search ledger"
+                  value={line.ledgerId}
+                />
+              ),
+            },
+            {
+              id: "side",
+              header: "Side",
+              headerClassName: "w-32 min-w-32",
+              cellClassName: "w-32 min-w-32",
+              renderCell: (line, index) => (
+                <select
+                  className={voucherInlineSelectClassName}
+                  value={line.side}
+                  onChange={(event) => onLineChange(index, "side", event.target.value)}
+                >
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
+              ),
+            },
+            {
+              id: "amount",
+              header: "Amount",
+              headerClassName: "w-32 min-w-32",
+              cellClassName: "w-32 min-w-32",
+              renderCell: (line, index) => (
+                <Input
+                  className={voucherInlineInputClassName}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.amount}
+                  onChange={(event) => onLineChange(index, "amount", event.target.value)}
+                />
+              ),
+            },
+            {
+              id: "note",
+              header: "Note",
+              headerClassName: "min-w-56",
+              renderCell: (line, index) => (
+                <Input
+                  className={voucherInlineInputClassName}
+                  value={line.note}
+                  onChange={(event) => onLineChange(index, "note", event.target.value)}
+                  placeholder="Posting note"
+                />
+              ),
+            },
+          ]}
+        />
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -1338,9 +1418,11 @@ function SalesInvoiceEditor({
   onDelete,
   onReset,
   onSave,
+  onSalesItemProductChange,
   onSalesItemChange,
   onSalesItemCreate,
   onSalesItemRemove,
+  products,
   selectedVoucher,
   voucherTypes,
 }: {
@@ -1352,9 +1434,11 @@ function SalesInvoiceEditor({
   onDelete: () => void
   onReset: () => void
   onSave: () => void
+  onSalesItemProductChange: (index: number, productId: string) => void
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
   onSalesItemRemove: (index: number) => void
+  products: ProductListResponse["items"]
   selectedVoucher: BillingVoucher | null
   voucherTypes: BillingVoucherMasterType[]
 }) {
@@ -1362,6 +1446,11 @@ function SalesInvoiceEditor({
     (voucherType) => voucherType.postingType === "sales" && voucherType.deletedAt === null
   )
   const salesSummary = getSalesSummary(form.sales)
+  const activeProducts = products.filter((product) => product.isActive)
+  const productOptions = activeProducts.map((product) => ({
+    value: product.id,
+    label: `${product.name} (${product.code})`,
+  }))
   const selectedCustomerLedger =
     ledgers.find((ledger) => ledger.id === form.sales.customerLedgerId) ?? null
 
@@ -1556,115 +1645,109 @@ function SalesInvoiceEditor({
           </div>
         </div>
 
-        <div className="space-y-3 rounded-[1rem] border border-border/70 bg-card/70 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-foreground">Sales items</p>
-              <p className="text-sm text-muted-foreground">
-                Add invoice lines as sale sub-items. Tax and posting totals are derived from this table.
-              </p>
-            </div>
-            <Button type="button" variant="outline" onClick={onSalesItemCreate}>
-              Add item
-            </Button>
-          </div>
-          <div className="overflow-x-auto rounded-[1rem] border border-border/70">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12 text-center">#</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead>HSN/SAC</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="w-28">Qty</TableHead>
-                  <TableHead className="w-24">Unit</TableHead>
-                  <TableHead className="w-32">Rate</TableHead>
-                  <TableHead className="w-32 text-right">Amount</TableHead>
-                  <TableHead className="w-20 text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {form.sales.items.map((item, index) => (
-                  <TableRow key={`sales-item:${index}`}>
-                    <TableCell className="text-center text-sm text-muted-foreground">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={item.itemName}
-                        onChange={(event) =>
-                          onSalesItemChange(index, "itemName", event.target.value)
-                        }
-                        placeholder="Item name"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={item.hsnOrSac}
-                        onChange={(event) =>
-                          onSalesItemChange(index, "hsnOrSac", event.target.value)
-                        }
-                        placeholder="6204"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={item.description}
-                        onChange={(event) =>
-                          onSalesItemChange(index, "description", event.target.value)
-                        }
-                        placeholder="Item description"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(event) =>
-                          onSalesItemChange(index, "quantity", event.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={item.unit}
-                        onChange={(event) =>
-                          onSalesItemChange(index, "unit", event.target.value)
-                        }
-                        placeholder="Nos"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.rate}
-                        onChange={(event) =>
-                          onSalesItemChange(index, "rate", event.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-foreground">
-                      {formatAmount(getSalesItemAmount(item))}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onSalesItemRemove(index)}
-                      >
-                        Remove
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+        <VoucherInlineEditableTable
+          title="Sales items"
+          description="Add invoice lines as sale sub-items. Tax and posting totals are derived from this table."
+          addLabel="Add item"
+          fitToContainer
+          rows={form.sales.items}
+          onAddRow={onSalesItemCreate}
+          onRemoveRow={onSalesItemRemove}
+          removeButtonLabel="Remove"
+          getRowKey={(item, index) => `sales-item:${index}:${item.itemName}`}
+          columns={[
+            {
+              id: "itemName",
+              header: "Product",
+              headerClassName: "min-w-60",
+              renderCell: (item, index) => {
+                const rowOptions =
+                  item.productId || !item.itemName
+                    ? productOptions
+                    : [
+                        {
+                          value: `manual:${index}`,
+                          label: item.itemName,
+                        },
+                        ...productOptions,
+                      ]
+
+                return (
+                  <AutocompleteLookupField
+                    emptyLabel="Select product"
+                    onChange={(nextValue) =>
+                      nextValue.startsWith("manual:")
+                        ? undefined
+                        : onSalesItemProductChange(index, nextValue)
+                    }
+                    options={rowOptions}
+                    searchPlaceholder="Search product"
+                    triggerClassName="h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                    value={item.productId || (item.itemName ? `manual:${index}` : "")}
+                  />
+                )
+              },
+            },
+            {
+              id: "description",
+              header: "Description",
+              headerClassName: "w-[34%]",
+              renderCell: (item, index) => (
+                <Input
+                  className={voucherInlineInputClassName}
+                  value={item.description}
+                  onChange={(event) =>
+                    onSalesItemChange(index, "description", event.target.value)
+                  }
+                  placeholder="Item description"
+                />
+              ),
+            },
+            {
+              id: "quantity",
+              header: "Qty",
+              headerClassName: "w-[12%]",
+              cellClassName: "w-[12%]",
+              renderCell: (item, index) => (
+                <Input
+                  className={voucherInlineInputClassName}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.quantity}
+                  onChange={(event) =>
+                    onSalesItemChange(index, "quantity", event.target.value)
+                  }
+                />
+              ),
+            },
+            {
+              id: "rate",
+              header: "Rate",
+              headerClassName: "w-[14%]",
+              cellClassName: "w-[14%]",
+              renderCell: (item, index) => (
+                <Input
+                  className={voucherInlineInputClassName}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.rate}
+                  onChange={(event) =>
+                    onSalesItemChange(index, "rate", event.target.value)
+                  }
+                />
+              ),
+            },
+            {
+              id: "amount",
+              header: "Amount",
+              headerClassName: "w-[14%] text-right",
+              cellClassName: "w-[14%] text-right font-medium text-foreground",
+              renderCell: (item) => formatAmount(getSalesItemAmount(item)),
+            },
+          ]}
+        />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
@@ -1997,10 +2080,12 @@ function SalesVoucherUpsertSection({
   onChange,
   onDelete,
   onReset,
+  onSalesItemProductChange,
   onSalesItemChange,
   onSalesItemCreate,
   onSalesItemRemove,
   onSave,
+  products,
   selectedVoucher,
   voucherTypes,
 }: {
@@ -2011,10 +2096,12 @@ function SalesVoucherUpsertSection({
   onChange: (field: string, value: string) => void
   onDelete: () => void
   onReset: () => void
+  onSalesItemProductChange: (index: number, productId: string) => void
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
   onSalesItemRemove: (index: number) => void
   onSave: () => void
+  products: ProductListResponse["items"]
   selectedVoucher: BillingVoucher | null
   voucherTypes: BillingVoucherMasterType[]
 }) {
@@ -2029,9 +2116,11 @@ function SalesVoucherUpsertSection({
         onDelete={onDelete}
         onReset={onReset}
         onSave={onSave}
+        onSalesItemProductChange={onSalesItemProductChange}
         onSalesItemChange={onSalesItemChange}
         onSalesItemCreate={onSalesItemCreate}
         onSalesItemRemove={onSalesItemRemove}
+        products={products}
         selectedVoucher={selectedVoucher}
         voucherTypes={voucherTypes}
       />
@@ -2642,6 +2731,7 @@ function AutocompleteLookupField({
   onCreateOption,
   options,
   searchPlaceholder,
+  triggerClassName,
   value,
 }: {
   emptyLabel?: string
@@ -2649,6 +2739,7 @@ function AutocompleteLookupField({
   onCreateOption?: (name: string) => Promise<LookupOption>
   options: LookupOption[]
   searchPlaceholder: string
+  triggerClassName?: string
   value: string
 }) {
   const LOOKUP_MENU_HEIGHT = 320
@@ -2934,7 +3025,7 @@ function AutocompleteLookupField({
         ref={triggerRef}
         role="combobox"
         aria-expanded={open}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+        className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 ${triggerClassName ?? ""}`}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
       >
@@ -3682,6 +3773,7 @@ function VoucherRegisterSection({
   isDialogOpen,
   isSaving,
   ledgers,
+  products,
   voucherTypes,
   onChange,
   onCreate,
@@ -3694,6 +3786,7 @@ function VoucherRegisterSection({
   onLineRemove,
   onOpenChange,
   onReset,
+  onSalesItemProductChange,
   onSalesItemChange,
   onSalesItemCreate,
   onSalesItemRemove,
@@ -3707,6 +3800,7 @@ function VoucherRegisterSection({
   isDialogOpen: boolean
   isSaving: boolean
   ledgers: BillingLedger[]
+  products: ProductListResponse["items"]
   voucherTypes: BillingVoucherMasterType[]
   onChange: (field: string, value: string) => void
   onCreate: () => void
@@ -3727,6 +3821,7 @@ function VoucherRegisterSection({
   onLineRemove: (index: number) => void
   onOpenChange: (open: boolean) => void
   onReset: () => void
+  onSalesItemProductChange: (index: number, productId: string) => void
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
   onSalesItemRemove: (index: number) => void
@@ -3901,9 +3996,11 @@ function VoucherRegisterSection({
               onDelete={onDelete}
               onReset={onReset}
               onSave={onSave}
+              onSalesItemProductChange={onSalesItemProductChange}
               onSalesItemChange={onSalesItemChange}
               onSalesItemCreate={onSalesItemCreate}
               onSalesItemRemove={onSalesItemRemove}
+              products={products}
               selectedVoucher={selectedVoucher}
               voucherTypes={voucherTypes}
             />
@@ -4686,10 +4783,13 @@ export function BillingWorkspaceSection({
     error: null,
     isLoading: true,
     categories: [],
+    hsnCodes: [],
     ledgers: [],
+    products: [],
     voucherGroups: [],
     voucherTypes: [],
     reports: createEmptyReports(),
+    units: [],
     vouchers: [],
   })
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null)
@@ -4715,37 +4815,46 @@ export function BillingWorkspaceSection({
     setState((current) => ({ ...current, error: null, isLoading: true }))
 
     try {
-      const [categoryResponse, ledgerResponse, voucherGroupResponse, voucherTypeResponse, voucherResponse, reportsResponse] = await Promise.all([
-        request<BillingCategoryListResponse>("/internal/v1/billing/categories"),
-        request<BillingLedgerListResponse>("/internal/v1/billing/ledgers"),
-        request<BillingVoucherGroupListResponse>("/internal/v1/billing/voucher-groups"),
-        request<BillingVoucherMasterTypeListResponse>("/internal/v1/billing/voucher-types"),
-        request<BillingVoucherListResponse>("/internal/v1/billing/vouchers"),
-        request<BillingAccountingReportsResponse>("/internal/v1/billing/reports"),
-      ])
+        const [categoryResponse, ledgerResponse, voucherGroupResponse, voucherTypeResponse, voucherResponse, reportsResponse, productResponse, unitResponse, hsnCodeResponse] = await Promise.all([
+          request<BillingCategoryListResponse>("/internal/v1/billing/categories"),
+          request<BillingLedgerListResponse>("/internal/v1/billing/ledgers"),
+          request<BillingVoucherGroupListResponse>("/internal/v1/billing/voucher-groups"),
+          request<BillingVoucherMasterTypeListResponse>("/internal/v1/billing/voucher-types"),
+          request<BillingVoucherListResponse>("/internal/v1/billing/vouchers"),
+          request<BillingAccountingReportsResponse>("/internal/v1/billing/reports"),
+          request<ProductListResponse>("/internal/v1/core/products"),
+          request<CommonModuleListResponse>("/internal/v1/core/common-modules/items?module=units"),
+          request<CommonModuleListResponse>("/internal/v1/core/common-modules/items?module=hsnCodes"),
+        ])
 
-      setState({
-        error: null,
-        isLoading: false,
-        categories: categoryResponse.items,
-        ledgers: ledgerResponse.items,
-        voucherGroups: voucherGroupResponse.items,
-        voucherTypes: voucherTypeResponse.items,
-        reports: reportsResponse.item,
-        vouchers: voucherResponse.items,
-      })
-    } catch (error) {
-      setState({
-        error: error instanceof Error ? error.message : "Failed to load billing workspace.",
-        isLoading: false,
-        categories: [],
-        ledgers: [],
-        voucherGroups: [],
-        voucherTypes: [],
-        reports: createEmptyReports(),
-        vouchers: [],
-      })
-    }
+        setState({
+          error: null,
+          isLoading: false,
+          categories: categoryResponse.items,
+          hsnCodes: hsnCodeResponse.items.filter((item) => item.isActive),
+          ledgers: ledgerResponse.items,
+          products: productResponse.items,
+          voucherGroups: voucherGroupResponse.items,
+          voucherTypes: voucherTypeResponse.items,
+          reports: reportsResponse.item,
+          units: unitResponse.items.filter((item) => item.isActive),
+          vouchers: voucherResponse.items,
+        })
+      } catch (error) {
+        setState({
+          error: error instanceof Error ? error.message : "Failed to load billing workspace.",
+          isLoading: false,
+          categories: [],
+          hsnCodes: [],
+          ledgers: [],
+          products: [],
+          voucherGroups: [],
+          voucherTypes: [],
+          reports: createEmptyReports(),
+          units: [],
+          vouchers: [],
+        })
+      }
   }
 
   useEffect(() => {
@@ -5051,6 +5160,45 @@ export function BillingWorkspaceSection({
         ...current.sales,
         items: current.sales.items.map((item, itemIndex) =>
           itemIndex === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }))
+  }
+
+  function handleSalesItemProductChange(index: number, productId: string) {
+    const selectedProduct = state.products.find((product) => product.id === productId) ?? null
+    const unitLabel = selectedProduct?.unitId
+      ? getCommonModuleText(
+          state.units.find((item) => item.id === selectedProduct.unitId),
+          ["code", "symbol", "name"]
+        )
+      : ""
+    const hsnLabel = selectedProduct?.hsnCodeId
+      ? getCommonModuleText(
+          state.hsnCodes.find((item) => item.id === selectedProduct.hsnCodeId),
+          ["code", "name"]
+        )
+      : ""
+
+    setForm((current) => ({
+      ...current,
+      sales: {
+        ...current.sales,
+        items: current.sales.items.map((item, itemIndex) =>
+          itemIndex === index
+            ? {
+                ...item,
+                productId,
+                itemName: selectedProduct?.name ?? item.itemName,
+                description:
+                  selectedProduct?.shortDescription?.trim() ||
+                  selectedProduct?.description?.trim() ||
+                  item.description,
+                hsnOrSac: hsnLabel || item.hsnOrSac,
+                rate: selectedProduct ? String(selectedProduct.basePrice) : item.rate,
+                unit: unitLabel || item.unit,
+              }
+            : item
         ),
       },
     }))
@@ -5835,6 +5983,7 @@ export function BillingWorkspaceSection({
           isDialogOpen={isVoucherDialogOpen}
           isSaving={isSaving}
           ledgers={state.ledgers}
+          products={state.products}
           voucherTypes={state.voucherTypes}
           onChange={handleChange}
           onCreate={() => {
@@ -5855,6 +6004,7 @@ export function BillingWorkspaceSection({
             }
           }}
           onReset={resetForm}
+          onSalesItemProductChange={handleSalesItemProductChange}
           onSalesItemChange={handleSalesItemChange}
           onSalesItemCreate={handleSalesItemCreate}
           onSalesItemRemove={handleSalesItemRemove}
@@ -5964,10 +6114,12 @@ export function BillingWorkspaceSection({
             resetForm()
             void navigate("/dashboard/billing/sales-vouchers/new")
           }}
+          onSalesItemProductChange={handleSalesItemProductChange}
           onSalesItemChange={handleSalesItemChange}
           onSalesItemCreate={handleSalesItemCreate}
           onSalesItemRemove={handleSalesItemRemove}
           onSave={handleSave}
+          products={state.products}
           selectedVoucher={selectedVoucher}
           voucherTypes={state.voucherTypes}
         />

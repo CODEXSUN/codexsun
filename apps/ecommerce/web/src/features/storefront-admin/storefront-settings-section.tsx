@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, ShieldCheck, Sparkles, Truck } from "lucide-react"
+import { ArrowRight, ChevronDown, Plus, ShieldCheck, Sparkles, Trash2, Truck } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import {
@@ -280,6 +280,14 @@ function SectionCopyFields<TSection extends BaseSectionCopyFields>({
   )
 }
 
+function createAnnouncementItem(index: number): StorefrontSettings["announcementItems"][number] {
+  return {
+    id: `announcement-item:${index + 1}`,
+    text: "New announcement",
+    href: null,
+  }
+}
+
 function ColorField({
   value,
   onChange,
@@ -488,14 +496,6 @@ function formatCurrency(value: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value)
-}
-
-function resolveTrustIcon(iconKey: "sparkles" | "truck" | "shield") {
-  return iconKey === "truck"
-    ? Truck
-    : iconKey === "shield"
-      ? ShieldCheck
-      : Sparkles
 }
 
 function SectionPreviewShell({ children }: { children: React.ReactNode }) {
@@ -755,82 +755,6 @@ function SingleCategoryCardPreview({
   )
 }
 
-function CampaignPreview({
-  section,
-}: {
-  section: StorefrontSettings["sections"]["cta"]
-}) {
-  return (
-    <SectionPreviewShell>
-      <Card className="rounded-[2rem] border-[#decfbd] bg-[linear-gradient(135deg,#221812_0%,#3b2a20_100%)] py-0 text-stone-100 shadow-[0_30px_80px_-52px_rgba(28,15,8,0.75)]">
-        <CardContent className="space-y-5 p-7">
-          {hasContent(section.eyebrow) ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/80">
-              {section.eyebrow}
-            </p>
-          ) : null}
-          <div className="space-y-3">
-            {hasContent(section.title) ? (
-              <h3 className="font-heading text-3xl font-semibold tracking-tight">
-                {section.title}
-              </h3>
-            ) : null}
-            {hasContent(section.summary) ? (
-              <p className="max-w-2xl text-sm leading-7 text-stone-200/80">
-                {section.summary}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {hasContent(section.primaryCtaLabel) ? (
-              <Button type="button" className="rounded-full bg-white text-[#241913] hover:bg-white/90">
-                {section.primaryCtaLabel}
-              </Button>
-            ) : null}
-            {hasContent(section.secondaryCtaLabel) ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full border-white/25 bg-transparent text-white hover:bg-white/10"
-              >
-                {section.secondaryCtaLabel}
-              </Button>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-    </SectionPreviewShell>
-  )
-}
-
-function TrustPreview({ notes }: { notes: StorefrontSettings["trustNotes"] }) {
-  return (
-    <SectionPreviewShell>
-      {notes.length > 0 ? (
-        <div className="grid gap-4">
-          {notes.map((note) => {
-            const Icon = resolveTrustIcon(note.iconKey)
-
-            return (
-              <Card key={note.id} className="rounded-[1.6rem] border-[#e4d6c7] py-0 shadow-sm">
-                <CardContent className="space-y-3 p-5">
-                  <div className="flex size-11 items-center justify-center rounded-2xl bg-[#f4e8da] text-[#6d5140]">
-                    <Icon className="size-5" />
-                  </div>
-                  <p className="font-medium">{note.title}</p>
-                  <p className="text-sm leading-6 text-muted-foreground">{note.summary}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      ) : (
-        <EmptyPreviewState message="Trust notes will appear here once at least one reassurance card is configured." />
-      )}
-    </SectionPreviewShell>
-  )
-}
-
 export function StorefrontSettingsSection() {
   const [draft, setDraft] = useState<StorefrontSettings | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -888,7 +812,6 @@ export function StorefrontSettingsSection() {
     const categoriesSection = draft.sections.categories
     const newArrivalsSection = draft.sections.newArrivals
     const bestSellersSection = draft.sections.bestSellers
-    const ctaSection = draft.sections.cta
     const featuredPreviewItems = shellData?.featured ?? []
     const categoryPreviewItems =
       shellData?.categories.filter(
@@ -912,16 +835,72 @@ export function StorefrontSettingsSection() {
           />
           <TableCard>
             <Row
-              label="Announcement"
-              description="Storefront strip shown below the hero."
+              label="Announcement Items"
+              description="Storefront strip messages rotate from this backend-driven list."
               field={
-                <Textarea
-                  value={draft.announcement}
-                  onChange={(event) =>
-                    setDraft({ ...draft, announcement: event.target.value })
-                  }
-                  rows={3}
-                />
+                <div className="space-y-3">
+                  {draft.announcementItems.map((item, index) => (
+                    <div key={item.id} className="grid gap-3 rounded-[1rem] border border-border/70 bg-card/60 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto]">
+                      <Textarea
+                        value={item.text}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            announcementItems: draft.announcementItems.map((entry, entryIndex) =>
+                              entryIndex === index ? { ...entry, text: event.target.value } : entry
+                            ),
+                          })
+                        }
+                        rows={2}
+                      />
+                      <Input
+                        value={item.href ?? ""}
+                        placeholder="/shop/catalog"
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            announcementItems: draft.announcementItems.map((entry, entryIndex) =>
+                              entryIndex === index
+                                ? { ...entry, href: event.target.value.trim() || null }
+                                : entry
+                            ),
+                          })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          draft.announcementItems.length > 1 &&
+                          setDraft({
+                            ...draft,
+                            announcementItems: draft.announcementItems.filter((_, entryIndex) => entryIndex !== index),
+                          })
+                        }
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        announcementItems: [
+                          ...draft.announcementItems,
+                          createAnnouncementItem(draft.announcementItems.length),
+                        ],
+                      })
+                    }
+                  >
+                    <Plus className="size-4" />
+                    Add announcement item
+                  </Button>
+                </div>
               }
             />
             <Row
@@ -950,7 +929,7 @@ export function StorefrontSettingsSection() {
               }
             />
           </TableCard>
-          <Card className="overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm"><CardContent className="p-5"><AnnouncementPreview announcement={draft.announcement} design={draft.announcementDesign} /></CardContent></Card>
+          <Card className="overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm"><CardContent className="p-5"><AnnouncementPreview announcement={draft.announcementItems[0]?.text ?? draft.announcement} design={draft.announcementDesign} /></CardContent></Card>
         </div>
       ),
     }
@@ -2227,225 +2206,6 @@ export function StorefrontSettingsSection() {
       ),
     }
 
-    const campaign: AnimatedContentTab = {
-      label: "Campaign",
-      value: "campaign",
-      content: (
-        <div className="space-y-4">
-          <VisibilityRow
-            label="Visibility"
-            description="Show or hide the campaign CTA block."
-            checked={draft.visibility.cta}
-            onCheckedChange={(checked) =>
-              setDraft({ ...draft, visibility: { ...draft.visibility, cta: checked } })
-            }
-          />
-          <TableCard>
-            <Row
-              label="Campaign CTA"
-              description="Bottom campaign block with both actions."
-              field={
-                <div className="grid gap-3">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      value={ctaSection.eyebrow}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
-                            cta: { ...ctaSection, eyebrow: event.target.value },
-                          },
-                        })
-                      }
-                    />
-                    <Input
-                      value={ctaSection.title}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
-                            cta: { ...ctaSection, title: event.target.value },
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <Textarea
-                    value={ctaSection.summary}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        sections: {
-                          ...draft.sections,
-                          cta: { ...ctaSection, summary: event.target.value },
-                        },
-                      })
-                    }
-                    rows={3}
-                  />
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <Input
-                      value={ctaSection.primaryCtaLabel}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
-                            cta: {
-                              ...ctaSection,
-                              primaryCtaLabel: event.target.value,
-                            },
-                          },
-                        })
-                      }
-                    />
-                    <Input
-                      value={ctaSection.primaryCtaHref}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
-                            cta: {
-                              ...ctaSection,
-                              primaryCtaHref: event.target.value,
-                            },
-                          },
-                        })
-                      }
-                    />
-                    <Input
-                      value={ctaSection.secondaryCtaLabel}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
-                            cta: {
-                              ...ctaSection,
-                              secondaryCtaLabel: event.target.value,
-                            },
-                          },
-                        })
-                      }
-                    />
-                    <Input
-                      value={ctaSection.secondaryCtaHref}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
-                            cta: {
-                              ...ctaSection,
-                              secondaryCtaHref: event.target.value,
-                            },
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              }
-            />
-          </TableCard>
-          <PreviewCard
-            eyebrow="Campaign preview"
-            title="Bottom campaign block"
-            summary="This preview matches the storefront campaign CTA card."
-          >
-            <CampaignPreview section={ctaSection} />
-          </PreviewCard>
-        </div>
-      ),
-    }
-
-    const trust: AnimatedContentTab = {
-      label: "Trust",
-      value: "trust",
-      content: (
-        <div className="space-y-4">
-          <VisibilityRow
-            label="Visibility"
-            description="Show or hide the trust cards."
-            checked={draft.visibility.trust}
-            onCheckedChange={(checked) =>
-              setDraft({ ...draft, visibility: { ...draft.visibility, trust: checked } })
-            }
-          />
-          <TableCard>
-            {draft.trustNotes.map((note) => (
-              <Row
-                key={note.id}
-                label={note.title}
-                description="Trust card title, summary, and icon."
-                field={
-                  <div className="grid gap-3">
-                    <Input
-                      value={note.title}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          trustNotes: draft.trustNotes.map((item) =>
-                            item.id === note.id
-                              ? { ...item, title: event.target.value }
-                              : item
-                          ),
-                        })
-                      }
-                    />
-                    <Textarea
-                      value={note.summary}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          trustNotes: draft.trustNotes.map((item) =>
-                            item.id === note.id
-                              ? { ...item, summary: event.target.value }
-                              : item
-                          ),
-                        })
-                      }
-                      rows={3}
-                    />
-                    <Select
-                      value={note.iconKey}
-                      onValueChange={(value: "sparkles" | "truck" | "shield") =>
-                        setDraft({
-                          ...draft,
-                          trustNotes: draft.trustNotes.map((item) =>
-                            item.id === note.id ? { ...item, iconKey: value } : item
-                          ),
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select icon" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sparkles">Sparkles</SelectItem>
-                        <SelectItem value="truck">Truck</SelectItem>
-                        <SelectItem value="shield">Shield</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                }
-              />
-            ))}
-          </TableCard>
-          <PreviewCard
-            eyebrow="Trust preview"
-            title="Trust cards"
-            summary="This preview matches the storefront reassurance cards beside the campaign block."
-          >
-            <TrustPreview notes={draft.trustNotes} />
-          </PreviewCard>
-        </div>
-      ),
-    }
-
     return [
       announcement,
       hero,
@@ -2455,8 +2215,6 @@ export function StorefrontSettingsSection() {
       categories,
       newArrivals,
       bestSellers,
-      campaign,
-      trust,
     ]
   }, [draft, shellData])
 

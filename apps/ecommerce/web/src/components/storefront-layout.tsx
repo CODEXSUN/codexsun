@@ -1,3 +1,4 @@
+import { FloatingContactButton } from "@/components/blocks/floating-contact-button"
 import { cn } from "@/lib/utils"
 
 import { useStorefrontShellData } from "../hooks/use-storefront-shell-data"
@@ -18,6 +19,7 @@ export function StorefrontLayout({
   const { data } = useStorefrontShellData()
   const fallbackCategories = useStorefrontShellStore((state) => state.categories)
   const categories = data?.categories ?? fallbackCategories
+  const settings = data?.settings
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f1ea_0%,#f3ede6_18%,#f7f3ee_100%)] text-foreground">
@@ -34,6 +36,13 @@ export function StorefrontLayout({
         {children}
       </main>
       <StorefrontFooter />
+      <FloatingContactButton
+        contact={{
+          email: settings?.supportEmail ?? null,
+          phone: settings?.supportPhone ?? null,
+        }}
+        config={settings?.floatingContact}
+      />
     </div>
   )
 }

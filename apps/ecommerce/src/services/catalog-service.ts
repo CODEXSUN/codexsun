@@ -12,7 +12,9 @@ import {
   storefrontCatalogResponseSchema,
   storefrontLandingResponseSchema,
   storefrontProductResponseSchema,
+  storefrontBrandDiscoveryCardSchema,
   type StorefrontCategorySummary,
+  type StorefrontBrandDiscoveryCard,
   type StorefrontProductCard,
   type StorefrontProductResponse,
 } from "../../shared/index.js"
@@ -176,6 +178,40 @@ async function listStorefrontCategories(
     }) satisfies StorefrontCategorySummary[]
 }
 
+function listStorefrontBrands(products: Product[]): StorefrontBrandDiscoveryCard[] {
+  const uniqueBrands = new Map<string, Product>()
+
+  for (const product of products) {
+    if (!product.isActive || !product.brandName || !product.primaryImageUrl) {
+      continue
+    }
+
+    const key = product.brandName.trim().toLowerCase()
+    if (!key || uniqueBrands.has(key)) {
+      continue
+    }
+
+    uniqueBrands.set(key, product)
+  }
+
+  return Array.from(uniqueBrands.values())
+    .sort((left, right) => (left.brandName ?? "").localeCompare(right.brandName ?? ""))
+    .map((product) =>
+      storefrontBrandDiscoveryCardSchema.parse({
+        id: `brand-card:${product.brandId ?? product.id}`,
+        brandName: product.brandName ?? "Brand",
+        title: product.storefront?.promoTitle?.trim() || product.name,
+        summary:
+          product.shortDescription?.trim() ||
+          product.categoryName?.trim() ||
+          product.storefrontDepartment?.trim() ||
+          "Explore the latest collection.",
+        imageUrl: product.primaryImageUrl,
+        href: `/shop/catalog?search=${encodeURIComponent(product.brandName ?? product.name)}`,
+      })
+    )
+}
+
 export async function getStorefrontLanding(database: Kysely<unknown>) {
   const settings = await getStorefrontSettings(database)
   const products = await readCoreProducts(database)
@@ -214,6 +250,7 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
   const newArrivals = items.filter((item) => item.isNewArrival).slice(0, newArrivalItemCount)
   const bestSellers = items.filter((item) => item.isBestSeller).slice(0, bestSellerItemCount)
   const categories = await listStorefrontCategories(database, items)
+  const brands = listStorefrontBrands(products)
 
   return storefrontLandingResponseSchema.parse({
     settings,
@@ -235,6 +272,7 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
         item.showInTopMenu ||
         (item.productCount > 0 && item.slug !== "all-items")
     ),
+    brands,
   })
 }
 

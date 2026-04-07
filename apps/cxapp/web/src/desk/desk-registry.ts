@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react"
 import {
   Blocks,
   BadgePercent,
+  Gift,
   Boxes,
   Building2,
   Cable,
@@ -458,6 +459,13 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       overview: LayoutDashboard,
       storefront: MonitorSmartphone,
       "home-slider": Sparkles,
+      campaign: Flag,
+      footer: Blocks,
+      "floating-contact": ContactRound,
+      "coupon-banner": BadgePercent,
+      "gift-corner": Gift,
+      trending: Sparkles,
+      branding: Building2,
       products: Package,
       catalog: PackageCheck,
       customers: Users,
@@ -694,6 +702,13 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/storefront`,
                   `/dashboard/apps/${app.id}/home-slider`,
+                  `/dashboard/apps/${app.id}/campaign`,
+                  `/dashboard/apps/${app.id}/footer`,
+                  `/dashboard/apps/${app.id}/floating-contact`,
+                  `/dashboard/apps/${app.id}/coupon-banner`,
+                  `/dashboard/apps/${app.id}/gift-corner`,
+                  `/dashboard/apps/${app.id}/trending`,
+                  `/dashboard/apps/${app.id}/branding`,
                 ].includes(item.route)
               ),
             },
@@ -1186,10 +1201,23 @@ export function resolveDeskLocation(
     pathname
   )
   const isAppRoot = pathname === app.route || pathname === `${app.route}/`
+  const designerRoutes = new Set([
+    "/dashboard/apps/ecommerce/home-slider",
+    "/dashboard/apps/ecommerce/campaign",
+    "/dashboard/apps/ecommerce/footer",
+    "/dashboard/apps/ecommerce/floating-contact",
+    "/dashboard/apps/ecommerce/coupon-banner",
+    "/dashboard/apps/ecommerce/gift-corner",
+    "/dashboard/apps/ecommerce/trending",
+    "/dashboard/apps/ecommerce/branding",
+  ])
+  const resolvedTitle = isAppRoot
+    ? app.workspaceTitle
+    : activeMenuItem?.name ?? app.workspaceTitle
 
   return {
     section: app.name,
-    title: isAppRoot ? app.workspaceTitle : activeMenuItem?.name ?? app.workspaceTitle,
+    title: designerRoutes.has(pathname) ? `${resolvedTitle} Designer` : resolvedTitle,
     description:
       isAppRoot
         ? app.workspaceSummary

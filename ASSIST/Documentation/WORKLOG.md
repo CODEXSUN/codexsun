@@ -2,6 +2,17 @@
 
 ## Done Till Here
 
+### `#33` 2026-04-07
+
+- added and refined ecommerce storefront content blocks and designers for footer, floating contact, coupon banner, gift corner, trending, branding, and campaign or trust management, together with supporting shared UI block surfaces
+- expanded ecommerce admin routing and side-menu coverage for the new storefront designers, and tightened storefront shell data caching or horizontal-rail behavior for better runtime scaling
+- moved billing voucher entry further onto the shared inline editable grid path with product-driven lookup behavior and tighter operational table handling
+- updated storefront e2e coverage to the current checkout, order success, and tracking flows while documenting the remaining stability gaps
+- reviewed the current ecommerce storefront, checkout, admin, customer-portal, payment, and frappe connector boundaries against production go-live readiness
+- defined a repo-specific ecommerce production blueprint covering storefront performance, backend commerce operations, user and role management, customer and admin portals, payments, inventory, shipping, tax, security, and observability
+- mapped phased ERPNext support so `apps/frappe` remains the connector boundary while future projections and transactional bridge work can expand safely into `core` and `ecommerce`
+- created `ASSIST/Planning/plan-9.md` as the execution-ready go-live plan for the next ecommerce release waves
+
 ### `#32` 2026-04-06
 
 - connected storefront Razorpay checkout more directly, removed the extra test payment screen, and carried the required checkout metadata through ecommerce runtime config and services

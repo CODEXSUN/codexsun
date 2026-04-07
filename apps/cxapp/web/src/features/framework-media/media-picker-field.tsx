@@ -27,6 +27,7 @@ export function FrameworkMediaPickerField({
   orderValue,
   onOrderChange,
   previewAlt,
+  showPreview = true,
   size = "default",
   value,
   onChange,
@@ -39,6 +40,7 @@ export function FrameworkMediaPickerField({
   orderValue?: number | string
   onOrderChange?: (value: string) => void
   previewAlt: string
+  showPreview?: boolean
   size?: "default" | "compact"
   value: string
   onChange: (value: string) => void
@@ -58,29 +60,34 @@ export function FrameworkMediaPickerField({
           size === "compact" ? "max-w-[13rem]" : ""
         )}
       >
-        <div className={cn("aspect-square bg-muted/60", size === "compact" ? "max-h-[13rem]" : "")}>
-          {value.trim().length > 0 ? (
-            <img
-              src={resolveMediaPreviewUrl(value, previewAlt)}
-              alt={previewAlt}
-              className="h-full w-full object-cover"
-              onError={(event) => handleMediaPreviewError(event, previewAlt)}
-            />
-          ) : (
-            <div
-              className={cn(
-                "flex h-full items-center justify-center text-muted-foreground",
-                size === "compact" ? "text-xs" : "text-sm"
-              )}
-            >
-              No image selected
-            </div>
-          )}
-        </div>
+        {showPreview ? (
+          <div className={cn("aspect-square bg-muted/60", size === "compact" ? "max-h-[13rem]" : "")}>
+            {value.trim().length > 0 ? (
+              <img
+                src={resolveMediaPreviewUrl(value, previewAlt)}
+                alt={previewAlt}
+                className="h-full w-full object-cover"
+                onError={(event) => handleMediaPreviewError(event, previewAlt)}
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-full items-center justify-center text-muted-foreground",
+                  size === "compact" ? "text-xs" : "text-sm"
+                )}
+              >
+                No image selected
+              </div>
+            )}
+          </div>
+        ) : null}
         <div className={cn("space-y-1.5", size === "compact" ? "p-1.5" : "p-2")}>
-          <p className="truncate text-xs text-muted-foreground">
-            {value.trim().length > 0 ? value : "Choose a media asset to attach here."}
-          </p>
+          <Input
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Paste image URL or choose from media"
+            className="h-9"
+          />
           {helperText ? (
             <div className="text-xs leading-5 text-muted-foreground">{helperText}</div>
           ) : null}

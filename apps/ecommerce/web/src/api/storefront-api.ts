@@ -7,6 +7,13 @@ import type {
   CustomerRegisterPayload,
   StorefrontHomeSlider,
   StorefrontSettings,
+  StorefrontFooter,
+  StorefrontFloatingContact,
+  StorefrontCouponBanner,
+  StorefrontGiftCorner,
+  StorefrontBrandShowcase,
+  StorefrontCampaignSection,
+  StorefrontTrendingSection,
   StorefrontCatalogResponse,
   StorefrontCheckoutPayload,
   StorefrontCheckoutResponse,
@@ -112,6 +119,97 @@ export const storefrontApi = {
   },
   updateHomeSlider(accessToken: string, payload: StorefrontHomeSlider) {
     return requestJson<StorefrontHomeSlider>("/internal/v1/ecommerce/home-slider", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontFooter(accessToken: string) {
+    return requestJson<StorefrontFooter>("/internal/v1/ecommerce/storefront-footer", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontFooter(accessToken: string, payload: StorefrontFooter) {
+    return requestJson<StorefrontFooter>("/internal/v1/ecommerce/storefront-footer", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontFloatingContact(accessToken: string) {
+    return requestJson<StorefrontFloatingContact>("/internal/v1/ecommerce/storefront-floating-contact", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontFloatingContact(accessToken: string, payload: StorefrontFloatingContact) {
+    return requestJson<StorefrontFloatingContact>("/internal/v1/ecommerce/storefront-floating-contact", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontCouponBanner(accessToken: string) {
+    return requestJson<StorefrontCouponBanner>("/internal/v1/ecommerce/storefront-coupon-banner", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontCouponBanner(accessToken: string, payload: StorefrontCouponBanner) {
+    return requestJson<StorefrontCouponBanner>("/internal/v1/ecommerce/storefront-coupon-banner", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontGiftCorner(accessToken: string) {
+    return requestJson<StorefrontGiftCorner>("/internal/v1/ecommerce/storefront-gift-corner", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontGiftCorner(accessToken: string, payload: StorefrontGiftCorner) {
+    return requestJson<StorefrontGiftCorner>("/internal/v1/ecommerce/storefront-gift-corner", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontTrendingSection(accessToken: string) {
+    return requestJson<StorefrontTrendingSection>("/internal/v1/ecommerce/storefront-trending-section", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontTrendingSection(accessToken: string, payload: StorefrontTrendingSection) {
+    return requestJson<StorefrontTrendingSection>("/internal/v1/ecommerce/storefront-trending-section", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontBrandShowcase(accessToken: string) {
+    return requestJson<StorefrontBrandShowcase>("/internal/v1/ecommerce/storefront-brand-showcase", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontBrandShowcase(accessToken: string, payload: StorefrontBrandShowcase) {
+    return requestJson<StorefrontBrandShowcase>("/internal/v1/ecommerce/storefront-brand-showcase", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontCampaign(accessToken: string) {
+    return requestJson<StorefrontCampaignSection>("/internal/v1/ecommerce/storefront-campaign", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontCampaign(accessToken: string, payload: StorefrontCampaignSection) {
+    return requestJson<StorefrontCampaignSection>("/internal/v1/ecommerce/storefront-campaign", {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),

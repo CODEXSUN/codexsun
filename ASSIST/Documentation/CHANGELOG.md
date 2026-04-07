@@ -8,6 +8,16 @@
 
 ## v-0.0.1
 
+### [#33] 2026-04-07 - Storefront content expansion, billing grid updates, and ecommerce go-live planning
+
+- added and refined ecommerce storefront content systems including reusable shared UI blocks and dedicated designers for footer, floating contact, coupon banner, gift corner, trending, branding, and campaign or trust surfaces
+- expanded ecommerce admin routing and menu coverage for the new storefront designer pages, while tightening storefront shell data caching, horizontal rail behavior, and related frontend structure for smoother scaling
+- moved billing voucher entry further toward the shared inline editable grid model with tighter product lookup behavior and operational table refinements
+- updated storefront e2e expectations to the current checkout, order-confirmation, and tracking UI, while documenting the remaining guest-address and mailbox-template gaps
+- reviewed the current ecommerce app against go-live readiness across storefront, checkout, customer portal, admin control surfaces, backend operations, payment flow, and connector boundaries
+- documented a repo-specific production blueprint covering storefront performance and SEO, backend commerce management, user and role controls, customer/admin portal maturity, payment and finance operations, inventory and shipping governance, security, observability, and phased ERPNext support
+- added `ASSIST/Planning/plan-9.md` as the execution-ready ecommerce go-live plan for the next release waves
+
 ### [#32] 2026-04-06 - Storefront UX polish, framework mail, and deployment wiring
 
 - connected live storefront payment flow details for Razorpay checkout, removed the extra test-only payment screen, and carried richer checkout metadata through ecommerce order and payment services

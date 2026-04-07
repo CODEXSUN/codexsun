@@ -1,7 +1,4 @@
-import { sql } from "kysely"
-
 import { defineDatabaseMigration } from "../../../framework/src/runtime/database/process/types.js"
-import { asQueryDatabase } from "../../src/data/query-database.js"
 import { cxappTableNames } from "../table-names.js"
 
 export const coreMailboxArchiveMigration = defineDatabaseMigration({
@@ -11,11 +8,9 @@ export const coreMailboxArchiveMigration = defineDatabaseMigration({
   name: "Add archive state to mailbox messages",
   order: 80,
   up: async ({ database }) => {
-    const queryDatabase = asQueryDatabase(database)
-
-    await sql`
-      ALTER TABLE ${sql.table(cxappTableNames.mailboxMessages)}
-      ADD COLUMN IF NOT EXISTS archived_at varchar(40) NULL
-    `.execute(queryDatabase)
+    await database.schema
+      .alterTable(cxappTableNames.mailboxMessages)
+      .addColumn("archived_at", "varchar(40)")
+      .execute()
   },
 })

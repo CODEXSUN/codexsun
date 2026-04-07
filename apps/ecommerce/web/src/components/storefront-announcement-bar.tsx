@@ -5,11 +5,10 @@ import { Link } from "react-router-dom"
 
 import type { StorefrontLandingResponse } from "@ecommerce/shared"
 
-import { normalizeStorefrontHref, storefrontPaths } from "../lib/storefront-routes"
+import { normalizeStorefrontHref } from "../lib/storefront-routes"
 
 type StorefrontAnnouncementBarProps = {
   landing: StorefrontLandingResponse | null
-  cartSubtotalAmount: number
 }
 
 type AnnouncementItem = {
@@ -17,14 +16,6 @@ type AnnouncementItem = {
   text: string
   fullText: string
   href?: string
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(value)
 }
 
 function clampAnnouncementText(value: string, maxLength: number) {
@@ -35,95 +26,25 @@ function clampAnnouncementText(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}...`
 }
 
-function buildShippingAnnouncement(remainingAmount: number, threshold: number) {
-  const fullText =
-    remainingAmount > 0
-      ? `Add ${formatCurrency(remainingAmount)} more to unlock free shipping on prepaid orders above ${formatCurrency(threshold)}.`
-      : "Free shipping unlocked for your current cart."
-
-  const text =
-    remainingAmount > 0
-      ? `Add ${formatCurrency(remainingAmount)} more for free shipping above ${formatCurrency(threshold)}.`
-      : "Free shipping unlocked for your cart."
-
-  return { text, fullText }
-}
-
-function buildSupportAnnouncement(params: {
-  supportEmail?: string | null
-  supportPhone?: string | null
-}) {
-  const email = params.supportEmail?.trim() || ""
-  const phone = params.supportPhone?.trim() || ""
-  const supportParts = [email, phone].filter(Boolean)
-
-  if (phone) {
-    return {
-      text: clampAnnouncementText(`Need help? Support: ${phone}`, 52),
-      fullText:
-        supportParts.length > 1
-          ? `Need help? Reach support at ${supportParts.join(" or ")}.`
-          : `Need help? Reach support at ${phone}.`,
-    }
-  }
-
-  if (email) {
-    return {
-      text: clampAnnouncementText(`Need help? Support: ${email}`, 52),
-      fullText: `Need help? Reach support at ${email}.`,
-    }
-  }
-
-  return {
-    text: "Need help? Track orders and contact support.",
-    fullText: "Need help? Track your order and reach the storefront support team.",
-  }
-}
-
 export function StorefrontAnnouncementBar({
   landing,
-  cartSubtotalAmount,
 }: StorefrontAnnouncementBarProps) {
   const settings = landing?.settings
   const visibility = settings?.visibility
   const items = useMemo<AnnouncementItem[]>(() => {
-    const threshold = Math.max(settings?.freeShippingThreshold ?? 3999, 0)
-    const remainingAmount = Math.max(threshold - cartSubtotalAmount, 0)
-    const nextItems: AnnouncementItem[] = []
-
-    if (visibility?.announcement && settings?.announcement?.trim()) {
-      const fullText = settings.announcement.trim()
-      nextItems.push({
-        id: "announcement",
-        text: clampAnnouncementText(fullText, 78),
-        fullText,
-        href: storefrontPaths.catalog(),
-      })
+    if (!visibility?.announcement) {
+      return []
     }
 
-    if (visibility?.support) {
-      const shippingAnnouncement = buildShippingAnnouncement(remainingAmount, threshold)
-      const supportAnnouncement = buildSupportAnnouncement({
-        supportEmail: settings?.supportEmail,
-        supportPhone: settings?.supportPhone,
-      })
-
-      nextItems.push({
-        id: "shipping",
-        text: shippingAnnouncement.text,
-        fullText: shippingAnnouncement.fullText,
-        href: remainingAmount > 0 ? storefrontPaths.catalog() : storefrontPaths.cart(),
-      })
-      nextItems.push({
-        id: "support",
-        text: supportAnnouncement.text,
-        fullText: supportAnnouncement.fullText,
-        href: storefrontPaths.trackOrder(),
-      })
-    }
-
-    return nextItems
-  }, [cartSubtotalAmount, settings, visibility?.announcement, visibility?.support])
+    return (settings?.announcementItems ?? [])
+      .filter((item) => item.text.trim().length > 0)
+      .map((item) => ({
+        id: item.id,
+        text: clampAnnouncementText(item.text.trim(), 78),
+        fullText: item.text.trim(),
+        href: item.href?.trim() || undefined,
+      }))
+  }, [settings, visibility?.announcement])
 
   const [activeIndex, setActiveIndex] = useState(0)
 

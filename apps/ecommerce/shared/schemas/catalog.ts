@@ -39,6 +39,12 @@ export const storefrontAnnouncementDesignSchema = z.object({
   cornerStyle: z.enum(["pill", "rounded", "soft"]),
 })
 
+export const storefrontAnnouncementItemSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+  href: z.string().min(1).nullable().default(null),
+})
+
 export const storefrontHeroSchema = z.object({
   eyebrow: z.string().min(1),
   title: z.string().min(1),
@@ -165,6 +171,32 @@ export const storefrontTrustNoteSchema = z.object({
   iconKey: z.enum(["sparkles", "truck", "shield"]),
 })
 
+export const storefrontCampaignDesignSchema = z.object({
+  campaignBackgroundFrom: hexColorSchema,
+  campaignBackgroundTo: hexColorSchema,
+  campaignBorderColor: hexColorSchema,
+  campaignEyebrowColor: hexColorSchema,
+  campaignTitleColor: hexColorSchema,
+  campaignSummaryColor: hexColorSchema,
+  primaryButtonBackgroundColor: hexColorSchema,
+  primaryButtonTextColor: hexColorSchema,
+  primaryButtonBorderColor: hexColorSchema,
+  secondaryButtonBackgroundColor: hexColorSchema,
+  secondaryButtonTextColor: hexColorSchema,
+  secondaryButtonBorderColor: hexColorSchema,
+  trustCardBackgroundColor: hexColorSchema,
+  trustCardBorderColor: hexColorSchema,
+  trustCardHoverBorderColor: hexColorSchema,
+  trustIconBackgroundColor: hexColorSchema,
+  trustIconColor: hexColorSchema,
+  trustIconHoverBackgroundColor: hexColorSchema,
+  trustIconHoverColor: hexColorSchema,
+  trustTitleColor: hexColorSchema,
+  trustTitleHoverColor: hexColorSchema,
+  trustSummaryColor: hexColorSchema,
+  trustSummaryHoverColor: hexColorSchema,
+})
+
 export const storefrontVisibilitySchema = z.object({
   announcement: z.boolean().default(true),
   hero: z.boolean().default(true),
@@ -183,6 +215,40 @@ export const storefrontFooterLinkSchema = z.object({
   href: z.string().min(1),
 })
 
+export const storefrontFooterSocialLinkSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  href: z.string().min(1),
+  platform: z
+    .enum([
+      "facebook",
+      "instagram",
+      "twitter",
+      "youtube",
+      "website",
+      "linkedin",
+      "github",
+      "discord",
+      "whatsapp",
+      "telegram",
+    ])
+    .default("website"),
+})
+
+export const storefrontFooterDesignSchema = z.object({
+  backgroundColor: hexColorSchema,
+  borderColor: hexColorSchema,
+  titleColor: hexColorSchema,
+  bodyTextColor: hexColorSchema,
+  mutedTextColor: hexColorSchema,
+  logoBackgroundColor: hexColorSchema,
+  socialButtonBackgroundColor: hexColorSchema,
+  socialButtonBorderColor: hexColorSchema,
+  socialButtonIconColor: hexColorSchema,
+  socialButtonHoverBackgroundColor: hexColorSchema,
+  socialButtonHoverIconColor: hexColorSchema,
+})
+
 export const storefrontFooterGroupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -191,7 +257,101 @@ export const storefrontFooterGroupSchema = z.object({
 
 export const storefrontFooterSchema = z.object({
   description: z.string().min(1),
+  legalLine: z.string().min(1),
+  socialLinks: z.array(storefrontFooterSocialLinkSchema).default([]),
+  design: storefrontFooterDesignSchema,
   groups: z.array(storefrontFooterGroupSchema).min(1),
+})
+
+export const storefrontFloatingContactSchema = z.object({
+  enabled: z.boolean().default(true),
+  icon: z.enum(["contact", "message", "phone", "mail"]).default("contact"),
+  email: z.string().trim().nullable().default(null),
+  phone: z.string().trim().nullable().default(null),
+  showWhatsApp: z.boolean().default(true),
+  showPhone: z.boolean().default(true),
+  showEmail: z.boolean().default(true),
+  buttonLabel: z.string().min(1),
+  whatsappLabel: z.string().min(1),
+  phoneLabel: z.string().min(1),
+  emailLabel: z.string().min(1),
+  whatsappMessage: z.string().min(1),
+  buttonBackgroundColor: hexColorSchema,
+  buttonHoverBackgroundColor: hexColorSchema,
+  buttonTextColor: hexColorSchema,
+  buttonBorderColor: hexColorSchema,
+  buttonRingColor: hexColorSchema,
+  actionBackgroundColor: hexColorSchema,
+  actionBorderColor: hexColorSchema,
+  actionTextColor: hexColorSchema,
+  actionIconColor: hexColorSchema,
+})
+
+export const storefrontCouponBannerSchema = z.object({
+  enabled: z.boolean().default(true),
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  couponCode: z.string().min(1),
+  buttonLabel: z.string().min(1),
+  buttonHref: z.string().min(1).nullable().default(null),
+  helperText: z.string().min(1),
+  backgroundColor: hexColorSchema,
+  borderColor: hexColorSchema,
+  eyebrowColor: hexColorSchema,
+  titleColor: hexColorSchema,
+  summaryColor: hexColorSchema,
+  codeBackgroundColor: hexColorSchema,
+  codeTextColor: hexColorSchema,
+  buttonBackgroundColor: hexColorSchema,
+  buttonTextColor: hexColorSchema,
+  accentColor: hexColorSchema,
+})
+
+export const storefrontGiftCornerSchema = z.object({
+  enabled: z.boolean().default(true),
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  buttonLabel: z.string().min(1),
+  buttonHref: z.string().min(1).nullable().default(null),
+  imageUrl: z.string().min(1),
+  backgroundFrom: hexColorSchema,
+  backgroundTo: hexColorSchema,
+  eyebrowColor: hexColorSchema,
+  titleColor: hexColorSchema,
+  summaryColor: hexColorSchema,
+  buttonBackgroundColor: hexColorSchema,
+  buttonIconColor: hexColorSchema,
+  imageFrameBackgroundColor: hexColorSchema,
+  imageFrameAccentColor: hexColorSchema,
+  ribbonColor: hexColorSchema,
+  ribbonDetailColor: hexColorSchema,
+})
+
+export const storefrontTrendingCardSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  caption: z.string().min(1),
+  href: z.string().min(1).nullable().default(null),
+  imageUrl: z.string().min(1),
+  backgroundColor: hexColorSchema,
+  titleColor: hexColorSchema,
+  captionBackgroundColor: hexColorSchema,
+  captionTextColor: hexColorSchema,
+})
+
+export const storefrontTrendingSectionSchema = z.object({
+  enabled: z.boolean().default(true),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  featureTitle: z.string().min(1),
+  featureSummary: z.string().min(1),
+  featureImageUrl: z.string().min(1),
+  featureHref: z.string().min(1).nullable().default(null),
+  featureBackgroundColor: hexColorSchema,
+  featureTextColor: hexColorSchema,
+  cards: z.array(storefrontTrendingCardSchema).min(1),
 })
 
 export const storefrontProductCardSchema = z.object({
@@ -233,6 +393,32 @@ export const storefrontCategorySummarySchema = z.object({
   href: z.string().min(1),
 })
 
+export const storefrontBrandDiscoveryCardSchema = z.object({
+  id: z.string().min(1),
+  brandName: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  imageUrl: z.string().min(1),
+  href: z.string().min(1),
+})
+
+export const storefrontBrandShowcaseSchema = z.object({
+  enabled: z.boolean().default(true),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  cards: z.array(storefrontBrandDiscoveryCardSchema).min(1),
+})
+
+export const storefrontCampaignSectionSchema = z.object({
+  visibility: z.object({
+    cta: z.boolean().default(true),
+    trust: z.boolean().default(true),
+  }),
+  campaign: storefrontPromoSectionSchema,
+  trustNotes: z.array(storefrontTrustNoteSchema).min(1),
+  design: storefrontCampaignDesignSchema,
+})
+
 export const storefrontSettingsSchema = z.object({
   id: z.string().min(1),
   visibility: storefrontVisibilitySchema,
@@ -240,6 +426,7 @@ export const storefrontSettingsSchema = z.object({
   homeSlider: storefrontHomeSliderSchema,
   search: storefrontSearchSchema,
   announcementDesign: storefrontAnnouncementDesignSchema,
+  announcementItems: z.array(storefrontAnnouncementItemSchema).min(1),
   sections: z.object({
     featured: storefrontFeaturedSectionSchema,
     categories: storefrontCategorySectionSchema,
@@ -249,6 +436,12 @@ export const storefrontSettingsSchema = z.object({
   }),
   trustNotes: z.array(storefrontTrustNoteSchema).min(1),
   footer: storefrontFooterSchema,
+  floatingContact: storefrontFloatingContactSchema,
+  couponBanner: storefrontCouponBannerSchema,
+  giftCorner: storefrontGiftCornerSchema,
+  trendingSection: storefrontTrendingSectionSchema,
+  brandShowcase: storefrontBrandShowcaseSchema,
+  campaignDesign: storefrontCampaignDesignSchema,
   announcement: z.string().min(1),
   supportPhone: z.string().min(1),
   supportEmail: z.email(),
@@ -265,6 +458,7 @@ export const storefrontLandingResponseSchema = z.object({
   newArrivals: z.array(storefrontProductCardSchema),
   bestSellers: z.array(storefrontProductCardSchema),
   categories: z.array(storefrontCategorySummarySchema),
+  brands: z.array(storefrontBrandDiscoveryCardSchema),
 })
 
 export const storefrontCatalogQuerySchema = z.object({
@@ -312,6 +506,7 @@ export type StorefrontHomeSliderSlide = z.infer<typeof storefrontHomeSliderSlide
 export type StorefrontHomeSlider = z.infer<typeof storefrontHomeSliderSchema>
 export type StorefrontHighlight = z.infer<typeof storefrontHighlightSchema>
 export type StorefrontAnnouncementDesign = z.infer<typeof storefrontAnnouncementDesignSchema>
+export type StorefrontAnnouncementItem = z.infer<typeof storefrontAnnouncementItemSchema>
 export type StorefrontSearch = z.infer<typeof storefrontSearchSchema>
 export type StorefrontSearchDepartment = z.infer<typeof storefrontSearchDepartmentSchema>
 export type StorefrontCatalogIntro = z.infer<typeof storefrontCatalogIntroSchema>
@@ -322,12 +517,23 @@ export type StorefrontCategoryCardDesign = z.infer<typeof storefrontCategoryCard
 export type StorefrontCategorySection = z.infer<typeof storefrontCategorySectionSchema>
 export type StorefrontPromoSection = z.infer<typeof storefrontPromoSectionSchema>
 export type StorefrontTrustNote = z.infer<typeof storefrontTrustNoteSchema>
+export type StorefrontCampaignDesign = z.infer<typeof storefrontCampaignDesignSchema>
 export type StorefrontVisibility = z.infer<typeof storefrontVisibilitySchema>
 export type StorefrontFooter = z.infer<typeof storefrontFooterSchema>
+export type StorefrontFooterDesign = z.infer<typeof storefrontFooterDesignSchema>
 export type StorefrontFooterGroup = z.infer<typeof storefrontFooterGroupSchema>
 export type StorefrontFooterLink = z.infer<typeof storefrontFooterLinkSchema>
+export type StorefrontFooterSocialLink = z.infer<typeof storefrontFooterSocialLinkSchema>
+export type StorefrontFloatingContact = z.infer<typeof storefrontFloatingContactSchema>
+export type StorefrontCouponBanner = z.infer<typeof storefrontCouponBannerSchema>
+export type StorefrontGiftCorner = z.infer<typeof storefrontGiftCornerSchema>
+export type StorefrontTrendingCard = z.infer<typeof storefrontTrendingCardSchema>
+export type StorefrontTrendingSection = z.infer<typeof storefrontTrendingSectionSchema>
 export type StorefrontProductCard = z.infer<typeof storefrontProductCardSchema>
 export type StorefrontCategorySummary = z.infer<typeof storefrontCategorySummarySchema>
+export type StorefrontBrandDiscoveryCard = z.infer<typeof storefrontBrandDiscoveryCardSchema>
+export type StorefrontBrandShowcase = z.infer<typeof storefrontBrandShowcaseSchema>
+export type StorefrontCampaignSection = z.infer<typeof storefrontCampaignSectionSchema>
 export type StorefrontSettings = z.infer<typeof storefrontSettingsSchema>
 export type StorefrontLandingResponse = z.infer<typeof storefrontLandingResponseSchema>
 export type StorefrontCatalogQuery = z.infer<typeof storefrontCatalogQuerySchema>

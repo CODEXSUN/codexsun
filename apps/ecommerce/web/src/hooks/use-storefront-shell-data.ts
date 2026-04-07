@@ -19,6 +19,9 @@ export function useStorefrontShellData() {
     queryKey: queryKeys.storefrontLanding,
     queryFn: () => storefrontApi.getHome(),
     initialData: cachedLanding ?? undefined,
+    staleTime: 30_000,
+    gcTime: 300_000,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {

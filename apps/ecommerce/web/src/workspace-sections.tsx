@@ -25,6 +25,13 @@ import {
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { ProductUpsertSection as CoreProductUpsertSection } from "@core/web/src/features/product/product-upsert-section"
 import { HomeSliderSection } from "./features/storefront-admin/home-slider-section"
+import { StorefrontCampaignSection as StorefrontCampaignDesignerSection } from "./features/storefront-admin/storefront-campaign-section"
+import { StorefrontCouponBannerSection } from "./features/storefront-admin/storefront-coupon-banner-section"
+import { StorefrontFooterSection } from "./features/storefront-admin/storefront-footer-section"
+import { StorefrontFloatingContactSection } from "./features/storefront-admin/storefront-floating-contact-section"
+import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
+import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
+import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
 
@@ -298,6 +305,26 @@ function StorefrontSection() {
 
 function HomeSliderDesignerSection() {
   return <HomeSliderSection />
+}
+
+function CampaignDesignerSection() {
+  return <StorefrontCampaignDesignerSection />
+}
+
+function CouponBannerDesignerSection() {
+  return <StorefrontCouponBannerSection />
+}
+
+function GiftCornerDesignerSection() {
+  return <StorefrontGiftCornerSection />
+}
+
+function TrendingSectionDesignerSection() {
+  return <StorefrontTrendingSectionSection />
+}
+
+function BrandShowcaseDesignerSection() {
+  return <StorefrontBrandShowcaseSection />
 }
 
 function ProductsSection() {
@@ -822,6 +849,13 @@ function SettingsSection() {
           <ActionLink href="/dashboard/settings/core-settings" label="Open runtime settings" />
           <ActionLink href="/dashboard/apps/ecommerce/storefront" label="Open storefront admin" />
           <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Open slider designer" />
+          <ActionLink href="/dashboard/apps/ecommerce/campaign" label="Open campaign designer" />
+          <ActionLink href="/dashboard/apps/ecommerce/footer" label="Open footer designer" />
+          <ActionLink href="/dashboard/apps/ecommerce/floating-contact" label="Open floating contact" />
+          <ActionLink href="/dashboard/apps/ecommerce/coupon-banner" label="Open coupon banner" />
+          <ActionLink href="/dashboard/apps/ecommerce/gift-corner" label="Open gift corner" />
+          <ActionLink href="/dashboard/apps/ecommerce/trending" label="Open trending designer" />
+          <ActionLink href="/dashboard/apps/ecommerce/branding" label="Open branding designer" />
         </CardContent>
       </Card>
     </div>
@@ -842,6 +876,16 @@ export function EcommerceWorkspaceSection({
       return <StorefrontSection />
     case "home-slider":
       return <HomeSliderDesignerSection />
+    case "campaign":
+      return <CampaignDesignerSection />
+    case "coupon-banner":
+      return <CouponBannerDesignerSection />
+    case "gift-corner":
+      return <GiftCornerDesignerSection />
+    case "trending":
+      return <TrendingSectionDesignerSection />
+    case "branding":
+      return <BrandShowcaseDesignerSection />
     case "products":
       return <ProductsSection />
     case "products-show":
@@ -858,6 +902,10 @@ export function EcommerceWorkspaceSection({
       return <CheckoutSection />
     case "shipping":
       return <ShippingSettingsSection />
+    case "footer":
+      return <StorefrontFooterSection />
+    case "floating-contact":
+      return <StorefrontFloatingContactSection />
     case "settings":
       return <SettingsSection />
     case "overview":

@@ -32,6 +32,8 @@ export default defineConfig({
         DB_DRIVER: "sqlite",
         SQLITE_FILE: "storage/playwright/codexsun.sqlite",
         OFFLINE_SUPPORT_ENABLED: "false",
+        PAYMENT_TEST: "true",
+        RAZORPAY_ENABLED: "false",
       },
     },
     {
