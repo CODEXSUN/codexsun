@@ -10,11 +10,13 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import {
   storefrontCatalogQuerySchema,
   storefrontCatalogResponseSchema,
+  storefrontLegalPageResponseSchema,
   storefrontLandingResponseSchema,
   storefrontProductResponseSchema,
   storefrontBrandDiscoveryCardSchema,
   type StorefrontCategorySummary,
   type StorefrontBrandDiscoveryCard,
+  type StorefrontLegalPage,
   type StorefrontProductCard,
   type StorefrontProductDetail,
   type StorefrontProductResponse,
@@ -428,6 +430,23 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
         (item.productCount > 0 && item.slug !== "all-items")
     ),
     brands,
+  })
+}
+
+export async function getStorefrontLegalPage(
+  database: Kysely<unknown>,
+  pageId: StorefrontLegalPage["id"]
+) {
+  const settings = await getStorefrontSettings(database)
+  const item = settings.legalPages[pageId]
+
+  if (!item) {
+    throw new ApplicationError("Storefront legal page was not found.", { pageId }, 404)
+  }
+
+  return storefrontLegalPageResponseSchema.parse({
+    settings,
+    item,
   })
 }
 

@@ -18,6 +18,9 @@ test("http route assemblies expose versioned internal, external, and public surf
   const publicBootstrap = routes.find(
     (route) => route.path === "/public/v1/bootstrap"
   )
+  const publicLegalPage = routes.find(
+    (route) => route.path === "/public/v1/storefront/legal-page"
+  )
 
   assert.ok(internalApps)
   assert.equal(internalApps.surface, "internal")
@@ -36,6 +39,10 @@ test("http route assemblies expose versioned internal, external, and public surf
   assert.ok(publicBootstrap)
   assert.equal(publicBootstrap.surface, "public")
   assert.equal(publicBootstrap.auth, "none")
+
+  assert.ok(publicLegalPage)
+  assert.equal(publicLegalPage.surface, "public")
+  assert.equal(publicLegalPage.auth, "none")
 
   assert.equal(
     matchHttpRoute(routes, "GET", "/internal/apps")?.path,

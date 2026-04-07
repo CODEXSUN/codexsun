@@ -368,11 +368,11 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
         id: "footer:trade",
         title: "Trade information",
         links: [
-          { label: "Terms & Conditions", href: "/" },
-          { label: "Privacy Policy", href: "/" },
-          { label: "Shipping Information", href: "/" },
-          { label: "Returns & Exchanges", href: "/" },
-          { label: "Compliance and Documentation", href: "/" },
+          { label: "Terms & Conditions", href: "/shop/terms" },
+          { label: "Privacy Policy", href: "/shop/privacy" },
+          { label: "Shipping Information", href: "/shop/shipping" },
+          { label: "Returns & Exchanges", href: "/shop/returns" },
+          { label: "Contact and Support", href: "/shop/contact" },
         ],
       },
     ],
@@ -563,6 +563,253 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
         href: "/shop/catalog",
       },
     ],
+  },
+  legalPages: {
+    shipping: {
+      id: "shipping",
+      eyebrow: "Shipping policy",
+      title: "Shipping and delivery information",
+      summary:
+        "Understand how we process, dispatch, and deliver storefront orders before they leave the Tiruppur retail and fulfillment network.",
+      supportLabel: "Need dispatch help? Contact our support desk before placing the order.",
+      sections: [
+        {
+          id: "shipping:processing",
+          title: "Order processing",
+          summary: "What happens between checkout and dispatch.",
+          body: [
+            "Orders are reviewed after payment confirmation or order placement for approved pay-at-store pickup requests.",
+            "In-stock storefront orders usually move to fulfilment within one to two business days, excluding Sundays and listed holidays.",
+            "If item availability changes after checkout, our team will contact you using the email or phone number attached to the order.",
+          ],
+        },
+        {
+          id: "shipping:delivery",
+          title: "Delivery coverage and timelines",
+          summary: "Transit times vary by destination and courier lane.",
+          body: [
+            "Metro deliveries generally arrive within two to five business days after dispatch, while non-metro destinations can take longer.",
+            "Large-volume, bulk, or custom sourcing orders may require a separate logistics confirmation before shipment.",
+            "Shipping estimates shown during checkout are indicative and can change due to weather, carrier delays, or regulatory checks.",
+          ],
+        },
+        {
+          id: "shipping:charges",
+          title: "Shipping charges",
+          summary: "How shipping and handling are calculated.",
+          body: [
+            "Free shipping applies only when the order crosses the current storefront free-shipping threshold.",
+            "Orders below the threshold can include shipping and handling based on the active storefront pricing configuration.",
+            "Store pickup orders do not include delivery charges because the material is collected directly from the pickup location.",
+          ],
+        },
+      ],
+      faqs: [
+        {
+          id: "shipping:faq:address",
+          question: "Can I change the delivery address after placing the order?",
+          answer:
+            "Address corrections are only possible before dispatch. Contact support quickly with the order number so the team can confirm whether the shipment is still editable.",
+        },
+        {
+          id: "shipping:faq:tracking",
+          question: "How do I track my order after dispatch?",
+          answer:
+            "Use the storefront track-order page with the order number and purchase email to see the current fulfilment and shipment progress.",
+        },
+      ],
+    },
+    returns: {
+      id: "returns",
+      eyebrow: "Returns policy",
+      title: "Returns, exchanges, and refund handling",
+      summary:
+        "Review the conditions for return requests, exchange approvals, and payment reversals before ordering from the storefront.",
+      supportLabel: "Return approvals are reviewed by support against the exact order and item condition.",
+      sections: [
+        {
+          id: "returns:eligibility",
+          title: "Return eligibility",
+          summary: "Basic rules that must be met before approval.",
+          body: [
+            "Return requests should be raised within the published return window from the date of delivery or pickup confirmation.",
+            "Items must be unused, unwashed, and returned with original tags, packaging, and all included accessories where applicable.",
+            "Products marked as final sale, customized, sampled, intimate wear, or damaged by misuse may be rejected for return or exchange.",
+          ],
+        },
+        {
+          id: "returns:process",
+          title: "Exchange and refund process",
+          summary: "How requests are reviewed and closed.",
+          body: [
+            "Once the request is accepted, we may arrange reverse pickup or ask you to send the material to the instructed return address.",
+            "Exchange dispatch starts only after the returned item passes inward quality review.",
+            "Approved refunds are processed back to the original payment method when possible, or handled according to the recorded payment flow.",
+          ],
+        },
+        {
+          id: "returns:exceptions",
+          title: "Damaged or incorrect orders",
+          summary: "Special handling for fulfilment mistakes.",
+          body: [
+            "If the parcel arrives damaged or the wrong item is delivered, notify support with photos and the order reference as soon as possible.",
+            "Visible transit damage should be documented before the package is used or repacked.",
+            "Support may request additional verification before replacement, refund, or carrier claim processing.",
+          ],
+        },
+      ],
+      faqs: [
+        {
+          id: "returns:faq:pickup",
+          question: "Are store pickup orders eligible for return?",
+          answer:
+            "Yes, if the item qualifies under the same return rules. The support team will confirm whether it should be brought back to the pickup location or shipped to a review address.",
+        },
+      ],
+    },
+    privacy: {
+      id: "privacy",
+      eyebrow: "Privacy policy",
+      title: "Privacy and customer data handling",
+      summary:
+        "This page explains how customer identity, checkout data, and storefront activity are used to operate the ecommerce experience.",
+      supportLabel: "For privacy requests, contact the support desk using the registered customer email.",
+      sections: [
+        {
+          id: "privacy:collection",
+          title: "Information we collect",
+          summary: "Operational data used to run the storefront.",
+          body: [
+            "We collect the identity, delivery, contact, and order information needed to process purchases, provide updates, and support fulfilment.",
+            "Payment information is handled through connected providers such as Razorpay; we do not store full card credentials in the storefront application.",
+            "Basic usage and communication logs may be recorded to support security monitoring, order recovery, and service troubleshooting.",
+          ],
+        },
+        {
+          id: "privacy:usage",
+          title: "How information is used",
+          summary: "Usage is limited to operating and securing the service.",
+          body: [
+            "Customer data is used to create orders, communicate status, support account access, and maintain fulfilment records.",
+            "Administrative access to customer and order information is limited to authorized operational users based on role and support responsibility.",
+            "We may retain records needed for legal compliance, payment reconciliation, tax handling, fraud prevention, or audit trails.",
+          ],
+        },
+        {
+          id: "privacy:requests",
+          title: "Customer rights and requests",
+          summary: "How to request updates or clarifications.",
+          body: [
+            "Customers can request correction of inaccurate profile or order contact information where the transaction is still open to update.",
+            "Requests related to retained transaction or invoice data may be limited where records must be preserved for compliance or audit reasons.",
+            "All formal privacy requests should include enough order or account detail for identity verification before processing.",
+          ],
+        },
+      ],
+      faqs: [
+        {
+          id: "privacy:faq:marketing",
+          question: "Do you sell customer data to third parties?",
+          answer:
+            "No. Customer information is used to operate the storefront, support fulfilment, and maintain lawful business records, not for unrelated resale.",
+        },
+      ],
+    },
+    terms: {
+      id: "terms",
+      eyebrow: "Terms and conditions",
+      title: "Storefront terms and conditions",
+      summary:
+        "These terms govern customer use of the storefront, catalog information, checkout, payment, fulfilment, and account access.",
+      supportLabel: "If any term is unclear before ordering, contact support for clarification.",
+      sections: [
+        {
+          id: "terms:ordering",
+          title: "Ordering and acceptance",
+          summary: "When an order is considered accepted.",
+          body: [
+            "Submitting an order request does not guarantee fulfilment until the order is confirmed and passes stock, payment, and review checks.",
+            "We reserve the right to cancel, hold, or adjust an order if pricing, stock, identity, or operational integrity issues are detected.",
+            "Customers are responsible for ensuring that delivery, billing, and contact details are accurate at the time of checkout.",
+          ],
+        },
+        {
+          id: "terms:pricing",
+          title: "Pricing, payments, and availability",
+          summary: "Commercial terms applied to storefront purchases.",
+          body: [
+            "Product pricing, promotions, and availability can change without prior notice until the order is successfully placed.",
+            "Taxes, shipping, and handling can be applied according to the active storefront configuration visible during checkout.",
+            "Failed, reversed, disputed, or unreconciled payments may delay order confirmation or trigger manual review before fulfilment.",
+          ],
+        },
+        {
+          id: "terms:liability",
+          title: "Service usage and liability",
+          summary: "Reasonable limits and responsible use.",
+          body: [
+            "Customers should use the storefront and account features lawfully and should not attempt unauthorized access, scraping, abuse, or fraudulent transactions.",
+            "Catalog descriptions, imagery, and merchandising copy are prepared for guidance and can vary slightly from final delivered material depending on production or display conditions.",
+            "Our liability is limited to the extent permitted by applicable law and the specific order value involved in the transaction under review.",
+          ],
+        },
+      ],
+      faqs: [
+        {
+          id: "terms:faq:cancellation",
+          question: "Can I cancel an order after payment?",
+          answer:
+            "Cancellation depends on fulfilment status. Once the order has entered processing or dispatch, the support team must review whether cancellation is still operationally possible.",
+        },
+      ],
+    },
+    contact: {
+      id: "contact",
+      eyebrow: "Contact and support",
+      title: "How to reach the storefront support team",
+      summary:
+        "Use these contact paths for order tracking, pickup coordination, dispatch clarifications, and post-purchase support.",
+      supportLabel: "Support availability can vary by business hours, active holiday schedules, and fulfilment workload.",
+      sections: [
+        {
+          id: "contact:support",
+          title: "Customer support channels",
+          summary: "Primary contact methods.",
+          body: [
+            "Phone: +91 90000 12345",
+            "Email: storefront@codexsun.local",
+            "Track live order progress using the self-service tracking page before escalating delivery follow-ups.",
+          ],
+        },
+        {
+          id: "contact:pickup",
+          title: "Store pickup desk",
+          summary: "For pickup-enabled orders.",
+          body: [
+            "Pickup store: Tirupur Direct Retail Store",
+            "Address: 45 Kumaran Road, Near Old Bus Stand, Tiruppur, Tamil Nadu 641601, India",
+            "Bring the order number and a reachable mobile number when arriving for collection.",
+          ],
+        },
+        {
+          id: "contact:business",
+          title: "Business and sourcing enquiries",
+          summary: "For larger commercial requests.",
+          body: [
+            "Bulk order, private label, and sourcing discussions may require a separate support review before pricing or production timelines are committed.",
+            "Please share the product requirement, quantity expectation, timeline, and preferred contact details in the initial enquiry.",
+          ],
+        },
+      ],
+      faqs: [
+        {
+          id: "contact:faq:response",
+          question: "What details should I include when contacting support?",
+          answer:
+            "Include the order number, purchase email, customer name, and a short summary of the issue so the team can validate the request quickly.",
+        },
+      ],
+    },
   },
   announcement:
     "Free shipping on prepaid orders above Rs. 3,999 across the primary storefront catalog.",

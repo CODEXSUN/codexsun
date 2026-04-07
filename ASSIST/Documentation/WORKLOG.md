@@ -2,6 +2,14 @@
 
 ## Done Till Here
 
+### `#38` 2026-04-07
+
+- completed Stage `1.6.1` by adding backend-seeded storefront legal and trust pages for shipping, returns, privacy, terms, and contact
+- exposed the legal-page data through a public ecommerce route, frontend API method, query key, storefront route helpers, and a reusable storefront legal-page surface under both root and `/shop/*`
+- updated footer trade links so the new trust pages are discoverable from the live storefront immediately
+- validated the slice with `npm run typecheck` and `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/services.test.ts`
+- initiated Stage `1.6.2` by recording the route-level metadata follow-up in planning for the next storefront production batch
+
 ### `#37` 2026-04-07
 
 - completed the remaining Stage `1.2` reliability tasks by adding stable storefront order-confirmation and tracking coverage, formalizing the ecommerce order state machine, and enforcing idempotent duplicate-submit and payment-verify behavior

@@ -14,6 +14,7 @@ import type {
   StorefrontGiftCorner,
   StorefrontBrandShowcase,
   StorefrontCampaignSection,
+  StorefrontLegalPageResponse,
   StorefrontTrendingSection,
   StorefrontCatalogResponse,
   StorefrontCheckoutPayload,
@@ -103,6 +104,12 @@ export const storefrontApi = {
     url.searchParams.set("slug", slug)
 
     return requestJson<StorefrontProductResponse>(url.toString(), { cache: "no-store" })
+  },
+  getLegalPage(pageId: "shipping" | "returns" | "privacy" | "terms" | "contact") {
+    const url = new URL("/public/v1/storefront/legal-page", window.location.origin)
+    url.searchParams.set("pageId", pageId)
+
+    return requestJson<StorefrontLegalPageResponse>(url.toString(), { cache: "no-store" })
   },
   getStorefrontSettings(accessToken: string) {
     return requestJson<StorefrontSettings>("/internal/v1/ecommerce/storefront-settings", {

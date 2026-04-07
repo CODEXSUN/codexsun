@@ -6,6 +6,7 @@ export const queryKeys = {
   storefrontLanding: ["storefront", "landing"] as const,
   storefrontCatalog: (search: string) => ["storefront", "catalog", search] as const,
   storefrontProduct: (slug: string) => ["storefront", "product", slug] as const,
+  storefrontLegalPage: (pageId: string) => ["storefront", "legal-page", pageId] as const,
   storefrontCustomerPortal: ["storefront", "customer-portal"] as const,
   storefrontCustomerOrders: ["storefront", "customer-orders"] as const,
 }

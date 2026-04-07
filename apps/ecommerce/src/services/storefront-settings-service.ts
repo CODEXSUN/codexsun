@@ -157,6 +157,7 @@ function buildMergedStorefrontSettings(
   const trendingSectionRecord = asRecord(payloadRecord.trendingSection)
   const brandShowcaseRecord = asRecord(payloadRecord.brandShowcase)
   const campaignDesignRecord = asRecord(payloadRecord.campaignDesign)
+  const legalPagesRecord = asRecord(payloadRecord.legalPages)
   const featuredRecord = asRecord(sectionsRecord?.featured)
   const categoriesRecord = asRecord(sectionsRecord?.categories)
   const newArrivalsRecord = asRecord(sectionsRecord?.newArrivals)
@@ -330,6 +331,40 @@ function buildMergedStorefrontSettings(
           ...campaignDesignRecord,
         }
       : base.campaignDesign,
+    legalPages: legalPagesRecord
+      ? {
+          shipping: asRecord(legalPagesRecord.shipping)
+            ? {
+                ...base.legalPages.shipping,
+                ...asRecord(legalPagesRecord.shipping),
+              }
+            : base.legalPages.shipping,
+          returns: asRecord(legalPagesRecord.returns)
+            ? {
+                ...base.legalPages.returns,
+                ...asRecord(legalPagesRecord.returns),
+              }
+            : base.legalPages.returns,
+          privacy: asRecord(legalPagesRecord.privacy)
+            ? {
+                ...base.legalPages.privacy,
+                ...asRecord(legalPagesRecord.privacy),
+              }
+            : base.legalPages.privacy,
+          terms: asRecord(legalPagesRecord.terms)
+            ? {
+                ...base.legalPages.terms,
+                ...asRecord(legalPagesRecord.terms),
+              }
+            : base.legalPages.terms,
+          contact: asRecord(legalPagesRecord.contact)
+            ? {
+                ...base.legalPages.contact,
+                ...asRecord(legalPagesRecord.contact),
+              }
+            : base.legalPages.contact,
+        }
+      : base.legalPages,
     id: base.id,
     createdAt: base.createdAt,
     updatedAt: timestamp,

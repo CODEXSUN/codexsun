@@ -4,70 +4,65 @@
 
 ### Reference
 
-`#37`
+`#38`
 
 ### Goal
 
-Complete Stage `1.5.5` and `1.5.7` with framework-owned database backup and security-review operations, including admin pages, side-menu wiring, runtime settings control, and end-to-end validation.
+Complete Stage `1.6.1` by adding backend-owned storefront legal and trust pages for shipping, returns, privacy, terms, and contact, then begin Stage `1.6.2` route-metadata review.
 
 ### Scope
 
 - `ASSIST/Execution/TASK.md`
 - `ASSIST/Execution/PLANNING.md`
-- `apps/framework/shared/database-operations.ts`
-- `apps/framework/shared/runtime-settings.ts`
-- `apps/framework/src/runtime/config/server-config.ts`
-- `apps/framework/src/runtime/config/runtime-settings-service.ts`
-- `apps/framework/src/runtime/database/process/migrations/05-operations-governance.ts`
-- `apps/framework/src/runtime/operations/database-backup-service.ts`
-- `apps/framework/src/runtime/operations/security-review-service.ts`
-- `apps/framework/src/server/index.ts`
-- `apps/api/src/internal/framework-routes.ts`
+- `apps/ecommerce/shared/schemas/catalog.ts`
+- `apps/ecommerce/src/data/storefront-seed.ts`
+- `apps/ecommerce/src/services/storefront-settings-service.ts`
+- `apps/ecommerce/src/services/catalog-service.ts`
+- `apps/api/src/external/public-routes.ts`
+- `apps/ecommerce/web/src/api/storefront-api.ts`
+- `apps/ecommerce/web/src/lib/storefront-routes.ts`
+- `apps/ecommerce/web/src/pages/storefront-legal-page.tsx`
 - `apps/cxapp/web/src/app-shell.tsx`
-- `apps/cxapp/web/src/desk/desk-registry.ts`
-- `apps/cxapp/web/src/features/framework-data-backup/framework-data-backup-section.tsx`
-- `apps/cxapp/web/src/features/framework-security-review/framework-security-review-section.tsx`
-- `apps/cxapp/web/src/features/runtime-app-settings/runtime-app-settings-fallback.ts`
-- `apps/cxapp/web/src/pages/framework-data-backup-page.tsx`
-- `apps/cxapp/web/src/pages/framework-security-review-page.tsx`
-- `apps/ui/src/features/dashboard/components/navigation/app-sidebar.tsx`
-- `tests/framework/runtime/database-process.test.ts`
-- `tests/framework/runtime/operations.test.ts`
-- `tests/api/internal/routes.test.ts`
-- `tests/e2e/framework-operations.spec.ts`
+- `apps/cxapp/web/src/query/query-keys.ts`
+- `tests/framework/runtime/http-routes.test.ts`
+- `tests/ecommerce/services.test.ts`
 
 ### Canonical Decisions
 
-- database backup remains framework-owned operations infrastructure, not an app-local concern
-- local backups must be retained under `storage/backups/database` and pruned to the configured maximum file count
-- Google Drive upload remains optional and is controlled through runtime settings instead of hardcoded env edits
-- security review uses an explicit framework-owned checklist ledger based on OWASP ASVS-style control areas, with evidence and review-run history
-- backup and security-review controls must be available as dedicated framework admin pages, not only inside generic runtime settings
+- legal and trust pages remain ecommerce-owned storefront content, not static site-only copy
+- page content must be seeded from backend settings so the later storefront-designer phase can build on the same contract
+- public consumption uses a single generic legal-page endpoint and a single reusable storefront page component to avoid five diverging implementations
+- footer trade links should point to the real storefront trust pages immediately so the new surfaces are discoverable
+- the next stage starts from route metadata on top of these concrete storefront routes instead of inventing metadata for pages that do not yet exist
 
 ### Execution Plan
 
-1. finish the framework backup and security-review contracts, persistence, and internal routes
-2. wire the runtime backup scheduler and Google Drive configuration through runtime settings
-3. build dedicated `Data Backup` and `Security Review` admin pages with tabbed operations UIs
-4. register both pages in framework routes, side menu, desk metadata, and settings discovery
-5. add migration, service, route, and admin e2e coverage
-6. mark `1.5.5` and `1.5.7` complete in `TASK.md`
+1. extend the ecommerce storefront settings schema with typed legal-page content
+2. seed production-safe default content and repoint footer links to those storefront routes
+3. expose a public legal-page payload from ecommerce services and public routes
+4. wire frontend API, query keys, storefront routes, and a reusable legal-page surface
+5. register both root and `/shop/*` storefront routes
+6. add targeted service and route-registration tests
+7. mark `1.6.1` complete in `TASK.md`
+8. initiate `1.6.2` by reviewing current storefront route registration and metadata entry points
 
 ### Validation Plan
 
 - run `npm run typecheck`
-- run `npx.cmd tsx --test tests/framework/runtime/database-process.test.ts tests/framework/runtime/operations.test.ts tests/api/internal/routes.test.ts`
-- run `npm run test:e2e -- tests/e2e/framework-operations.spec.ts`
-- confirm `TASK.md` marks `1.5.5` and `1.5.7` complete
+- run `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/services.test.ts`
+- confirm footer links and storefront routes resolve to the new page set
+- confirm `1.6.1` is marked complete in `TASK.md`
 
 ### Validation Status
 
 - [x] `npm run typecheck`
-- [x] `npx.cmd tsx --test tests/framework/runtime/database-process.test.ts tests/framework/runtime/operations.test.ts tests/api/internal/routes.test.ts`
-- [x] `npm run test:e2e -- tests/e2e/framework-operations.spec.ts`
-- [x] `1.5.5` and `1.5.7` marked complete in `TASK.md`
+- [x] `npx.cmd tsx --test tests/framework/runtime/http-routes.test.ts tests/ecommerce/services.test.ts`
+- [x] storefront footer links now target the new trust pages
+- [x] `1.6.1` marked complete in `TASK.md`
+- [ ] `1.6.2` route-level metadata implementation started
 
 ### Risks And Follow-Up
 
-- automated backup and live restore are currently implemented for SQLite runtime only; MariaDB and PostgreSQL still need driver-specific backup strategies before production use on those drivers
-- Google Drive upload is wired and configurable, but operators still need valid OAuth credentials and target folder setup before off-machine archival becomes active
+- there is still no dedicated storefront designer for these legal pages; that should be handled in a later storefront-management stage rather than mixed into the production-minimum route slice
+- test runs still emit local SMTP authentication noise from the current mailbox configuration, but the targeted legal-page and route tests pass
+- `1.6.2` should now focus on one shared metadata mechanism for storefront routes so canonical tags, OG, and crawl directives in `1.6.3` can reuse it instead of duplicating page-level constants

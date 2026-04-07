@@ -5,6 +5,7 @@ import { getPrimaryCompanyBrandProfile } from "../../../cxapp/src/services/compa
 import {
   getStorefrontCatalog,
   getStorefrontLanding,
+  getStorefrontLegalPage,
   getStorefrontProduct,
 } from "../../../ecommerce/src/services/catalog-service.js"
 import { trackOrderByReference } from "../../../ecommerce/src/services/order-service.js"
@@ -93,6 +94,30 @@ export function createPublicApiRoutes(appSuite: AppSuite): HttpRouteDefinition[]
           })
         ),
       }),
+    }),
+    definePublicRoute("/storefront/legal-page", {
+      summary: "Public storefront legal and trust page payload by page id.",
+      handler: async ({ databases, request }) => {
+        const pageId = (request.url.searchParams.get("pageId") ?? "").trim().toLowerCase()
+
+        if (
+          pageId !== "shipping" &&
+          pageId !== "returns" &&
+          pageId !== "privacy" &&
+          pageId !== "terms" &&
+          pageId !== "contact"
+        ) {
+          throw new ApplicationError("A valid legal page id is required.", { pageId }, 400)
+        }
+
+        return {
+          statusCode: 200,
+          headers: { "content-type": "application/json; charset=utf-8" },
+          body: JSON.stringify(
+            await getStorefrontLegalPage(databases.primary, pageId)
+          ),
+        }
+      },
     }),
     definePublicRoute("/storefront/track-order", {
       summary: "Public storefront order tracking lookup by order number and email.",

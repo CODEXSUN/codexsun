@@ -435,6 +435,37 @@ export const storefrontCampaignSectionSchema = z.object({
   design: storefrontCampaignDesignSchema,
 })
 
+export const storefrontLegalPageSectionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1).nullable().default(null),
+  body: z.array(z.string().min(1)).min(1),
+})
+
+export const storefrontLegalPageFaqSchema = z.object({
+  id: z.string().min(1),
+  question: z.string().min(1),
+  answer: z.string().min(1),
+})
+
+export const storefrontLegalPageSchema = z.object({
+  id: z.enum(["shipping", "returns", "privacy", "terms", "contact"]),
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  supportLabel: z.string().min(1).nullable().default(null),
+  sections: z.array(storefrontLegalPageSectionSchema).min(1),
+  faqs: z.array(storefrontLegalPageFaqSchema).default([]),
+})
+
+export const storefrontLegalPagesSchema = z.object({
+  shipping: storefrontLegalPageSchema,
+  returns: storefrontLegalPageSchema,
+  privacy: storefrontLegalPageSchema,
+  terms: storefrontLegalPageSchema,
+  contact: storefrontLegalPageSchema,
+})
+
 export const storefrontSettingsSchema = z.object({
   id: z.string().min(1),
   visibility: storefrontVisibilitySchema,
@@ -459,6 +490,7 @@ export const storefrontSettingsSchema = z.object({
   trendingSection: storefrontTrendingSectionSchema,
   brandShowcase: storefrontBrandShowcaseSchema,
   campaignDesign: storefrontCampaignDesignSchema,
+  legalPages: storefrontLegalPagesSchema,
   announcement: z.string().min(1),
   supportPhone: z.string().min(1),
   supportEmail: z.email(),
@@ -531,6 +563,11 @@ export const storefrontProductResponseSchema = z.object({
   relatedItems: z.array(storefrontProductCardSchema),
 })
 
+export const storefrontLegalPageResponseSchema = z.object({
+  settings: storefrontSettingsSchema,
+  item: storefrontLegalPageSchema,
+})
+
 export type StorefrontHero = z.infer<typeof storefrontHeroSchema>
 export type StorefrontHomeSliderTheme = z.infer<typeof storefrontHomeSliderThemeSchema>
 export type StorefrontHomeSliderSlide = z.infer<typeof storefrontHomeSliderSlideSchema>
@@ -566,9 +603,14 @@ export type StorefrontCategorySummary = z.infer<typeof storefrontCategorySummary
 export type StorefrontBrandDiscoveryCard = z.infer<typeof storefrontBrandDiscoveryCardSchema>
 export type StorefrontBrandShowcase = z.infer<typeof storefrontBrandShowcaseSchema>
 export type StorefrontCampaignSection = z.infer<typeof storefrontCampaignSectionSchema>
+export type StorefrontLegalPageSection = z.infer<typeof storefrontLegalPageSectionSchema>
+export type StorefrontLegalPageFaq = z.infer<typeof storefrontLegalPageFaqSchema>
+export type StorefrontLegalPage = z.infer<typeof storefrontLegalPageSchema>
+export type StorefrontLegalPages = z.infer<typeof storefrontLegalPagesSchema>
 export type StorefrontSettings = z.infer<typeof storefrontSettingsSchema>
 export type StorefrontLandingResponse = z.infer<typeof storefrontLandingResponseSchema>
 export type StorefrontCatalogQuery = z.infer<typeof storefrontCatalogQuerySchema>
 export type StorefrontCatalogResponse = z.infer<typeof storefrontCatalogResponseSchema>
 export type StorefrontProductDetail = z.infer<typeof storefrontProductDetailSchema>
 export type StorefrontProductResponse = z.infer<typeof storefrontProductResponseSchema>
+export type StorefrontLegalPageResponse = z.infer<typeof storefrontLegalPageResponseSchema>

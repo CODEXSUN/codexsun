@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#38] 2026-04-07 - Storefront legal pages baseline
+
+- completed Stage `1.6.1` by adding backend-owned storefront legal and trust pages for shipping, returns, privacy, terms, and contact, backed by seeded ecommerce settings instead of hardcoded frontend copy
+- exposed a new public storefront legal-page payload, wired frontend query and route support, and added a reusable storefront legal-page surface for both root and `/shop/*` route shapes
+- repointed storefront footer trade links to the new trust pages and added targeted route-registration and ecommerce service tests for the legal-page slice
+- marked `1.6.1` complete in `TASK.md` and initiated Stage `1.6.2` metadata planning for the next storefront production task
+
 ### [#37] 2026-04-07 - Stage 1.2 completion and PDP specification drawer
 
 - completed the remaining Phase 1 Stage 1.2 ecommerce reliability tasks by adding stable order-confirmation and tracking coverage, formalizing the storefront order state machine, and enforcing idempotent checkout or payment verification behavior

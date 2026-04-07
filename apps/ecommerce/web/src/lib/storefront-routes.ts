@@ -39,6 +39,13 @@ function withStorefrontRoot(segment = "") {
 export const storefrontPaths = {
   home: () => withStorefrontRoot(),
   catalog: () => withStorefrontRoot("/catalog"),
+  legalPage: (pageId: "shipping" | "returns" | "privacy" | "terms" | "contact") =>
+    withStorefrontRoot(`/${encodeURIComponent(pageId)}`),
+  shipping: () => withStorefrontRoot("/shipping"),
+  returns: () => withStorefrontRoot("/returns"),
+  privacy: () => withStorefrontRoot("/privacy"),
+  terms: () => withStorefrontRoot("/terms"),
+  contact: () => withStorefrontRoot("/contact"),
   product: (slug: string) =>
     withStorefrontRoot(`/products/${encodeURIComponent(slug)}`),
   cart: () => withStorefrontRoot("/cart"),

@@ -101,6 +101,10 @@ const StorefrontHomePage = lazyNamed(
   () => import("@ecommerce/web/src/pages/storefront-home-page"),
   "StorefrontHomePage",
 );
+const StorefrontLegalPage = lazyNamed(
+  () => import("@ecommerce/web/src/pages/storefront-legal-page"),
+  "StorefrontLegalPage",
+);
 const StorefrontProductPage = lazyNamed(
   () => import("@ecommerce/web/src/pages/storefront-product-page"),
   "StorefrontProductPage",
@@ -529,6 +533,11 @@ function AuthenticatedAppShell() {
               />
               <Route path="/cart" element={<StorefrontCartPage />} />
               <Route path="/checkout" element={<StorefrontCheckoutPage />} />
+              <Route path="/shipping" element={<StorefrontLegalPage pageId="shipping" />} />
+              <Route path="/returns" element={<StorefrontLegalPage pageId="returns" />} />
+              <Route path="/privacy" element={<StorefrontLegalPage pageId="privacy" />} />
+              <Route path="/terms" element={<StorefrontLegalPage pageId="terms" />} />
+              <Route path="/contact" element={<StorefrontLegalPage pageId="contact" />} />
               <Route
                 path="/track-order"
                 element={<StorefrontTrackOrderPage />}
@@ -630,6 +639,26 @@ function AuthenticatedAppShell() {
               <Route
                 path="/shop/checkout"
                 element={<StorefrontCheckoutPage />}
+              />
+              <Route
+                path="/shop/shipping"
+                element={<StorefrontLegalPage pageId="shipping" />}
+              />
+              <Route
+                path="/shop/returns"
+                element={<StorefrontLegalPage pageId="returns" />}
+              />
+              <Route
+                path="/shop/privacy"
+                element={<StorefrontLegalPage pageId="privacy" />}
+              />
+              <Route
+                path="/shop/terms"
+                element={<StorefrontLegalPage pageId="terms" />}
+              />
+              <Route
+                path="/shop/contact"
+                element={<StorefrontLegalPage pageId="contact" />}
               />
               <Route
                 path="/shop/track-order"

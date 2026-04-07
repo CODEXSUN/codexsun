@@ -6,7 +6,12 @@ import path from "node:path"
 import test from "node:test"
 
 import { createAuthService, createMailboxService } from "../../apps/cxapp/src/services/service-factory.js"
-import { getStorefrontCatalog, getStorefrontLanding, getStorefrontProduct } from "../../apps/ecommerce/src/services/catalog-service.js"
+import {
+  getStorefrontCatalog,
+  getStorefrontLanding,
+  getStorefrontLegalPage,
+  getStorefrontProduct,
+} from "../../apps/ecommerce/src/services/catalog-service.js"
 import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.js"
 import { defaultStorefrontSettings } from "../../apps/ecommerce/src/data/storefront-seed.js"
 import {
@@ -69,6 +74,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       const catalog = await getStorefrontCatalog(runtime.primary, {})
       const storedSettings = await getStorefrontSettings(runtime.primary)
       const storedHomeSlider = await getStorefrontHomeSlider(runtime.primary)
+      const shippingPage = await getStorefrontLegalPage(runtime.primary, "shipping")
       const product = await getStorefrontProduct(runtime.primary, {
         slug: catalog.items[0]?.slug ?? null,
       })
@@ -77,6 +83,8 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(storedSettings.search.departments.length > 0, true)
       assert.equal(storedHomeSlider.slides.length > 0, true)
       assert.equal(storedHomeSlider.slides[0]?.theme.themeKey.length > 0, true)
+      assert.equal(shippingPage.item.sections.length > 0, true)
+      assert.equal(shippingPage.item.id, "shipping")
       assert.equal(catalog.items.length > 0, true)
       assert.equal(product.item.id, catalog.items[0]?.id)
       assert.equal(landing.categories.some((item) => item.showInTopMenu), true)
