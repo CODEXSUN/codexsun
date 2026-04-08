@@ -161,11 +161,42 @@ function createEmptyReports(): BillingAccountingReports {
       balanceGap: 0,
     },
     outstanding: {
+      asOfDate: "1970-01-01",
       receivableTotal: 0,
       payableTotal: 0,
       items: [],
     },
+    receivableAging: {
+      asOfDate: "1970-01-01",
+      totalAmount: 0,
+      buckets: [],
+      items: [],
+    },
+    payableAging: {
+      asOfDate: "1970-01-01",
+      totalAmount: 0,
+      buckets: [],
+      items: [],
+    },
+    settlementFollowUp: {
+      items: [],
+    },
+    settlementExceptions: {
+      advanceTotal: 0,
+      onAccountTotal: 0,
+      overpaymentTotal: 0,
+      items: [],
+    },
+    partySettlementSummary: {
+      items: [],
+    },
     generalLedger: {
+      items: [],
+    },
+    customerStatement: {
+      items: [],
+    },
+    supplierStatement: {
       items: [],
     },
   }
@@ -499,6 +530,27 @@ function titleFromVoucherType(type: BillingVoucherType) {
       return "Contra"
     case "journal":
       return "Journal"
+  }
+}
+
+function getVoucherPostingRoute(voucherType: BillingVoucherType, voucherId: string) {
+  const encodedVoucherId = encodeURIComponent(voucherId)
+
+  switch (voucherType) {
+    case "payment":
+      return `/dashboard/billing/payment-vouchers/${encodedVoucherId}/edit`
+    case "receipt":
+      return `/dashboard/billing/receipt-vouchers/${encodedVoucherId}/edit`
+    case "sales":
+      return `/dashboard/billing/sales-vouchers/${encodedVoucherId}/edit`
+    case "credit_note":
+      return `/dashboard/billing/credit-note/${encodedVoucherId}/edit`
+    case "purchase":
+      return `/dashboard/billing/purchase-vouchers/${encodedVoucherId}/edit`
+    case "debit_note":
+      return `/dashboard/billing/debit-note/${encodedVoucherId}/edit`
+    default:
+      return null
   }
 }
 
@@ -4418,17 +4470,268 @@ function StatementsSection({
   )
 }
 
-function DayBookSection({ vouchers }: { vouchers: BillingVoucher[] }) {
-  const orderedVouchers = [...vouchers].sort((left, right) =>
-    left.date.localeCompare(right.date)
+void StatementsSection
+
+type PartyStatementEntryView = {
+  voucherId: string
+  voucherNumber: string
+  voucherType: BillingVoucherType
+  date: string
+  narration: string
+  referenceVoucherNumber: string | null
+  debitAmount: number
+  creditAmount: number
+  runningSide: "debit" | "credit"
+  runningAmount: number
+}
+
+type PartyStatementItemView = {
+  partyId: string
+  partyName: string
+  debitTotal: number
+  creditTotal: number
+  closingSide: "debit" | "credit"
+  closingAmount: number
+  entries: PartyStatementEntryView[]
+}
+
+function PartyStatementCards({
+  emptyMessage,
+  items,
+  movementHint,
+}: {
+  emptyMessage: string
+  items: PartyStatementItemView[]
+  movementHint: string
+}) {
+  if (items.length === 0) {
+    return <StateCard message={emptyMessage} />
+  }
+
+  return (
+    <div className="space-y-4">
+      {items.map((item) => (
+        <Card key={item.partyId}>
+          <CardHeader>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>{item.partyName}</CardTitle>
+                <CardDescription>{movementHint}</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">Debit {formatAmount(item.debitTotal)}</Badge>
+                <Badge variant="outline">Credit {formatAmount(item.creditTotal)}</Badge>
+                <Badge variant="outline">
+                  Closing {formatAmount(item.closingAmount)} {item.closingSide}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Voucher</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Narration</TableHead>
+                  <TableHead className="text-right">Debit</TableHead>
+                  <TableHead className="text-right">Credit</TableHead>
+                  <TableHead className="text-right">Running</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {item.entries.map((entry) => (
+                  <TableRow
+                    key={`${item.partyId}:${entry.voucherId}:${entry.referenceVoucherNumber ?? "direct"}`}
+                  >
+                    <TableCell>{entry.date}</TableCell>
+                    <TableCell>
+                      {getVoucherPostingRoute(entry.voucherType, entry.voucherId) ? (
+                        <Link
+                          className="font-medium text-foreground underline-offset-4 hover:underline"
+                          to={getVoucherPostingRoute(entry.voucherType, entry.voucherId)!}
+                        >
+                          {entry.voucherNumber}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-foreground">
+                          {entry.voucherNumber}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>{entry.referenceVoucherNumber ?? "Direct"}</TableCell>
+                    <TableCell>{titleFromVoucherType(entry.voucherType)}</TableCell>
+                    <TableCell>{entry.narration || "No narration"}</TableCell>
+                    <TableCell className="text-right">
+                      {entry.debitAmount > 0 ? formatAmount(entry.debitAmount) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {entry.creditAmount > 0 ? formatAmount(entry.creditAmount) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatAmount(entry.runningAmount)} {entry.runningSide}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
+}
+
+function StatementsOverviewSection({ reports }: { reports: BillingAccountingReports }) {
+  const customerClosingTotal = reports.customerStatement.items.reduce((sum, item) => {
+    if (item.closingSide !== "debit") {
+      return sum
+    }
+
+    return sum + item.closingAmount
+  }, 0)
+  const supplierClosingTotal = reports.supplierStatement.items.reduce((sum, item) => {
+    if (item.closingSide !== "credit") {
+      return sum
+    }
+
+    return sum + item.closingAmount
+  }, 0)
+
+  return (
+    <SectionShell
+      title="Statements"
+      description="Receivable and payable party statements built from posted sales, purchases, notes, receipts, and payments."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Customers"
+          value={reports.customerStatement.items.length}
+          hint="Customer ledgers with posted receivable movement."
+        />
+        <MetricCard
+          label="Suppliers"
+          value={reports.supplierStatement.items.length}
+          hint="Supplier ledgers with posted payable movement."
+        />
+        <MetricCard
+          label="Receivable closing"
+          value={formatAmount(customerClosingTotal)}
+          hint="Net debit balances across customer statements."
+        />
+        <MetricCard
+          label="Payable closing"
+          value={formatAmount(supplierClosingTotal)}
+          hint="Net credit balances across supplier statements."
+        />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Statement Book</CardTitle>
+              <CardDescription>
+                Receivable movement from posted sales, credit notes, and receipts.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          <PartyStatementCards
+            emptyMessage="No posted customer statement movement is available yet."
+            items={reports.customerStatement.items.map((item) => ({
+              partyId: item.customerId,
+              partyName: item.customerName,
+              debitTotal: item.debitTotal,
+              creditTotal: item.creditTotal,
+              closingSide: item.closingSide,
+              closingAmount: item.closingAmount,
+              entries: item.entries,
+            }))}
+            movementHint="Running receivable statement from posted invoices, notes, and receipts."
+          />
+        </div>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Supplier Statement Book</CardTitle>
+              <CardDescription>
+                Payable movement from posted purchases, debit notes, and payments.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          <PartyStatementCards
+            emptyMessage="No posted supplier statement movement is available yet."
+            items={reports.supplierStatement.items.map((item) => ({
+              partyId: item.supplierId,
+              partyName: item.supplierName,
+              debitTotal: item.debitTotal,
+              creditTotal: item.creditTotal,
+              closingSide: item.closingSide,
+              closingAmount: item.closingAmount,
+              entries: item.entries,
+            }))}
+            movementHint="Running payable statement from posted bills, notes, and payments."
+          />
+        </div>
+      </div>
+    </SectionShell>
+  )
+}
+
+function DayBookSection({ vouchers }: { vouchers: BillingVoucher[] }) {
+  const postedVouchers = vouchers
+    .filter((voucher) => voucher.status === "posted")
+    .sort((left, right) =>
+      left.date.localeCompare(right.date) ||
+      left.voucherNumber.localeCompare(right.voucherNumber)
+    )
+  const draftCount = vouchers.filter((voucher) => voucher.status === "draft").length
+  const cancelledCount = vouchers.filter((voucher) => voucher.status === "cancelled").length
+  const reversedCount = vouchers.filter((voucher) => voucher.status === "reversed").length
+  const excludedCount = vouchers.length - postedVouchers.length
 
   return (
     <SectionShell
       title="Day Book"
-      description="Chronological day book view so operators can audit posting flow in the exact order vouchers were entered."
+      description="Chronological day book built from posted vouchers only, so the book reflects accounting movement rather than draft or invalidated records."
     >
-      <VoucherRegisterTable vouchers={orderedVouchers} />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Posted entries"
+          value={postedVouchers.length}
+          hint="Vouchers currently contributing to the accounting day book."
+        />
+        <MetricCard
+          label="Excluded records"
+          value={excludedCount}
+          hint="Draft, cancelled, and reversed records left out of the posted book."
+        />
+        <MetricCard
+          label="Drafts"
+          value={draftCount}
+          hint="Unposted records still under preparation."
+        />
+        <MetricCard
+          label="Invalidated"
+          value={cancelledCount + reversedCount}
+          hint="Cancelled and reversed records removed from the live day book."
+        />
+      </div>
+      {excludedCount > 0 ? (
+        <Card>
+          <CardContent className="flex flex-wrap gap-3 p-5 text-sm text-muted-foreground">
+            <span>Draft {draftCount}</span>
+            <span>Cancelled {cancelledCount}</span>
+            <span>Reversed {reversedCount}</span>
+          </CardContent>
+        </Card>
+      ) : null}
+      {postedVouchers.length === 0 ? (
+        <StateCard message="No posted vouchers are available for the day book yet." />
+      ) : (
+        <VoucherRegisterTable vouchers={postedVouchers} />
+      )}
     </SectionShell>
   )
 }
@@ -4912,7 +5215,7 @@ function BillOutstandingSection({ reports }: { reports: BillingAccountingReports
   return (
     <SectionShell
       title="Bill Outstanding"
-      description="Bill-wise receivable and payable view derived from sales, purchase, receipt, and payment vouchers."
+      description="Receivable and payable control view covering open bills, aging, follow-up, overpayment or on-account exceptions, and party-wise settlement summaries."
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -4931,14 +5234,216 @@ function BillOutstandingSection({ reports }: { reports: BillingAccountingReports
           hint="Each item tracks original, settled, and outstanding values."
         />
         <MetricCard
-          label="Net exposure"
-          value={formatAmount(
-            Math.abs(reports.outstanding.receivableTotal - reports.outstanding.payableTotal)
-          )}
-          hint="Difference between current receivables and payables."
+          label="Exceptions"
+          value={reports.settlementExceptions.items.length}
+          hint="Advance, on-account, and overpayment cases needing operator attention."
         />
       </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Receivable Aging</CardTitle>
+            <CardDescription>
+              Sales-side dues as of {reports.receivableAging.asOfDate}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {reports.receivableAging.buckets.map((bucket) => (
+              <div
+                key={bucket.bucketKey}
+                className="flex items-center justify-between rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <span className="text-sm text-muted-foreground">{bucket.label}</span>
+                <span className="font-medium text-foreground">{formatAmount(bucket.amount)}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Payable Aging</CardTitle>
+            <CardDescription>
+              Purchase-side dues as of {reports.payableAging.asOfDate}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {reports.payableAging.buckets.map((bucket) => (
+              <div
+                key={bucket.bucketKey}
+                className="flex items-center justify-between rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <span className="text-sm text-muted-foreground">{bucket.label}</span>
+                <span className="font-medium text-foreground">{formatAmount(bucket.amount)}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
       <Card>
+        <CardHeader>
+          <CardTitle>Settlement Follow-up</CardTitle>
+          <CardDescription>
+            Open bills ranked by overdue position and collection or payment action.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Voucher</TableHead>
+                <TableHead>Counterparty</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Overdue</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Outstanding</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.settlementFollowUp.items.map((item) => (
+                <TableRow key={`${item.voucherId}:follow-up`}>
+                  <TableCell className="font-medium">
+                    {getVoucherPostingRoute(item.voucherType, item.voucherId) ? (
+                      <Link
+                        className="underline-offset-4 hover:underline"
+                        to={getVoucherPostingRoute(item.voucherType, item.voucherId)!}
+                      >
+                        {item.voucherNumber}
+                      </Link>
+                    ) : (
+                      item.voucherNumber
+                    )}
+                  </TableCell>
+                  <TableCell>{item.counterparty}</TableCell>
+                  <TableCell>{item.dueDate ?? "No due date"}</TableCell>
+                  <TableCell>{item.overdueDays} days</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        item.priority === "high"
+                          ? "destructive"
+                          : item.priority === "medium"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      {item.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatAmount(item.outstandingAmount)}</TableCell>
+                  <TableCell>
+                    <Link className="underline-offset-4 hover:underline" to={item.actionRoute}>
+                      {item.recommendedAction}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Settlement Exceptions</CardTitle>
+            <CardDescription>
+              Advance, on-account, and overpayment positions needing explicit treatment.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <MetricCard
+                label="Advance"
+                value={formatAmount(reports.settlementExceptions.advanceTotal)}
+                hint="New-reference settlements recorded before bill matching."
+              />
+              <MetricCard
+                label="On account"
+                value={formatAmount(reports.settlementExceptions.onAccountTotal)}
+                hint="Unmatched on-account settlements still pending allocation."
+              />
+              <MetricCard
+                label="Overpayment"
+                value={formatAmount(reports.settlementExceptions.overpaymentTotal)}
+                hint="Collections or payments exceeding original bill value."
+              />
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Voucher</TableHead>
+                  <TableHead>Counterparty</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Note</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.settlementExceptions.items.map((item) => (
+                  <TableRow key={`${item.voucherId}:${item.category}:${item.referenceVoucherNumber ?? "direct"}`}>
+                    <TableCell className="font-medium">{item.voucherNumber}</TableCell>
+                    <TableCell>{item.counterparty}</TableCell>
+                    <TableCell className="capitalize">{item.category.replace("_", " ")}</TableCell>
+                    <TableCell>{item.referenceVoucherNumber ?? "Direct"}</TableCell>
+                    <TableCell>{formatAmount(item.amount)}</TableCell>
+                    <TableCell>{item.note}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Party-wise Collection and Payment Summary</CardTitle>
+            <CardDescription>
+              Receipt and payment behavior summarized by counterparty.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Counterparty</TableHead>
+                  <TableHead>Receipts</TableHead>
+                  <TableHead>Payments</TableHead>
+                  <TableHead>Allocated</TableHead>
+                  <TableHead>Unallocated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.partySettlementSummary.items.map((item) => (
+                  <TableRow key={item.counterparty}>
+                    <TableCell className="font-medium">{item.counterparty}</TableCell>
+                    <TableCell>
+                      {formatAmount(item.receiptAmount)}
+                      <p className="text-sm text-muted-foreground">{item.receiptCount} vouchers</p>
+                    </TableCell>
+                    <TableCell>
+                      {formatAmount(item.paymentAmount)}
+                      <p className="text-sm text-muted-foreground">{item.paymentCount} vouchers</p>
+                    </TableCell>
+                    <TableCell>
+                      {formatAmount(item.allocatedReceiptAmount + item.allocatedPaymentAmount)}
+                    </TableCell>
+                    <TableCell>
+                      {formatAmount(item.unallocatedReceiptAmount + item.unallocatedPaymentAmount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Open Bills</CardTitle>
+          <CardDescription>
+            Detailed bill-wise exposure as of {reports.outstanding.asOfDate}.
+          </CardDescription>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -4946,6 +5451,8 @@ function BillOutstandingSection({ reports }: { reports: BillingAccountingReports
                 <TableHead>Voucher</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Counterparty</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Overdue</TableHead>
                 <TableHead>Original</TableHead>
                 <TableHead>Settled</TableHead>
                 <TableHead>Outstanding</TableHead>
@@ -4960,6 +5467,8 @@ function BillOutstandingSection({ reports }: { reports: BillingAccountingReports
                   </TableCell>
                   <TableCell className="capitalize">{item.voucherType}</TableCell>
                   <TableCell>{item.counterparty}</TableCell>
+                  <TableCell>{item.dueDate ?? item.date}</TableCell>
+                  <TableCell>{item.overdueDays} days</TableCell>
                   <TableCell>{formatAmount(item.originalAmount)}</TableCell>
                   <TableCell>{formatAmount(item.settledAmount)}</TableCell>
                   <TableCell>{formatAmount(item.outstandingAmount)}</TableCell>
@@ -6503,7 +7012,7 @@ export function BillingWorkspaceSection({
     case "stock":
       return <StockSection ledgers={state.ledgers} />
     case "statements":
-      return <StatementsSection reports={state.reports} vouchers={state.vouchers} />
+      return <StatementsOverviewSection reports={state.reports} />
     case "day-book":
       return <DayBookSection vouchers={state.vouchers} />
     case "double-entry":

@@ -71,18 +71,18 @@ It is the app that should own:
 
 - [x] B4.1 add general ledger report
 - [ ] B4.2 add ledger account statement
-- [ ] B4.3 add customer statement
-- [ ] B4.4 add supplier statement
-- [ ] B4.5 add day-book refinement with posted-state filtering
-- [ ] B4.6 add voucher drill-down from statements into source posting
+- [x] B4.3 add customer statement
+- [x] B4.4 add supplier statement
+- [x] B4.5 add day-book refinement with posted-state filtering
+- [x] B4.6 add voucher drill-down from statements into source posting
 
 ### Stage B5: Receivable And Payable Control
 
-- [ ] B5.1 add receivable aging report
-- [ ] B5.2 add payable aging report
-- [ ] B5.3 add bill settlement follow-up workflow
-- [ ] B5.4 add overpayment, advance, and on-account handling clarity
-- [ ] B5.5 add party-wise collection and payment summaries
+- [x] B5.1 add receivable aging report
+- [x] B5.2 add payable aging report
+- [x] B5.3 add bill settlement follow-up workflow
+- [x] B5.4 add overpayment, advance, and on-account handling clarity
+- [x] B5.5 add party-wise collection and payment summaries
 
 ### Stage B6: Bank And Cash Control
 

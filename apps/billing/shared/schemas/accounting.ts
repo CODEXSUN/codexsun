@@ -514,6 +514,8 @@ export const billingOutstandingItemSchema = z.object({
   voucherNumber: z.string().trim().min(1),
   voucherType: z.enum(["sales", "purchase"]),
   date: z.string().trim().min(1),
+  dueDate: z.string().trim().min(1).nullable().default(null),
+  overdueDays: z.number().int().nonnegative(),
   counterparty: z.string().trim().min(1),
   originalAmount: z.number().positive(),
   settledAmount: z.number().nonnegative(),
@@ -521,9 +523,87 @@ export const billingOutstandingItemSchema = z.object({
 })
 
 export const billingOutstandingSummarySchema = z.object({
+  asOfDate: z.string().trim().min(1),
   receivableTotal: z.number().nonnegative(),
   payableTotal: z.number().nonnegative(),
   items: z.array(billingOutstandingItemSchema),
+})
+
+export const billingAgingBucketSchema = z.object({
+  bucketKey: z.enum(["current", "1_30", "31_60", "61_90", "91_plus"]),
+  label: z.string().trim().min(1),
+  amount: z.number().nonnegative(),
+})
+
+export const billingAgingItemSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["sales", "purchase"]),
+  counterparty: z.string().trim().min(1),
+  date: z.string().trim().min(1),
+  dueDate: z.string().trim().min(1).nullable(),
+  overdueDays: z.number().int().nonnegative(),
+  outstandingAmount: z.number().nonnegative(),
+  bucketKey: billingAgingBucketSchema.shape.bucketKey,
+  bucketLabel: z.string().trim().min(1),
+})
+
+export const billingAgingReportSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  totalAmount: z.number().nonnegative(),
+  buckets: z.array(billingAgingBucketSchema),
+  items: z.array(billingAgingItemSchema),
+})
+
+export const billingSettlementFollowUpItemSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["sales", "purchase"]),
+  counterparty: z.string().trim().min(1),
+  dueDate: z.string().trim().min(1).nullable(),
+  overdueDays: z.number().int().nonnegative(),
+  outstandingAmount: z.number().nonnegative(),
+  priority: z.enum(["normal", "medium", "high"]),
+  recommendedAction: z.string().trim().min(1),
+  actionRoute: z.string().trim().min(1),
+})
+
+export const billingSettlementFollowUpSchema = z.object({
+  items: z.array(billingSettlementFollowUpItemSchema),
+})
+
+export const billingSettlementExceptionItemSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: billingVoucherTypeSchema,
+  counterparty: z.string().trim().min(1),
+  category: z.enum(["overpayment", "advance", "on_account"]),
+  amount: z.number().positive(),
+  referenceVoucherNumber: z.string().trim().min(1).nullable(),
+  note: z.string().trim().min(1),
+})
+
+export const billingSettlementExceptionSummarySchema = z.object({
+  advanceTotal: z.number().nonnegative(),
+  onAccountTotal: z.number().nonnegative(),
+  overpaymentTotal: z.number().nonnegative(),
+  items: z.array(billingSettlementExceptionItemSchema),
+})
+
+export const billingPartySettlementSummaryItemSchema = z.object({
+  counterparty: z.string().trim().min(1),
+  receiptCount: z.number().int().nonnegative(),
+  paymentCount: z.number().int().nonnegative(),
+  receiptAmount: z.number().nonnegative(),
+  paymentAmount: z.number().nonnegative(),
+  allocatedReceiptAmount: z.number().nonnegative(),
+  allocatedPaymentAmount: z.number().nonnegative(),
+  unallocatedReceiptAmount: z.number().nonnegative(),
+  unallocatedPaymentAmount: z.number().nonnegative(),
+})
+
+export const billingPartySettlementSummarySchema = z.object({
+  items: z.array(billingPartySettlementSummaryItemSchema),
 })
 
 export const billingGeneralLedgerEntrySchema = z.object({
@@ -557,12 +637,77 @@ export const billingGeneralLedgerSchema = z.object({
   items: z.array(billingGeneralLedgerItemSchema),
 })
 
+export const billingCustomerStatementEntrySchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["sales", "credit_note", "receipt"]),
+  date: z.string().trim().min(1),
+  narration: z.string().trim(),
+  referenceVoucherNumber: z.string().trim().min(1).nullable(),
+  debitAmount: z.number().nonnegative(),
+  creditAmount: z.number().nonnegative(),
+  runningSide: billingEntrySideSchema,
+  runningAmount: z.number().nonnegative(),
+})
+
+export const billingCustomerStatementItemSchema = z.object({
+  customerId: z.string().trim().min(1),
+  customerName: z.string().trim().min(1),
+  openingSide: billingEntrySideSchema,
+  openingAmount: z.number().nonnegative(),
+  debitTotal: z.number().nonnegative(),
+  creditTotal: z.number().nonnegative(),
+  closingSide: billingEntrySideSchema,
+  closingAmount: z.number().nonnegative(),
+  entries: z.array(billingCustomerStatementEntrySchema),
+})
+
+export const billingCustomerStatementSchema = z.object({
+  items: z.array(billingCustomerStatementItemSchema),
+})
+
+export const billingSupplierStatementEntrySchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["purchase", "debit_note", "payment"]),
+  date: z.string().trim().min(1),
+  narration: z.string().trim(),
+  referenceVoucherNumber: z.string().trim().min(1).nullable(),
+  debitAmount: z.number().nonnegative(),
+  creditAmount: z.number().nonnegative(),
+  runningSide: billingEntrySideSchema,
+  runningAmount: z.number().nonnegative(),
+})
+
+export const billingSupplierStatementItemSchema = z.object({
+  supplierId: z.string().trim().min(1),
+  supplierName: z.string().trim().min(1),
+  openingSide: billingEntrySideSchema,
+  openingAmount: z.number().nonnegative(),
+  debitTotal: z.number().nonnegative(),
+  creditTotal: z.number().nonnegative(),
+  closingSide: billingEntrySideSchema,
+  closingAmount: z.number().nonnegative(),
+  entries: z.array(billingSupplierStatementEntrySchema),
+})
+
+export const billingSupplierStatementSchema = z.object({
+  items: z.array(billingSupplierStatementItemSchema),
+})
+
 export const billingAccountingReportsSchema = z.object({
   trialBalance: billingTrialBalanceSchema,
   profitAndLoss: billingProfitAndLossSchema,
   balanceSheet: billingBalanceSheetSchema,
   outstanding: billingOutstandingSummarySchema,
+  receivableAging: billingAgingReportSchema,
+  payableAging: billingAgingReportSchema,
+  settlementFollowUp: billingSettlementFollowUpSchema,
+  settlementExceptions: billingSettlementExceptionSummarySchema,
+  partySettlementSummary: billingPartySettlementSummarySchema,
   generalLedger: billingGeneralLedgerSchema,
+  customerStatement: billingCustomerStatementSchema,
+  supplierStatement: billingSupplierStatementSchema,
 })
 
 export const billingAccountingReportsResponseSchema = z.object({
@@ -663,6 +808,45 @@ export type BillingBalanceSheet = z.infer<typeof billingBalanceSheetSchema>
 export type BillingOutstandingItem = z.infer<typeof billingOutstandingItemSchema>
 export type BillingOutstandingSummary = z.infer<
   typeof billingOutstandingSummarySchema
+>
+export type BillingAgingBucket = z.infer<typeof billingAgingBucketSchema>
+export type BillingAgingItem = z.infer<typeof billingAgingItemSchema>
+export type BillingAgingReport = z.infer<typeof billingAgingReportSchema>
+export type BillingSettlementFollowUpItem = z.infer<
+  typeof billingSettlementFollowUpItemSchema
+>
+export type BillingSettlementFollowUp = z.infer<
+  typeof billingSettlementFollowUpSchema
+>
+export type BillingSettlementExceptionItem = z.infer<
+  typeof billingSettlementExceptionItemSchema
+>
+export type BillingSettlementExceptionSummary = z.infer<
+  typeof billingSettlementExceptionSummarySchema
+>
+export type BillingPartySettlementSummaryItem = z.infer<
+  typeof billingPartySettlementSummaryItemSchema
+>
+export type BillingPartySettlementSummary = z.infer<
+  typeof billingPartySettlementSummarySchema
+>
+export type BillingCustomerStatementEntry = z.infer<
+  typeof billingCustomerStatementEntrySchema
+>
+export type BillingCustomerStatementItem = z.infer<
+  typeof billingCustomerStatementItemSchema
+>
+export type BillingCustomerStatement = z.infer<
+  typeof billingCustomerStatementSchema
+>
+export type BillingSupplierStatementEntry = z.infer<
+  typeof billingSupplierStatementEntrySchema
+>
+export type BillingSupplierStatementItem = z.infer<
+  typeof billingSupplierStatementItemSchema
+>
+export type BillingSupplierStatement = z.infer<
+  typeof billingSupplierStatementSchema
 >
 export type BillingAccountingReports = z.infer<
   typeof billingAccountingReportsSchema

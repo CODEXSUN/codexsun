@@ -300,3 +300,479 @@ test("billing reporting service builds a running general ledger from posted entr
     rmSync(tempRoot, { recursive: true, force: true })
   }
 })
+
+test("billing reporting service builds customer statements from posted receivable activity", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-customer-statement-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const salesVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-910",
+        status: "posted",
+        type: "sales",
+        date: "2026-04-10",
+        counterparty: "Customer Statement Party",
+        narration: "Sales invoice for customer statement.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "debit",
+            amount: 5000,
+            note: "Customer invoice debit.",
+          },
+          {
+            ledgerId: "ledger-sales",
+            side: "credit",
+            amount: 5000,
+            note: "Sales credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "CRN-2026-910",
+        status: "posted",
+        type: "credit_note",
+        sourceVoucherId: salesVoucher.item.id,
+        date: "2026-04-11",
+        counterparty: "Customer Statement Party",
+        narration: "Credit note against the sales invoice.",
+        lines: [
+          {
+            ledgerId: "ledger-sales",
+            side: "debit",
+            amount: 500,
+            note: "Revenue correction.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 500,
+            note: "Receivable reduction.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-910",
+        status: "posted",
+        type: "receipt",
+        date: "2026-04-12",
+        counterparty: "Customer Statement Party",
+        narration: "Receipt adjusted against the sales invoice.",
+        lines: [
+          {
+            ledgerId: "ledger-hdfc",
+            side: "debit",
+            amount: 2000,
+            note: "Bank receipt.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 2000,
+            note: "Customer settlement.",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "SAL-2026-910",
+            referenceDate: "2026-04-10",
+            dueDate: "2026-04-30",
+            amount: 2000,
+            note: "Receipt allocation.",
+          },
+        ],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const customerStatement = reports.item.customerStatement.items.find(
+        (item) => item.customerName === "Customer Statement Party"
+      )
+
+      assert.ok(customerStatement)
+      assert.equal(customerStatement.entries.length, 3)
+      assert.equal(customerStatement.debitTotal, 5000)
+      assert.equal(customerStatement.creditTotal, 2500)
+      assert.equal(customerStatement.closingSide, "debit")
+      assert.equal(customerStatement.closingAmount, 2500)
+      assert.deepEqual(
+        customerStatement.entries.map((entry) => entry.voucherNumber),
+        ["SAL-2026-910", "CRN-2026-910", "RCPT-2026-910"]
+      )
+      assert.equal(customerStatement.entries[0]?.runningAmount, 5000)
+      assert.equal(customerStatement.entries[1]?.referenceVoucherNumber, "SAL-2026-910")
+      assert.equal(customerStatement.entries[1]?.runningAmount, 4500)
+      assert.equal(customerStatement.entries[2]?.referenceVoucherNumber, "SAL-2026-910")
+      assert.equal(customerStatement.entries[2]?.runningAmount, 2500)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service builds supplier statements from posted payable activity", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-supplier-statement-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const purchaseVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-910",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-10",
+        counterparty: "Supplier Statement Party",
+        narration: "Purchase bill for supplier statement.",
+        lines: [
+          {
+            ledgerId: "ledger-purchase",
+            side: "debit",
+            amount: 5000,
+            note: "Purchase debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 5000,
+            note: "Supplier credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "DBN-2026-910",
+        status: "posted",
+        type: "debit_note",
+        sourceVoucherId: purchaseVoucher.item.id,
+        date: "2026-04-11",
+        counterparty: "Supplier Statement Party",
+        narration: "Debit note against the purchase bill.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 500,
+            note: "Payable reduction.",
+          },
+          {
+            ledgerId: "ledger-purchase",
+            side: "credit",
+            amount: 500,
+            note: "Purchase correction.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-910",
+        status: "posted",
+        type: "payment",
+        date: "2026-04-12",
+        counterparty: "Supplier Statement Party",
+        narration: "Payment adjusted against the purchase bill.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 2000,
+            note: "Supplier settlement.",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 2000,
+            note: "Bank payment.",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "PUR-2026-910",
+            referenceDate: "2026-04-10",
+            dueDate: "2026-04-30",
+            amount: 2000,
+            note: "Payment allocation.",
+          },
+        ],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const supplierStatement = reports.item.supplierStatement.items.find(
+        (item) => item.supplierName === "Supplier Statement Party"
+      )
+
+      assert.ok(supplierStatement)
+      assert.equal(supplierStatement.entries.length, 3)
+      assert.equal(supplierStatement.debitTotal, 2500)
+      assert.equal(supplierStatement.creditTotal, 5000)
+      assert.equal(supplierStatement.closingSide, "credit")
+      assert.equal(supplierStatement.closingAmount, 2500)
+      assert.deepEqual(
+        supplierStatement.entries.map((entry) => entry.voucherNumber),
+        ["PUR-2026-910", "DBN-2026-910", "PAY-2026-910"]
+      )
+      assert.equal(supplierStatement.entries[0]?.runningAmount, 5000)
+      assert.equal(supplierStatement.entries[0]?.runningSide, "credit")
+      assert.equal(supplierStatement.entries[1]?.referenceVoucherNumber, "PUR-2026-910")
+      assert.equal(supplierStatement.entries[1]?.runningAmount, 4500)
+      assert.equal(supplierStatement.entries[2]?.referenceVoucherNumber, "PUR-2026-910")
+      assert.equal(supplierStatement.entries[2]?.runningAmount, 2500)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service derives aging follow-up exceptions and party settlement summaries", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-settlement-controls-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-950",
+        status: "posted",
+        type: "sales",
+        date: "2026-03-01",
+        counterparty: "B5 Customer",
+        narration: "Old receivable for aging.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "debit",
+            amount: 5000,
+            note: "Customer invoice.",
+          },
+          {
+            ledgerId: "ledger-sales",
+            side: "credit",
+            amount: 5000,
+            note: "Sales credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        sales: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-950",
+        status: "posted",
+        type: "purchase",
+        date: "2026-02-20",
+        counterparty: "B5 Supplier",
+        narration: "Old payable for aging.",
+        lines: [
+          {
+            ledgerId: "ledger-purchase",
+            side: "debit",
+            amount: 4000,
+            note: "Purchase debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 4000,
+            note: "Supplier credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-950",
+        status: "posted",
+        type: "receipt",
+        date: "2026-05-20",
+        counterparty: "B5 Customer",
+        narration: "Receipt with advance and over-settlement.",
+        lines: [
+          {
+            ledgerId: "ledger-hdfc",
+            side: "debit",
+            amount: 6000,
+            note: "Bank receipt.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 6000,
+            note: "Customer settlement.",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "SAL-2026-950",
+            referenceDate: "2026-03-01",
+            dueDate: "2026-03-15",
+            amount: 5500,
+            note: "Over-collected against bill.",
+          },
+          {
+            referenceType: "on_account",
+            referenceNumber: "B5-ON-ACCOUNT",
+            referenceDate: null,
+            dueDate: null,
+            amount: 500,
+            note: "Unmatched collection.",
+          },
+        ],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-950",
+        status: "posted",
+        type: "payment",
+        date: "2026-05-18",
+        counterparty: "B5 Supplier",
+        narration: "Payment with advance allocation.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 2000,
+            note: "Supplier settlement.",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 2000,
+            note: "Bank payment.",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "new_ref",
+            referenceNumber: "ADV-B5-001",
+            referenceDate: null,
+            dueDate: null,
+            amount: 2000,
+            note: "Advance payment.",
+          },
+        ],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const payableAgingItem = reports.item.payableAging.items.find(
+        (item) => item.voucherNumber === "PUR-2026-950"
+      )
+
+      assert.equal(reports.item.outstanding.asOfDate, "2026-05-20")
+      assert.equal(
+        reports.item.receivableAging.items.some((item) => item.voucherNumber === "SAL-2026-950"),
+        false
+      )
+      assert.ok(payableAgingItem)
+      assert.equal(payableAgingItem.outstandingAmount, 4000)
+      assert.equal(payableAgingItem.bucketKey, "61_90")
+      assert.equal(
+        reports.item.settlementFollowUp.items.some(
+          (item) => item.voucherNumber === "PUR-2026-950" && item.priority === "high"
+        ),
+        true
+      )
+      assert.equal(reports.item.settlementExceptions.advanceTotal, 2000)
+      assert.equal(reports.item.settlementExceptions.onAccountTotal, 500)
+      assert.equal(reports.item.settlementExceptions.overpaymentTotal, 500)
+      assert.equal(
+        reports.item.settlementExceptions.items.some(
+          (item) => item.category === "overpayment" && item.referenceVoucherNumber === "SAL-2026-950"
+        ),
+        true
+      )
+
+      const customerSummary = reports.item.partySettlementSummary.items.find(
+        (item) => item.counterparty === "B5 Customer"
+      )
+      const supplierSummary = reports.item.partySettlementSummary.items.find(
+        (item) => item.counterparty === "B5 Supplier"
+      )
+
+      assert.ok(customerSummary)
+      assert.ok(supplierSummary)
+      assert.equal(customerSummary.receiptAmount, 6000)
+      assert.equal(customerSummary.unallocatedReceiptAmount, 0)
+      assert.equal(supplierSummary.paymentAmount, 2000)
+      assert.equal(supplierSummary.unallocatedPaymentAmount, 0)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
