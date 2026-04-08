@@ -20,6 +20,39 @@ function pad(value: number, width = 4) {
   return String(value).padStart(width, "0")
 }
 
+function isValidDateOnly(value: string | undefined) {
+  if (!value) {
+    return false
+  }
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+export function assertBillingOperationDateAllowed(
+  date: string,
+  config: ServerConfig,
+  operationLabel: string
+) {
+  const blockedDates = [
+    {
+      value: config.billing.compliance.lockDate,
+      label: "billing lock date",
+    },
+    {
+      value: config.billing.compliance.periodClosedThrough,
+      label: "closed-through date",
+    },
+  ].filter((entry) => isValidDateOnly(entry.value))
+
+  for (const entry of blockedDates) {
+    if (date <= (entry.value as string)) {
+      throw new Error(
+        `${operationLabel} date ${date} is blocked by the ${entry.label} ${(entry.value as string)}.`
+      )
+    }
+  }
+}
+
 export function resolveFinancialYear(
   date: string,
   config: ServerConfig
@@ -56,8 +89,12 @@ export function getVoucherPrefix(type: BillingVoucherType) {
       return "RCP"
     case "sales":
       return "SAL"
+    case "credit_note":
+      return "CRN"
     case "purchase":
       return "PUR"
+    case "debit_note":
+      return "DBN"
     case "contra":
       return "CON"
     case "journal":
@@ -104,7 +141,7 @@ export async function generateEInvoiceRecord(
   voucher: BillingVoucher,
   config: ServerConfig
 ): Promise<BillingVoucherEInvoice> {
-  if (!["sales"].includes(voucher.type) || voucher.gst === null) {
+  if (!["sales", "credit_note", "debit_note"].includes(voucher.type) || voucher.gst === null) {
     return {
       status: "not_applicable",
       irn: null,
@@ -159,7 +196,7 @@ export async function generateEWayBillRecord(
       }
     | null
 ): Promise<BillingVoucherEWayBill> {
-  if (!["sales", "purchase"].includes(voucher.type) || voucher.gst === null) {
+  if (!["sales", "purchase", "credit_note", "debit_note"].includes(voucher.type) || voucher.gst === null) {
     return {
       status: "not_applicable",
       ewayBillNo: null,

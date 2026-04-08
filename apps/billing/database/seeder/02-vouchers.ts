@@ -1,5 +1,8 @@
 import { replaceJsonStoreRecords } from "../../../framework/src/runtime/database/process/json-store.js"
 import { defineDatabaseSeeder } from "../../../framework/src/runtime/database/process/types.js"
+import { replaceBillingVoucherHeaders } from "../../src/services/voucher-header-store.js"
+import { replaceBillingVoucherLines } from "../../src/services/voucher-line-store.js"
+import { replaceBillingLedgerEntries } from "../../src/services/ledger-entry-store.js"
 
 import { billingVouchers } from "../../src/data/billing-seed.js"
 
@@ -24,5 +27,9 @@ export const billingVouchersSeeder = defineDatabaseSeeder({
         updatedAt: voucher.updatedAt,
       }))
     )
+
+    await replaceBillingVoucherHeaders(database, billingVouchers)
+    await replaceBillingVoucherLines(database, billingVouchers)
+    await replaceBillingLedgerEntries(database, billingVouchers)
   },
 })

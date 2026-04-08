@@ -57,8 +57,16 @@ function resolvePostingTypeFromVoucherGroupName(name: string) {
   switch (normalizedName) {
     case "sales":
       return "sales" as const
+    case "credit note":
+    case "credit-note":
+    case "credit_note":
+      return "credit_note" as const
     case "purchase":
       return "purchase" as const
+    case "debit note":
+    case "debit-note":
+    case "debit_note":
+      return "debit_note" as const
     case "receipt":
       return "receipt" as const
     case "payment":
@@ -73,12 +81,22 @@ function resolvePostingTypeFromVoucherGroupName(name: string) {
 }
 
 function resolveDefaultCategoryNameFromPostingType(
-  postingType: "payment" | "receipt" | "sales" | "purchase" | "contra" | "journal"
+  postingType:
+    | "payment"
+    | "receipt"
+    | "sales"
+    | "credit_note"
+    | "purchase"
+    | "debit_note"
+    | "contra"
+    | "journal"
 ) {
   switch (postingType) {
     case "sales":
       return "Income"
+    case "credit_note":
     case "purchase":
+    case "debit_note":
       return "Expenses"
     case "payment":
     case "receipt":

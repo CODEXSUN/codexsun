@@ -26,7 +26,9 @@ import type {
   BillingVoucherMasterTypeListResponse,
   BillingVoucherMasterTypeResponse,
   BillingVoucher,
+  BillingVoucherLifecycleStatus,
   BillingVoucherListResponse,
+  BillingVoucherReverseResponse,
   BillingVoucherResponse,
   BillingVoucherType,
   BillingVoucherUpsertPayload,
@@ -163,6 +165,9 @@ function createEmptyReports(): BillingAccountingReports {
       payableTotal: 0,
       items: [],
     },
+    generalLedger: {
+      items: [],
+    },
   }
 }
 
@@ -273,6 +278,8 @@ type VoucherFormState = {
   billAllocations: VoucherBillAllocationForm[]
   generateEInvoice: boolean
   generateEWayBill: boolean
+  sourceVoucherId: string
+  status: BillingVoucherLifecycleStatus
   gst: {
     enabled: boolean
     hsnOrSac: string
@@ -295,6 +302,11 @@ type VoucherFormState = {
   sales: SalesFormState
   type: BillingVoucherType
   voucherNumber: string
+}
+
+type VoucherReverseRequest = {
+  reason: string
+  date?: string
 }
 
 const defaultSalesItem: SalesItemForm = {
@@ -357,6 +369,8 @@ function createDefaultVoucherForm(): VoucherFormState {
     date: "2026-04-01",
     generateEInvoice: false,
     generateEWayBill: false,
+    sourceVoucherId: "",
+    status: "posted",
     gst: {
       enabled: false,
       hsnOrSac: "",
@@ -442,6 +456,31 @@ function toStatusLabel(status: BillingVoucher["eInvoice"]["status"]) {
   }
 }
 
+function toVoucherLifecycleLabel(status: BillingVoucherLifecycleStatus) {
+  switch (status) {
+    case "draft":
+      return "Draft"
+    case "posted":
+      return "Posted"
+    case "cancelled":
+      return "Cancelled"
+    case "reversed":
+      return "Reversed"
+  }
+}
+
+function getVoucherLifecycleBadgeVariant(status: BillingVoucherLifecycleStatus) {
+  switch (status) {
+    case "posted":
+      return "outline" as const
+    case "draft":
+      return "secondary" as const
+    case "cancelled":
+    case "reversed":
+      return "destructive" as const
+  }
+}
+
 function titleFromVoucherType(type: BillingVoucherType) {
   switch (type) {
     case "payment":
@@ -450,8 +489,12 @@ function titleFromVoucherType(type: BillingVoucherType) {
       return "Receipt"
     case "sales":
       return "Sales"
+    case "credit_note":
+      return "Credit Note"
     case "purchase":
       return "Purchase"
+    case "debit_note":
+      return "Debit Note"
     case "contra":
       return "Contra"
     case "journal":
@@ -523,6 +566,8 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
     date: voucher.date,
     generateEInvoice: voucher.eInvoice.status === "generated",
     generateEWayBill: voucher.eWayBill.status === "generated",
+    sourceVoucherId: voucher.sourceDocument?.voucherId ?? "",
+    status: voucher.status,
     gst: {
       enabled: voucher.gst !== null,
       hsnOrSac: voucher.gst?.hsnOrSac ?? "",
@@ -688,6 +733,9 @@ function StateCard({ message }: { message: string }) {
 function ComplianceBadges({ voucher }: { voucher: BillingVoucher }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Badge variant={getVoucherLifecycleBadgeVariant(voucher.status)}>
+        {toVoucherLifecycleLabel(voucher.status)}
+      </Badge>
       <Badge variant="outline">{voucher.financialYear.label}</Badge>
       {voucher.billAllocations.length > 0 ? (
         <Badge variant="outline">{voucher.billAllocations.length} bill refs</Badge>
@@ -729,6 +777,17 @@ function VoucherComplianceCard({ voucher }: { voucher: BillingVoucher | null }) 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Lifecycle
+            </p>
+            <p className="mt-2 text-lg font-semibold text-foreground">
+              {toVoucherLifecycleLabel(voucher.status)}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Lifecycle state defined for controlled billing posting flows.
+            </p>
+          </div>
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Financial year
             </p>
             <p className="mt-2 text-lg font-semibold text-foreground">
@@ -750,6 +809,26 @@ function VoucherComplianceCard({ voucher }: { voucher: BillingVoucher | null }) 
             </p>
           </div>
         </div>
+
+        {voucher.reversalOfVoucherNumber || voucher.reversedByVoucherNumber ? (
+          <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <p className="font-semibold text-foreground">Reversal tracking</p>
+            {voucher.reversalOfVoucherNumber ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                This voucher reverses {voucher.reversalOfVoucherNumber}.
+              </p>
+            ) : null}
+            {voucher.reversedByVoucherNumber ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Reversed by {voucher.reversedByVoucherNumber}
+                {voucher.reversedAt ? ` on ${voucher.reversedAt.slice(0, 10)}` : ""}.
+              </p>
+            ) : null}
+            {voucher.reversalReason ? (
+              <p className="mt-1 text-sm text-muted-foreground">{voucher.reversalReason}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {voucher.billAllocations.length > 0 ? (
           <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
@@ -896,6 +975,7 @@ function VoucherEditor({
   onSave: () => void
   selectedVoucher: BillingVoucher | null
 }) {
+  const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
   const provisionalVoucher = {
     lines:
       form.gst.enabled && ["sales", "purchase"].includes(form.type)
@@ -920,7 +1000,13 @@ function VoucherEditor({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{selectedVoucher ? "Edit Voucher" : "Post Voucher"}</CardTitle>
+        <CardTitle>
+          {selectedVoucher
+            ? isMutableVoucher
+              ? "Edit Voucher"
+              : "View Voucher"
+            : "Create Voucher"}
+        </CardTitle>
         <CardDescription>
           Create or update payment, receipt, sales, purchase, contra, and journal vouchers with visible debit and credit lines.
         </CardDescription>
@@ -967,6 +1053,23 @@ function VoucherEditor({
             </select>
           </div>
           <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="voucher-status">
+              Lifecycle
+            </label>
+            <select
+              id="voucher-status"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={form.status}
+              onChange={(event) => onChange("status", event.target.value)}
+            >
+              {(["draft", "posted", "cancelled", "reversed"] as BillingVoucherLifecycleStatus[]).map((status) => (
+                <option key={status} value={status}>
+                  {toVoucherLifecycleLabel(status)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
             <label className="text-sm font-medium text-foreground" htmlFor="voucher-counterparty">
               Counterparty
             </label>
@@ -992,15 +1095,21 @@ function VoucherEditor({
         <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">
           {selectedVoucher ? (
             <>
-              Posted in financial year <span className="font-medium text-foreground">{selectedVoucher.financialYear.label}</span> with sequence{" "}
+              Lifecycle <span className="font-medium text-foreground">{toVoucherLifecycleLabel(selectedVoucher.status)}</span> in financial year <span className="font-medium text-foreground">{selectedVoucher.financialYear.label}</span> with sequence{" "}
               <span className="font-medium text-foreground">
                 {selectedVoucher.financialYear.prefix}-{String(selectedVoucher.financialYear.sequenceNumber).padStart(3, "0")}
               </span>.
             </>
           ) : (
-            <>Voucher number and financial year sequence will be generated automatically from the posting date if left blank.</>
+            <>Voucher lifecycle is defined now. Voucher number and financial year sequence will be generated automatically from the posting date if left blank.</>
           )}
         </div>
+
+        {selectedVoucher && !isMutableVoucher ? (
+          <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            {toVoucherLifecycleLabel(selectedVoucher.status)} vouchers are read-only. Keep a voucher in draft for direct editing.
+          </div>
+        ) : null}
 
         {["sales", "purchase"].includes(form.type) ? (
           <div className="space-y-4 rounded-[1rem] border border-border/70 bg-card/70 p-4">
@@ -1392,14 +1501,19 @@ function VoucherEditor({
         ) : null}
 
         <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={onSave} disabled={isSaving}>
-            {isSaving ? "Saving..." : selectedVoucher ? "Update voucher" : "Post voucher"}
+          <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
+            {isSaving ? "Saving..." : selectedVoucher ? "Save voucher" : "Create voucher"}
           </Button>
           <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
             New voucher
           </Button>
           {selectedVoucher ? (
-            <Button type="button" variant="destructive" onClick={onDelete} disabled={isSaving}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDelete}
+              disabled={isSaving || !isMutableVoucher}
+            >
               Delete voucher
             </Button>
           ) : null}
@@ -1442,6 +1556,7 @@ function SalesInvoiceEditor({
   selectedVoucher: BillingVoucher | null
   voucherTypes: BillingVoucherMasterType[]
 }) {
+  const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
   const salesVoucherTypes = voucherTypes.filter(
     (voucherType) => voucherType.postingType === "sales" && voucherType.deletedAt === null
   )
@@ -1457,7 +1572,13 @@ function SalesInvoiceEditor({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{selectedVoucher ? "Update sales invoice" : "Create sales invoice"}</CardTitle>
+        <CardTitle>
+          {selectedVoucher
+            ? isMutableVoucher
+              ? "Edit sales invoice"
+              : "View sales invoice"
+            : "Create sales invoice"}
+        </CardTitle>
         <CardDescription>
           Capture customer invoice details, select the sales voucher type, and post item-table totals into double-entry and GST automatically.
         </CardDescription>
@@ -1847,15 +1968,26 @@ function SalesInvoiceEditor({
           </div>
         ) : null}
 
+        {selectedVoucher && !isMutableVoucher ? (
+          <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            {toVoucherLifecycleLabel(selectedVoucher.status)} invoices are read-only. Keep an invoice in draft for direct editing.
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={onSave} disabled={isSaving}>
-            {isSaving ? "Saving..." : selectedVoucher ? "Update sales invoice" : "Post sales invoice"}
+          <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
+            {isSaving ? "Saving..." : selectedVoucher ? "Save sales invoice" : "Create sales invoice"}
           </Button>
           <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
             New invoice
           </Button>
           {selectedVoucher ? (
-            <Button type="button" variant="destructive" onClick={onDelete} disabled={isSaving}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDelete}
+              disabled={isSaving || !isMutableVoucher}
+            >
               Delete invoice
             </Button>
           ) : null}
@@ -1901,6 +2033,22 @@ function getVoucherModuleLabel(moduleId: BillingVoucherType) {
         emptyMessage: "No purchase vouchers found.",
         pageDescription: "Create and maintain purchase vouchers with GST-aware posting and supplier-side liability impact.",
         pageTitle: "Purchase",
+      }
+    case "debit_note":
+      return {
+        addLabel: "New Debit Note",
+        amountLabel: "Adjustment Total",
+        emptyMessage: "No debit notes found.",
+        pageDescription: "Create and maintain supplier debit notes for purchase-side corrections, shortages, and payable adjustments.",
+        pageTitle: "Debit Note",
+      }
+    case "credit_note":
+      return {
+        addLabel: "New Credit Note",
+        amountLabel: "Adjustment Total",
+        emptyMessage: "No credit notes found.",
+        pageDescription: "Create and maintain customer credit notes for sales returns, receivable reductions, and commercial corrections.",
+        pageTitle: "Credit Note",
       }
     default:
       return {
@@ -2136,7 +2284,7 @@ function VoucherModuleListSection({
   onSelectVoucher,
   vouchers,
 }: {
-  moduleId: "payment" | "receipt" | "purchase"
+  moduleId: "payment" | "receipt" | "purchase" | "credit_note" | "debit_note"
   onCreate: () => void
   onEdit: (voucherId: string) => void
   onSelectVoucher: (voucher: BillingVoucher) => void
@@ -2366,7 +2514,9 @@ function OverviewSection({
       payment: 0,
       receipt: 0,
       sales: 0,
+      credit_note: 0,
       purchase: 0,
+      debit_note: 0,
       contra: 0,
       journal: 0,
     }
@@ -3778,6 +3928,7 @@ function VoucherRegisterSection({
   onChange,
   onCreate,
   onDelete,
+  onReverse,
   onBillAllocationChange,
   onBillAllocationCreate,
   onBillAllocationRemove,
@@ -3805,6 +3956,7 @@ function VoucherRegisterSection({
   onChange: (field: string, value: string) => void
   onCreate: () => void
   onDelete: () => void
+  onReverse: (voucher: BillingVoucher) => void
   onBillAllocationChange: (
     index: number,
     field: keyof VoucherBillAllocationForm,
@@ -3944,8 +4096,21 @@ function VoucherRegisterSection({
                       }}
                     >
                       <PencilLineIcon className="size-4" />
-                      Edit
+                      {voucher.status === "draft" ? "Edit" : "View"}
                     </DropdownMenuItem>
+                    {voucher.status === "posted" &&
+                    voucher.reversalOfVoucherId === null &&
+                    voucher.reversedByVoucherId === null ? (
+                      <DropdownMenuItem
+                        className="gap-2"
+                        onSelect={() => {
+                          onReverse(voucher)
+                        }}
+                      >
+                        <RotateCcwIcon className="size-4" />
+                        Reverse
+                      </DropdownMenuItem>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ),
@@ -4123,76 +4288,6 @@ function VoucherModuleSection({
           )}
         </CardContent>
       </Card>
-    </SectionShell>
-  )
-}
-
-function CreditNoteSection({ vouchers }: { vouchers: BillingVoucher[] }) {
-  const creditNotes = vouchers.filter((voucher) => voucher.type === "sales")
-
-  return (
-    <SectionShell
-      title="Credit Note"
-      description="Customer-facing adjustment page for sales returns, post-sale discounts, and receivable corrections."
-    >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Reference base"
-          value={creditNotes.length}
-          hint="Current sales vouchers available as credit-note reference candidates."
-        />
-        <MetricCard
-          label="Adjustment style"
-          value="Sales return"
-          hint="Keep credit-note posting aligned to customer-side reductions."
-        />
-        <MetricCard
-          label="Posting mode"
-          value="Prepared"
-          hint="Dedicated credit-note posting flow can layer on this page next."
-        />
-        <MetricCard
-          label="GST path"
-          value="Aware"
-          hint="This page is intended to align with GST reversal and return handling."
-        />
-      </div>
-      <StateCard message="Credit note page is connected and ready for a dedicated posting flow. Current references come from the sales book." />
-    </SectionShell>
-  )
-}
-
-function DebitNoteSection({ vouchers }: { vouchers: BillingVoucher[] }) {
-  const debitNotes = vouchers.filter((voucher) => voucher.type === "purchase")
-
-  return (
-    <SectionShell
-      title="Debit Note"
-      description="Supplier-facing adjustment page for purchase returns, upward corrections, and payable-side adjustments."
-    >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Reference base"
-          value={debitNotes.length}
-          hint="Current purchase vouchers available as debit-note reference candidates."
-        />
-        <MetricCard
-          label="Adjustment style"
-          value="Purchase return"
-          hint="Keep debit-note posting aligned to supplier-side corrections."
-        />
-        <MetricCard
-          label="Posting mode"
-          value="Prepared"
-          hint="Dedicated debit-note posting flow can be layered here next."
-        />
-        <MetricCard
-          label="GST path"
-          value="Aware"
-          hint="This page is intended to align with input-tax reversals and supplier adjustments."
-        />
-      </div>
-      <StateCard message="Debit note page is connected and ready for a dedicated posting flow. Current references come from the purchase book." />
     </SectionShell>
   )
 }
@@ -4479,6 +4574,117 @@ function TrialBalanceSection({ reports }: { reports: BillingAccountingReports })
           </Table>
         </CardContent>
       </Card>
+    </SectionShell>
+  )
+}
+
+function GeneralLedgerSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="General Ledger"
+      description="Ledger-wise running movement register built from normalized posted accounting entries."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Ledger books"
+          value={reports.generalLedger.items.length}
+          hint="Each ledger gets its own running movement register."
+        />
+        <MetricCard
+          label="Entry rows"
+          value={reports.generalLedger.items.reduce((sum, item) => sum + item.entries.length, 0)}
+          hint="Posted debit and credit movements included across all ledger books."
+        />
+        <MetricCard
+          label="Largest debit"
+          value={formatAmount(
+            Math.max(0, ...reports.generalLedger.items.map((item) => item.debitTotal))
+          )}
+          hint="Highest debit movement among the current ledger registers."
+        />
+        <MetricCard
+          label="Largest credit"
+          value={formatAmount(
+            Math.max(0, ...reports.generalLedger.items.map((item) => item.creditTotal))
+          )}
+          hint="Highest credit movement among the current ledger registers."
+        />
+      </div>
+      <div className="space-y-4">
+        {reports.generalLedger.items.map((ledger) => (
+          <Card key={ledger.ledgerId}>
+            <CardHeader>
+              <CardTitle>{ledger.ledgerName}</CardTitle>
+              <CardDescription>
+                {ledger.group} • Opening {formatAmount(ledger.openingAmount)} {ledger.openingSide === "debit" ? "Dr" : "Cr"} • Closing {formatAmount(ledger.closingAmount)} {ledger.closingSide === "debit" ? "Dr" : "Cr"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-3">
+                <MetricCard
+                  label="Debit total"
+                  value={formatAmount(ledger.debitTotal)}
+                  hint="Debit movement posted into this ledger."
+                />
+                <MetricCard
+                  label="Credit total"
+                  value={formatAmount(ledger.creditTotal)}
+                  hint="Credit movement posted into this ledger."
+                />
+                <MetricCard
+                  label="Entries"
+                  value={ledger.entries.length}
+                  hint="Running ledger rows available for drillback."
+                />
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Voucher</TableHead>
+                    <TableHead>Counterparty</TableHead>
+                    <TableHead>Dr/Cr</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Running</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ledger.entries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-muted-foreground">
+                        No posted movements for this ledger yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    ledger.entries.map((entry) => (
+                      <TableRow key={entry.entryId}>
+                        <TableCell>{entry.voucherDate}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{entry.voucherNumber}</p>
+                            <p className="text-xs text-muted-foreground">{titleFromVoucherType(entry.voucherType)}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p>{entry.counterparty}</p>
+                            <p className="text-xs text-muted-foreground">{entry.narration}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{entry.side === "debit" ? "Dr" : "Cr"}</TableCell>
+                        <TableCell>{formatAmount(entry.amount)}</TableCell>
+                        <TableCell>
+                          {formatAmount(entry.runningAmount)} {entry.runningSide === "debit" ? "Dr" : "Cr"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </SectionShell>
   )
 }
@@ -4933,6 +5139,8 @@ export function BillingWorkspaceSection({
   useEffect(() => {
     const currentSection = sectionId ?? "overview"
     const moduleBySection = {
+      "credit-note-upsert": "credit_note",
+      "debit-note-upsert": "debit_note",
       "payment-vouchers-upsert": "payment",
       "purchase-vouchers-upsert": "purchase",
       "receipt-vouchers-upsert": "receipt",
@@ -4976,6 +5184,7 @@ export function BillingWorkspaceSection({
         case "counterparty":
         case "date":
         case "narration":
+        case "status":
         case "voucherNumber":
           return {
             ...current,
@@ -5272,8 +5481,10 @@ export function BillingWorkspaceSection({
       salesModeEnabled || (form.gst.enabled && ["sales", "purchase"].includes(form.type))
 
     return {
+      status: form.status,
       voucherNumber: form.voucherNumber,
       type: form.type,
+      sourceVoucherId: form.sourceVoucherId.trim() || null,
       date: form.date,
       counterparty: salesModeEnabled ? form.sales.billToName : form.counterparty,
       narration: form.narration,
@@ -5370,6 +5581,8 @@ export function BillingWorkspaceSection({
       resetForm()
       const currentSection = sectionId ?? "overview"
       const upsertRedirectMap = {
+        "credit-note-upsert": "/dashboard/billing/credit-note",
+        "debit-note-upsert": "/dashboard/billing/debit-note",
         "payment-vouchers-upsert": "/dashboard/billing/payment-vouchers",
         "purchase-vouchers-upsert": "/dashboard/billing/purchase-vouchers",
         "receipt-vouchers-upsert": "/dashboard/billing/receipt-vouchers",
@@ -5426,6 +5639,39 @@ export function BillingWorkspaceSection({
       )
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleReverse(voucher: BillingVoucher) {
+    const reason = window.prompt(
+      `Enter reversal reason for ${voucher.voucherNumber}:`,
+      `Reversal of ${voucher.voucherNumber}`
+    )
+
+    if (!reason || !reason.trim()) {
+      return
+    }
+
+    setFormError(null)
+
+    try {
+      await request<BillingVoucherReverseResponse>(
+        `/internal/v1/billing/voucher/reverse?id=${encodeURIComponent(voucher.id)}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: reason.trim(),
+          } satisfies VoucherReverseRequest),
+        }
+      )
+      await loadResources()
+      if (selectedVoucherId === voucher.id) {
+        setSelectedVoucherId(null)
+      }
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to reverse billing voucher."
+      )
     }
   }
 
@@ -5991,6 +6237,7 @@ export function BillingWorkspaceSection({
             setIsVoucherDialogOpen(true)
           }}
           onDelete={handleDelete}
+          onReverse={handleReverse}
           onBillAllocationChange={handleBillAllocationChange}
           onBillAllocationCreate={handleBillAllocationCreate}
           onBillAllocationRemove={handleBillAllocationRemove}
@@ -6161,6 +6408,80 @@ export function BillingWorkspaceSection({
           selectedVoucher={selectedVoucher}
         />
       )
+    case "credit-note":
+      return (
+        <VoucherModuleListSection
+          moduleId="credit_note"
+          onCreate={() => {
+            void navigate("/dashboard/billing/credit-note/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/credit-note/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
+          onSelectVoucher={handleSelectVoucher}
+          vouchers={state.vouchers}
+        />
+      )
+    case "credit-note-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/credit-note/new")
+          }}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
+        />
+      )
+    case "debit-note":
+      return (
+        <VoucherModuleListSection
+          moduleId="debit_note"
+          onCreate={() => {
+            void navigate("/dashboard/billing/debit-note/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/debit-note/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
+          onSelectVoucher={handleSelectVoucher}
+          vouchers={state.vouchers}
+        />
+      )
+    case "debit-note-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/debit-note/new")
+          }}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
+        />
+      )
     case "contra-vouchers":
       return (
         <VoucherModuleSection
@@ -6179,10 +6500,6 @@ export function BillingWorkspaceSection({
           vouchers={state.vouchers}
         />
       )
-    case "credit-note":
-      return <CreditNoteSection vouchers={state.vouchers} />
-    case "debit-note":
-      return <DebitNoteSection vouchers={state.vouchers} />
     case "stock":
       return <StockSection ledgers={state.ledgers} />
     case "statements":
@@ -6191,6 +6508,8 @@ export function BillingWorkspaceSection({
       return <DayBookSection vouchers={state.vouchers} />
     case "double-entry":
       return <DoubleEntrySection vouchers={state.vouchers} />
+    case "general-ledger":
+      return <GeneralLedgerSection reports={state.reports} />
     case "trial-balance":
       return <TrialBalanceSection reports={state.reports} />
     case "profit-and-loss":

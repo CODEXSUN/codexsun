@@ -290,8 +290,12 @@ export function FrameworkAppWorkspacePage({
         "receipt-vouchers-upsert",
         "sales-vouchers",
         "sales-vouchers-upsert",
+        "credit-note",
+        "credit-note-upsert",
         "purchase-vouchers",
         "purchase-vouchers-upsert",
+        "debit-note",
+        "debit-note-upsert",
       ].includes(sectionId ?? "overview")
     ) ||
     (

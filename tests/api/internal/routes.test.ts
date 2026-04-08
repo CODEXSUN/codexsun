@@ -88,6 +88,7 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("GET /internal/v1/billing/reports"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/vouchers"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reverse"))
   assert.ok(routePaths.includes("PATCH /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
 })
@@ -1930,6 +1931,10 @@ test("authenticated billing internal routes return categories, vouchers, reports
       const createRoute = routes.find(
         (candidate) => candidate.method === "POST" && candidate.path === "/internal/v1/billing/vouchers"
       )
+      const reverseRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/billing/voucher/reverse"
+      )
 
       assert.ok(categoryListRoute)
       assert.ok(categoryCreateRoute)
@@ -1940,6 +1945,7 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.ok(listRoute)
       assert.ok(reportsRoute)
       assert.ok(createRoute)
+      assert.ok(reverseRoute)
 
       const categoryListResponse = await categoryListRoute.handler({
         appSuite,
@@ -2148,11 +2154,12 @@ test("authenticated billing internal routes return categories, vouchers, reports
       })
 
       const listedPayload = JSON.parse(listResponse.body) as {
-        items: Array<{ id: string; voucherNumber: string }>
+        items: Array<{ id: string; status: string; voucherNumber: string }>
       }
 
       assert.equal(listResponse.statusCode, 200)
       assert.ok(listedPayload.items.length >= 1)
+      assert.ok(listedPayload.items.some((item) => item.status === "posted"))
 
       const createResponse = await createRoute.handler({
         appSuite,
@@ -2165,6 +2172,7 @@ test("authenticated billing internal routes return categories, vouchers, reports
           headers,
           bodyText: JSON.stringify({
             voucherNumber: "",
+            status: "draft",
             type: "journal",
             date: "2026-04-05",
             counterparty: "Route Test",
@@ -2191,6 +2199,7 @@ test("authenticated billing internal routes return categories, vouchers, reports
           }),
           jsonBody: {
             voucherNumber: "",
+            status: "draft",
             type: "journal",
             date: "2026-04-05",
             counterparty: "Route Test",
@@ -2225,12 +2234,48 @@ test("authenticated billing internal routes return categories, vouchers, reports
       })
 
       const createdPayload = JSON.parse(createResponse.body) as {
-        item: { voucherNumber: string; financialYear: { code: string } }
+        item: { status: string; voucherNumber: string; financialYear: { code: string } }
       }
 
       assert.equal(createResponse.statusCode, 201)
+      assert.equal(createdPayload.item.status, "draft")
       assert.match(createdPayload.item.voucherNumber, /^JRN-2026-27-\d{3}$/)
       assert.equal(createdPayload.item.financialYear.code, "FY2026-27")
+
+      const reverseResponse = await reverseRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/voucher/reverse",
+          url: new URL("http://localhost/internal/v1/billing/voucher/reverse?id=voucher-sales-001"),
+          headers,
+          bodyText: JSON.stringify({
+            reason: "Route-level reversal test.",
+          }),
+          jsonBody: {
+            reason: "Route-level reversal test.",
+          },
+        },
+        route: {
+          auth: reverseRoute.auth,
+          path: reverseRoute.path,
+          surface: reverseRoute.surface,
+          version: reverseRoute.version,
+        },
+      })
+
+      const reversedPayload = JSON.parse(reverseResponse.body) as {
+        item: { status: string; reversedByVoucherNumber: string | null }
+        reversalItem: { reversalOfVoucherNumber: string | null; status: string }
+      }
+
+      assert.equal(reverseResponse.statusCode, 200)
+      assert.equal(reversedPayload.item.status, "reversed")
+      assert.equal(reversedPayload.reversalItem.status, "posted")
+      assert.equal(reversedPayload.reversalItem.reversalOfVoucherNumber, "SAL-2026-001")
+      assert.equal(typeof reversedPayload.item.reversedByVoucherNumber, "string")
 
       const reportsResponse = await reportsRoute.handler({
         appSuite,

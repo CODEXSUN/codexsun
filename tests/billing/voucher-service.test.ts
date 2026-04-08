@@ -8,14 +8,19 @@ import {
   createBillingVoucher,
   deleteBillingVoucher,
   listBillingVouchers,
+  reverseBillingVoucher,
   updateBillingVoucher,
 } from "../../apps/billing/src/services/voucher-service.js"
+import { listBillingVoucherHeaders } from "../../apps/billing/src/services/voucher-header-store.js"
+import { listBillingVoucherLines } from "../../apps/billing/src/services/voucher-line-store.js"
+import { listBillingLedgerEntries } from "../../apps/billing/src/services/ledger-entry-store.js"
 import { getServerConfig } from "../../apps/framework/src/runtime/config/index.js"
 import {
   createRuntimeDatabases,
   prepareApplicationDatabase,
 } from "../../apps/framework/src/runtime/database/index.js"
 import { ApplicationError } from "../../apps/framework/src/runtime/errors/application-error.js"
+import { listActivityLogs } from "../../apps/framework/src/runtime/activity-log/activity-log-service.js"
 
 const adminUser = {
   id: "auth-user:platform-admin",
@@ -49,6 +54,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
 
       const created = await createBillingVoucher(runtime.primary, adminUser, config, {
         voucherNumber: "RCPT-2026-099",
+        status: "draft",
         type: "receipt",
         date: "2026-04-01",
         counterparty: "Aarav Retail",
@@ -84,6 +90,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       })
 
       assert.equal(created.item.type, "receipt")
+      assert.equal(created.item.status, "draft")
       assert.equal(created.item.lines.length, 2)
       assert.equal(created.item.financialYear.code, "FY2026-27")
       assert.equal(created.item.billAllocations.length, 1)
@@ -104,6 +111,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
         created.item.id,
         {
           voucherNumber: "RCPT-2026-099",
+          status: "draft",
           type: "receipt",
           date: "2026-04-01",
           counterparty: "Aarav Retail LLP",
@@ -140,6 +148,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       )
 
       assert.equal(updated.item.counterparty, "Aarav Retail LLP")
+      assert.equal(updated.item.status, "draft")
       assert.equal(updated.item.lines[0]?.amount, 22000)
 
       const gstSales = await createBillingVoucher(runtime.primary, adminUser, config, {
@@ -170,6 +179,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       })
 
       assert.equal(gstSales.item.financialYear.code, "FY2026-27")
+      assert.equal(gstSales.item.status, "posted")
       assert.equal(gstSales.item.gst?.invoiceAmount, 56000)
       assert.equal(gstSales.item.gst?.cgstAmount, 3000)
       assert.equal(gstSales.item.gst?.sgstAmount, 3000)
@@ -227,6 +237,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       })
 
       assert.equal(invoiceSales.item.counterparty, "Nila Textiles")
+      assert.equal(invoiceSales.item.status, "posted")
       assert.equal(invoiceSales.item.sales?.voucherTypeName, "Fabric Sales")
       assert.equal(invoiceSales.item.sales?.items.length, 2)
       assert.equal(invoiceSales.item.sales?.subtotal, 52000)
@@ -273,6 +284,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       const deleted = await deleteBillingVoucher(
         runtime.primary,
         adminUser,
+        config,
         created.item.id
       )
 
@@ -286,6 +298,77 @@ test("billing voucher service posts balanced vouchers and supports update/delete
       assert.equal(
         listedAfterDelete.items.some((item) => item.id === gstSales.item.id),
         true
+      )
+
+      await assert.rejects(
+        () =>
+          updateBillingVoucher(runtime.primary, adminUser, config, gstSales.item.id, {
+            voucherNumber: "SAL-2026-099",
+            status: "posted",
+            type: "sales",
+            date: "2026-04-01",
+            counterparty: "Karnataka Retail Hub Revised",
+            narration: "Should not mutate posted voucher.",
+            lines: [],
+            billAllocations: [],
+            gst: {
+              supplyType: "intra",
+              placeOfSupply: "KA",
+              partyGstin: "29ABCDE1234F1Z5",
+              hsnOrSac: "6204",
+              taxableAmount: 50000,
+              taxRate: 12,
+              taxableLedgerId: "ledger-sales",
+              partyLedgerId: "ledger-sundry-debtors",
+            },
+            transport: {
+              distanceKm: 180,
+              vehicleNumber: "KA01AB1234",
+              transporterId: "TRANS001",
+            },
+            generateEInvoice: true,
+            generateEWayBill: true,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("Only draft vouchers")
+      )
+
+      await assert.rejects(
+        () => deleteBillingVoucher(runtime.primary, adminUser, config, gstSales.item.id),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("Only draft vouchers")
+      )
+
+      const reversed = await reverseBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        gstSales.item.id,
+        {
+          reason: "Customer invoice entered with wrong party mapping.",
+        }
+      )
+
+      assert.equal(reversed.item.status, "reversed")
+      assert.equal(reversed.item.reversedByVoucherId, reversed.reversalItem.id)
+      assert.equal(reversed.reversalItem.status, "posted")
+      assert.equal(reversed.reversalItem.reversalOfVoucherId, gstSales.item.id)
+      assert.equal(reversed.reversalItem.lines[0]?.side, "credit")
+      assert.equal(reversed.reversalItem.lines[1]?.side, "debit")
+
+      await assert.rejects(
+        () =>
+          reverseBillingVoucher(runtime.primary, adminUser, config, gstSales.item.id, {
+            reason: "Second reversal should fail.",
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("already been reversed")
       )
     } finally {
       await runtime.destroy()
@@ -346,6 +429,7 @@ test("billing voucher service validates financial year rollover, auto numbering,
       )
 
       assert.equal(fyBoundaryVoucher.item.financialYear.code, "FY2025-26")
+      assert.equal(fyBoundaryVoucher.item.status, "posted")
       assert.equal(fyBoundaryVoucher.item.financialYear.startDate, "2025-04-01")
       assert.equal(fyBoundaryVoucher.item.financialYear.endDate, "2026-03-31")
       assert.match(fyBoundaryVoucher.item.voucherNumber, /^SAL-2025-26-\d{3}$/)
@@ -385,6 +469,36 @@ test("billing voucher service validates financial year rollover, auto numbering,
 
       assert.equal(fyNextVoucher.item.financialYear.code, "FY2026-27")
       assert.match(fyNextVoucher.item.voucherNumber, /^JRN-2026-27-\d{3}$/)
+
+      const draftVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-405",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-04",
+        counterparty: "Draft Adjustment",
+        narration: "Lifecycle-only draft voucher baseline.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 3000,
+            note: "Draft expense.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 3000,
+            note: "Draft liability.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(draftVoucher.item.status, "draft")
 
       await assert.rejects(
         () =>
@@ -470,6 +584,1144 @@ test("billing voucher service validates financial year rollover, auto numbering,
           error instanceof ApplicationError &&
           error.statusCode === 400 &&
           error.message.includes("supported only for payment and receipt")
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service writes audit logs for lifecycle actions when admin audit is enabled", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-audit-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.operations.audit.adminAuditEnabled = true
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const draftVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-610",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-12",
+        counterparty: "Audit Draft Counterparty",
+        narration: "Draft entry for audit trail.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 2500,
+            note: "Draft debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 2500,
+            note: "Draft credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const postedVoucher = await updateBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        draftVoucher.item.id,
+        {
+          voucherNumber: "JRN-2026-610",
+          status: "posted",
+          type: "journal",
+          date: "2026-04-12",
+          counterparty: "Audit Draft Counterparty",
+          narration: "Draft posted for audit trail.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 2500,
+              note: "Posted debit.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 2500,
+              note: "Posted credit.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      const cancellableVoucher = await createBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        {
+          voucherNumber: "JRN-2026-611",
+          status: "draft",
+          type: "journal",
+          date: "2026-04-12",
+          counterparty: "Audit Cancel Counterparty",
+          narration: "Draft for cancel audit trail.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 1800,
+              note: "Cancel debit.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 1800,
+              note: "Cancel credit.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      await updateBillingVoucher(runtime.primary, adminUser, config, cancellableVoucher.item.id, {
+        voucherNumber: "JRN-2026-611",
+        status: "cancelled",
+        type: "journal",
+        date: "2026-04-12",
+        counterparty: "Audit Cancel Counterparty",
+        narration: "Draft cancelled for audit trail.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 1800,
+            note: "Cancel debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 1800,
+            note: "Cancel credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const deletableVoucher = await createBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        {
+          voucherNumber: "JRN-2026-612",
+          status: "draft",
+          type: "journal",
+          date: "2026-04-12",
+          counterparty: "Audit Delete Counterparty",
+          narration: "Draft deleted for audit trail.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 1400,
+              note: "Delete debit.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 1400,
+              note: "Delete credit.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      await deleteBillingVoucher(runtime.primary, adminUser, config, deletableVoucher.item.id)
+
+      const reversibleVoucher = await createBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        {
+          voucherNumber: "JRN-2026-613",
+          status: "posted",
+          type: "journal",
+          date: "2026-04-12",
+          counterparty: "Audit Reverse Counterparty",
+          narration: "Posted for reversal audit trail.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 3200,
+              note: "Reverse debit.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 3200,
+              note: "Reverse credit.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      const reversal = await reverseBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        reversibleVoucher.item.id,
+        {
+          reason: "Audit reversal case.",
+        }
+      )
+
+      const billingLogs = await listActivityLogs(runtime.primary, {
+        category: "billing",
+        limit: 20,
+      })
+
+      assert.equal(
+        billingLogs.items.some(
+          (item) =>
+            item.action === "voucher_create" &&
+            item.context?.voucherNumber === draftVoucher.item.voucherNumber
+        ),
+        true
+      )
+      assert.equal(
+        billingLogs.items.some(
+          (item) =>
+            item.action === "voucher_post" &&
+            item.context?.voucherNumber === postedVoucher.item.voucherNumber
+        ),
+        true
+      )
+      assert.equal(
+        billingLogs.items.some(
+          (item) =>
+            item.action === "voucher_cancel" &&
+            item.context?.voucherNumber === cancellableVoucher.item.voucherNumber
+        ),
+        true
+      )
+      assert.equal(
+        billingLogs.items.some(
+          (item) =>
+            item.action === "voucher_delete" &&
+            item.context?.voucherNumber === deletableVoucher.item.voucherNumber
+        ),
+        true
+      )
+      assert.equal(
+        billingLogs.items.some(
+          (item) =>
+            item.action === "voucher_reverse" &&
+            item.context?.voucherNumber === reversal.item.voucherNumber &&
+            item.context?.reversalVoucherNumber === reversal.reversalItem.voucherNumber
+        ),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service keeps normalized voucher headers in sync with lifecycle changes", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-headers-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const createdDraft = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-700",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-13",
+        counterparty: "Header Draft Counterparty",
+        narration: "Header sync draft.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 2100,
+            note: "Header draft debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 2100,
+            note: "Header draft credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const headersAfterCreate = await listBillingVoucherHeaders(runtime.primary)
+      const createdHeader = headersAfterCreate.items.find(
+        (item) => item.voucherId === createdDraft.item.id
+      )
+
+      assert.ok(createdHeader)
+      assert.equal(createdHeader.status, "draft")
+      assert.equal(createdHeader.totalDebit, 2100)
+      assert.equal(createdHeader.totalCredit, 2100)
+      assert.equal(createdHeader.lineCount, 2)
+      assert.equal(createdHeader.hasGst, false)
+
+      const postedVoucher = await updateBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        createdDraft.item.id,
+        {
+          voucherNumber: "JRN-2026-700",
+          status: "posted",
+          type: "journal",
+          date: "2026-04-13",
+          counterparty: "Header Draft Counterparty",
+          narration: "Header sync posted.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 2100,
+              note: "Header draft debit.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 2100,
+              note: "Header draft credit.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      const reversedVoucher = await reverseBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedVoucher.item.id,
+        {
+          reason: "Header sync reversal.",
+        }
+      )
+
+      const headersAfterReverse = await listBillingVoucherHeaders(runtime.primary)
+      const originalHeader = headersAfterReverse.items.find(
+        (item) => item.voucherId === reversedVoucher.item.id
+      )
+      const reversalHeader = headersAfterReverse.items.find(
+        (item) => item.voucherId === reversedVoucher.reversalItem.id
+      )
+
+      assert.ok(originalHeader)
+      assert.ok(reversalHeader)
+      assert.equal(originalHeader.status, "reversed")
+      assert.equal(originalHeader.reversedByVoucherId, reversedVoucher.reversalItem.id)
+      assert.equal(reversalHeader.reversalOfVoucherId, reversedVoucher.item.id)
+      assert.equal(reversalHeader.status, "posted")
+
+      const deletableVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-701",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-13",
+        counterparty: "Header Delete Counterparty",
+        narration: "Header sync delete.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 900,
+            note: "Delete debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 900,
+            note: "Delete credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await deleteBillingVoucher(runtime.primary, adminUser, config, deletableVoucher.item.id)
+
+      const headersAfterDelete = await listBillingVoucherHeaders(runtime.primary)
+      assert.equal(
+        headersAfterDelete.items.some((item) => item.voucherId === deletableVoucher.item.id),
+        false
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service keeps normalized voucher lines in sync with lifecycle changes", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-lines-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const createdDraft = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-710",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-13",
+        counterparty: "Line Draft Counterparty",
+        narration: "Line sync draft.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 1100,
+            note: "Line debit one.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 1100,
+            note: "Line credit one.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const linesAfterCreate = await listBillingVoucherLines(runtime.primary)
+      const createdLines = linesAfterCreate.items.filter(
+        (item) => item.voucherId === createdDraft.item.id
+      )
+
+      assert.equal(createdLines.length, 2)
+      assert.equal(createdLines[0]?.lineOrder, 1)
+      assert.equal(createdLines[0]?.voucherStatus, "draft")
+      assert.equal(createdLines[0]?.amount, 1100)
+      assert.equal(createdLines[1]?.side, "credit")
+
+      const postedVoucher = await updateBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        createdDraft.item.id,
+        {
+          voucherNumber: "JRN-2026-710",
+          status: "posted",
+          type: "journal",
+          date: "2026-04-13",
+          counterparty: "Line Draft Counterparty",
+          narration: "Line sync posted.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 1100,
+              note: "Line debit one.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 1100,
+              note: "Line credit one.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      const reversedVoucher = await reverseBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedVoucher.item.id,
+        {
+          reason: "Line sync reversal.",
+        }
+      )
+
+      const linesAfterReverse = await listBillingVoucherLines(runtime.primary)
+      const reversedOriginalLines = linesAfterReverse.items.filter(
+        (item) => item.voucherId === reversedVoucher.item.id
+      )
+      const reversalLines = linesAfterReverse.items.filter(
+        (item) => item.voucherId === reversedVoucher.reversalItem.id
+      )
+
+      assert.equal(reversedOriginalLines.length, 2)
+      assert.equal(reversedOriginalLines[0]?.voucherStatus, "reversed")
+      assert.equal(reversalLines.length, 2)
+      assert.equal(reversalLines[0]?.voucherStatus, "posted")
+      assert.equal(reversalLines[0]?.side, "credit")
+      assert.equal(reversalLines[1]?.side, "debit")
+
+      const deletableVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-711",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-13",
+        counterparty: "Line Delete Counterparty",
+        narration: "Line sync delete.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 700,
+            note: "Delete line debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 700,
+            note: "Delete line credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await deleteBillingVoucher(runtime.primary, adminUser, config, deletableVoucher.item.id)
+
+      const linesAfterDelete = await listBillingVoucherLines(runtime.primary)
+      assert.equal(
+        linesAfterDelete.items.some((item) => item.voucherId === deletableVoucher.item.id),
+        false
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service keeps immutable posted ledger entries in sync with posting lifecycle", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-ledger-entries-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const draftVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-720",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-13",
+        counterparty: "Ledger Entry Draft Counterparty",
+        narration: "Draft should not create posted entries.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 1500,
+            note: "Draft debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 1500,
+            note: "Draft credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const entriesAfterDraft = await listBillingLedgerEntries(runtime.primary)
+      assert.equal(
+        entriesAfterDraft.items.some((item) => item.voucherId === draftVoucher.item.id),
+        false
+      )
+
+      const postedVoucher = await updateBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        draftVoucher.item.id,
+        {
+          voucherNumber: "JRN-2026-720",
+          status: "posted",
+          type: "journal",
+          date: "2026-04-13",
+          counterparty: "Ledger Entry Draft Counterparty",
+          narration: "Posting creates ledger entries.",
+          lines: [
+            {
+              ledgerId: "ledger-rent",
+              side: "debit",
+              amount: 1500,
+              note: "Draft debit.",
+            },
+            {
+              ledgerId: "ledger-sundry-creditors",
+              side: "credit",
+              amount: 1500,
+              note: "Draft credit.",
+            },
+          ],
+          billAllocations: [],
+          gst: null,
+          transport: null,
+          generateEInvoice: false,
+          generateEWayBill: false,
+        }
+      )
+
+      const entriesAfterPost = await listBillingLedgerEntries(runtime.primary)
+      const postedEntries = entriesAfterPost.items.filter(
+        (item) => item.voucherId === postedVoucher.item.id
+      )
+
+      assert.equal(postedEntries.length, 2)
+      assert.equal(postedEntries[0]?.voucherStatus, "posted")
+      assert.equal(postedEntries[0]?.entryOrder, 1)
+      assert.equal(postedEntries[1]?.side, "credit")
+
+      const reversal = await reverseBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedVoucher.item.id,
+        {
+          reason: "Ledger entry reversal sync.",
+        }
+      )
+
+      const entriesAfterReverse = await listBillingLedgerEntries(runtime.primary)
+      const originalEntries = entriesAfterReverse.items.filter(
+        (item) => item.voucherId === reversal.item.id
+      )
+      const reversalEntries = entriesAfterReverse.items.filter(
+        (item) => item.voucherId === reversal.reversalItem.id
+      )
+
+      assert.equal(originalEntries.length, 2)
+      assert.equal(originalEntries[0]?.voucherStatus, "reversed")
+      assert.equal(reversalEntries.length, 2)
+      assert.equal(reversalEntries[0]?.reversalOfVoucherId, reversal.item.id)
+      assert.equal(reversalEntries[0]?.side, "credit")
+      assert.equal(reversalEntries[1]?.side, "debit")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service supports credit note documents as first-class vouchers", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-credit-note-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const created = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        status: "posted",
+        type: "credit_note",
+        sourceVoucherId: "voucher-sales-001",
+        date: "2026-04-15",
+        counterparty: "Maya Fashion House",
+        narration: "Credit note for customer-side adjustment.",
+        lines: [
+          {
+            ledgerId: "ledger-sales",
+            side: "debit",
+            amount: 5000,
+            note: "Sales reversal component.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 5000,
+            note: "Customer receivable reduced.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(created.item.type, "credit_note")
+      assert.equal(created.item.status, "posted")
+      assert.match(created.item.voucherNumber, /^CRN-2026-27-\d{3}$/)
+      assert.equal(created.item.sourceDocument?.voucherId, "voucher-sales-001")
+      assert.equal(created.item.sourceDocument?.voucherType, "sales")
+
+      const listed = await listBillingVouchers(runtime.primary, adminUser, "credit_note")
+      assert.equal(listed.items.some((item) => item.id === created.item.id), true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service auto-posts GST correctly for credit and debit notes", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-note-gst-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.eInvoice.enabled = true
+    config.billing.compliance.eWayBill.enabled = true
+    config.billing.compliance.eInvoice.mode = "mock"
+    config.billing.compliance.eWayBill.mode = "mock"
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const creditNote = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        status: "posted",
+        type: "credit_note",
+        sourceVoucherId: "voucher-sales-001",
+        date: "2026-04-16",
+        counterparty: "Maya Fashion House",
+        narration: "GST-aware sales return credit note.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 10000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: {
+          distanceKm: 60,
+          vehicleNumber: "KA01AB1234",
+          transporterId: "TRANS110",
+        },
+        generateEInvoice: true,
+        generateEWayBill: true,
+      })
+
+      assert.equal(creditNote.item.gst?.taxDirection, "output")
+      assert.equal(creditNote.item.lines[0]?.side, "debit")
+      assert.equal(creditNote.item.lines[1]?.side, "debit")
+      assert.equal(creditNote.item.lines[3]?.side, "credit")
+      assert.equal(creditNote.item.eInvoice.status, "generated")
+      assert.equal(creditNote.item.eWayBill.status, "generated")
+
+      const debitNote = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        status: "posted",
+        type: "debit_note",
+        sourceVoucherId: "voucher-purchase-001",
+        date: "2026-04-16",
+        counterparty: "Raj Suppliers",
+        narration: "GST-aware purchase return debit note.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 8000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: {
+          distanceKm: 40,
+          vehicleNumber: "KA05CD4321",
+          transporterId: "TRANS220",
+        },
+        generateEInvoice: true,
+        generateEWayBill: true,
+      })
+
+      assert.equal(debitNote.item.gst?.taxDirection, "input")
+      assert.equal(debitNote.item.lines[0]?.side, "debit")
+      assert.equal(debitNote.item.lines[1]?.side, "credit")
+      assert.equal(debitNote.item.lines[3]?.side, "credit")
+      assert.equal(debitNote.item.eInvoice.status, "generated")
+      assert.equal(debitNote.item.eWayBill.status, "generated")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service supports debit note documents as first-class vouchers", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-debit-note-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const created = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        status: "posted",
+        type: "debit_note",
+        sourceVoucherId: "voucher-purchase-001",
+        date: "2026-04-15",
+        counterparty: "Raj Suppliers",
+        narration: "Debit note for supplier-side adjustment.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 4200,
+            note: "Supplier payable adjusted.",
+          },
+          {
+            ledgerId: "ledger-purchase",
+            side: "credit",
+            amount: 4200,
+            note: "Purchase correction component.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(created.item.type, "debit_note")
+      assert.equal(created.item.status, "posted")
+      assert.match(created.item.voucherNumber, /^DBN-2026-27-\d{3}$/)
+      assert.equal(created.item.sourceDocument?.voucherId, "voucher-purchase-001")
+      assert.equal(created.item.sourceDocument?.voucherType, "purchase")
+
+      const listed = await listBillingVouchers(runtime.primary, adminUser, "debit_note")
+      assert.equal(listed.items.some((item) => item.id === created.item.id), true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service enforces source document linkage rules for credit and debit notes", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-note-linkage-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await assert.rejects(
+        () =>
+          createBillingVoucher(runtime.primary, adminUser, config, {
+            voucherNumber: "",
+            status: "posted",
+            type: "credit_note",
+            sourceVoucherId: "voucher-purchase-001",
+            date: "2026-04-15",
+            counterparty: "Bad Link",
+            narration: "Credit note linked to purchase should fail.",
+            lines: [
+              {
+                ledgerId: "ledger-sales",
+                side: "debit",
+                amount: 1000,
+                note: "Bad debit.",
+              },
+              {
+                ledgerId: "ledger-sundry-debtors",
+                side: "credit",
+                amount: 1000,
+                note: "Bad credit.",
+              },
+            ],
+            billAllocations: [],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("must reference a sales voucher")
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service enforces lock date and closed period rules on create update and reverse", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-period-locks-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.lockDate = "2026-04-05"
+    config.billing.compliance.periodClosedThrough = "2026-04-10"
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await assert.rejects(
+        () =>
+          createBillingVoucher(runtime.primary, adminUser, config, {
+            voucherNumber: "JRN-2026-500",
+            status: "draft",
+            type: "journal",
+            date: "2026-04-10",
+            counterparty: "Closed Period Entry",
+            narration: "Should fail due to closed period.",
+            lines: [
+              {
+                ledgerId: "ledger-rent",
+                side: "debit",
+                amount: 5000,
+                note: "Expense",
+              },
+              {
+                ledgerId: "ledger-sundry-creditors",
+                side: "credit",
+                amount: 5000,
+                note: "Liability",
+              },
+            ],
+            billAllocations: [],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("blocked")
+      )
+
+      const mutableDraft = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-501",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-11",
+        counterparty: "Open Period Draft",
+        narration: "Created in open period.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 5000,
+            note: "Expense",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 5000,
+            note: "Liability",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await assert.rejects(
+        () =>
+          updateBillingVoucher(runtime.primary, adminUser, config, mutableDraft.item.id, {
+            voucherNumber: "JRN-2026-501",
+            status: "draft",
+            type: "journal",
+            date: "2026-04-09",
+            counterparty: "Backdated Draft",
+            narration: "Should fail because date is closed.",
+            lines: [
+              {
+                ledgerId: "ledger-rent",
+                side: "debit",
+                amount: 5000,
+                note: "Expense",
+              },
+              {
+                ledgerId: "ledger-sundry-creditors",
+                side: "credit",
+                amount: 5000,
+                note: "Liability",
+              },
+            ],
+            billAllocations: [],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("blocked")
+      )
+
+      const postedVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-502",
+        status: "posted",
+        type: "journal",
+        date: "2026-04-11",
+        counterparty: "Posted Open Period",
+        narration: "Posted in open period for reversal test.",
+        lines: [
+          {
+            ledgerId: "ledger-rent",
+            side: "debit",
+            amount: 4200,
+            note: "Expense",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 4200,
+            note: "Liability",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await assert.rejects(
+        () =>
+          reverseBillingVoucher(runtime.primary, adminUser, config, postedVoucher.item.id, {
+            reason: "Backdated reversal should fail.",
+            date: "2026-04-08",
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("blocked")
       )
     } finally {
       await runtime.destroy()

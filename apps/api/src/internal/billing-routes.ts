@@ -1,7 +1,7 @@
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
-import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
+import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, reverseBillingVoucher, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
 import { createBillingCategory, deleteBillingCategory, getBillingCategory, listBillingCategories, restoreBillingCategory, updateBillingCategory } from "../../../billing/src/services/category-service.js"
 import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
 import { createBillingVoucherGroup, deleteBillingVoucherGroup, listBillingVoucherGroups, restoreBillingVoucherGroup, updateBillingVoucherGroup } from "../../../billing/src/services/voucher-group-service.js"
@@ -396,7 +396,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       },
     }),
     defineInternalRoute("/billing/reports", {
-      summary: "Return billing-derived accounts reports from posted vouchers and ledgers.",
+      summary: "Return billing-derived accounts reports from billing vouchers and ledgers.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
@@ -426,7 +426,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
     }),
     defineInternalRoute("/billing/vouchers", {
       method: "POST",
-      summary: "Create and post a billing voucher.",
+      summary: "Create a billing voucher with an explicit lifecycle status.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
@@ -445,7 +445,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
     }),
     defineInternalRoute("/billing/voucher", {
       method: "PATCH",
-      summary: "Update a billing voucher and revalidate posting balance.",
+      summary: "Update a draft billing voucher and retain its explicit lifecycle status.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
@@ -469,7 +469,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
     }),
     defineInternalRoute("/billing/voucher", {
       method: "DELETE",
-      summary: "Delete a billing voucher.",
+      summary: "Delete a draft billing voucher.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
@@ -481,7 +481,36 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
         }
 
         return jsonResponse(
-          await deleteBillingVoucher(context.databases.primary, user, voucherId)
+          await deleteBillingVoucher(
+            context.databases.primary,
+            user,
+            context.config,
+            voucherId
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher/reverse", {
+      method: "POST",
+      summary: "Reverse a posted billing voucher through an explicit reversal entry.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await reverseBillingVoucher(
+            context.databases.primary,
+            user,
+            context.config,
+            voucherId,
+            context.request.jsonBody
+          )
         )
       },
     }),

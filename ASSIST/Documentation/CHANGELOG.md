@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#67] 2026-04-08 - Billing posting model and notes baseline
+
+- completed Stages `B1`, `B2`, `B3`, and `B4.1` for `apps/billing` by hardening voucher lifecycle controls, normalizing voucher header and line storage, adding immutable posted ledger entries, and rebuilding accounting reports from posted entries with traceability
+- implemented first-class credit note and debit note documents with source-voucher linkage, GST-aware note posting treatment, and explicit note register and detail routes in the billing workspace
+- added the general ledger report, updated billing planning and task tracking, and validated the batch with `npm run typecheck` plus `npx.cmd tsx --test tests\\billing\\voucher-service.test.ts tests\\billing\\reporting-service.test.ts tests\\api\\internal\\routes.test.ts`
+
 ### [#66] 2026-04-08 - ERP price-list compatibility baseline
 
 - completed Stage `3.2.4` by documenting price-list compatibility with ERPNext if ERP becomes storefront pricing source of truth

@@ -4,10 +4,24 @@ export const billingVoucherTypeSchema = z.enum([
   "payment",
   "receipt",
   "sales",
+  "credit_note",
   "purchase",
+  "debit_note",
   "contra",
   "journal",
 ])
+
+export const billingVoucherLifecycleStatusSchema = z.enum([
+  "draft",
+  "posted",
+  "cancelled",
+  "reversed",
+])
+
+export const billingVoucherReversePayloadSchema = z.object({
+  reason: z.string().trim().min(3),
+  date: z.string().trim().min(1).optional(),
+})
 
 export const billingEntrySideSchema = z.enum(["debit", "credit"])
 
@@ -199,9 +213,23 @@ export const billingSalesInvoiceSchema = z.object({
   items: z.array(billingSalesInvoiceItemSchema).min(1),
 })
 
+export const billingVoucherSourceDocumentSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: billingVoucherTypeSchema,
+})
+
 export const billingVoucherSchema = z.object({
   id: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
+  status: billingVoucherLifecycleStatusSchema.default("posted"),
+  reversalOfVoucherId: z.string().trim().min(1).nullable().default(null),
+  reversalOfVoucherNumber: z.string().trim().min(1).nullable().default(null),
+  reversedByVoucherId: z.string().trim().min(1).nullable().default(null),
+  reversedByVoucherNumber: z.string().trim().min(1).nullable().default(null),
+  reversedAt: z.string().trim().min(1).nullable().default(null),
+  reversalReason: z.string().trim().min(1).nullable().default(null),
+  sourceDocument: billingVoucherSourceDocumentSchema.nullable().default(null),
   type: billingVoucherTypeSchema,
   date: z.string().trim().min(1),
   counterparty: z.string().trim().min(1),
@@ -278,7 +306,9 @@ export const billingSalesInvoicePayloadSchema = z.object({
 
 export const billingVoucherUpsertPayloadSchema = z.object({
   voucherNumber: z.string().trim().default(""),
+  status: billingVoucherLifecycleStatusSchema.default("posted"),
   type: billingVoucherTypeSchema,
+  sourceVoucherId: z.string().trim().min(1).nullable().default(null),
   date: z.string().trim().min(1),
   counterparty: z.string().trim().default(""),
   narration: z.string().trim(),
@@ -315,6 +345,101 @@ export const billingVoucherResponseSchema = z.object({
   item: billingVoucherSchema,
 })
 
+export const billingVoucherReverseResponseSchema = z.object({
+  item: billingVoucherSchema,
+  reversalItem: billingVoucherSchema,
+})
+
+export const billingVoucherHeaderSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  status: billingVoucherLifecycleStatusSchema,
+  type: billingVoucherTypeSchema,
+  date: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  narration: z.string().trim(),
+  financialYearCode: z.string().trim().min(1),
+  financialYearLabel: z.string().trim().min(1),
+  financialYearStartDate: z.string().trim().min(1),
+  financialYearEndDate: z.string().trim().min(1),
+  financialYearSequenceNumber: z.number().int().positive(),
+  financialYearPrefix: z.string().trim().min(1),
+  totalDebit: z.number().nonnegative(),
+  totalCredit: z.number().nonnegative(),
+  lineCount: z.number().int().nonnegative(),
+  billAllocationCount: z.number().int().nonnegative(),
+  hasGst: z.boolean(),
+  hasSalesInvoice: z.boolean(),
+  reversalOfVoucherId: z.string().trim().min(1).nullable(),
+  reversalOfVoucherNumber: z.string().trim().min(1).nullable(),
+  reversedByVoucherId: z.string().trim().min(1).nullable(),
+  reversedByVoucherNumber: z.string().trim().min(1).nullable(),
+  reversedAt: z.string().trim().min(1).nullable(),
+  reversalReason: z.string().trim().min(1).nullable(),
+  sourceDocument: billingVoucherSourceDocumentSchema.nullable(),
+  createdAt: z.string().trim().min(1),
+  updatedAt: z.string().trim().min(1),
+  createdByUserId: z.string().trim().nullable(),
+})
+
+export const billingVoucherHeaderListResponseSchema = z.object({
+  items: z.array(billingVoucherHeaderSchema),
+})
+
+export const billingVoucherLineRecordSchema = z.object({
+  lineId: z.string().trim().min(1),
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherStatus: billingVoucherLifecycleStatusSchema,
+  voucherType: billingVoucherTypeSchema,
+  voucherDate: z.string().trim().min(1),
+  lineOrder: z.number().int().positive(),
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  side: billingEntrySideSchema,
+  amount: z.number().positive(),
+  note: z.string().trim(),
+  counterparty: z.string().trim().min(1),
+  createdAt: z.string().trim().min(1),
+  updatedAt: z.string().trim().min(1),
+})
+
+export const billingVoucherLineRecordListResponseSchema = z.object({
+  items: z.array(billingVoucherLineRecordSchema),
+})
+
+export const billingLedgerEntrySchema = z.object({
+  entryId: z.string().trim().min(1),
+  voucherId: z.string().trim().min(1),
+  voucherLineId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: billingVoucherTypeSchema,
+  voucherStatus: billingVoucherLifecycleStatusSchema,
+  voucherDate: z.string().trim().min(1),
+  entryOrder: z.number().int().positive(),
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  side: billingEntrySideSchema,
+  amount: z.number().positive(),
+  counterparty: z.string().trim().min(1),
+  narration: z.string().trim(),
+  reversalOfVoucherId: z.string().trim().min(1).nullable(),
+  reversalOfVoucherNumber: z.string().trim().min(1).nullable(),
+  postedAt: z.string().trim().min(1),
+  createdAt: z.string().trim().min(1),
+  updatedAt: z.string().trim().min(1),
+})
+
+export const billingLedgerEntryListResponseSchema = z.object({
+  items: z.array(billingLedgerEntrySchema),
+})
+
+export const billingReportSourceReferenceSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  entryIds: z.array(z.string().trim().min(1)).min(1),
+})
+
 export const billingLedgerResponseSchema = z.object({
   item: billingLedgerSchema,
 })
@@ -342,6 +467,7 @@ export const billingTrialBalanceItemSchema = z.object({
   creditAmount: z.number().nonnegative(),
   closingSide: billingEntrySideSchema,
   closingAmount: z.number().nonnegative(),
+  sourceReferences: z.array(billingReportSourceReferenceSchema),
 })
 
 export const billingTrialBalanceSchema = z.object({
@@ -355,6 +481,7 @@ export const billingProfitAndLossEntrySchema = z.object({
   ledgerName: z.string().trim().min(1),
   group: z.string().trim().min(1),
   amount: z.number().nonnegative(),
+  sourceReferences: z.array(billingReportSourceReferenceSchema),
 })
 
 export const billingProfitAndLossSchema = z.object({
@@ -371,6 +498,7 @@ export const billingBalanceSheetEntrySchema = z.object({
   ledgerName: z.string().trim().min(1),
   group: z.string().trim().min(1),
   amount: z.number().nonnegative(),
+  sourceReferences: z.array(billingReportSourceReferenceSchema),
 })
 
 export const billingBalanceSheetSchema = z.object({
@@ -398,11 +526,43 @@ export const billingOutstandingSummarySchema = z.object({
   items: z.array(billingOutstandingItemSchema),
 })
 
+export const billingGeneralLedgerEntrySchema = z.object({
+  entryId: z.string().trim().min(1),
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: billingVoucherTypeSchema,
+  voucherDate: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  narration: z.string().trim(),
+  side: billingEntrySideSchema,
+  amount: z.number().positive(),
+  runningSide: billingEntrySideSchema,
+  runningAmount: z.number().nonnegative(),
+})
+
+export const billingGeneralLedgerItemSchema = z.object({
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  group: z.string().trim().min(1),
+  openingSide: billingEntrySideSchema,
+  openingAmount: z.number().nonnegative(),
+  debitTotal: z.number().nonnegative(),
+  creditTotal: z.number().nonnegative(),
+  closingSide: billingEntrySideSchema,
+  closingAmount: z.number().nonnegative(),
+  entries: z.array(billingGeneralLedgerEntrySchema),
+})
+
+export const billingGeneralLedgerSchema = z.object({
+  items: z.array(billingGeneralLedgerItemSchema),
+})
+
 export const billingAccountingReportsSchema = z.object({
   trialBalance: billingTrialBalanceSchema,
   profitAndLoss: billingProfitAndLossSchema,
   balanceSheet: billingBalanceSheetSchema,
   outstanding: billingOutstandingSummarySchema,
+  generalLedger: billingGeneralLedgerSchema,
 })
 
 export const billingAccountingReportsResponseSchema = z.object({
@@ -410,6 +570,12 @@ export const billingAccountingReportsResponseSchema = z.object({
 })
 
 export type BillingVoucherType = z.infer<typeof billingVoucherTypeSchema>
+export type BillingVoucherLifecycleStatus = z.infer<
+  typeof billingVoucherLifecycleStatusSchema
+>
+export type BillingVoucherReversePayload = z.infer<
+  typeof billingVoucherReversePayloadSchema
+>
 export type BillingEntrySide = z.infer<typeof billingEntrySideSchema>
 export type BillingLedger = z.infer<typeof billingLedgerSchema>
 export type BillingCategory = z.infer<typeof billingCategorySchema>
@@ -440,6 +606,9 @@ export type BillingVoucherEWayBill = z.infer<typeof billingVoucherEWayBillSchema
 export type BillingSalesInvoiceItem = z.infer<typeof billingSalesInvoiceItemSchema>
 export type BillingSalesInvoice = z.infer<typeof billingSalesInvoiceSchema>
 export type BillingVoucher = z.infer<typeof billingVoucherSchema>
+export type BillingVoucherHeader = z.infer<typeof billingVoucherHeaderSchema>
+export type BillingVoucherLineRecord = z.infer<typeof billingVoucherLineRecordSchema>
+export type BillingLedgerEntry = z.infer<typeof billingLedgerEntrySchema>
 export type BillingVoucherUpsertPayload = z.infer<
   typeof billingVoucherUpsertPayloadSchema
 >
@@ -478,6 +647,9 @@ export type BillingVoucherListResponse = z.infer<
   typeof billingVoucherListResponseSchema
 >
 export type BillingVoucherResponse = z.infer<typeof billingVoucherResponseSchema>
+export type BillingVoucherReverseResponse = z.infer<
+  typeof billingVoucherReverseResponseSchema
+>
 export type BillingTrialBalanceItem = z.infer<typeof billingTrialBalanceItemSchema>
 export type BillingTrialBalance = z.infer<typeof billingTrialBalanceSchema>
 export type BillingProfitAndLossEntry = z.infer<

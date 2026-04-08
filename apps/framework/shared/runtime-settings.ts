@@ -798,6 +798,20 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         placeholder: "1",
         required: true,
       },
+      {
+        key: "BILLING_LOCK_DATE",
+        label: "Billing Lock Date",
+        type: "string",
+        description: "No billing voucher may be created, updated, or reversed on or before this ISO date.",
+        placeholder: "2026-03-31",
+      },
+      {
+        key: "BILLING_PERIOD_CLOSED_THROUGH",
+        label: "Closed Through Date",
+        type: "string",
+        description: "Accounting periods through this ISO date are treated as closed for billing operations.",
+        placeholder: "2026-03-31",
+      },
     ],
   },
   {

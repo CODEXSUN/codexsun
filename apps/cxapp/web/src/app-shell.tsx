@@ -158,6 +158,14 @@ const BillingCategoryFormPage = lazyNamed(
   () => import("./pages/billing-category-form-page"),
   "BillingCategoryFormPage",
 );
+const BillingCreditNoteFormPage = lazyNamed(
+  () => import("./pages/billing-credit-note-form-page"),
+  "BillingCreditNoteFormPage",
+);
+const BillingDebitNoteFormPage = lazyNamed(
+  () => import("./pages/billing-debit-note-form-page"),
+  "BillingDebitNoteFormPage",
+);
 const BillingLedgerFormPage = lazyNamed(
   () => import("./pages/billing-ledger-form-page"),
   "BillingLedgerFormPage",
@@ -1360,11 +1368,51 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/credit-note/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingCreditNoteFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/credit-note/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingCreditNoteFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/debit-note"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="debit-note" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/debit-note/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingDebitNoteFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/debit-note/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingDebitNoteFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

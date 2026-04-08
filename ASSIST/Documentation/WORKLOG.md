@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#67` 2026-04-08
+
+- completed billing Stage `B1` through Stage `B3` plus Stage `B4.1`, covering posting integrity, normalized voucher storage, immutable ledger entries, posted-entry-driven reporting, note documents, and the first general ledger report
+- added first-class credit note and debit note workflows with source-document linkage, GST-aware adjustment treatment, and explicit note register and detail pages in the billing workspace
+- validated the billing batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+
 ### `#66` 2026-04-08
 
 - completed Stage `3.2.4` by documenting ERPNext price-list compatibility for a future ERP-owned storefront pricing model

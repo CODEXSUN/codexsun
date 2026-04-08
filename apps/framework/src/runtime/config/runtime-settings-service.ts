@@ -147,6 +147,8 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     BILLING_FINANCIAL_YEAR_START_DAY: String(
       config.billing.compliance.financialYearStartDay
     ),
+    BILLING_LOCK_DATE: config.billing.compliance.lockDate ?? "",
+    BILLING_PERIOD_CLOSED_THROUGH: config.billing.compliance.periodClosedThrough ?? "",
     BILLING_EINVOICE_ENABLED: config.billing.compliance.eInvoice.enabled,
     BILLING_EINVOICE_MODE: config.billing.compliance.eInvoice.mode,
     BILLING_EINVOICE_BASE_URL: config.billing.compliance.eInvoice.baseUrl ?? "",

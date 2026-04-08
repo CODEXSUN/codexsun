@@ -35,12 +35,28 @@ export const billingVoucherModules: BillingVoucherModule[] = [
     desktopIntent: "Prepared for invoice-style desktop entry with item, tax, and narration expansion.",
   },
   {
+    id: "credit_note",
+    name: "Credit Notes",
+    route: "/dashboard/billing/credit-note",
+    summary: "Customer-facing reductions for sales returns, post-sale discounts, and receivable corrections.",
+    workflowHint: "Credit the customer ledger and debit the correcting revenue or adjustment ledgers.",
+    desktopIntent: "Prepared for fast note issuance and adjustment review from the accounting desk.",
+  },
+  {
     id: "purchase",
     name: "Purchase Vouchers",
     route: "/dashboard/billing/purchase-vouchers",
     summary: "Supplier bills, expense capture, and inventory-linked purchase accounting.",
     workflowHint: "Debit purchase or stock-linked ledgers and credit the supplier or payment source.",
     desktopIntent: "Prepared for purchase bill entry with stock, tax, and bill reference panels.",
+  },
+  {
+    id: "debit_note",
+    name: "Debit Notes",
+    route: "/dashboard/billing/debit-note",
+    summary: "Supplier-facing upward or corrective adjustments for purchase returns, shortages, and payable-side corrections.",
+    workflowHint: "Debit the supplier or recovery ledger and credit the correcting purchase or adjustment ledgers.",
+    desktopIntent: "Prepared for quick supplier adjustment entry and debit-note review from the accounting desk.",
   },
   {
     id: "contra",

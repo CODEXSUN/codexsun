@@ -3,8 +3,11 @@ import type { Kysely } from "kysely"
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import {
   billingAccountingReportsResponseSchema,
+  type BillingBalanceSheetEntry,
   billingLedgerSchema,
+  type BillingProfitAndLossEntry,
   billingVoucherSchema,
+  type BillingLedgerEntry,
   type BillingLedger,
   type BillingOutstandingItem,
   type BillingVoucher,
@@ -13,6 +16,7 @@ import {
 import { billingTableNames } from "../../database/table-names.js"
 
 import { assertBillingViewer } from "./access.js"
+import { listBillingLedgerEntries } from "./ledger-entry-store.js"
 import { listStorePayloads } from "./store.js"
 
 function roundCurrency(value: number) {
@@ -33,12 +37,85 @@ function toBalance(amount: number) {
   }
 }
 
+function toSignedEntryAmount(side: "debit" | "credit", amount: number) {
+  return side === "debit" ? amount : -amount
+}
+
 async function readLedgers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.ledgers, billingLedgerSchema)
 }
 
 async function readVouchers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.vouchers, billingVoucherSchema)
+}
+
+function getLedgerMovement(entries: BillingLedgerEntry[]) {
+  const movementByLedgerId = new Map<
+    string,
+    {
+      debitAmount: number
+      creditAmount: number
+      signedMovement: number
+    }
+  >()
+
+  for (const entry of entries) {
+    const current = movementByLedgerId.get(entry.ledgerId) ?? {
+      debitAmount: 0,
+      creditAmount: 0,
+      signedMovement: 0,
+    }
+
+    if (entry.side === "debit") {
+      current.debitAmount += entry.amount
+      current.signedMovement += entry.amount
+    } else {
+      current.creditAmount += entry.amount
+      current.signedMovement -= entry.amount
+    }
+
+    movementByLedgerId.set(entry.ledgerId, current)
+  }
+
+  return movementByLedgerId
+}
+
+function getLedgerSourceReferences(entries: BillingLedgerEntry[]) {
+  const sourcesByLedgerId = new Map<
+    string,
+    Map<string, { voucherId: string; voucherNumber: string; entryIds: string[] }>
+  >()
+
+  for (const entry of entries) {
+    let voucherMap = sourcesByLedgerId.get(entry.ledgerId)
+
+    if (!voucherMap) {
+      voucherMap = new Map()
+      sourcesByLedgerId.set(entry.ledgerId, voucherMap)
+    }
+
+    const existing = voucherMap.get(entry.voucherId)
+
+    if (existing) {
+      existing.entryIds.push(entry.entryId)
+      continue
+    }
+
+    voucherMap.set(entry.voucherId, {
+      voucherId: entry.voucherId,
+      voucherNumber: entry.voucherNumber,
+      entryIds: [entry.entryId],
+    })
+  }
+
+  return new Map(
+    [...sourcesByLedgerId.entries()].map(([ledgerId, voucherMap]) => [
+      ledgerId,
+      [...voucherMap.values()].sort((left, right) =>
+        left.voucherNumber.localeCompare(right.voucherNumber)
+      ),
+    ])
+  )
 }
 
 function getInvoiceAmount(voucher: BillingVoucher) {
@@ -59,38 +136,14 @@ export async function getBillingAccountingReports(
 ) {
   assertBillingViewer(user)
 
-  const [ledgers, vouchers] = await Promise.all([
+  const [ledgers, vouchers, ledgerEntries] = await Promise.all([
     readLedgers(database),
     readVouchers(database),
+    listBillingLedgerEntries(database).then((response) => response.items),
   ])
-  const movementByLedgerId = new Map<
-    string,
-    {
-      debitAmount: number
-      creditAmount: number
-      signedMovement: number
-    }
-  >()
-
-  for (const voucher of vouchers) {
-    for (const line of voucher.lines) {
-      const current = movementByLedgerId.get(line.ledgerId) ?? {
-        debitAmount: 0,
-        creditAmount: 0,
-        signedMovement: 0,
-      }
-
-      if (line.side === "debit") {
-        current.debitAmount += line.amount
-        current.signedMovement += line.amount
-      } else {
-        current.creditAmount += line.amount
-        current.signedMovement -= line.amount
-      }
-
-      movementByLedgerId.set(line.ledgerId, current)
-    }
-  }
+  const postedVouchers = vouchers.filter((voucher) => voucher.status === "posted")
+  const movementByLedgerId = getLedgerMovement(ledgerEntries)
+  const sourceReferencesByLedgerId = getLedgerSourceReferences(ledgerEntries)
 
   const trialBalanceItems = ledgers
     .map((ledger) => {
@@ -114,6 +167,64 @@ export async function getBillingAccountingReports(
         creditAmount: roundCurrency(movement.creditAmount),
         closingSide: closing.side,
         closingAmount: closing.amount,
+        sourceReferences: sourceReferencesByLedgerId.get(ledger.id) ?? [],
+      }
+    })
+    .sort((left, right) => left.ledgerName.localeCompare(right.ledgerName))
+
+  const generalLedgerItems = ledgers
+    .map((ledger) => {
+      const openingSigned = toSignedAmount(ledger.closingSide, ledger.closingAmount)
+      const ledgerEntriesForLedger = ledgerEntries
+        .filter((entry) => entry.ledgerId === ledger.id)
+        .sort((left, right) =>
+          left.voucherDate.localeCompare(right.voucherDate) ||
+          left.voucherNumber.localeCompare(right.voucherNumber) ||
+          left.entryOrder - right.entryOrder
+        )
+
+      let runningSigned = openingSigned
+      let debitTotal = 0
+      let creditTotal = 0
+
+      const entries = ledgerEntriesForLedger.map((entry) => {
+        if (entry.side === "debit") {
+          debitTotal += entry.amount
+        } else {
+          creditTotal += entry.amount
+        }
+
+        runningSigned += toSignedEntryAmount(entry.side, entry.amount)
+        const running = toBalance(runningSigned)
+
+        return {
+          entryId: entry.entryId,
+          voucherId: entry.voucherId,
+          voucherNumber: entry.voucherNumber,
+          voucherType: entry.voucherType,
+          voucherDate: entry.voucherDate,
+          counterparty: entry.counterparty,
+          narration: entry.narration,
+          side: entry.side,
+          amount: roundCurrency(entry.amount),
+          runningSide: running.side,
+          runningAmount: running.amount,
+        }
+      })
+
+      const closing = toBalance(runningSigned)
+
+      return {
+        ledgerId: ledger.id,
+        ledgerName: ledger.name,
+        group: ledger.group,
+        openingSide: ledger.closingSide,
+        openingAmount: roundCurrency(ledger.closingAmount),
+        debitTotal: roundCurrency(debitTotal),
+        creditTotal: roundCurrency(creditTotal),
+        closingSide: closing.side,
+        closingAmount: closing.amount,
+        entries,
       }
     })
     .sort((left, right) => left.ledgerName.localeCompare(right.ledgerName))
@@ -126,6 +237,7 @@ export async function getBillingAccountingReports(
           ledgerName: item.ledgerName,
           group: item.group,
           amount: item.closingAmount,
+          sourceReferences: item.sourceReferences,
         })
         result.totalIncome += item.closingAmount
       }
@@ -136,6 +248,7 @@ export async function getBillingAccountingReports(
           ledgerName: item.ledgerName,
           group: item.group,
           amount: item.closingAmount,
+          sourceReferences: item.sourceReferences,
         })
         result.totalExpense += item.closingAmount
       }
@@ -143,18 +256,8 @@ export async function getBillingAccountingReports(
       return result
     },
     {
-      incomeItems: [] as Array<{
-        ledgerId: string
-        ledgerName: string
-        group: string
-        amount: number
-      }>,
-      expenseItems: [] as Array<{
-        ledgerId: string
-        ledgerName: string
-        group: string
-        amount: number
-      }>,
+      incomeItems: [] as BillingProfitAndLossEntry[],
+      expenseItems: [] as BillingProfitAndLossEntry[],
       totalIncome: 0,
       totalExpense: 0,
     }
@@ -173,6 +276,7 @@ export async function getBillingAccountingReports(
           ledgerName: item.ledgerName,
           group: item.group,
           amount: item.closingAmount,
+          sourceReferences: item.sourceReferences,
         })
         result.totalAssets += item.closingAmount
       }
@@ -183,6 +287,7 @@ export async function getBillingAccountingReports(
           ledgerName: item.ledgerName,
           group: item.group,
           amount: item.closingAmount,
+          sourceReferences: item.sourceReferences,
         })
         result.totalLiabilities += item.closingAmount
       }
@@ -190,18 +295,8 @@ export async function getBillingAccountingReports(
       return result
     },
     {
-      assetItems: [] as Array<{
-        ledgerId: string
-        ledgerName: string
-        group: string
-        amount: number
-      }>,
-      liabilityItems: [] as Array<{
-        ledgerId: string
-        ledgerName: string
-        group: string
-        amount: number
-      }>,
+      assetItems: [] as BillingBalanceSheetEntry[],
+      liabilityItems: [] as BillingBalanceSheetEntry[],
       totalAssets: 0,
       totalLiabilities: 0,
     }
@@ -213,6 +308,7 @@ export async function getBillingAccountingReports(
       ledgerName: "Current Period Profit",
       group: "Current Earnings",
       amount: netProfit,
+      sourceReferences: [],
     })
     balanceSheet.totalLiabilities += netProfit
   } else if (netLoss > 0) {
@@ -221,14 +317,15 @@ export async function getBillingAccountingReports(
       ledgerName: "Current Period Loss",
       group: "Current Earnings",
       amount: netLoss,
+      sourceReferences: [],
     })
     balanceSheet.totalAssets += netLoss
   }
 
   const outstandingMap = new Map<string, BillingOutstandingItem>()
 
-  for (const voucher of vouchers) {
-    if (!["sales", "purchase"].includes(voucher.type)) {
+  for (const voucher of postedVouchers) {
+    if (!["sales", "purchase"].includes(voucher.type) || voucher.reversalOfVoucherId) {
       continue
     }
 
@@ -244,7 +341,7 @@ export async function getBillingAccountingReports(
     })
   }
 
-  for (const voucher of vouchers) {
+  for (const voucher of postedVouchers) {
     if (!["payment", "receipt"].includes(voucher.type)) {
       continue
     }
@@ -321,6 +418,9 @@ export async function getBillingAccountingReports(
         receivableTotal,
         payableTotal,
         items: outstandingItems,
+      },
+      generalLedger: {
+        items: generalLedgerItems,
       },
     },
   })

@@ -189,6 +189,8 @@ export type ServerConfig = {
     compliance: {
       financialYearStartMonth: number
       financialYearStartDay: number
+      lockDate?: string
+      periodClosedThrough?: string
       eInvoice: {
         enabled: boolean
         mode: "mock" | "live"
@@ -499,6 +501,8 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
           1,
           "BILLING_FINANCIAL_YEAR_START_DAY"
         ),
+        lockDate: env.BILLING_LOCK_DATE?.trim() || undefined,
+        periodClosedThrough: env.BILLING_PERIOD_CLOSED_THROUGH?.trim() || undefined,
         eInvoice: {
           enabled: readBoolean(env.BILLING_EINVOICE_ENABLED, false),
           mode: (env.BILLING_EINVOICE_MODE as "mock" | "live" | undefined) ?? "mock",
