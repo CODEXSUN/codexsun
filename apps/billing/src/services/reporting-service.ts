@@ -5,10 +5,13 @@ import type { ServerConfig } from "../../../framework/src/runtime/config/index.j
 import { listJsonStorePayloads } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
   billingAccountingReportsResponseSchema,
+  type BillingAccountingExceptionItem,
   type BillingAgingItem,
   type BillingAgingReport,
   type BillingBalanceSheetEntry,
+  type BillingFinanceDashboard,
   type BillingInventoryAuthority,
+  type BillingMonthEndChecklist,
   type BillingCustomerStatementEntry,
   type BillingCustomerStatementItem,
   type BillingPartySettlementSummaryItem,
@@ -39,6 +42,9 @@ import { assertBillingViewer } from "./access.js"
 import { listBillingLedgerEntries } from "./ledger-entry-store.js"
 import { listStorePayloads } from "./store.js"
 import { projectBillingInventory } from "./inventory-bridge-service.js"
+import { getBillingOpeningBalanceRolloverPolicy } from "./opening-balance-rollover-service.js"
+import { getBillingYearEndAdjustmentControlPolicy } from "./year-end-control-service.js"
+import { getBillingYearCloseWorkflow } from "./year-close-service.js"
 
 function roundCurrency(value: number) {
   return Number(value.toFixed(2))
@@ -1426,6 +1432,261 @@ function buildStockValuationReport(
   }
 }
 
+function buildAccountingExceptions(vouchers: BillingVoucher[]) {
+  const items: BillingAccountingExceptionItem[] = []
+
+  for (const voucher of vouchers) {
+    const amount = getInvoiceAmount(voucher)
+    const daysBackDated = getDaysBetween(voucher.date, voucher.createdAt.slice(0, 10))
+    const altered =
+      voucher.updatedAt !== voucher.createdAt &&
+      ["posted", "reversed", "cancelled"].includes(voucher.status)
+
+    if (altered) {
+      items.push({
+        exceptionType: "altered",
+        voucherId: voucher.id,
+        voucherNumber: voucher.voucherNumber,
+        voucherType: voucher.type,
+        voucherStatus: voucher.status,
+        voucherDate: voucher.date,
+        createdAt: voucher.createdAt,
+        updatedAt: voucher.updatedAt,
+        counterparty: voucher.counterparty,
+        amount,
+        daysBackDated,
+        dimensions: voucher.dimensions,
+        reviewStatus: voucher.review.status,
+        note: "Voucher metadata changed after initial creation.",
+      })
+    }
+
+    if (voucher.status === "reversed") {
+      items.push({
+        exceptionType: "reversed",
+        voucherId: voucher.id,
+        voucherNumber: voucher.voucherNumber,
+        voucherType: voucher.type,
+        voucherStatus: voucher.status,
+        voucherDate: voucher.date,
+        createdAt: voucher.createdAt,
+        updatedAt: voucher.updatedAt,
+        counterparty: voucher.counterparty,
+        amount,
+        daysBackDated,
+        dimensions: voucher.dimensions,
+        reviewStatus: voucher.review.status,
+        note: voucher.reversalReason ?? "Voucher reversed after posting.",
+      })
+    }
+
+    if (daysBackDated > 0 && voucher.status !== "draft") {
+      items.push({
+        exceptionType: "back_dated",
+        voucherId: voucher.id,
+        voucherNumber: voucher.voucherNumber,
+        voucherType: voucher.type,
+        voucherStatus: voucher.status,
+        voucherDate: voucher.date,
+        createdAt: voucher.createdAt,
+        updatedAt: voucher.updatedAt,
+        counterparty: voucher.counterparty,
+        amount,
+        daysBackDated,
+        dimensions: voucher.dimensions,
+        reviewStatus: voucher.review.status,
+        note: `Voucher date precedes entry creation by ${daysBackDated} day${daysBackDated === 1 ? "" : "s"}.`,
+      })
+    }
+  }
+
+  return {
+    alteredCount: items.filter((item) => item.exceptionType === "altered").length,
+    reversedCount: items.filter((item) => item.exceptionType === "reversed").length,
+    backDatedCount: items.filter((item) => item.exceptionType === "back_dated").length,
+    items: items.sort(
+      (left, right) =>
+        right.voucherDate.localeCompare(left.voucherDate) ||
+        right.updatedAt.localeCompare(left.updatedAt)
+    ),
+  }
+}
+
+function buildFinanceDashboard(
+  vouchers: BillingVoucher[],
+  postedVouchers: BillingVoucher[],
+  trialBalanceItems: Array<{
+    group: string
+    closingAmount: number
+  }>,
+  outstanding: {
+    asOfDate: string
+    receivableTotal: number
+    payableTotal: number
+  },
+  bankReconciliation: {
+    pendingEntryCount: number
+    mismatchAmountTotal: number
+  },
+  stockValuationReport: BillingStockValuationReport,
+  exceptions: {
+    reversedCount: number
+    backDatedCount: number
+  }
+): BillingFinanceDashboard {
+  const pendingReviewVouchers = postedVouchers.filter(
+    (voucher) => voucher.review.status === "pending_review"
+  )
+  const bankBalance = roundCurrency(
+    trialBalanceItems
+      .filter((item) => item.group === "Bank Accounts")
+      .reduce((sum, item) => sum + item.closingAmount, 0)
+  )
+  const cashBalance = roundCurrency(
+    trialBalanceItems
+      .filter((item) => item.group === "Cash-in-Hand")
+      .reduce((sum, item) => sum + item.closingAmount, 0)
+  )
+
+  return {
+    asOfDate: outstanding.asOfDate,
+    postedVoucherCount: postedVouchers.length,
+    pendingReviewCount: pendingReviewVouchers.length,
+    pendingReviewAmount: roundCurrency(
+      pendingReviewVouchers.reduce((sum, voucher) => sum + getInvoiceAmount(voucher), 0)
+    ),
+    reversedVoucherCount: exceptions.reversedCount,
+    reversedVoucherAmount: roundCurrency(
+      vouchers
+        .filter((voucher) => voucher.status === "reversed")
+        .reduce((sum, voucher) => sum + getInvoiceAmount(voucher), 0)
+    ),
+    backDatedVoucherCount: exceptions.backDatedCount,
+    receivableTotal: roundCurrency(outstanding.receivableTotal),
+    payableTotal: roundCurrency(outstanding.payableTotal),
+    bankPendingEntryCount: bankReconciliation.pendingEntryCount,
+    bankMismatchAmount: roundCurrency(bankReconciliation.mismatchAmountTotal),
+    inventoryValue: roundCurrency(stockValuationReport.totalInventoryValue),
+    cashBalance,
+    bankBalance,
+  }
+}
+
+function buildMonthEndChecklist(input: {
+  asOfDate: string
+  financeDashboard: BillingFinanceDashboard
+  exceptions: { backDatedCount: number }
+  settlementExceptions: { items: Array<unknown> }
+  bankReconciliation: { pendingEntryCount: number; mismatchEntryCount: number }
+  gstFilingSummary: { latestPeriodKey: string | null; periods: Array<{ periodKey: string; netTaxPayable: number }> }
+  stockValuationReport: BillingStockValuationReport
+}): BillingMonthEndChecklist {
+  const items = [
+    {
+      id: "reviews",
+      label: "Finance reviews cleared",
+      status:
+        input.financeDashboard.pendingReviewCount === 0
+          ? ("ready" as const)
+          : ("blocked" as const),
+      value: String(input.financeDashboard.pendingReviewCount),
+      detail:
+        input.financeDashboard.pendingReviewCount === 0
+          ? "No billing vouchers are waiting for review."
+          : `${input.financeDashboard.pendingReviewCount} voucher(s) are still pending approval.`,
+    },
+    {
+      id: "bank-reconciliation",
+      label: "Bank reconciliation completed",
+      status:
+        input.bankReconciliation.pendingEntryCount === 0 &&
+        input.bankReconciliation.mismatchEntryCount === 0
+          ? ("ready" as const)
+          : input.bankReconciliation.mismatchEntryCount > 0
+            ? ("blocked" as const)
+            : ("attention" as const),
+      value: `${input.bankReconciliation.pendingEntryCount} pending / ${input.bankReconciliation.mismatchEntryCount} mismatch`,
+      detail: "Month-end bank closing should not carry unresolved pending or mismatch items.",
+    },
+    {
+      id: "back-dated",
+      label: "Back-dated posting reviewed",
+      status:
+        input.exceptions.backDatedCount === 0 ? ("ready" as const) : ("attention" as const),
+      value: String(input.exceptions.backDatedCount),
+      detail: "Back-dated entries should be reviewed before books are closed.",
+    },
+    {
+      id: "open-bills",
+      label: "Open bill exceptions reviewed",
+      status:
+        input.settlementExceptions.items.length === 0
+          ? ("ready" as const)
+          : ("attention" as const),
+      value: String(input.settlementExceptions.items.length),
+      detail: "Advance, on-account, and overpayment exceptions should be explained before close.",
+    },
+    {
+      id: "gst-summary",
+      label: "GST period summary ready",
+      status:
+        input.gstFilingSummary.latestPeriodKey === null
+          ? ("attention" as const)
+          : ("ready" as const),
+      value: input.gstFilingSummary.latestPeriodKey ?? "No period",
+      detail: "Latest GST period summary should be reviewed alongside filing totals.",
+    },
+    {
+      id: "inventory-valuation",
+      label: "Inventory valuation refreshed",
+      status:
+        input.stockValuationReport.totalInventoryValue >= 0
+          ? ("ready" as const)
+          : ("blocked" as const),
+      value: input.stockValuationReport.totalInventoryValue.toFixed(2),
+      detail: "Stock valuation must be available for closing inventory and gross-margin review.",
+    },
+  ]
+
+  return {
+    asOfDate: input.asOfDate,
+    readyCount: items.filter((item) => item.status === "ready").length,
+    attentionCount: items.filter((item) => item.status === "attention").length,
+    blockedCount: items.filter((item) => item.status === "blocked").length,
+    items,
+  }
+}
+
+function buildFinancialYearCloseWorkflowFallback(
+  vouchers: BillingVoucher[],
+  checklist: BillingMonthEndChecklist
+) {
+  const latestVoucher = [...vouchers].sort((left, right) =>
+    right.financialYear.endDate.localeCompare(left.financialYear.endDate)
+  )[0]
+
+  if (!latestVoucher) {
+    return null
+  }
+
+  return {
+    financialYearCode: latestVoucher.financialYear.code,
+    financialYearLabel: latestVoucher.financialYear.label,
+    startDate: latestVoucher.financialYear.startDate,
+    endDate: latestVoucher.financialYear.endDate,
+    voucherCount: vouchers.filter(
+      (voucher) => voucher.financialYear.code === latestVoucher.financialYear.code
+    ).length,
+    status: checklist.blockedCount > 0 ? ("blocked" as const) : ("not_started" as const),
+    blockedItemCount: checklist.blockedCount,
+    readyItemCount: checklist.readyCount,
+    lastEvaluatedAt: new Date().toISOString(),
+    closedAt: null,
+    closedByUserId: null,
+    note: "",
+  }
+}
+
 export async function getBillingAccountingReports(
   database: Kysely<unknown>,
   user: AuthUser,
@@ -1673,6 +1934,152 @@ export async function getBillingAccountingReports(
       .filter((item) => item.voucherType === "purchase")
       .reduce((sum, item) => sum + item.outstandingAmount, 0)
   )
+  const settlementExceptions = buildSettlementExceptions(postedVouchers, openBillRecords)
+  const bankReconciliation = (() => {
+    const bankLedgers = generalLedgerItems.filter((item) => item.group === "Bank Accounts")
+    const ledgers = bankLedgers.map((item) => {
+      const enrichedEntries = item.entries.map((entry) => {
+        const reconciliation = voucherById.get(entry.voucherId)?.bankReconciliation ?? {
+          status: "not_applicable" as const,
+          clearedDate: null,
+          statementReference: null,
+          statementAmount: null,
+          mismatchAmount: null,
+          note: "",
+        }
+
+        return {
+          entryId: entry.entryId,
+          voucherId: entry.voucherId,
+          voucherNumber: entry.voucherNumber,
+          voucherType: entry.voucherType,
+          voucherDate: entry.voucherDate,
+          counterparty: entry.counterparty,
+          narration: entry.narration,
+          side: entry.side,
+          amount: entry.amount,
+          reconciliationStatus: reconciliation.status,
+          clearedDate: reconciliation.clearedDate,
+          statementReference: reconciliation.statementReference,
+          statementAmount: reconciliation.statementAmount,
+          mismatchAmount: reconciliation.mismatchAmount,
+          pendingAgeDays:
+            reconciliation.status === "pending"
+              ? getDaysBetween(entry.voucherDate, asOfDate)
+              : null,
+          note: reconciliation.note,
+        }
+      })
+      const matchedEntries = enrichedEntries.filter(
+        (entry) => entry.reconciliationStatus === "matched"
+      )
+      const pendingEntries = enrichedEntries.filter(
+        (entry) => entry.reconciliationStatus === "pending"
+      )
+      const mismatchedEntries = enrichedEntries.filter(
+        (entry) => entry.reconciliationStatus === "mismatch"
+      )
+
+      return {
+        ledgerId: item.ledgerId,
+        ledgerName: item.ledgerName,
+        openingSide: item.openingSide,
+        openingAmount: item.openingAmount,
+        closingSide: item.closingSide,
+        closingAmount: item.closingAmount,
+        matchedEntryCount: matchedEntries.length,
+        matchedDebitTotal: roundCurrency(
+          matchedEntries
+            .filter((entry) => entry.side === "debit")
+            .reduce((sum, entry) => sum + entry.amount, 0)
+        ),
+        matchedCreditTotal: roundCurrency(
+          matchedEntries
+            .filter((entry) => entry.side === "credit")
+            .reduce((sum, entry) => sum + entry.amount, 0)
+        ),
+        pendingDebitTotal: roundCurrency(
+          pendingEntries
+            .filter((entry) => entry.side === "debit")
+            .reduce((sum, entry) => sum + entry.amount, 0)
+        ),
+        pendingCreditTotal: roundCurrency(
+          pendingEntries
+            .filter((entry) => entry.side === "credit")
+            .reduce((sum, entry) => sum + entry.amount, 0)
+        ),
+        oldestPendingDays: pendingEntries.reduce(
+          (max, entry) => Math.max(max, entry.pendingAgeDays ?? 0),
+          0
+        ),
+        mismatchEntryCount: mismatchedEntries.length,
+        mismatchAmountTotal: roundCurrency(
+          mismatchedEntries.reduce((sum, entry) => sum + (entry.mismatchAmount ?? 0), 0)
+        ),
+        matchedEntries,
+        pendingEntries,
+        mismatchedEntries,
+      }
+    })
+
+    return {
+      asOfDate,
+      matchedEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.matchedEntryCount, 0),
+      matchedDebitTotal: roundCurrency(
+        ledgers.reduce((sum, ledger) => sum + ledger.matchedDebitTotal, 0)
+      ),
+      matchedCreditTotal: roundCurrency(
+        ledgers.reduce((sum, ledger) => sum + ledger.matchedCreditTotal, 0)
+      ),
+      pendingEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.pendingEntries.length, 0),
+      pendingDebitTotal: roundCurrency(
+        ledgers.reduce((sum, ledger) => sum + ledger.pendingDebitTotal, 0)
+      ),
+      pendingCreditTotal: roundCurrency(
+        ledgers.reduce((sum, ledger) => sum + ledger.pendingCreditTotal, 0)
+      ),
+      oldestPendingDays: ledgers.reduce(
+        (max, ledger) => Math.max(max, ledger.oldestPendingDays),
+        0
+      ),
+      mismatchEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.mismatchEntryCount, 0),
+      mismatchAmountTotal: roundCurrency(
+        ledgers.reduce((sum, ledger) => sum + ledger.mismatchAmountTotal, 0)
+      ),
+      ledgers,
+    }
+  })()
+  const exceptions = buildAccountingExceptions(vouchers)
+  const financeDashboard = buildFinanceDashboard(
+    vouchers,
+    postedVouchers,
+    trialBalanceItems,
+    {
+      asOfDate,
+      receivableTotal,
+      payableTotal,
+    },
+    bankReconciliation,
+    stockValuationReport,
+    exceptions
+  )
+  const gstFilingSummary = buildGstFilingSummary(postedVouchers)
+  const monthEndChecklist = buildMonthEndChecklist({
+    asOfDate,
+    financeDashboard,
+    exceptions,
+    settlementExceptions,
+    bankReconciliation,
+    gstFilingSummary,
+    stockValuationReport,
+  })
+  const financialYearCloseWorkflow =
+    (await getBillingYearCloseWorkflow(database, user)) ??
+    buildFinancialYearCloseWorkflowFallback(vouchers, monthEndChecklist)
+  const openingBalanceRolloverPolicy =
+    await getBillingOpeningBalanceRolloverPolicy(database, user)
+  const yearEndAdjustmentControlPolicy =
+    await getBillingYearEndAdjustmentControlPolicy(database, user)
 
   return billingAccountingReportsResponseSchema.parse({
     item: {
@@ -1723,7 +2130,7 @@ export async function getBillingAccountingReports(
       receivableAging: buildAgingReport(openBillRecords, "sales", asOfDate),
       payableAging: buildAgingReport(openBillRecords, "purchase", asOfDate),
       settlementFollowUp: buildSettlementFollowUp(openBillRecords),
-      settlementExceptions: buildSettlementExceptions(postedVouchers, openBillRecords),
+      settlementExceptions,
       partySettlementSummary: buildPartySettlementSummary(postedVouchers),
       generalLedger: {
         items: generalLedgerItems,
@@ -1734,138 +2141,25 @@ export async function getBillingAccountingReports(
       cashBook: {
         items: generalLedgerItems.filter((item) => item.group === "Cash-in-Hand"),
       },
-      bankReconciliation: (() => {
-        const bankLedgers = generalLedgerItems.filter((item) => item.group === "Bank Accounts")
-        const ledgers = bankLedgers.map((item) => {
-          const enrichedEntries = item.entries.map((entry) => {
-            const reconciliation = voucherById.get(entry.voucherId)?.bankReconciliation ?? {
-              status: "not_applicable" as const,
-              clearedDate: null,
-              statementReference: null,
-              statementAmount: null,
-              mismatchAmount: null,
-              note: "",
-            }
-
-            return {
-              entryId: entry.entryId,
-              voucherId: entry.voucherId,
-              voucherNumber: entry.voucherNumber,
-              voucherType: entry.voucherType,
-              voucherDate: entry.voucherDate,
-              counterparty: entry.counterparty,
-              narration: entry.narration,
-              side: entry.side,
-              amount: entry.amount,
-              reconciliationStatus: reconciliation.status,
-              clearedDate: reconciliation.clearedDate,
-              statementReference: reconciliation.statementReference,
-              statementAmount: reconciliation.statementAmount,
-              mismatchAmount: reconciliation.mismatchAmount,
-              pendingAgeDays:
-                reconciliation.status === "pending"
-                  ? getDaysBetween(entry.voucherDate, asOfDate)
-                  : null,
-              note: reconciliation.note,
-            }
-          })
-          const matchedEntries = enrichedEntries.filter(
-            (entry) => entry.reconciliationStatus === "matched"
-          )
-          const pendingEntries = enrichedEntries.filter(
-            (entry) => entry.reconciliationStatus === "pending"
-          )
-          const mismatchedEntries = enrichedEntries.filter(
-            (entry) => entry.reconciliationStatus === "mismatch"
-          )
-
-          return {
-            ledgerId: item.ledgerId,
-            ledgerName: item.ledgerName,
-            openingSide: item.openingSide,
-            openingAmount: item.openingAmount,
-            closingSide: item.closingSide,
-            closingAmount: item.closingAmount,
-            matchedEntryCount: matchedEntries.length,
-            matchedDebitTotal: roundCurrency(
-              matchedEntries
-                .filter((entry) => entry.side === "debit")
-                .reduce((sum, entry) => sum + entry.amount, 0)
-            ),
-            matchedCreditTotal: roundCurrency(
-              matchedEntries
-                .filter((entry) => entry.side === "credit")
-                .reduce((sum, entry) => sum + entry.amount, 0)
-            ),
-            pendingDebitTotal: roundCurrency(
-              pendingEntries
-                .filter((entry) => entry.side === "debit")
-                .reduce((sum, entry) => sum + entry.amount, 0)
-            ),
-            pendingCreditTotal: roundCurrency(
-              pendingEntries
-                .filter((entry) => entry.side === "credit")
-                .reduce((sum, entry) => sum + entry.amount, 0)
-            ),
-            oldestPendingDays: pendingEntries.reduce(
-              (max, entry) => Math.max(max, entry.pendingAgeDays ?? 0),
-              0
-            ),
-            mismatchEntryCount: mismatchedEntries.length,
-            mismatchAmountTotal: roundCurrency(
-              mismatchedEntries.reduce(
-                (sum, entry) => sum + (entry.mismatchAmount ?? 0),
-                0
-              )
-            ),
-            matchedEntries,
-            pendingEntries,
-            mismatchedEntries,
-          }
-        })
-
-        return {
-          asOfDate,
-          matchedEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.matchedEntryCount, 0),
-          matchedDebitTotal: roundCurrency(
-            ledgers.reduce((sum, ledger) => sum + ledger.matchedDebitTotal, 0)
-          ),
-          matchedCreditTotal: roundCurrency(
-            ledgers.reduce((sum, ledger) => sum + ledger.matchedCreditTotal, 0)
-          ),
-          pendingEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.pendingEntries.length, 0),
-          pendingDebitTotal: roundCurrency(
-            ledgers.reduce((sum, ledger) => sum + ledger.pendingDebitTotal, 0)
-          ),
-          pendingCreditTotal: roundCurrency(
-            ledgers.reduce((sum, ledger) => sum + ledger.pendingCreditTotal, 0)
-          ),
-          oldestPendingDays: ledgers.reduce(
-            (max, ledger) => Math.max(max, ledger.oldestPendingDays),
-            0
-          ),
-          mismatchEntryCount: ledgers.reduce(
-            (sum, ledger) => sum + ledger.mismatchEntryCount,
-            0
-          ),
-          mismatchAmountTotal: roundCurrency(
-            ledgers.reduce((sum, ledger) => sum + ledger.mismatchAmountTotal, 0)
-          ),
-          ledgers,
-        }
-      })(),
+      bankReconciliation,
       customerStatement: buildCustomerStatement(postedVouchers, voucherById),
       supplierStatement: buildSupplierStatement(postedVouchers, voucherById),
       gstSalesRegister: buildGstSalesRegister(postedVouchers, asOfDate),
       gstPurchaseRegister: buildGstPurchaseRegister(postedVouchers, asOfDate),
       inputOutputTaxSummary: buildInputOutputTaxSummary(postedVouchers, asOfDate),
-      gstFilingSummary: buildGstFilingSummary(postedVouchers),
+      gstFilingSummary,
       inventoryAuthority,
       stockValuationPolicy,
       stockLedger,
       stockAccountingRules,
       warehouseStockPosition,
       stockValuationReport,
+      exceptions,
+      financeDashboard,
+      monthEndChecklist,
+      financialYearCloseWorkflow,
+      openingBalanceRolloverPolicy,
+      yearEndAdjustmentControlPolicy,
     },
   })
 }

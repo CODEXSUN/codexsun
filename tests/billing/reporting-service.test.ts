@@ -4,7 +4,10 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
+import { executeBillingOpeningBalanceRollover } from "../../apps/billing/src/services/opening-balance-rollover-service.js"
 import { getBillingAccountingReports } from "../../apps/billing/src/services/reporting-service.js"
+import { executeBillingYearEndAdjustmentControl } from "../../apps/billing/src/services/year-end-control-service.js"
+import { executeBillingYearCloseWorkflow } from "../../apps/billing/src/services/year-close-service.js"
 import { replaceBillingLedgerEntries } from "../../apps/billing/src/services/ledger-entry-store.js"
 import {
   createBillingVoucher,
@@ -31,6 +34,36 @@ const adminUser = {
   permissions: [],
   createdAt: "2026-03-30T00:00:00.000Z",
   updatedAt: "2026-03-30T00:00:00.000Z",
+}
+
+const financeManagerUser = {
+  ...adminUser,
+  id: "auth-user:billing-finance-manager",
+  actorType: "staff" as const,
+  isSuperAdmin: false,
+  roles: [
+    {
+      key: "billing_finance_manager",
+      name: "Finance Manager",
+      summary: "Approves high-risk finance actions.",
+      actorType: "staff" as const,
+      isActive: true,
+      permissions: [],
+    },
+  ],
+  permissions: [
+    {
+      key: "billing:vouchers:approve",
+      name: "Billing Voucher Approval",
+      summary: "Approve or reject billing vouchers.",
+      scopeType: "module" as const,
+      appId: "billing",
+      resourceKey: "billing-review",
+      actionKey: "approve",
+      route: "/dashboard/billing/voucher-register",
+      isActive: true,
+    },
+  ],
 }
 
 test("billing reporting service derives trial balance and outstanding from posted books", async () => {
@@ -1650,6 +1683,257 @@ test("billing reporting service includes stock valuation after landed cost and s
       )
       assert.equal(
         reports.item.stockLedger.items.some((item) => item.movementType === "billing_landed_cost"),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service exposes accounting exceptions and finance dashboard KPIs", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-controls-report-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.review.enabled = true
+    config.billing.compliance.review.amountThreshold = 20000
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const created = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-980",
+        status: "posted",
+        type: "payment",
+        sourceVoucherId: null,
+        dimensions: {
+          branch: "Chennai Branch",
+          project: "Recovery Drive",
+          costCenter: "Treasury",
+        },
+        date: "2026-04-01",
+        counterparty: "Control Vendor",
+        narration: "Back-dated sensitive payment for control reporting.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 35000,
+            note: "Supplier settlement",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 35000,
+            note: "Bank payout",
+          },
+        ],
+        gst: null,
+        billAllocations: [],
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await reverseBillingVoucher(runtime.primary, adminUser, config, created.item.id, {
+        reason: "Control reversal for reporting.",
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.equal(reports.item.financeDashboard.pendingReviewCount >= 1, true)
+      assert.equal(reports.item.financeDashboard.backDatedVoucherCount >= 1, true)
+      assert.equal(reports.item.financeDashboard.bankPendingEntryCount >= 1, true)
+      assert.equal(reports.item.exceptions.reversedCount >= 1, true)
+      assert.equal(reports.item.exceptions.backDatedCount >= 1, true)
+      assert.equal(
+        reports.item.exceptions.items.some(
+          (item) =>
+            item.voucherId === created.item.id &&
+            item.dimensions.branch === "Chennai Branch"
+        ),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service exposes a month-end checklist from finance controls", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-month-end-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.review.enabled = true
+    config.billing.compliance.review.amountThreshold = 15000
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-981",
+        status: "posted",
+        type: "payment",
+        sourceVoucherId: null,
+        dimensions: {
+          branch: "HQ",
+          project: "Month Close",
+          costCenter: "Finance",
+        },
+        date: "2026-04-01",
+        counterparty: "Checklist Vendor",
+        narration: "Sensitive voucher for month-end checklist.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 22000,
+            note: "Supplier settlement",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 22000,
+            note: "Bank payout",
+          },
+        ],
+        gst: null,
+        billAllocations: [],
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.equal(reports.item.monthEndChecklist.items.length >= 5, true)
+      assert.equal(reports.item.monthEndChecklist.blockedCount >= 1, true)
+      assert.equal(reports.item.financialYearCloseWorkflow?.financialYearCode, "FY2026-27")
+      assert.equal(reports.item.openingBalanceRolloverPolicy, null)
+      assert.equal(
+        reports.item.monthEndChecklist.items.some((item) => item.id === "reviews"),
+        true
+      )
+      assert.equal(
+        reports.item.monthEndChecklist.items.some(
+          (item) => item.id === "bank-reconciliation" && item.status !== "ready"
+        ),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service exposes the latest opening-balance rollover policy", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-rollover-reporting-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await executeBillingYearCloseWorkflow(runtime.primary, financeManagerUser, config, {
+        action: "close",
+        financialYearCode: "FY2025-26",
+        note: "Close before rollover report test.",
+      })
+
+      await executeBillingOpeningBalanceRollover(runtime.primary, financeManagerUser, {
+        action: "preview",
+        sourceFinancialYearCode: "FY2025-26",
+        note: "Preview before reporting check.",
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.equal(reports.item.openingBalanceRolloverPolicy?.sourceFinancialYearCode, "FY2025-26")
+      assert.equal(reports.item.openingBalanceRolloverPolicy?.targetFinancialYearCode, "FY2026-27")
+      assert.equal(reports.item.openingBalanceRolloverPolicy?.status, "previewed")
+      assert.equal(
+        reports.item.openingBalanceRolloverPolicy?.items.some(
+          (item) => item.policyTreatment === "carry_forward"
+        ),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service exposes the latest year-end adjustment control policy", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-year-end-reporting-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await executeBillingYearCloseWorkflow(runtime.primary, financeManagerUser, config, {
+        action: "close",
+        financialYearCode: "FY2025-26",
+        note: "Close before year-end reporting test.",
+      })
+
+      await executeBillingOpeningBalanceRollover(runtime.primary, financeManagerUser, {
+        action: "apply",
+        sourceFinancialYearCode: "FY2025-26",
+        note: "Apply rollover before year-end reporting test.",
+      })
+
+      await executeBillingYearEndAdjustmentControl(runtime.primary, financeManagerUser, {
+        action: "preview",
+        sourceFinancialYearCode: "FY2025-26",
+        note: "Preview year-end control policy.",
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.equal(reports.item.yearEndAdjustmentControlPolicy?.sourceFinancialYearCode, "FY2025-26")
+      assert.equal(reports.item.yearEndAdjustmentControlPolicy?.targetFinancialYearCode, "FY2026-27")
+      assert.equal(reports.item.yearEndAdjustmentControlPolicy?.status, "previewed")
+      assert.equal(
+        reports.item.yearEndAdjustmentControlPolicy?.items.some(
+          (item) => item.controlKey === "adjustment-journals"
+        ),
         true
       )
     } finally {

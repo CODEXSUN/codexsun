@@ -42,6 +42,9 @@ export function BillingVoucherSectionPage({
     | "trial-balance"
     | "profit-and-loss"
     | "balance-sheet"
+    | "month-end-checklist"
+    | "financial-year-close"
+    | "audit-trail"
     | "bill-outstanding"
     | "support-ledger-guide"
 }) {

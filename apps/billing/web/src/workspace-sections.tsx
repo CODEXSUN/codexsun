@@ -19,6 +19,8 @@ import type {
   BillingLedger,
   BillingLedgerListResponse,
   BillingLedgerResponse,
+  BillingAuditTrailReview,
+  BillingAuditTrailReviewResponse,
   BillingVoucherGroup,
   BillingVoucherGroupListResponse,
   BillingVoucherGroupResponse,
@@ -27,6 +29,9 @@ import type {
   BillingVoucherMasterTypeResponse,
   BillingVoucher,
   BillingVoucherDocumentResponse,
+  BillingFinancialYearCloseWorkflowResponse,
+  BillingOpeningBalanceRolloverResponse,
+  BillingYearEndAdjustmentControlResponse,
   BillingVoucherBankReconciliationResponse,
   BillingVoucherLifecycleStatus,
   BillingVoucherListResponse,
@@ -75,6 +80,7 @@ import { CommonList, MasterList } from "@/components/blocks/master-list"
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 
 type ResourceState = {
+  auditTrail: BillingAuditTrailReview
   error: string | null
   isLoading: boolean
   categories: BillingCategory[]
@@ -295,6 +301,55 @@ function createEmptyReports(): BillingAccountingReports {
       totalInventoryValue: 0,
       items: [],
     },
+    exceptions: {
+      alteredCount: 0,
+      reversedCount: 0,
+      backDatedCount: 0,
+      items: [],
+    },
+    financeDashboard: {
+      asOfDate: "1970-01-01",
+      postedVoucherCount: 0,
+      pendingReviewCount: 0,
+      pendingReviewAmount: 0,
+      reversedVoucherCount: 0,
+      reversedVoucherAmount: 0,
+      backDatedVoucherCount: 0,
+      receivableTotal: 0,
+      payableTotal: 0,
+      bankPendingEntryCount: 0,
+      bankMismatchAmount: 0,
+      inventoryValue: 0,
+      cashBalance: 0,
+      bankBalance: 0,
+    },
+    monthEndChecklist: {
+      asOfDate: "1970-01-01",
+      readyCount: 0,
+      attentionCount: 0,
+      blockedCount: 0,
+      items: [],
+    },
+    financialYearCloseWorkflow: null,
+    openingBalanceRolloverPolicy: null,
+    yearEndAdjustmentControlPolicy: null,
+  }
+}
+
+function createEmptyAuditTrail(): BillingAuditTrailReview {
+  return {
+    totalEntries: 0,
+    infoCount: 0,
+    warnCount: 0,
+    errorCount: 0,
+    createCount: 0,
+    postCount: 0,
+    cancelCount: 0,
+    deleteCount: 0,
+    reverseCount: 0,
+    reviewCount: 0,
+    reconcileCount: 0,
+    items: [],
   }
 }
 
@@ -414,6 +469,11 @@ type VoucherFormState = {
   counterparty: string
   date: string
   billAllocations: VoucherBillAllocationForm[]
+  dimensions: {
+    branch: string
+    project: string
+    costCenter: string
+  }
   generateEInvoice: boolean
   generateEWayBill: boolean
   sourceVoucherId: string
@@ -519,6 +579,11 @@ function createDefaultVoucherForm(): VoucherFormState {
     billAllocations: [],
     counterparty: "",
     date: "2026-04-01",
+    dimensions: {
+      branch: "",
+      project: "",
+      costCenter: "",
+    },
     generateEInvoice: false,
     generateEWayBill: false,
     sourceVoucherId: "",
@@ -804,6 +869,11 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
     })),
     counterparty: voucher.counterparty,
     date: voucher.date,
+    dimensions: {
+      branch: voucher.dimensions.branch ?? "",
+      project: voucher.dimensions.project ?? "",
+      costCenter: voucher.dimensions.costCenter ?? "",
+    },
     generateEInvoice: voucher.eInvoice.status === "generated",
     generateEWayBill: voucher.eWayBill.status === "generated",
     sourceVoucherId: voucher.sourceDocument?.voucherId ?? "",
@@ -1579,6 +1649,32 @@ function VoucherEditor({
             />
           </div>
         ) : null}
+
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Accounting dimensions</p>
+            <p className="text-xs text-muted-foreground">
+              Optional branch, project, and cost-center tracking for reporting and controls.
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input
+              value={form.dimensions.branch}
+              onChange={(event) => onChange("dimensionBranch", event.target.value)}
+              placeholder="Branch"
+            />
+            <Input
+              value={form.dimensions.project}
+              onChange={(event) => onChange("dimensionProject", event.target.value)}
+              placeholder="Project"
+            />
+            <Input
+              value={form.dimensions.costCenter}
+              onChange={(event) => onChange("dimensionCostCenter", event.target.value)}
+              placeholder="Cost center"
+            />
+          </div>
+        </div>
 
         {["payment", "receipt"].includes(form.type) ? (
           <VoucherInlineEditableTable
@@ -2895,9 +2991,11 @@ function VoucherModuleUpsertSection({
 
 function OverviewSection({
   ledgers,
+  reports,
   vouchers,
 }: {
   ledgers: BillingLedger[]
+  reports: BillingAccountingReports
   vouchers: BillingVoucher[]
 }) {
   const totalDebits = vouchers.reduce(
@@ -2954,6 +3052,52 @@ function OverviewSection({
         />
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Pending Review"
+          value={reports.financeDashboard.pendingReviewCount}
+          hint={`${formatAmount(reports.financeDashboard.pendingReviewAmount)} still waiting for finance approval.`}
+        />
+        <MetricCard
+          label="Receivables"
+          value={formatAmount(reports.financeDashboard.receivableTotal)}
+          hint="Open receivable exposure from posted books."
+        />
+        <MetricCard
+          label="Payables"
+          value={formatAmount(reports.financeDashboard.payableTotal)}
+          hint="Open payable exposure from posted books."
+        />
+        <MetricCard
+          label="Inventory Value"
+          value={formatAmount(reports.financeDashboard.inventoryValue)}
+          hint="Current stock value from the billing valuation policy."
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Cash Balance"
+          value={formatAmount(reports.financeDashboard.cashBalance)}
+          hint="Cash-in-hand closing from the posted books."
+        />
+        <MetricCard
+          label="Bank Balance"
+          value={formatAmount(reports.financeDashboard.bankBalance)}
+          hint="Bank-account closing from the posted books."
+        />
+        <MetricCard
+          label="Bank Pending"
+          value={reports.financeDashboard.bankPendingEntryCount}
+          hint={`${formatAmount(reports.financeDashboard.bankMismatchAmount)} currently mismatched in reconciliation.`}
+        />
+        <MetricCard
+          label="Back-dated"
+          value={reports.financeDashboard.backDatedVoucherCount}
+          hint="Posted entries where voucher date is earlier than creation date."
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {(Object.entries(summary) as [BillingVoucherType, number][]).map(([type, count]) => (
           <Card key={type}>
@@ -2969,6 +3113,77 @@ function OverviewSection({
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Accounting Exceptions</CardTitle>
+          <CardDescription>
+            Altered, reversed, and back-dated entries surfaced for finance-control review.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <MetricCard
+              label="Altered"
+              value={reports.exceptions.alteredCount}
+              hint="Posted or control-touched vouchers with updated timestamps."
+            />
+            <MetricCard
+              label="Reversed"
+              value={reports.exceptions.reversedCount}
+              hint="Original posted vouchers that were later reversed."
+            />
+            <MetricCard
+              label="Back-dated"
+              value={reports.exceptions.backDatedCount}
+              hint="Non-draft vouchers whose accounting date predates entry creation."
+            />
+          </div>
+          {reports.exceptions.items.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Voucher</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Counterparty</TableHead>
+                    <TableHead>Dimensions</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reports.exceptions.items.slice(0, 10).map((item) => (
+                    <TableRow key={`${item.exceptionType}:${item.voucherId}:${item.updatedAt}`}>
+                      <TableCell>
+                        <Badge variant="outline">{item.exceptionType.replace(/_/g, " ")}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-foreground">{item.voucherNumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {titleFromVoucherType(item.voucherType)}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.voucherDate}</TableCell>
+                      <TableCell>{item.counterparty}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {[item.dimensions.branch, item.dimensions.project, item.dimensions.costCenter]
+                          .filter(Boolean)
+                          .join(" / ") || "Unassigned"}
+                      </TableCell>
+                      <TableCell className="text-right">{formatAmount(item.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <StateCard message="No accounting exceptions are currently detected from the posted billing books." />
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -7033,6 +7248,351 @@ function BillOutstandingSection({ reports }: { reports: BillingAccountingReports
   )
 }
 
+function MonthEndChecklistSection({
+  reports,
+}: {
+  reports: BillingAccountingReports
+}) {
+  return (
+    <SectionShell
+      title="Month-End Checklist"
+      description="Period-close readiness view built from billing control signals, reconciliation state, GST summaries, and finance review queues."
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          label="Ready"
+          value={reports.monthEndChecklist.readyCount}
+          hint="Checklist controls currently clear for closing."
+        />
+        <MetricCard
+          label="Attention"
+          value={reports.monthEndChecklist.attentionCount}
+          hint="Controls that should be reviewed before closing."
+        />
+        <MetricCard
+          label="Blocked"
+          value={reports.monthEndChecklist.blockedCount}
+          hint="Controls that should stop period close until resolved."
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Close Controls</CardTitle>
+          <CardDescription>
+            Checklist status as of {reports.monthEndChecklist.asOfDate}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Control</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Value</TableHead>
+                  <TableHead>Detail</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.monthEndChecklist.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.label}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.status}</Badge>
+                    </TableCell>
+                    <TableCell>{item.value}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.detail}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
+function FinancialYearCloseSection({
+  onRunYearEndControl,
+  onRunRollover,
+  onRunWorkflow,
+  reports,
+}: {
+  onRunYearEndControl: (action: "preview" | "apply") => Promise<void>
+  onRunRollover: (action: "preview" | "apply") => Promise<void>
+  onRunWorkflow: (action: "preview" | "close") => Promise<void>
+  reports: BillingAccountingReports
+}) {
+  const workflow = reports.financialYearCloseWorkflow
+  const rolloverPolicy = reports.openingBalanceRolloverPolicy
+  const yearEndControlPolicy = reports.yearEndAdjustmentControlPolicy
+
+  return (
+    <SectionShell
+      title="Financial-Year Close"
+      description="Preview and close the active billing financial year using the current month-end control posture."
+    >
+      {workflow ? (
+        <>
+          <div className="grid gap-4 md:grid-cols-4">
+            <MetricCard label="Financial Year" value={workflow.financialYearLabel} hint={workflow.financialYearCode} />
+            <MetricCard label="Voucher Count" value={workflow.voucherCount} hint="Vouchers in the active financial year candidate." />
+            <MetricCard label="Blocked" value={workflow.blockedItemCount} hint="Checklist blockers that still prevent close." />
+            <MetricCard label="Ready" value={workflow.readyItemCount} hint="Checklist items already clear for close." />
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Close Workflow</CardTitle>
+              <CardDescription>
+                Current status: {workflow.status}. Year range {workflow.startDate} to {workflow.endDate}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => void onRunWorkflow("preview")} variant="outline">
+                  Refresh Preview
+                </Button>
+                <Button
+                  onClick={() => void onRunWorkflow("close")}
+                  disabled={workflow.status === "closed"}
+                >
+                  Close Financial Year
+                </Button>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-background/80 p-4 text-sm text-muted-foreground">
+                {workflow.status === "closed"
+                  ? `Closed at ${workflow.closedAt ?? "-"} by ${workflow.closedByUserId ?? "unknown user"}.`
+                  : "Close will remain blocked until month-end checklist blockers are cleared."}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Opening Balance Rollover</CardTitle>
+              <CardDescription>
+                Prepare the next financial year opening balances from the closed year policy.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => void onRunRollover("preview")} variant="outline">
+                  Preview Rollover
+                </Button>
+                <Button
+                  onClick={() => void onRunRollover("apply")}
+                  disabled={workflow.status !== "closed"}
+                >
+                  Apply Rollover
+                </Button>
+              </div>
+              {rolloverPolicy ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <MetricCard label="Target Year" value={rolloverPolicy.targetFinancialYearLabel} hint={rolloverPolicy.targetFinancialYearCode} />
+                    <MetricCard label="Carry Forward" value={rolloverPolicy.carryForwardLedgerCount} hint="Balance-sheet ledgers carried forward." />
+                    <MetricCard label="Reset" value={rolloverPolicy.resetLedgerCount} hint="Nominal ledgers reset to zero." />
+                    <MetricCard label="Status" value={rolloverPolicy.status} hint={rolloverPolicy.appliedAt ? `Applied ${rolloverPolicy.appliedAt.slice(0, 10)}` : `Prepared ${rolloverPolicy.preparedAt.slice(0, 10)}`} />
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-background/80 p-4 text-sm text-muted-foreground">
+                    {rolloverPolicy.status === "applied"
+                      ? `Applied by ${rolloverPolicy.appliedByUserId ?? "unknown user"} on ${rolloverPolicy.appliedAt ?? "-"}.`
+                      : "Preview the carry-forward set first, then apply after close confirmation."}
+                  </div>
+                  <div className="overflow-hidden rounded-[1rem] border border-border/70">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Ledger</TableHead>
+                          <TableHead>Treatment</TableHead>
+                          <TableHead>Source</TableHead>
+                          <TableHead>Rollover</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rolloverPolicy.items.slice(0, 12).map((item) => (
+                          <TableRow key={item.ledgerId}>
+                            <TableCell>
+                              <div className="font-medium text-foreground">{item.ledgerName}</div>
+                              <div className="text-xs text-muted-foreground">{item.ledgerGroup}</div>
+                            </TableCell>
+                            <TableCell>{item.policyTreatment === "carry_forward" ? "Carry forward" : "Reset nominal"}</TableCell>
+                            <TableCell>{item.sourceClosingSide} {formatAmount(item.sourceClosingAmount)}</TableCell>
+                            <TableCell>{item.rolloverSide} {formatAmount(item.rolloverAmount)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              ) : (
+                <StateCard message="No opening-balance rollover policy has been prepared yet." />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Year-End Controls</CardTitle>
+              <CardDescription>
+                Review adjustment-journal and carry-forward controls before final year-end sign-off.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => void onRunYearEndControl("preview")} variant="outline">
+                  Preview Controls
+                </Button>
+                <Button
+                  onClick={() => void onRunYearEndControl("apply")}
+                  disabled={workflow.status !== "closed"}
+                >
+                  Apply Controls
+                </Button>
+              </div>
+              {yearEndControlPolicy ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <MetricCard label="Journal Review" value={yearEndControlPolicy.journalVoucherCount} hint="Journal vouchers in the source year." />
+                    <MetricCard label="Nominal Ledgers" value={yearEndControlPolicy.nominalLedgerCount} hint="Income and expense ledgers in the close set." />
+                    <MetricCard label="Carry Forward" value={yearEndControlPolicy.carryForwardLedgerCount} hint="Balance-sheet ledgers available for brought-forward balances." />
+                    <MetricCard label="Status" value={yearEndControlPolicy.status} hint={`${yearEndControlPolicy.blockedItemCount} blocked / ${yearEndControlPolicy.attentionItemCount} attention`} />
+                  </div>
+                  <div className="overflow-hidden rounded-[1rem] border border-border/70">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Control</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Value</TableHead>
+                          <TableHead>Detail</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {yearEndControlPolicy.items.map((item) => (
+                          <TableRow key={item.controlKey}>
+                            <TableCell className="font-medium">{item.label}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{item.status}</Badge>
+                            </TableCell>
+                            <TableCell>{item.value}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {item.detail} {item.recommendedAction}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              ) : (
+                <StateCard message="No year-end adjustment control policy has been prepared yet." />
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <StateCard message="No billing financial year candidate is available yet for close workflow." />
+      )}
+    </SectionShell>
+  )
+}
+
+function BillingAuditTrailSection({
+  auditTrail,
+}: {
+  auditTrail: BillingAuditTrailReview
+}) {
+  return (
+    <SectionShell
+      title="Audit Trail"
+      description="Review billing posting, approval, reconciliation, and reversal events recorded in the platform audit ledger."
+    >
+      <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-6">
+        <MetricCard label="Entries" value={auditTrail.totalEntries} hint="Billing audit records loaded for review." />
+        <MetricCard label="Create" value={auditTrail.createCount} hint="Voucher creation events." />
+        <MetricCard label="Post" value={auditTrail.postCount} hint="Posted lifecycle events." />
+        <MetricCard label="Reverse" value={auditTrail.reverseCount} hint="Reversal actions captured." />
+        <MetricCard label="Review" value={auditTrail.reviewCount} hint="Approval and rejection actions." />
+        <MetricCard label="Reconcile" value={auditTrail.reconcileCount} hint="Bank reconciliation actions." />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ledger Review Feed</CardTitle>
+          <CardDescription>
+            Latest billing audit events from the shared framework activity log.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {auditTrail.items.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>When</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Voucher</TableHead>
+                  <TableHead>Actor</TableHead>
+                  <TableHead>Route</TableHead>
+                  <TableHead>Message</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {auditTrail.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.createdAt.slice(0, 19).replace("T", " ")}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            item.level === "error"
+                              ? "destructive"
+                              : item.level === "warn"
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
+                          {item.level}
+                        </Badge>
+                        <span className="text-sm text-foreground">{item.action}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {item.voucherId && item.voucherNumber ? (
+                        <Link
+                          className="font-medium text-foreground underline-offset-4 hover:underline"
+                          to="/dashboard/billing/voucher-register"
+                        >
+                          {item.voucherNumber}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">System</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{item.actorEmail ?? item.actorType ?? "Unknown"}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.routePath ?? "-"}</TableCell>
+                    <TableCell className="max-w-[28rem] text-muted-foreground">
+                      {item.message}
+                      {item.reversalVoucherNumber ? ` Reversal: ${item.reversalVoucherNumber}.` : ""}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-6">
+              <StateCard message="No billing audit records are available yet." />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </SectionShell>
+  )
+}
+
 export function BillingWorkspaceSection({
   categoryId,
   ledgerId,
@@ -7046,6 +7606,7 @@ export function BillingWorkspaceSection({
 }) {
   const navigate = useNavigate()
   const [state, setState] = useState<ResourceState>({
+    auditTrail: createEmptyAuditTrail(),
     error: null,
     isLoading: true,
     categories: [],
@@ -7081,7 +7642,8 @@ export function BillingWorkspaceSection({
     setState((current) => ({ ...current, error: null, isLoading: true }))
 
     try {
-        const [categoryResponse, ledgerResponse, voucherGroupResponse, voucherTypeResponse, voucherResponse, reportsResponse, productResponse, unitResponse, hsnCodeResponse] = await Promise.all([
+        const currentSection = sectionId ?? "overview"
+        const [categoryResponse, ledgerResponse, voucherGroupResponse, voucherTypeResponse, voucherResponse, reportsResponse, productResponse, unitResponse, hsnCodeResponse, auditTrailResponse] = await Promise.all([
           request<BillingCategoryListResponse>("/internal/v1/billing/categories"),
           request<BillingLedgerListResponse>("/internal/v1/billing/ledgers"),
           request<BillingVoucherGroupListResponse>("/internal/v1/billing/voucher-groups"),
@@ -7091,9 +7653,13 @@ export function BillingWorkspaceSection({
           request<ProductListResponse>("/internal/v1/core/products"),
           request<CommonModuleListResponse>("/internal/v1/core/common-modules/items?module=units"),
           request<CommonModuleListResponse>("/internal/v1/core/common-modules/items?module=hsnCodes"),
+          currentSection === "audit-trail"
+            ? request<BillingAuditTrailReviewResponse>("/internal/v1/billing/audit-trail")
+            : Promise.resolve({ item: createEmptyAuditTrail() }),
         ])
 
         setState({
+          auditTrail: auditTrailResponse.item,
           error: null,
           isLoading: false,
           categories: categoryResponse.items,
@@ -7108,6 +7674,7 @@ export function BillingWorkspaceSection({
         })
       } catch (error) {
         setState({
+          auditTrail: createEmptyAuditTrail(),
           error: error instanceof Error ? error.message : "Failed to load billing workspace.",
           isLoading: false,
           categories: [],
@@ -7244,11 +7811,32 @@ export function BillingWorkspaceSection({
     setForm((current) => {
       switch (field) {
         case "counterparty":
+        case "dimensionBranch":
         case "date":
+        case "dimensionCostCenter":
+        case "dimensionProject":
         case "narration":
         case "sourceVoucherId":
         case "status":
         case "voucherNumber":
+          if (field === "dimensionBranch") {
+            return {
+              ...current,
+              dimensions: { ...current.dimensions, branch: value },
+            }
+          }
+          if (field === "dimensionProject") {
+            return {
+              ...current,
+              dimensions: { ...current.dimensions, project: value },
+            }
+          }
+          if (field === "dimensionCostCenter") {
+            return {
+              ...current,
+              dimensions: { ...current.dimensions, costCenter: value },
+            }
+          }
           return {
             ...current,
             [field]: value,
@@ -7551,6 +8139,11 @@ export function BillingWorkspaceSection({
       voucherNumber: form.voucherNumber,
       type: form.type,
       sourceVoucherId: form.sourceVoucherId.trim() || null,
+      dimensions: {
+        branch: form.dimensions.branch.trim() || null,
+        project: form.dimensions.project.trim() || null,
+        costCenter: form.dimensions.costCenter.trim() || null,
+      },
       date: form.date,
       counterparty: salesModeEnabled ? form.sales.billToName : form.counterparty,
       narration: form.narration,
@@ -7893,6 +8486,92 @@ export function BillingWorkspaceSection({
         error instanceof Error
           ? error.message
           : "Failed to update bank reconciliation."
+      )
+    }
+  }
+
+  async function handleFinancialYearClose(action: "preview" | "close") {
+    setFormError(null)
+
+    try {
+      await request<BillingFinancialYearCloseWorkflowResponse>(
+        "/internal/v1/billing/year-close",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            action,
+            financialYearCode: state.reports.financialYearCloseWorkflow?.financialYearCode ?? null,
+            note:
+              action === "close"
+                ? "Financial year closed from billing workspace."
+                : "Financial year close preview refreshed from billing workspace.",
+          }),
+        }
+      )
+      await loadResources()
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update financial-year close workflow."
+      )
+    }
+  }
+
+  async function handleOpeningBalanceRollover(action: "preview" | "apply") {
+    setFormError(null)
+
+    try {
+      await request<BillingOpeningBalanceRolloverResponse>(
+        "/internal/v1/billing/opening-balance-rollover",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            action,
+            sourceFinancialYearCode:
+              state.reports.financialYearCloseWorkflow?.financialYearCode ?? null,
+            note:
+              action === "apply"
+                ? "Opening balances rolled forward from billing workspace."
+                : "Opening-balance rollover preview refreshed from billing workspace.",
+          }),
+        }
+      )
+      await loadResources()
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update opening-balance rollover policy."
+      )
+    }
+  }
+
+  async function handleYearEndControl(action: "preview" | "apply") {
+    setFormError(null)
+
+    try {
+      await request<BillingYearEndAdjustmentControlResponse>(
+        "/internal/v1/billing/year-end-controls",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            action,
+            sourceFinancialYearCode:
+              state.reports.financialYearCloseWorkflow?.financialYearCode ?? null,
+            note:
+              action === "apply"
+                ? "Year-end controls applied from billing workspace."
+                : "Year-end control preview refreshed from billing workspace.",
+          }),
+        }
+      )
+      await loadResources()
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update year-end controls."
       )
     }
   }
@@ -8847,12 +9526,31 @@ export function BillingWorkspaceSection({
       return <ProfitAndLossSection reports={state.reports} />
     case "balance-sheet":
       return <BalanceSheetSection reports={state.reports} />
+    case "month-end-checklist":
+      return <MonthEndChecklistSection reports={state.reports} />
+    case "financial-year-close":
+      return (
+        <FinancialYearCloseSection
+          onRunYearEndControl={handleYearEndControl}
+          reports={state.reports}
+          onRunRollover={handleOpeningBalanceRollover}
+          onRunWorkflow={handleFinancialYearClose}
+        />
+      )
+    case "audit-trail":
+      return <BillingAuditTrailSection auditTrail={state.auditTrail} />
     case "bill-outstanding":
       return <BillOutstandingSection reports={state.reports} />
     case "support-ledger-guide":
       return <LedgerGuideSupportSection />
     case "overview":
-      return <OverviewSection ledgers={state.ledgers} vouchers={state.vouchers} />
+      return (
+        <OverviewSection
+          ledgers={state.ledgers}
+          reports={state.reports}
+          vouchers={state.vouchers}
+        />
+      )
     default:
       return null
   }

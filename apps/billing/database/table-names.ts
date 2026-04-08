@@ -1,10 +1,29 @@
 export const billingTableNames = {
+  // ── Foundation JSON stores ────────────────────────────────────────────────
   categories: "billing_categories",
   ledgers: "billing_ledgers",
   voucherGroups: "billing_voucher_groups",
   voucherTypes: "billing_voucher_types",
+
+  // ── Raw JSON voucher store (master / source-of-truth) ─────────────────────
   vouchers: "billing_vouchers",
+
+  // ── Shared normalized tables ──────────────────────────────────────────────
   voucherHeaders: "billing_voucher_headers",
   voucherLines: "billing_voucher_lines",
   ledgerEntries: "billing_ledger_entries",
+  yearCloseWorkflows: "billing_year_close_workflows",
+  openingBalanceRollovers: "billing_opening_balance_rollovers",
+  yearEndControls: "billing_year_end_controls",
+
+  // ── Split voucher-type detail tables (reference billing_voucher_headers) ──
+  salesVouchers: "billing_sales_vouchers",
+  purchaseVouchers: "billing_purchase_vouchers",
+  receiptVouchers: "billing_receipt_vouchers",
+  paymentVouchers: "billing_payment_vouchers",
+  journalVouchers: "billing_journal_vouchers",
+  contraVouchers: "billing_contra_vouchers",
+  pettyCashVouchers: "billing_petty_cash_vouchers",
+  bankBookEntries: "billing_bank_book_entries",
+  cashBookEntries: "billing_cash_book_entries",
 } as const

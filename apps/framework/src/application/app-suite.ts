@@ -9,6 +9,7 @@ import { frappeAppManifest } from "../../../frappe/src/app-manifest.js"
 import { siteAppManifest } from "../../../site/src/app-manifest.js"
 import { tallyAppManifest } from "../../../tally/src/app-manifest.js"
 import { taskAppManifest } from "../../../task/src/app-manifest.js"
+import { crmAppManifest } from "../../../crm/src/app-manifest.js"
 import { uiAppManifest } from "../../../ui/src/app-manifest.js"
 import { frameworkAppManifest } from "../app-manifest.js"
 
@@ -27,6 +28,7 @@ export function createAppSuite(): AppSuite {
       ecommerceAppManifest,
       demoAppManifest,
       taskAppManifest,
+      crmAppManifest,
       frappeAppManifest,
       tallyAppManifest,
       cliAppManifest,

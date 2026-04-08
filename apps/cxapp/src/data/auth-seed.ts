@@ -163,6 +163,46 @@ export const authPermissions: AuthPermission[] = [
     { appId: "billing", route: "/dashboard/billing/chart-of-accounts", actionKey: "view" }
   ),
   definePermission(
+    "billing:workspace:view",
+    "Billing Workspace",
+    "Open the billing accounting workspace and review finance operations.",
+    "workspace",
+    "billing-workspace",
+    { appId: "billing", route: "/dashboard/billing", actionKey: "view" }
+  ),
+  definePermission(
+    "billing:vouchers:manage",
+    "Billing Voucher Management",
+    "Create, edit, reverse, reconcile, and operate billing vouchers and books.",
+    "module",
+    "billing-vouchers",
+    { appId: "billing", route: "/dashboard/billing/voucher-register", actionKey: "manage" }
+  ),
+  definePermission(
+    "billing:vouchers:approve",
+    "Billing Voucher Approval",
+    "Approve or reject high-risk billing documents in the finance review flow.",
+    "module",
+    "billing-review",
+    { appId: "billing", route: "/dashboard/billing/voucher-register", actionKey: "approve" }
+  ),
+  definePermission(
+    "billing:reports:view",
+    "Billing Reports",
+    "Review accounting reports, statements, GST books, and finance dashboards.",
+    "report",
+    "billing-reports",
+    { appId: "billing", route: "/dashboard/billing/trial-balance", actionKey: "view" }
+  ),
+  definePermission(
+    "billing:audit:view",
+    "Billing Audit Visibility",
+    "Review accounting exceptions, control surfaces, and audit-focused finance data.",
+    "report",
+    "billing-audit",
+    { appId: "billing", route: "/dashboard/billing", actionKey: "view" }
+  ),
+  definePermission(
     "mailbox:manage",
     "Mailbox Management",
     "Manage email templates and outgoing message history.",
@@ -283,6 +323,82 @@ export const authRoles: AuthRole[] = [
     name: "Super Admin",
     summary: "Full platform administration across the suite.",
     permissions: authPermissions,
+  }),
+  defineRole({
+    key: "billing_accountant",
+    actorType: "staff",
+    name: "Billing Accountant",
+    summary: "Owns day-to-day voucher entry, posting review, and finance reporting inside billing.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "vendors:view",
+        "billing:workspace:view",
+        "billing:vouchers:manage",
+        "billing:reports:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "billing_finance_manager",
+    actorType: "staff",
+    name: "Finance Manager",
+    summary: "Approves high-risk accounting actions and reviews finance controls and reports.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "vendors:view",
+        "billing:workspace:view",
+        "billing:vouchers:manage",
+        "billing:vouchers:approve",
+        "billing:reports:view",
+        "billing:audit:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "billing_auditor",
+    actorType: "staff",
+    name: "Billing Auditor",
+    summary: "Reviews books, exceptions, and audit-facing finance controls without mutation access.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "vendors:view",
+        "billing:workspace:view",
+        "billing:reports:view",
+        "billing:audit:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "billing_cashier",
+    actorType: "staff",
+    name: "Billing Cashier",
+    summary: "Handles cash and bank-linked vouchers, collections, and payment operation entry.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "vendors:view",
+        "billing:workspace:view",
+        "billing:vouchers:manage",
+        "billing:reports:view",
+      ].includes(permission.key)
+    ),
+  }),
+  defineRole({
+    key: "billing_operator",
+    actorType: "staff",
+    name: "Billing Operator",
+    summary: "Supports data-entry and register-level accounting operations inside billing.",
+    permissions: authPermissions.filter((permission) =>
+      [
+        "dashboard:view",
+        "vendors:view",
+        "billing:workspace:view",
+        "billing:vouchers:manage",
+      ].includes(permission.key)
+    ),
   }),
   defineRole({
     key: "staff_operator",

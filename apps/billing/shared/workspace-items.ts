@@ -175,6 +175,24 @@ export const billingWorkspaceItems: BillingWorkspaceItem[] = [
     summary: "Assets and liabilities view with current period earnings carried into the books.",
   },
   {
+    id: "month-end-checklist",
+    name: "Month-End Checklist",
+    route: "/dashboard/billing/month-end-checklist",
+    summary: "Period-close readiness checklist covering reviews, reconciliation, GST summary, exceptions, and valuation.",
+  },
+  {
+    id: "financial-year-close",
+    name: "Financial-Year Close",
+    route: "/dashboard/billing/financial-year-close",
+    summary: "Preview and execute year-close workflow using the latest billing control posture.",
+  },
+  {
+    id: "audit-trail",
+    name: "Audit Trail",
+    route: "/dashboard/billing/audit-trail",
+    summary: "Review billing voucher activity, approval events, and reversal traces from the platform audit ledger.",
+  },
+  {
     id: "bill-outstanding",
     name: "Bill Outstanding",
     route: "/dashboard/billing/bill-outstanding",

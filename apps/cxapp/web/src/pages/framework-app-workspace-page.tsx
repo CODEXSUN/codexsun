@@ -23,6 +23,7 @@ import { DemoWorkspaceSection } from "@demo/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
 import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
+import { TaskWorkspaceSection } from "@task/web/src/workspace-sections"
 import { CrmWorkspaceSection } from "@crm/web/src/workspace-sections"
 import { getCoreCommonModuleMenuItem } from "@core/shared"
 
@@ -251,12 +252,18 @@ export function FrameworkAppWorkspacePage({
     app.id === "demo" ? <DemoWorkspaceSection sectionId={sectionId} /> : null
   const frappeWorkspaceContent =
     app.id === "frappe" ? <FrappeWorkspaceSection sectionId={sectionId} /> : null
+  const taskWorkspaceContent =
+    app.id === "task" ? <TaskWorkspaceSection sectionId={sectionId} /> : null
+  const crmWorkspaceContent =
+    app.id === "crm" ? <CrmWorkspaceSection sectionId={sectionId} /> : null
   const customWorkspaceContent =
     coreWorkspaceContent ??
     billingWorkspaceContent ??
     demoWorkspaceContent ??
     ecommerceWorkspaceContent ??
-    frappeWorkspaceContent
+    frappeWorkspaceContent ??
+    taskWorkspaceContent ??
+    crmWorkspaceContent
   const hideWorkspaceHero =
     app.id === "ecommerce" ||
     (
@@ -274,6 +281,23 @@ export function FrameworkAppWorkspacePage({
         "billing",
         "frappe",
       ].includes(sectionId ?? "overview")
+    ) ||
+    (
+      app.id === "task" &&
+      [
+        "overview",
+        "kanban",
+        "routines",
+        "templates",
+        "performance",
+      ].includes(sectionId ?? "overview")
+    ) ||
+    (
+      app.id === "crm" &&
+      [
+        "leads",
+        "cold-calls",
+      ].includes(sectionId ?? "leads")
     ) ||
     (
       app.id === "billing" &&

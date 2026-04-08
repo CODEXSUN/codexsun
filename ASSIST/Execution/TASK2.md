@@ -132,19 +132,19 @@ It is the app that should own:
 
 ### Stage B11: Accounting Controls
 
-- [ ] B11.1 add maker-checker or approval policy for high-risk actions
-- [ ] B11.2 add role model for accountant, finance manager, auditor, cashier, and operator
-- [ ] B11.3 add branch, project, or cost-center accounting dimensions
-- [ ] B11.4 add exception reporting for altered, reversed, or back-dated entries
-- [ ] B11.5 add finance dashboard KPIs
+- [x] B11.1 add maker-checker or approval policy for high-risk actions
+- [x] B11.2 add role model for accountant, finance manager, auditor, cashier, and operator
+- [x] B11.3 add branch, project, or cost-center accounting dimensions
+- [x] B11.4 add exception reporting for altered, reversed, or back-dated entries
+- [x] B11.5 add finance dashboard KPIs
 
 ### Stage B12: Period Close And Audit
 
-- [ ] B12.1 add month-end checklist
-- [ ] B12.2 add financial-year close workflow
-- [ ] B12.3 add opening-balance rollover policy
-- [ ] B12.4 add audit trail review surface
-- [ ] B12.5 add year-end adjustment and carry-forward controls
+- [x] B12.1 add month-end checklist
+- [x] B12.2 add financial-year close workflow
+- [x] B12.3 add opening-balance rollover policy
+- [x] B12.4 add audit trail review surface
+- [x] B12.5 add year-end adjustment and carry-forward controls
 
 ## Framework, CxApp, and Core Improvements (Errors & Fixes)
 

@@ -577,3 +577,9 @@
 - extended auth OTP registration to support customer actor flows without duplicating the existing verification system
 - added finance-facing ecommerce payment exports for daily payment summary and failed-payment reporting, both downloadable from the existing admin payments operations screen
 - added backend CSV export routes, typed document contracts, and targeted service plus route coverage for the new reporting and customer-security flows
+
+### [#73] 2026-04-08 - Billing controls and period-close governance
+
+- completed billing Stage `B11` with maker-checker controls, finance roles and permissions, accounting dimensions, exception reporting, and finance KPIs
+- completed billing Stage `B12` with month-end checklist, financial-year close workflow, opening-balance rollover policy, audit-trail review surface, and year-end adjustment plus carry-forward controls
+- extended the billing close workspace, protected internal route surface, and targeted billing route or reporting tests so control-state review and period-close actions use the shared platform audit and runtime model

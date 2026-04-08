@@ -8,6 +8,7 @@ import { createInternalApiRoutes } from "../../../apps/api/src/internal/routes.j
 import { createAuthService } from "../../../apps/cxapp/src/services/service-factory.js"
 import { createAppSuite } from "../../../apps/framework/src/application/app-suite.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
+import { ApplicationError } from "../../../apps/framework/src/runtime/errors/application-error.js"
 import { recordMonitoringEvent } from "../../../apps/framework/src/runtime/monitoring/monitoring-service.js"
 import {
   createRuntimeDatabases,
@@ -86,12 +87,16 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/ledger"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/vouchers"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/reports"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/audit-trail"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher/document"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/vouchers"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reverse"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/review"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reconciliation"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/year-close"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/opening-balance-rollover"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/year-end-controls"))
   assert.ok(routePaths.includes("PATCH /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
 })
@@ -953,6 +958,11 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
       assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_support_agent"))
       assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_finance_operator"))
       assert.ok(rolesPayload.items.some((item) => item.key === "ecommerce_analyst"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "billing_accountant"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "billing_finance_manager"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "billing_auditor"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "billing_cashier"))
+      assert.ok(rolesPayload.items.some((item) => item.key === "billing_operator"))
 
       const permissionsResponse = await listPermissionsRoute.handler({
         appSuite,
@@ -2226,8 +2236,33 @@ test("authenticated billing internal routes return categories, vouchers, reports
           userAgent: "node:test",
         }
       )
+      await authService.createAdminUser({
+        email: "billing.manager@codexsun.local",
+        phoneNumber: "9000000999",
+        displayName: "Billing Manager",
+        actorType: "staff",
+        avatarUrl: null,
+        organizationName: "codexsun",
+        roleKeys: ["billing_finance_manager"],
+        password: "Billing@12345",
+        isActive: true,
+        isSuperAdmin: false,
+      })
+      const financeManagerLogin = await authService.login(
+        {
+          email: "billing.manager@codexsun.local",
+          password: "Billing@12345",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
       const headers = {
         authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+      const financeManagerHeaders = {
+        authorization: `Bearer ${financeManagerLogin.accessToken}`,
       }
 
       const listRoute = routes.find(
@@ -2269,6 +2304,24 @@ test("authenticated billing internal routes return categories, vouchers, reports
         (candidate) =>
           candidate.method === "GET" && candidate.path === "/internal/v1/billing/voucher/document"
       )
+      const auditTrailRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/billing/audit-trail"
+      )
+      const yearCloseRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/billing/year-close"
+      )
+      const openingBalanceRolloverRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/billing/opening-balance-rollover"
+      )
+      const yearEndControlsRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/billing/year-end-controls"
+      )
       const reconcileRoute = routes.find(
         (candidate) =>
           candidate.method === "POST" &&
@@ -2283,11 +2336,15 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.ok(categoryRestoreRoute)
       assert.ok(listRoute)
       assert.ok(reportsRoute)
+      assert.ok(auditTrailRoute)
       assert.ok(createRoute)
       assert.ok(reverseRoute)
       assert.ok(reviewRoute)
       assert.ok(documentRoute)
       assert.ok(reconcileRoute)
+      assert.ok(yearCloseRoute)
+      assert.ok(openingBalanceRolloverRoute)
+      assert.ok(yearEndControlsRoute)
 
       const categoryListResponse = await categoryListRoute.handler({
         appSuite,
@@ -2753,7 +2810,7 @@ test("authenticated billing internal routes return categories, vouchers, reports
           method: "POST",
           pathname: "/internal/v1/billing/voucher/review",
           url: new URL(`http://localhost/internal/v1/billing/voucher/review?id=${encodeURIComponent(sensitiveCreatedPayload.item.id)}`),
-          headers,
+          headers: financeManagerHeaders,
           bodyText: JSON.stringify({
             status: "approved",
             note: "Route approval coverage.",
@@ -2833,6 +2890,9 @@ test("authenticated billing internal routes return categories, vouchers, reports
           trialBalance: { items: Array<{ ledgerId: string }> }
           profitAndLoss: { totalExpense: number }
           outstanding: { items: Array<{ voucherNumber: string }> }
+          financialYearCloseWorkflow: { financialYearCode: string } | null
+          openingBalanceRolloverPolicy: { targetFinancialYearCode: string } | null
+          yearEndAdjustmentControlPolicy: { targetFinancialYearCode: string } | null
         }
       }
 
@@ -2840,6 +2900,216 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.ok(reportsPayload.item.trialBalance.items.length >= 1)
       assert.equal(reportsPayload.item.profitAndLoss.totalExpense > 0, true)
       assert.ok(Array.isArray(reportsPayload.item.outstanding.items))
+      assert.equal(reportsPayload.item.financialYearCloseWorkflow?.financialYearCode, "FY2026-27")
+      assert.equal(reportsPayload.item.openingBalanceRolloverPolicy, null)
+      assert.equal(reportsPayload.item.yearEndAdjustmentControlPolicy, null)
+
+      const auditTrailResponse = await auditTrailRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/billing/audit-trail",
+          url: new URL("http://localhost/internal/v1/billing/audit-trail"),
+          headers: financeManagerHeaders,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: auditTrailRoute.auth,
+          path: auditTrailRoute.path,
+          surface: auditTrailRoute.surface,
+          version: auditTrailRoute.version,
+        },
+      })
+
+      const auditTrailPayload = JSON.parse(auditTrailResponse.body) as {
+        item: { totalEntries: number; items: Array<{ action: string }> }
+      }
+
+      assert.equal(auditTrailResponse.statusCode, 200)
+      assert.equal(auditTrailPayload.item.totalEntries >= 1, true)
+      assert.equal(
+        auditTrailPayload.item.items.some((item) => item.action === "voucher_create"),
+        true
+      )
+
+      const yearCloseResponse = await yearCloseRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/year-close",
+          url: new URL("http://localhost/internal/v1/billing/year-close"),
+          headers: financeManagerHeaders,
+          bodyText: JSON.stringify({
+            action: "preview",
+            financialYearCode: "FY2026-27",
+            note: "Route preview coverage.",
+          }),
+          jsonBody: {
+            action: "preview",
+            financialYearCode: "FY2026-27",
+            note: "Route preview coverage.",
+          },
+        },
+        route: {
+          auth: yearCloseRoute.auth,
+          path: yearCloseRoute.path,
+          surface: yearCloseRoute.surface,
+          version: yearCloseRoute.version,
+        },
+      })
+
+      const yearClosePayload = JSON.parse(yearCloseResponse.body) as {
+        item: { financialYearCode: string; status: string }
+      }
+
+      assert.equal(yearCloseResponse.statusCode, 200)
+      assert.equal(yearClosePayload.item.financialYearCode, "FY2026-27")
+
+      await assert.rejects(
+        () =>
+          openingBalanceRolloverRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "POST",
+              pathname: "/internal/v1/billing/opening-balance-rollover",
+              url: new URL("http://localhost/internal/v1/billing/opening-balance-rollover"),
+              headers: financeManagerHeaders,
+              bodyText: JSON.stringify({
+                action: "preview",
+                sourceFinancialYearCode: "FY2025-26",
+                note: "Route rollover coverage.",
+              }),
+              jsonBody: {
+                action: "preview",
+                sourceFinancialYearCode: "FY2025-26",
+                note: "Route rollover coverage.",
+              },
+            },
+            route: {
+              auth: openingBalanceRolloverRoute.auth,
+              path: openingBalanceRolloverRoute.path,
+              surface: openingBalanceRolloverRoute.surface,
+              version: openingBalanceRolloverRoute.version,
+            },
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("closed billing financial year")
+      )
+
+      await assert.rejects(
+        () =>
+          yearEndControlsRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "POST",
+              pathname: "/internal/v1/billing/year-end-controls",
+              url: new URL("http://localhost/internal/v1/billing/year-end-controls"),
+              headers: financeManagerHeaders,
+              bodyText: JSON.stringify({
+                action: "preview",
+                sourceFinancialYearCode: "FY2025-26",
+                note: "Route year-end control coverage.",
+              }),
+              jsonBody: {
+                action: "preview",
+                sourceFinancialYearCode: "FY2025-26",
+                note: "Route year-end control coverage.",
+              },
+            },
+            route: {
+              auth: yearEndControlsRoute.auth,
+              path: yearEndControlsRoute.path,
+              surface: yearEndControlsRoute.surface,
+              version: yearEndControlsRoute.version,
+            },
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("closed billing financial year")
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing internal routes deny staff users without billing permissions", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-route-permissions-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const operatorLogin = await authService.login(
+        {
+          email: "operator@codexsun.local",
+          password: "Operator@12345",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${operatorLogin.accessToken}`,
+      }
+
+      const reportsRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/billing/reports"
+      )
+
+      assert.ok(reportsRoute)
+
+      await assert.rejects(
+        () =>
+          reportsRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "GET",
+              pathname: "/internal/v1/billing/reports",
+              url: new URL("http://localhost/internal/v1/billing/reports"),
+              headers,
+              bodyText: null,
+              jsonBody: null,
+            },
+            route: {
+              auth: reportsRoute.auth,
+              path: reportsRoute.path,
+              surface: reportsRoute.surface,
+              version: reportsRoute.version,
+            },
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 403 &&
+          error.message.includes("permission")
+      )
     } finally {
       await runtime.destroy()
     }

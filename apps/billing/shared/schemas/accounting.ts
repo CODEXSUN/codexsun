@@ -40,6 +40,11 @@ export const billingVoucherReviewStatusSchema = z.enum([
   "approved",
   "rejected",
 ])
+export const billingVoucherApprovalPolicySchema = z.enum([
+  "none",
+  "threshold_review",
+  "maker_checker",
+])
 
 export const billingVoucherDocumentFormatSchema = z.enum(["print", "csv", "json"])
 
@@ -283,13 +288,22 @@ export const billingVoucherSourceDocumentSchema = z.object({
   voucherType: billingVoucherTypeSchema,
 })
 
+export const billingVoucherAccountingDimensionsSchema = z.object({
+  branch: z.string().trim().min(1).nullable().default(null),
+  project: z.string().trim().min(1).nullable().default(null),
+  costCenter: z.string().trim().min(1).nullable().default(null),
+})
+
 export const billingVoucherReviewSchema = z.object({
   status: billingVoucherReviewStatusSchema,
+  approvalPolicy: billingVoucherApprovalPolicySchema.default("none"),
+  requestedByUserId: z.string().trim().min(1).nullable().default(null),
   requestedAt: z.string().trim().min(1).nullable().default(null),
   reviewedAt: z.string().trim().min(1).nullable().default(null),
   reviewedByUserId: z.string().trim().min(1).nullable().default(null),
   note: z.string().trim().default(""),
   requiredReason: z.string().trim().min(1).nullable().default(null),
+  makerCheckerRequired: z.boolean().default(false),
 })
 
 export const billingVoucherDocumentTemplateSchema = z.object({
@@ -313,13 +327,21 @@ export const billingVoucherSchema = z.object({
   reversedAt: z.string().trim().min(1).nullable().default(null),
   reversalReason: z.string().trim().min(1).nullable().default(null),
   sourceDocument: billingVoucherSourceDocumentSchema.nullable().default(null),
+  dimensions: billingVoucherAccountingDimensionsSchema.default({
+    branch: null,
+    project: null,
+    costCenter: null,
+  }),
   review: billingVoucherReviewSchema.default({
     status: "not_required",
+    approvalPolicy: "none",
+    requestedByUserId: null,
     requestedAt: null,
     reviewedAt: null,
     reviewedByUserId: null,
     note: "",
     requiredReason: null,
+    makerCheckerRequired: false,
   }),
   type: billingVoucherTypeSchema,
   date: z.string().trim().min(1),
@@ -399,6 +421,12 @@ export const billingVoucherStockPayloadSchema = z.object({
   items: z.array(billingVoucherStockItemPayloadSchema).min(1),
 })
 
+export const billingVoucherAccountingDimensionsPayloadSchema = z.object({
+  branch: z.string().trim().nullable().default(null),
+  project: z.string().trim().nullable().default(null),
+  costCenter: z.string().trim().nullable().default(null),
+})
+
 export const billingSalesInvoicePayloadSchema = z.object({
   voucherTypeId: z.string().trim().min(1),
   customerLedgerId: z.string().trim().min(1),
@@ -420,6 +448,11 @@ export const billingVoucherUpsertPayloadSchema = z.object({
   status: billingVoucherLifecycleStatusSchema.default("posted"),
   type: billingVoucherTypeSchema,
   sourceVoucherId: z.string().trim().min(1).nullable().default(null),
+  dimensions: billingVoucherAccountingDimensionsPayloadSchema.default({
+    branch: null,
+    project: null,
+    costCenter: null,
+  }),
   date: z.string().trim().min(1),
   counterparty: z.string().trim().default(""),
   narration: z.string().trim(),
@@ -506,12 +539,16 @@ export const billingVoucherHeaderSchema = z.object({
   reversedAt: z.string().trim().min(1).nullable(),
   reversalReason: z.string().trim().min(1).nullable(),
   sourceDocument: billingVoucherSourceDocumentSchema.nullable(),
+  dimensions: billingVoucherAccountingDimensionsSchema,
   reviewStatus: billingVoucherReviewStatusSchema,
+  reviewApprovalPolicy: billingVoucherApprovalPolicySchema,
+  reviewRequestedByUserId: z.string().trim().min(1).nullable(),
   reviewRequestedAt: z.string().trim().min(1).nullable(),
   reviewReviewedAt: z.string().trim().min(1).nullable(),
   reviewReviewedByUserId: z.string().trim().min(1).nullable(),
   reviewNote: z.string().trim(),
   reviewRequiredReason: z.string().trim().min(1).nullable(),
+  reviewMakerCheckerRequired: z.boolean(),
   createdAt: z.string().trim().min(1),
   updatedAt: z.string().trim().min(1),
   createdByUserId: z.string().trim().nullable(),
@@ -1092,6 +1129,225 @@ export const billingWarehouseStockPositionSchema = z.object({
   items: z.array(billingWarehouseStockPositionItemSchema),
 })
 
+export const billingAccountingExceptionTypeSchema = z.enum([
+  "altered",
+  "reversed",
+  "back_dated",
+])
+
+export const billingAccountingExceptionItemSchema = z.object({
+  exceptionType: billingAccountingExceptionTypeSchema,
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: billingVoucherTypeSchema,
+  voucherStatus: billingVoucherLifecycleStatusSchema,
+  voucherDate: z.string().trim().min(1),
+  createdAt: z.string().trim().min(1),
+  updatedAt: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  amount: z.number().nonnegative(),
+  daysBackDated: z.number().int().nonnegative(),
+  dimensions: billingVoucherAccountingDimensionsSchema,
+  reviewStatus: billingVoucherReviewStatusSchema,
+  note: z.string().trim(),
+})
+
+export const billingAccountingExceptionsSchema = z.object({
+  alteredCount: z.number().int().nonnegative(),
+  reversedCount: z.number().int().nonnegative(),
+  backDatedCount: z.number().int().nonnegative(),
+  items: z.array(billingAccountingExceptionItemSchema),
+})
+
+export const billingFinanceDashboardSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  postedVoucherCount: z.number().int().nonnegative(),
+  pendingReviewCount: z.number().int().nonnegative(),
+  pendingReviewAmount: z.number().nonnegative(),
+  reversedVoucherCount: z.number().int().nonnegative(),
+  reversedVoucherAmount: z.number().nonnegative(),
+  backDatedVoucherCount: z.number().int().nonnegative(),
+  receivableTotal: z.number().nonnegative(),
+  payableTotal: z.number().nonnegative(),
+  bankPendingEntryCount: z.number().int().nonnegative(),
+  bankMismatchAmount: z.number().nonnegative(),
+  inventoryValue: z.number().nonnegative(),
+  cashBalance: z.number().nonnegative(),
+  bankBalance: z.number().nonnegative(),
+})
+
+export const billingAuditTrailEntrySchema = z.object({
+  id: z.string().trim().min(1),
+  action: z.string().trim().min(1),
+  level: z.enum(["info", "warn", "error"]),
+  message: z.string().trim().min(1),
+  actorEmail: z.string().trim().nullable().default(null),
+  actorType: z.string().trim().nullable().default(null),
+  routePath: z.string().trim().nullable().default(null),
+  voucherId: z.string().trim().nullable().default(null),
+  voucherNumber: z.string().trim().nullable().default(null),
+  reversalVoucherNumber: z.string().trim().nullable().default(null),
+  createdAt: z.string().trim().min(1),
+})
+
+export const billingAuditTrailReviewSchema = z.object({
+  totalEntries: z.number().int().nonnegative(),
+  infoCount: z.number().int().nonnegative(),
+  warnCount: z.number().int().nonnegative(),
+  errorCount: z.number().int().nonnegative(),
+  createCount: z.number().int().nonnegative(),
+  postCount: z.number().int().nonnegative(),
+  cancelCount: z.number().int().nonnegative(),
+  deleteCount: z.number().int().nonnegative(),
+  reverseCount: z.number().int().nonnegative(),
+  reviewCount: z.number().int().nonnegative(),
+  reconcileCount: z.number().int().nonnegative(),
+  items: z.array(billingAuditTrailEntrySchema),
+})
+
+export const billingAuditTrailReviewResponseSchema = z.object({
+  item: billingAuditTrailReviewSchema,
+})
+
+export const billingMonthEndChecklistStatusSchema = z.enum([
+  "ready",
+  "attention",
+  "blocked",
+])
+
+export const billingMonthEndChecklistItemSchema = z.object({
+  id: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  status: billingMonthEndChecklistStatusSchema,
+  value: z.string().trim().min(1),
+  detail: z.string().trim().min(1),
+})
+
+export const billingMonthEndChecklistSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  readyCount: z.number().int().nonnegative(),
+  attentionCount: z.number().int().nonnegative(),
+  blockedCount: z.number().int().nonnegative(),
+  items: z.array(billingMonthEndChecklistItemSchema),
+})
+
+export const billingFinancialYearCloseWorkflowStatusSchema = z.enum([
+  "not_started",
+  "blocked",
+  "ready_to_close",
+  "closed",
+])
+
+export const billingFinancialYearCloseWorkflowSchema = z.object({
+  financialYearCode: z.string().trim().min(1),
+  financialYearLabel: z.string().trim().min(1),
+  startDate: z.string().trim().min(1),
+  endDate: z.string().trim().min(1),
+  voucherCount: z.number().int().nonnegative(),
+  status: billingFinancialYearCloseWorkflowStatusSchema,
+  blockedItemCount: z.number().int().nonnegative(),
+  readyItemCount: z.number().int().nonnegative(),
+  lastEvaluatedAt: z.string().trim().min(1),
+  closedAt: z.string().trim().min(1).nullable().default(null),
+  closedByUserId: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+})
+
+export const billingFinancialYearCloseWorkflowActionPayloadSchema = z.object({
+  action: z.enum(["preview", "close"]),
+  financialYearCode: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+})
+
+export const billingFinancialYearCloseWorkflowResponseSchema = z.object({
+  item: billingFinancialYearCloseWorkflowSchema,
+})
+
+export const billingOpeningBalanceRolloverStatusSchema = z.enum([
+  "previewed",
+  "applied",
+])
+
+export const billingOpeningBalanceRolloverItemSchema = z.object({
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  ledgerGroup: z.string().trim().min(1),
+  ledgerNature: z.enum(["asset", "liability", "income", "expense"]),
+  sourceClosingSide: billingEntrySideSchema,
+  sourceClosingAmount: z.number().nonnegative(),
+  rolloverSide: billingEntrySideSchema,
+  rolloverAmount: z.number().nonnegative(),
+  policyTreatment: z.enum(["carry_forward", "reset_nominal"]),
+})
+
+export const billingOpeningBalanceRolloverPolicySchema = z.object({
+  sourceFinancialYearCode: z.string().trim().min(1),
+  targetFinancialYearCode: z.string().trim().min(1),
+  targetFinancialYearLabel: z.string().trim().min(1),
+  status: billingOpeningBalanceRolloverStatusSchema,
+  itemCount: z.number().int().nonnegative(),
+  carryForwardLedgerCount: z.number().int().nonnegative(),
+  resetLedgerCount: z.number().int().nonnegative(),
+  preparedAt: z.string().trim().min(1),
+  preparedByUserId: z.string().trim().min(1).nullable().default(null),
+  appliedAt: z.string().trim().min(1).nullable().default(null),
+  appliedByUserId: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+  items: z.array(billingOpeningBalanceRolloverItemSchema),
+})
+
+export const billingOpeningBalanceRolloverActionPayloadSchema = z.object({
+  action: z.enum(["preview", "apply"]),
+  sourceFinancialYearCode: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+})
+
+export const billingOpeningBalanceRolloverResponseSchema = z.object({
+  item: billingOpeningBalanceRolloverPolicySchema,
+})
+
+export const billingYearEndAdjustmentControlStatusSchema = z.enum([
+  "previewed",
+  "applied",
+])
+
+export const billingYearEndAdjustmentControlItemSchema = z.object({
+  controlKey: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  status: z.enum(["ready", "attention", "blocked"]),
+  value: z.string().trim().min(1),
+  detail: z.string().trim().min(1),
+  recommendedAction: z.string().trim().min(1),
+})
+
+export const billingYearEndAdjustmentControlPolicySchema = z.object({
+  sourceFinancialYearCode: z.string().trim().min(1),
+  targetFinancialYearCode: z.string().trim().min(1),
+  targetFinancialYearLabel: z.string().trim().min(1),
+  status: billingYearEndAdjustmentControlStatusSchema,
+  journalVoucherCount: z.number().int().nonnegative(),
+  nominalLedgerCount: z.number().int().nonnegative(),
+  carryForwardLedgerCount: z.number().int().nonnegative(),
+  blockedItemCount: z.number().int().nonnegative(),
+  attentionItemCount: z.number().int().nonnegative(),
+  preparedAt: z.string().trim().min(1),
+  preparedByUserId: z.string().trim().min(1).nullable().default(null),
+  appliedAt: z.string().trim().min(1).nullable().default(null),
+  appliedByUserId: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+  items: z.array(billingYearEndAdjustmentControlItemSchema),
+})
+
+export const billingYearEndAdjustmentControlActionPayloadSchema = z.object({
+  action: z.enum(["preview", "apply"]),
+  sourceFinancialYearCode: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+})
+
+export const billingYearEndAdjustmentControlResponseSchema = z.object({
+  item: billingYearEndAdjustmentControlPolicySchema,
+})
+
 export const billingAccountingReportsSchema = z.object({
   trialBalance: billingTrialBalanceSchema,
   profitAndLoss: billingProfitAndLossSchema,
@@ -1118,6 +1374,12 @@ export const billingAccountingReportsSchema = z.object({
   stockAccountingRules: billingStockAccountingRuleBookSchema,
   warehouseStockPosition: billingWarehouseStockPositionSchema,
   stockValuationReport: billingStockValuationReportSchema,
+  exceptions: billingAccountingExceptionsSchema,
+  financeDashboard: billingFinanceDashboardSchema,
+  monthEndChecklist: billingMonthEndChecklistSchema,
+  financialYearCloseWorkflow: billingFinancialYearCloseWorkflowSchema.nullable(),
+  openingBalanceRolloverPolicy: billingOpeningBalanceRolloverPolicySchema.nullable(),
+  yearEndAdjustmentControlPolicy: billingYearEndAdjustmentControlPolicySchema.nullable(),
 })
 
 export const billingAccountingReportsResponseSchema = z.object({
@@ -1170,6 +1432,12 @@ export type BillingVoucherStockItem = z.infer<typeof billingVoucherStockItemSche
 export type BillingVoucherStock = z.infer<typeof billingVoucherStockSchema>
 export type BillingVoucher = z.infer<typeof billingVoucherSchema>
 export type BillingVoucherReview = z.infer<typeof billingVoucherReviewSchema>
+export type BillingVoucherApprovalPolicy = z.infer<
+  typeof billingVoucherApprovalPolicySchema
+>
+export type BillingVoucherAccountingDimensions = z.infer<
+  typeof billingVoucherAccountingDimensionsSchema
+>
 export type BillingVoucherBankReconciliation = z.infer<
   typeof billingVoucherBankReconciliationSchema
 >
@@ -1354,9 +1622,59 @@ export type BillingWarehouseStockPosition = z.infer<
 export type BillingStockValuationReport = z.infer<
   typeof billingStockValuationReportSchema
 >
+export type BillingAccountingExceptionType = z.infer<
+  typeof billingAccountingExceptionTypeSchema
+>
+export type BillingAccountingExceptionItem = z.infer<
+  typeof billingAccountingExceptionItemSchema
+>
+export type BillingAccountingExceptions = z.infer<
+  typeof billingAccountingExceptionsSchema
+>
+export type BillingFinanceDashboard = z.infer<
+  typeof billingFinanceDashboardSchema
+>
+export type BillingAuditTrailEntry = z.infer<typeof billingAuditTrailEntrySchema>
+export type BillingAuditTrailReview = z.infer<typeof billingAuditTrailReviewSchema>
+export type BillingMonthEndChecklist = z.infer<
+  typeof billingMonthEndChecklistSchema
+>
+export type BillingFinancialYearCloseWorkflow = z.infer<
+  typeof billingFinancialYearCloseWorkflowSchema
+>
+export type BillingFinancialYearCloseWorkflowActionPayload = z.infer<
+  typeof billingFinancialYearCloseWorkflowActionPayloadSchema
+>
+export type BillingOpeningBalanceRolloverPolicy = z.infer<
+  typeof billingOpeningBalanceRolloverPolicySchema
+>
+export type BillingOpeningBalanceRolloverActionPayload = z.infer<
+  typeof billingOpeningBalanceRolloverActionPayloadSchema
+>
+export type BillingYearEndAdjustmentControlItem = z.infer<
+  typeof billingYearEndAdjustmentControlItemSchema
+>
+export type BillingYearEndAdjustmentControlPolicy = z.infer<
+  typeof billingYearEndAdjustmentControlPolicySchema
+>
+export type BillingYearEndAdjustmentControlActionPayload = z.infer<
+  typeof billingYearEndAdjustmentControlActionPayloadSchema
+>
 export type BillingAccountingReports = z.infer<
   typeof billingAccountingReportsSchema
 >
 export type BillingAccountingReportsResponse = z.infer<
   typeof billingAccountingReportsResponseSchema
+>
+export type BillingFinancialYearCloseWorkflowResponse = z.infer<
+  typeof billingFinancialYearCloseWorkflowResponseSchema
+>
+export type BillingOpeningBalanceRolloverResponse = z.infer<
+  typeof billingOpeningBalanceRolloverResponseSchema
+>
+export type BillingYearEndAdjustmentControlResponse = z.infer<
+  typeof billingYearEndAdjustmentControlResponseSchema
+>
+export type BillingAuditTrailReviewResponse = z.infer<
+  typeof billingAuditTrailReviewResponseSchema
 >

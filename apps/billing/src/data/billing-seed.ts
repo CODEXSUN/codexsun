@@ -302,11 +302,20 @@ export const billingVoucherMasterTypes: BillingVoucherMasterType[] = [
 
 const defaultVoucherReview = {
   status: "not_required" as const,
+  approvalPolicy: "none" as const,
+  requestedByUserId: null,
   requestedAt: null,
   reviewedAt: null,
   reviewedByUserId: null,
   note: "",
   requiredReason: null,
+  makerCheckerRequired: false,
+}
+
+const defaultVoucherDimensions = {
+  branch: null,
+  project: null,
+  costCenter: null,
 }
 
 export const billingVouchers: BillingVoucher[] = [
@@ -321,6 +330,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    dimensions: defaultVoucherDimensions,
     review: defaultVoucherReview,
     type: "sales",
     date: "2026-03-24",
@@ -480,6 +490,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    dimensions: defaultVoucherDimensions,
     review: defaultVoucherReview,
     type: "purchase",
     date: "2026-03-25",
@@ -584,6 +595,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    dimensions: defaultVoucherDimensions,
     review: defaultVoucherReview,
     type: "receipt",
     date: "2026-03-26",
@@ -673,6 +685,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    dimensions: defaultVoucherDimensions,
     review: defaultVoucherReview,
     type: "payment",
     date: "2026-03-27",
@@ -762,6 +775,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    dimensions: defaultVoucherDimensions,
     review: defaultVoucherReview,
     type: "contra",
     date: "2026-03-29",
@@ -841,6 +855,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    dimensions: defaultVoucherDimensions,
     review: defaultVoucherReview,
     type: "journal",
     date: "2026-03-31",

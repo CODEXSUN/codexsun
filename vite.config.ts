@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => {
         '@demo': path.resolve(__dirname, './apps/demo'),
         '@ecommerce': path.resolve(__dirname, './apps/ecommerce'),
         '@task': path.resolve(__dirname, './apps/task'),
+        '@crm': path.resolve(__dirname, './apps/crm'),
         '@frappe': path.resolve(__dirname, './apps/frappe'),
         '@tally': path.resolve(__dirname, './apps/tally'),
         '@cli': path.resolve(__dirname, './apps/cli'),

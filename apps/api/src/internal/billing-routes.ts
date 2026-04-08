@@ -6,13 +6,60 @@ import { createBillingCategory, deleteBillingCategory, getBillingCategory, listB
 import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
 import { createBillingVoucherGroup, deleteBillingVoucherGroup, listBillingVoucherGroups, restoreBillingVoucherGroup, updateBillingVoucherGroup } from "../../../billing/src/services/voucher-group-service.js"
 import { createBillingVoucherType, deleteBillingVoucherType, listBillingVoucherTypes, restoreBillingVoucherType, updateBillingVoucherType } from "../../../billing/src/services/voucher-type-service.js"
+import { getBillingAuditTrailReview } from "../../../billing/src/services/audit-trail-service.js"
 import { getBillingAccountingReports } from "../../../billing/src/services/reporting-service.js"
+import { executeBillingOpeningBalanceRollover } from "../../../billing/src/services/opening-balance-rollover-service.js"
+import { executeBillingYearEndAdjustmentControl } from "../../../billing/src/services/year-end-control-service.js"
+import { executeBillingYearCloseWorkflow } from "../../../billing/src/services/year-close-service.js"
 import { billingVoucherDocumentFormatSchema, billingVoucherTypeSchema } from "../../../billing/shared/index.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createBillingInternalRoutes(): HttpRouteDefinition[] {
+  const requireBillingWorkspaceView = (
+    context: Parameters<typeof requireAuthenticatedUser>[0]
+  ) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["billing:workspace:view"],
+    })
+  const requireBillingVoucherManage = (
+    context: Parameters<typeof requireAuthenticatedUser>[0]
+  ) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["billing:workspace:view", "billing:vouchers:manage"],
+    })
+  const requireBillingReportsView = (
+    context: Parameters<typeof requireAuthenticatedUser>[0]
+  ) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["billing:workspace:view", "billing:reports:view"],
+    })
+  const requireBillingVoucherApprove = (
+    context: Parameters<typeof requireAuthenticatedUser>[0]
+  ) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: [
+        "billing:workspace:view",
+        "billing:vouchers:approve",
+        "billing:audit:view",
+      ],
+    })
+  const requireBillingAuditView = (
+    context: Parameters<typeof requireAuthenticatedUser>[0]
+  ) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: [
+        "billing:workspace:view",
+        "billing:audit:view",
+      ],
+    })
+
   return [
     defineInternalRoute("/billing/ledgers", {
       summary: "List billing ledgers used by the posting engine.",
@@ -381,9 +428,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/billing/vouchers", {
       summary: "List billing vouchers with double-entry lines.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingWorkspaceView(context)
         const typeParam = context.request.url.searchParams.get("type")
 
         return jsonResponse(
@@ -398,21 +443,27 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/billing/reports", {
       summary: "Return billing-derived accounts reports from billing vouchers and ledgers.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingReportsView(context)
 
         return jsonResponse(
           await getBillingAccountingReports(context.databases.primary, user, context.config)
         )
       },
     }),
+    defineInternalRoute("/billing/audit-trail", {
+      summary: "Return billing audit trail review data from the shared platform activity ledger.",
+      handler: async (context) => {
+        const { user } = await requireBillingAuditView(context)
+
+        return jsonResponse(
+          await getBillingAuditTrailReview(context.databases.primary, user)
+        )
+      },
+    }),
     defineInternalRoute("/billing/voucher", {
       summary: "Read one billing voucher by id.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingWorkspaceView(context)
         const voucherId = context.request.url.searchParams.get("id")
 
         if (!voucherId) {
@@ -428,9 +479,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Create a billing voucher with an explicit lifecycle status.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingVoucherManage(context)
 
         return jsonResponse(
           await createBillingVoucher(
@@ -447,9 +496,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       method: "PATCH",
       summary: "Update a draft billing voucher and retain its explicit lifecycle status.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingVoucherManage(context)
         const voucherId = context.request.url.searchParams.get("id")
 
         if (!voucherId) {
@@ -471,9 +518,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       method: "DELETE",
       summary: "Delete a draft billing voucher.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingVoucherManage(context)
         const voucherId = context.request.url.searchParams.get("id")
 
         if (!voucherId) {
@@ -494,9 +539,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Reverse a posted billing voucher through an explicit reversal entry.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingVoucherManage(context)
         const voucherId = context.request.url.searchParams.get("id")
 
         if (!voucherId) {
@@ -518,9 +561,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Update matched, mismatch, or pending bank reconciliation metadata for a posted bank voucher.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingVoucherManage(context)
         const voucherId = context.request.url.searchParams.get("id")
 
         if (!voucherId) {
@@ -542,9 +583,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
       method: "POST",
       summary: "Approve or reject a billing voucher in the finance review flow.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingVoucherApprove(context)
         const voucherId = context.request.url.searchParams.get("id")
 
         if (!voucherId) {
@@ -565,9 +604,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
     defineInternalRoute("/billing/voucher/document", {
       summary: "Return a billing document template or export payload for print, csv, or json.",
       handler: async (context) => {
-        const { user } = await requireAuthenticatedUser(context, {
-          allowedActorTypes: ["admin", "staff"],
-        })
+        const { user } = await requireBillingReportsView(context)
         const voucherId = context.request.url.searchParams.get("id")
         const formatParam = context.request.url.searchParams.get("format") ?? "print"
 
@@ -581,6 +618,52 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
             user,
             voucherId,
             billingVoucherDocumentFormatSchema.parse(formatParam)
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/year-close", {
+      method: "POST",
+      summary: "Preview or close the active billing financial year using the current control checklist.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherApprove(context)
+
+        return jsonResponse(
+          await executeBillingYearCloseWorkflow(
+            context.databases.primary,
+            user,
+            context.config,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/opening-balance-rollover", {
+      method: "POST",
+      summary: "Preview or apply the billing opening-balance rollover policy after year close.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherApprove(context)
+
+        return jsonResponse(
+          await executeBillingOpeningBalanceRollover(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/year-end-controls", {
+      method: "POST",
+      summary: "Preview or apply billing year-end adjustment and carry-forward controls.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherApprove(context)
+
+        return jsonResponse(
+          await executeBillingYearEndAdjustmentControl(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
           )
         )
       },

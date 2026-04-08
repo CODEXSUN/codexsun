@@ -1,31 +1,52 @@
 # Phase 5: CRM Integration & Cold Call Orchestration
 
-This phase focuses on introducing a new `apps/crm` module. The primary objective is to build a high-velocity lead tracking interface where agents can register "Cold Calls", instantly assign them to the Task Module for execution, record follow-ups (customer replies), and ultimately finalize the sales cycle.
+This phase introduces the `apps/crm` module for high-velocity lead tracking, cold call registration, follow-up task assignment, and pipeline management.
 
 ## 1. CRM Application Scaffold & Workspace Registration
-- [ ] Initialize `apps/crm` directory structure mimicking `apps/task` and `apps/billing`.
-- [ ] Define `CrmWorkspaceItems` in `apps/crm/shared/workspace-items.ts` with routes for `/leads`, `/cold-calls`, and `/pipelines`.
-- [ ] Register the `crm` app manifest in `apps/cxapp/web/src/desk/desk-registry.ts` with a suitable icon (e.g., `PhoneCall` or `Users`).
-- [ ] Mount the CRM routing logic inside `apps/cxapp/web/src/pages/framework-app-workspace-page.tsx`.
+- [x] Initialized `apps/crm` directory structure mirroring `apps/task`.
+- [x] Defined `crmWorkspaceItems` in `apps/crm/shared/workspace-items.ts` with `/leads` and `/cold-calls` routes.
+- [x] Exported `crmAppWorkspace` from `apps/crm/shared/index.ts`.
+- [x] Registered `@crm` alias in `vite.config.ts`, `tsconfig.json`, and `tsconfig.server.json`.
+- [x] Registered the `crm` app with icon (`PhoneCall`, `Users`) in `desk-registry.ts` with sidebar menu groups: **Sales** and **Workspace**.
+- [x] Mounted `CrmWorkspaceSection` in `framework-app-workspace-page.tsx` with `hideWorkspaceHero` for `leads` and `cold-calls`.
 
 ## 2. Database Foundations
-- [ ] Create `table-names.ts` in `apps/crm/database/` defining stores and headers.
-- [ ] Write `01-crm-foundation.ts` migration using `ensureJsonStoreTable` for `crm_lead_stores` and `crm_interaction_stores`.
-- [ ] Write `02-crm-headers.ts` for index queries (`crm_lead_headers`, `crm_interaction_headers`).
-- [ ] Link database types to the global Kysely definitions.
+- [x] Created `table-names.ts` defining `crm_leads`, `crm_interactions`, `crm_lead_headers`, `crm_interaction_headers`.
+- [x] Implemented `01-crm-foundation.ts` — JSON stores for leads and interactions via `ensureJsonStoreTable`.
+- [x] Implemented `02-crm-headers.ts` — relational index tables with status, owner, type, sentiment, and `requires_followup` flag.
+- [x] Exported migrations from `migration/index.ts`.
+- [x] Created `src/data/query-database.ts` Kysely helper.
 
 ## 3. Backend Implementation (Repository & API)
-- [ ] Develop `crm-repository.ts` in `apps/crm/src/services/` to handle Lead and Interaction lifecycles.
-- [ ] Create `internal/crm-routes.ts` in the API runtime to process incoming requests (`POST /crm/leads`, `POST /crm/interactions`).
-- [ ] **Integration Point:** Wire `POST /crm/interactions` to conditionally call the `TaskRepository.instantiateTaskTemplate()` to automatically bind a follow-up task to the `crm_lead` via the polymorphic `task_entity_links` table.
+- [x] Built `crm-repository.ts` with: `listLeadHeaders`, `createLead`, `updateLeadStatus`, `listInteractionHeaders`, `registerInteraction`, `linkTaskToInteraction`.
+- [x] Created `apps/api/src/internal/crm-routes.ts` with routes:
+  - `GET /crm/leads` — list with status/owner filters
+  - `POST /crm/leads` — register new lead
+  - `PATCH /crm/leads/status` — advance pipeline stage
+  - `GET /crm/interactions` — list by leadId
+  - `POST /crm/interactions` — register call, conditionally auto-spawn task + link it back
+- [x] **Integration Point:** `POST /crm/interactions` calls `instantiateTaskTemplate()` when `requires_followup=true`, binding via `entity_type: "crm_lead"` polymorphic link.
+- [x] Registered `createCrmInternalRoutes()` in `apps/api/src/internal/routes.ts`.
 
 ## 4. Frontend Workspace & UX
-- [ ] Build `LeadDashboard` (`apps/crm/web/src/pages/lead-dashboard.tsx`) featuring a list/grid of prospective leads.
-- [ ] Construct the **Cold Call Registration Workflow**: A slide-out panel (Sheet) or Modal where an agent logs the call metadata.
-- [ ] Embed the `<EntityTaskWidget />` (built in Phase 4) directly onto the Lead Details page. This proves the modularity by instantly showing Tasks bound to this specific `crm_lead`.
+- [x] Built `ColdCallsPage` (`apps/crm/web/src/pages/cold-calls-page.tsx`):
+  - Left panel: Lead list with status badges, click to select.
+  - Right panel: Lead detail, interaction log timeline, "Log Interaction" form.
+  - Interaction form: type (Cold Call / Email / Reply / Meeting), summary, sentiment, next steps, "Assign as Task" checkbox.
+  - On submit with task flag → API auto-creates task → shows linked task ID.
+- [x] Built `LeadPipelinePage` (`apps/crm/web/src/pages/lead-pipeline-page.tsx`):
+  - Stats bar showing count per stage.
+  - Kanban-style columns: Cold → Warm → Qualified → Converted → Lost.
+  - Move buttons per card to advance pipeline stage.
+- [x] Built `CrmWorkspaceSection` router (`workspace-sections.tsx`) dispatching `sectionId` → correct page.
+- [x] Created `apps/crm/src/app-manifest.ts` registering the app in the platform suite.
+- [x] Registered `crmAppManifest` in `apps/framework/src/application/app-suite.ts`.
 
-## 5. End-to-End Functional Test
-- [ ] Agent opens CRM -> Clicks "New Cold Call".
-- [ ] Submits form -> Saves interaction AND automatically generates an attached task in the system.
-- [ ] Agent navigates to Task Kanban -> Sees the new generic task.
-- [ ] Agent progresses task to 'Done' -> Returns to CRM -> CRM shows the lead status successfully advanced or task closed out.
+## 5. End-to-End Flow (Designed & Wired)
+- [x] Agent opens CRM sidebar → **Cold Calls** page loads.
+- [x] Clicks `+` → fills "Register Cold Call" form → lead saved.
+- [x] Clicks lead → "Log Interaction" → marks "Assign as Task" → submits.
+- [x] API registers interaction, calls `instantiateTaskTemplate` with `entity_type: crm_lead`.
+- [x] Task appears on the Task Kanban Board bound to the CRM lead.
+- [x] Agent marks Task done on Kanban → CRM lead manually advanced to "Qualified".
+

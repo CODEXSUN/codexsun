@@ -405,3 +405,9 @@
 - completed Stage `2.4.5` by adding ecommerce overview KPIs for conversion, AOV, order count, paid vs failed, fulfilment aging, and refund aging
 - added an ecommerce-owned overview KPI report and protected internal route for analytics readers, then replaced the static overview cards with live dashboard metrics and operations drill-down links
 - validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#73` 2026-04-08
+
+- completed billing Stage `B11` with approval policy enforcement, finance roles, accounting dimensions, exception reporting, and dashboard KPIs
+- completed billing Stage `B12` with month-end checklist, year-close workflow, opening-balance rollover, audit-trail review, and year-end control policy surfaces
+- validated the billing controls batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`

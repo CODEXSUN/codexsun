@@ -38,6 +38,7 @@ import {
   Wallet,
   Workflow,
   Warehouse,
+  PhoneCall,
 } from "lucide-react"
 
 import type { AppManifest, AppSuite } from "@framework/application/app-manifest"
@@ -47,6 +48,7 @@ import { demoWorkspaceItems } from "@demo/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
 import { taskWorkspaceItems } from "@task/shared"
+import { crmWorkspaceItems } from "@crm/shared"
 import { docsCategories } from "@/registry/data/catalog"
 import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
@@ -547,6 +549,24 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "crm") {
+    const crmWorkspaceIconMap: Record<string, LucideIcon> = {
+      leads: Users,
+      "cold-calls": PhoneCall,
+    }
+
+    return [
+      ...crmWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: crmWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -881,6 +901,35 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/routines`,
                   `/dashboard/apps/${app.id}/templates`,
                   `/dashboard/apps/${app.id}/performance`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
+      : app.id === "crm"
+        ? [
+            {
+              id: `${app.id}-sales`,
+              label: "Sales",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                  `/dashboard/apps/${app.id}/leads`,
+                  `/dashboard/apps/${app.id}/cold-calls`,
                 ].includes(item.route)
               ),
             },

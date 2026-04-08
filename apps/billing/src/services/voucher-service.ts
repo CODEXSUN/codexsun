@@ -38,7 +38,7 @@ import {
 import { billingTableNames } from "../../database/table-names.js"
 import { coreTableNames } from "../../../core/database/table-names.js"
 
-import { assertBillingViewer } from "./access.js"
+import { assertBillingViewer, assertBillingVoucherApprover } from "./access.js"
 import {
   assertBillingOperationDateAllowed,
   createVoucherNumber,
@@ -57,6 +57,7 @@ import {
 import { replaceBillingVoucherHeaders } from "./voucher-header-store.js"
 import { replaceBillingVoucherLines } from "./voucher-line-store.js"
 import { replaceBillingLedgerEntries } from "./ledger-entry-store.js"
+import { replaceBillingVoucherSplitTables } from "./voucher-split-store.js"
 import { synchronizeBillingInventoryToCore } from "./inventory-bridge-service.js"
 
 async function readLedgers(database: Kysely<unknown>) {
@@ -235,11 +236,66 @@ function getSourceDocumentLabel(type: BillingVoucher["type"]) {
   }
 }
 
+function getVoucherApprovalPolicy(
+  voucher: Pick<BillingVoucher, "type" | "gst" | "sales" | "lines">
+) {
+  const amount = getVoucherAbsoluteAmount(voucher)
+  const makerCheckerRequired =
+    [
+      "payment",
+      "contra",
+      "journal",
+      "stock_adjustment",
+      "landed_cost",
+    ].includes(voucher.type) || amount >= 100000
+
+  if (makerCheckerRequired) {
+    return {
+      approvalPolicy: "maker_checker" as const,
+      makerCheckerRequired: true,
+      requiredReason:
+        amount >= 100000
+          ? `Voucher amount ${amount.toFixed(2)} requires maker-checker approval.`
+          : "High-risk finance document type requires maker-checker approval.",
+    }
+  }
+
+  if (isSensitiveVoucherType(voucher.type)) {
+    return {
+      approvalPolicy: "threshold_review" as const,
+      makerCheckerRequired: false,
+      requiredReason: "Sensitive finance document type requires review.",
+    }
+  }
+
+  return {
+    approvalPolicy: "threshold_review" as const,
+    makerCheckerRequired: false,
+    requiredReason: `Voucher amount ${amount.toFixed(2)} meets the finance review threshold.`,
+  }
+}
+
+function normalizeVoucherDimensions(
+  dimensions: ReturnType<typeof billingVoucherUpsertPayloadSchema.parse>["dimensions"]
+) {
+  const normalizeValue = (value: string | null) => {
+    const trimmed = value?.trim() ?? ""
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  return {
+    branch: normalizeValue(dimensions.branch),
+    project: normalizeValue(dimensions.project),
+    costCenter: normalizeValue(dimensions.costCenter),
+  }
+}
+
 function buildVoucherReviewState(
   voucher: Pick<BillingVoucher, "type" | "gst" | "sales" | "lines">,
   config: ServerConfig,
   existing: BillingVoucher | undefined,
-  timestamp: string
+  timestamp: string,
+  requestedByUserId: string | null
 ) {
   const reviewEnabled = config.billing.compliance.review.enabled
   const amount = getVoucherAbsoluteAmount(voucher)
@@ -253,17 +309,18 @@ function buildVoucherReviewState(
   if (!requiresReview) {
     return {
       status: "not_required" as const,
+      approvalPolicy: "none" as const,
+      requestedByUserId: null,
       requestedAt: null,
       reviewedAt: null,
       reviewedByUserId: null,
       note: existing?.review.status === "not_required" ? existing.review.note : "",
       requiredReason: null,
+      makerCheckerRequired: false,
     }
   }
 
-  const requiredReason = isSensitiveVoucherType(voucher.type)
-    ? "Sensitive finance document type requires review."
-    : `Voucher amount ${amount.toFixed(2)} meets the finance review threshold.`
+  const approval = getVoucherApprovalPolicy(voucher)
 
   if (
     existing?.review.status === "approved" ||
@@ -271,17 +328,23 @@ function buildVoucherReviewState(
   ) {
     return {
       ...existing.review,
-      requiredReason,
+      approvalPolicy: approval.approvalPolicy,
+      requestedByUserId: existing.review.requestedByUserId ?? requestedByUserId,
+      requiredReason: approval.requiredReason,
+      makerCheckerRequired: approval.makerCheckerRequired,
     }
   }
 
   return {
     status: "pending_review" as const,
+    approvalPolicy: approval.approvalPolicy,
+    requestedByUserId: existing?.review.requestedByUserId ?? requestedByUserId,
     requestedAt: existing?.review.requestedAt ?? timestamp,
     reviewedAt: null,
     reviewedByUserId: null,
     note: existing?.review.note ?? "",
-    requiredReason,
+    requiredReason: approval.requiredReason,
+    makerCheckerRequired: approval.makerCheckerRequired,
   }
 }
 
@@ -1025,8 +1088,10 @@ async function buildVoucherRecord(
     },
     config,
     existing,
-    timestamp
+    timestamp,
+    existing?.review.requestedByUserId ?? existing?.createdByUserId ?? user.id
   )
+  const dimensions = normalizeVoucherDimensions(parsedPayload.dimensions)
 
   const baseRecord = {
     id: existing?.id ?? `voucher:${randomUUID()}`,
@@ -1039,6 +1104,7 @@ async function buildVoucherRecord(
     reversedAt: existing?.reversedAt ?? null,
     reversalReason: existing?.reversalReason ?? null,
     sourceDocument,
+    dimensions,
     review,
     type: parsedPayload.type,
     date: parsedPayload.date,
@@ -1234,6 +1300,7 @@ export async function createBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await replaceBillingVoucherSplitTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1296,6 +1363,7 @@ export async function updateBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await replaceBillingVoucherSplitTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   if (updatedItem.status === "posted" && existingItem.status !== "posted") {
@@ -1360,6 +1428,7 @@ export async function deleteBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await replaceBillingVoucherSplitTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1456,7 +1525,7 @@ export async function reverseBillingVoucher(
     reversedAt: null,
     reversalReason: parsedPayload.reason,
     sourceDocument: null,
-    review: buildVoucherReviewState(existingItem, config, undefined, timestamp),
+    review: buildVoucherReviewState(existingItem, config, undefined, timestamp, user.id),
     date: reversalDate,
     narration: `Reversal of ${existingItem.voucherNumber}. ${parsedPayload.reason}`,
     lines: existingItem.lines.map((line) => ({
@@ -1525,6 +1594,7 @@ export async function reverseBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await replaceBillingVoucherSplitTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1616,6 +1686,7 @@ export async function reconcileBillingVoucher(
     await replaceBillingVoucherHeaders(database, nextItems)
     await replaceBillingVoucherLines(database, nextItems)
     await replaceBillingLedgerEntries(database, nextItems)
+    await replaceBillingVoucherSplitTables(database, nextItems)
     await synchronizeBillingInventoryToCore(database, nextItems, config)
 
     await writeBillingVoucherAudit(database, config, user, {
@@ -1677,6 +1748,7 @@ export async function reconcileBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await replaceBillingVoucherSplitTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1705,7 +1777,7 @@ export async function reviewBillingVoucher(
   voucherId: string,
   payload: unknown
 ) {
-  assertBillingViewer(user)
+  assertBillingVoucherApprover(user)
 
   const parsedPayload = billingVoucherReviewPayloadSchema.parse(payload)
   const items = await readVouchers(database)
@@ -1719,6 +1791,23 @@ export async function reviewBillingVoucher(
     throw new ApplicationError(
       "This billing voucher does not require review under the current policy.",
       { voucherId, voucherNumber: existingItem.voucherNumber },
+      409
+    )
+  }
+
+  if (
+    existingItem.review.makerCheckerRequired &&
+    existingItem.createdByUserId &&
+    existingItem.createdByUserId === user.id
+  ) {
+    throw new ApplicationError(
+      "Maker-checker approval requires a different reviewer than the voucher maker.",
+      {
+        voucherId,
+        voucherNumber: existingItem.voucherNumber,
+        createdByUserId: existingItem.createdByUserId,
+        reviewerUserId: user.id,
+      },
       409
     )
   }
@@ -1752,6 +1841,7 @@ export async function reviewBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await replaceBillingVoucherSplitTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
