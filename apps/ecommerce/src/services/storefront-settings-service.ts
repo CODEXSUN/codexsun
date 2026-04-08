@@ -152,6 +152,12 @@ function buildMergedStorefrontSettings(
   const sectionsRecord = asRecord(payloadRecord.sections)
   const footerRecord = asRecord(payloadRecord.footer)
   const floatingContactRecord = asRecord(payloadRecord.floatingContact)
+  const shippingMethodsRecord = Array.isArray(payloadRecord.shippingMethods)
+    ? payloadRecord.shippingMethods
+    : null
+  const shippingZonesRecord = Array.isArray(payloadRecord.shippingZones)
+    ? payloadRecord.shippingZones
+    : null
   const couponBannerRecord = asRecord(payloadRecord.couponBanner)
   const giftCornerRecord = asRecord(payloadRecord.giftCorner)
   const trendingSectionRecord = asRecord(payloadRecord.trendingSection)
@@ -295,6 +301,8 @@ function buildMergedStorefrontSettings(
           ...floatingContactRecord,
         }
       : base.floatingContact,
+    shippingMethods: shippingMethodsRecord ? shippingMethodsRecord : base.shippingMethods,
+    shippingZones: shippingZonesRecord ? shippingZonesRecord : base.shippingZones,
     couponBanner: couponBannerRecord
       ? {
           ...base.couponBanner,

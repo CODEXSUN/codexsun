@@ -147,6 +147,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(landing.settings.hero.title.length > 0, true)
       assert.equal(storedSettings.search.departments.length > 0, true)
+      assert.equal(storedSettings.shippingMethods.length > 0, true)
+      assert.equal(storedSettings.shippingMethods.some((item) => item.isDefault), true)
+      assert.equal(storedSettings.shippingZones.length > 0, true)
+      assert.equal(storedSettings.shippingZones.some((item) => item.isDefault), true)
       assert.equal(storedHomeSlider.slides.length > 0, true)
       assert.equal(storedHomeSlider.slides[0]?.theme.themeKey.length > 0, true)
       assert.equal(shippingPage.item.sections.length > 0, true)
@@ -169,12 +173,29 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(savedSettings.announcement, "Updated storefront announcement")
       assert.equal(savedSettings.announcementDesign.iconKey, "truck")
       assert.equal(savedSettings.announcementDesign.cornerStyle, "rounded")
+      assert.equal(savedSettings.shippingMethods.length > 0, true)
 
       const partiallySavedSettings = await saveStorefrontSettings(runtime.primary, {
         search: undefined,
         footer: {
           description: "Updated footer description",
         },
+        shippingMethods: [
+          {
+            ...storedSettings.shippingMethods[0],
+            label: "Updated delivery method",
+            courierName: "DTDC Express",
+          },
+          ...storedSettings.shippingMethods.slice(1),
+        ],
+        shippingZones: [
+          {
+            ...storedSettings.shippingZones[0],
+            label: "Updated metro zone",
+            shippingSurchargeAmount: 25,
+          },
+          ...storedSettings.shippingZones.slice(1),
+        ],
       })
 
       assert.equal(
@@ -185,6 +206,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         partiallySavedSettings.search.placeholder,
         storedSettings.search.placeholder
       )
+      assert.equal(partiallySavedSettings.shippingMethods[0]?.label, "Updated delivery method")
+      assert.equal(partiallySavedSettings.shippingMethods[0]?.courierName, "DTDC Express")
+      assert.equal(partiallySavedSettings.shippingZones[0]?.label, "Updated metro zone")
+      assert.equal(partiallySavedSettings.shippingZones[0]?.shippingSurchargeAmount, 25)
 
       const savedHomeSlider = await saveStorefrontHomeSlider(runtime.primary, {
         slides: [
@@ -367,6 +392,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         config,
         {
           items: [{ productId: product.item.id, quantity: 2 }],
+          shippingMethodId: "priority",
           couponCode: welcomeCoupon.code,
           shippingAddress: {
             fullName: "Asha Raman",
@@ -374,10 +400,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
             phoneNumber: "+91 98888 11111",
             line1: "18 River Road",
             line2: "Floor 2",
-            city: "Chennai",
-            state: "Tamil Nadu",
+            city: "Mumbai",
+            state: "Maharashtra",
             country: "India",
-            pincode: "600001",
+            pincode: "400001",
           },
           billingAddress: {
             fullName: "Asha Raman",
@@ -385,10 +411,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
             phoneNumber: "+91 98888 11111",
             line1: "18 River Road",
             line2: "Floor 2",
-            city: "Chennai",
-            state: "Tamil Nadu",
+            city: "Mumbai",
+            state: "Maharashtra",
             country: "India",
-            pincode: "600001",
+            pincode: "400001",
           },
           notes: null,
         },
@@ -401,6 +427,15 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(checkout.order.appliedCoupon?.code, welcomeCoupon.code)
       assert.equal(checkout.order.appliedCoupon?.status, "reserved")
       assert.equal(checkout.order.stockReservation?.status, "active")
+      assert.equal(checkout.order.shippingMethod?.id, "priority")
+      assert.equal(checkout.order.shippingMethod?.courierName, "Blue Dart Express")
+      assert.equal(checkout.order.shippingZone?.id, "national-default")
+      assert.equal(checkout.order.shippingAmount, 289)
+      assert.equal(checkout.order.handlingAmount, 99)
+      assert.equal(checkout.order.taxBreakdown?.regime, "inter_state")
+      assert.equal(checkout.order.taxBreakdown?.sellerState, "Tamil Nadu")
+      assert.equal(checkout.order.taxBreakdown?.customerState, "Maharashtra")
+      assert.equal((checkout.order.taxBreakdown?.igstAmount ?? 0) > 0, true)
       assert.equal(
         checkout.order.stockReservation?.items.reduce((sum, item) => sum + item.quantity, 0),
         2
@@ -417,6 +452,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         config,
         {
           items: [{ productId: product.item.id, quantity: 2 }],
+          shippingMethodId: "priority",
           couponCode: welcomeCoupon.code,
           shippingAddress: {
             fullName: "Asha Raman",
@@ -424,10 +460,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
             phoneNumber: "+91 98888 11111",
             line1: "18 River Road",
             line2: "Floor 2",
-            city: "Chennai",
-            state: "Tamil Nadu",
+            city: "Mumbai",
+            state: "Maharashtra",
             country: "India",
-            pincode: "600001",
+            pincode: "400001",
           },
           billingAddress: {
             fullName: "Asha Raman",
@@ -435,10 +471,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
             phoneNumber: "+91 98888 11111",
             line1: "18 River Road",
             line2: "Floor 2",
-            city: "Chennai",
-            state: "Tamil Nadu",
+            city: "Mumbai",
+            state: "Maharashtra",
             country: "India",
-            pincode: "600001",
+            pincode: "400001",
           },
           notes: null,
         },
@@ -568,6 +604,8 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.match(receiptDocument.fileName, /html$/)
       assert.match(receiptDocument.html, new RegExp(verified.item.orderNumber))
       assert.match(receiptDocument.html, /Storefront receipt/)
+      assert.match(receiptDocument.html, /GST review/)
+      assert.match(receiptDocument.html, /IGST/)
 
       const tracked = await trackOrderByReference(runtime.primary, {
         orderNumber: verified.item.orderNumber,
@@ -604,10 +642,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
             phoneNumber: "+91 98888 11111",
             line1: "18 River Road",
             line2: "Floor 2",
-            city: "Chennai",
-            state: "Tamil Nadu",
+            city: "Agartala",
+            state: "Tripura",
             country: "India",
-            pincode: "600001",
+            pincode: "799001",
           },
           billingAddress: {
             fullName: "Asha Raman",
@@ -615,10 +653,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
             phoneNumber: "+91 98888 11111",
             line1: "18 River Road",
             line2: "Floor 2",
-            city: "Chennai",
-            state: "Tamil Nadu",
+            city: "Agartala",
+            state: "Tripura",
             country: "India",
-            pincode: "600001",
+            pincode: "799001",
           },
           notes: "Second pending order",
         },

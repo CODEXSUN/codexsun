@@ -8,11 +8,29 @@
 
 ## v-0.0.1
 
+### [#69] 2026-04-08 - GST review and receipt tax breakdown baseline
+
+- completed Stage `3.3.3` by adding a stored GST review snapshot for each storefront order
+- extended storefront orders and receipt generation with taxable-value and GST-component breakdown derived from product tax ids plus seller-state versus customer-state comparison
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### [#67] 2026-04-08 - Billing posting model and notes baseline
 
 - completed Stages `B1`, `B2`, `B3`, and `B4.1` for `apps/billing` by hardening voucher lifecycle controls, normalizing voucher header and line storage, adding immutable posted ledger entries, and rebuilding accounting reports from posted entries with traceability
 - implemented first-class credit note and debit note documents with source-voucher linkage, GST-aware note posting treatment, and explicit note register and detail routes in the billing workspace
 - added the general ledger report, updated billing planning and task tracking, and validated the batch with `npm run typecheck` plus `npx.cmd tsx --test tests\\billing\\voucher-service.test.ts tests\\billing\\reporting-service.test.ts tests\\api\\internal\\routes.test.ts`
+
+### [#68] 2026-04-08 - Zone shipping and COD eligibility baseline
+
+- completed Stage `3.3.2` by adding ecommerce-owned shipping zones with country, state, and pincode-prefix matching plus surcharge, ETA, free-shipping threshold override, and COD-eligibility rules
+- extended checkout and order creation so delivery quotes resolve from shipping method plus matched zone, and created orders snapshot both the selected shipping method and resolved zone
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### [#67] 2026-04-08 - Shipping methods and ETA model
+
+- completed Stage `3.3.1` by adding persisted storefront shipping methods with courier, SLA, ETA, and COD-eligibility metadata
+- extended storefront settings and order contracts so checkout selects active delivery methods, charge calculation uses the chosen method fallback, and created orders snapshot the selected delivery promise
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
 
 ### [#66] 2026-04-08 - ERP price-list compatibility baseline
 

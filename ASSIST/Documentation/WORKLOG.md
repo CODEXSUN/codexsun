@@ -2,11 +2,29 @@
 
 ## Done Till Here
 
+### `#69` 2026-04-08
+
+- completed Stage `3.3.3` by adding a GST review snapshot to storefront orders and customer receipt output
+- derived taxable value and GST components from product tax ids plus seller-state versus customer-state comparison, while preserving legacy-order storage compatibility
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### `#67` 2026-04-08
 
 - completed billing Stage `B1` through Stage `B3` plus Stage `B4.1`, covering posting integrity, normalized voucher storage, immutable ledger entries, posted-entry-driven reporting, note documents, and the first general ledger report
 - added first-class credit note and debit note workflows with source-document linkage, GST-aware adjustment treatment, and explicit note register and detail pages in the billing workspace
 - validated the billing batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+
+### `#68` 2026-04-08
+
+- completed Stage `3.3.2` by adding storefront shipping zones with destination matching, surcharge and ETA adjustments, and derived COD eligibility rules
+- wired checkout pricing and order creation to resolve and snapshot the matched zone alongside the selected delivery method, while keeping cart estimates generic before address selection
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#67` 2026-04-08
+
+- completed Stage `3.3.1` by adding an ecommerce-owned shipping-method catalog to storefront settings with courier, SLA, ETA, and COD-eligibility metadata
+- wired checkout pricing and order creation to the selected active method, and snapshotted the chosen delivery method onto persisted storefront orders for later operations review
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
 
 ### `#66` 2026-04-08
 

@@ -4,6 +4,7 @@ import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import { recordMonitoringEvent } from "../../../framework/src/runtime/monitoring/monitoring-service.js"
+import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
 import {
   createContact,
   getContact,
@@ -49,7 +50,9 @@ import {
   type StorefrontAdminOrderActionPayload,
   type StorefrontAdminOrderQueueBucket,
   type StorefrontAdminOrderQueueItem,
+  type StorefrontAddress,
   type StorefrontOrder,
+  type StorefrontOrderTaxBreakdown,
   type StorefrontPaymentExceptionItem,
   type StorefrontPaymentSettlementItem,
   type StorefrontPaymentWebhookEvent,
@@ -861,8 +864,46 @@ function calculateChargeTotals(
     handlingCharge: number | null | undefined
   }>,
   settings: StorefrontSettings,
-  subtotalAmount: number
+  subtotalAmount: number,
+  selectedShippingMethodId?: string | null,
+  address?: Pick<StorefrontAddress, "country" | "state" | "pincode"> | null
 ) {
+  const normalizeShippingText = (value: string | null | undefined) =>
+    (value ?? "").trim().toLowerCase()
+  const normalizePincode = (value: string | null | undefined) =>
+    (value ?? "").replace(/\s+/g, "").trim().toLowerCase()
+  const activeMethods = settings.shippingMethods.filter((method) => method.isActive)
+  const shippingMethod =
+    activeMethods.find((method) => method.id === selectedShippingMethodId) ??
+    activeMethods.find((method) => method.isDefault) ??
+    activeMethods[0] ??
+    null
+  const activeZones = settings.shippingZones.filter((zone) => zone.isActive)
+  const shippingZone =
+    address && activeZones.length > 0
+      ? activeZones.find((zone) => {
+          const matchesCountry =
+            zone.countries.length === 0 ||
+            zone.countries.some(
+              (item) => normalizeShippingText(item) === normalizeShippingText(address.country)
+            )
+          const matchesState =
+            zone.states.length === 0 ||
+            zone.states.some(
+              (item) => normalizeShippingText(item) === normalizeShippingText(address.state)
+            )
+          const matchesPincode =
+            zone.pincodePrefixes.length === 0 ||
+            zone.pincodePrefixes.some((item) =>
+              normalizePincode(address.pincode).startsWith(normalizePincode(item))
+            )
+
+          return matchesCountry && matchesState && matchesPincode
+        }) ??
+        activeZones.find((zone) => zone.isDefault) ??
+        activeZones[0] ??
+        null
+      : activeZones.find((zone) => zone.isDefault) ?? activeZones[0] ?? null
   const fallbackShippingApplies = items.some((item) => item.shippingCharge == null)
   const fallbackHandlingApplies = items.some((item) => item.handlingCharge == null)
   const explicitShippingAmount = items.reduce(
@@ -873,15 +914,119 @@ function calculateChargeTotals(
     (sum, item) => sum + (item.handlingCharge != null ? item.handlingCharge * item.quantity : 0),
     0
   )
+  const fallbackShippingAmount =
+    (shippingMethod?.shippingAmount ?? settings.defaultShippingAmount) +
+    (shippingZone?.shippingSurchargeAmount ?? 0)
+  const fallbackHandlingAmount =
+    (shippingMethod?.handlingAmount ?? settings.defaultHandlingAmount) +
+    (shippingZone?.handlingSurchargeAmount ?? 0)
+  const freeShippingThreshold =
+    shippingZone?.freeShippingThresholdOverride ??
+    shippingMethod?.freeShippingThreshold ??
+    settings.freeShippingThreshold
   const globalShippingAmount =
-    subtotalAmount >= settings.freeShippingThreshold ? 0 : settings.defaultShippingAmount
+    subtotalAmount >= freeShippingThreshold ? 0 : fallbackShippingAmount
 
   return {
+    shippingMethod,
+    shippingZone,
+    codEligible: Boolean(shippingMethod?.codEligible && shippingZone?.codEligible),
     shippingAmount:
       explicitShippingAmount + (fallbackShippingApplies ? globalShippingAmount : 0),
     handlingAmount:
       explicitHandlingAmount +
-      (fallbackHandlingApplies && items.length > 0 ? settings.defaultHandlingAmount : 0),
+      (fallbackHandlingApplies && items.length > 0 ? fallbackHandlingAmount : 0),
+  }
+}
+
+function roundCurrency(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+async function buildOrderTaxBreakdown(
+  database: Kysely<unknown>,
+  items: StorefrontOrder["items"],
+  products: Product[],
+  billingAddress: StorefrontAddress,
+  sellerState: string
+): Promise<StorefrontOrderTaxBreakdown> {
+  const taxes = await listCommonModuleItems(database, "taxes")
+  const taxById = new Map(taxes.items.map((item) => [item.id, item]))
+  const normalizedSellerState = sellerState.trim().toLowerCase()
+  const normalizedCustomerState = billingAddress.state.trim().toLowerCase()
+  const regime =
+    normalizedSellerState && normalizedSellerState === normalizedCustomerState
+      ? "intra_state"
+      : "inter_state"
+
+  const lines = items.map((item) => {
+    const product = products.find((entry) => entry.id === item.productId) ?? null
+    const taxRecord =
+      (product?.taxId ? taxById.get(product.taxId) : null) ??
+      (product?.taxId?.includes("gst-standard")
+        ? taxes.items.find(
+            (entry) =>
+              String(entry.id ?? "").toLowerCase() === "tax:gst-12" ||
+              String(entry.code ?? "").toUpperCase() === "GST12"
+          ) ?? null
+        : null) ??
+      taxes.items.find((entry) => String(entry["tax_type"] ?? "").toLowerCase() === "gst") ??
+      null
+    const ratePercent =
+      typeof taxRecord?.["rate_percent"] === "number" && Number.isFinite(taxRecord["rate_percent"])
+        ? Number(taxRecord["rate_percent"])
+        : 0
+    const taxableAmount =
+      ratePercent > 0 ? roundCurrency((item.lineTotal * 100) / (100 + ratePercent)) : item.lineTotal
+    const taxAmount = roundCurrency(item.lineTotal - taxableAmount)
+    const cgstAmount = regime === "intra_state" ? roundCurrency(taxAmount / 2) : 0
+    const sgstAmount = regime === "intra_state" ? roundCurrency(taxAmount - cgstAmount) : 0
+    const igstAmount = regime === "inter_state" ? taxAmount : 0
+
+    return {
+      itemId: item.id,
+      itemName: item.name,
+      productId: item.productId,
+      hsnCodeId: product?.hsnCodeId ?? null,
+      taxId: product?.taxId ?? null,
+      taxCode:
+        typeof taxRecord?.code === "string" && taxRecord.code.trim().length > 0
+          ? taxRecord.code
+          : null,
+      taxLabel:
+        typeof taxRecord?.name === "string" && taxRecord.name.trim().length > 0
+          ? taxRecord.name
+          : null,
+      ratePercent,
+      taxableAmount,
+      taxAmount,
+      cgstAmount,
+      sgstAmount,
+      igstAmount,
+      cessAmount: 0,
+    }
+  })
+
+  const taxableAmount = roundCurrency(lines.reduce((sum, item) => sum + item.taxableAmount, 0))
+  const taxAmount = roundCurrency(lines.reduce((sum, item) => sum + item.taxAmount, 0))
+  const cgstAmount = roundCurrency(lines.reduce((sum, item) => sum + item.cgstAmount, 0))
+  const sgstAmount = roundCurrency(lines.reduce((sum, item) => sum + item.sgstAmount, 0))
+  const igstAmount = roundCurrency(lines.reduce((sum, item) => sum + item.igstAmount, 0))
+
+  return {
+    regime,
+    pricesIncludeTax: true,
+    sellerState,
+    customerState: billingAddress.state,
+    taxableAmount,
+    taxAmount,
+    cgstAmount,
+    sgstAmount,
+    igstAmount,
+    cessAmount: 0,
+    shippingTaxAmount: 0,
+    handlingTaxAmount: 0,
+    lines,
   }
 }
 
@@ -976,11 +1121,29 @@ export async function createCheckoutOrder(
       (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
       0
     )
-    const { shippingAmount, handlingAmount } =
+    const { shippingAmount, handlingAmount, shippingMethod, shippingZone } =
       parsed.fulfillmentMethod === "store_pickup"
-        ? { shippingAmount: 0, handlingAmount: 0 }
-        : calculateChargeTotals(chargeInputs, settings, subtotalAmount)
+        ? {
+            shippingAmount: 0,
+            handlingAmount: 0,
+            shippingMethod: null,
+            shippingZone: null,
+          }
+        : calculateChargeTotals(
+            chargeInputs,
+            settings,
+            subtotalAmount,
+            parsed.shippingMethodId,
+            parsed.shippingAddress
+          )
     const totalAmount = subtotalAmount + shippingAmount + handlingAmount
+    const taxBreakdown = await buildOrderTaxBreakdown(
+      database,
+      items,
+      catalog,
+      parsed.billingAddress,
+      settings.pickupLocation.state || "Tamil Nadu"
+    )
     const pickupLocation =
       parsed.fulfillmentMethod === "store_pickup" && settings.pickupLocation.enabled
         ? {
@@ -1107,10 +1270,13 @@ export async function createCheckoutOrder(
       fulfillmentMethod: parsed.fulfillmentMethod,
       paymentCollectionMethod: parsed.paymentMethod,
       pickupLocation,
+      shippingMethod,
+      shippingZone,
       shipmentDetails: null,
       refund: null,
       stockReservation: null,
       appliedCoupon,
+      taxBreakdown,
       providerOrderId: null,
       providerPaymentId: null,
       checkoutFingerprint,
@@ -3294,6 +3460,48 @@ export async function getCustomerOrderReceiptDocument(
           ${item.shippingAddress.email}<br />
           ${item.shippingAddress.phoneNumber}
         </p>`
+  const taxLinesHtml =
+    item.taxBreakdown?.lines
+      .map(
+        (line) => `
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">${line.itemName}</td>
+            <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${line.ratePercent.toFixed(2)}%</td>
+            <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${currencyFormatter.format(line.taxableAmount)}</td>
+            <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${currencyFormatter.format(line.taxAmount)}</td>
+          </tr>`
+      )
+      .join("") ?? ""
+  const taxSummaryBlock = item.taxBreakdown
+    ? `
+      <div style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:20px;">
+        <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">GST review</p>
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.7;color:#4b5563;">
+          Regime: ${item.taxBreakdown.regime === "intra_state" ? "Intra-state" : "Inter-state"}<br />
+          Seller state: ${item.taxBreakdown.sellerState}<br />
+          Customer state: ${item.taxBreakdown.customerState}<br />
+          ${item.taxBreakdown.pricesIncludeTax ? "Item prices are treated as GST inclusive." : "Item prices exclude tax."}
+        </p>
+        <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+          <thead>
+            <tr>
+              <th style="padding:0 0 10px;text-align:left;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Item</th>
+              <th style="padding:0 0 10px;text-align:right;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Rate</th>
+              <th style="padding:0 0 10px;text-align:right;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Taxable</th>
+              <th style="padding:0 0 10px;text-align:right;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">GST</th>
+            </tr>
+          </thead>
+          <tbody>${taxLinesHtml}</tbody>
+        </table>
+        <div style="margin-left:auto;max-width:360px;padding-top:16px;">
+          <div style="display:flex;justify-content:space-between;gap:18px;padding:4px 0;font-size:13px;color:#4b5563;"><span>Taxable value</span><strong style="color:#111827;">${currencyFormatter.format(item.taxBreakdown.taxableAmount)}</strong></div>
+          <div style="display:flex;justify-content:space-between;gap:18px;padding:4px 0;font-size:13px;color:#4b5563;"><span>CGST</span><strong style="color:#111827;">${currencyFormatter.format(item.taxBreakdown.cgstAmount)}</strong></div>
+          <div style="display:flex;justify-content:space-between;gap:18px;padding:4px 0;font-size:13px;color:#4b5563;"><span>SGST</span><strong style="color:#111827;">${currencyFormatter.format(item.taxBreakdown.sgstAmount)}</strong></div>
+          <div style="display:flex;justify-content:space-between;gap:18px;padding:4px 0;font-size:13px;color:#4b5563;"><span>IGST</span><strong style="color:#111827;">${currencyFormatter.format(item.taxBreakdown.igstAmount)}</strong></div>
+          <div style="display:flex;justify-content:space-between;gap:18px;padding:4px 0;font-size:13px;color:#4b5563;"><span>Total GST</span><strong style="color:#111827;">${currencyFormatter.format(item.taxBreakdown.taxAmount)}</strong></div>
+        </div>
+      </div>`
+    : ""
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -3354,6 +3562,7 @@ export async function getCustomerOrderReceiptDocument(
         <div style="display:flex;justify-content:space-between;gap:18px;padding:6px 0;font-size:14px;color:#4b5563;"><span>Handling</span><strong style="color:#111827;">${currencyFormatter.format(item.handlingAmount)}</strong></div>
         <div style="display:flex;justify-content:space-between;gap:18px;padding:12px 0 0;margin-top:8px;border-top:2px solid #111827;font-size:16px;"><span><strong>Total</strong></span><strong>${currencyFormatter.format(item.totalAmount)}</strong></div>
       </div>
+      ${taxSummaryBlock}
     </div>
   </body>
 </html>`

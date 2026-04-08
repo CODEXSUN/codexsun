@@ -5,6 +5,7 @@ import {
   storefrontOrderSchema,
   type StorefrontAddress,
   type StorefrontOrder,
+  type StorefrontOrderTaxBreakdown,
   type StorefrontOrderItem,
   type StorefrontOrderTimelineEvent,
 } from "../../shared/index.js"
@@ -115,6 +116,65 @@ function normalizeShipmentDetails(value: unknown): StorefrontOrder["shipmentDeta
     shippedAt: normalizeOptionalString(record.shippedAt),
     deliveredAt: normalizeOptionalString(record.deliveredAt),
     updatedAt: normalizeRequiredString(record.updatedAt, new Date().toISOString()),
+  }
+}
+
+function normalizeShippingMethod(value: unknown): StorefrontOrder["shippingMethod"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  return {
+    id: normalizeRequiredString(record.id, "shipping-method:legacy"),
+    label: normalizeRequiredString(record.label, "Delivery"),
+    description: normalizeRequiredString(record.description, "Legacy delivery method"),
+    courierName: normalizeOptionalString(record.courierName),
+    serviceLevel: normalizeRequiredString(record.serviceLevel, "Standard service"),
+    etaMinDays: Math.max(0, Math.trunc(normalizeNumber(record.etaMinDays, 0))),
+    etaMaxDays: Math.max(0, Math.trunc(normalizeNumber(record.etaMaxDays, 0))),
+    shippingAmount: Math.max(0, normalizeNumber(record.shippingAmount, 0)),
+    handlingAmount: Math.max(0, normalizeNumber(record.handlingAmount, 0)),
+    freeShippingThreshold:
+      record.freeShippingThreshold == null
+        ? null
+        : Math.max(0, normalizeNumber(record.freeShippingThreshold, 0)),
+    codEligible: record.codEligible === true,
+    isDefault: record.isDefault === true,
+    isActive: record.isActive !== false,
+  }
+}
+
+function normalizeShippingZone(value: unknown): StorefrontOrder["shippingZone"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  return {
+    id: normalizeRequiredString(record.id, "shipping-zone:legacy"),
+    label: normalizeRequiredString(record.label, "Default zone"),
+    countries: Array.isArray(record.countries)
+      ? record.countries.map((item) => normalizeRequiredString(item, "")).filter(Boolean)
+      : [],
+    states: Array.isArray(record.states)
+      ? record.states.map((item) => normalizeRequiredString(item, "")).filter(Boolean)
+      : [],
+    pincodePrefixes: Array.isArray(record.pincodePrefixes)
+      ? record.pincodePrefixes.map((item) => normalizeRequiredString(item, "")).filter(Boolean)
+      : [],
+    shippingSurchargeAmount: Math.max(0, normalizeNumber(record.shippingSurchargeAmount, 0)),
+    handlingSurchargeAmount: Math.max(0, normalizeNumber(record.handlingSurchargeAmount, 0)),
+    freeShippingThresholdOverride:
+      record.freeShippingThresholdOverride == null
+        ? null
+        : Math.max(0, normalizeNumber(record.freeShippingThresholdOverride, 0)),
+    etaAdditionalDays: Math.max(0, Math.trunc(normalizeNumber(record.etaAdditionalDays, 0))),
+    codEligible: record.codEligible === true,
+    isDefault: record.isDefault === true,
+    isActive: record.isActive !== false,
   }
 }
 
@@ -282,6 +342,59 @@ function normalizeRefundRecord(
   })
 }
 
+function normalizeTaxBreakdown(value: unknown): StorefrontOrderTaxBreakdown | null {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const lines = Array.isArray(record.lines)
+    ? record.lines
+        .map((entry) => {
+          const line = asRecord(entry)
+
+          if (!line) {
+            return null
+          }
+
+          return {
+            itemId: normalizeRequiredString(line.itemId, "order-item:legacy"),
+            itemName: normalizeRequiredString(line.itemName, "Legacy item"),
+            productId: normalizeRequiredString(line.productId, "legacy-product"),
+            hsnCodeId: normalizeOptionalString(line.hsnCodeId),
+            taxId: normalizeOptionalString(line.taxId),
+            taxCode: normalizeOptionalString(line.taxCode),
+            taxLabel: normalizeOptionalString(line.taxLabel),
+            ratePercent: Math.max(0, normalizeNumber(line.ratePercent, 0)),
+            taxableAmount: Math.max(0, normalizeNumber(line.taxableAmount, 0)),
+            taxAmount: Math.max(0, normalizeNumber(line.taxAmount, 0)),
+            cgstAmount: Math.max(0, normalizeNumber(line.cgstAmount, 0)),
+            sgstAmount: Math.max(0, normalizeNumber(line.sgstAmount, 0)),
+            igstAmount: Math.max(0, normalizeNumber(line.igstAmount, 0)),
+            cessAmount: Math.max(0, normalizeNumber(line.cessAmount, 0)),
+          }
+        })
+        .filter((entry): entry is NonNullable<StorefrontOrderTaxBreakdown["lines"][number]> => entry !== null)
+    : []
+
+  return {
+    regime: record.regime === "intra_state" ? "intra_state" : "inter_state",
+    pricesIncludeTax: record.pricesIncludeTax !== false,
+    sellerState: normalizeRequiredString(record.sellerState, "Tamil Nadu"),
+    customerState: normalizeRequiredString(record.customerState, "Unknown state"),
+    taxableAmount: Math.max(0, normalizeNumber(record.taxableAmount, 0)),
+    taxAmount: Math.max(0, normalizeNumber(record.taxAmount, 0)),
+    cgstAmount: Math.max(0, normalizeNumber(record.cgstAmount, 0)),
+    sgstAmount: Math.max(0, normalizeNumber(record.sgstAmount, 0)),
+    igstAmount: Math.max(0, normalizeNumber(record.igstAmount, 0)),
+    cessAmount: Math.max(0, normalizeNumber(record.cessAmount, 0)),
+    shippingTaxAmount: Math.max(0, normalizeNumber(record.shippingTaxAmount, 0)),
+    handlingTaxAmount: Math.max(0, normalizeNumber(record.handlingTaxAmount, 0)),
+    lines,
+  }
+}
+
 function normalizeTimelineEntry(
   value: unknown,
   orderId: string,
@@ -430,6 +543,8 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     fulfillmentMethod: normalizeFulfillmentMethod(record.fulfillmentMethod),
     paymentCollectionMethod: normalizePaymentCollectionMethod(record.paymentCollectionMethod),
     pickupLocation: normalizePickupLocation(record.pickupLocation),
+    shippingMethod: normalizeShippingMethod(record.shippingMethod),
+    shippingZone: normalizeShippingZone(record.shippingZone),
     shipmentDetails: normalizeShipmentDetails(record.shipmentDetails),
     refund: normalizeRefundRecord(record.refund, {
       totalAmount,
@@ -440,6 +555,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     }),
     stockReservation: normalizeStockReservation(record.stockReservation),
     appliedCoupon: normalizeAppliedCoupon(record.appliedCoupon),
+    taxBreakdown: normalizeTaxBreakdown(record.taxBreakdown),
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
     checkoutFingerprint: normalizeOptionalString(record.checkoutFingerprint),

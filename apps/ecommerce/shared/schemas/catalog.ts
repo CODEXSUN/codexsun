@@ -303,6 +303,37 @@ export const storefrontPickupLocationSchema = z.object({
   pickupNote: z.string().min(1),
 })
 
+export const storefrontShippingMethodSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().min(1),
+  courierName: z.string().trim().min(1).nullable().default(null),
+  serviceLevel: z.string().min(1),
+  etaMinDays: z.number().int().min(0),
+  etaMaxDays: z.number().int().min(0),
+  shippingAmount: z.number().finite().nonnegative(),
+  handlingAmount: z.number().finite().nonnegative(),
+  freeShippingThreshold: z.number().finite().nonnegative().nullable().default(null),
+  codEligible: z.boolean().default(false),
+  isDefault: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+})
+
+export const storefrontShippingZoneSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  countries: z.array(z.string().min(1)).default([]),
+  states: z.array(z.string().min(1)).default([]),
+  pincodePrefixes: z.array(z.string().min(1)).default([]),
+  shippingSurchargeAmount: z.number().finite().nonnegative(),
+  handlingSurchargeAmount: z.number().finite().nonnegative(),
+  freeShippingThresholdOverride: z.number().finite().nonnegative().nullable().default(null),
+  etaAdditionalDays: z.number().int().min(0),
+  codEligible: z.boolean().default(false),
+  isDefault: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+})
+
 export const storefrontCouponBannerSchema = z.object({
   enabled: z.boolean().default(true),
   eyebrow: z.string().min(1),
@@ -485,6 +516,8 @@ export const storefrontSettingsSchema = z.object({
   footer: storefrontFooterSchema,
   floatingContact: storefrontFloatingContactSchema,
   pickupLocation: storefrontPickupLocationSchema,
+  shippingMethods: z.array(storefrontShippingMethodSchema).min(1),
+  shippingZones: z.array(storefrontShippingZoneSchema).min(1),
   couponBanner: storefrontCouponBannerSchema,
   giftCorner: storefrontGiftCornerSchema,
   trendingSection: storefrontTrendingSectionSchema,
@@ -594,6 +627,8 @@ export type StorefrontFooterLink = z.infer<typeof storefrontFooterLinkSchema>
 export type StorefrontFooterSocialLink = z.infer<typeof storefrontFooterSocialLinkSchema>
 export type StorefrontFloatingContact = z.infer<typeof storefrontFloatingContactSchema>
 export type StorefrontPickupLocation = z.infer<typeof storefrontPickupLocationSchema>
+export type StorefrontShippingMethod = z.infer<typeof storefrontShippingMethodSchema>
+export type StorefrontShippingZone = z.infer<typeof storefrontShippingZoneSchema>
 export type StorefrontCouponBanner = z.infer<typeof storefrontCouponBannerSchema>
 export type StorefrontGiftCorner = z.infer<typeof storefrontGiftCornerSchema>
 export type StorefrontTrendingCard = z.infer<typeof storefrontTrendingCardSchema>

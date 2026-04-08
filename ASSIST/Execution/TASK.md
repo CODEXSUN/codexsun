@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#66`
+`#69`
 
 ### Title
 
-`ERP price-list compatibility baseline`
+`GST order tax review baseline`
 
 ## Ecommerce Go-Live Schedule
 
@@ -126,9 +126,9 @@ Stage 1.1 baseline document:
 
 ### Stage 3.3: Shipping And Tax
 
-- [ ] 3.3.1 add shipping methods, courier options, SLA, and ETA model
-- [ ] 3.3.2 add zone-based shipping logic and COD eligibility rules if needed
-- [ ] 3.3.3 add GST or tax breakdown review for each order
+- [x] 3.3.1 add shipping methods, courier options, SLA, and ETA model
+- [x] 3.3.2 add zone-based shipping logic and COD eligibility rules if needed
+- [x] 3.3.3 add GST or tax breakdown review for each order
 - [ ] 3.3.4 verify invoice and tax reporting compatibility with accounting workflows
 
 ## Phase 4: Frontend Management And Publishing

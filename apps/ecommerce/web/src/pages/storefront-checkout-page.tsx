@@ -17,9 +17,11 @@ import { Link } from "react-router-dom"
 
 import type { CommonModuleItem, ContactAddressInput } from "@core/shared"
 import type {
+  StorefrontAddress,
   CustomerProfileLookupResponse,
   StorefrontCheckoutPaymentMethod,
   StorefrontFulfillmentMethod,
+  StorefrontShippingMethod,
   StorefrontSettings,
 } from "@ecommerce/shared"
 
@@ -128,6 +130,10 @@ type DeliveryPreference = {
   id: string
   label: string
   description: string
+  courierName?: string | null
+  serviceLevel?: string | null
+  etaLabel?: string | null
+  codEligible?: boolean
   shippingAmount: number
   handlingAmount: number
 }
@@ -168,7 +174,12 @@ type CheckoutPaymentFailureKind = "dismissed" | "failed"
 
 const fallbackStorefrontSettings: Pick<
   StorefrontSettings,
-  "freeShippingThreshold" | "defaultShippingAmount" | "defaultHandlingAmount" | "pickupLocation"
+  | "freeShippingThreshold"
+  | "defaultShippingAmount"
+  | "defaultHandlingAmount"
+  | "pickupLocation"
+  | "shippingMethods"
+  | "shippingZones"
 > = {
   freeShippingThreshold: 3999,
   defaultShippingAmount: 149,
@@ -188,6 +199,39 @@ const fallbackStorefrontSettings: Pick<
     contactEmail: "storefront@codexsun.local",
     pickupNote: "",
   },
+  shippingMethods: [
+    {
+      id: "standard",
+      label: "Standard delivery",
+      description: "Balanced dispatch window for the regular storefront flow.",
+      courierName: "Delhivery Surface",
+      serviceLevel: "Dispatch within 24 hours",
+      etaMinDays: 4,
+      etaMaxDays: 6,
+      shippingAmount: 149,
+      handlingAmount: 99,
+      freeShippingThreshold: 3999,
+      codEligible: true,
+      isDefault: true,
+      isActive: true,
+    },
+  ],
+  shippingZones: [
+    {
+      id: "national-default",
+      label: "National",
+      countries: ["India"],
+      states: [],
+      pincodePrefixes: [],
+      shippingSurchargeAmount: 40,
+      handlingSurchargeAmount: 0,
+      freeShippingThresholdOverride: null,
+      etaAdditionalDays: 1,
+      codEligible: false,
+      isDefault: true,
+      isActive: true,
+    },
+  ],
 }
 const addressDraftDefaults: Omit<
   AddressDialogState,
@@ -207,36 +251,13 @@ const addressDraftDefaults: Omit<
   pincode: "",
   setAsDefault: true,
 }
-const deliveryPreferences: DeliveryPreference[] = [
-  {
-    id: "standard",
-    label: "Standard delivery",
-    description: "Balanced dispatch window for the regular storefront flow.",
-    shippingAmount: 0,
-    handlingAmount: 0,
-  },
-  {
-    id: "priority",
-    label: "Priority delivery",
-    description: "Faster delivery preference for urgent orders.",
-    shippingAmount: 0,
-    handlingAmount: 0,
-  },
-  {
-    id: "signature",
-    label: "Signature packaging",
-    description: "Occasion-ready packaging preference with a premium handoff.",
-    shippingAmount: 0,
-    handlingAmount: 0,
-  },
-  {
-    id: "store-pickup",
-    label: "Store pickup",
-    description: "Reserve the order and collect it from the configured retail pickup location.",
-    shippingAmount: 0,
-    handlingAmount: 0,
-  },
-]
+const storePickupPreference: DeliveryPreference = {
+  id: "store-pickup",
+  label: "Store pickup",
+  description: "Reserve the order and collect it from the configured retail pickup location.",
+  shippingAmount: 0,
+  handlingAmount: 0,
+}
 const paymentOptions: PaymentOption[] = [
   {
     id: "upi-wallet",
@@ -378,6 +399,20 @@ function formatCurrency(value: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+function formatEtaLabel(method: Pick<StorefrontShippingMethod, "etaMinDays" | "etaMaxDays">) {
+  if (method.etaMinDays === method.etaMaxDays) {
+    return `${method.etaMinDays} day${method.etaMinDays === 1 ? "" : "s"}`
+  }
+
+  return `${method.etaMinDays}-${method.etaMaxDays} days`
+}
+
+function toShippingAddress(
+  address: Pick<StorefrontAddress, "country" | "state" | "pincode"> | null
+) {
+  return address
 }
 
 function splitDisplayName(displayName: string | null | undefined) {
@@ -594,7 +629,7 @@ export function StorefrontCheckoutContent({
     label: string
   } | null>(null)
   const [selectedDeliveryPreference, setSelectedDeliveryPreference] =
-    useState<string>("standard")
+    useState<string>(fallbackStorefrontSettings.shippingMethods[0]?.id ?? "standard")
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>("upi-wallet")
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
@@ -644,6 +679,8 @@ export function StorefrontCheckoutContent({
             defaultShippingAmount: settings.defaultShippingAmount,
             defaultHandlingAmount: settings.defaultHandlingAmount,
             pickupLocation: settings.pickupLocation,
+            shippingMethods: settings.shippingMethods,
+            shippingZones: settings.shippingZones,
           })
         }
       } catch {
@@ -793,14 +830,50 @@ export function StorefrontCheckoutContent({
   const isStorePickup = selectedDeliveryPreference === "store-pickup"
   const availableDeliveryPreferences = useMemo(
     () =>
-      deliveryPreferences.filter((option) =>
-        option.id === "store-pickup" ? storefrontSettings.pickupLocation.enabled : true
-      ),
-    [storefrontSettings.pickupLocation.enabled]
+      [
+        ...storefrontSettings.shippingMethods
+          .filter((option) => option.isActive)
+          .map((option) => ({
+            id: option.id,
+            label: option.label,
+            description: option.description,
+            courierName: option.courierName,
+            serviceLevel: option.serviceLevel,
+            etaLabel: formatEtaLabel(option),
+            codEligible: option.codEligible,
+            shippingAmount: option.shippingAmount,
+            handlingAmount: option.handlingAmount,
+          })),
+        ...(storefrontSettings.pickupLocation.enabled ? [storePickupPreference] : []),
+      ],
+    [storefrontSettings.pickupLocation.enabled, storefrontSettings.shippingMethods]
+  )
+  const {
+    shippingAmount,
+    handlingAmount,
+    shippingMethod,
+    shippingZone,
+    codEligible,
+  } = calculateStorefrontChargeTotals(
+    cart.items,
+    storefrontSettings,
+    cart.subtotalAmount,
+    isStorePickup ? null : selectedDeliveryPreference,
+    isStorePickup ? null : toShippingAddress(selectedAddress)
   )
   const availablePaymentOptions = useMemo(() => {
     if (!isStorePickup) {
-      return paymentOptions
+      return paymentOptions.map((option) =>
+        option.id === "cash-on-delivery"
+          ? {
+              ...option,
+              enabled: false,
+              description: codEligible
+                ? `COD is eligible for ${shippingZone?.label ?? "this zone"} once offline delivery collection is activated.`
+                : "COD is not available for the selected delivery zone and shipping method.",
+            }
+          : option
+      )
     }
 
     return [
@@ -819,7 +892,7 @@ export function StorefrontCheckoutContent({
         enabled: true,
       },
     ] satisfies PaymentOption[]
-  }, [isStorePickup])
+  }, [codEligible, isStorePickup, shippingZone?.label])
   const selectedDeliveryOption =
     availableDeliveryPreferences.find((option) => option.id === selectedDeliveryPreference) ??
     availableDeliveryPreferences[0]
@@ -854,25 +927,16 @@ export function StorefrontCheckoutContent({
     retryablePaymentSession?.attemptKey === checkoutAttemptKey
 
   useEffect(() => {
-    if (
-      selectedDeliveryPreference === "store-pickup" &&
-      !storefrontSettings.pickupLocation.enabled
-    ) {
-      setSelectedDeliveryPreference("standard")
+    if (!availableDeliveryPreferences.some((option) => option.id === selectedDeliveryPreference)) {
+      setSelectedDeliveryPreference(availableDeliveryPreferences[0]?.id ?? "store-pickup")
     }
-  }, [selectedDeliveryPreference, storefrontSettings.pickupLocation.enabled])
+  }, [availableDeliveryPreferences, selectedDeliveryPreference])
 
   useEffect(() => {
     if (!availablePaymentOptions.some((option) => option.id === selectedPaymentMethod)) {
       setSelectedPaymentMethod(availablePaymentOptions[0]?.id ?? "upi-wallet")
     }
   }, [availablePaymentOptions, selectedPaymentMethod])
-
-  const { shippingAmount, handlingAmount } = calculateStorefrontChargeTotals(
-    cart.items,
-    storefrontSettings,
-    cart.subtotalAmount
-  )
   const totalAmount = cart.subtotalAmount + shippingAmount + handlingAmount
   const totalSavings = cart.items.reduce(
     (sum, item) => sum + Math.max(0, (item.mrp - item.unitPrice) * item.quantity),
@@ -1433,6 +1497,7 @@ export function StorefrontCheckoutContent({
         })),
         fulfillmentMethod,
         paymentMethod,
+        shippingMethodId: fulfillmentMethod === "delivery" ? selectedDeliveryPreference : null,
         couponCode: couponCode.trim().toUpperCase() || null,
         shippingAddress: {
           ...shippingAddress,
@@ -2010,7 +2075,15 @@ export function StorefrontCheckoutContent({
                         key={option.id}
                         value={option.id}
                         title={option.label}
-                        description={option.description}
+                        description={[
+                          option.description,
+                          option.serviceLevel ? `SLA: ${option.serviceLevel}` : null,
+                          option.courierName ? `Courier: ${option.courierName}` : null,
+                          option.etaLabel ? `ETA: ${option.etaLabel}` : null,
+                          option.codEligible ? "COD eligible" : "Prepaid only",
+                        ]
+                          .filter(Boolean)
+                          .join("  ")}
                         active={selectedDeliveryPreference === option.id}
                         onSelect={setSelectedDeliveryPreference}
                       />
@@ -2178,6 +2251,23 @@ export function StorefrontCheckoutContent({
                         )
                       }
                     />
+                    {!isStorePickup && shippingMethod ? (
+                      <div className="rounded-[1.2rem] border border-[#e6d9cb] bg-[#fffdfa] p-3 text-sm text-[#6b5a4c]">
+                        <p className="font-semibold text-foreground">{shippingMethod.label}</p>
+                        <p className="mt-1 leading-6">
+                          {shippingMethod.serviceLevel}
+                          {shippingMethod.courierName ? ` via ${shippingMethod.courierName}` : ""}
+                          {`. ETA ${shippingMethod.etaMinDays + (shippingZone?.etaAdditionalDays ?? 0)}-${
+                            shippingMethod.etaMaxDays + (shippingZone?.etaAdditionalDays ?? 0)
+                          } days.`}
+                        </p>
+                        {shippingZone ? (
+                          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#8a6d57]">
+                            Zone {shippingZone.label} · {codEligible ? "COD eligible" : "Prepaid only"}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <CheckoutSummaryRow
                       label="Handling"
                       value={<CommercePrice amount={handlingAmount} className="justify-end" />}

@@ -1,5 +1,10 @@
 import { z } from "zod"
 
+import {
+  storefrontShippingMethodSchema,
+  storefrontShippingZoneSchema,
+} from "./catalog.js"
+
 export const storefrontAddressSchema = z.object({
   fullName: z.string().min(1),
   email: z.email(),
@@ -161,6 +166,39 @@ export const storefrontRefundRecordSchema = z.object({
   updatedAt: z.string().min(1),
 })
 
+export const storefrontOrderTaxLineSchema = z.object({
+  itemId: z.string().min(1),
+  itemName: z.string().min(1),
+  productId: z.string().min(1),
+  hsnCodeId: z.string().nullable(),
+  taxId: z.string().nullable(),
+  taxCode: z.string().nullable(),
+  taxLabel: z.string().nullable(),
+  ratePercent: z.number().finite().nonnegative(),
+  taxableAmount: z.number().finite().nonnegative(),
+  taxAmount: z.number().finite().nonnegative(),
+  cgstAmount: z.number().finite().nonnegative(),
+  sgstAmount: z.number().finite().nonnegative(),
+  igstAmount: z.number().finite().nonnegative(),
+  cessAmount: z.number().finite().nonnegative(),
+})
+
+export const storefrontOrderTaxBreakdownSchema = z.object({
+  regime: z.enum(["intra_state", "inter_state"]),
+  pricesIncludeTax: z.boolean(),
+  sellerState: z.string().min(1),
+  customerState: z.string().min(1),
+  taxableAmount: z.number().finite().nonnegative(),
+  taxAmount: z.number().finite().nonnegative(),
+  cgstAmount: z.number().finite().nonnegative(),
+  sgstAmount: z.number().finite().nonnegative(),
+  igstAmount: z.number().finite().nonnegative(),
+  cessAmount: z.number().finite().nonnegative(),
+  shippingTaxAmount: z.number().finite().nonnegative(),
+  handlingTaxAmount: z.number().finite().nonnegative(),
+  lines: z.array(storefrontOrderTaxLineSchema),
+})
+
 export const storefrontOrderStatusSchema = z.enum([
   "created",
   "payment_pending",
@@ -184,10 +222,13 @@ export const storefrontOrderSchema = z.object({
   fulfillmentMethod: storefrontFulfillmentMethodSchema,
   paymentCollectionMethod: storefrontCheckoutPaymentMethodSchema,
   pickupLocation: storefrontPickupLocationSnapshotSchema.nullable(),
+  shippingMethod: storefrontShippingMethodSchema.nullable().default(null),
+  shippingZone: storefrontShippingZoneSchema.nullable().default(null),
   shipmentDetails: storefrontShipmentDetailsSchema.nullable(),
   refund: storefrontRefundRecordSchema.nullable(),
   stockReservation: storefrontStockReservationSchema.nullable(),
   appliedCoupon: storefrontAppliedCouponSchema.nullable(),
+  taxBreakdown: storefrontOrderTaxBreakdownSchema.nullable().default(null),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
   checkoutFingerprint: z.string().nullable(),
@@ -211,6 +252,7 @@ export const storefrontCheckoutPayloadSchema = z.object({
   items: z.array(storefrontCartItemInputSchema).min(1),
   fulfillmentMethod: storefrontFulfillmentMethodSchema.default("delivery"),
   paymentMethod: storefrontCheckoutPaymentMethodSchema.default("online"),
+  shippingMethodId: z.string().trim().min(1).nullable().optional().default(null),
   couponCode: z.string().trim().min(1).nullable().optional().default(null),
   shippingAddress: storefrontAddressSchema,
   billingAddress: storefrontAddressSchema,
@@ -774,6 +816,8 @@ export type StorefrontRefundActor = z.infer<typeof storefrontRefundActorSchema>
 export type StorefrontRefundType = z.infer<typeof storefrontRefundTypeSchema>
 export type StorefrontRefundStatus = z.infer<typeof storefrontRefundStatusSchema>
 export type StorefrontRefundRecord = z.infer<typeof storefrontRefundRecordSchema>
+export type StorefrontOrderTaxLine = z.infer<typeof storefrontOrderTaxLineSchema>
+export type StorefrontOrderTaxBreakdown = z.infer<typeof storefrontOrderTaxBreakdownSchema>
 export type StorefrontOrderStatus = z.infer<typeof storefrontOrderStatusSchema>
 export type StorefrontOrder = z.infer<typeof storefrontOrderSchema>
 export type StorefrontCheckoutPayload = z.infer<typeof storefrontCheckoutPayloadSchema>

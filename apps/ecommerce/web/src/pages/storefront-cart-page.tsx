@@ -44,11 +44,48 @@ type CartViewVariant = "editorial" | "compact"
 const cartViewVariantStorageKey = "codexsun.storefront.cart.view-variant"
 const fallbackStorefrontSettings: Pick<
   StorefrontSettings,
-  "freeShippingThreshold" | "defaultShippingAmount" | "defaultHandlingAmount"
+  | "freeShippingThreshold"
+  | "defaultShippingAmount"
+  | "defaultHandlingAmount"
+  | "shippingMethods"
+  | "shippingZones"
 > = {
   freeShippingThreshold: 3999,
   defaultShippingAmount: 149,
   defaultHandlingAmount: 99,
+  shippingMethods: [
+    {
+      id: "standard",
+      label: "Standard delivery",
+      description: "Balanced dispatch window for the regular storefront flow.",
+      courierName: "Delhivery Surface",
+      serviceLevel: "Dispatch within 24 hours",
+      etaMinDays: 4,
+      etaMaxDays: 6,
+      shippingAmount: 149,
+      handlingAmount: 99,
+      freeShippingThreshold: 3999,
+      codEligible: true,
+      isDefault: true,
+      isActive: true,
+    },
+  ],
+  shippingZones: [
+    {
+      id: "national-default",
+      label: "National",
+      countries: ["India"],
+      states: [],
+      pincodePrefixes: [],
+      shippingSurchargeAmount: 40,
+      handlingSurchargeAmount: 0,
+      freeShippingThresholdOverride: null,
+      etaAdditionalDays: 1,
+      codEligible: false,
+      isDefault: true,
+      isActive: true,
+    },
+  ],
 }
 const cartViewOptions: Array<{
   value: CartViewVariant
@@ -386,6 +423,8 @@ export function StorefrontCartPage() {
             freeShippingThreshold: settings.freeShippingThreshold,
             defaultShippingAmount: settings.defaultShippingAmount,
             defaultHandlingAmount: settings.defaultHandlingAmount,
+            shippingMethods: settings.shippingMethods,
+            shippingZones: settings.shippingZones,
           })
         }
       } catch {

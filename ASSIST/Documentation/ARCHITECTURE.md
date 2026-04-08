@@ -133,6 +133,25 @@ Promotion rule:
 2. current storefront campaign, coupon-banner, gift-corner, and promo-copy surfaces are merchandising presentation, not the authoritative pricing engine
 3. future rule-driven promotion logic must be introduced in phased ecommerce-owned layers with explicit stacking, audit, and checkout determinism rather than ad hoc price overrides
 
+Shipping rule:
+
+1. `apps/ecommerce` owns the current storefront shipping-method catalog as part of storefront settings
+2. each delivery method must carry explicit fallback shipping charge, fallback handling charge, courier label, SLA summary, ETA range, and COD eligibility
+3. checkout may select only active configured delivery methods, while store pickup remains a separate fulfilment path controlled by pickup-location settings
+4. order creation must snapshot the selected delivery method onto the order so later settings edits do not rewrite historical courier or ETA expectations
+5. current legacy `freeShippingThreshold`, `defaultShippingAmount`, and `defaultHandlingAmount` fields remain compatibility mirrors of the default delivery method until later zone-based shipping logic replaces them
+6. shipping zones are also ecommerce-owned storefront settings records and may match by country, state, and pincode prefix to add surcharges, ETA days, free-shipping threshold overrides, and COD eligibility on top of the selected method
+7. checkout resolves the active zone only after a delivery address is known; cart-level shipping remains a generic estimate before that point
+8. COD eligibility is currently a derived storefront rule only; a real COD payment-state workflow is still deferred and must not be implied as live operational support yet
+
+Tax review rule:
+
+1. storefront order tax review is currently owned by `apps/ecommerce` and snapshotted at order-creation time onto the persisted storefront order
+2. tax-rate lookup currently reads the product `taxId` projected through `apps/core` product records and common-module tax master data, with temporary compatibility for legacy seeded aliases
+3. the current storefront GST review treats item selling totals as tax-inclusive values and derives taxable value plus GST components for later operational review
+4. GST regime is currently selected from seller-state versus billing-state comparison, using `cgst + sgst` for intra-state review and `igst` for inter-state review
+5. shipping and handling charge tax treatment is not yet modeled explicitly in storefront runtime and must be decided in accounting-compatibility work before invoices become the authoritative tax document
+
 ### API
 
 `apps/api` owns route definitions only.

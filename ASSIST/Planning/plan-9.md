@@ -296,11 +296,16 @@ Ecommerce is considered ready for go-live only when all of the following are tru
   - Phase C: segmented pricing, customer targeting, and ERP-aware commercial models only after segmentation, analytics, and price-list contracts are defined
 - Do not let future promotion logic bypass the current staged-sync pricing model or introduce live ERP promotion evaluation into storefront runtime.
 - Add shipping methods and SLA model:
-  - zone
+  - delivery-method catalog in `apps/ecommerce` storefront settings
   - courier
+  - SLA
   - ETA
   - COD eligibility
-- Add GST invoice/tax breakdown review for each order.
+- Resolve shipping charges by destination zone once checkout has country or state or pincode context.
+- Match zones by explicit rule order and keep cart estimates generic until address-backed checkout resolution.
+- Keep COD as an eligibility rule first; do not imply a live COD collection workflow until payment and fulfilment states are extended for it.
+- Add GST review on each order as a stored operational snapshot derived from product tax ids and seller-state versus customer-state comparison.
+- Keep the current review tax-inclusive for item prices, and defer authoritative invoice-posting and shipping-charge tax treatment to accounting compatibility work.
 
 ### 9. Security, Compliance, And Operations
 
