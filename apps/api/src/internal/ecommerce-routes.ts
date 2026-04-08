@@ -31,6 +31,7 @@ import {
   getStorefrontFailedPaymentReportDocument,
   getStorefrontAdminOrderOperationsReport,
   getStorefrontOverviewKpiReport,
+  getStorefrontAccountingCompatibilityReport,
   getStorefrontPaymentDailySummaryDocument,
   getStorefrontOperationalAgingReport,
   getStorefrontRefundReportDocument,
@@ -526,6 +527,16 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontOperationalAgingReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/accounting-compatibility-report", {
+      summary: "Read invoice and GST compatibility checks between ecommerce orders and current billing workflows.",
+      handler: async (context) => {
+        await requirePaymentsManage(context)
+
+        return jsonResponse(
+          await getStorefrontAccountingCompatibilityReport(context.databases.primary)
         )
       },
     }),

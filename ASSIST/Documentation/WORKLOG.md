@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#70` 2026-04-08
+
+- completed Stage `3.3.4` by adding an ecommerce accounting-compatibility report for invoice and GST workflow review
+- exposed the report through protected internal routes and the existing payments operations workspace so finance operators can see blocked, manual-review, and ready orders
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### `#69` 2026-04-08
 
 - completed Stage `3.3.3` by adding a GST review snapshot to storefront orders and customer receipt output

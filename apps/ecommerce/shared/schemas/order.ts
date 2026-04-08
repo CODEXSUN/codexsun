@@ -523,6 +523,56 @@ export const storefrontOperationalAgingReportSchema = z.object({
   refundItems: z.array(storefrontRefundAgingItemSchema),
 })
 
+export const storefrontAccountingCompatibilityStatusSchema = z.enum([
+  "ready",
+  "manual_review",
+  "blocked",
+])
+
+export const storefrontAccountingCompatibilityIssueCodeSchema = z.enum([
+  "lifecycle_not_invoice_ready",
+  "missing_tax_breakdown",
+  "missing_place_of_supply",
+  "missing_product_tax_mapping",
+  "multi_rate_tax_not_supported",
+  "shipping_tax_treatment_pending",
+  "handling_tax_treatment_pending",
+  "refund_requires_credit_note",
+])
+
+export const storefrontAccountingCompatibilityItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  totalAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  status: storefrontAccountingCompatibilityStatusSchema,
+  issueCodes: z.array(storefrontAccountingCompatibilityIssueCodeSchema),
+  issueSummary: z.string().min(1),
+  recommendedAction: z.string().min(1),
+  suggestedSupplyType: z.enum(["intra", "inter"]).nullable(),
+  suggestedTaxRate: z.number().finite().nonnegative().nullable(),
+  taxableAmount: z.number().finite().nonnegative(),
+  taxAmount: z.number().finite().nonnegative(),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontAccountingCompatibilityReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    reviewedOrderCount: z.number().int().min(0),
+    readyCount: z.number().int().min(0),
+    manualReviewCount: z.number().int().min(0),
+    blockedCount: z.number().int().min(0),
+    refundFollowUpCount: z.number().int().min(0),
+    multiRateCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontAccountingCompatibilityItemSchema),
+})
+
 export const storefrontOverviewKpiReportSchema = z.object({
   generatedAt: z.string().min(1),
   currency: z.string().min(1),
@@ -888,6 +938,18 @@ export type StorefrontRefundAgingItem = z.infer<
 >
 export type StorefrontOperationalAgingReport = z.infer<
   typeof storefrontOperationalAgingReportSchema
+>
+export type StorefrontAccountingCompatibilityStatus = z.infer<
+  typeof storefrontAccountingCompatibilityStatusSchema
+>
+export type StorefrontAccountingCompatibilityIssueCode = z.infer<
+  typeof storefrontAccountingCompatibilityIssueCodeSchema
+>
+export type StorefrontAccountingCompatibilityItem = z.infer<
+  typeof storefrontAccountingCompatibilityItemSchema
+>
+export type StorefrontAccountingCompatibilityReport = z.infer<
+  typeof storefrontAccountingCompatibilityReportSchema
 >
 export type StorefrontOverviewKpiReport = z.infer<
   typeof storefrontOverviewKpiReportSchema

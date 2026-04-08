@@ -58,6 +58,7 @@ import {
   getCustomerOrderReceiptDocument,
   getStorefrontFailedPaymentReportDocument,
   getStorefrontPaymentDailySummaryDocument,
+  getStorefrontAccountingCompatibilityReport,
   getStorefrontOperationalAgingReport,
   getStorefrontOverviewKpiReport,
   getStorefrontPaymentOperationsReport,
@@ -606,6 +607,25 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.match(receiptDocument.html, /Storefront receipt/)
       assert.match(receiptDocument.html, /GST review/)
       assert.match(receiptDocument.html, /IGST/)
+
+      const accountingCompatibilityReport = await getStorefrontAccountingCompatibilityReport(
+        runtime.primary
+      )
+      const compatibilityItem = accountingCompatibilityReport.items.find(
+        (item) => item.orderId === verified.item.id
+      )
+
+      assert.equal(accountingCompatibilityReport.summary.reviewedOrderCount > 0, true)
+      assert.equal(compatibilityItem?.status, "manual_review")
+      assert.equal(
+        compatibilityItem?.issueCodes.includes("shipping_tax_treatment_pending"),
+        true
+      )
+      assert.equal(
+        compatibilityItem?.issueCodes.includes("handling_tax_treatment_pending"),
+        true
+      )
+      assert.equal(compatibilityItem?.suggestedSupplyType, "inter")
 
       const tracked = await trackOrderByReference(runtime.primary, {
         orderNumber: verified.item.orderNumber,

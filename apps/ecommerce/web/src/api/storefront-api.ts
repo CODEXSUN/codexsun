@@ -38,6 +38,7 @@ import type {
   StorefrontCommunicationResendResponse,
   StorefrontPaymentConfig,
   StorefrontOperationalAgingReport,
+  StorefrontAccountingCompatibilityReport,
   StorefrontPaymentOperationsReport,
   StorefrontPaymentReconciliationResponse,
   StorefrontProductResponse,
@@ -352,6 +353,15 @@ export const storefrontApi = {
       accessToken,
       cache: "no-store",
     })
+  },
+  getAccountingCompatibilityReport(accessToken: string) {
+    return requestJson<StorefrontAccountingCompatibilityReport>(
+      "/internal/v1/ecommerce/payments/accounting-compatibility-report",
+      {
+        accessToken,
+        cache: "no-store",
+      }
+    )
   },
   async downloadPaymentsDailySummary(accessToken: string, days = 30) {
     const url = new URL("/internal/v1/ecommerce/payments/daily-summary-export", window.location.origin)

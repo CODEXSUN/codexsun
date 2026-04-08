@@ -306,6 +306,7 @@ Ecommerce is considered ready for go-live only when all of the following are tru
 - Keep COD as an eligibility rule first; do not imply a live COD collection workflow until payment and fulfilment states are extended for it.
 - Add GST review on each order as a stored operational snapshot derived from product tax ids and seller-state versus customer-state comparison.
 - Keep the current review tax-inclusive for item prices, and defer authoritative invoice-posting and shipping-charge tax treatment to accounting compatibility work.
+- Verify accounting compatibility from the ecommerce side with an operator-facing report that flags mixed-rate GST orders, refund note follow-up, and unmapped shipping or handling tax treatment before billing entry.
 
 ### 9. Security, Compliance, And Operations
 

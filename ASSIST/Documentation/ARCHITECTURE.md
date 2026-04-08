@@ -151,6 +151,8 @@ Tax review rule:
 3. the current storefront GST review treats item selling totals as tax-inclusive values and derives taxable value plus GST components for later operational review
 4. GST regime is currently selected from seller-state versus billing-state comparison, using `cgst + sgst` for intra-state review and `igst` for inter-state review
 5. shipping and handling charge tax treatment is not yet modeled explicitly in storefront runtime and must be decided in accounting-compatibility work before invoices become the authoritative tax document
+6. current billing sales invoice posting supports one GST rate per voucher, so storefront orders carrying multiple GST rates must stay in manual-review accounting flow until billing supports multi-rate posting or document splitting
+7. storefront refund state is not itself the accounting reversal document; billing credit-note workflow remains the authoritative accounting treatment for refunded storefront orders
 
 ### API
 

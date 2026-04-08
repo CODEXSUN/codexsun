@@ -2,6 +2,8 @@ import { AlertTriangle, CheckCircle2, RefreshCw, Search, Wallet } from "lucide-r
 import { useEffect, useState } from "react"
 
 import type {
+  StorefrontAccountingCompatibilityItem,
+  StorefrontAccountingCompatibilityReport,
   StorefrontPaymentExceptionItem,
   StorefrontOperationalAgingBucket,
   StorefrontOperationalAgingReport,
@@ -472,9 +474,78 @@ function RefundAgingList({
   )
 }
 
+function AccountingCompatibilityList({
+  items,
+  onOpenOrder,
+}: {
+  items: StorefrontAccountingCompatibilityItem[]
+  onOpenOrder: (orderId: string) => void
+}) {
+  if (items.length === 0) {
+    return (
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardContent className="p-5 text-sm text-muted-foreground">
+          No orders are available for invoice and tax compatibility review.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="divide-y divide-border/70 p-0">
+        {items.map((item) => (
+          <div
+            key={item.orderId}
+            className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.95fr)_auto]"
+          >
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium text-foreground">{item.orderNumber}</p>
+                <Badge
+                  variant={
+                    item.status === "ready"
+                      ? "secondary"
+                      : item.status === "blocked"
+                        ? "destructive"
+                        : "outline"
+                  }
+                >
+                  {item.status.replaceAll("_", " ")}
+                </Badge>
+              </div>
+              <p className="truncate text-sm text-muted-foreground">
+                {item.customerName} | {item.customerEmail}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">{item.issueSummary}</p>
+              <p className="text-xs leading-5 text-muted-foreground">{item.recommendedAction}</p>
+            </div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>{formatMoney(item.totalAmount, item.currency)}</p>
+              <p>Order: {item.orderStatus.replaceAll("_", " ")}</p>
+              <p>Payment: {item.paymentStatus.replaceAll("_", " ")}</p>
+              <p>Supply type: {item.suggestedSupplyType ?? "-"}</p>
+              <p>Tax rate: {item.suggestedTaxRate != null ? `${item.suggestedTaxRate.toFixed(2)}%` : "Mixed / manual"}</p>
+              <p>Taxable: {formatMoney(item.taxableAmount, item.currency)}</p>
+              <p>GST: {formatMoney(item.taxAmount, item.currency)}</p>
+            </div>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <Badge variant="outline">{item.issueCodes.length} issue(s)</Badge>
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                View order
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function StorefrontPaymentsSection() {
   const [report, setReport] = useState<StorefrontPaymentOperationsReport | null>(null)
   const [agingReport, setAgingReport] = useState<StorefrontOperationalAgingReport | null>(null)
+  const [accountingReport, setAccountingReport] = useState<StorefrontAccountingCompatibilityReport | null>(null)
   const [exceptionSearchTerm, setExceptionSearchTerm] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -509,12 +580,14 @@ export function StorefrontPaymentsSection() {
         throw new Error("Admin access token is required.")
       }
 
-      const [nextReport, nextAgingReport] = await Promise.all([
+      const [nextReport, nextAgingReport, nextAccountingReport] = await Promise.all([
         storefrontApi.getPaymentsReport(accessToken),
         storefrontApi.getOperationalAgingReport(accessToken),
+        storefrontApi.getAccountingCompatibilityReport(accessToken),
       ])
       setReport(nextReport)
       setAgingReport(nextAgingReport)
+      setAccountingReport(nextAccountingReport)
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load payment operations report."
@@ -940,6 +1013,16 @@ export function StorefrontPaymentsSection() {
             </div>
           ),
         },
+        {
+          value: "accounting_compatibility",
+          label: "Accounting compatibility",
+          content: (
+            <AccountingCompatibilityList
+              items={accountingReport?.items ?? []}
+              onOpenOrder={setSelectedOrderId}
+            />
+          ),
+        },
       ]
     : []
 
@@ -1059,6 +1142,21 @@ export function StorefrontPaymentsSection() {
             value={String(agingReport?.summary.refundAgingCount ?? 0)}
             description={`${agingReport?.summary.refundOver72HoursCount ?? 0} refund requests have been open longer than 72 hours.`}
           />
+          <SummaryCard
+            title="Invoice ready"
+            value={String(accountingReport?.summary.readyCount ?? 0)}
+            description="Orders whose stored GST snapshot lines up with the current billing invoice workflow."
+          />
+          <SummaryCard
+            title="Manual tax review"
+            value={String(accountingReport?.summary.manualReviewCount ?? 0)}
+            description={`${accountingReport?.summary.multiRateCount ?? 0} orders have mixed GST rates and need manual billing review.`}
+          />
+          <SummaryCard
+            title="Blocked billing"
+            value={String(accountingReport?.summary.blockedCount ?? 0)}
+            description={`${accountingReport?.summary.refundFollowUpCount ?? 0} orders require refund note follow-up or lifecycle completion before billing.`}
+          />
         </div>
       ) : null}
 
@@ -1077,10 +1175,10 @@ export function StorefrontPaymentsSection() {
             <div className="rounded-[1.1rem] border border-border/70 bg-card/60 p-4">
               <div className="flex items-center gap-2 text-foreground">
                 <AlertTriangle className="size-4 text-amber-600" />
-                <p className="font-medium">Exception focus</p>
+                <p className="font-medium">Accounting focus</p>
               </div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Prioritize failed payments first, then pending payments older than a few hours, then unmatched webhook events.
+                Billing currently supports one GST rate per posted sales invoice, so mixed-rate orders and refunded orders need manual review.
               </p>
             </div>
             <div className="rounded-[1.1rem] border border-border/70 bg-card/60 p-4">

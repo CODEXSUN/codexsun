@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#70] 2026-04-08 - Ecommerce accounting compatibility verification baseline
+
+- completed Stage `3.3.4` by adding an ecommerce accounting-compatibility report for invoice and GST workflow review
+- exposed a protected internal report route and payments-workspace view that flags blocked lifecycle cases, mixed-rate GST orders, refund credit-note follow-up, and unmapped shipping or handling tax treatment
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### [#69] 2026-04-08 - GST review and receipt tax breakdown baseline
 
 - completed Stage `3.3.3` by adding a stored GST review snapshot for each storefront order

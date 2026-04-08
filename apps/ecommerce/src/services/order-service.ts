@@ -29,6 +29,7 @@ import {
   storefrontOrderSchema,
   storefrontPaymentOperationsReportSchema,
   storefrontOperationalAgingReportSchema,
+  storefrontAccountingCompatibilityReportSchema,
   storefrontOverviewKpiReportSchema,
   storefrontPaymentDailySummaryDocumentSchema,
   storefrontPaymentDailySummaryReportSchema,
@@ -60,6 +61,8 @@ import {
   type StorefrontPaymentReconciliationItem,
   type StorefrontOperationalAgingBucket,
   type StorefrontOperationalAgingReport,
+  type StorefrontAccountingCompatibilityItem,
+  type StorefrontAccountingCompatibilityReport,
   type StorefrontAppliedCoupon,
   type StorefrontOverviewKpiReport,
   type StorefrontStockReservation,
@@ -2256,6 +2259,134 @@ function getAgeHoursFromTimestamp(value: string) {
   return Math.round((ageMs / (60 * 60 * 1000)) * 10) / 10
 }
 
+function getAccountingCompatibilitySeverity(
+  status: StorefrontAccountingCompatibilityItem["status"]
+) {
+  switch (status) {
+    case "blocked":
+      return 2
+    case "manual_review":
+      return 1
+    default:
+      return 0
+  }
+}
+
+function buildAccountingCompatibilityItem(
+  order: StorefrontOrder
+): StorefrontAccountingCompatibilityItem {
+  const issueCodes: StorefrontAccountingCompatibilityItem["issueCodes"] = []
+  const taxBreakdown = order.taxBreakdown
+
+  if (!["paid", "refunded"].includes(order.paymentStatus)) {
+    issueCodes.push("lifecycle_not_invoice_ready")
+  }
+
+  if (!taxBreakdown) {
+    issueCodes.push("missing_tax_breakdown")
+  }
+
+  if (
+    !order.billingAddress.state.trim() ||
+    !taxBreakdown?.sellerState.trim() ||
+    !taxBreakdown?.customerState.trim()
+  ) {
+    issueCodes.push("missing_place_of_supply")
+  }
+
+  if (taxBreakdown?.lines.some((line) => !line.taxId)) {
+    issueCodes.push("missing_product_tax_mapping")
+  }
+
+  const distinctRates = taxBreakdown
+    ? [...new Set(taxBreakdown.lines.map((line) => roundCurrency(line.ratePercent)))]
+    : []
+
+  if (distinctRates.length > 1) {
+    issueCodes.push("multi_rate_tax_not_supported")
+  }
+
+  if (order.shippingAmount > 0 && (taxBreakdown?.shippingTaxAmount ?? 0) === 0) {
+    issueCodes.push("shipping_tax_treatment_pending")
+  }
+
+  if (order.handlingAmount > 0 && (taxBreakdown?.handlingTaxAmount ?? 0) === 0) {
+    issueCodes.push("handling_tax_treatment_pending")
+  }
+
+  if (order.paymentStatus === "refunded" || order.status === "refunded") {
+    issueCodes.push("refund_requires_credit_note")
+  }
+
+  let status: StorefrontAccountingCompatibilityItem["status"] = "ready"
+
+  if (
+    issueCodes.includes("lifecycle_not_invoice_ready") ||
+    issueCodes.includes("missing_tax_breakdown") ||
+    issueCodes.includes("missing_place_of_supply")
+  ) {
+    status = "blocked"
+  } else if (issueCodes.length > 0) {
+    status = "manual_review"
+  }
+
+  const issueMessages: Record<StorefrontAccountingCompatibilityItem["issueCodes"][number], string> = {
+    lifecycle_not_invoice_ready: "Order is not yet in a paid billing lifecycle.",
+    missing_tax_breakdown: "Stored GST snapshot is missing.",
+    missing_place_of_supply: "Place-of-supply state information is incomplete.",
+    missing_product_tax_mapping: "One or more order lines do not carry a product tax mapping.",
+    multi_rate_tax_not_supported:
+      "Current billing sales invoice posting supports one GST rate per voucher, but this order has mixed rates.",
+    shipping_tax_treatment_pending:
+      "Shipping charge tax treatment is not modeled in the current storefront-to-billing bridge.",
+    handling_tax_treatment_pending:
+      "Handling charge tax treatment is not modeled in the current storefront-to-billing bridge.",
+    refund_requires_credit_note:
+      "Refunded orders require billing-side credit-note treatment rather than only the storefront refund snapshot.",
+  }
+
+  const issueSummary =
+    issueCodes.length > 0
+      ? issueCodes.map((code) => issueMessages[code]).join(" ")
+      : "Order tax snapshot is compatible with the current billing invoice workflow."
+
+  const recommendedAction =
+    status === "ready"
+      ? "Create the billing sales invoice from the stored GST snapshot and keep the storefront receipt as supporting evidence."
+      : issueCodes.includes("multi_rate_tax_not_supported")
+        ? "Review this order manually in billing because the current posted sales invoice workflow supports only one GST rate per voucher."
+        : issueCodes.includes("refund_requires_credit_note")
+          ? "Use billing credit-note workflow for the refund and reconcile it against the original order tax snapshot."
+          : issueCodes.includes("lifecycle_not_invoice_ready")
+            ? "Wait for verified paid or refunded state before creating accounting documents."
+            : "Review the order tax and place-of-supply data manually before billing entry."
+
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus,
+    customerName: order.shippingAddress.fullName,
+    customerEmail: order.shippingAddress.email,
+    totalAmount: order.totalAmount,
+    currency: order.currency,
+    status,
+    issueCodes,
+    issueSummary,
+    recommendedAction,
+    suggestedSupplyType:
+      taxBreakdown?.regime === "intra_state"
+        ? "intra"
+        : taxBreakdown?.regime === "inter_state"
+          ? "inter"
+          : null,
+    suggestedTaxRate: distinctRates.length === 1 ? distinctRates[0] ?? null : null,
+    taxableAmount: taxBreakdown?.taxableAmount ?? 0,
+    taxAmount: taxBreakdown?.taxAmount ?? 0,
+    updatedAt: order.updatedAt,
+  }
+}
+
 function resolveFulfilmentAgingStartedAt(order: StorefrontOrder) {
   return (
     getTimelineTimestamp(order, "fulfilment_ready") ??
@@ -2720,6 +2851,39 @@ export async function getStorefrontOperationalAgingReport(
   }
 
   return storefrontOperationalAgingReportSchema.parse(report)
+}
+
+export async function getStorefrontAccountingCompatibilityReport(
+  database: Kysely<unknown>
+) {
+  const orders = await readOrders(database)
+  const items = orders
+    .map((order) => buildAccountingCompatibilityItem(order))
+    .sort(
+      (left, right) =>
+        getAccountingCompatibilitySeverity(right.status) -
+          getAccountingCompatibilitySeverity(left.status) ||
+        right.updatedAt.localeCompare(left.updatedAt)
+    )
+
+  const report: StorefrontAccountingCompatibilityReport = {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      reviewedOrderCount: items.length,
+      readyCount: items.filter((item) => item.status === "ready").length,
+      manualReviewCount: items.filter((item) => item.status === "manual_review").length,
+      blockedCount: items.filter((item) => item.status === "blocked").length,
+      refundFollowUpCount: items.filter((item) =>
+        item.issueCodes.includes("refund_requires_credit_note")
+      ).length,
+      multiRateCount: items.filter((item) =>
+        item.issueCodes.includes("multi_rate_tax_not_supported")
+      ).length,
+    },
+    items,
+  }
+
+  return storefrontAccountingCompatibilityReportSchema.parse(report)
 }
 
 export async function getStorefrontOverviewKpiReport(
