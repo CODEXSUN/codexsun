@@ -8,6 +8,42 @@
 
 ## v-0.0.1
 
+### [#66] 2026-04-08 - ERP price-list compatibility baseline
+
+- completed Stage `3.2.4` by documenting price-list compatibility with ERPNext if ERP becomes storefront pricing source of truth
+- recorded that ERP item-price and price-list selection must resolve through `frappe` projection into normalized `core` pricing fields before `ecommerce` reads them, while preserving current `sellingPrice`, `mrp`, and `basePrice` semantics
+- validated the batch with architecture and planning consistency review across the current `core`, `ecommerce`, and `frappe` pricing boundaries
+
+### [#65] 2026-04-08 - Promotion engine scope baseline
+
+- completed Stage `3.2.3` by defining the future promotion engine scope and phased rollout around the current live pricing, coupon, and merchandising surfaces
+- recorded Phase A as the current baseline of `core` price authority plus ecommerce-owned customer coupons, kept current campaign or coupon-banner or gift-corner surfaces presentation-only, and scoped later rule-driven promotions and segmented pricing into later phases
+- validated the batch with architecture, planning, and current pricing-coupon-merchandising code-path review across the `core`, `ecommerce`, and `frappe` boundaries
+
+### [#64] 2026-04-08 - Coupon validation and usage constraints baseline
+
+- completed Stage `3.2.2` by adding real checkout coupon validation, expiry handling, and usage constraints backed by ecommerce-owned customer portal coupon state
+- extended customer and order contracts with coupon lifecycle metadata, enforced `active -> reserved -> used` coupon handling through checkout and payment flows, and added a storefront checkout coupon input for signed-in customers
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### [#63] 2026-04-08 - Pricing authority decision baseline
+
+- completed Stage `3.2.1` by recording `apps/core` as the current authoritative source for storefront sell price and compare-at price
+- aligned architecture and go-live planning so `apps/ecommerce` resolves effective pricing from active `core` price rows using `sellingPrice` and `mrp`, with `basePrice` only as fallback when no active row exists
+- validated the batch with architecture, planning, and storefront pricing code-path review across the current `core`, `ecommerce`, and `frappe` boundaries
+
+### [#62] 2026-04-08 - Warehouse visibility rules baseline
+
+- completed Stage `3.1.4` by defining warehouse and stock visibility rules for storefront availability
+- recorded that storefront availability stays aggregated across active `core` stock rows, warehouse-level stock remains internal to operations, and store pickup still uses the same shared sellable pool as delivery orders
+- validated the batch with architecture, planning, pickup-flow, and storefront availability code-path review across the current `core` and `ecommerce` boundaries
+
+### [#61] 2026-04-08 - Stock reservation lifecycle baseline
+
+- completed Stage `3.1.3` by adding storefront stock reservation at checkout for orders entering `payment_pending`
+- extended the storefront order contract with explicit stock-row reservation metadata, applied reservation and release logic against `core` product stock rows, and added expiry, cancellation, failed-payment, and late-capture guards around the reservation lifecycle
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
 ### [#60] 2026-04-08 - Low-stock and oversell rules baseline
 
 - completed Stage `3.1.2` by defining the storefront low-stock threshold and oversell-prevention rules against the existing `core` stock model

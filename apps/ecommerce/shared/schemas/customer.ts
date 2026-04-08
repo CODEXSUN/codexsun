@@ -109,9 +109,17 @@ export const customerPortalCouponSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   discountLabel: z.string().min(1),
+  discountType: z.enum(["percentage", "fixed_amount", "free_shipping"]).default("percentage"),
+  discountValue: z.number().finite().nonnegative().default(0),
+  maxDiscountAmount: z.number().finite().nonnegative().nullable().default(null),
   minimumOrderAmount: z.number().finite(),
   expiresAt: z.string().nullable(),
-  status: z.enum(["active", "used", "expired"]),
+  status: z.enum(["active", "reserved", "used", "expired"]).default("active"),
+  usageLimit: z.number().int().min(1).default(1),
+  usageCount: z.number().int().min(0).default(0),
+  reservedAt: z.string().nullable().default(null),
+  reservedOrderId: z.string().nullable().default(null),
+  usedAt: z.string().nullable().default(null),
 })
 
 export const customerPortalGiftCardSchema = z.object({

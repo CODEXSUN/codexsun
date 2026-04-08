@@ -42,6 +42,7 @@ import {
   customerWishlistTogglePayloadSchema,
   type CustomerAccount,
   type CustomerLifecycleState,
+  type CustomerPortalCoupon,
   type CustomerPortalRecord,
   type CustomerPortalResponse,
   type CustomerProfile,
@@ -328,9 +329,17 @@ function createDefaultPortalRecord(account: CustomerAccount): CustomerPortalReco
         title: "Welcome savings",
         summary: "Use this on your next checkout for a first-order discount.",
         discountLabel: "10% off",
+        discountType: "percentage",
+        discountValue: 10,
+        maxDiscountAmount: 500,
         minimumOrderAmount: 1499,
         expiresAt: null,
         status: "active",
+        usageLimit: 1,
+        usageCount: 0,
+        reservedAt: null,
+        reservedOrderId: null,
+        usedAt: null,
       },
       {
         id: `coupon:${account.id}:shipping`,
@@ -338,9 +347,17 @@ function createDefaultPortalRecord(account: CustomerAccount): CustomerPortalReco
         title: "Free shipping",
         summary: "Unlock complimentary shipping on qualifying carts.",
         discountLabel: "Free shipping",
+        discountType: "free_shipping",
+        discountValue: 0,
+        maxDiscountAmount: null,
         minimumOrderAmount: 1999,
         expiresAt: null,
         status: "active",
+        usageLimit: 1,
+        usageCount: 0,
+        reservedAt: null,
+        reservedOrderId: null,
+        usedAt: null,
       },
     ],
     giftCards: [
@@ -421,6 +438,194 @@ async function ensureCustomerPortalRecord(
   const record = createDefaultPortalRecord(account)
   await writeCustomerPortalRecords(database, [record, ...records])
   return record
+}
+
+function normalizeCouponStatus(coupon: CustomerPortalCoupon, now: string) {
+  if (coupon.expiresAt && coupon.expiresAt <= now) {
+    return "expired" as const
+  }
+
+  return coupon.status
+}
+
+async function updateCustomerPortalRecord(
+  database: Kysely<unknown>,
+  updatedRecord: CustomerPortalRecord
+) {
+  const records = await readCustomerPortalRecords(database)
+  await writeCustomerPortalRecords(database, upsertPortalRecord(records, updatedRecord))
+}
+
+export async function reserveCustomerPortalCoupon(
+  database: Kysely<unknown>,
+  account: CustomerAccount,
+  input: {
+    couponCode: string
+    subtotalAmount: number
+    shippingAmount: number
+    orderId: string
+  }
+) {
+  const portalRecord = await ensureCustomerPortalRecord(database, account)
+  const now = new Date().toISOString()
+  const coupon = portalRecord.coupons.find(
+    (item) => item.code.trim().toUpperCase() === input.couponCode.trim().toUpperCase()
+  )
+
+  if (!coupon) {
+    throw new ApplicationError("Coupon code could not be found for this customer account.", {}, 404)
+  }
+
+  const normalizedStatus = normalizeCouponStatus(coupon, now)
+
+  if (normalizedStatus === "expired") {
+    const updatedRecord = customerPortalRecordSchema.parse({
+      ...portalRecord,
+      coupons: portalRecord.coupons.map((item) =>
+        item.id === coupon.id ? { ...item, status: "expired" } : item
+      ),
+      updatedAt: now,
+    })
+    await updateCustomerPortalRecord(database, updatedRecord)
+    throw new ApplicationError("Coupon code has expired.", { couponCode: coupon.code }, 409)
+  }
+
+  if (normalizedStatus === "used" || coupon.usageCount >= coupon.usageLimit) {
+    throw new ApplicationError("Coupon code has already been used.", { couponCode: coupon.code }, 409)
+  }
+
+  if (normalizedStatus === "reserved" && coupon.reservedOrderId !== input.orderId) {
+    throw new ApplicationError(
+      "Coupon code is already reserved for another pending order.",
+      { couponCode: coupon.code },
+      409
+    )
+  }
+
+  if (input.subtotalAmount < coupon.minimumOrderAmount) {
+    throw new ApplicationError(
+      "Coupon minimum order amount has not been reached.",
+      {
+        couponCode: coupon.code,
+        minimumOrderAmount: coupon.minimumOrderAmount,
+        subtotalAmount: input.subtotalAmount,
+      },
+      409
+    )
+  }
+
+  const discountAmount =
+    coupon.discountType === "free_shipping"
+      ? Math.round(Math.max(0, input.shippingAmount) * 100) / 100
+      : coupon.discountType === "fixed_amount"
+        ? Math.round(Math.min(input.subtotalAmount, coupon.discountValue) * 100) / 100
+        : Math.round(
+            Math.min(
+              input.subtotalAmount,
+              coupon.maxDiscountAmount ?? Number.POSITIVE_INFINITY,
+              (input.subtotalAmount * coupon.discountValue) / 100
+            ) * 100
+          ) / 100
+
+  if (discountAmount <= 0) {
+    throw new ApplicationError("Coupon code does not apply to this checkout.", { couponCode: coupon.code }, 409)
+  }
+
+  const updatedRecord = customerPortalRecordSchema.parse({
+    ...portalRecord,
+    coupons: portalRecord.coupons.map((item) =>
+      item.id === coupon.id
+        ? {
+            ...item,
+            status: "reserved",
+            reservedAt: now,
+            reservedOrderId: input.orderId,
+          }
+        : item
+    ),
+    updatedAt: now,
+  })
+
+  await updateCustomerPortalRecord(database, updatedRecord)
+
+  return {
+    coupon: updatedRecord.coupons.find((item) => item.id === coupon.id)!,
+    discountAmount,
+  }
+}
+
+export async function releaseCustomerPortalCoupon(
+  database: Kysely<unknown>,
+  account: CustomerAccount | null,
+  couponId: string | null | undefined,
+  orderId: string | null | undefined
+) {
+  if (!account || !couponId || !orderId) {
+    return
+  }
+
+  const portalRecord = await ensureCustomerPortalRecord(database, account)
+  const coupon = portalRecord.coupons.find((item) => item.id === couponId)
+
+  if (!coupon || coupon.status !== "reserved" || coupon.reservedOrderId !== orderId) {
+    return
+  }
+
+  const now = new Date().toISOString()
+  const updatedRecord = customerPortalRecordSchema.parse({
+    ...portalRecord,
+    coupons: portalRecord.coupons.map((item) =>
+      item.id === couponId
+        ? {
+            ...item,
+            status: item.expiresAt && item.expiresAt <= now ? "expired" : "active",
+            reservedAt: null,
+            reservedOrderId: null,
+          }
+        : item
+    ),
+    updatedAt: now,
+  })
+
+  await updateCustomerPortalRecord(database, updatedRecord)
+}
+
+export async function consumeCustomerPortalCoupon(
+  database: Kysely<unknown>,
+  account: CustomerAccount | null,
+  couponId: string | null | undefined,
+  orderId: string | null | undefined
+) {
+  if (!account || !couponId || !orderId) {
+    return
+  }
+
+  const portalRecord = await ensureCustomerPortalRecord(database, account)
+  const coupon = portalRecord.coupons.find((item) => item.id === couponId)
+
+  if (!coupon) {
+    return
+  }
+
+  const now = new Date().toISOString()
+  const updatedRecord = customerPortalRecordSchema.parse({
+    ...portalRecord,
+    coupons: portalRecord.coupons.map((item) =>
+      item.id === couponId && item.reservedOrderId === orderId
+        ? {
+            ...item,
+            status: "used",
+            usageCount: item.usageCount + 1,
+            reservedAt: null,
+            reservedOrderId: null,
+            usedAt: now,
+          }
+        : item
+    ),
+    updatedAt: now,
+  })
+
+  await updateCustomerPortalRecord(database, updatedRecord)
 }
 
 async function buildCustomerProfile(

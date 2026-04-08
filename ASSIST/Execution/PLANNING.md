@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#60`
+`#66`
 
 ### Goal
 
-Complete Stage `3.1.2` by defining low-stock and oversell prevention rules that match the current `core` stock model and the current `ecommerce` checkout path.
+Complete Stage `3.2.4` by documenting ERPNext price-list compatibility if ERP becomes the source of truth for storefront pricing.
 
 ### Scope
 
@@ -21,33 +21,36 @@ Complete Stage `3.1.2` by defining low-stock and oversell prevention rules that 
 
 ### Canonical Decisions
 
-- storefront sellable quantity remains `sum(active stock quantity - reservedQuantity)` from `apps/core`
-- low-stock state begins when sellable quantity is `1` to `5`; `0` is out of stock and blocks checkout, while quantities above `5` are treated as normal availability
-- cart quantity and PDP quantity are advisory only; the final oversell guard lives at checkout order creation where requested quantity must be less than or equal to the latest sellable quantity
-- until Stage `3.1.3` adds reservation behavior, `payment_pending` orders do not create a new stock hold, so low-stock items remain first-paid or first-verified rather than guaranteed by cart or pending payment presence
-- no backorders, silent partial fulfilment, or automatic oversell override should be introduced in storefront runtime without a later explicit batch
+- if ERPNext becomes pricing source of truth, ERP item-price and price-list records must still flow through `apps/frappe` snapshots into explicit `apps/core` price projections before storefront runtime reads them
+- `apps/core` remains the compatibility surface that exposes effective `sellingPrice` and `mrp` to `apps/ecommerce`, regardless of whether those values originated in local product maintenance or ERP price-list projection
+- ERP price-list compatibility must preserve current storefront semantics:
+  - `sellingPrice` is the effective transactional storefront price
+  - `mrp` remains the compare-at price shown to customers
+  - `basePrice` remains only a fallback when no active projected or local price row exists
+- ERP-aware price-list selection rules such as customer group, territory, channel, or currency must be resolved before projection into `core`, not during live storefront requests
+- if multiple ERP price lists exist, projection must choose one approved storefront-effective record per product or variant and mark the rest as non-storefront or inactive until segmented pricing maturity is implemented
 
 ### Execution Plan
 
-1. mark Stage `3.1.2` complete in task tracking with a new batch reference
-2. record the low-stock thresholds and oversell-prevention rules in architecture and go-live planning
-3. update changelog and worklog so the inventory policy baseline is discoverable from delivery history
-4. leave reservation implementation and warehouse visibility behavior to Stages `3.1.3` and `3.1.4`
+1. mark Stage `3.2.4` complete in task tracking with a new batch reference
+2. record ERP price-list compatibility rules in architecture and go-live planning
+3. update changelog and worklog so the ERP pricing compatibility baseline is discoverable from delivery history
+4. keep Stage `5.2.2` and later segmented-pricing work aligned to the same projection contract
 
 ### Validation Plan
 
-- review the current ecommerce catalog and checkout code paths that compute `availableQuantity`
-- confirm checkout already rejects requests above current sellable quantity
-- ensure the documented rules do not imply reservation behavior that is not yet implemented
+- review the current storefront pricing authority rules and ERP integration notes
+- confirm the documented compatibility model preserves current `core -> ecommerce` runtime pricing reads
+- confirm the documented ERP behavior keeps selection and normalization out of request-time storefront runtime
 
 ### Validation Status
 
-- [x] current availability path reviewed in catalog and checkout services
-- [x] checkout conflict behavior confirmed against sellable quantity validation
-- [x] policy documentation aligned with the current no-reservation runtime boundary
+- [x] current pricing authority and ERP projection notes reviewed
+- [x] compatibility model aligned with current `core` effective-price runtime contract
+- [x] ERP selection and normalization kept on the staged-sync path instead of live storefront pricing calls
 
 ### Risks And Follow-Up
 
-- concurrent payment attempts on the last units still have a residual race until `3.1.3` introduces reservation or hold behavior
-- storefront low-stock messaging can be added later, but it must reflect the same `1` to `5` threshold documented here
-- warehouse-level visibility, split stock exposure, and pickup-specific stock policy remain deferred to `3.1.4`
+- current repository code does not yet implement the ERP price-list projection contract; this batch only documents the expected compatibility model
+- multi-currency, B2B customer group pricing, and segmented price-list selection remain deferred until later ERP and promotion maturity work
+- Stage `5.2.2` must formalize the concrete projected record shape and precedence rules before ERP-driven pricing can go live

@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#60`
+`#66`
 
 ### Title
 
-`Low-stock and oversell rules baseline`
+`ERP price-list compatibility baseline`
 
 ## Ecommerce Go-Live Schedule
 
@@ -114,15 +114,15 @@ Stage 1.1 baseline document:
 
 - [x] 3.1.1 decide authoritative source for sellable stock: `core`, ERPNext, or staged sync
 - [x] 3.1.2 define low-stock and oversell prevention rules
-- [ ] 3.1.3 add stock reservation policy during checkout or payment-pending stage
-- [ ] 3.1.4 define warehouse and stock visibility rules for storefront availability
+- [x] 3.1.3 add stock reservation policy during checkout or payment-pending stage
+- [x] 3.1.4 define warehouse and stock visibility rules for storefront availability
 
 ### Stage 3.2: Pricing And Promotions
 
-- [ ] 3.2.1 decide authoritative source for sell price and compare-at price
-- [ ] 3.2.2 add explicit coupon validation rules, expiry handling, and usage constraints
-- [ ] 3.2.3 define future promotion engine scope and phased rollout
-- [ ] 3.2.4 document price-list compatibility with ERPNext if ERP becomes source of truth
+- [x] 3.2.1 decide authoritative source for sell price and compare-at price
+- [x] 3.2.2 add explicit coupon validation rules, expiry handling, and usage constraints
+- [x] 3.2.3 define future promotion engine scope and phased rollout
+- [x] 3.2.4 document price-list compatibility with ERPNext if ERP becomes source of truth
 
 ### Stage 3.3: Shipping And Tax
 

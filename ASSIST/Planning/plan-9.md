@@ -273,7 +273,28 @@ Ecommerce is considered ready for go-live only when all of the following are tru
 - Treat sellable quantity `1` to `5` as low stock, and treat `0` as out of stock with checkout blocked.
 - Keep cart and PDP stock indicators advisory only; checkout must revalidate against the latest sellable quantity before order creation.
 - Do not allow backorders, silent partial fulfilment, or automatic oversell overrides in storefront runtime.
-- Add stock reservation policy during checkout or payment-pending stage.
+- Reserve stock when a new order enters `payment_pending`, keep the same reservation for duplicate pending-order reuse, and release it on pending-payment failure, admin cancellation, or expiry.
+- Keep pending-payment reservation expiry aligned to the current `15` minute checkout-reuse window, and reject late payment capture after the reservation has already been released.
+- Treat storefront availability as one aggregated pool across all active product stock rows, and keep warehouse-level detail internal to operations for now.
+- Do not expose warehouse selection, split-shipment promises, pickup-only stock claims, or warehouse-specific ETA messaging until a later multi-warehouse implementation exists.
+- Keep store pickup on the same shared sellable pool used by delivery orders until warehouse-aware allocation rules are implemented.
+- Keep `apps/core` as the current authoritative source for storefront sell price and compare-at price.
+- Keep `apps/ecommerce` runtime pricing reads on active `core` price rows using `sellingPrice` and `mrp`, with `basePrice` only as fallback when no active row exists.
+- Do not derive effective customer-facing price from ERP snapshots, offer records, or coupon copy at request time until a later pricing-engine batch makes that behavior explicit.
+- If ERPNext becomes pricing source of truth, resolve ERP item-price and price-list selection inside `frappe` projection flow first, then project one approved storefront-effective price record into `core`.
+- Keep ERP compatibility aligned to current storefront pricing semantics:
+  - projected `sellingPrice` stays the effective storefront transaction price
+  - projected `mrp` stays the compare-at display price
+  - `basePrice` remains fallback only when no active projected or local row exists
+- Do not perform live customer-group, territory, channel, or price-list selection inside storefront request handling; those choices must already be normalized before `core` projection.
+- Validate checkout coupon codes against ecommerce-owned customer coupon state with explicit ownership, expiry, minimum-order, and single-use rules.
+- Reserve coupon usage while an order is pending, consume it on successful payment, and release it again when the pending order fails, is cancelled, or expires.
+- Keep current storefront campaign, coupon-banner, gift-corner, promo slider, and related merchandising blocks as presentation-only promotion surfaces rather than transactional price authority.
+- Phase the future promotion engine:
+  - Phase A: current live baseline using `core` price authority plus ecommerce-owned customer coupons
+  - Phase B: rule-driven ecommerce promotions for explicit percentage, fixed-amount, free-shipping, first-order, and catalog-scope rules with stacking precedence and audit visibility
+  - Phase C: segmented pricing, customer targeting, and ERP-aware commercial models only after segmentation, analytics, and price-list contracts are defined
+- Do not let future promotion logic bypass the current staged-sync pricing model or introduce live ERP promotion evaluation into storefront runtime.
 - Add shipping methods and SLA model:
   - zone
   - courier
@@ -360,7 +381,7 @@ This is not yet a live commerce-to-ERP operating loop.
 #### Phase A: Master Sync
 
 - ERPNext Item -> `apps/frappe` snapshot -> `apps/core` product projection -> `apps/ecommerce` storefront read
-- ERPNext Price List -> `apps/frappe` snapshot -> ecommerce/commercial pricing projection
+- ERPNext Price List -> `apps/frappe` snapshot -> `apps/core` price projection -> `apps/ecommerce` storefront read
 - ERPNext Warehouse/Stock -> `apps/frappe` snapshot -> `apps/core` stock projection -> `apps/ecommerce` storefront read
 - ERPNext Customer Group / territory / sales settings -> customer commercial profile enrichment
 
@@ -385,6 +406,8 @@ This is not yet a live commerce-to-ERP operating loop.
 
 - Keep connector orchestration in `apps/frappe`.
 - Keep sellable-stock authority in `apps/core` until a projection has been validated and persisted there.
+- Keep storefront pricing authority in `apps/core` until ERP price-list projections have been validated and persisted there.
+- If ERPNext owns price lists, select the storefront-effective price row before projection and persist only normalized effective pricing fields that `ecommerce` already understands.
 - If ecommerce needs ERP-aware behavior, add narrow projection services in `apps/ecommerce`, not direct cross-app writes.
 - Start with one-way master sync and one-way order push before attempting full bidirectional transaction mutation.
 - Do not make storefront runtime depend on live ERPNext response time for page render or checkout completion.

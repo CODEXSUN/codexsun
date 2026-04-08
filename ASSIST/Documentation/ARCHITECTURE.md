@@ -107,7 +107,31 @@ Inventory authority rule:
 3. `apps/frappe` may project ERPNext stock into `core`, but storefront runtime and checkout must not depend on live ERP responses
 4. sellable quantity is `sum(active stock quantity - reservedQuantity)` and must never drop below zero in storefront reads
 5. low-stock state begins at sellable quantity `1` to `5`; sellable quantity `0` is out of stock
-6. cart and PDP quantities are advisory only until checkout confirms stock again; `payment_pending` does not yet create a new reservation hold
+6. cart and PDP quantities are advisory only until checkout confirms stock again and creates the reservation hold
+7. checkout creates a reservation hold when a new order enters `payment_pending`, and that hold stays attached to the order until cancellation, pending-payment failure, or expiry
+8. pending-payment reservation expiry follows the current `15` minute checkout-reuse window, and late payment capture must be rejected once the hold has been released
+9. storefront availability is currently aggregated across all active product stock rows; warehouse-level stock remains internal and is not exposed directly on customer-facing storefront surfaces
+10. store pickup currently uses the same shared sellable pool as delivery orders, so no pickup-only warehouse promise should be implied until warehouse-aware allocation exists
+
+Pricing authority rule:
+
+1. `apps/core` is the current authoritative source for storefront sell price and compare-at price
+2. `apps/ecommerce` must resolve effective pricing from active `core` product price rows using `sellingPrice` and `mrp`, with `basePrice` only as fallback when no active price row exists
+3. `apps/frappe` may later project ERPNext item prices or price lists into `core`, but storefront runtime and checkout must not depend on live ERP pricing responses
+4. if ERPNext price lists become the upstream source, price-list selection and normalization must complete before data is projected into `core`, not during live storefront requests
+5. ERP compatibility must preserve current storefront semantics where `sellingPrice` is the effective transaction price and `mrp` is the compare-at display price
+
+Coupon rule:
+
+1. customer coupon ownership and lifecycle are currently owned by `apps/ecommerce` customer portal state
+2. checkout may apply only signed-in customer coupons validated by ecommerce-owned status, expiry, minimum-order, and usage rules
+3. informational storefront coupon-banner content does not itself authorize checkout discounts
+
+Promotion rule:
+
+1. current transactional promotion behavior is limited to ecommerce-owned customer coupons layered on top of `core` price authority
+2. current storefront campaign, coupon-banner, gift-corner, and promo-copy surfaces are merchandising presentation, not the authoritative pricing engine
+3. future rule-driven promotion logic must be introduced in phased ecommerce-owned layers with explicit stacking, audit, and checkout determinism rather than ad hoc price overrides
 
 ### API
 

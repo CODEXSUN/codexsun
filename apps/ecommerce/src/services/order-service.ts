@@ -9,6 +9,7 @@ import {
   getContact,
   listContacts,
 } from "../../../core/src/services/contact-service.js"
+import { coreTableNames } from "../../../core/database/table-names.js"
 import { type Product } from "../../../core/shared/index.js"
 import {
   replaceJsonStoreRecords,
@@ -56,7 +57,9 @@ import {
   type StorefrontPaymentReconciliationItem,
   type StorefrontOperationalAgingBucket,
   type StorefrontOperationalAgingReport,
+  type StorefrontAppliedCoupon,
   type StorefrontOverviewKpiReport,
+  type StorefrontStockReservation,
   type StorefrontRefundQueueItem,
   type StorefrontFulfilmentAgingItem,
   type StorefrontRefundAgingItem,
@@ -71,7 +74,13 @@ import {
   verifyRazorpaySignature,
   verifyRazorpayWebhookSignature,
 } from "./razorpay-service.js"
-import { resolveAuthenticatedCustomerAccount } from "./customer-service.js"
+import {
+  consumeCustomerPortalCoupon,
+  readCustomerAccounts,
+  releaseCustomerPortalCoupon,
+  reserveCustomerPortalCoupon,
+  resolveAuthenticatedCustomerAccount,
+} from "./customer-service.js"
 import { readCoreProducts } from "./catalog-service.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
 import {
@@ -101,6 +110,8 @@ const systemActor: AuthUser = {
   createdAt: "2026-04-04T10:00:00.000Z",
   updatedAt: "2026-04-04T10:00:00.000Z",
 }
+
+const pendingReservationWindowMs = 15 * 60 * 1000
 
 function buildMonitoringErrorContext(error: unknown) {
   if (error instanceof ApplicationError) {
@@ -170,6 +181,21 @@ async function writeOrders(database: Kysely<unknown>, items: StorefrontOrder[]) 
   )
 }
 
+async function writeCoreProducts(database: Kysely<unknown>, products: Product[]) {
+  await replaceJsonStoreRecords(
+    database,
+    coreTableNames.products,
+    products.map((product, index) => ({
+      id: product.id,
+      moduleKey: "products",
+      sortOrder: index + 1,
+      payload: product,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    }))
+  )
+}
+
 function orderBelongsToCustomer(order: StorefrontOrder, customer: CustomerAccount) {
   if (order.customerAccountId === customer.id) {
     return true
@@ -198,6 +224,23 @@ function createTimelineEvent(
   }
 }
 
+function getOrderAgeMs(order: StorefrontOrder) {
+  const ageMs = Date.now() - new Date(order.createdAt).getTime()
+  return Number.isFinite(ageMs) ? ageMs : Number.POSITIVE_INFINITY
+}
+
+function isPendingReservationOrder(order: StorefrontOrder) {
+  return (
+    order.status === "payment_pending" &&
+    order.paymentStatus === "pending" &&
+    order.stockReservation?.status === "active"
+  )
+}
+
+function isExpiredPendingReservationOrder(order: StorefrontOrder) {
+  return isPendingReservationOrder(order) && getOrderAgeMs(order) > pendingReservationWindowMs
+}
+
 function buildRefundRecord(
   order: StorefrontOrder,
   overrides: Partial<StorefrontRefundRecord>
@@ -222,6 +265,266 @@ function buildRefundRecord(
     statusSummary: overrides.statusSummary ?? null,
     updatedAt: overrides.updatedAt ?? new Date().toISOString(),
   }
+}
+
+function resolveSellableQuantity(product: Product) {
+  return product.stockItems
+    .filter((item) => item.isActive)
+    .reduce((sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity), 0)
+}
+
+function applyReservationToProducts(
+  products: Product[],
+  orderItems: StorefrontOrder["items"],
+  timestamp: string
+) {
+  const nextProducts = products.map((product) => ({
+    ...product,
+    stockItems: product.stockItems.map((item) => ({ ...item })),
+  }))
+  const reservationItems: StorefrontStockReservation["items"] = []
+
+  for (const orderItem of orderItems) {
+    const product = nextProducts.find((item) => item.id === orderItem.productId && item.isActive)
+
+    if (!product) {
+      throw new ApplicationError(
+        "A reserved checkout item could not be found in the storefront catalog.",
+        { productId: orderItem.productId },
+        404
+      )
+    }
+
+    let remainingQuantity = orderItem.quantity
+
+    for (const stockItem of product.stockItems) {
+      if (!stockItem.isActive) {
+        continue
+      }
+
+      const availableQuantity = Math.max(0, stockItem.quantity - stockItem.reservedQuantity)
+
+      if (availableQuantity <= 0) {
+        continue
+      }
+
+      const allocatedQuantity = Math.min(remainingQuantity, availableQuantity)
+
+      if (allocatedQuantity <= 0) {
+        continue
+      }
+
+      stockItem.reservedQuantity += allocatedQuantity
+      stockItem.updatedAt = timestamp
+      reservationItems.push({
+        productId: product.id,
+        stockItemId: stockItem.id,
+        warehouseId: stockItem.warehouseId,
+        quantity: allocatedQuantity,
+      })
+      remainingQuantity -= allocatedQuantity
+
+      if (remainingQuantity <= 0) {
+        break
+      }
+    }
+
+    if (remainingQuantity > 0) {
+      throw new ApplicationError(
+        "Requested quantity is not available for checkout.",
+        {
+          productId: product.id,
+          requestedQuantity: orderItem.quantity,
+          availableQuantity: resolveSellableQuantity(product),
+        },
+        409
+      )
+    }
+
+    product.updatedAt = timestamp
+  }
+
+  return {
+    products: nextProducts,
+    reservation:
+      reservationItems.length > 0
+        ? ({
+            status: "active",
+            reservedAt: timestamp,
+            releasedAt: null,
+            releaseReason: null,
+            items: reservationItems,
+          } satisfies StorefrontStockReservation)
+        : null,
+  }
+}
+
+function releaseReservationFromProducts(
+  products: Product[],
+  reservation: NonNullable<StorefrontOrder["stockReservation"]>,
+  timestamp: string
+) {
+  const nextProducts = products.map((product) => ({
+    ...product,
+    stockItems: product.stockItems.map((item) => ({ ...item })),
+  }))
+
+  for (const reservedItem of reservation.items) {
+    const product = nextProducts.find((item) => item.id === reservedItem.productId)
+
+    if (!product) {
+      continue
+    }
+
+    const stockItem = product.stockItems.find((item) => item.id === reservedItem.stockItemId)
+
+    if (!stockItem) {
+      continue
+    }
+
+    stockItem.reservedQuantity = Math.max(0, stockItem.reservedQuantity - reservedItem.quantity)
+    stockItem.updatedAt = timestamp
+    product.updatedAt = timestamp
+  }
+
+  return nextProducts
+}
+
+async function releaseOrderReservation(
+  database: Kysely<unknown>,
+  order: StorefrontOrder,
+  releaseReason: string,
+  timestamp = new Date().toISOString()
+) {
+  if (!order.stockReservation || order.stockReservation.status !== "active") {
+    return order
+  }
+
+  const products = await readCoreProducts(database)
+  const nextProducts = releaseReservationFromProducts(products, order.stockReservation, timestamp)
+  await writeCoreProducts(database, nextProducts)
+
+  return storefrontOrderSchema.parse({
+    ...order,
+    stockReservation: {
+      ...order.stockReservation,
+      status: "released",
+      releasedAt: timestamp,
+      releaseReason,
+    },
+    updatedAt: timestamp,
+  })
+}
+
+async function releaseOrderCoupon(
+  database: Kysely<unknown>,
+  order: StorefrontOrder,
+  account: CustomerAccount | null,
+  releaseReason: string,
+  timestamp = new Date().toISOString()
+) {
+  if (!order.appliedCoupon || order.appliedCoupon.status !== "reserved") {
+    return order
+  }
+
+  await releaseCustomerPortalCoupon(database, account, order.appliedCoupon.couponId, order.id)
+
+  return storefrontOrderSchema.parse({
+    ...order,
+    appliedCoupon: {
+      ...order.appliedCoupon,
+      status: "released",
+      releasedAt: timestamp,
+      releaseReason,
+    },
+    updatedAt: timestamp,
+  })
+}
+
+async function consumeOrderCoupon(
+  database: Kysely<unknown>,
+  order: StorefrontOrder,
+  account: CustomerAccount | null,
+  timestamp = new Date().toISOString()
+) {
+  if (!order.appliedCoupon || order.appliedCoupon.status !== "reserved") {
+    return order
+  }
+
+  await consumeCustomerPortalCoupon(database, account, order.appliedCoupon.couponId, order.id)
+
+  return storefrontOrderSchema.parse({
+    ...order,
+    appliedCoupon: {
+      ...order.appliedCoupon,
+      status: "used",
+      usedAt: timestamp,
+    },
+    updatedAt: timestamp,
+  })
+}
+
+async function expireStalePendingReservations(
+  database: Kysely<unknown>,
+  orders: StorefrontOrder[]
+) {
+  const staleOrders = orders.filter((order) => isExpiredPendingReservationOrder(order))
+
+  if (staleOrders.length === 0) {
+    return orders
+  }
+
+  const timestamp = new Date().toISOString()
+  let products = await readCoreProducts(database)
+  const customerAccounts = await readCustomerAccounts(database)
+  const staleOrderIds = new Set(staleOrders.map((order) => order.id))
+  const nextOrders = await Promise.all(orders.map(async (order) => {
+    if (!staleOrderIds.has(order.id) || !order.stockReservation) {
+      return order
+    }
+
+    products = releaseReservationFromProducts(products, order.stockReservation, timestamp)
+    const account =
+      order.customerAccountId
+        ? customerAccounts.find((item) => item.id === order.customerAccountId) ?? null
+        : null
+    const couponReleasedOrder = await releaseOrderCoupon(
+      database,
+      storefrontOrderSchema.parse({
+        ...transitionOrderStatus(order, "cancelled"),
+        paymentStatus: "failed",
+        stockReservation: {
+          ...order.stockReservation,
+          status: "released",
+          releasedAt: timestamp,
+          releaseReason: "payment_pending_expired",
+        },
+        timeline: [
+          ...order.timeline,
+          createTimelineEvent(
+            "stock_reservation_expired",
+            "Reservation expired",
+            "The payment window expired before completion, so the reserved stock was released."
+          ),
+        ],
+        updatedAt: timestamp,
+      }),
+      account,
+      "payment_pending_expired",
+      timestamp
+    )
+
+    return storefrontOrderSchema.parse({
+      ...couponReleasedOrder,
+      timeline: couponReleasedOrder.timeline,
+      updatedAt: timestamp,
+    })
+  }))
+
+  await writeCoreProducts(database, products)
+  await writeOrders(database, nextOrders)
+
+  return nextOrders
 }
 
 type RazorpayWebhookPayload = {
@@ -473,9 +776,7 @@ function resolveProductPricing(
     mrp:
       activePrice?.mrp ??
       Math.max(product.basePrice, activePrice?.sellingPrice ?? product.basePrice),
-    availableQuantity: product.stockItems
-      .filter((item) => item.isActive)
-      .reduce((sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity), 0),
+    availableQuantity: resolveSellableQuantity(product),
   }
 }
 
@@ -591,6 +892,21 @@ export async function createCheckoutOrder(
   token?: string | null
 ) {
   let orderCreationAttempted = false
+  let reservedOrderStock:
+    | {
+        orderId: string
+        releaseReason: string
+        reservation: StorefrontStockReservation
+        orderWritten: boolean
+      }
+    | null = null
+  let reservedOrderCoupon:
+    | {
+        orderId: string
+        account: CustomerAccount
+        couponId: string
+      }
+    | null = null
 
   try {
     const parsed = storefrontCheckoutPayloadSchema.parse(payload)
@@ -598,7 +914,7 @@ export async function createCheckoutOrder(
       ? await resolveAuthenticatedCustomerAccount(database, config, token)
       : null
     const settings = await getStorefrontSettings(database)
-    const existingOrders = await readOrders(database)
+    const existingOrders = await expireStalePendingReservations(database, await readOrders(database))
     const catalog = await readCoreProducts(database)
     const now = new Date().toISOString()
 
@@ -697,7 +1013,10 @@ export async function createCheckoutOrder(
       shippingAddress: parsed.shippingAddress,
       billingAddress: parsed.billingAddress,
       items,
-      notes: normalizeOptionalString(parsed.notes),
+      notes:
+        [normalizeOptionalString(parsed.couponCode), normalizeOptionalString(parsed.notes)]
+          .filter(Boolean)
+          .join("|") || null,
     })
     const duplicatePendingOrder = existingOrders.find((item) => {
       if (
@@ -709,7 +1028,7 @@ export async function createCheckoutOrder(
       }
 
       const ageMs = Date.now() - new Date(item.createdAt).getTime()
-      return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= 15 * 60 * 1000
+      return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= pendingReservationWindowMs
     })
 
     if (duplicatePendingOrder) {
@@ -732,8 +1051,47 @@ export async function createCheckoutOrder(
     }
 
     orderCreationAttempted = true
+    const orderId = `storefront-order:${randomUUID()}`
+    let appliedCoupon: StorefrontAppliedCoupon | null = null
+
+    if (parsed.couponCode) {
+      if (!customer) {
+        throw new ApplicationError(
+          "Coupon codes require a signed-in customer account.",
+          { couponCode: parsed.couponCode },
+          401
+        )
+      }
+
+      const reservedCoupon = await reserveCustomerPortalCoupon(database, customer, {
+        couponCode: parsed.couponCode,
+        subtotalAmount,
+        shippingAmount,
+        orderId,
+      })
+
+      appliedCoupon = {
+        couponId: reservedCoupon.coupon.id,
+        code: reservedCoupon.coupon.code,
+        title: reservedCoupon.coupon.title,
+        discountType: reservedCoupon.coupon.discountType,
+        discountLabel: reservedCoupon.coupon.discountLabel,
+        discountAmount: reservedCoupon.discountAmount,
+        reservedAt: new Date().toISOString(),
+        releasedAt: null,
+        releaseReason: null,
+        usedAt: null,
+        status: "reserved",
+      }
+      reservedOrderCoupon = {
+        orderId,
+        account: customer,
+        couponId: reservedCoupon.coupon.id,
+      }
+    }
+
     const createdOrder = storefrontOrderSchema.parse({
-      id: `storefront-order:${randomUUID()}`,
+      id: orderId,
       orderNumber: nextOrderNumber(existingOrders),
       customerAccountId: customer?.id ?? null,
       coreContactId,
@@ -751,6 +1109,8 @@ export async function createCheckoutOrder(
       pickupLocation,
       shipmentDetails: null,
       refund: null,
+      stockReservation: null,
+      appliedCoupon,
       providerOrderId: null,
       providerPaymentId: null,
       checkoutFingerprint,
@@ -759,10 +1119,10 @@ export async function createCheckoutOrder(
       items,
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       subtotalAmount,
-      discountAmount,
+      discountAmount: discountAmount + (appliedCoupon?.discountAmount ?? 0),
       shippingAmount,
       handlingAmount,
-      totalAmount,
+      totalAmount: Math.max(0, totalAmount - (appliedCoupon?.discountAmount ?? 0)),
       currency: "INR",
       notes: normalizeOptionalString(parsed.notes),
       timeline: [
@@ -778,6 +1138,19 @@ export async function createCheckoutOrder(
       updatedAt: now,
     })
     const order = transitionOrderStatus(createdOrder, "payment_pending")
+    const reservationResult = applyReservationToProducts(catalog, order.items, now)
+
+    if (!reservationResult.reservation) {
+      throw new ApplicationError("Stock reservation could not be created for checkout.", {}, 409)
+    }
+
+    await writeCoreProducts(database, reservationResult.products)
+    reservedOrderStock = {
+      orderId,
+      releaseReason: "checkout_setup_failed",
+      reservation: reservationResult.reservation,
+      orderWritten: false,
+    }
 
     let payment: StorefrontPaymentSession
     let nextOrder: StorefrontOrder
@@ -797,8 +1170,14 @@ export async function createCheckoutOrder(
       }
       nextOrder = storefrontOrderSchema.parse({
         ...order,
+        stockReservation: reservationResult.reservation,
         timeline: [
           ...order.timeline,
+          createTimelineEvent(
+            "stock_reserved",
+            "Stock reserved",
+            "Sellable stock was reserved for this pickup order while payment remains pending."
+          ),
           createTimelineEvent(
             "payment_pending",
             "Payment pending",
@@ -817,9 +1196,15 @@ export async function createCheckoutOrder(
       nextOrder = storefrontOrderSchema.parse({
         ...order,
         paymentMode: payment.mode,
+        stockReservation: reservationResult.reservation,
         providerOrderId: payment.providerOrderId,
         timeline: [
           ...order.timeline,
+          createTimelineEvent(
+            "stock_reserved",
+            "Stock reserved",
+            "Sellable stock was reserved for this order while the payment session remains active."
+          ),
           createTimelineEvent(
             "payment_pending",
             "Payment pending",
@@ -831,6 +1216,7 @@ export async function createCheckoutOrder(
     }
 
     await writeOrders(database, [nextOrder, ...existingOrders])
+    reservedOrderStock.orderWritten = true
     await recordCommerceMonitoringEvent(database, {
       operation: "order_creation",
       status: "success",
@@ -859,6 +1245,49 @@ export async function createCheckoutOrder(
       payment,
     })
   } catch (error) {
+    if (reservedOrderStock) {
+      const reservationRollback = reservedOrderStock
+
+      if (reservationRollback.orderWritten) {
+        const storedOrders = await readOrders(database)
+        const reservedOrder = storedOrders.find((item) => item.id === reservationRollback.orderId)
+
+        if (reservedOrder) {
+          const releasedReservationOrder = await releaseOrderReservation(
+            database,
+            reservedOrder,
+            reservationRollback.releaseReason
+          )
+          const releasedOrder = await releaseOrderCoupon(
+            database,
+            releasedReservationOrder,
+            reservedOrderCoupon?.account ?? null,
+            reservationRollback.releaseReason
+          )
+
+          await writeOrders(
+            database,
+            storedOrders.map((item) => (item.id === releasedOrder.id ? releasedOrder : item))
+          )
+        }
+      } else {
+        const products = await readCoreProducts(database)
+        const nextProducts = releaseReservationFromProducts(
+          products,
+          reservationRollback.reservation,
+          new Date().toISOString()
+        )
+        await writeCoreProducts(database, nextProducts)
+      }
+    }
+    if (reservedOrderCoupon) {
+      await releaseCustomerPortalCoupon(
+        database,
+        reservedOrderCoupon.account,
+        reservedOrderCoupon.couponId,
+        reservedOrderCoupon.orderId
+      )
+    }
     if (orderCreationAttempted) {
       await recordCommerceMonitoringEvent(database, {
         operation: "order_creation",
@@ -943,6 +1372,17 @@ export async function verifyCheckoutPayment(
       )
     }
 
+    if (order.stockReservation?.status === "released" && order.paymentStatus !== "paid") {
+      throw new ApplicationError(
+        "Payment cannot be verified after the stock reservation was released.",
+        {
+          orderId: order.id,
+          releaseReason: order.stockReservation.releaseReason,
+        },
+        409
+      )
+    }
+
     if (
       !verifyRazorpaySignature(config, {
         providerOrderId: parsed.providerOrderId,
@@ -957,30 +1397,42 @@ export async function verifyCheckoutPayment(
       token && !order.customerAccountId
         ? await resolveAuthenticatedCustomerAccount(database, config, token)
         : null
+    const couponAccount =
+      verifiedCustomer ??
+      (order.customerAccountId
+        ? (await readCustomerAccounts(database)).find((item) => item.id === order.customerAccountId) ?? null
+        : null)
 
     const paidOrder = transitionOrderStatus(order, "paid")
+    const couponUsedOrder = await consumeOrderCoupon(
+      database,
+      storefrontOrderSchema.parse({
+        ...order,
+        ...paidOrder,
+        customerAccountId: order.customerAccountId ?? verifiedCustomer?.id ?? null,
+        coreContactId: verifiedCustomer?.coreContactId ?? order.coreContactId,
+        paymentStatus: "paid",
+        refund: order.refund,
+        providerPaymentId: parsed.providerPaymentId,
+        timeline: [
+          ...order.timeline,
+          createTimelineEvent(
+            "payment_captured",
+            "Payment captured",
+            "Razorpay payment was verified successfully."
+          ),
+          createTimelineEvent(
+            "order_paid",
+            "Order paid",
+            "The order is paid and waiting to enter fulfillment operations."
+          ),
+        ],
+        updatedAt: new Date().toISOString(),
+      }),
+      couponAccount
+    )
     const updatedOrder = storefrontOrderSchema.parse({
-      ...order,
-      ...paidOrder,
-      customerAccountId: order.customerAccountId ?? verifiedCustomer?.id ?? null,
-      coreContactId: verifiedCustomer?.coreContactId ?? order.coreContactId,
-      paymentStatus: "paid",
-      refund: order.refund,
-      providerPaymentId: parsed.providerPaymentId,
-      timeline: [
-        ...order.timeline,
-        createTimelineEvent(
-          "payment_captured",
-          "Payment captured",
-          "Razorpay payment was verified successfully."
-        ),
-        createTimelineEvent(
-          "order_paid",
-          "Order paid",
-          "The order is paid and waiting to enter fulfillment operations."
-        ),
-      ],
-      updatedAt: new Date().toISOString(),
+      ...couponUsedOrder,
     })
 
     await writeOrders(
@@ -1432,26 +1884,45 @@ export async function handleRazorpayWebhook(
     }
 
     let nextOrder = order
+    const couponAccount =
+      order.customerAccountId
+        ? (await readCustomerAccounts(database)).find((item) => item.id === order.customerAccountId) ?? null
+        : null
 
     if (event === "payment.captured") {
-      if (order.paymentStatus !== "paid") {
-        const paidOrder = transitionOrderStatus(order, "paid")
+      if (order.stockReservation?.status === "released" && order.paymentStatus !== "paid") {
         nextOrder = storefrontOrderSchema.parse({
           ...order,
-          ...paidOrder,
-          paymentStatus: "paid",
-          providerPaymentId:
-            payload.payload?.payment?.entity?.id ?? order.providerPaymentId,
           timeline: appendTimelineIfMissing(order, {
-            code: "payment_captured",
-            label: "Payment captured",
-            summary: "Razorpay webhook confirmed that payment was captured.",
+            code: "payment_capture_rejected",
+            label: "Payment capture rejected",
+            summary:
+              "A late payment capture was ignored because the stock reservation had already been released.",
           }),
           updatedAt: new Date().toISOString(),
         })
+      } else if (order.paymentStatus !== "paid") {
+        const paidOrder = transitionOrderStatus(order, "paid")
+        nextOrder = await consumeOrderCoupon(
+          database,
+          storefrontOrderSchema.parse({
+            ...order,
+            ...paidOrder,
+            paymentStatus: "paid",
+            providerPaymentId:
+              payload.payload?.payment?.entity?.id ?? order.providerPaymentId,
+            timeline: appendTimelineIfMissing(order, {
+              code: "payment_captured",
+              label: "Payment captured",
+              summary: "Razorpay webhook confirmed that payment was captured.",
+            }),
+            updatedAt: new Date().toISOString(),
+          }),
+          couponAccount
+        )
       }
     } else if (event === "payment.failed") {
-      nextOrder = storefrontOrderSchema.parse({
+      const failedOrder = storefrontOrderSchema.parse({
         ...order,
         paymentStatus: "failed",
         refund: order.refund,
@@ -1466,6 +1937,8 @@ export async function handleRazorpayWebhook(
         }),
         updatedAt: new Date().toISOString(),
       })
+      nextOrder = await releaseOrderReservation(database, failedOrder, "payment_failed")
+      nextOrder = await releaseOrderCoupon(database, nextOrder, couponAccount, "payment_failed")
     } else if (event === "refund.processed" || event === "payment.refunded") {
       if (order.status !== "refunded" || order.paymentStatus !== "refunded") {
         const now = new Date().toISOString()
@@ -2425,6 +2898,13 @@ export async function applyStorefrontAdminOrderAction(
       ],
       updatedAt: now,
     })
+
+    updatedOrder = await releaseOrderReservation(database, updatedOrder, "order_cancelled")
+    const account =
+      order.customerAccountId
+        ? (await readCustomerAccounts(database)).find((item) => item.id === order.customerAccountId) ?? null
+        : null
+    updatedOrder = await releaseOrderCoupon(database, updatedOrder, account, "order_cancelled")
   }
 
   if (parsed.action === "mark_fulfilment_pending") {
@@ -2587,6 +3067,10 @@ export async function reconcileRazorpayPayments(
     const failedPayment = razorpayPayments.find((item) => item.status === "failed") ?? null
 
     let nextOrder = order
+    const couponAccount =
+      order.customerAccountId
+        ? (await readCustomerAccounts(database)).find((item) => item.id === order.customerAccountId) ?? null
+        : null
     let action: StorefrontPaymentReconciliationItem["action"] = "noop"
     let summary = "Razorpay and storefront states are already aligned."
 
@@ -2621,41 +3105,62 @@ export async function reconcileRazorpayPayments(
       })
       action = "refunded"
       summary = "Reconciliation updated the order to refunded."
+    } else if (
+      capturedPayment &&
+      order.stockReservation?.status === "released" &&
+      order.paymentStatus !== "paid"
+    ) {
+      nextOrder = storefrontOrderSchema.parse({
+        ...order,
+        timeline: appendTimelineIfMissing(order, {
+          code: "payment_capture_rejected",
+          label: "Payment capture rejected",
+          summary:
+            "Reconciliation ignored a late payment capture because the stock reservation had already been released.",
+        }),
+        updatedAt: new Date().toISOString(),
+      })
+      action = "noop"
+      summary = "Reconciliation skipped a late captured payment after reservation release."
     } else if (capturedPayment && order.paymentStatus !== "paid") {
       const paidOrder =
         order.status === "created" || order.status === "payment_pending"
           ? transitionOrderStatus(order, "paid")
           : order
 
-      nextOrder = storefrontOrderSchema.parse({
-        ...order,
-        ...paidOrder,
-        paymentStatus: "paid",
-        providerPaymentId: capturedPayment.id || order.providerPaymentId,
-        timeline: [
-          ...appendTimelineIfMissing(order, {
-            code: "payment_captured",
-            label: "Payment captured",
-            summary: "Reconciliation confirmed the payment was captured in Razorpay.",
-          }),
-          ...(
-            order.timeline.some((entry) => entry.code === "order_paid")
-              ? []
-              : [
-                  createTimelineEvent(
-                    "order_paid",
-                    "Order paid",
-                    "Reconciliation confirmed the order is paid and awaiting fulfillment."
-                  ),
-                ]
-          ),
-        ],
-        updatedAt: new Date().toISOString(),
-      })
+      nextOrder = await consumeOrderCoupon(
+        database,
+        storefrontOrderSchema.parse({
+          ...order,
+          ...paidOrder,
+          paymentStatus: "paid",
+          providerPaymentId: capturedPayment.id || order.providerPaymentId,
+          timeline: [
+            ...appendTimelineIfMissing(order, {
+              code: "payment_captured",
+              label: "Payment captured",
+              summary: "Reconciliation confirmed the payment was captured in Razorpay.",
+            }),
+            ...(
+              order.timeline.some((entry) => entry.code === "order_paid")
+                ? []
+                : [
+                    createTimelineEvent(
+                      "order_paid",
+                      "Order paid",
+                      "Reconciliation confirmed the order is paid and awaiting fulfillment."
+                    ),
+                  ]
+            ),
+          ],
+          updatedAt: new Date().toISOString(),
+        }),
+        couponAccount
+      )
       action = "paid"
       summary = "Reconciliation updated the order to paid."
     } else if (failedPayment && order.paymentStatus === "pending") {
-      nextOrder = storefrontOrderSchema.parse({
+      const failedOrder = storefrontOrderSchema.parse({
         ...order,
         paymentStatus: "failed",
         refund: order.refund,
@@ -2667,6 +3172,8 @@ export async function reconcileRazorpayPayments(
         }),
         updatedAt: new Date().toISOString(),
       })
+      nextOrder = await releaseOrderReservation(database, failedOrder, "payment_failed")
+      nextOrder = await releaseOrderCoupon(database, nextOrder, couponAccount, "payment_failed")
       action = "failed"
       summary = "Reconciliation updated the order payment status to failed."
     }

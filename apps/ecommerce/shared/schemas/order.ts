@@ -63,6 +63,35 @@ export const storefrontOrderTimelineEventSchema = z.object({
   createdAt: z.string().min(1),
 })
 
+export const storefrontStockReservationItemSchema = z.object({
+  productId: z.string().min(1),
+  stockItemId: z.string().min(1),
+  warehouseId: z.string().min(1),
+  quantity: z.number().int().positive(),
+})
+
+export const storefrontStockReservationSchema = z.object({
+  status: z.enum(["active", "released"]),
+  reservedAt: z.string().min(1),
+  releasedAt: z.string().nullable(),
+  releaseReason: z.string().nullable(),
+  items: z.array(storefrontStockReservationItemSchema).min(1),
+})
+
+export const storefrontAppliedCouponSchema = z.object({
+  couponId: z.string().min(1),
+  code: z.string().min(1),
+  title: z.string().min(1),
+  discountType: z.enum(["percentage", "fixed_amount", "free_shipping"]),
+  discountLabel: z.string().min(1),
+  discountAmount: z.number().finite().nonnegative(),
+  reservedAt: z.string().min(1),
+  releasedAt: z.string().nullable(),
+  releaseReason: z.string().nullable(),
+  usedAt: z.string().nullable(),
+  status: z.enum(["reserved", "used", "released"]),
+})
+
 export const storefrontShipmentDetailsSchema = z.object({
   carrierName: z.string().trim().min(1).nullable(),
   trackingId: z.string().trim().min(1).nullable(),
@@ -157,6 +186,8 @@ export const storefrontOrderSchema = z.object({
   pickupLocation: storefrontPickupLocationSnapshotSchema.nullable(),
   shipmentDetails: storefrontShipmentDetailsSchema.nullable(),
   refund: storefrontRefundRecordSchema.nullable(),
+  stockReservation: storefrontStockReservationSchema.nullable(),
+  appliedCoupon: storefrontAppliedCouponSchema.nullable(),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
   checkoutFingerprint: z.string().nullable(),
@@ -180,6 +211,7 @@ export const storefrontCheckoutPayloadSchema = z.object({
   items: z.array(storefrontCartItemInputSchema).min(1),
   fulfillmentMethod: storefrontFulfillmentMethodSchema.default("delivery"),
   paymentMethod: storefrontCheckoutPaymentMethodSchema.default("online"),
+  couponCode: z.string().trim().min(1).nullable().optional().default(null),
   shippingAddress: storefrontAddressSchema,
   billingAddress: storefrontAddressSchema,
   notes: z.string().trim().nullable().optional().default(null),
@@ -816,6 +848,8 @@ export type StorefrontOperationalAgingReport = z.infer<
 export type StorefrontOverviewKpiReport = z.infer<
   typeof storefrontOverviewKpiReportSchema
 >
+export type StorefrontStockReservation = z.infer<typeof storefrontStockReservationSchema>
+export type StorefrontAppliedCoupon = z.infer<typeof storefrontAppliedCouponSchema>
 export type StorefrontAdminOrderQueueBucket = z.infer<
   typeof storefrontAdminOrderQueueBucketSchema
 >

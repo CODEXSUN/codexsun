@@ -315,6 +315,8 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(initialPortal.giftCards.length > 0, true)
       assert.equal(initialPortal.rewards.pointsBalance > 0, true)
       assert.equal(initialPortal.wishlist.length, 0)
+      const welcomeCoupon = initialPortal.coupons[0]!
+      const shippingCoupon = initialPortal.coupons[1]!
 
       await updateCustomerProfile(
         runtime.primary,
@@ -358,12 +360,14 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(wishlistedPortal.wishlist.length, 1)
       assert.equal(wishlistedPortal.wishlist[0]?.id, product.item.id)
+      const initialAvailableQuantity = product.item.availableQuantity
 
       const checkout = await createCheckoutOrder(
         runtime.primary,
         config,
         {
           items: [{ productId: product.item.id, quantity: 2 }],
+          couponCode: welcomeCoupon.code,
           shippingAddress: {
             fullName: "Asha Raman",
             email: "asha@codexsun.local",
@@ -394,12 +398,26 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(checkout.payment.mode, "mock")
       assert.equal(checkout.order.paymentStatus, "pending")
       assert.equal(checkout.order.status, "payment_pending")
+      assert.equal(checkout.order.appliedCoupon?.code, welcomeCoupon.code)
+      assert.equal(checkout.order.appliedCoupon?.status, "reserved")
+      assert.equal(checkout.order.stockReservation?.status, "active")
+      assert.equal(
+        checkout.order.stockReservation?.items.reduce((sum, item) => sum + item.quantity, 0),
+        2
+      )
+
+      const reservedProduct = await getStorefrontProduct(runtime.primary, {
+        slug: product.item.slug,
+      })
+
+      assert.equal(reservedProduct.item.availableQuantity, initialAvailableQuantity - 2)
 
       const duplicateCheckout = await createCheckoutOrder(
         runtime.primary,
         config,
         {
           items: [{ productId: product.item.id, quantity: 2 }],
+          couponCode: welcomeCoupon.code,
           shippingAddress: {
             fullName: "Asha Raman",
             email: "asha@codexsun.local",
@@ -433,6 +451,12 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         checkout.payment.providerOrderId
       )
 
+      const duplicateReservedProduct = await getStorefrontProduct(runtime.primary, {
+        slug: product.item.slug,
+      })
+
+      assert.equal(duplicateReservedProduct.item.availableQuantity, initialAvailableQuantity - 2)
+
       const pendingOrderQueue = await getStorefrontAdminOrderOperationsReport(runtime.primary)
       const pendingQueueItem = pendingOrderQueue.items.find(
         (item) => item.orderId === checkout.order.id
@@ -450,6 +474,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(verified.item.paymentStatus, "paid")
       assert.equal(verified.item.status, "paid")
+      assert.equal(verified.item.appliedCoupon?.status, "used")
 
       const verifiedAgain = await verifyCheckoutPayment(runtime.primary, config, {
         orderId: checkout.order.id,
@@ -555,6 +580,91 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         true
       )
       assert.equal(tracked.item.status, "delivered")
+
+      const portalAfterPaidCoupon = await getAuthenticatedCustomerPortal(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(
+        portalAfterPaidCoupon.coupons.find((coupon) => coupon.id === welcomeCoupon.id)?.status,
+        "used"
+      )
+
+      const secondCheckout = await createCheckoutOrder(
+        runtime.primary,
+        config,
+        {
+          items: [{ productId: product.item.id, quantity: 2 }],
+          couponCode: shippingCoupon.code,
+          shippingAddress: {
+            fullName: "Asha Raman",
+            email: "asha@codexsun.local",
+            phoneNumber: "+91 98888 11111",
+            line1: "18 River Road",
+            line2: "Floor 2",
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          billingAddress: {
+            fullName: "Asha Raman",
+            email: "asha@codexsun.local",
+            phoneNumber: "+91 98888 11111",
+            line1: "18 River Road",
+            line2: "Floor 2",
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          notes: "Second pending order",
+        },
+        customerSession.accessToken
+      )
+
+      assert.equal(secondCheckout.order.stockReservation?.status, "active")
+      assert.equal(secondCheckout.order.appliedCoupon?.code, shippingCoupon.code)
+      assert.equal(secondCheckout.order.appliedCoupon?.status, "reserved")
+
+      const reservedTwiceProduct = await getStorefrontProduct(runtime.primary, {
+        slug: product.item.slug,
+      })
+
+      assert.equal(reservedTwiceProduct.item.availableQuantity, initialAvailableQuantity - 4)
+
+      const cancelledSecondCheckout = await applyStorefrontAdminOrderAction(runtime.primary, config, {
+        orderId: secondCheckout.order.id,
+        action: "cancel",
+        note: "Customer did not finish payment.",
+      })
+
+      assert.equal(cancelledSecondCheckout.item.status, "cancelled")
+      assert.equal(cancelledSecondCheckout.item.stockReservation?.status, "released")
+      assert.equal(cancelledSecondCheckout.item.appliedCoupon?.status, "released")
+      assert.equal(
+        cancelledSecondCheckout.item.stockReservation?.releaseReason,
+        "order_cancelled"
+      )
+
+      const portalAfterCancelledCoupon = await getAuthenticatedCustomerPortal(
+        runtime.primary,
+        config,
+        customerSession.accessToken
+      )
+
+      assert.equal(
+        portalAfterCancelledCoupon.coupons.find((coupon) => coupon.id === shippingCoupon.id)?.status,
+        "active"
+      )
+
+      const releasedProduct = await getStorefrontProduct(runtime.primary, {
+        slug: product.item.slug,
+      })
+
+      assert.equal(releasedProduct.item.availableQuantity, initialAvailableQuantity - 2)
     } finally {
       await runtime.destroy()
     }

@@ -2,6 +2,42 @@
 
 ## Done Till Here
 
+### `#66` 2026-04-08
+
+- completed Stage `3.2.4` by documenting ERPNext price-list compatibility for a future ERP-owned storefront pricing model
+- recorded that ERP item-price and price-list selection must complete inside `frappe` projection flow and persist normalized effective pricing into `core` before `ecommerce` reads it, while preserving current `sellingPrice`, `mrp`, and `basePrice` semantics
+- validated the decision batch with architecture and planning consistency review across the current `core`, `ecommerce`, and `frappe` pricing boundaries
+
+### `#65` 2026-04-08
+
+- completed Stage `3.2.3` by defining the future promotion engine scope and phased rollout for the storefront commerce stack
+- recorded the current Phase A baseline as `core` price authority plus ecommerce-owned customer coupons, kept campaign and coupon-banner and gift-corner and promo-copy surfaces presentation-only, and deferred rule-driven promotions and segmented pricing to later phases
+- validated the decision batch with architecture, planning, and current pricing-coupon-merchandising code-path review across the `core`, `ecommerce`, and `frappe` boundaries
+
+### `#64` 2026-04-08
+
+- completed Stage `3.2.2` by adding checkout coupon validation, expiry handling, and usage constraints backed by ecommerce-owned customer portal coupon state
+- extended customer and order contracts with coupon lifecycle metadata, enforced reserve, consume, and release behavior through checkout and payment flows, and added a signed-in checkout coupon input on the storefront page
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#63` 2026-04-08
+
+- completed Stage `3.2.1` by deciding that `apps/core` remains the current authoritative source for storefront sell price and compare-at price
+- aligned architecture and go-live planning so `apps/ecommerce` reads effective pricing from active `core` price rows using `sellingPrice` and `mrp`, with `basePrice` only as fallback when no active row exists
+- validated the decision batch with architecture, planning, and storefront pricing code-path review across the current `core`, `ecommerce`, and `frappe` boundaries
+
+### `#62` 2026-04-08
+
+- completed Stage `3.1.4` by defining warehouse and stock visibility rules for the current storefront availability model
+- recorded that storefront availability stays aggregated across active `core` stock rows, warehouse-level stock remains internal to operations, and store pickup still consumes the same shared sellable pool as delivery orders
+- validated the batch with architecture, planning, pickup-flow, and storefront availability code-path review across the current `core` and `ecommerce` boundaries
+
+### `#61` 2026-04-08
+
+- completed Stage `3.1.3` by adding stock reservation when a new storefront order enters `payment_pending`
+- extended storefront orders with explicit stock-reservation metadata, reserved `core` stock rows during checkout, and released those holds on pending-payment failure, admin cancellation, or expiry while rejecting late payment capture after release
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
 ### `#60` 2026-04-08
 
 - completed Stage `3.1.2` by defining low-stock and oversell-prevention rules for the current storefront stock model

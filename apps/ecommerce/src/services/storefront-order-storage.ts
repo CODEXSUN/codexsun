@@ -118,6 +118,100 @@ function normalizeShipmentDetails(value: unknown): StorefrontOrder["shipmentDeta
   }
 }
 
+function normalizeStockReservation(
+  value: unknown
+): StorefrontOrder["stockReservation"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const items = Array.isArray(record.items)
+    ? record.items
+        .map((item) => {
+          const itemRecord = asRecord(item)
+
+          if (!itemRecord) {
+            return null
+          }
+
+          const productId = normalizeOptionalString(itemRecord.productId)
+          const stockItemId = normalizeOptionalString(itemRecord.stockItemId)
+          const warehouseId = normalizeOptionalString(itemRecord.warehouseId)
+          const quantity = Math.max(0, Math.trunc(normalizeNumber(itemRecord.quantity, 0)))
+
+          if (!productId || !stockItemId || !warehouseId || quantity <= 0) {
+            return null
+          }
+
+          return {
+            productId,
+            stockItemId,
+            warehouseId,
+            quantity,
+          }
+        })
+        .filter(
+          (
+            item
+          ): item is NonNullable<NonNullable<StorefrontOrder["stockReservation"]>["items"][number]> =>
+            item !== null
+        )
+    : []
+
+  if (items.length === 0) {
+    return null
+  }
+
+  return {
+    status: record.status === "released" ? "released" : "active",
+    reservedAt: normalizeRequiredString(record.reservedAt, new Date().toISOString()),
+    releasedAt: normalizeOptionalString(record.releasedAt),
+    releaseReason: normalizeOptionalString(record.releaseReason),
+    items,
+  }
+}
+
+function normalizeAppliedCoupon(
+  value: unknown
+): StorefrontOrder["appliedCoupon"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const couponId = normalizeOptionalString(record.couponId)
+  const code = normalizeOptionalString(record.code)
+  const title = normalizeOptionalString(record.title)
+  const discountLabel = normalizeOptionalString(record.discountLabel)
+
+  if (!couponId || !code || !title || !discountLabel) {
+    return null
+  }
+
+  return {
+    couponId,
+    code,
+    title,
+    discountType:
+      record.discountType === "fixed_amount" || record.discountType === "free_shipping"
+        ? record.discountType
+        : "percentage",
+    discountLabel,
+    discountAmount: Math.max(0, normalizeNumber(record.discountAmount, 0)),
+    reservedAt: normalizeRequiredString(record.reservedAt, new Date().toISOString()),
+    releasedAt: normalizeOptionalString(record.releasedAt),
+    releaseReason: normalizeOptionalString(record.releaseReason),
+    usedAt: normalizeOptionalString(record.usedAt),
+    status:
+      record.status === "used" || record.status === "released"
+        ? record.status
+        : "reserved",
+  }
+}
+
 function normalizeRefundRecord(
   value: unknown,
   orderFallback: {
@@ -344,6 +438,8 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
       status: normalizeStatus(record.status),
       updatedAt,
     }),
+    stockReservation: normalizeStockReservation(record.stockReservation),
+    appliedCoupon: normalizeAppliedCoupon(record.appliedCoupon),
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
     checkoutFingerprint: normalizeOptionalString(record.checkoutFingerprint),

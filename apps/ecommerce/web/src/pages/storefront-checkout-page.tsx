@@ -585,6 +585,7 @@ export function StorefrontCheckoutContent({
   const [isLoadingLookups, setIsLoadingLookups] = useState(false)
   const [contactEmail, setContactEmail] = useState("")
   const [orderNote, setOrderNote] = useState("")
+  const [couponCode, setCouponCode] = useState("")
   const [selectedAddressKey, setSelectedAddressKey] = useState<string | null>(null)
   const [temporaryAddresses, setTemporaryAddresses] = useState<DeliveryAddressOption[]>([])
   const [addressLabels, setAddressLabels] = useState<Record<string, string>>({})
@@ -836,12 +837,14 @@ export function StorefrontCheckoutContent({
       contactEmail.trim().toLowerCase(),
       selectedDeliveryPreference,
       selectedPaymentMethod,
+      couponCode.trim().toUpperCase(),
       orderNote.trim(),
       cartSignature,
     ].join("::")
   }, [
     cart.items,
     contactEmail,
+    couponCode,
     orderNote,
     selectedAddressKey,
     selectedDeliveryPreference,
@@ -1430,6 +1433,7 @@ export function StorefrontCheckoutContent({
         })),
         fulfillmentMethod,
         paymentMethod,
+        couponCode: couponCode.trim().toUpperCase() || null,
         shippingAddress: {
           ...shippingAddress,
           line2: shippingAddress.line2 || null,
@@ -1444,6 +1448,7 @@ export function StorefrontCheckoutContent({
               ? `Fulfillment: Store pickup from ${storefrontSettings.pickupLocation.storeName}`
               : null,
             paymentMethod === "pay_at_store" ? "Payment: Pay at store pickup" : null,
+            couponCode.trim() ? `Coupon: ${couponCode.trim().toUpperCase()}` : null,
             orderNote.trim() || null,
           ]
             .filter(Boolean)
@@ -2072,6 +2077,38 @@ export function StorefrontCheckoutContent({
                       />
                     ))}
                   </RadioGroup>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(251,247,242,0.92))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
+                <CardContent className="space-y-4 p-5 sm:p-6">
+                  <div className="space-y-2">
+                    <h2 className="text-[1.45rem] font-semibold tracking-tight text-foreground">
+                      Coupon code
+                    </h2>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Enter one customer coupon code exactly as shown in your portal. Validation happens when the order is created.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="checkout-coupon-code">Coupon code</Label>
+                    <Input
+                      id="checkout-coupon-code"
+                      value={couponCode}
+                      onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                      placeholder={customerAuth.isAuthenticated ? "Enter your coupon code" : "Sign in to use customer coupons"}
+                      disabled={!customerAuth.isAuthenticated}
+                    />
+                  </div>
+                  {customerAuth.isAuthenticated ? (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Active customer coupons from your portal can be used once and will be reserved for this pending order until payment succeeds, fails, or expires.
+                    </p>
+                  ) : (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Guest checkout can continue without a coupon, but customer coupon validation requires a signed-in account.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </section>
