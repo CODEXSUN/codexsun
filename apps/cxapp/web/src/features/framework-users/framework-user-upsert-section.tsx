@@ -38,7 +38,6 @@ type UserFormValues = {
   isActive: boolean
   isSuperAdmin: boolean
   organizationName: string
-  password: string
   phoneNumber: string
   roleKeys: RoleKey[]
 }
@@ -54,7 +53,6 @@ function createDefaultUserFormValues(): UserFormValues {
     isActive: true,
     isSuperAdmin: false,
     organizationName: "",
-    password: "",
     phoneNumber: "",
     roleKeys: [],
   }
@@ -119,7 +117,7 @@ function UserSectionCard({
   )
 }
 
-function validateUserForm(values: UserFormValues, isEditing: boolean) {
+function validateUserForm(values: UserFormValues) {
   const errors: UserFieldErrors = {}
 
   if (values.displayName.trim().length < 2) {
@@ -128,10 +126,6 @@ function validateUserForm(values: UserFormValues, isEditing: boolean) {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
     errors.email = "Enter a valid email address."
-  }
-
-  if (!isEditing && values.password.trim().length < 8) {
-    errors.password = "Password must be at least 8 characters."
   }
 
   if (values.roleKeys.length === 0) {
@@ -191,7 +185,6 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
             isActive: userResponse.item.isActive,
             isSuperAdmin: userResponse.item.isSuperAdmin,
             organizationName: userResponse.item.organizationName ?? "",
-            password: "",
             phoneNumber: userResponse.item.phoneNumber ?? "",
             roleKeys: userResponse.item.roles.map((role) => role.key),
           })
@@ -242,7 +235,7 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
   )
 
   async function handleSave() {
-    const nextFieldErrors = validateUserForm(form, isEditing)
+    const nextFieldErrors = validateUserForm(form)
     setFieldErrors(nextFieldErrors)
     setFormError(null)
 
@@ -262,7 +255,6 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
         isActive: form.isActive,
         isSuperAdmin: form.isSuperAdmin,
         organizationName: form.organizationName.trim() || null,
-        password: form.password.trim() || null,
         phoneNumber: form.phoneNumber.trim() || null,
         roleKeys: form.roleKeys,
       }
@@ -393,20 +385,14 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
         <div className="space-y-5">
           <UserSectionCard
             title="Sign-in Access"
-            description="Control password, activation, and elevated access for this user."
+            description="Control activation and elevated access for this user."
           >
-            <div className="grid gap-4 md:grid-cols-2">
-              <UserField label={isEditing ? "Password (optional)" : "Password"} error={fieldErrors.password}>
-                <Input
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => {
-                    setForm((current) => ({ ...current, password: event.target.value }))
-                    setFieldErrors((current) => ({ ...current, password: undefined }))
-                  }}
-                  className={fieldErrors.password ? "border-destructive" : undefined}
-                />
-              </UserField>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border/70 bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+                {isEditing
+                  ? "Password changes happen through the email reset-link flow."
+                  : "Saving this user sends an email invite with a secure link to create the password."}
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-border/70 bg-muted/30 px-4 py-3">
                   <div className="space-y-1">

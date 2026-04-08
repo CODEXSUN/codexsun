@@ -4,13 +4,12 @@ import type {
   AuthAccountRecoveryRequestPayload,
   AuthAccountRecoveryRestorePayload,
   AuthLoginPayload,
-  AuthPasswordResetConfirmPayload,
+  AuthPasswordLinkCompletePayload,
   AuthPasswordResetRequestPayload,
   AuthRegisterOtpRequestPayload,
   AuthRegisterOtpVerifyPayload,
-  AuthRegisterPayload,
-  AuthTokenResponse,
   AuthUser,
+  AuthTokenResponse,
 } from "@cxapp/shared"
 
 import type * as authApi from "./auth-api"
@@ -29,13 +28,12 @@ export type AuthContextValue = {
   verifyRegisterOtp: (
     payload: AuthRegisterOtpVerifyPayload
   ) => ReturnType<typeof authApi.verifyRegisterOtp>
-  register: (payload: AuthRegisterPayload) => Promise<AuthTokenResponse>
-  requestPasswordResetOtp: (
+  requestPasswordResetLink: (
     payload: AuthPasswordResetRequestPayload
-  ) => ReturnType<typeof authApi.requestPasswordResetOtp>
-  confirmPasswordReset: (
-    payload: AuthPasswordResetConfirmPayload
-  ) => ReturnType<typeof authApi.confirmPasswordReset>
+  ) => ReturnType<typeof authApi.requestPasswordResetLink>
+  completePasswordLink: (
+    payload: AuthPasswordLinkCompletePayload
+  ) => ReturnType<typeof authApi.completePasswordLink>
   requestAccountRecoveryOtp: (
     payload: AuthAccountRecoveryRequestPayload
   ) => ReturnType<typeof authApi.requestAccountRecoveryOtp>

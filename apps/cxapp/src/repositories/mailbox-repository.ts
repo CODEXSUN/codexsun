@@ -40,6 +40,42 @@ function parseJsonRecord(value: unknown) {
   }
 }
 
+function toDatabaseSafeString(value: string) {
+  return value
+    .replace(/\u20B9/g, "Rs.")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u00A0/g, " ")
+    .replace(/[\u0080-\uFFFF]/g, (character) => `&#${character.charCodeAt(0)};`)
+}
+
+function sanitizeMetadataValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    return toDatabaseSafeString(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeMetadataValue(entry))
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, sanitizeMetadataValue(entry)])
+    )
+  }
+
+  return value
+}
+
+function stringifyMetadata(value: Record<string, unknown> | null) {
+  if (!value) {
+    return null
+  }
+
+  return JSON.stringify(sanitizeMetadataValue(value))
+}
+
 export class MailboxRepository {
   constructor(private readonly database: Kysely<unknown>) {}
 
@@ -249,7 +285,7 @@ export class MailboxRepository {
         status: input.status,
         provider: input.provider,
         provider_message_id: null,
-        metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+        metadata: stringifyMetadata(input.metadata),
         error_message: null,
         sent_at: null,
         failed_at: null,
@@ -299,7 +335,7 @@ export class MailboxRepository {
         status: "sent",
         provider: input.provider,
         provider_message_id: input.providerMessageId,
-        metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+        metadata: stringifyMetadata(input.metadata),
         sent_at: timestamp,
         updated_at: timestamp,
       })
@@ -322,7 +358,7 @@ export class MailboxRepository {
       .set({
         status: "failed",
         provider: input.provider,
-        metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+        metadata: stringifyMetadata(input.metadata),
         error_message: input.errorMessage,
         failed_at: timestamp,
         updated_at: timestamp,
@@ -365,6 +401,17 @@ export class MailboxRepository {
       .executeTakeFirst()
 
     return Number(result.numDeletedRows ?? 0)
+  }
+
+  async deleteMessagesByReferenceId(referenceId: string) {
+    const queryDatabase = asQueryDatabase(this.database)
+    const messageRows = await queryDatabase
+      .selectFrom(cxappTableNames.mailboxMessages)
+      .select("id")
+      .where("reference_id", "=", referenceId)
+      .execute()
+
+    return this.deleteMessages(messageRows.map((row) => asNullableString(row.id)).filter((id): id is string => Boolean(id)))
   }
 
   async archiveMessage(id: string) {

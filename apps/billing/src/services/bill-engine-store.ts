@@ -167,9 +167,7 @@ export async function replaceBillingBillEngineTables(
   database: Kysely<unknown>,
   vouchers: BillingVoucher[]
 ) {
-  const postedVouchers = vouchers.filter(
-    (voucher) => voucher.status === "posted" || voucher.status === "reversed"
-  )
+  const postedVouchers = vouchers.filter((voucher) => voucher.status === "posted")
   const asOfDate = postedVouchers.reduce((latest, voucher) =>
     voucher.date > latest ? voucher.date : latest, new Date().toISOString().slice(0, 10))
 

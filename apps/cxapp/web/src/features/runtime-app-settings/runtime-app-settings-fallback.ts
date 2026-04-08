@@ -62,6 +62,7 @@ const resources = [
   ["activity-log", "Activity Log", "framework", "/dashboard/settings/activity-log", "page", "Framework audit and admin activity ledger."],
   ["alerts-dashboard", "Alerts Dashboard", "framework", "/dashboard/settings/alerts-dashboard", "page", "Framework monitoring and alert coverage dashboard."],
   ["data-backup", "Data Backup", "framework", "/dashboard/settings/data-backup", "page", "Framework backup cadence, retention, restore drill, and off-machine archive controls."],
+  ["queue-manager", "Queue Manager", "framework", "/dashboard/settings/queue-manager", "page", "Framework background-job queue, retries, worker pickup, and execution log dashboard."],
   ["security-review", "Security Review", "framework", "/dashboard/settings/security-review", "page", "Framework OWASP-aligned checklist and review signoff history."],
   ["system-update", "System Update", "framework", "/dashboard/system-update", "page", "Framework update controls."],
   ["core", "Core Workspace", "core", "/dashboard/apps/core", "workspace", "Whole core workspace."],

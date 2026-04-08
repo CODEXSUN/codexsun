@@ -4,17 +4,16 @@ import type {
   AuthAccountRecoveryRestorePayload,
   AuthAccountRecoveryRestoreResponse,
   AuthLoginPayload,
-  AuthPasswordResetConfirmPayload,
-  AuthPasswordResetConfirmResponse,
+  AuthPasswordLinkCompletePayload,
+  AuthPasswordLinkCompleteResponse,
   AuthPasswordResetRequestPayload,
   AuthPasswordResetRequestResponse,
   AuthRegisterOtpRequestPayload,
   AuthRegisterOtpRequestResponse,
   AuthRegisterOtpVerifyPayload,
   AuthRegisterOtpVerifyResponse,
-  AuthRegisterPayload,
-  AuthTokenResponse,
   AuthUser,
+  AuthTokenResponse,
 } from "@cxapp/shared"
 
 export class HttpError extends Error {
@@ -91,16 +90,9 @@ export function verifyRegisterOtp(payload: AuthRegisterOtpVerifyPayload) {
   })
 }
 
-export function register(payload: AuthRegisterPayload) {
-  return request<AuthTokenResponse>("/api/v1/auth/register", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
-}
-
-export function requestPasswordResetOtp(payload: AuthPasswordResetRequestPayload) {
+export function requestPasswordResetLink(payload: AuthPasswordResetRequestPayload) {
   return request<AuthPasswordResetRequestResponse>(
-    "/api/v1/auth/password-reset/request-otp",
+    "/api/v1/auth/password-reset/request-link",
     {
       method: "POST",
       body: JSON.stringify(payload),
@@ -108,8 +100,8 @@ export function requestPasswordResetOtp(payload: AuthPasswordResetRequestPayload
   )
 }
 
-export function confirmPasswordReset(payload: AuthPasswordResetConfirmPayload) {
-  return request<AuthPasswordResetConfirmResponse>("/api/v1/auth/password-reset/confirm", {
+export function completePasswordLink(payload: AuthPasswordLinkCompletePayload) {
+  return request<AuthPasswordLinkCompleteResponse>("/api/v1/auth/password-reset/complete", {
     method: "POST",
     body: JSON.stringify(payload),
   })

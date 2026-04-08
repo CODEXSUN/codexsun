@@ -537,6 +537,8 @@
 - completed Stage `T5.1` by adding billing item split tables for sales, purchase, receipt, payment, journal, and contra voucher families
 - completed Stage `T5.2` by adding bill references, bill settlements, and overdue tracking projections wired into the voucher lifecycle
 - started Stage `T5.3` with a split-register query service and protected `/internal/v1/billing/registers` route for voucher-family register reads
+- completed the `T5.3` sales, purchase, and settlement report cutover by reading GST and bill-control reports from split voucher tables plus bill-engine projections
+- completed `T5.4` validation coverage for split voucher tables, reverse/delete lifecycles, migration registration, and targeted billing/runtime verification
 - validated the split-table batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
 # 2026-04-08
 

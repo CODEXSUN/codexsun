@@ -150,6 +150,14 @@ const EcommerceProductDetailPage = lazyNamed(
   () => import("./pages/ecommerce-product-detail-page"),
   "EcommerceProductDetailPage",
 );
+const EcommerceCustomerDetailPage = lazyNamed(
+  () => import("./pages/ecommerce-customer-detail-page"),
+  "EcommerceCustomerDetailPage",
+);
+const EcommerceCustomerFormPage = lazyNamed(
+  () => import("./pages/ecommerce-customer-form-page"),
+  "EcommerceCustomerFormPage",
+);
 const EcommerceProductFormPage = lazyNamed(
   () => import("./pages/ecommerce-product-form-page"),
   "EcommerceProductFormPage",
@@ -238,6 +246,10 @@ const FrameworkDataBackupPage = lazyNamed(
   () => import("./pages/framework-data-backup-page"),
   "FrameworkDataBackupPage",
 );
+const FrameworkQueueManagerPage = lazyNamed(
+  () => import("./pages/framework-queue-manager-page"),
+  "FrameworkQueueManagerPage",
+);
 const FrameworkRbacPage = lazyNamed(
   () => import("./pages/framework-rbac-page"),
   "FrameworkRbacPage",
@@ -274,11 +286,11 @@ const ForgotPasswordPage = lazyNamed(
   () => import("./pages/forgot-password-page"),
   "ForgotPasswordPage",
 );
-const LoginPage = lazyNamed(() => import("./pages/login-page"), "LoginPage");
-const RequestAccessPage = lazyNamed(
-  () => import("./pages/request-access-page"),
-  "RequestAccessPage",
+const PasswordSetupPage = lazyNamed(
+  () => import("./pages/password-setup-page"),
+  "PasswordSetupPage",
 );
+const LoginPage = lazyNamed(() => import("./pages/login-page"), "LoginPage");
 const WebUserDashboardPage = lazyNamed(
   () => import("./pages/web-user-dashboard-page"),
   "WebUserDashboardPage",
@@ -355,6 +367,11 @@ function FrameworkUtilityPage({
             title: "Data Backup",
             href: "/dashboard/settings/data-backup",
             summary: "Backup cadence, restore drills, retention, and off-machine backup controls.",
+          },
+          {
+            title: "Queue Manager",
+            href: "/dashboard/settings/queue-manager",
+            summary: "Watch background jobs, worker pickup, retries, and handler outcomes in one place.",
           },
           {
             title: "Security Review",
@@ -773,7 +790,8 @@ function AuthenticatedAppShell() {
           ) : null}
           <Route path="/login" element={<LoginRouteMiddleware />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/request-access" element={<RequestAccessPage />} />
+          <Route path="/password-setup" element={<PasswordSetupPage />} />
+          <Route path="/request-access" element={<Navigate to="/login" replace />} />
           <Route
             path="/dashboard"
             element={
@@ -868,6 +886,16 @@ function AuthenticatedAppShell() {
               <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkDataBackupPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/queue-manager"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkQueueManagerPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -1791,6 +1819,26 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <EcommerceProductFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/customers/:customerId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommerceCustomerDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/customers/:customerId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommerceCustomerFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

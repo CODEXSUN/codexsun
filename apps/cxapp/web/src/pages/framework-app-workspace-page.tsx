@@ -148,6 +148,7 @@ export function FrameworkAppWorkspacePage({
   categoryId,
   companyId,
   contactId,
+  customerId,
   productId,
   ledgerId,
   voucherId,
@@ -157,6 +158,7 @@ export function FrameworkAppWorkspacePage({
   categoryId?: string
   companyId?: string
   contactId?: string
+  customerId?: string
   productId?: string
   ledgerId?: string
   voucherId?: string
@@ -246,7 +248,11 @@ export function FrameworkAppWorkspacePage({
     ) : null
   const ecommerceWorkspaceContent =
     app.id === "ecommerce" ? (
-      <EcommerceWorkspaceSection productId={productId} sectionId={sectionId} />
+      <EcommerceWorkspaceSection
+        customerId={customerId}
+        productId={productId}
+        sectionId={sectionId}
+      />
     ) : null
   const demoWorkspaceContent =
     app.id === "demo" ? <DemoWorkspaceSection sectionId={sectionId} /> : null

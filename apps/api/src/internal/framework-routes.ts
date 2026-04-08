@@ -17,6 +17,7 @@ import {
   getSecurityReviewDashboard,
   updateSecurityReviewItem,
 } from "../../../framework/src/runtime/operations/security-review-service.js"
+import { getRuntimeJobDashboard } from "../../../framework/src/runtime/jobs/runtime-job-dashboard-service.js"
 import {
   createMediaFolder,
   getMedia,
@@ -167,6 +168,31 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(
           await getMonitoringDashboard(context.databases.primary, context.config, {
             windowHours,
+          })
+        )
+      },
+    }),
+    defineInternalRoute("/framework/runtime-jobs", {
+      summary: "Read framework background-job queue health, recent executions, and worker-visible job records.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const status = context.request.url.searchParams.get("status")
+        const limit = context.request.url.searchParams.get("limit")
+
+        return jsonResponse(
+          await getRuntimeJobDashboard(context.databases.primary, {
+            status:
+              status === "queued" ||
+              status === "running" ||
+              status === "completed" ||
+              status === "failed" ||
+              status === "all"
+                ? status
+                : "all",
+            limit: limit ? Number(limit) : undefined,
           })
         )
       },

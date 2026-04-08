@@ -150,7 +150,7 @@ export function StorefrontAccountPage() {
   )
 
   useEffect(() => {
-    if (!customerAuth.accessToken) {
+    if (!customerAuth.accessToken || !customerAuth.customer || customerAuth.isLoading) {
       setCommunicationItems([])
       return
     }
@@ -180,7 +180,7 @@ export function StorefrontAccountPage() {
     return () => {
       isCancelled = true
     }
-  }, [customerAuth.accessToken])
+  }, [customerAuth.accessToken, customerAuth.customer, customerAuth.isLoading])
 
   if (!customerAuth.isAuthenticated) {
     return <Navigate to={storefrontPaths.accountLogin(storefrontPaths.account())} replace />
@@ -402,6 +402,23 @@ export function StorefrontAccountPage() {
               )
               throw saveError
             }
+          }}
+          onDeactivate={async () => {
+            setError(null)
+
+            try {
+              await storefrontApi.deactivateMyCustomerAccount(customerAuth.accessToken!)
+            } catch (deactivateError) {
+              setError(
+                deactivateError instanceof Error
+                  ? deactivateError.message
+                  : "Failed to deactivate account."
+              )
+              throw deactivateError
+            }
+
+            await customerAuth.logout()
+            void navigate(storefrontPaths.accountLogin(), { replace: true })
           }}
         />
       )

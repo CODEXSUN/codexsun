@@ -849,7 +849,7 @@ export const storefrontCommunicationResendResponseSchema = z.object({
   resent: z.boolean(),
   templateCode: storefrontCommunicationTemplateCodeSchema,
   referenceId: z.string().min(1),
-  deliveryStatus: z.enum(["sent", "failed"]),
+  deliveryStatus: z.enum(["queued", "sent", "failed"]),
   message: z.string().min(1),
 })
 

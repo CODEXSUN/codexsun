@@ -13,12 +13,12 @@ import {
 import type {
   ActorType,
   AuthAccountRecoveryRequestResponse,
+  AuthAccountRecoveryRestoreResponse,
+  AuthPasswordLinkCompleteResponse,
   AuthPermissionListResponse,
   AuthPermissionResponse,
-  AuthAccountRecoveryRestoreResponse,
   AuthRoleListResponse,
   AuthRoleResponse,
-  AuthPasswordResetConfirmResponse,
   AuthPasswordResetRequestResponse,
   AuthRegisterOtpRequestResponse,
   AuthRegisterOtpVerifyResponse,
@@ -34,8 +34,8 @@ import {
   authAccountRecoveryRestoreResponseSchema,
   authLoginPayloadSchema,
   authLogoutResponseSchema,
-  authPasswordResetConfirmPayloadSchema,
-  authPasswordResetConfirmResponseSchema,
+  authPasswordLinkCompletePayloadSchema,
+  authPasswordLinkCompleteResponseSchema,
   authPermissionListResponseSchema,
   authPermissionResponseSchema,
   authRoleListResponseSchema,
@@ -48,7 +48,6 @@ import {
   authRegisterOtpRequestResponseSchema,
   authRegisterOtpVerifyPayloadSchema,
   authRegisterOtpVerifyResponseSchema,
-  authRegisterPayloadSchema,
   authSessionListResponseSchema,
   authTokenResponseSchema,
   authUserListResponseSchema,
@@ -74,6 +73,9 @@ type TokenClaims = {
   iat: number
 }
 
+type PasswordLinkPurpose = "password_reset" | "password_setup"
+const authEmailWaitThresholdMs = 2_000
+
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
@@ -81,6 +83,40 @@ export class AuthService {
     private readonly config: ServerConfig,
     private readonly database: Kysely<unknown>
   ) {}
+
+  private async sendTemplatedEmailWithDeliveryPolicy(
+    input: Parameters<MailboxService["sendTemplatedEmail"]>[0],
+    options?: Parameters<MailboxService["sendTemplatedEmail"]>[1]
+  ) {
+    const delivery = this.mailboxService.sendTemplatedEmail(input, options)
+
+    if (this.config.auth.otpDebug) {
+      void delivery.catch((error) => {
+        console.error("Background debug email delivery failed.", error)
+      })
+      return
+    }
+
+    let timedOut = false
+
+    await Promise.race([
+      delivery,
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          timedOut = true
+          resolve()
+        }, authEmailWaitThresholdMs)
+      }),
+    ])
+
+    if (!timedOut) {
+      return
+    }
+
+    void delivery.catch((error) => {
+      console.error("Background auth email delivery failed.", error)
+    })
+  }
 
   async listUsers() {
     const items = (await this.repository.listUsers()).map((entry) =>
@@ -161,10 +197,6 @@ export class AuthService {
       )
     }
 
-    if (!parsedPayload.password) {
-      throw new ApplicationError("Password is required for a new user.", {}, 400)
-    }
-
     const roleKeys = await this.assertAssignableRoles(
       parsedPayload.actorType,
       parsedPayload.roleKeys
@@ -178,6 +210,7 @@ export class AuthService {
       )
     }
 
+    const temporaryPassword = randomUUID()
     const user = await this.repository.create({
       id: randomUUID(),
       email: normalizedEmail,
@@ -187,12 +220,26 @@ export class AuthService {
       avatarUrl:
         parsedPayload.avatarUrl ??
         `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedPayload.displayName.trim())}&background=1f2937&color=ffffff`,
-      passwordHash: await hashPassword(parsedPayload.password),
+      passwordHash: await hashPassword(temporaryPassword),
       organizationName: parsedPayload.organizationName,
       roleKeys,
       isSuperAdmin: parsedPayload.isSuperAdmin,
       isActive: parsedPayload.isActive,
     })
+
+    try {
+      await this.sendPasswordLink({
+        email: user.email,
+        displayName: user.displayName,
+        actorType: user.actorType,
+        purpose: "password_setup",
+        templateCode: "workspace_password_setup_link",
+        intent: "invite",
+      })
+    } catch (error) {
+      await this.repository.deleteUser(user.id)
+      throw error
+    }
 
     return authUserResponseSchema.parse({
       item: this.applyConfiguredSuperAdminAccess(user),
@@ -263,6 +310,47 @@ export class AuthService {
     return authUserResponseSchema.parse({
       item: this.applyConfiguredSuperAdminAccess(nextUser.user),
     })
+  }
+
+  async deleteAdminUser(input: {
+    actingUser: AuthUser
+    userId: string
+  }) {
+    if (!input.actingUser.isSuperAdmin) {
+      throw new ApplicationError(
+        "Only super admins can permanently delete users.",
+        { userId: input.userId },
+        403
+      )
+    }
+
+    if (input.actingUser.id === input.userId) {
+      throw new ApplicationError(
+        "You cannot delete the current signed-in admin account.",
+        { userId: input.userId },
+        409
+      )
+    }
+
+    const storedUser = await this.repository.findById(input.userId)
+
+    if (!storedUser) {
+      throw new ApplicationError("User could not be found.", { userId: input.userId }, 404)
+    }
+
+    if (storedUser.user.isSuperAdmin) {
+      throw new ApplicationError(
+        "Super admin accounts cannot be deleted from this action.",
+        { userId: input.userId },
+        409
+      )
+    }
+
+    await this.repository.deleteUser(input.userId)
+
+    return {
+      deleted: true as const,
+    }
   }
 
   async createRole(payload: unknown) {
@@ -453,17 +541,17 @@ export class AuthService {
     }
 
     try {
-      await this.mailboxService.sendTemplatedEmail(
+      await this.sendTemplatedEmailWithDeliveryPolicy(
         {
           to: [
             {
               email: destination,
-              name: parsedPayload.displayName?.trim() || "Workspace User",
+              name: parsedPayload.displayName?.trim() || "Customer",
             },
           ],
           templateCode: "workspace_registration_otp",
           templateData: {
-            displayName: parsedPayload.displayName?.trim() || "Workspace User",
+            displayName: parsedPayload.displayName?.trim() || "Customer",
             otp,
             expiryMinutes: this.config.auth.otpExpiryMinutes,
           },
@@ -475,7 +563,7 @@ export class AuthService {
     } catch (error) {
       await this.repository.deactivatePendingContactVerifications({
         purpose: "workspace_registration",
-        actorType: "staff",
+        actorType: parsedPayload.actorType,
         channel: "email",
         destination,
       })
@@ -524,60 +612,6 @@ export class AuthService {
       verificationId: verification!.id,
       verified: true,
     } satisfies AuthRegisterOtpVerifyResponse)
-  }
-
-  async register(payload: unknown): Promise<AuthTokenResponse> {
-    const parsedPayload = authRegisterPayloadSchema.parse(payload)
-    const actorType =
-      parsedPayload.actorType === "customer"
-        ? "customer"
-        : parsedPayload.actorType === "vendor"
-          ? "vendor"
-          : parsedPayload.actorType === "staff"
-            ? "staff"
-            : null
-
-    if (!actorType) {
-      throw new ApplicationError(
-        "Public registration is limited to staff, customer, and vendor accounts.",
-        { actorType: parsedPayload.actorType },
-        403
-      )
-    }
-
-    const normalizedEmail = parsedPayload.email.trim().toLowerCase()
-    const verification = await this.repository.getContactVerification(
-      parsedPayload.emailVerificationId
-    )
-
-    this.assertVerifiedRegistrationContact(verification, normalizedEmail)
-
-    const existingUsers = await this.repository.findByEmail(normalizedEmail)
-
-    if (existingUsers.length > 0) {
-      throw new ApplicationError(
-        "An account already exists for this email.",
-        { email: normalizedEmail },
-        409
-      )
-    }
-
-    const user = await this.repository.create({
-      id: randomUUID(),
-      email: normalizedEmail,
-      phoneNumber: this.normalizePhoneNumber(parsedPayload.phoneNumber),
-      displayName: parsedPayload.displayName.trim(),
-      actorType,
-      avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedPayload.displayName.trim())}&background=1f2937&color=ffffff`,
-      passwordHash: await hashPassword(parsedPayload.password),
-      organizationName: parsedPayload.organizationName?.trim() ?? null,
-      roleKeys: [this.resolveDefaultPortalRoleKey(actorType)],
-      isSuperAdmin: false,
-    })
-
-    await this.repository.consumeContactVerification(verification!.id)
-
-    return this.createAuthResponse(user)
   }
 
   async createPortalUser(input: {
@@ -815,7 +849,7 @@ export class AuthService {
     } satisfies AuthLogoutResponse)
   }
 
-  async requestPasswordResetOtp(
+  async requestPasswordResetLink(
     payload: unknown
   ): Promise<AuthPasswordResetRequestResponse> {
     const parsedPayload = authPasswordResetRequestPayloadSchema.parse(payload)
@@ -829,45 +863,43 @@ export class AuthService {
       )
     }
 
-    return this.createEmailOtp({
+    return this.sendPasswordLink({
       email: storedUser.user.email,
       displayName: storedUser.user.displayName,
       actorType: storedUser.user.actorType,
       purpose: "password_reset",
-      templateCode: "password_reset_otp",
-      responseSchema: authPasswordResetRequestResponseSchema,
+      templateCode: "password_reset_link",
+      intent: "reset",
     })
   }
 
-  async confirmPasswordReset(
+  async completePasswordLink(
     payload: unknown
-  ): Promise<AuthPasswordResetConfirmResponse> {
-    const parsedPayload = authPasswordResetConfirmPayloadSchema.parse(payload)
-    const normalizedEmail = parsedPayload.email.trim().toLowerCase()
+  ): Promise<AuthPasswordLinkCompleteResponse> {
+    const parsedPayload = authPasswordLinkCompletePayloadSchema.parse(payload)
     const verification = await this.repository.getContactVerification(
       parsedPayload.verificationId
     )
 
-    this.assertOpenVerification(verification, "password_reset", normalizedEmail)
+    const purpose = this.assertPasswordLinkVerification(verification)
+    const tokenMatches = await verifyPassword(parsedPayload.token, verification!.otpHash)
 
-    const storedUser = await this.findSingleUserByEmail(normalizedEmail)
-
-    if (!storedUser.user.isActive) {
+    if (!tokenMatches) {
+      await this.repository.incrementContactVerificationAttempts(verification!.id)
       throw new ApplicationError(
-        "This account is disabled. Use account recovery instead.",
-        { email: normalizedEmail },
-        409
+        "This password link is invalid. Request a new email and try again.",
+        { verificationId: verification!.id },
+        400
       )
     }
 
-    const otpMatches = await verifyPassword(parsedPayload.otp, verification!.otpHash)
+    const storedUser = await this.findSingleUserByEmail(verification!.destination)
 
-    if (!otpMatches) {
-      await this.repository.incrementContactVerificationAttempts(verification!.id)
+    if (purpose === "password_reset" && !storedUser.user.isActive) {
       throw new ApplicationError(
-        "Invalid OTP. Check the code and try again.",
-        { verificationId: verification!.id },
-        400
+        "This account is disabled. Use account recovery instead.",
+        { email: storedUser.user.email },
+        409
       )
     }
 
@@ -878,9 +910,9 @@ export class AuthService {
     await this.repository.markContactVerificationVerified(verification!.id)
     await this.repository.consumeContactVerification(verification!.id)
 
-    return authPasswordResetConfirmResponseSchema.parse({
+    return authPasswordLinkCompleteResponseSchema.parse({
       updated: true,
-    } satisfies AuthPasswordResetConfirmResponse)
+    } satisfies AuthPasswordLinkCompleteResponse)
   }
 
   async requestAccountRecoveryOtp(
@@ -1013,6 +1045,81 @@ export class AuthService {
     }
   }
 
+  private async sendPasswordLink(input: {
+    email: string
+    displayName: string
+    actorType: ActorType
+    purpose: PasswordLinkPurpose
+    templateCode: "password_reset_link" | "workspace_password_setup_link"
+    intent: "invite" | "reset"
+  }) {
+    const token = `${randomUUID()}${randomUUID()}`.replace(/-/g, "")
+    const expiresAt = new Date(
+      Date.now() + this.config.auth.otpExpiryMinutes * 60_000
+    ).toISOString()
+
+    await this.repository.deactivatePendingContactVerifications({
+      purpose: input.purpose,
+      actorType: input.actorType,
+      channel: "email",
+      destination: input.email,
+    })
+
+    const verification = await this.repository.createContactVerification({
+      id: randomUUID(),
+      purpose: input.purpose,
+      actorType: input.actorType,
+      channel: "email",
+      destination: input.email,
+      otpHash: await hashPassword(token),
+      expiresAt,
+      metadata: {
+        intent: input.intent,
+      },
+    })
+
+    if (!verification) {
+      throw new ApplicationError("Failed to create verification session.", {}, 500)
+    }
+
+    const actionUrl = this.resolveAbsoluteUrl(
+      `/password-setup?verificationId=${encodeURIComponent(verification.id)}&token=${encodeURIComponent(token)}&intent=${encodeURIComponent(input.intent)}`
+    )
+
+    try {
+      await this.sendTemplatedEmailWithDeliveryPolicy(
+        {
+          to: [{ email: input.email, name: input.displayName }],
+          templateCode: input.templateCode,
+          templateData: {
+            displayName: input.displayName,
+            actionUrl,
+            actionLabel:
+              input.intent === "reset" ? "Reset password" : "Create password",
+            expiryMinutes: this.config.auth.otpExpiryMinutes,
+          },
+          referenceType: input.purpose,
+          referenceId: verification.id,
+        },
+        { allowDebugFallback: true }
+      )
+    } catch (error) {
+      await this.repository.deactivatePendingContactVerifications({
+        purpose: input.purpose,
+        actorType: input.actorType,
+        channel: "email",
+        destination: input.email,
+      })
+      throw error
+    }
+
+    return authPasswordResetRequestResponseSchema.parse({
+      sent: true,
+      expiresAt: verification.expiresAt,
+      debugUrl: this.config.auth.otpDebug ? actionUrl : null,
+    })
+  }
+
   private async createEmailOtp<TResponse extends {
     verificationId: string
     expiresAt: string
@@ -1021,8 +1128,8 @@ export class AuthService {
     email: string
     displayName: string
     actorType: ActorType
-    purpose: "password_reset" | "account_recovery"
-    templateCode: "password_reset_otp" | "account_recovery_otp"
+    purpose: "account_recovery"
+    templateCode: "account_recovery_otp"
     responseSchema: { parse: (value: unknown) => TResponse }
   }) {
     const otp = String(randomInt(100000, 1_000_000))
@@ -1051,7 +1158,7 @@ export class AuthService {
       throw new ApplicationError("Failed to create verification session.", {}, 500)
     }
 
-    await this.mailboxService.sendTemplatedEmail(
+    await this.sendTemplatedEmailWithDeliveryPolicy(
       {
         to: [{ email: input.email, name: input.displayName }],
         templateCode: input.templateCode,
@@ -1071,6 +1178,28 @@ export class AuthService {
       expiresAt: verification.expiresAt,
       debugOtp: this.config.auth.otpDebug ? otp : null,
     })
+  }
+
+  private resolveFrontendOrigin() {
+    const configuredHost = this.config.frontendDomain.trim() || "localhost"
+
+    if (configuredHost.startsWith("http://") || configuredHost.startsWith("https://")) {
+      return configuredHost.replace(/\/$/, "")
+    }
+
+    const protocol = this.config.tlsEnabled ? "https" : "http"
+    const port = this.config.tlsEnabled
+      ? this.config.frontendHttpsPort
+      : this.config.frontendHttpPort
+    const defaultPort =
+      (this.config.tlsEnabled && port === 443) ||
+      (!this.config.tlsEnabled && port === 80)
+
+    return `${protocol}://${configuredHost}${defaultPort ? "" : `:${port}`}`
+  }
+
+  private resolveAbsoluteUrl(href: string) {
+    return new URL(href, `${this.resolveFrontendOrigin()}/`).toString()
   }
 
   private assertOpenVerification(
@@ -1100,7 +1229,7 @@ export class AuthService {
 
     if (new Date(verification.expiresAt).getTime() < Date.now()) {
       throw new ApplicationError(
-        "The OTP has expired. Request a new code.",
+        "This verification has expired. Request a new email and try again.",
         { verificationId: verification.id },
         410
       )
@@ -1120,6 +1249,22 @@ export class AuthService {
         400
       )
     }
+  }
+
+  private assertPasswordLinkVerification(
+    verification: ContactVerificationRecord | null
+  ): PasswordLinkPurpose {
+    if (
+      !verification ||
+      (verification.purpose !== "password_reset" &&
+        verification.purpose !== "password_setup")
+    ) {
+      throw new ApplicationError("Password link could not be found.", {}, 404)
+    }
+
+    this.assertOpenVerification(verification, verification.purpose, verification.destination)
+
+    return verification.purpose
   }
 
   private async findSingleUserByEmail(email: string): Promise<StoredAuthUser> {

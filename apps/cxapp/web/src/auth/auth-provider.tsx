@@ -118,16 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       requestRegisterOtp: authApi.requestRegisterOtp,
       verifyRegisterOtp: authApi.verifyRegisterOtp,
-      register: async (payload) => {
-        const response = await authApi.register(payload)
-        const nextSession = toStoredSession(response)
-        persistStoredAuthSession(nextSession)
-        persistCachedAppSessionState(nextSession.user)
-        setSession(nextSession)
-        return response
-      },
-      requestPasswordResetOtp: authApi.requestPasswordResetOtp,
-      confirmPasswordReset: authApi.confirmPasswordReset,
+      requestPasswordResetLink: authApi.requestPasswordResetLink,
+      completePasswordLink: authApi.completePasswordLink,
       requestAccountRecoveryOtp: authApi.requestAccountRecoveryOtp,
       restoreAccount: authApi.restoreAccount,
     }),

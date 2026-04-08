@@ -2909,6 +2909,222 @@ test("billing voucher service syncs item split tables for major voucher families
   }
 })
 
+test("billing voucher service rebuilds split item and bill-engine tables across delete and reverse lifecycles", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-split-lifecycle-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const draftJournal = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-LIFE-DRAFT",
+        status: "draft",
+        type: "journal",
+        date: "2026-04-25",
+        counterparty: "Internal Draft",
+        narration: "Draft journal for delete lifecycle coverage.",
+        lines: [
+          { ledgerId: "ledger-rent", side: "debit", amount: 250, note: "Draft expense" },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 250,
+            note: "Draft payable",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      let journalItems = await runtime.primary
+        .selectFrom(billingTableNames.journalItemVouchers)
+        .selectAll()
+        .where("voucher_id", "=", draftJournal.item.id)
+        .execute()
+      assert.equal(journalItems.length, 2)
+
+      await deleteBillingVoucher(runtime.primary, adminUser, config, draftJournal.item.id)
+
+      journalItems = await runtime.primary
+        .selectFrom(billingTableNames.journalItemVouchers)
+        .selectAll()
+        .where("voucher_id", "=", draftJournal.item.id)
+        .execute()
+      assert.equal(journalItems.length, 0)
+
+      const postedJournal = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-LIFE-POST",
+        status: "posted",
+        type: "journal",
+        date: "2026-04-25",
+        counterparty: "Internal Posted",
+        narration: "Posted journal for reverse lifecycle coverage.",
+        lines: [
+          { ledgerId: "ledger-rent", side: "debit", amount: 300, note: "Posted expense" },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 300,
+            note: "Posted payable",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const journalReversal = await reverseBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedJournal.item.id,
+        {
+          reason: "Lifecycle reverse coverage.",
+        }
+      )
+
+      journalItems = await runtime.primary
+        .selectFrom(billingTableNames.journalItemVouchers)
+        .selectAll()
+        .where("voucher_number", "in", [
+          postedJournal.item.voucherNumber,
+          journalReversal.reversalItem.voucherNumber,
+        ])
+        .execute()
+
+      assert.equal(
+        journalItems.filter((item) => item.voucher_number === postedJournal.item.voucherNumber).length,
+        2
+      )
+      assert.equal(
+        journalItems.filter((item) => item.voucher_number === journalReversal.reversalItem.voucherNumber).length,
+        2
+      )
+
+      const salesInvoice = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-LIFE",
+        type: "sales",
+        date: "2026-04-01",
+        counterparty: "",
+        narration: "Lifecycle bill-engine sales invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: null,
+        sales: {
+          voucherTypeId: "voucher-type-fabric-sales",
+          customerLedgerId: "ledger-sundry-debtors",
+          billToName: "Lifecycle Customer",
+          billToAddress: "Bengaluru",
+          shipToName: "Lifecycle Customer",
+          shipToAddress: "Bengaluru",
+          dueDate: "2026-04-10",
+          referenceNumber: "PO-LIFE-001",
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          taxRate: 10,
+          items: [
+            {
+              itemName: "Lifecycle Lot",
+              description: "Lifecycle bill engine item",
+              hsnOrSac: "5208",
+              quantity: 1,
+              unit: "Nos",
+              rate: 500,
+            },
+          ],
+        },
+        stock: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const receipt = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-LIFE",
+        status: "posted",
+        type: "receipt",
+        date: "2026-04-12",
+        counterparty: "Lifecycle Customer",
+        narration: "Lifecycle bill settlement receipt.",
+        lines: [
+          { ledgerId: "ledger-hdfc", side: "debit", amount: 550, note: "Bank" },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 550,
+            note: "Customer",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "SAL-2026-LIFE",
+            referenceDate: "2026-04-01",
+            dueDate: "2026-04-10",
+            amount: 550,
+            note: "Full receipt",
+          },
+        ],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      let settlements = await runtime.primary
+        .selectFrom(billingTableNames.billSettlements)
+        .selectAll()
+        .where("ref_number", "=", "SAL-2026-LIFE")
+        .execute()
+      assert.equal(settlements.length, 1)
+
+      await reverseBillingVoucher(runtime.primary, adminUser, config, receipt.item.id, {
+        reason: "Reverse settlement for lifecycle coverage.",
+      })
+
+      settlements = await runtime.primary
+        .selectFrom(billingTableNames.billSettlements)
+        .selectAll()
+        .where("ref_number", "=", "SAL-2026-LIFE")
+        .execute()
+      const references = await runtime.primary
+        .selectFrom(billingTableNames.billReferences)
+        .selectAll()
+        .where("ref_number", "=", "SAL-2026-LIFE")
+        .execute()
+
+      assert.equal(settlements.length, 0)
+      assert.equal(references.length, 1)
+      assert.equal(references[0]?.balance_amount, 550)
+      assert.equal(references[0]?.settled_amount, 0)
+      assert.equal(references[0]?.voucher_number, salesInvoice.item.voucherNumber)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("billing voucher service syncs bill references settlements and overdue tracking", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-bill-engine-"))
 

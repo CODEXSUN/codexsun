@@ -53,18 +53,18 @@ Still missing from the documented split-table model:
 
 ### Stage T5.3: Query Cutover
 
-- [ ] move sales register drill queries to split sales tables
-- [ ] move purchase register drill queries to split purchase tables
-- [ ] move receipt/payment settlement analysis to allocation split tables
+- [x] move sales register drill queries to split sales tables
+- [x] move purchase register drill queries to split purchase tables
+- [x] move receipt/payment settlement analysis to allocation split tables
 - [ ] move journal drill views to journal item split table
 - [ ] move contra detail views to contra item split table
 
 ### Stage T5.4: Integrity And Validation
 
-- [ ] add sync validation tests for split voucher tables
-- [ ] add reverse/delete lifecycle coverage for item tables
-- [ ] add migration registration and prepare-path verification
-- [ ] confirm typecheck and targeted billing tests stay green
+- [x] add sync validation tests for split voucher tables
+- [x] add reverse/delete lifecycle coverage for item tables
+- [x] add migration registration and prepare-path verification
+- [x] confirm typecheck and targeted billing tests stay green
 
 ## First Implementation Step
 

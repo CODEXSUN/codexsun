@@ -46,6 +46,113 @@ import { getBillingOpeningBalanceRolloverPolicy } from "./opening-balance-rollov
 import { getBillingYearEndAdjustmentControlPolicy } from "./year-end-control-service.js"
 import { getBillingYearCloseWorkflow } from "./year-close-service.js"
 
+type DynamicDatabase = Record<string, Record<string, unknown>>
+
+type VoucherHeaderProjectionRow = {
+  voucher_id: string
+  status: string
+  counterparty: string
+  narration: string
+  source_voucher_number: string | null
+  reversal_of_voucher_id: string | null
+}
+
+type BillReferenceProjectionRow = {
+  ref_id: string
+  ref_number: string
+  due_date: string | null
+  party_ledger_name: string
+  voucher_id: string
+  voucher_number: string
+  voucher_type: string
+  voucher_date: string
+  ref_type: string
+  original_amount: number
+  settled_amount: number
+  balance_amount: number
+}
+
+type BillOverdueProjectionRow = {
+  bill_ref_id: string
+  overdue_days: number
+}
+
+type ReceiptVoucherProjectionRow = {
+  voucher_id: string
+  party_ledger_name: string
+  receipt_amount: number
+}
+
+type PaymentVoucherProjectionRow = {
+  voucher_id: string
+  party_ledger_name: string
+  payment_amount: number
+}
+
+type ReceiptAllocationProjectionRow = {
+  voucher_id: string
+  allocated_amount: number
+}
+
+type PaymentAllocationProjectionRow = {
+  voucher_id: string
+  allocated_amount: number
+}
+
+type SalesVoucherProjectionRow = {
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  status: string
+  taxable_amount: number
+  tax_amount: number
+  net_amount: number
+  place_of_supply: string | null
+}
+
+type PurchaseVoucherProjectionRow = {
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  status: string
+  taxable_amount: number
+  tax_amount: number
+  net_amount: number
+  place_of_supply: string | null
+}
+
+type SalesItemProjectionRow = {
+  voucher_id: string
+  line_order: number
+  hsn_or_sac: string
+  taxable_amount: number
+  tax_rate: number
+  cgst_amount: number
+  sgst_amount: number
+  igst_amount: number
+  total_tax_amount: number
+  supply_type: string | null
+  place_of_supply: string | null
+}
+
+type PurchaseItemProjectionRow = {
+  voucher_id: string
+  line_order: number
+  hsn_or_sac: string
+  taxable_amount: number
+  tax_rate: number
+  cgst_amount: number
+  sgst_amount: number
+  igst_amount: number
+  total_tax_amount: number
+  supply_type: string | null
+  place_of_supply: string | null
+}
+
+function asDb(database: Kysely<unknown>) {
+  return database as unknown as Kysely<DynamicDatabase>
+}
+
 function roundCurrency(value: number) {
   return Number(value.toFixed(2))
 }
@@ -82,6 +189,145 @@ async function readLedgers(database: Kysely<unknown>) {
 
 async function readVouchers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.vouchers, billingVoucherSchema)
+}
+
+async function readVoucherHeaderRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.voucherHeaders)
+    .select([
+      "voucher_id",
+      "status",
+      "counterparty",
+      "narration",
+      "source_voucher_number",
+      "reversal_of_voucher_id",
+    ])
+    .execute()) as VoucherHeaderProjectionRow[]
+}
+
+async function readBillReferenceRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.billReferences)
+    .select([
+      "ref_id",
+      "ref_number",
+      "due_date",
+      "party_ledger_name",
+      "voucher_id",
+      "voucher_number",
+      "voucher_type",
+      "voucher_date",
+      "ref_type",
+      "original_amount",
+      "settled_amount",
+      "balance_amount",
+    ])
+    .execute()) as BillReferenceProjectionRow[]
+}
+
+async function readBillOverdueRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.billOverdueTracking)
+    .select(["bill_ref_id", "overdue_days"])
+    .execute()) as BillOverdueProjectionRow[]
+}
+
+async function readReceiptVoucherRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.receiptVouchers)
+    .select(["voucher_id", "party_ledger_name", "receipt_amount"])
+    .execute()) as ReceiptVoucherProjectionRow[]
+}
+
+async function readPaymentVoucherRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.paymentVouchers)
+    .select(["voucher_id", "party_ledger_name", "payment_amount"])
+    .execute()) as PaymentVoucherProjectionRow[]
+}
+
+async function readReceiptAllocationRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.receiptItemVouchers)
+    .select(["voucher_id", "allocated_amount"])
+    .execute()) as ReceiptAllocationProjectionRow[]
+}
+
+async function readPaymentAllocationRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.paymentItemVouchers)
+    .select(["voucher_id", "allocated_amount"])
+    .execute()) as PaymentAllocationProjectionRow[]
+}
+
+async function readSalesVoucherRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.salesVouchers)
+    .select([
+      "voucher_id",
+      "voucher_number",
+      "voucher_date",
+      "status",
+      "taxable_amount",
+      "tax_amount",
+      "net_amount",
+      "place_of_supply",
+    ])
+    .execute()) as SalesVoucherProjectionRow[]
+}
+
+async function readPurchaseVoucherRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.purchaseVouchers)
+    .select([
+      "voucher_id",
+      "voucher_number",
+      "voucher_date",
+      "status",
+      "taxable_amount",
+      "tax_amount",
+      "net_amount",
+      "place_of_supply",
+    ])
+    .execute()) as PurchaseVoucherProjectionRow[]
+}
+
+async function readSalesItemRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.salesItemVouchers)
+    .select([
+      "voucher_id",
+      "line_order",
+      "hsn_or_sac",
+      "taxable_amount",
+      "tax_rate",
+      "cgst_amount",
+      "sgst_amount",
+      "igst_amount",
+      "total_tax_amount",
+      "supply_type",
+      "place_of_supply",
+    ])
+    .execute()) as SalesItemProjectionRow[]
+}
+
+async function readPurchaseItemRows(database: Kysely<unknown>) {
+  return (await asDb(database)
+    .selectFrom(billingTableNames.purchaseItemVouchers)
+    .select([
+      "voucher_id",
+      "line_order",
+      "hsn_or_sac",
+      "taxable_amount",
+      "tax_rate",
+      "cgst_amount",
+      "sgst_amount",
+      "igst_amount",
+      "total_tax_amount",
+      "supply_type",
+      "place_of_supply",
+    ])
+    .execute()) as PurchaseItemProjectionRow[]
 }
 
 async function readProducts(database: Kysely<unknown>) {
@@ -658,56 +904,61 @@ function getOutstandingDueDate(voucher: BillingVoucher) {
   return null
 }
 
-function buildOpenBillRecords(postedVouchers: BillingVoucher[], asOfDate: string) {
-  const openBillMap = new Map<string, OpenBillRecord>()
+function buildHeaderMap(rows: VoucherHeaderProjectionRow[]) {
+  return new Map(rows.map((row) => [row.voucher_id, row]))
+}
 
-  for (const voucher of postedVouchers) {
-    if (!["sales", "purchase"].includes(voucher.type) || voucher.reversalOfVoucherId) {
-      continue
-    }
-
-    const dueDate = getOutstandingDueDate(voucher)
-    const ageingBaseDate = dueDate ?? voucher.date
-    const overdueDays = getDaysBetween(ageingBaseDate, asOfDate)
-
-    openBillMap.set(voucher.voucherNumber, {
-      voucherId: voucher.id,
-      voucherNumber: voucher.voucherNumber,
-      voucherType: voucher.type === "sales" ? "sales" : "purchase",
-      date: voucher.date,
-      dueDate,
-      overdueDays,
-      counterparty: voucher.counterparty,
-      originalAmount: getInvoiceAmount(voucher),
-      settledAmount: 0,
-      outstandingAmount: getInvoiceAmount(voucher),
-      netOutstandingAmount: getInvoiceAmount(voucher),
-    })
-  }
-
-  for (const voucher of postedVouchers) {
-    if (!["payment", "receipt"].includes(voucher.type)) {
-      continue
-    }
-
-    for (const allocation of voucher.billAllocations) {
-      const item = openBillMap.get(allocation.referenceNumber)
-
-      if (!item) {
-        continue
-      }
-
-      item.settledAmount = roundCurrency(item.settledAmount + allocation.amount)
-      item.netOutstandingAmount = roundCurrency(item.originalAmount - item.settledAmount)
-      item.outstandingAmount = roundCurrency(Math.max(item.netOutstandingAmount, 0))
-    }
-  }
-
-  return [...openBillMap.values()].sort(
-    (left, right) =>
-      left.date.localeCompare(right.date) ||
-      left.voucherNumber.localeCompare(right.voucherNumber)
+function buildOpenBillRecords(
+  billReferences: BillReferenceProjectionRow[],
+  overdueRows: BillOverdueProjectionRow[],
+  headers: Map<string, VoucherHeaderProjectionRow>,
+  asOfDate: string
+) {
+  const overdueByBillRefId = new Map(
+    overdueRows.map((row) => [row.bill_ref_id, row])
   )
+
+  return billReferences
+    .filter(
+      (reference) => {
+        const header = headers.get(reference.voucher_id)
+        return (
+          (reference.voucher_type === "sales" || reference.voucher_type === "purchase") &&
+          header?.status === "posted" &&
+          header.reversal_of_voucher_id === null
+        )
+      }
+    )
+    .map((reference): OpenBillRecord => {
+      const dueDate = reference.due_date
+      const overdueDays =
+        dueDate === null
+          ? getDaysBetween(reference.voucher_date, asOfDate)
+          : (overdueByBillRefId.get(reference.ref_id)?.overdue_days ??
+            getDaysBetween(dueDate, asOfDate))
+
+      return {
+        voucherId: reference.voucher_id,
+        voucherNumber: reference.voucher_number,
+        voucherType: reference.voucher_type === "sales" ? "sales" : "purchase",
+        date: reference.voucher_date,
+        dueDate,
+        overdueDays,
+        counterparty:
+          headers.get(reference.voucher_id)?.counterparty ?? reference.party_ledger_name,
+        originalAmount: roundCurrency(reference.original_amount),
+        settledAmount: roundCurrency(reference.settled_amount),
+        outstandingAmount: roundCurrency(Math.max(reference.balance_amount, 0)),
+        netOutstandingAmount: roundCurrency(
+          reference.original_amount - reference.settled_amount
+        ),
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.voucherNumber.localeCompare(right.voucherNumber)
+    )
 }
 
 function buildAgingReport(
@@ -788,35 +1039,36 @@ function buildSettlementFollowUp(items: OpenBillRecord[]) {
 }
 
 function buildSettlementExceptions(
-  postedVouchers: BillingVoucher[],
-  openBills: OpenBillRecord[]
+  billReferences: BillReferenceProjectionRow[],
+  openBills: OpenBillRecord[],
+  headers: Map<string, VoucherHeaderProjectionRow>
 ) {
   const items: BillingSettlementExceptionItem[] = []
 
-  for (const voucher of postedVouchers) {
-    if (!["payment", "receipt"].includes(voucher.type)) {
+  for (const reference of billReferences) {
+    const header = headers.get(reference.voucher_id)
+    if (
+      (reference.voucher_type !== "payment" && reference.voucher_type !== "receipt") ||
+      reference.ref_type === "against_ref" ||
+      header?.status !== "posted" ||
+      header.reversal_of_voucher_id !== null
+    ) {
       continue
     }
 
-    for (const allocation of voucher.billAllocations) {
-      if (allocation.referenceType === "against_ref") {
-        continue
-      }
-
-      items.push({
-        voucherId: voucher.id,
-        voucherNumber: voucher.voucherNumber,
-        voucherType: voucher.type,
-        counterparty: voucher.counterparty,
-        category: allocation.referenceType === "new_ref" ? "advance" : "on_account",
-        amount: roundCurrency(allocation.amount),
-        referenceVoucherNumber: allocation.referenceNumber,
-        note:
-          allocation.referenceType === "new_ref"
-            ? "Advance settlement recorded before invoice matching."
-            : "On-account settlement awaiting bill matching.",
-      })
-    }
+    items.push({
+      voucherId: reference.voucher_id,
+      voucherNumber: reference.voucher_number,
+      voucherType: reference.voucher_type,
+      counterparty: header?.counterparty ?? reference.party_ledger_name,
+      category: reference.ref_type === "new_ref" ? "advance" : "on_account",
+      amount: roundCurrency(reference.original_amount),
+      referenceVoucherNumber: reference.ref_number,
+      note:
+        reference.ref_type === "new_ref"
+          ? "Advance settlement recorded before invoice matching."
+          : "On-account settlement awaiting bill matching.",
+    })
   }
 
   for (const item of openBills) {
@@ -850,16 +1102,44 @@ function buildSettlementExceptions(
   }
 }
 
-function buildPartySettlementSummary(postedVouchers: BillingVoucher[]) {
+function buildPartySettlementSummary(
+  receiptVouchers: ReceiptVoucherProjectionRow[],
+  paymentVouchers: PaymentVoucherProjectionRow[],
+  receiptAllocations: ReceiptAllocationProjectionRow[],
+  paymentAllocations: PaymentAllocationProjectionRow[],
+  headers: Map<string, VoucherHeaderProjectionRow>
+) {
   const summaryByCounterparty = new Map<string, BillingPartySettlementSummaryItem>()
 
-  for (const voucher of postedVouchers) {
-    if (!["payment", "receipt"].includes(voucher.type)) {
+  const receiptAllocatedByVoucherId = new Map<string, number>()
+  for (const item of receiptAllocations) {
+    receiptAllocatedByVoucherId.set(
+      item.voucher_id,
+      roundCurrency(
+        (receiptAllocatedByVoucherId.get(item.voucher_id) ?? 0) + item.allocated_amount
+      )
+    )
+  }
+
+  const paymentAllocatedByVoucherId = new Map<string, number>()
+  for (const item of paymentAllocations) {
+    paymentAllocatedByVoucherId.set(
+      item.voucher_id,
+      roundCurrency(
+        (paymentAllocatedByVoucherId.get(item.voucher_id) ?? 0) + item.allocated_amount
+      )
+    )
+  }
+
+  for (const voucher of receiptVouchers) {
+    const header = headers.get(voucher.voucher_id)
+    if (header?.status !== "posted" || header.reversal_of_voucher_id !== null) {
       continue
     }
 
-    const current = summaryByCounterparty.get(voucher.counterparty) ?? {
-      counterparty: voucher.counterparty,
+    const counterparty = header.counterparty || voucher.party_ledger_name
+    const current = summaryByCounterparty.get(counterparty) ?? {
+      counterparty,
       receiptCount: 0,
       paymentCount: 0,
       receiptAmount: 0,
@@ -870,33 +1150,55 @@ function buildPartySettlementSummary(postedVouchers: BillingVoucher[]) {
       unallocatedPaymentAmount: 0,
     }
 
-    const voucherAmount = getVoucherAmount(voucher)
-    const allocatedAmount = roundCurrency(
-      voucher.billAllocations.reduce((sum, allocation) => sum + allocation.amount, 0)
-    )
+    const voucherAmount = roundCurrency(voucher.receipt_amount)
+    const allocatedAmount = receiptAllocatedByVoucherId.get(voucher.voucher_id) ?? 0
     const unallocatedAmount = roundCurrency(Math.max(voucherAmount - allocatedAmount, 0))
 
-    if (voucher.type === "receipt") {
-      current.receiptCount += 1
-      current.receiptAmount = roundCurrency(current.receiptAmount + voucherAmount)
-      current.allocatedReceiptAmount = roundCurrency(
-        current.allocatedReceiptAmount + allocatedAmount
-      )
-      current.unallocatedReceiptAmount = roundCurrency(
-        current.unallocatedReceiptAmount + unallocatedAmount
-      )
-    } else {
-      current.paymentCount += 1
-      current.paymentAmount = roundCurrency(current.paymentAmount + voucherAmount)
-      current.allocatedPaymentAmount = roundCurrency(
-        current.allocatedPaymentAmount + allocatedAmount
-      )
-      current.unallocatedPaymentAmount = roundCurrency(
-        current.unallocatedPaymentAmount + unallocatedAmount
-      )
+    current.receiptCount += 1
+    current.receiptAmount = roundCurrency(current.receiptAmount + voucherAmount)
+    current.allocatedReceiptAmount = roundCurrency(
+      current.allocatedReceiptAmount + allocatedAmount
+    )
+    current.unallocatedReceiptAmount = roundCurrency(
+      current.unallocatedReceiptAmount + unallocatedAmount
+    )
+
+    summaryByCounterparty.set(counterparty, current)
+  }
+
+  for (const voucher of paymentVouchers) {
+    const header = headers.get(voucher.voucher_id)
+    if (header?.status !== "posted" || header.reversal_of_voucher_id !== null) {
+      continue
     }
 
-    summaryByCounterparty.set(voucher.counterparty, current)
+    const counterparty = header.counterparty || voucher.party_ledger_name
+    const current = summaryByCounterparty.get(counterparty) ?? {
+      counterparty,
+      receiptCount: 0,
+      paymentCount: 0,
+      receiptAmount: 0,
+      paymentAmount: 0,
+      allocatedReceiptAmount: 0,
+      allocatedPaymentAmount: 0,
+      unallocatedReceiptAmount: 0,
+      unallocatedPaymentAmount: 0,
+    }
+
+    const voucherAmount = roundCurrency(voucher.payment_amount)
+    const allocatedAmount = paymentAllocatedByVoucherId.get(voucher.voucher_id) ?? 0
+    const unallocatedAmount = roundCurrency(Math.max(voucherAmount - allocatedAmount, 0))
+
+    current.paymentCount += 1
+    current.paymentAmount = roundCurrency(current.paymentAmount + voucherAmount)
+    current.allocatedPaymentAmount = roundCurrency(
+      current.allocatedPaymentAmount + allocatedAmount
+    )
+    current.unallocatedPaymentAmount = roundCurrency(
+      current.unallocatedPaymentAmount + unallocatedAmount
+    )
+
+    summaryByCounterparty.set(counterparty, current)
   }
 
   return {
@@ -907,48 +1209,93 @@ function buildPartySettlementSummary(postedVouchers: BillingVoucher[]) {
 }
 
 function buildGstSalesRegister(
-  postedVouchers: BillingVoucher[],
+  salesVouchers: SalesVoucherProjectionRow[],
+  salesItems: SalesItemProjectionRow[],
+  headers: Map<string, VoucherHeaderProjectionRow>,
+  voucherById: Map<string, BillingVoucher>,
   asOfDate: string
 ) {
-  const items = postedVouchers
-    .filter(
-      (voucher) =>
-        (
-          voucher.type === "sales" ||
-          voucher.type === "sales_return" ||
-          voucher.type === "credit_note"
-        ) &&
-        voucher.gst?.taxDirection === "output"
-    )
+  const itemRowsByVoucherId = new Map<string, SalesItemProjectionRow[]>()
+  for (const item of salesItems) {
+    const current = itemRowsByVoucherId.get(item.voucher_id) ?? []
+    current.push(item)
+    itemRowsByVoucherId.set(item.voucher_id, current)
+  }
+
+  const items = salesVouchers
+    .filter((voucher) => {
+      const sourceVoucher = voucherById.get(voucher.voucher_id)
+      const header = headers.get(voucher.voucher_id)
+      return (
+        voucher.status === "posted" &&
+        header?.reversal_of_voucher_id === null &&
+        sourceVoucher?.gst?.taxDirection === "output"
+      )
+    })
     .map((voucher) => {
+      const sourceVoucher = voucherById.get(voucher.voucher_id)
+      const voucherType = sourceVoucher?.type ?? "sales"
       const direction =
-        voucher.type === "credit_note" || voucher.type === "sales_return" ? -1 : 1
-      const gst = voucher.gst!
+        voucherType === "credit_note" || voucherType === "sales_return" ? -1 : 1
+      const itemRows = [...(itemRowsByVoucherId.get(voucher.voucher_id) ?? [])].sort(
+        (left, right) => left.line_order - right.line_order
+      )
+      const firstItem = itemRows[0]
 
       return {
-        voucherId: voucher.id,
-        voucherNumber: voucher.voucherNumber,
-        voucherType: voucher.type,
+        voucherId: voucher.voucher_id,
+        voucherNumber: voucher.voucher_number,
+        voucherType,
         documentLabel:
-          voucher.type === "credit_note"
+          voucherType === "credit_note"
             ? "credit_note"
-            : voucher.type === "sales_return"
+            : voucherType === "sales_return"
               ? "sales_return"
               : "tax_invoice",
-        date: voucher.date,
-        counterparty: voucher.counterparty,
-        partyGstin: gst.partyGstin,
-        placeOfSupply: gst.placeOfSupply,
-        supplyType: gst.supplyType,
-        hsnOrSac: gst.hsnOrSac,
-        taxRate: gst.taxRate,
-        taxableAmount: roundCurrency(gst.taxableAmount * direction),
-        cgstAmount: roundCurrency(gst.cgstAmount * direction),
-        sgstAmount: roundCurrency(gst.sgstAmount * direction),
-        igstAmount: roundCurrency(gst.igstAmount * direction),
-        totalTaxAmount: roundCurrency(gst.totalTaxAmount * direction),
-        invoiceAmount: roundCurrency(gst.invoiceAmount * direction),
-        referenceVoucherNumber: voucher.sourceDocument?.voucherNumber ?? null,
+        date: voucher.voucher_date,
+        counterparty:
+          headers.get(voucher.voucher_id)?.counterparty ?? sourceVoucher?.counterparty ?? "",
+        partyGstin: sourceVoucher?.gst?.partyGstin ?? null,
+        placeOfSupply:
+          firstItem?.place_of_supply ??
+          voucher.place_of_supply ??
+          sourceVoucher?.gst?.placeOfSupply ??
+          null,
+        supplyType:
+          firstItem?.supply_type ??
+          sourceVoucher?.gst?.supplyType ??
+          sourceVoucher?.sales?.supplyType ??
+          null,
+        hsnOrSac: firstItem?.hsn_or_sac ?? sourceVoucher?.gst?.hsnOrSac ?? "MIXED",
+        taxRate: firstItem?.tax_rate ?? sourceVoucher?.gst?.taxRate ?? 0,
+        taxableAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.taxable_amount, 0)
+            : voucher.taxable_amount) * direction
+        ),
+        cgstAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.cgst_amount, 0)
+            : sourceVoucher?.gst?.cgstAmount ?? 0) * direction
+        ),
+        sgstAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.sgst_amount, 0)
+            : sourceVoucher?.gst?.sgstAmount ?? 0) * direction
+        ),
+        igstAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.igst_amount, 0)
+            : sourceVoucher?.gst?.igstAmount ?? 0) * direction
+        ),
+        totalTaxAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.total_tax_amount, 0)
+            : voucher.tax_amount) * direction
+        ),
+        invoiceAmount: roundCurrency(voucher.net_amount * direction),
+        referenceVoucherNumber:
+          headers.get(voucher.voucher_id)?.source_voucher_number ?? null,
       }
     })
     .sort(
@@ -978,48 +1325,89 @@ function buildGstSalesRegister(
 }
 
 function buildGstPurchaseRegister(
-  postedVouchers: BillingVoucher[],
+  purchaseVouchers: PurchaseVoucherProjectionRow[],
+  purchaseItems: PurchaseItemProjectionRow[],
+  headers: Map<string, VoucherHeaderProjectionRow>,
+  voucherById: Map<string, BillingVoucher>,
   asOfDate: string
 ) {
-  const items = postedVouchers
-    .filter(
-      (voucher) =>
-        (
-          voucher.type === "purchase" ||
-          voucher.type === "purchase_return" ||
-          voucher.type === "debit_note"
-        ) &&
-        voucher.gst?.taxDirection === "input"
-    )
+  const itemRowsByVoucherId = new Map<string, PurchaseItemProjectionRow[]>()
+  for (const item of purchaseItems) {
+    const current = itemRowsByVoucherId.get(item.voucher_id) ?? []
+    current.push(item)
+    itemRowsByVoucherId.set(item.voucher_id, current)
+  }
+
+  const items = purchaseVouchers
+    .filter((voucher) => {
+      const sourceVoucher = voucherById.get(voucher.voucher_id)
+      const header = headers.get(voucher.voucher_id)
+      return (
+        voucher.status === "posted" &&
+        header?.reversal_of_voucher_id === null &&
+        sourceVoucher?.gst?.taxDirection === "input"
+      )
+    })
     .map((voucher) => {
+      const sourceVoucher = voucherById.get(voucher.voucher_id)
+      const voucherType = sourceVoucher?.type ?? "purchase"
       const direction =
-        voucher.type === "debit_note" || voucher.type === "purchase_return" ? -1 : 1
-      const gst = voucher.gst!
+        voucherType === "debit_note" || voucherType === "purchase_return" ? -1 : 1
+      const itemRows = [...(itemRowsByVoucherId.get(voucher.voucher_id) ?? [])].sort(
+        (left, right) => left.line_order - right.line_order
+      )
+      const firstItem = itemRows[0]
 
       return {
-        voucherId: voucher.id,
-        voucherNumber: voucher.voucherNumber,
-        voucherType: voucher.type,
+        voucherId: voucher.voucher_id,
+        voucherNumber: voucher.voucher_number,
+        voucherType,
         documentLabel:
-          voucher.type === "debit_note"
+          voucherType === "debit_note"
             ? "debit_note"
-            : voucher.type === "purchase_return"
+            : voucherType === "purchase_return"
               ? "purchase_return"
               : "purchase_invoice",
-        date: voucher.date,
-        counterparty: voucher.counterparty,
-        partyGstin: gst.partyGstin,
-        placeOfSupply: gst.placeOfSupply,
-        supplyType: gst.supplyType,
-        hsnOrSac: gst.hsnOrSac,
-        taxRate: gst.taxRate,
-        taxableAmount: roundCurrency(gst.taxableAmount * direction),
-        cgstAmount: roundCurrency(gst.cgstAmount * direction),
-        sgstAmount: roundCurrency(gst.sgstAmount * direction),
-        igstAmount: roundCurrency(gst.igstAmount * direction),
-        totalTaxAmount: roundCurrency(gst.totalTaxAmount * direction),
-        invoiceAmount: roundCurrency(gst.invoiceAmount * direction),
-        referenceVoucherNumber: voucher.sourceDocument?.voucherNumber ?? null,
+        date: voucher.voucher_date,
+        counterparty:
+          headers.get(voucher.voucher_id)?.counterparty ?? sourceVoucher?.counterparty ?? "",
+        partyGstin: sourceVoucher?.gst?.partyGstin ?? null,
+        placeOfSupply:
+          firstItem?.place_of_supply ??
+          voucher.place_of_supply ??
+          sourceVoucher?.gst?.placeOfSupply ??
+          null,
+        supplyType: firstItem?.supply_type ?? sourceVoucher?.gst?.supplyType ?? null,
+        hsnOrSac: firstItem?.hsn_or_sac ?? sourceVoucher?.gst?.hsnOrSac ?? "MIXED",
+        taxRate: firstItem?.tax_rate ?? sourceVoucher?.gst?.taxRate ?? 0,
+        taxableAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.taxable_amount, 0)
+            : voucher.taxable_amount) * direction
+        ),
+        cgstAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.cgst_amount, 0)
+            : sourceVoucher?.gst?.cgstAmount ?? 0) * direction
+        ),
+        sgstAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.sgst_amount, 0)
+            : sourceVoucher?.gst?.sgstAmount ?? 0) * direction
+        ),
+        igstAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.igst_amount, 0)
+            : sourceVoucher?.gst?.igstAmount ?? 0) * direction
+        ),
+        totalTaxAmount: roundCurrency(
+          (itemRows.length > 0
+            ? itemRows.reduce((sum, row) => sum + row.total_tax_amount, 0)
+            : voucher.tax_amount) * direction
+        ),
+        invoiceAmount: roundCurrency(voucher.net_amount * direction),
+        referenceVoucherNumber:
+          headers.get(voucher.voucher_id)?.source_voucher_number ?? null,
       }
     })
     .sort(
@@ -1694,15 +2082,44 @@ export async function getBillingAccountingReports(
 ) {
   assertBillingViewer(user)
 
-  const [ledgers, vouchers, ledgerEntries, products, warehouses] = await Promise.all([
+  const [
+    ledgers,
+    vouchers,
+    ledgerEntries,
+    products,
+    warehouses,
+    voucherHeaderRows,
+    billReferenceRows,
+    billOverdueRows,
+    receiptVoucherRows,
+    paymentVoucherRows,
+    receiptAllocationRows,
+    paymentAllocationRows,
+    salesVoucherRows,
+    salesItemRows,
+    purchaseVoucherRows,
+    purchaseItemRows,
+  ] = await Promise.all([
     readLedgers(database),
     readVouchers(database),
     listBillingLedgerEntries(database).then((response) => response.items),
     readProducts(database),
     readWarehouses(database),
+    readVoucherHeaderRows(database),
+    readBillReferenceRows(database),
+    readBillOverdueRows(database),
+    readReceiptVoucherRows(database),
+    readPaymentVoucherRows(database),
+    readReceiptAllocationRows(database),
+    readPaymentAllocationRows(database),
+    readSalesVoucherRows(database),
+    readSalesItemRows(database),
+    readPurchaseVoucherRows(database),
+    readPurchaseItemRows(database),
   ])
   const postedVouchers = vouchers.filter((voucher) => voucher.status === "posted")
   const voucherById = new Map(vouchers.map((voucher) => [voucher.id, voucher]))
+  const voucherHeaders = buildHeaderMap(voucherHeaderRows)
   const asOfDate = getMaxVoucherDate(postedVouchers)
   const movementByLedgerId = getLedgerMovement(ledgerEntries)
   const sourceReferencesByLedgerId = getLedgerSourceReferences(ledgerEntries)
@@ -1908,7 +2325,12 @@ export async function getBillingAccountingReports(
     balanceSheet.totalAssets += netLoss
   }
 
-  const openBillRecords = buildOpenBillRecords(postedVouchers, asOfDate)
+  const openBillRecords = buildOpenBillRecords(
+    billReferenceRows,
+    billOverdueRows,
+    voucherHeaders,
+    asOfDate
+  )
   const outstandingItems = openBillRecords
     .filter((item) => item.outstandingAmount > 0)
     .map((item) => ({
@@ -1934,7 +2356,11 @@ export async function getBillingAccountingReports(
       .filter((item) => item.voucherType === "purchase")
       .reduce((sum, item) => sum + item.outstandingAmount, 0)
   )
-  const settlementExceptions = buildSettlementExceptions(postedVouchers, openBillRecords)
+  const settlementExceptions = buildSettlementExceptions(
+    billReferenceRows,
+    openBillRecords,
+    voucherHeaders
+  )
   const bankReconciliation = (() => {
     const bankLedgers = generalLedgerItems.filter((item) => item.group === "Bank Accounts")
     const ledgers = bankLedgers.map((item) => {
@@ -2131,7 +2557,13 @@ export async function getBillingAccountingReports(
       payableAging: buildAgingReport(openBillRecords, "purchase", asOfDate),
       settlementFollowUp: buildSettlementFollowUp(openBillRecords),
       settlementExceptions,
-      partySettlementSummary: buildPartySettlementSummary(postedVouchers),
+      partySettlementSummary: buildPartySettlementSummary(
+        receiptVoucherRows,
+        paymentVoucherRows,
+        receiptAllocationRows,
+        paymentAllocationRows,
+        voucherHeaders
+      ),
       generalLedger: {
         items: generalLedgerItems,
       },
@@ -2144,8 +2576,20 @@ export async function getBillingAccountingReports(
       bankReconciliation,
       customerStatement: buildCustomerStatement(postedVouchers, voucherById),
       supplierStatement: buildSupplierStatement(postedVouchers, voucherById),
-      gstSalesRegister: buildGstSalesRegister(postedVouchers, asOfDate),
-      gstPurchaseRegister: buildGstPurchaseRegister(postedVouchers, asOfDate),
+      gstSalesRegister: buildGstSalesRegister(
+        salesVoucherRows,
+        salesItemRows,
+        voucherHeaders,
+        voucherById,
+        asOfDate
+      ),
+      gstPurchaseRegister: buildGstPurchaseRegister(
+        purchaseVoucherRows,
+        purchaseItemRows,
+        voucherHeaders,
+        voucherById,
+        asOfDate
+      ),
       inputOutputTaxSummary: buildInputOutputTaxSummary(postedVouchers, asOfDate),
       gstFilingSummary,
       inventoryAuthority,

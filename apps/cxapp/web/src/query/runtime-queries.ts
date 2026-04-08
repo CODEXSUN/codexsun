@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
-import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
+import { getStoredAccessToken, readStoredAuthSession } from "@cxapp/web/src/auth/session-storage"
 import type { AppSettingsSnapshot } from "../../../../framework/shared/index.js"
 
 import { fallbackRuntimeAppSettings } from "../features/runtime-app-settings/runtime-app-settings-fallback"
@@ -40,8 +40,15 @@ export function useRuntimeBrandQuery() {
     queryKey: queryKeys.runtimeBrand,
     queryFn: async () => {
       try {
-        const hasAccessToken = Boolean(getStoredAccessToken())
-        const payload = hasAccessToken
+        const storedSession = readStoredAuthSession()
+        const shouldUseInternalBrandRoute =
+          Boolean(storedSession?.accessToken) &&
+          Boolean(
+            storedSession?.user.isSuperAdmin ||
+              storedSession?.user.actorType === "admin" ||
+              storedSession?.user.actorType === "staff"
+          )
+        const payload = shouldUseInternalBrandRoute
           ? await requestJson<CompanyBrandProfile>("/internal/v1/cxapp/company-brand", true)
           : await requestJson<CompanyBrandProfile>("/public/v1/brand-profile")
 

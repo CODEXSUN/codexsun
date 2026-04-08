@@ -296,6 +296,19 @@ async function readRequestBody(request: IncomingMessage) {
 }
 
 export async function startFrameworkServer(cwd = process.cwd()) {
+  return startFrameworkServerWithOptions(cwd)
+}
+
+export async function startFrameworkServerWithOptions(
+  cwd = process.cwd(),
+  options: {
+    onReady?: (context: {
+      config: ServerConfig
+      databases: RuntimeDatabases
+      logger: ReturnType<typeof createRuntimeLogger>
+    }) => Promise<(() => void) | void> | (() => void) | void
+  } = {}
+) {
   const container = createFrameworkServerContainer(cwd)
   const config = container.resolve<ServerConfig>(FRAMEWORK_TOKENS.config)
   const databases = container.resolve<RuntimeDatabases>(FRAMEWORK_TOKENS.databases)
@@ -333,6 +346,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   const listeningServers = new Set<ListenerServer>()
   let isShuttingDown = false
   let stopBackupScheduler: (() => void) | null = null
+  let stopReadyHook: (() => void) | null = null
 
   const requestHandler = async (
     request: IncomingMessage,
@@ -605,6 +619,8 @@ export async function startFrameworkServer(cwd = process.cwd()) {
   let shutdownTimer: NodeJS.Timeout | undefined
 
   async function destroyRuntimeResources() {
+    stopReadyHook?.()
+    stopReadyHook = null
     stopBackupScheduler?.()
     stopBackupScheduler = null
 
@@ -740,6 +756,7 @@ export async function startFrameworkServer(cwd = process.cwd()) {
       databases,
       logger,
     })
+    stopReadyHook = (await options.onReady?.({ config, databases, logger })) ?? null
     startupState.status = "ready"
     logger.info("runtime.ready")
   } catch (error) {

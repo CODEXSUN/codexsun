@@ -48,6 +48,29 @@ interface EmailDispatchInput {
   fromEmail?: string
 }
 
+function toDatabaseSafeText(value: string | null | undefined) {
+  if (!value) {
+    return value ?? null
+  }
+
+  return value
+    .replace(/\u20B9/g, "Rs.")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u00A0/g, " ")
+}
+
+function toDatabaseSafeHtml(value: string | null | undefined) {
+  if (!value) {
+    return value ?? null
+  }
+
+  return value
+    .replace(/\u20B9/g, "&#8377;")
+    .replace(/[\u0080-\uFFFF]/g, (character) => `&#${character.charCodeAt(0)};`)
+}
+
 export class MailboxService {
   constructor(
     private readonly repository: MailboxRepository,
@@ -217,6 +240,11 @@ export class MailboxService {
     options: { allowDebugFallback: boolean }
   ) {
     const resolved = await this.resolveMessageContent(input)
+    const persistedContent = {
+      subject: toDatabaseSafeText(resolved.subject) ?? resolved.subject,
+      htmlBody: toDatabaseSafeHtml(resolved.htmlBody),
+      textBody: toDatabaseSafeText(resolved.textBody),
+    }
     const fromEmail =
       input.fromEmail ??
       this.config.notifications.email.fromEmail ??
@@ -247,9 +275,9 @@ export class MailboxService {
       templateCode: resolved.templateCode,
       referenceType: input.referenceType ?? null,
       referenceId: input.referenceId ?? null,
-      subject: resolved.subject,
-      htmlBody: resolved.htmlBody,
-      textBody: resolved.textBody,
+      subject: persistedContent.subject,
+      htmlBody: persistedContent.htmlBody,
+      textBody: persistedContent.textBody,
       fromEmail,
       fromName: fromName ?? null,
       replyTo: input.replyTo ?? null,

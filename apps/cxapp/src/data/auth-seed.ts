@@ -619,9 +619,9 @@ export const mailboxTemplates: MailboxTemplate[] = [
   defineMailboxTemplate({
     id: "mailbox-template:workspace-registration-otp",
     code: "workspace_registration_otp",
-    name: "Workspace Registration OTP",
+    name: "Registration OTP",
     category: "auth",
-    description: "OTP message sent while creating a new workspace account.",
+    description: "OTP message sent while creating a new customer account.",
     subjectTemplate: "Your Tm Next verification code",
     htmlTemplate: `
       <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#1f2937;">
@@ -629,7 +629,7 @@ export const mailboxTemplates: MailboxTemplate[] = [
           <div style="background:linear-gradient(135deg,#264653 0%,#3d6b63 100%);padding:28px 32px;color:#f9f6ef;">
             <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.74;">Tm Next</div>
             <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;font-weight:700;">Verify your email address</h1>
-            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">Your account request is almost ready. Use the code below to continue registration.</p>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">Your account is almost ready. Use the code below to continue registration.</p>
           </div>
           <div style="padding:32px;">
             <p style="margin:0 0 18px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
@@ -646,8 +646,45 @@ export const mailboxTemplates: MailboxTemplate[] = [
     textTemplate:
       "Tm Next verification\n\nHello {{displayName}},\nYour verification code is {{otp}}.\nThis code expires in {{expiryMinutes}} minutes.\nIf you did not request this, you can ignore this email.",
     sampleData: {
-      displayName: "Workspace User",
+      displayName: "Customer",
       otp: "123456",
+      expiryMinutes: 10,
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:workspace-password-setup-link",
+    code: "workspace_password_setup_link",
+    name: "Workspace Password Setup Link",
+    category: "auth",
+    description: "Invite email sent when an admin creates a workspace user.",
+    subjectTemplate: "Create your Tm Next password",
+    htmlTemplate: `
+      <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#1f2937;">
+        <div style="margin:0 auto;max-width:560px;overflow:hidden;border:1px solid #e7dcc9;border-radius:28px;background:#fffdf8;box-shadow:0 18px 50px rgba(148, 120, 84, 0.14);">
+          <div style="background:linear-gradient(135deg,#234a63 0%,#345f7e 100%);padding:28px 32px;color:#f4faff;">
+            <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.74;">Tm Next</div>
+            <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;font-weight:700;">Your account is ready</h1>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">An administrator created your access. Use the secure link below to create your password.</p>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 18px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+            <a href="{{actionUrl}}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#1f2937;color:#f8fafc;padding:14px 20px;font-size:13px;font-weight:700;text-decoration:none;">{{actionLabel}}</a>
+            <p style="margin:18px 0 14px;font-size:14px;line-height:1.8;color:#4b5563;">This secure link expires in <strong>{{expiryMinutes}} minutes</strong>. If you were not expecting this email, contact your administrator.</p>
+            <p style="margin:0 0 14px;font-size:13px;line-height:1.8;color:#6b7280;">If the button does not open, copy and paste this URL into your browser:</p>
+            <p style="margin:0 0 16px;font-size:13px;line-height:1.8;color:#1f2937;word-break:break-all;">{{actionUrl}}</p>
+            <div style="border-top:1px solid #eee4d5;padding-top:16px;font-size:12px;line-height:1.7;color:#6b7280;">Sent by Tm Next - Mail Service</div>
+          </div>
+        </div>
+      </div>
+    `,
+    textTemplate:
+      "Tm Next account invite\n\nHello {{displayName}},\nCreate your password here: {{actionUrl}}\nThis link expires in {{expiryMinutes}} minutes.",
+    sampleData: {
+      displayName: "Workspace User",
+      actionUrl: "http://localhost:5173/password-setup?verificationId=verification-123&token=token-123&intent=invite",
+      actionLabel: "Create password",
       expiryMinutes: 10,
     },
     isSystem: true,
@@ -685,6 +722,43 @@ export const mailboxTemplates: MailboxTemplate[] = [
     sampleData: {
       displayName: "Workspace User",
       otp: "123456",
+      expiryMinutes: 10,
+    },
+    isSystem: true,
+    isActive: true,
+  }),
+  defineMailboxTemplate({
+    id: "mailbox-template:password-reset-link",
+    code: "password_reset_link",
+    name: "Password Reset Link",
+    category: "auth",
+    description: "Email link sent while resetting an account password.",
+    subjectTemplate: "Reset your Tm Next password",
+    htmlTemplate: `
+      <div style="margin:0;background:#f4efe5;padding:32px 16px;font-family:Arial,sans-serif;color:#1f2937;">
+        <div style="margin:0 auto;max-width:560px;overflow:hidden;border:1px solid #e7dcc9;border-radius:28px;background:#fffdf8;box-shadow:0 18px 50px rgba(148, 120, 84, 0.14);">
+          <div style="background:linear-gradient(135deg,#6b3f1d 0%,#b05f1b 100%);padding:28px 32px;color:#fff7ed;">
+            <div style="font-size:12px;letter-spacing:0.24em;text-transform:uppercase;opacity:0.74;">Tm Next</div>
+            <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;font-weight:700;">Reset your password</h1>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.7;opacity:0.88;">Use the secure link below to choose a new password.</p>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 18px;font-size:15px;line-height:1.8;">Hello {{displayName}},</p>
+            <a href="{{actionUrl}}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#7c2d12;color:#fff7ed;padding:14px 20px;font-size:13px;font-weight:700;text-decoration:none;">{{actionLabel}}</a>
+            <p style="margin:18px 0 14px;font-size:14px;line-height:1.8;color:#4b5563;">This secure link expires in <strong>{{expiryMinutes}} minutes</strong>.</p>
+            <p style="margin:0 0 14px;font-size:13px;line-height:1.8;color:#6b7280;">If the button does not open, copy and paste this URL into your browser:</p>
+            <p style="margin:0 0 16px;font-size:13px;line-height:1.8;color:#1f2937;word-break:break-all;">{{actionUrl}}</p>
+            <div style="border-top:1px solid #eee4d5;padding-top:16px;font-size:12px;line-height:1.7;color:#6b7280;">Sent by Tm Next - Mail Service</div>
+          </div>
+        </div>
+      </div>
+    `,
+    textTemplate:
+      "Tm Next password reset\n\nHello {{displayName}},\nReset your password here: {{actionUrl}}\nThis link expires in {{expiryMinutes}} minutes.",
+    sampleData: {
+      displayName: "Workspace User",
+      actionUrl: "http://localhost:5173/password-setup?verificationId=verification-123&token=token-123&intent=reset",
+      actionLabel: "Reset password",
       expiryMinutes: 10,
     },
     isSystem: true,

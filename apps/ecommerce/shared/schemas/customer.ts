@@ -32,6 +32,13 @@ export const storefrontCustomerSuspiciousLoginEventSchema = z.object({
   createdAt: z.string().min(1),
 })
 
+export const storefrontCustomerWelcomeMailStatusSchema = z.enum([
+  "not_sent",
+  "queued",
+  "sent",
+  "failed",
+])
+
 export const customerAccountSchema = z.object({
   id: z.string().min(1),
   authUserId: z.string().min(1).nullable().default(null),
@@ -294,6 +301,11 @@ export const storefrontCustomerAdminViewSchema = z.object({
   latestSuspiciousLoginAt: z.string().nullable(),
   suspiciousLoginReviewedAt: z.string().nullable(),
   suspiciousLoginReviewNote: z.string().nullable(),
+  welcomeMailStatus: storefrontCustomerWelcomeMailStatusSchema,
+  welcomeMailLastAttemptAt: z.string().nullable(),
+  welcomeMailSentAt: z.string().nullable(),
+  welcomeMailFailedAt: z.string().nullable(),
+  welcomeMailErrorMessage: z.string().nullable(),
   lastOrderAt: z.string().nullable(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -326,6 +338,11 @@ export const storefrontCustomerLifecycleActionPayloadSchema = z.object({
   note: z.string().trim().nullable().optional().default(null),
 })
 
+export const storefrontCustomerPermanentDeletePayloadSchema = z.object({
+  customerAccountId: z.string().min(1),
+  note: z.string().trim().nullable().optional().default(null),
+})
+
 export const storefrontCustomerAdminResponseSchema = z.object({
   item: storefrontCustomerAdminViewSchema,
   suspiciousLoginEvents: z.array(storefrontCustomerSuspiciousLoginEventSchema),
@@ -334,6 +351,49 @@ export const storefrontCustomerAdminResponseSchema = z.object({
 export const storefrontCustomerSecurityReviewPayloadSchema = z.object({
   customerAccountId: z.string().min(1),
   note: z.string().trim().nullable().optional().default(null),
+})
+
+export const storefrontCustomerDeleteEligibilitySchema = z.object({
+  canDelete: z.boolean(),
+  hasLinkedRecords: z.boolean(),
+  orderCount: z.number().int().min(0),
+  supportCaseCount: z.number().int().min(0),
+  requestCount: z.number().int().min(0),
+})
+
+export const storefrontCustomerPermanentDeleteResponseSchema = z.object({
+  deleted: z.literal(true),
+  customerAccountId: z.string().min(1),
+})
+
+export const storefrontCustomerSelfDeactivateResponseSchema = z.object({
+  deactivated: z.literal(true),
+  customerAccountId: z.string().min(1),
+})
+
+export const ecommerceSettingsAutomationSchema = z.object({
+  autoSendWelcomeMail: z.boolean().default(true),
+})
+
+export const ecommerceSettingsSchema = z.object({
+  id: z.string().min(1),
+  automation: ecommerceSettingsAutomationSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const ecommerceSettingsUpdatePayloadSchema = z.object({
+  automation: ecommerceSettingsAutomationSchema.partial().default({}),
+})
+
+export const storefrontCustomerWelcomeMailSendPayloadSchema = z.object({
+  customerAccountId: z.string().min(1),
+})
+
+export const storefrontCustomerWelcomeMailSendResponseSchema = z.object({
+  customer: storefrontCustomerAdminResponseSchema,
+  deliveryStatus: z.enum(["queued", "sent", "failed"]),
+  message: z.string().min(1),
 })
 
 export const customerWishlistTogglePayloadSchema = z.object({
@@ -351,12 +411,12 @@ export const customerRegisterPayloadSchema = z.object({
   emailVerificationId: z.string().trim().min(1),
   companyName: z.string().trim().nullable().optional().default(null),
   gstin: z.string().trim().nullable().optional().default(null),
-  addressLine1: z.string().trim().min(3),
+  addressLine1: z.string().trim().nullable().optional().default(null),
   addressLine2: z.string().trim().nullable().optional().default(null),
-  city: z.string().trim().min(2),
-  state: z.string().trim().min(2),
-  country: z.string().trim().min(2),
-  pincode: z.string().trim().min(3),
+  city: z.string().trim().nullable().optional().default(null),
+  state: z.string().trim().nullable().optional().default(null),
+  country: z.string().trim().nullable().optional().default(null),
+  pincode: z.string().trim().nullable().optional().default(null),
 })
 
 export const customerLoginPayloadSchema = z.object({
@@ -413,6 +473,9 @@ export type CustomerLifecycleState = z.infer<typeof customerLifecycleStateSchema
 export type StorefrontCustomerSuspiciousLoginEvent = z.infer<
   typeof storefrontCustomerSuspiciousLoginEventSchema
 >
+export type StorefrontCustomerWelcomeMailStatus = z.infer<
+  typeof storefrontCustomerWelcomeMailStatusSchema
+>
 export type StorefrontCustomerAdminView = z.infer<typeof storefrontCustomerAdminViewSchema>
 export type StorefrontCustomerAdminReport = z.infer<typeof storefrontCustomerAdminReportSchema>
 export type StorefrontCustomerLifecycleAction = z.infer<
@@ -424,8 +487,31 @@ export type StorefrontCustomerLifecycleActionPayload = z.infer<
 export type StorefrontCustomerAdminResponse = z.infer<
   typeof storefrontCustomerAdminResponseSchema
 >
+export type StorefrontCustomerDeleteEligibility = z.infer<
+  typeof storefrontCustomerDeleteEligibilitySchema
+>
 export type StorefrontCustomerSecurityReviewPayload = z.infer<
   typeof storefrontCustomerSecurityReviewPayloadSchema
+>
+export type StorefrontCustomerPermanentDeletePayload = z.infer<
+  typeof storefrontCustomerPermanentDeletePayloadSchema
+>
+export type StorefrontCustomerPermanentDeleteResponse = z.infer<
+  typeof storefrontCustomerPermanentDeleteResponseSchema
+>
+export type StorefrontCustomerSelfDeactivateResponse = z.infer<
+  typeof storefrontCustomerSelfDeactivateResponseSchema
+>
+export type EcommerceSettingsAutomation = z.infer<typeof ecommerceSettingsAutomationSchema>
+export type EcommerceSettings = z.infer<typeof ecommerceSettingsSchema>
+export type EcommerceSettingsUpdatePayload = z.infer<
+  typeof ecommerceSettingsUpdatePayloadSchema
+>
+export type StorefrontCustomerWelcomeMailSendPayload = z.infer<
+  typeof storefrontCustomerWelcomeMailSendPayloadSchema
+>
+export type StorefrontCustomerWelcomeMailSendResponse = z.infer<
+  typeof storefrontCustomerWelcomeMailSendResponseSchema
 >
 export type CustomerRegisterPayload = z.infer<typeof customerRegisterPayloadSchema>
 export type CustomerLoginPayload = z.infer<typeof customerLoginPayloadSchema>

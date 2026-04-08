@@ -45,40 +45,28 @@ export function createAuthExternalRoutes(): HttpRouteDefinition[] {
           ).verifyRegisterOtp(context.request.jsonBody)
         ),
     }),
-    defineExternalRoute("/auth/register", {
+    defineExternalRoute("/auth/password-reset/request-link", {
       auth: "none",
       method: "POST",
-      summary: "Create a new app-owned account after OTP verification.",
+      summary: "Send an email link for password reset.",
       handler: async (context) =>
         jsonResponse(
           await createAuthService(
             context.databases.primary,
             context.config
-          ).register(context.request.jsonBody)
+          ).requestPasswordResetLink(context.request.jsonBody)
         ),
     }),
-    defineExternalRoute("/auth/password-reset/request-otp", {
+    defineExternalRoute("/auth/password-reset/complete", {
       auth: "none",
       method: "POST",
-      summary: "Send an OTP for password reset.",
+      summary: "Complete password setup or reset from an emailed link.",
       handler: async (context) =>
         jsonResponse(
           await createAuthService(
             context.databases.primary,
             context.config
-          ).requestPasswordResetOtp(context.request.jsonBody)
-        ),
-    }),
-    defineExternalRoute("/auth/password-reset/confirm", {
-      auth: "none",
-      method: "POST",
-      summary: "Confirm a password reset using the OTP code.",
-      handler: async (context) =>
-        jsonResponse(
-          await createAuthService(
-            context.databases.primary,
-            context.config
-          ).confirmPasswordReset(context.request.jsonBody)
+          ).completePasswordLink(context.request.jsonBody)
         ),
     }),
     defineExternalRoute("/auth/account-recovery/request-otp", {

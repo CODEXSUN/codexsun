@@ -1,4 +1,5 @@
 import {
+  deactivateAuthenticatedCustomerAccount,
   getAuthenticatedCustomer,
   getAuthenticatedCustomerProfileLookups,
   getAuthenticatedCustomerPortal,
@@ -133,6 +134,26 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
             context.config,
             token,
             context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineExternalRoute("/storefront/customers/me", {
+      auth: "external",
+      method: "DELETE",
+      summary: "Deactivate the authenticated storefront customer account.",
+      handler: async (context) => {
+        const token = readBearerToken(context.request.headers)
+
+        if (!token) {
+          return jsonResponse({ error: "Authorization bearer token is required." }, 401)
+        }
+
+        return jsonResponse(
+          await deactivateAuthenticatedCustomerAccount(
+            context.databases.primary,
+            context.config,
+            token
           )
         )
       },

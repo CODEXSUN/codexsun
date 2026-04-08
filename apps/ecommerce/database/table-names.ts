@@ -1,4 +1,5 @@
 export const ecommerceTableNames = {
+  settings: "ecommerce_settings",
   storefrontSettings: "ecommerce_storefront_settings",
   storefrontSettingsDrafts: "ecommerce_storefront_settings_drafts",
   storefrontSettingsRevisions: "ecommerce_storefront_settings_revisions",

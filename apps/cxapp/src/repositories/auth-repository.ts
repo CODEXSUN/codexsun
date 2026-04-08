@@ -658,6 +658,25 @@ export class AuthRepository {
       .execute()
   }
 
+  async deleteUser(userId: string) {
+    const queryDatabase = asQueryDatabase(this.database)
+
+    await queryDatabase
+      .deleteFrom(cxappTableNames.authSessions)
+      .where("user_id", "=", userId)
+      .execute()
+
+    await queryDatabase
+      .deleteFrom(cxappTableNames.authUserRoles)
+      .where("user_id", "=", userId)
+      .execute()
+
+    await queryDatabase
+      .deleteFrom(cxappTableNames.authUsers)
+      .where("id", "=", userId)
+      .execute()
+  }
+
   async deactivatePendingContactVerifications(input: {
     purpose: string
     actorType: ActorType

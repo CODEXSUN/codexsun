@@ -94,6 +94,30 @@ export function createCxappAuthInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/cxapp/auth/user", {
+      method: "DELETE",
+      summary: "Permanently delete an authenticated user from the admin workspace.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const userId = context.request.url.searchParams.get("id")
+
+        if (!userId) {
+          throw new ApplicationError("User id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await createAuthService(
+            context.databases.primary,
+            context.config
+          ).deleteAdminUser({
+            actingUser: user,
+            userId,
+          })
+        )
+      },
+    }),
     defineInternalRoute("/cxapp/auth/roles", {
       summary: "List RBAC roles with permissions and assignment counts.",
       handler: async (context) => {

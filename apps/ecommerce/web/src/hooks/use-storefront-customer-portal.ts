@@ -23,6 +23,12 @@ export function useStorefrontCustomerPortal() {
   const queryClient = useQueryClient()
   const customerAuth = useStorefrontCustomerAuth()
   const accessToken = customerAuth.accessToken
+  const isPortalBootstrapReady = Boolean(
+    accessToken &&
+      customerAuth.isAuthenticated &&
+      customerAuth.customer &&
+      !customerAuth.isLoading
+  )
   const guestWishlistProductIds = useSyncExternalStore(
     subscribeStorefrontWishlist,
     readStorefrontWishlistProductIds,
@@ -32,25 +38,28 @@ export function useStorefrontCustomerPortal() {
   const portalQuery = useQuery({
     queryKey: queryKeys.storefrontCustomerPortal,
     queryFn: () => storefrontApi.getCustomerPortal(accessToken!),
-    enabled: Boolean(accessToken && customerAuth.isAuthenticated),
+    enabled: isPortalBootstrapReady,
     staleTime: 30_000,
     refetchOnMount: "always",
+    retry: false,
   })
 
   const ordersQuery = useQuery({
     queryKey: queryKeys.storefrontCustomerOrders,
     queryFn: () => storefrontApi.listCustomerOrders(accessToken!),
-    enabled: Boolean(accessToken && customerAuth.isAuthenticated),
+    enabled: isPortalBootstrapReady,
     staleTime: 30_000,
     refetchOnMount: "always",
+    retry: false,
   })
 
   const supportCasesQuery = useQuery({
     queryKey: queryKeys.storefrontCustomerSupportCases,
     queryFn: () => storefrontApi.getCustomerSupportCases(accessToken!),
-    enabled: Boolean(accessToken && customerAuth.isAuthenticated),
+    enabled: isPortalBootstrapReady,
     staleTime: 30_000,
     refetchOnMount: "always",
+    retry: false,
   })
 
   const toggleWishlistMutation = useMutation({

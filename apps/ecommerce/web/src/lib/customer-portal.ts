@@ -1,4 +1,5 @@
 import {
+  CreditCard,
   Gift,
   Heart,
   Headphones,
@@ -59,7 +60,7 @@ export const customerPortalSections: CustomerPortalSection[] = [
     id: "checkout",
     label: "Checkout",
     summary: "Complete delivery, payment, and order confirmation without leaving the portal.",
-    icon: ShoppingCart,
+    icon: CreditCard,
   },
   {
     id: "orders",

@@ -14,10 +14,21 @@ import type {
   CustomerProfileUpdatePayload,
 } from "@ecommerce/shared"
 
-import { showRecordToast } from "@/components/ui/app-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import { getActivityStatusPanelClassName } from "@/features/status/activity-status"
@@ -48,6 +59,7 @@ type CustomerProfileSectionProps = {
   accessToken: string
   profile: CustomerProfile
   onSave: (payload: CustomerProfileUpdatePayload) => Promise<void>
+  onDeactivate: () => Promise<void>
 }
 
 type LookupState = Record<ContactLookupModuleKey, CommonModuleItem[]>
@@ -63,6 +75,8 @@ type CustomerProfileFormState = {
   bankAccounts: ContactBankAccountInput[]
   gstDetails: ContactGstDetailInput[]
 }
+
+const deleteAccountConfirmationText = "DELETE ACCOUNT"
 
 function createLookupState(response?: CustomerProfileLookupResponse): LookupState {
   return {
@@ -179,13 +193,17 @@ export function CustomerProfileSection({
   accessToken,
   profile,
   onSave,
+  onDeactivate,
 }: CustomerProfileSectionProps) {
   const [form, setForm] = useState<CustomerProfileFormState>(() => createFormState(profile))
   const [lookupState, setLookupState] = useState<LookupState>(createLookupState())
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deleteConfirmationValue, setDeleteConfirmationValue] = useState("")
   const [isLoadingLookups, setIsLoadingLookups] = useState(true)
-  useGlobalLoading(isSaving)
+  useGlobalLoading(isSaving || isDeleting)
 
   useEffect(() => {
     setForm(createFormState(profile))
@@ -264,6 +282,43 @@ export function CustomerProfileSection({
       setError(saveError instanceof Error ? saveError.message : "Failed to save customer profile.")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleDeactivate() {
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      await onDeactivate()
+      setIsDeleteDialogOpen(false)
+      setDeleteConfirmationValue("")
+      showAppToast({
+        variant: "success",
+        title: "Account deactivated.",
+        description: "Your customer portal account was deactivated successfully.",
+      })
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Failed to deactivate customer account."
+      )
+      throw deleteError
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  function handleDeleteDialogOpenChange(nextOpen: boolean) {
+    if (isDeleting && !nextOpen) {
+      return
+    }
+
+    setIsDeleteDialogOpen(nextOpen)
+
+    if (!nextOpen) {
+      setDeleteConfirmationValue("")
     }
   }
 
@@ -870,8 +925,35 @@ export function CustomerProfileSection({
             </div>
           ),
         },
+        {
+          label: "Settings",
+          value: "settings",
+          content: (
+            <Card className="border-destructive/20 bg-destructive/5 py-3 shadow-sm">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-destructive">Delete Account</CardTitle>
+                <CardDescription className="text-sm leading-6 text-destructive/80">
+                  This removes your portal access and marks the account as deactivated for admin review.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5 pt-2">
+                <p className="max-w-2xl text-sm leading-6 text-destructive/80">
+                  Use this only if you no longer want to access the customer portal with this account.
+                </p>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => handleDeleteDialogOpenChange(true)}
+                  disabled={isSaving || isDeleting}
+                >
+                  {isDeleting ? "Deleting..." : "Delete account"}
+                </Button>
+              </CardContent>
+            </Card>
+          ),
+        },
       ] satisfies AnimatedContentTab[],
-    [customerTypeLabel, derivedGstin, form, lookupState, profile.isActive]
+    [customerTypeLabel, derivedGstin, form, isDeleting, isSaving, lookupState, profile.isActive]
   )
 
   return (
@@ -909,6 +991,45 @@ export function CustomerProfileSection({
       ) : null}
 
       <AnimatedTabs defaultTabValue="details" tabs={tabs} />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Delete account?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                This will deactivate your customer portal access immediately and sign you out.
+              </span>
+              <span className="block">
+                Type <span className="font-mono font-semibold text-foreground">{deleteAccountConfirmationText}</span> to confirm.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="customer-delete-confirmation">Confirmation text</Label>
+            <Input
+              id="customer-delete-confirmation"
+              value={deleteConfirmationValue}
+              onChange={(event) => setDeleteConfirmationValue(event.target.value)}
+              placeholder={deleteAccountConfirmationText}
+              disabled={isDeleting}
+            />
+          </div>
+          <AlertDialogFooter className="border-destructive/15 bg-destructive/5">
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => void handleDeactivate()}
+              disabled={
+                isDeleting ||
+                deleteConfirmationValue.trim() !== deleteAccountConfirmationText
+              }
+            >
+              {isDeleting ? "Deleting..." : "Delete account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

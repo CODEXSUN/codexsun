@@ -53,7 +53,7 @@ export function LoginPage() {
             Welcome
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Use one sign in for customer, staff, and admin access. Your role decides the destination automatically.
+            Use one sign in for customer, staff, and admin access. Customer registration happens on the storefront, and staff or admin access is provisioned by your administrator.
           </p>
         </div>
 
@@ -104,16 +104,6 @@ export function LoginPage() {
             <ArrowRight className="size-4" />
           </Button>
         </form>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Need an account?{" "}
-          <Link
-            to="/request-access"
-            className="font-medium text-foreground underline underline-offset-4"
-          >
-            Request access
-          </Link>
-        </p>
       </div>
     </AuthLayout>
   )

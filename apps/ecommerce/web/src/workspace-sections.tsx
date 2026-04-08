@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import type { LucideIcon } from "lucide-react"
-import { ArrowUpRight, CreditCard, LayoutTemplate, Package, Settings2, ShoppingBag, Users } from "lucide-react"
+import { ArrowUpRight, CreditCard, LayoutTemplate, Package, ShoppingBag, Users } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 import type { ProductListResponse } from "@core/shared"
@@ -34,13 +34,18 @@ import { StorefrontPickupSection } from "./features/storefront-admin/storefront-
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
-import { StorefrontCustomersSection } from "./features/storefront-admin/storefront-customers-section"
+import {
+  StorefrontCustomerShowSection,
+  StorefrontCustomersSection,
+  StorefrontCustomerUpsertSection,
+} from "./features/storefront-admin/storefront-customers-section"
 import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-orders-section"
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontSupportSection } from "./features/storefront-admin/storefront-support-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { useStorefrontDesignerAccess } from "./features/storefront-admin/storefront-designer-access"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
+import { EcommerceSettingsSection } from "./features/storefront-admin/ecommerce-settings-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
 
 import { storefrontPaths } from "./lib/storefront-routes"
@@ -822,6 +827,14 @@ function CustomersSection() {
   return <StorefrontCustomersSection />
 }
 
+function CustomerShowSection({ customerId }: { customerId: string }) {
+  return <StorefrontCustomerShowSection customerId={customerId} />
+}
+
+function CustomerUpsertSection({ customerId }: { customerId: string }) {
+  return <StorefrontCustomerUpsertSection customerId={customerId} />
+}
+
 function OrdersSection() {
   return <StorefrontOrdersSection />
 }
@@ -873,57 +886,15 @@ function CheckoutSection() {
 }
 
 function SettingsSection() {
-  const { canViewStorefrontDesigner } = useStorefrontDesignerAccess()
-  return (
-    <div className="space-y-4">
-      <SectionIntro
-        eyebrow="Settings"
-        title="Ecommerce runtime settings"
-        description="Commerce shipping thresholds, frontend target selection, and Razorpay credentials are managed through the shared runtime settings flow while staying scoped to ecommerce behavior."
-      />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <MetricCard
-          icon={Settings2}
-          title="Frontend target"
-          summary="The shared frontend can now switch between site, shop, and app from .env and runtime settings."
-        />
-        <MetricCard
-          icon={CreditCard}
-          title="Razorpay"
-          summary="Enable live checkout only when gateway keys are configured; otherwise local mock verification remains active."
-        />
-        <MetricCard
-          icon={LayoutTemplate}
-          title="Storefront baseline"
-          summary="Hero copy, shipping defaults, and public storefront shaping are seeded inside ecommerce and stay rebuild-safe."
-        />
-      </div>
-      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>Admin destinations</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <ActionLink href="/dashboard/settings/core-settings" label="Open runtime settings" />
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/storefront" label="Open storefront admin" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Open slider designer" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/campaign" label="Open campaign designer" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/footer" label="Open footer designer" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/floating-contact" label="Open floating contact" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/pickup" label="Open pickup designer" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/coupon-banner" label="Open coupon banner" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/gift-corner" label="Open gift corner" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/trending" label="Open trending designer" /> : null}
-          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/branding" label="Open branding designer" /> : null}
-        </CardContent>
-      </Card>
-    </div>
-  )
+  return <EcommerceSettingsSection />
 }
 
 export function EcommerceWorkspaceSection({
+  customerId,
   productId,
   sectionId,
 }: {
+  customerId?: string
   productId?: string
   sectionId?: string
 }) {
@@ -954,6 +925,10 @@ export function EcommerceWorkspaceSection({
       return <ProductsSection />
     case "customers":
       return <CustomersSection />
+    case "customers-show":
+      return customerId ? <CustomerShowSection customerId={customerId} /> : null
+    case "customers-upsert":
+      return customerId ? <CustomerUpsertSection customerId={customerId} /> : null
     case "support":
       return <SupportSection />
     case "communications":

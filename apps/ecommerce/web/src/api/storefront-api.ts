@@ -5,8 +5,12 @@ import type {
   CustomerPortalResponse,
   CustomerProfileUpdatePayload,
   CustomerRegisterPayload,
+  EcommerceSettings,
   StorefrontCustomerAdminReport,
   StorefrontCustomerAdminResponse,
+  StorefrontCustomerWelcomeMailSendResponse,
+  StorefrontCustomerPermanentDeleteResponse,
+  StorefrontCustomerSelfDeactivateResponse,
   StorefrontSupportCaseCreatePayload,
   StorefrontSupportCaseListResponse,
   StorefrontSupportCaseResponse,
@@ -168,6 +172,22 @@ export const storefrontApi = {
     return requestJson<StorefrontSettings>("/internal/v1/ecommerce/storefront-settings", {
       accessToken,
       cache: "no-store",
+    })
+  },
+  getEcommerceSettings(accessToken: string) {
+    return requestJson<EcommerceSettings>("/internal/v1/ecommerce/settings", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateEcommerceSettings(
+    accessToken: string,
+    payload: { automation?: { autoSendWelcomeMail?: boolean } }
+  ) {
+    return requestJson<EcommerceSettings>("/internal/v1/ecommerce/settings", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
     })
   },
   getStorefrontSettingsWorkflow(accessToken: string) {
@@ -450,6 +470,16 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  sendCustomerWelcomeMail(accessToken: string, customerAccountId: string) {
+    return requestJson<StorefrontCustomerWelcomeMailSendResponse>(
+      "/internal/v1/ecommerce/customer/send-welcome-mail",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify({ customerAccountId }),
+      }
+    )
+  },
   applyCustomerLifecycleAction(
     accessToken: string,
     payload: {
@@ -473,6 +503,22 @@ export const storefrontApi = {
   ) {
     return requestJson<StorefrontCustomerAdminResponse>(
       "/internal/v1/ecommerce/customer/security-review",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify(payload),
+      }
+    )
+  },
+  permanentlyDeleteCustomerAccount(
+    accessToken: string,
+    payload: {
+      customerAccountId: string
+      note?: string | null
+    }
+  ) {
+    return requestJson<StorefrontCustomerPermanentDeleteResponse>(
+      "/internal/v1/ecommerce/customer/permanent-delete",
       {
         method: "POST",
         accessToken,
@@ -676,6 +722,12 @@ export const storefrontApi = {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),
+    })
+  },
+  deactivateMyCustomerAccount(accessToken: string) {
+    return requestJson<StorefrontCustomerSelfDeactivateResponse>("/api/v1/storefront/customers/me", {
+      method: "DELETE",
+      accessToken,
     })
   },
   updateCustomerPortalPreferences(

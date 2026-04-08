@@ -18,10 +18,11 @@ import { readStorefrontOrders } from "./storefront-order-storage.js"
 import {
   sendStorefrontOrderConfirmedEmail,
   sendStorefrontPaymentFailedEmail,
-  sendStorefrontWelcomeEmail,
 } from "./storefront-mail-service.js"
-import { listWelcomeMailProducts, readCustomerAccounts } from "./customer-service.js"
-import { resolveAuthenticatedCustomerAccount } from "./customer-service.js"
+import {
+  resolveAuthenticatedCustomerAccount,
+  sendStorefrontCustomerWelcomeMail,
+} from "./customer-service.js"
 
 const requiredTemplateCodes = [
   "storefront_customer_welcome",
@@ -272,40 +273,19 @@ export async function resendStorefrontCommunication(
     if (!parsed.customerAccountId) {
       throw new ApplicationError("Customer account id is required for welcome email resend.", {}, 400)
     }
+    const response = await sendStorefrontCustomerWelcomeMail(
+      database,
+      config,
+      parsed.customerAccountId
+    )
 
-    const accounts = await readCustomerAccounts(database)
-    const account = accounts.find((item) => item.id === parsed.customerAccountId)
-
-    if (!account) {
-      throw new ApplicationError("Customer account could not be found.", { customerAccountId: parsed.customerAccountId }, 404)
-    }
-
-    const newArrivalItems = await listWelcomeMailProducts(database)
-
-    try {
-      await sendStorefrontWelcomeEmail({
-        mailboxService,
-        config,
-        settings,
-        account,
-        newArrivalItems,
-      })
-      return storefrontCommunicationResendResponseSchema.parse({
-        resent: true,
-        templateCode: parsed.templateCode,
-        referenceId: account.id,
-        deliveryStatus: "sent",
-        message: "Welcome email resend was queued successfully.",
-      })
-    } catch (error) {
-      return storefrontCommunicationResendResponseSchema.parse({
-        resent: false,
-        templateCode: parsed.templateCode,
-        referenceId: account.id,
-        deliveryStatus: "failed",
-        message: error instanceof Error ? error.message : "Welcome email resend failed.",
-      })
-    }
+    return storefrontCommunicationResendResponseSchema.parse({
+      resent: response.deliveryStatus === "queued" || response.deliveryStatus === "sent",
+      templateCode: parsed.templateCode,
+      referenceId: parsed.customerAccountId,
+      deliveryStatus: response.deliveryStatus,
+      message: response.message,
+    })
   }
 
   if (!parsed.orderId) {

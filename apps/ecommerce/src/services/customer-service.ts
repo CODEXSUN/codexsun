@@ -4,8 +4,15 @@ import type { Kysely } from "kysely"
 
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import { listActivityLogs } from "../../../framework/src/runtime/activity-log/activity-log-service.js"
+import {
+  enqueueRuntimeJob,
+  listActiveRuntimeJobsByHandler,
+} from "../../../framework/src/runtime/jobs/runtime-job-service.js"
 import { type StorefrontOrder } from "../../shared/index.js"
+import { asQueryDatabase } from "../../../cxapp/src/data/query-database.js"
 import { AuthRepository } from "../../../cxapp/src/repositories/auth-repository.js"
+import { MailboxRepository } from "../../../cxapp/src/repositories/mailbox-repository.js"
+import { cxappTableNames } from "../../../cxapp/database/table-names.js"
 import {
   createContact,
   getContact,
@@ -39,8 +46,13 @@ import {
   storefrontCustomerSuspiciousLoginEventSchema,
   storefrontCustomerAdminReportSchema,
   storefrontCustomerAdminResponseSchema,
+  storefrontCustomerDeleteEligibilitySchema,
   storefrontCustomerLifecycleActionPayloadSchema,
+  storefrontCustomerPermanentDeletePayloadSchema,
+  storefrontCustomerPermanentDeleteResponseSchema,
   storefrontCustomerSecurityReviewPayloadSchema,
+  storefrontCustomerSelfDeactivateResponseSchema,
+  storefrontCustomerWelcomeMailSendResponseSchema,
   customerWishlistTogglePayloadSchema,
   type CustomerAccount,
   type CustomerCommercialProfile,
@@ -54,6 +66,7 @@ import {
   type StorefrontLifecycleMarketingReport,
   type StorefrontCustomerAdminView,
   type StorefrontCustomerSuspiciousLoginEvent,
+  type StorefrontCustomerDeleteEligibility,
   storefrontCustomerSegmentReportSchema,
   storefrontLifecycleMarketingReportSchema,
 } from "../../shared/index.js"
@@ -62,6 +75,7 @@ import { ecommerceTableNames } from "../../database/table-names.js"
 import { readStorefrontOrders } from "./storefront-order-storage.js"
 import { toStorefrontProductCard } from "./catalog-service.js"
 import { readProjectedStorefrontProducts } from "./projected-product-service.js"
+import { getEcommerceSettings } from "./ecommerce-settings-service.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
 import {
   sendStorefrontCampaignSubscriptionEmail,
@@ -127,6 +141,74 @@ function createAnonymizedCustomerEmail(accountId: string) {
 function createAnonymizedCustomerPhone(accountId: string) {
   const digits = accountId.replace(/\D/g, "").slice(-10).padStart(10, "0")
   return digits
+}
+
+const customerAccountBootstrapLocks = new Map<string, Promise<void>>()
+const customerPortalRecordLocks = new Map<string, Promise<void>>()
+
+type CustomerWelcomeMailStatusSnapshot = {
+  status: "not_sent" | "queued" | "sent" | "failed"
+  lastAttemptAt: string | null
+  sentAt: string | null
+  failedAt: string | null
+  errorMessage: string | null
+}
+
+async function runExclusiveByKey<T>(
+  locks: Map<string, Promise<void>>,
+  key: string,
+  operation: () => Promise<T>
+) {
+  const previous = locks.get(key) ?? Promise.resolve()
+  let releaseCurrent!: () => void
+  const current = new Promise<void>((resolve) => {
+    releaseCurrent = resolve
+  })
+  const queued = previous.then(() => current)
+  locks.set(key, queued)
+
+  await previous
+
+  try {
+    return await operation()
+  } finally {
+    releaseCurrent()
+
+    if (locks.get(key) === queued) {
+      locks.delete(key)
+    }
+  }
+}
+
+function sortRecordsByCreatedAtAndId<T extends { createdAt: string; id: string }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const createdAtComparison = left.createdAt.localeCompare(right.createdAt)
+
+    if (createdAtComparison !== 0) {
+      return createdAtComparison
+    }
+
+    return left.id.localeCompare(right.id)
+  })
+}
+
+function shouldRefreshCustomerActivityTimestamp(
+  value: string | null,
+  now: string,
+  thresholdMs = 60_000
+) {
+  if (!value) {
+    return true
+  }
+
+  const lastSeenAt = new Date(value).getTime()
+  const currentTime = new Date(now).getTime()
+
+  if (Number.isNaN(lastSeenAt) || Number.isNaN(currentTime)) {
+    return true
+  }
+
+  return currentTime - lastSeenAt >= thresholdMs
 }
 
 async function readSupportCases(database: Kysely<unknown>) {
@@ -252,6 +334,142 @@ async function readOrders(database: Kysely<unknown>) {
   return readStorefrontOrders(database)
 }
 
+async function deliverStorefrontWelcomeEmail(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  account: CustomerAccount
+) {
+  const [settings, newArrivalItems] = await Promise.all([
+    getStorefrontSettings(database),
+    listWelcomeMailProducts(database),
+  ])
+
+  await sendStorefrontWelcomeEmail({
+    mailboxService: createMailboxService(database, config),
+    config,
+    settings,
+    account,
+    newArrivalItems,
+  })
+}
+
+export async function sendQueuedStorefrontWelcomeMail(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  customerAccountId: string
+) {
+  const accounts = await readCustomerAccounts(database)
+  const account = accounts.find((item) => item.id === customerAccountId) ?? null
+
+  if (!account) {
+    throw new ApplicationError("Customer account could not be found.", { customerAccountId }, 404)
+  }
+
+  await deliverStorefrontWelcomeEmail(database, config, account)
+}
+
+function queueStorefrontWelcomeEmail(
+  database: Kysely<unknown>,
+  _config: ServerConfig,
+  account: CustomerAccount,
+  trigger: "first_login" | "manual" = "first_login"
+) {
+  void (async () => {
+    try {
+      const settings = await getEcommerceSettings(database)
+
+      if (!settings.automation.autoSendWelcomeMail) {
+        return
+      }
+
+      await enqueueRuntimeJob(database, {
+        queueName: "notifications",
+        handlerKey: "ecommerce.customer.send-welcome-mail",
+        appId: "ecommerce",
+        moduleKey: "customers",
+        dedupeKey: `storefront-welcome:${account.id}`,
+        payload: {
+          customerAccountId: account.id,
+          trigger,
+        },
+        maxAttempts: 4,
+      })
+    } catch (error) {
+      console.error("Unable to send storefront welcome email.", error)
+    }
+  })()
+}
+
+async function listCustomerWelcomeMailStatuses(database: Kysely<unknown>) {
+  const activeJobs = await listActiveRuntimeJobsByHandler(
+    database,
+    "ecommerce.customer.send-welcome-mail"
+  )
+  const queuedByCustomerId = new Set(
+    activeJobs
+      .map((job) =>
+        typeof job.payload === "object" && job.payload !== null
+          ? (job.payload as { customerAccountId?: unknown }).customerAccountId
+          : null
+      )
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+  )
+  const queryDatabase = asQueryDatabase(database)
+  const rows = await queryDatabase
+    .selectFrom(cxappTableNames.mailboxMessages)
+    .select([
+      "reference_id as referenceId",
+      "status",
+      "sent_at as sentAt",
+      "failed_at as failedAt",
+      "error_message as errorMessage",
+      "created_at as createdAt",
+      "updated_at as updatedAt",
+    ])
+    .where("template_code", "=", "storefront_customer_welcome")
+    .where("reference_id", "is not", null)
+    .orderBy("created_at", "desc")
+    .execute()
+
+  const statuses = new Map<string, CustomerWelcomeMailStatusSnapshot>()
+
+  for (const customerAccountId of queuedByCustomerId) {
+    statuses.set(customerAccountId, {
+      status: "queued",
+      lastAttemptAt: null,
+      sentAt: null,
+      failedAt: null,
+      errorMessage: null,
+    })
+  }
+
+  for (const row of rows) {
+    const referenceId = String(row.referenceId ?? "").trim()
+
+    if (!referenceId || statuses.has(referenceId)) {
+      continue
+    }
+
+    const rawStatus = String(row.status ?? "")
+    statuses.set(referenceId, {
+      status:
+        rawStatus === "sent"
+          ? "sent"
+          : rawStatus === "failed"
+            ? "failed"
+            : rawStatus === "queued"
+              ? "queued"
+              : "not_sent",
+      lastAttemptAt: String(row.updatedAt ?? row.createdAt ?? "") || null,
+      sentAt: row.sentAt == null ? null : String(row.sentAt),
+      failedAt: row.failedAt == null ? null : String(row.failedAt),
+      errorMessage: row.errorMessage == null ? null : String(row.errorMessage),
+    })
+  }
+
+  return statuses
+}
+
 function orderBelongsToAccount(order: StorefrontOrder, account: CustomerAccount) {
   if (order.customerAccountId === account.id) {
     return true
@@ -324,6 +542,49 @@ function getCustomerSuspiciousLoginEvents(
   return events
     .filter((event) => eventBelongsToCustomer(account, event))
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+}
+
+function getCustomerDeleteEligibility(input: {
+  account: CustomerAccount
+  orders: StorefrontOrder[]
+  supportCases: StorefrontSupportCase[]
+  orderRequests: StorefrontOrderRequest[]
+}): StorefrontCustomerDeleteEligibility {
+  const orderCount = input.orders.filter((item) => orderBelongsToAccount(item, input.account)).length
+  const supportCaseCount = input.supportCases.filter((item) => item.customerAccountId === input.account.id).length
+  const requestCount = input.orderRequests.filter((item) => item.customerAccountId === input.account.id).length
+  const hasLinkedRecords = orderCount > 0 || supportCaseCount > 0 || requestCount > 0
+
+  return storefrontCustomerDeleteEligibilitySchema.parse({
+    canDelete: !hasLinkedRecords,
+    hasLinkedRecords,
+    orderCount,
+    supportCaseCount,
+    requestCount,
+  })
+}
+
+function buildLifecycleAccountRecord(input: {
+  account: CustomerAccount
+  lifecycleState: CustomerLifecycleState
+  note: string | null
+  timestamp: string
+}) {
+  const { account, lifecycleState, note, timestamp } = input
+
+  return customerAccountSchema.parse({
+    ...account,
+    isActive: lifecycleState === "active",
+    lifecycleState,
+    lifecycleNote: note,
+    blockedAt: lifecycleState === "blocked" ? timestamp : null,
+    deletedAt: lifecycleState === "deleted" ? timestamp : null,
+    anonymizedAt: account.anonymizedAt,
+    emailVerifiedAt: account.emailVerifiedAt,
+    suspiciousLoginReviewedAt: account.suspiciousLoginReviewedAt,
+    suspiciousLoginReviewNote: account.suspiciousLoginReviewNote,
+    updatedAt: timestamp,
+  })
 }
 
 function inferRewardsTier(pointsBalance: number) {
@@ -592,15 +853,10 @@ function upsertPortalRecord(
   records: CustomerPortalRecord[],
   updatedRecord: CustomerPortalRecord
 ) {
-  const hasExisting = records.some((item) => item.customerAccountId === updatedRecord.customerAccountId)
-
-  if (!hasExisting) {
-    return [updatedRecord, ...records]
-  }
-
-  return records.map((item) =>
-    item.customerAccountId === updatedRecord.customerAccountId ? updatedRecord : item
-  )
+  return [
+    updatedRecord,
+    ...records.filter((item) => item.customerAccountId !== updatedRecord.customerAccountId),
+  ]
 }
 
 export async function listWelcomeMailProducts(database: Kysely<unknown>) {
@@ -616,16 +872,28 @@ async function ensureCustomerPortalRecord(
   database: Kysely<unknown>,
   account: CustomerAccount
 ) {
-  const records = await readCustomerPortalRecords(database)
-  const existing = records.find((item) => item.customerAccountId === account.id) ?? null
+  return runExclusiveByKey(customerPortalRecordLocks, account.id, async () => {
+    const records = await readCustomerPortalRecords(database)
+    const matchingRecords = sortRecordsByCreatedAtAndId(
+      records.filter((item) => item.customerAccountId === account.id)
+    )
+    const existing = matchingRecords[0] ?? null
 
-  if (existing) {
-    return existing
-  }
+    if (existing) {
+      if (matchingRecords.length > 1) {
+        await writeCustomerPortalRecords(
+          database,
+          upsertPortalRecord(records, existing)
+        )
+      }
 
-  const record = createDefaultPortalRecord(account)
-  await writeCustomerPortalRecords(database, [record, ...records])
-  return record
+      return existing
+    }
+
+    const record = createDefaultPortalRecord(account)
+    await writeCustomerPortalRecords(database, [record, ...records])
+    return record
+  })
 }
 
 function normalizeCouponStatus(coupon: CustomerPortalCoupon, now: string) {
@@ -640,8 +908,14 @@ async function updateCustomerPortalRecord(
   database: Kysely<unknown>,
   updatedRecord: CustomerPortalRecord
 ) {
-  const records = await readCustomerPortalRecords(database)
-  await writeCustomerPortalRecords(database, upsertPortalRecord(records, updatedRecord))
+  await runExclusiveByKey(
+    customerPortalRecordLocks,
+    updatedRecord.customerAccountId,
+    async () => {
+      const records = await readCustomerPortalRecords(database)
+      await writeCustomerPortalRecords(database, upsertPortalRecord(records, updatedRecord))
+    }
+  )
 }
 
 export async function reserveCustomerPortalCoupon(
@@ -1034,123 +1308,165 @@ async function getAuthenticatedCustomerUser(
 
 async function ensureCustomerAccountForUser(
   database: Kysely<unknown>,
+  config: ServerConfig,
   user: AuthUser
 ) {
-  const accounts = await readCustomerAccounts(database)
-  const now = new Date().toISOString()
-  const matchingAccount =
-    accounts.find((item) => item.authUserId === user.id) ??
-    accounts.find((item) => item.email.toLowerCase() === user.email.toLowerCase()) ??
-    null
+  const lockKey = user.id.trim() || user.email.trim().toLowerCase()
 
-  if (matchingAccount) {
-    const updatedAccount = customerAccountSchema.parse({
-      ...matchingAccount,
-      authUserId: user.id,
-      email: user.email,
-      phoneNumber: user.phoneNumber ?? matchingAccount.phoneNumber,
-      displayName: user.displayName,
-      companyName:
-        matchingAccount.companyName ?? normalizeOptionalString(user.organizationName),
-      isActive: user.isActive,
-      lifecycleState: user.isActive
+  return runExclusiveByKey(customerAccountBootstrapLocks, lockKey, async () => {
+    const accounts = await readCustomerAccounts(database)
+    const now = new Date().toISOString()
+    const matchingAccounts = sortRecordsByCreatedAtAndId(
+      accounts.filter(
+        (item) =>
+          item.authUserId === user.id ||
+          item.email.toLowerCase() === user.email.toLowerCase()
+      )
+    )
+    const matchingAccount = matchingAccounts[0] ?? null
+
+    if (matchingAccount) {
+      const isFirstLogin = !matchingAccount.lastLoginAt
+      const nextPhoneNumber = user.phoneNumber ?? matchingAccount.phoneNumber
+      const nextCompanyName =
+        matchingAccount.companyName ?? normalizeOptionalString(user.organizationName)
+      const nextLifecycleState = user.isActive
         ? matchingAccount.lifecycleState === "active"
           ? "active"
           : matchingAccount.lifecycleState
         : matchingAccount.lifecycleState === "active"
           ? "blocked"
-          : matchingAccount.lifecycleState,
-      lifecycleNote: matchingAccount.lifecycleNote ?? null,
-      blockedAt: matchingAccount.blockedAt ?? null,
-      deletedAt: matchingAccount.deletedAt ?? null,
-      anonymizedAt: matchingAccount.anonymizedAt ?? null,
-      emailVerifiedAt:
-        matchingAccount.emailVerifiedAt ?? matchingAccount.createdAt ?? now,
-      suspiciousLoginReviewedAt: matchingAccount.suspiciousLoginReviewedAt ?? null,
-      suspiciousLoginReviewNote: matchingAccount.suspiciousLoginReviewNote ?? null,
+          : matchingAccount.lifecycleState
+      const shouldRefreshLastLoginAt = shouldRefreshCustomerActivityTimestamp(
+        matchingAccount.lastLoginAt,
+        now
+      )
+      const duplicateAccountIds = new Set(
+        matchingAccounts
+          .filter((item) => item.id !== matchingAccount.id)
+          .map((item) => item.id)
+      )
+      const requiresWrite =
+        duplicateAccountIds.size > 0 ||
+        matchingAccount.authUserId !== user.id ||
+        matchingAccount.email !== user.email ||
+        matchingAccount.phoneNumber !== nextPhoneNumber ||
+        matchingAccount.displayName !== user.displayName ||
+        matchingAccount.companyName !== nextCompanyName ||
+        matchingAccount.isActive !== user.isActive ||
+        matchingAccount.lifecycleState !== nextLifecycleState ||
+        shouldRefreshLastLoginAt
+
+      const updatedAccount = customerAccountSchema.parse({
+        ...matchingAccount,
+        authUserId: user.id,
+        email: user.email,
+        phoneNumber: nextPhoneNumber,
+        displayName: user.displayName,
+        companyName: nextCompanyName,
+        isActive: user.isActive,
+        lifecycleState: nextLifecycleState,
+        lifecycleNote: matchingAccount.lifecycleNote ?? null,
+        blockedAt: matchingAccount.blockedAt ?? null,
+        deletedAt: matchingAccount.deletedAt ?? null,
+        anonymizedAt: matchingAccount.anonymizedAt ?? null,
+        emailVerifiedAt: matchingAccount.emailVerifiedAt ?? matchingAccount.createdAt ?? now,
+        suspiciousLoginReviewedAt: matchingAccount.suspiciousLoginReviewedAt ?? null,
+        suspiciousLoginReviewNote: matchingAccount.suspiciousLoginReviewNote ?? null,
+        lastLoginAt: shouldRefreshLastLoginAt ? now : matchingAccount.lastLoginAt,
+        updatedAt: requiresWrite ? now : matchingAccount.updatedAt,
+      })
+
+      if (requiresWrite) {
+        await writeCustomerAccounts(
+          database,
+          accounts
+            .filter((item) => !duplicateAccountIds.has(item.id))
+            .map((item) => (item.id === updatedAccount.id ? updatedAccount : item))
+        )
+      }
+
+      if (isFirstLogin) {
+        queueStorefrontWelcomeEmail(database, config, updatedAccount)
+      }
+
+      await ensureCustomerPortalRecord(database, updatedAccount)
+
+      return updatedAccount
+    }
+
+    const phoneNumber = user.phoneNumber?.trim() || "0000000000"
+    const existingContactId = await resolveExistingContactId(database, user.email, phoneNumber)
+    const coreContactId =
+      existingContactId ??
+      (
+        await createContact(database, systemActor, {
+          code: "",
+          contactTypeId: resolveContactTypeId(null),
+          ledgerId: null,
+          ledgerName: null,
+          name: user.displayName,
+          legalName: user.organizationName ?? "",
+          pan: "",
+          gstin: "",
+          msmeType: "",
+          msmeNo: "",
+          openingBalance: 0,
+          balanceType: "",
+          creditLimit: 0,
+          website: "",
+          description: "Storefront customer account.",
+          isActive: true,
+          addresses: [
+            {
+              addressTypeId: "address-type:shipping",
+              addressLine1: "",
+              addressLine2: "",
+              cityId: null,
+              districtId: null,
+              stateId: null,
+              countryId: null,
+              pincodeId: null,
+              latitude: null,
+              longitude: null,
+              isDefault: true,
+            },
+          ],
+          emails: [{ email: user.email, emailType: "primary", isPrimary: true }],
+          phones: [{ phoneNumber, phoneType: "mobile", isPrimary: true }],
+          bankAccounts: [],
+          gstDetails: [],
+        })
+      ).item.id
+
+    const account = customerAccountSchema.parse({
+      id: `ecommerce-customer:${randomUUID()}`,
+      authUserId: user.id,
+      coreContactId,
+      email: user.email,
+      phoneNumber,
+      displayName: user.displayName,
+      companyName: normalizeOptionalString(user.organizationName),
+      gstin: null,
+      isActive: user.isActive,
+      lifecycleState: user.isActive ? "active" : "blocked",
+      lifecycleNote: null,
+      blockedAt: user.isActive ? null : now,
+      deletedAt: null,
+      anonymizedAt: null,
+      emailVerifiedAt: now,
+      suspiciousLoginReviewedAt: null,
+      suspiciousLoginReviewNote: null,
       lastLoginAt: now,
+      createdAt: now,
       updatedAt: now,
     })
 
-    await writeCustomerAccounts(
-      database,
-      accounts.map((item) => (item.id === updatedAccount.id ? updatedAccount : item))
-    )
-    await ensureCustomerPortalRecord(database, updatedAccount)
-
-    return updatedAccount
-  }
-
-  const phoneNumber = user.phoneNumber?.trim() || "0000000000"
-  const existingContactId = await resolveExistingContactId(database, user.email, phoneNumber)
-  const coreContactId =
-    existingContactId ??
-    (
-      await createContact(database, systemActor, {
-        code: "",
-        contactTypeId: resolveContactTypeId(null),
-        ledgerId: null,
-        ledgerName: null,
-        name: user.displayName,
-        legalName: user.organizationName ?? "",
-        pan: "",
-        gstin: "",
-        msmeType: "",
-        msmeNo: "",
-        openingBalance: 0,
-        balanceType: "",
-        creditLimit: 0,
-        website: "",
-        description: "Storefront customer account.",
-        isActive: true,
-        addresses: [
-          {
-            addressTypeId: "address-type:shipping",
-            addressLine1: "",
-            addressLine2: "",
-            cityId: null,
-            districtId: null,
-            stateId: null,
-            countryId: null,
-            pincodeId: null,
-            latitude: null,
-            longitude: null,
-            isDefault: true,
-          },
-        ],
-        emails: [{ email: user.email, emailType: "primary", isPrimary: true }],
-        phones: [{ phoneNumber, phoneType: "mobile", isPrimary: true }],
-        bankAccounts: [],
-        gstDetails: [],
-      })
-    ).item.id
-
-  const account = customerAccountSchema.parse({
-    id: `ecommerce-customer:${randomUUID()}`,
-    authUserId: user.id,
-    coreContactId,
-    email: user.email,
-    phoneNumber,
-    displayName: user.displayName,
-    companyName: normalizeOptionalString(user.organizationName),
-    gstin: null,
-    isActive: user.isActive,
-    lifecycleState: user.isActive ? "active" : "blocked",
-    lifecycleNote: null,
-    blockedAt: user.isActive ? null : now,
-    deletedAt: null,
-    anonymizedAt: null,
-    emailVerifiedAt: now,
-    suspiciousLoginReviewedAt: null,
-    suspiciousLoginReviewNote: null,
-    lastLoginAt: now,
-    createdAt: now,
-    updatedAt: now,
+    await writeCustomerAccounts(database, [account, ...accounts])
+    queueStorefrontWelcomeEmail(database, config, account)
+    await ensureCustomerPortalRecord(database, account)
+    return account
   })
-
-  await writeCustomerAccounts(database, [account, ...accounts])
-  await ensureCustomerPortalRecord(database, account)
-  return account
 }
 
 export async function registerCustomer(
@@ -1180,6 +1496,11 @@ export async function registerCustomer(
 
   const timestamp = new Date().toISOString()
   const gstin = normalizeOptionalString(parsed.gstin)
+  const addressLine1 = normalizeOptionalString(parsed.addressLine1)
+  const city = normalizeOptionalString(parsed.city)
+  const state = normalizeOptionalString(parsed.state)
+  const country = normalizeOptionalString(parsed.country)
+  const pincode = normalizeOptionalString(parsed.pincode)
   const existingContactId = await resolveExistingContactId(
     database,
     parsed.email,
@@ -1205,25 +1526,28 @@ export async function registerCustomer(
         website: "",
         description: "Storefront customer account.",
         isActive: true,
-        addresses: [
-          {
-            addressTypeId: "address-type:shipping",
-            addressLine1: parsed.addressLine1,
-            addressLine2: parsed.addressLine2 ?? "",
-            cityId: parsed.city,
-            districtId: null,
-            stateId: parsed.state,
-            countryId: parsed.country,
-            pincodeId: parsed.pincode,
-            latitude: null,
-            longitude: null,
-            isDefault: true,
-          },
-        ],
+        addresses:
+          addressLine1 && city && state && country && pincode
+            ? [
+                {
+                  addressTypeId: "address-type:shipping",
+                  addressLine1,
+                  addressLine2: parsed.addressLine2 ?? "",
+                  cityId: city,
+                  districtId: null,
+                  stateId: state,
+                  countryId: country,
+                  pincodeId: pincode,
+                  latitude: null,
+                  longitude: null,
+                  isDefault: true,
+                },
+              ]
+            : [],
         emails: [{ email: parsed.email, emailType: "primary", isPrimary: true }],
         phones: [{ phoneNumber: parsed.phoneNumber, phoneType: "mobile", isPrimary: true }],
         bankAccounts: [],
-        gstDetails: gstin ? [{ gstin, state: parsed.state, isDefault: true }] : [],
+        gstDetails: gstin && state ? [{ gstin, state, isDefault: true }] : [],
       })
     ).item.id
 
@@ -1255,24 +1579,48 @@ export async function registerCustomer(
   await ensureCustomerPortalRecord(database, account)
   await authService.consumeVerifiedRegistrationEmail(parsed.emailVerificationId)
 
-  try {
-    const [settings, newArrivalItems] = await Promise.all([
-      getStorefrontSettings(database),
-      listWelcomeMailProducts(database),
-    ])
+  return buildCustomerProfile(database, account)
+}
 
-    await sendStorefrontWelcomeEmail({
-      mailboxService: createMailboxService(database, config),
-      config,
-      settings,
-      account,
-      newArrivalItems,
+export async function sendStorefrontCustomerWelcomeMail(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  customerAccountId: string
+) {
+  try {
+    const accounts = await readCustomerAccounts(database)
+    const account = accounts.find((item) => item.id === customerAccountId) ?? null
+
+    if (!account) {
+      throw new ApplicationError("Customer account could not be found.", { customerAccountId }, 404)
+    }
+
+    await enqueueRuntimeJob(database, {
+      queueName: "notifications",
+      handlerKey: "ecommerce.customer.send-welcome-mail",
+      appId: "ecommerce",
+      moduleKey: "customers",
+      dedupeKey: `storefront-welcome:${account.id}`,
+      payload: {
+        customerAccountId: account.id,
+        trigger: "manual",
+      },
+      maxAttempts: 4,
+    })
+
+    return storefrontCustomerWelcomeMailSendResponseSchema.parse({
+      customer: await getStorefrontCustomerAccount(database, customerAccountId),
+      deliveryStatus: "queued",
+      message: "Welcome mail was queued for background delivery.",
     })
   } catch (error) {
-    console.error("Unable to send storefront welcome email.", error)
+    return storefrontCustomerWelcomeMailSendResponseSchema.parse({
+      customer: await getStorefrontCustomerAccount(database, customerAccountId),
+      deliveryStatus: "failed",
+      message:
+        error instanceof Error ? error.message : "Welcome mail send failed.",
+    })
   }
-
-  return buildCustomerProfile(database, account)
 }
 
 export async function getAuthenticatedCustomer(
@@ -1299,7 +1647,7 @@ export async function resolveAuthenticatedCustomerAccount(
   token: string
 ) {
   const user = await getAuthenticatedCustomerUser(database, config, token)
-  const account = await ensureCustomerAccountForUser(database, user)
+  const account = await ensureCustomerAccountForUser(database, config, user)
 
   if (!isCustomerLifecycleActive(account.lifecycleState)) {
     throw new ApplicationError(
@@ -1578,6 +1926,7 @@ function buildCustomerAdminView(input: {
   orders: StorefrontOrder[]
   supportCases: StorefrontSupportCase[]
   orderRequests: StorefrontOrderRequest[]
+  welcomeMailStatus: CustomerWelcomeMailStatusSnapshot | null
   suspiciousLoginEvents: Array<
     StorefrontCustomerSuspiciousLoginEvent & {
       actorId?: string | null
@@ -1585,7 +1934,7 @@ function buildCustomerAdminView(input: {
     }
   >
 }): StorefrontCustomerAdminView {
-  const { account, orders, supportCases, orderRequests, suspiciousLoginEvents } = input
+  const { account, orders, supportCases, orderRequests, welcomeMailStatus, suspiciousLoginEvents } = input
   const matchingOrders = orders.filter((item) => orderBelongsToAccount(item, account))
   const matchingSupportCases = supportCases.filter(
     (item) => item.customerAccountId === account.id
@@ -1630,6 +1979,11 @@ function buildCustomerAdminView(input: {
     latestSuspiciousLoginAt: matchingSuspiciousEvents[0]?.createdAt ?? null,
     suspiciousLoginReviewedAt: account.suspiciousLoginReviewedAt,
     suspiciousLoginReviewNote: account.suspiciousLoginReviewNote,
+    welcomeMailStatus: welcomeMailStatus?.status ?? "not_sent",
+    welcomeMailLastAttemptAt: welcomeMailStatus?.lastAttemptAt ?? null,
+    welcomeMailSentAt: welcomeMailStatus?.sentAt ?? null,
+    welcomeMailFailedAt: welcomeMailStatus?.failedAt ?? null,
+    welcomeMailErrorMessage: welcomeMailStatus?.errorMessage ?? null,
     lastOrderAt,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
@@ -1637,11 +1991,12 @@ function buildCustomerAdminView(input: {
 }
 
 export async function getStorefrontCustomerOperationsReport(database: Kysely<unknown>) {
-  const [accounts, orders, supportCases, orderRequests, suspiciousLoginEvents] = await Promise.all([
+  const [accounts, orders, supportCases, orderRequests, welcomeMailStatuses, suspiciousLoginEvents] = await Promise.all([
     readCustomerAccounts(database),
     readOrders(database),
     readSupportCases(database),
     readOrderRequests(database),
+    listCustomerWelcomeMailStatuses(database),
     listCustomerSuspiciousLoginEvents(database),
   ])
 
@@ -1652,6 +2007,7 @@ export async function getStorefrontCustomerOperationsReport(database: Kysely<unk
         orders,
         supportCases,
         orderRequests,
+        welcomeMailStatus: welcomeMailStatuses.get(account.id) ?? null,
         suspiciousLoginEvents,
       })
     )
@@ -1823,18 +2179,11 @@ export async function applyStorefrontCustomerLifecycleAction(
           ? "blocked"
           : "deleted"
 
-    nextAccount = customerAccountSchema.parse({
-      ...existing,
-      isActive: lifecycleState === "active",
+    nextAccount = buildLifecycleAccountRecord({
+      account: existing,
       lifecycleState,
-      lifecycleNote: parsed.note,
-      blockedAt: lifecycleState === "blocked" ? timestamp : null,
-      deletedAt: lifecycleState === "deleted" ? timestamp : null,
-      anonymizedAt: existing.anonymizedAt,
-      emailVerifiedAt: existing.emailVerifiedAt,
-      suspiciousLoginReviewedAt: existing.suspiciousLoginReviewedAt,
-      suspiciousLoginReviewNote: existing.suspiciousLoginReviewNote,
-      updatedAt: timestamp,
+      note: parsed.note,
+      timestamp,
     })
   }
 
@@ -1845,6 +2194,103 @@ export async function applyStorefrontCustomerLifecycleAction(
   await syncCustomerAuthState(database, nextAccount)
 
   return getStorefrontCustomerAccount(database, nextAccount.id)
+}
+
+export async function deactivateAuthenticatedCustomerAccount(
+  database: Kysely<unknown>,
+  config: ServerConfig,
+  token: string
+) {
+  const account = await resolveAuthenticatedCustomerAccount(database, config, token)
+  const accounts = await readCustomerAccounts(database)
+  const existing = accounts.find((item) => item.id === account.id) ?? null
+
+  if (!existing) {
+    throw new ApplicationError("Customer account could not be found.", { customerAccountId: account.id }, 404)
+  }
+
+  const nextAccount = buildLifecycleAccountRecord({
+    account: existing,
+    lifecycleState: "deleted",
+    note: "Customer requested account deletion from the customer portal.",
+    timestamp: new Date().toISOString(),
+  })
+
+  await writeCustomerAccounts(
+    database,
+    accounts.map((item) => (item.id === nextAccount.id ? nextAccount : item))
+  )
+  await syncCustomerAuthState(database, nextAccount)
+
+  return storefrontCustomerSelfDeactivateResponseSchema.parse({
+    deactivated: true,
+    customerAccountId: nextAccount.id,
+  })
+}
+
+export async function permanentlyDeleteStorefrontCustomerAccount(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const parsed = storefrontCustomerPermanentDeletePayloadSchema.parse(payload)
+  const [accounts, portalRecords, orders, supportCases, orderRequests] = await Promise.all([
+    readCustomerAccounts(database),
+    readCustomerPortalRecords(database),
+    readOrders(database),
+    readSupportCases(database),
+    readOrderRequests(database),
+  ])
+  const existing = accounts.find((item) => item.id === parsed.customerAccountId) ?? null
+
+  if (!existing) {
+    throw new ApplicationError(
+      "Customer account could not be found.",
+      { customerAccountId: parsed.customerAccountId },
+      404
+    )
+  }
+
+  const eligibility = getCustomerDeleteEligibility({
+    account: existing,
+    orders,
+    supportCases,
+    orderRequests,
+  })
+
+  if (!eligibility.canDelete) {
+    throw new ApplicationError(
+      "Only customers with no linked orders, support cases, or requests can be permanently deleted.",
+      {
+        customerAccountId: existing.id,
+        note: parsed.note,
+        ...eligibility,
+      },
+      409
+    )
+  }
+
+  await writeCustomerAccounts(
+    database,
+    accounts.filter((item) => item.id !== existing.id)
+  )
+  await writeCustomerPortalRecords(
+    database,
+    portalRecords.filter((item) => item.customerAccountId !== existing.id)
+  )
+
+  const authRepository = new AuthRepository(database)
+  const mailboxRepository = new MailboxRepository(database)
+
+  if (existing.authUserId) {
+    await authRepository.deleteUser(existing.authUserId)
+  }
+
+  await mailboxRepository.deleteMessagesByReferenceId(existing.id)
+
+  return storefrontCustomerPermanentDeleteResponseSchema.parse({
+    deleted: true,
+    customerAccountId: existing.id,
+  })
 }
 
 export async function markStorefrontCustomerSecurityReview(

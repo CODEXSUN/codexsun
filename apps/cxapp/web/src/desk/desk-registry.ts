@@ -780,7 +780,6 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/products`,
                   `/dashboard/apps/${app.id}/checkout`,
-                  `/dashboard/apps/${app.id}/shipping`,
                 ].includes(item.route)
               ),
             },
@@ -795,6 +794,16 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/communications`,
                   `/dashboard/apps/${app.id}/orders`,
                   `/dashboard/apps/${app.id}/payments`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-settings`,
+              label: "Settings",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/shipping`,
                   `/dashboard/apps/${app.id}/settings`,
                 ].includes(item.route)
               ),
@@ -1292,6 +1301,15 @@ export function resolveDeskLocation(
         section: "Framework",
         title: "Data Backup",
         description: "Backup cadence, restore drills, retention, and off-machine archive controls.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/queue-manager" || pathname.startsWith("/dashboard/settings/queue-manager/")) {
+      return {
+        section: "Framework",
+        title: "Queue Manager",
+        description: "Framework background jobs, worker pickup, retries, and execution visibility in one page.",
         app: null,
       }
     }

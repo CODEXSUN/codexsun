@@ -59,12 +59,18 @@ import {
 } from "../../../ecommerce/src/services/storefront-support-service.js"
 import {
   applyStorefrontCustomerLifecycleAction,
+  sendStorefrontCustomerWelcomeMail,
   getStorefrontCustomerAccount,
   getStorefrontCustomerSegmentationReport,
   getStorefrontCustomerOperationsReport,
   getStorefrontLifecycleMarketingReport,
   markStorefrontCustomerSecurityReview,
+  permanentlyDeleteStorefrontCustomerAccount,
 } from "../../../ecommerce/src/services/customer-service.js"
+import {
+  getEcommerceSettings,
+  saveEcommerceSettings,
+} from "../../../ecommerce/src/services/ecommerce-settings-service.js"
 import {
   getStorefrontOrderRequestQueueReport,
   getStorefrontRmaCustomerServiceReport,
@@ -164,6 +170,11 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     requireAuthenticatedUser(context, {
       allowedActorTypes: ["admin", "staff"],
       requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:customers:manage"],
+    })
+  const requireEcommerceSettingsAccess = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view"],
     })
   const requirePaymentsManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
     requireAuthenticatedUser(context, {
@@ -470,6 +481,28 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/ecommerce/settings", {
+      summary: "Read ecommerce app settings used by customer automation and admin preferences.",
+      handler: async (context) => {
+        await requireEcommerceSettingsAccess(context)
+
+        return jsonResponse(await getEcommerceSettings(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/ecommerce/settings", {
+      method: "PATCH",
+      summary: "Update ecommerce app settings used by customer automation and admin preferences.",
+      handler: async (context) => {
+        await requireEcommerceSettingsAccess(context)
+
+        return jsonResponse(
+          await saveEcommerceSettings(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
     defineInternalRoute("/ecommerce/customers/report", {
       summary: "Read the ecommerce customer lifecycle queue and portal-account summary.",
       handler: async (context) => {
@@ -588,6 +621,30 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/ecommerce/customer/send-welcome-mail", {
+      method: "POST",
+      summary: "Send the storefront customer welcome mail manually from customer admin.",
+      handler: async (context) => {
+        await requireCustomersManage(context)
+
+        const payload =
+          typeof context.request.jsonBody === "object" && context.request.jsonBody !== null
+            ? (context.request.jsonBody as { customerAccountId?: unknown })
+            : {}
+        const customerAccountId =
+          typeof payload.customerAccountId === "string"
+            ? payload.customerAccountId
+            : ""
+
+        return jsonResponse(
+          await sendStorefrontCustomerWelcomeMail(
+            context.databases.primary,
+            context.config,
+            customerAccountId
+          )
+        )
+      },
+    }),
     defineInternalRoute("/ecommerce/customer/lifecycle", {
       method: "POST",
       summary: "Apply a lifecycle action such as activate, block, delete, or anonymize to a storefront customer account.",
@@ -610,6 +667,28 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await markStorefrontCustomerSecurityReview(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/customer/permanent-delete", {
+      method: "POST",
+      summary: "Permanently delete a storefront customer account with no linked records.",
+      handler: async (context) => {
+        const session = await requireCustomersManage(context)
+
+        if (!session.user.isSuperAdmin) {
+          throw new ApplicationError(
+            "Only super admins can permanently delete customer accounts.",
+            {},
+            403
+          )
+        }
+
+        return jsonResponse(
+          await permanentlyDeleteStorefrontCustomerAccount(
             context.databases.primary,
             context.request.jsonBody
           )

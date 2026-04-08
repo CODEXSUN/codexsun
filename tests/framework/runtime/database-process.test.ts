@@ -65,10 +65,34 @@ test("registered database processes stay ordered by app and module", () => {
       "billing:voucher-groups:02-voucher-groups",
       "billing:voucher-types:03-voucher-types",
       "billing:vouchers:03-vouchers",
+      "billing:vouchers:04-voucher-headers",
+      "billing:vouchers:05-voucher-lines",
+      "billing:vouchers:06-ledger-entries",
+      "billing:vouchers:07-accounting-controls",
+      "billing:vouchers:08-sales-vouchers",
+      "billing:vouchers:09-purchase-vouchers",
+      "billing:vouchers:10-receipt-vouchers",
+      "billing:vouchers:11-payment-vouchers",
+      "billing:vouchers:12-journal-vouchers",
+      "billing:vouchers:13-contra-vouchers",
+      "billing:vouchers:14-petty-cash-vouchers",
+      "billing:vouchers:15-bank-book-entries",
+      "billing:vouchers:16-cash-book-entries",
+      "billing:vouchers:17-sales-item-vouchers",
+      "billing:vouchers:18-purchase-item-vouchers",
+      "billing:vouchers:19-receipt-item-vouchers",
+      "billing:vouchers:20-payment-item-vouchers",
+      "billing:vouchers:21-journal-item-vouchers",
+      "billing:vouchers:22-contra-item-vouchers",
+      "billing:vouchers:23-bill-references",
+      "billing:vouchers:24-bill-settlements",
+      "billing:vouchers:25-bill-overdue-tracking",
       "ecommerce:storefront:01-storefront-foundation",
       "ecommerce:customer-portal:02-customer-portal",
       "ecommerce:customer-support:03-customer-support",
       "ecommerce:order-requests:04-order-requests",
+      "ecommerce:storefront:05-storefront-settings-revisions",
+      "ecommerce:storefront:06-storefront-settings-drafts",
       "frappe:settings:01-settings",
       "frappe:todos:02-todos",
       "frappe:items:03-items",
@@ -165,6 +189,18 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
         .selectFrom(billingTableNames.vouchers)
         .select(["id"])
         .execute()
+      const salesVoucherSplitRows = await queryDatabase
+        .selectFrom(billingTableNames.salesVouchers)
+        .select(["voucher_id"])
+        .execute()
+      const salesItemSplitRows = await queryDatabase
+        .selectFrom(billingTableNames.salesItemVouchers)
+        .select(["item_id"])
+        .execute()
+      const billReferenceRows = await queryDatabase
+        .selectFrom(billingTableNames.billReferences)
+        .select(["ref_id"])
+        .execute()
       const storefrontSettingsRows = await queryDatabase
         .selectFrom(ecommerceTableNames.storefrontSettings)
         .select(["id"])
@@ -182,6 +218,9 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
       assert.equal(appliedSeeders.length, listRegisteredDatabaseSeeders().length)
       assert.equal(companyRows.length, 2)
       assert.equal(billingVoucherRows.length, 6)
+      assert.equal(salesVoucherSplitRows.length, 0)
+      assert.equal(salesItemSplitRows.length, 0)
+      assert.equal(billReferenceRows.length, 0)
       assert.equal(storefrontSettingsRows.length, 1)
       assert.equal(commonCategoryRows.length, 6)
       assert.equal(productRows.length, 3)

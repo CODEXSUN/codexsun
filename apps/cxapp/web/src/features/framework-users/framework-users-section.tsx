@@ -1,18 +1,38 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { Trash2Icon } from "lucide-react"
 
 import type { AuthUserListResponse } from "@cxapp/shared"
 
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { MasterList } from "@/components/blocks/master-list"
 import { RecordActionMenu } from "@/components/blocks/record-action-menu"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { ActivityStatusBadge } from "@/features/status/activity-status"
 
-import { getFrameworkUser, listFrameworkUsers, updateFrameworkUser } from "./user-api"
+import {
+  deleteFrameworkUser,
+  getFrameworkUser,
+  listFrameworkUsers,
+  updateFrameworkUser,
+} from "./user-api"
 import { SectionShell, StateCard } from "./user-shared"
+import { useAuth } from "../../auth/auth-context"
 
 type StatusFilterValue = "all" | "active" | "inactive"
+const deleteUserConfirmationText = "DELETE USER"
 
 function matchesStatusFilter(statusFilter: StatusFilterValue, isActive: boolean) {
   if (statusFilter === "all") {
@@ -63,6 +83,7 @@ function buildStatusFilters(
 }
 
 export function FrameworkUsersSection() {
+  const auth = useAuth()
   const navigate = useNavigate()
   const [items, setItems] = useState<AuthUserListResponse["items"]>([])
   const [searchValue, setSearchValue] = useState("")
@@ -72,6 +93,9 @@ export function FrameworkUsersSection() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMutating, setIsMutating] = useState(false)
+  const [deleteDialogUser, setDeleteDialogUser] =
+    useState<AuthUserListResponse["items"][number] | null>(null)
+  const [deleteConfirmationValue, setDeleteConfirmationValue] = useState("")
   useGlobalLoading(isLoading || isMutating)
 
   async function loadUsers() {
@@ -118,6 +142,37 @@ export function FrameworkUsersSection() {
     }
   }
 
+  async function handleDeleteUser() {
+    if (!deleteDialogUser) {
+      return
+    }
+
+    setError(null)
+    setIsMutating(true)
+
+    try {
+      await deleteFrameworkUser(deleteDialogUser.id)
+      setDeleteDialogUser(null)
+      setDeleteConfirmationValue("")
+      await loadUsers()
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete user.")
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
+  function handleDeleteDialogOpenChange(open: boolean) {
+    if (!open && isMutating) {
+      return
+    }
+
+    if (!open) {
+      setDeleteDialogUser(null)
+      setDeleteConfirmationValue("")
+    }
+  }
+
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchValue.trim().toLowerCase()
 
@@ -147,6 +202,7 @@ export function FrameworkUsersSection() {
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   )
+  const canDeleteUsers = auth.user?.isSuperAdmin === true
 
   if (isLoading && items.length === 0) {
     return <StateCard message="Loading users..." />
@@ -261,10 +317,22 @@ export function FrameworkUsersSection() {
                 <div className="flex justify-end">
                   <RecordActionMenu
                     active={row.isActive}
+                    deleteLabel="Delete user"
+                    disabled={isMutating}
                     itemLabel={row.displayName}
                     onEdit={() => {
                       void navigate(`/dashboard/settings/users/${encodeURIComponent(row.id)}/edit`)
                     }}
+                    onDelete={
+                      canDeleteUsers &&
+                      !row.isSuperAdmin &&
+                      auth.user?.id !== row.id
+                        ? () => {
+                            setDeleteDialogUser(row)
+                            setDeleteConfirmationValue("")
+                          }
+                        : undefined
+                    }
                     onToggleActive={() => {
                       void handleStatusChange(row.id, !row.isActive)
                     }}
@@ -290,6 +358,61 @@ export function FrameworkUsersSection() {
           },
         }}
       />
+
+      <AlertDialog
+        open={deleteDialogUser !== null}
+        onOpenChange={handleDeleteDialogOpenChange}
+      >
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Permanently delete user?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                This permanently removes{" "}
+                <span className="font-medium text-foreground">
+                  {deleteDialogUser?.displayName ?? "this user"}
+                </span>{" "}
+                from the admin users list.
+              </span>
+              <span className="block">
+                Type{" "}
+                <span className="font-mono font-semibold text-foreground">
+                  {deleteUserConfirmationText}
+                </span>{" "}
+                to confirm.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="user-delete-confirmation">Confirmation text</Label>
+            <Input
+              id="user-delete-confirmation"
+              value={deleteConfirmationValue}
+              onChange={(event) => {
+                setDeleteConfirmationValue(event.target.value)
+              }}
+              placeholder={deleteUserConfirmationText}
+              disabled={isMutating}
+            />
+          </div>
+          <AlertDialogFooter className="border-destructive/15 bg-destructive/5">
+            <AlertDialogCancel disabled={isMutating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => void handleDeleteUser()}
+              disabled={
+                isMutating ||
+                deleteConfirmationValue.trim() !== deleteUserConfirmationText
+              }
+            >
+              <Trash2Icon className="size-4" />
+              {isMutating ? "Deleting..." : "Delete user"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SectionShell>
   )
 }

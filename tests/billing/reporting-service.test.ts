@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
+import { billingTableNames } from "../../apps/billing/database/table-names.js"
 import { executeBillingOpeningBalanceRollover } from "../../apps/billing/src/services/opening-balance-rollover-service.js"
 import { getBillingAccountingReports } from "../../apps/billing/src/services/reporting-service.js"
 import { executeBillingYearEndAdjustmentControl } from "../../apps/billing/src/services/year-end-control-service.js"
@@ -1058,6 +1059,245 @@ test("billing reporting service derives aging follow-up exceptions and party set
   }
 })
 
+test("billing reporting service reads settlement controls from bill-engine and allocation split tables", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-settlement-cutover-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-CUTOVER",
+        status: "posted",
+        type: "sales",
+        date: "2026-03-01",
+        counterparty: "Cutover Customer",
+        narration: "Sales bill for split-table report cutover.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "debit",
+            amount: 5000,
+            note: "Customer invoice.",
+          },
+          {
+            ledgerId: "ledger-sales",
+            side: "credit",
+            amount: 5000,
+            note: "Sales credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-CUTOVER",
+        status: "posted",
+        type: "purchase",
+        date: "2026-02-20",
+        counterparty: "Cutover Supplier",
+        narration: "Purchase bill for split-table report cutover.",
+        lines: [
+          {
+            ledgerId: "ledger-purchase",
+            side: "debit",
+            amount: 4000,
+            note: "Purchase debit.",
+          },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 4000,
+            note: "Supplier credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-CUTOVER",
+        status: "posted",
+        type: "receipt",
+        date: "2026-05-20",
+        counterparty: "Cutover Customer",
+        narration: "Receipt cutover source rows.",
+        lines: [
+          {
+            ledgerId: "ledger-hdfc",
+            side: "debit",
+            amount: 6000,
+            note: "Bank receipt.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 6000,
+            note: "Customer settlement.",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "SAL-2026-CUTOVER",
+            referenceDate: "2026-03-01",
+            dueDate: "2026-03-15",
+            amount: 5500,
+            note: "Original against-ref settlement.",
+          },
+          {
+            referenceType: "on_account",
+            referenceNumber: "CUTOVER-ON-ACCOUNT",
+            referenceDate: null,
+            dueDate: null,
+            amount: 500,
+            note: "Original on-account receipt.",
+          },
+        ],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-CUTOVER",
+        status: "posted",
+        type: "payment",
+        date: "2026-05-18",
+        counterparty: "Cutover Supplier",
+        narration: "Payment cutover source rows.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 2000,
+            note: "Supplier settlement.",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 2000,
+            note: "Bank payment.",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "new_ref",
+            referenceNumber: "CUTOVER-ADV-001",
+            referenceDate: null,
+            dueDate: null,
+            amount: 2000,
+            note: "Original advance payment.",
+          },
+        ],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await runtime.primary
+        .updateTable(billingTableNames.billReferences)
+        .set({
+          due_date: "2026-05-08",
+          settled_amount: 4500,
+          balance_amount: 500,
+        })
+        .where("ref_number", "=", "SAL-2026-CUTOVER")
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.billOverdueTracking)
+        .set({
+          overdue_days: 12,
+          overdue_amount: 500,
+          bucket_key: "1_30",
+          bucket_label: "1-30 Days",
+        })
+        .where("ref_number", "=", "SAL-2026-CUTOVER")
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.billReferences)
+        .set({
+          original_amount: 700,
+          balance_amount: 700,
+        })
+        .where("ref_number", "=", "CUTOVER-ON-ACCOUNT")
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.billReferences)
+        .set({
+          original_amount: 2300,
+          balance_amount: 2300,
+        })
+        .where("ref_number", "=", "CUTOVER-ADV-001")
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.receiptItemVouchers)
+        .set({ allocated_amount: 3000 })
+        .where("reference_number", "=", "SAL-2026-CUTOVER")
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.receiptItemVouchers)
+        .set({ allocated_amount: 700 })
+        .where("reference_number", "=", "CUTOVER-ON-ACCOUNT")
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.paymentItemVouchers)
+        .set({ allocated_amount: 1500 })
+        .where("reference_number", "=", "CUTOVER-ADV-001")
+        .execute()
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const receivableItem = reports.item.receivableAging.items.find(
+        (item) => item.voucherNumber === "SAL-2026-CUTOVER"
+      )
+      const customerSummary = reports.item.partySettlementSummary.items.find(
+        (item) => item.counterparty === "Cutover Customer"
+      )
+      const supplierSummary = reports.item.partySettlementSummary.items.find(
+        (item) => item.counterparty === "Cutover Supplier"
+      )
+
+      assert.ok(receivableItem)
+      assert.equal(receivableItem.outstandingAmount, 500)
+      assert.equal(receivableItem.overdueDays, 12)
+      assert.equal(reports.item.settlementExceptions.advanceTotal, 2300)
+      assert.equal(reports.item.settlementExceptions.onAccountTotal, 700)
+      assert.ok(customerSummary)
+      assert.ok(supplierSummary)
+      assert.equal(customerSummary.allocatedReceiptAmount, 3700)
+      assert.equal(customerSummary.unallocatedReceiptAmount, 2300)
+      assert.equal(supplierSummary.allocatedPaymentAmount, 1500)
+      assert.equal(supplierSummary.unallocatedPaymentAmount, 500)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("billing reporting service builds GST sales register from posted sales invoices and credit notes", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-gst-sales-register-"))
 
@@ -1140,6 +1380,150 @@ test("billing reporting service builds GST sales register from posted sales invo
       assert.equal(creditNoteRow.referenceVoucherNumber, "SAL-2026-960")
       assert.equal(reports.item.gstSalesRegister.taxableAmountTotal >= 8000, true)
       assert.equal(reports.item.gstSalesRegister.totalTaxAmountTotal >= 1440, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service reads GST registers from split sales and purchase tables", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-gst-cutover-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const salesVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-GSTCUT",
+        status: "posted",
+        type: "sales",
+        date: "2026-04-22",
+        counterparty: "GST Cutover Customer",
+        narration: "GST sales cutover source voucher.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 10000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const purchaseVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-GSTCUT",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-22",
+        counterparty: "GST Cutover Supplier",
+        narration: "GST purchase cutover source voucher.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 12000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await runtime.primary
+        .updateTable(billingTableNames.salesVouchers)
+        .set({
+          taxable_amount: 11000,
+          tax_amount: 3080,
+          net_amount: 14080,
+          place_of_supply: "MH",
+        })
+        .where("voucher_id", "=", salesVoucher.item.id)
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.salesItemVouchers)
+        .set({
+          hsn_or_sac: "9999",
+          tax_rate: 28,
+          taxable_amount: 11000,
+          cgst_amount: 1540,
+          sgst_amount: 1540,
+          igst_amount: 0,
+          total_tax_amount: 3080,
+          place_of_supply: "MH",
+        })
+        .where("voucher_id", "=", salesVoucher.item.id)
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.purchaseVouchers)
+        .set({
+          taxable_amount: 9000,
+          tax_amount: 450,
+          net_amount: 9450,
+          place_of_supply: "TN",
+        })
+        .where("voucher_id", "=", purchaseVoucher.item.id)
+        .execute()
+
+      await runtime.primary
+        .updateTable(billingTableNames.purchaseItemVouchers)
+        .set({
+          hsn_or_sac: "7777",
+          tax_rate: 5,
+          taxable_amount: 9000,
+          cgst_amount: 225,
+          sgst_amount: 225,
+          igst_amount: 0,
+          total_tax_amount: 450,
+          place_of_supply: "TN",
+        })
+        .where("voucher_id", "=", purchaseVoucher.item.id)
+        .execute()
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const salesRow = reports.item.gstSalesRegister.items.find(
+        (item) => item.voucherNumber === "SAL-2026-GSTCUT"
+      )
+      const purchaseRow = reports.item.gstPurchaseRegister.items.find(
+        (item) => item.voucherNumber === "PUR-2026-GSTCUT"
+      )
+
+      assert.ok(salesRow)
+      assert.ok(purchaseRow)
+      assert.equal(salesRow.hsnOrSac, "9999")
+      assert.equal(salesRow.taxRate, 28)
+      assert.equal(salesRow.taxableAmount, 11000)
+      assert.equal(salesRow.totalTaxAmount, 3080)
+      assert.equal(salesRow.invoiceAmount, 14080)
+      assert.equal(salesRow.placeOfSupply, "MH")
+      assert.equal(purchaseRow.hsnOrSac, "7777")
+      assert.equal(purchaseRow.taxRate, 5)
+      assert.equal(purchaseRow.taxableAmount, 9000)
+      assert.equal(purchaseRow.totalTaxAmount, 450)
+      assert.equal(purchaseRow.invoiceAmount, 9450)
+      assert.equal(purchaseRow.placeOfSupply, "TN")
     } finally {
       await runtime.destroy()
     }

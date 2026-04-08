@@ -117,3 +117,12 @@ export async function updateFrameworkUser(userId: string, payload: unknown) {
     }
   )
 }
+
+export async function deleteFrameworkUser(userId: string) {
+  return requestJson<{ deleted: true }>(
+    `/internal/v1/cxapp/auth/user?id=${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    }
+  )
+}

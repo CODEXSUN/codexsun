@@ -721,6 +721,8 @@
 - completed Stage `T5.1` by adding item split tables for sales, purchase, receipt, payment, journal, and contra vouchers and syncing them from the billing voucher lifecycle
 - completed Stage `T5.2` by adding bill reference, bill settlement, and overdue tracking tables with write rules for invoices, settlements, notes, and returns
 - started Stage `T5.3` by adding a split-register query service and protected billing register route so register reads can target voucher-family tables without loading full voucher JSON payloads
+- completed the `T5.3` sales, purchase, and settlement report cutover so GST registers and bill-control reporting read from split voucher and bill-engine tables
+- completed `T5.4` split-table validation coverage for sync, reverse/delete lifecycle behavior, migration registration, and targeted runtime verification
 - validated the batch with `npm run typecheck` and targeted billing service plus route tests
 # 2026-04-08
 

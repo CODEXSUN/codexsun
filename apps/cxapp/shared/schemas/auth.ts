@@ -9,7 +9,7 @@ export const actorTypeSchema = z.enum([
   "admin",
   "vendor",
 ])
-export const authRegisterActorTypeSchema = z.enum(["customer", "staff", "vendor"])
+export const authRegisterActorTypeSchema = z.enum(["customer"])
 export const permissionKeySchema = z
   .string()
   .trim()
@@ -198,7 +198,7 @@ export const authRegisterOtpRequestPayloadSchema = z.object({
   channel: authOtpChannelSchema,
   destination: z.string().trim().min(1),
   displayName: z.string().trim().min(2).max(120).optional(),
-  actorType: authRegisterActorTypeSchema.default("staff"),
+  actorType: authRegisterActorTypeSchema.default("customer"),
 })
 
 export const authRegisterOtpRequestResponseSchema = z.object({
@@ -222,7 +222,7 @@ export const authRegisterPayloadSchema = z.object({
   phoneNumber: z.string().trim().min(10).max(20),
   password: z.string().min(8),
   displayName: z.string().min(2),
-  actorType: authRegisterActorTypeSchema.default("staff"),
+  actorType: authRegisterActorTypeSchema.default("customer"),
   emailVerificationId: z.string().min(1),
   organizationName: z.string().trim().min(2).max(120).optional(),
 })
@@ -277,19 +277,18 @@ export const authPasswordResetRequestPayloadSchema = z.object({
 })
 
 export const authPasswordResetRequestResponseSchema = z.object({
-  verificationId: z.string().min(1),
+  sent: z.literal(true),
   expiresAt: z.string().min(1),
-  debugOtp: z.string().length(6).nullable(),
+  debugUrl: z.string().url().nullable(),
 })
 
-export const authPasswordResetConfirmPayloadSchema = z.object({
-  email: z.email(),
+export const authPasswordLinkCompletePayloadSchema = z.object({
   verificationId: z.string().min(1),
-  otp: z.string().trim().length(6),
+  token: z.string().trim().min(1),
   newPassword: z.string().min(8),
 })
 
-export const authPasswordResetConfirmResponseSchema = z.object({
+export const authPasswordLinkCompleteResponseSchema = z.object({
   updated: z.literal(true),
 })
 
@@ -364,11 +363,11 @@ export type AuthPasswordResetRequestPayload = z.infer<
 export type AuthPasswordResetRequestResponse = z.infer<
   typeof authPasswordResetRequestResponseSchema
 >
-export type AuthPasswordResetConfirmPayload = z.infer<
-  typeof authPasswordResetConfirmPayloadSchema
+export type AuthPasswordLinkCompletePayload = z.infer<
+  typeof authPasswordLinkCompletePayloadSchema
 >
-export type AuthPasswordResetConfirmResponse = z.infer<
-  typeof authPasswordResetConfirmResponseSchema
+export type AuthPasswordLinkCompleteResponse = z.infer<
+  typeof authPasswordLinkCompleteResponseSchema
 >
 export type AuthAccountRecoveryRestorePayload = z.infer<
   typeof authAccountRecoveryRestorePayloadSchema

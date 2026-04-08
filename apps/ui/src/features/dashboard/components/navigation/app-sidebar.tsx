@@ -11,6 +11,7 @@ import {
   Settings2,
   ShieldCheck,
   Users,
+  Workflow,
 } from "lucide-react"
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -119,6 +120,11 @@ const frameworkUtilityGroups = [
         icon: Database,
         name: "Data Backup",
         route: "/dashboard/settings/data-backup",
+      },
+      {
+        icon: Workflow,
+        name: "Queue Manager",
+        route: "/dashboard/settings/queue-manager",
       },
       {
         icon: ShieldCheck,
