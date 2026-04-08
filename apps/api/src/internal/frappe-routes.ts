@@ -9,6 +9,18 @@ import {
   syncFrappeItemsToProducts,
   updateFrappeItem,
 } from "../../../frappe/src/services/item-service.js"
+import { readFrappeCustomerCommercialProfileContract } from "../../../frappe/src/services/customer-commercial-profile-contract-service.js"
+import { readFrappeItemProjectionContract } from "../../../frappe/src/services/item-projection-contract-service.js"
+import { readFrappePriceProjectionContract } from "../../../frappe/src/services/price-projection-contract-service.js"
+import { readFrappeSalesOrderPushPolicy } from "../../../frappe/src/services/sales-order-policy-service.js"
+import { readFrappeStockProjectionContract } from "../../../frappe/src/services/stock-projection-contract-service.js"
+import {
+  readFrappeTransactionReconciliationQueue,
+  replayFrappeTransactionSync,
+  syncFrappeDeliveryNoteToEcommerce,
+  syncFrappeInvoiceToEcommerce,
+  syncFrappeReturnToEcommerce,
+} from "../../../frappe/src/services/transaction-sync-service.js"
 import {
   getFrappePurchaseReceipt,
   listFrappePurchaseReceipts,
@@ -19,6 +31,8 @@ import {
   saveFrappeSettings,
   verifyFrappeSettings,
 } from "../../../frappe/src/services/settings-service.js"
+import { readFrappeSyncPolicy } from "../../../frappe/src/services/sync-policy-service.js"
+import { readFrappeObservabilityReport } from "../../../frappe/src/services/observability-service.js"
 import {
   createFrappeTodo,
   listFrappeTodos,
@@ -68,7 +82,176 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(
-          await verifyFrappeSettings(user, context.request.jsonBody)
+          await verifyFrappeSettings(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/sync-policy", {
+      summary: "Read the production-safe retry, timeout, and failure policy for connector syncs.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await readFrappeSyncPolicy(context.databases.primary, user)
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/observability", {
+      summary: "Read connector monitoring and recent exception history for Frappe operations.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await readFrappeObservabilityReport(
+            context.databases.primary,
+            context.config,
+            user
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/sales-order-push-policy", {
+      summary: "Read the approval and retry rules for pushing paid ecommerce orders into ERPNext Sales Order.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await readFrappeSalesOrderPushPolicy(context.databases.primary, user)
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/transactions/reconciliation-queue", {
+      summary: "Read ERP transaction mismatches and replay-ready items for ecommerce order sync-back flows.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await readFrappeTransactionReconciliationQueue(
+            context.databases.primary,
+            user
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/transactions/replay", {
+      method: "POST",
+      summary: "Replay a queued ERP transaction sync item back into ecommerce.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await replayFrappeTransactionSync(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/transactions/delivery-note", {
+      method: "POST",
+      summary: "Sync ERP delivery-note and shipment references back into ecommerce orders.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await syncFrappeDeliveryNoteToEcommerce(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/transactions/invoice", {
+      method: "POST",
+      summary: "Sync ERP invoice references back into ecommerce orders.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await syncFrappeInvoiceToEcommerce(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/transactions/return", {
+      method: "POST",
+      summary: "Sync ERP return and refund states back into ecommerce orders.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await syncFrappeReturnToEcommerce(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/contracts/item-projection", {
+      summary: "Read the authoritative ERP item snapshot to core product projection contract.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await readFrappeItemProjectionContract(user))
+      },
+    }),
+    defineInternalRoute("/frappe/contracts/price-projection", {
+      summary: "Read the authoritative ERP price-list snapshot to core commerce-pricing projection contract.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await readFrappePriceProjectionContract(user))
+      },
+    }),
+    defineInternalRoute("/frappe/contracts/stock-projection", {
+      summary: "Read the authoritative ERP warehouse and stock snapshot to core storefront-availability projection contract.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await readFrappeStockProjectionContract(user))
+      },
+    }),
+    defineInternalRoute("/frappe/contracts/customer-commercial-profile", {
+      summary: "Read the authoritative ERP customer-group and commercial-profile enrichment contract.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await readFrappeCustomerCommercialProfileContract(user)
         )
       },
     }),

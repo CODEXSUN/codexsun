@@ -199,6 +199,59 @@ export const storefrontOrderTaxBreakdownSchema = z.object({
   lines: z.array(storefrontOrderTaxLineSchema),
 })
 
+export const storefrontErpSalesOrderLinkSchema = z.object({
+  connectorSyncId: z.string().min(1),
+  status: z.enum(["synced", "failed"]),
+  salesOrderId: z.string().nullable(),
+  salesOrderName: z.string().nullable(),
+  source: z.string().min(1),
+  lastAttemptedAt: z.string().min(1),
+  syncedAt: z.string().nullable(),
+  failureMessage: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontErpDeliveryNoteLinkSchema = z.object({
+  connectorSyncId: z.string().min(1),
+  status: z.enum(["synced", "failed"]),
+  deliveryNoteId: z.string().nullable(),
+  deliveryNoteName: z.string().nullable(),
+  shipmentReference: z.string().nullable(),
+  source: z.string().min(1),
+  lastAttemptedAt: z.string().min(1),
+  syncedAt: z.string().nullable(),
+  failureMessage: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontErpInvoiceLinkSchema = z.object({
+  connectorSyncId: z.string().min(1),
+  status: z.enum(["synced", "failed"]),
+  invoiceId: z.string().nullable(),
+  invoiceName: z.string().nullable(),
+  invoiceNumber: z.string().nullable(),
+  source: z.string().min(1),
+  lastAttemptedAt: z.string().min(1),
+  syncedAt: z.string().nullable(),
+  failureMessage: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontErpReturnLinkSchema = z.object({
+  connectorSyncId: z.string().min(1),
+  status: z.enum(["synced", "failed"]),
+  returnId: z.string().nullable(),
+  returnName: z.string().nullable(),
+  creditNoteId: z.string().nullable(),
+  creditNoteName: z.string().nullable(),
+  returnStatus: z.string().nullable(),
+  source: z.string().min(1),
+  lastAttemptedAt: z.string().min(1),
+  syncedAt: z.string().nullable(),
+  failureMessage: z.string().nullable(),
+  updatedAt: z.string().min(1),
+})
+
 export const storefrontOrderStatusSchema = z.enum([
   "created",
   "payment_pending",
@@ -229,6 +282,10 @@ export const storefrontOrderSchema = z.object({
   stockReservation: storefrontStockReservationSchema.nullable(),
   appliedCoupon: storefrontAppliedCouponSchema.nullable(),
   taxBreakdown: storefrontOrderTaxBreakdownSchema.nullable().default(null),
+  erpSalesOrderLink: storefrontErpSalesOrderLinkSchema.nullable().default(null),
+  erpDeliveryNoteLink: storefrontErpDeliveryNoteLinkSchema.nullable().default(null),
+  erpInvoiceLink: storefrontErpInvoiceLinkSchema.nullable().default(null),
+  erpReturnLink: storefrontErpReturnLinkSchema.nullable().default(null),
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
   checkoutFingerprint: z.string().nullable(),
@@ -956,6 +1013,10 @@ export type StorefrontOverviewKpiReport = z.infer<
 >
 export type StorefrontStockReservation = z.infer<typeof storefrontStockReservationSchema>
 export type StorefrontAppliedCoupon = z.infer<typeof storefrontAppliedCouponSchema>
+export type StorefrontErpSalesOrderLink = z.infer<typeof storefrontErpSalesOrderLinkSchema>
+export type StorefrontErpDeliveryNoteLink = z.infer<typeof storefrontErpDeliveryNoteLinkSchema>
+export type StorefrontErpInvoiceLink = z.infer<typeof storefrontErpInvoiceLinkSchema>
+export type StorefrontErpReturnLink = z.infer<typeof storefrontErpReturnLinkSchema>
 export type StorefrontAdminOrderQueueBucket = z.infer<
   typeof storefrontAdminOrderQueueBucketSchema
 >

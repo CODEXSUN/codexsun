@@ -12,6 +12,12 @@ import {
 } from "../../../core/src/services/contact-service.js"
 import { coreTableNames } from "../../../core/database/table-names.js"
 import { type Product } from "../../../core/shared/index.js"
+import type {
+  FrappeSalesOrderSyncRecord,
+  FrappeDeliveryNoteSyncRecord,
+  FrappeInvoiceSyncRecord,
+  FrappeReturnSyncRecord,
+} from "../../../frappe/shared/index.js"
 import {
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
@@ -64,6 +70,10 @@ import {
   type StorefrontAccountingCompatibilityItem,
   type StorefrontAccountingCompatibilityReport,
   type StorefrontAppliedCoupon,
+  type StorefrontErpDeliveryNoteLink,
+  type StorefrontErpInvoiceLink,
+  type StorefrontErpReturnLink,
+  type StorefrontErpSalesOrderLink,
   type StorefrontOverviewKpiReport,
   type StorefrontStockReservation,
   type StorefrontRefundQueueItem,
@@ -87,7 +97,7 @@ import {
   reserveCustomerPortalCoupon,
   resolveAuthenticatedCustomerAccount,
 } from "./customer-service.js"
-import { readCoreProducts } from "./catalog-service.js"
+import { readProjectedStorefrontProducts } from "./projected-product-service.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
 import {
   sendStorefrontOrderConfirmedEmail,
@@ -170,6 +180,538 @@ function normalizeOptionalString(value: string | null | undefined) {
 
 async function readOrders(database: Kysely<unknown>) {
   return readStorefrontOrders(database)
+}
+
+export async function getStorefrontOrderForConnector(
+  database: Kysely<unknown>,
+  orderId: string
+) {
+  return (await readOrders(database)).find((item) => item.id === orderId) ?? null
+}
+
+function toStorefrontErpSalesOrderLink(
+  syncRecord: Pick<
+    FrappeSalesOrderSyncRecord,
+    | "id"
+    | "status"
+    | "erpSalesOrderId"
+    | "erpSalesOrderName"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+): StorefrontErpSalesOrderLink {
+  return {
+    connectorSyncId: syncRecord.id,
+    status: syncRecord.status,
+    salesOrderId: syncRecord.erpSalesOrderId,
+    salesOrderName: syncRecord.erpSalesOrderName,
+    source: syncRecord.source,
+    lastAttemptedAt: syncRecord.lastAttemptedAt,
+    syncedAt: syncRecord.syncedAt,
+    failureMessage: syncRecord.failureMessage,
+    updatedAt: syncRecord.updatedAt,
+  }
+}
+
+function laterTimestamp(currentTimestamp: string, nextTimestamp: string) {
+  return currentTimestamp.localeCompare(nextTimestamp) >= 0
+    ? currentTimestamp
+    : nextTimestamp
+}
+
+function toStorefrontErpDeliveryNoteLink(
+  syncRecord: Pick<
+    FrappeDeliveryNoteSyncRecord,
+    | "id"
+    | "status"
+    | "deliveryNoteId"
+    | "deliveryNoteName"
+    | "shipmentReference"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+): StorefrontErpDeliveryNoteLink {
+  return {
+    connectorSyncId: syncRecord.id,
+    status: syncRecord.status,
+    deliveryNoteId: syncRecord.deliveryNoteId,
+    deliveryNoteName: syncRecord.deliveryNoteName,
+    shipmentReference: syncRecord.shipmentReference,
+    source: syncRecord.source,
+    lastAttemptedAt: syncRecord.lastAttemptedAt,
+    syncedAt: syncRecord.syncedAt,
+    failureMessage: syncRecord.failureMessage,
+    updatedAt: syncRecord.updatedAt,
+  }
+}
+
+function toStorefrontErpInvoiceLink(
+  syncRecord: Pick<
+    FrappeInvoiceSyncRecord,
+    | "id"
+    | "status"
+    | "invoiceId"
+    | "invoiceName"
+    | "invoiceNumber"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+): StorefrontErpInvoiceLink {
+  return {
+    connectorSyncId: syncRecord.id,
+    status: syncRecord.status,
+    invoiceId: syncRecord.invoiceId,
+    invoiceName: syncRecord.invoiceName,
+    invoiceNumber: syncRecord.invoiceNumber,
+    source: syncRecord.source,
+    lastAttemptedAt: syncRecord.lastAttemptedAt,
+    syncedAt: syncRecord.syncedAt,
+    failureMessage: syncRecord.failureMessage,
+    updatedAt: syncRecord.updatedAt,
+  }
+}
+
+function toStorefrontErpReturnLink(
+  syncRecord: Pick<
+    FrappeReturnSyncRecord,
+    | "id"
+    | "status"
+    | "returnId"
+    | "returnName"
+    | "creditNoteId"
+    | "creditNoteName"
+    | "returnStatus"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+): StorefrontErpReturnLink {
+  return {
+    connectorSyncId: syncRecord.id,
+    status: syncRecord.status,
+    returnId: syncRecord.returnId,
+    returnName: syncRecord.returnName,
+    creditNoteId: syncRecord.creditNoteId,
+    creditNoteName: syncRecord.creditNoteName,
+    returnStatus: syncRecord.returnStatus,
+    source: syncRecord.source,
+    lastAttemptedAt: syncRecord.lastAttemptedAt,
+    syncedAt: syncRecord.syncedAt,
+    failureMessage: syncRecord.failureMessage,
+    updatedAt: syncRecord.updatedAt,
+  }
+}
+
+export async function attachStorefrontOrderErpSalesOrderLink(
+  database: Kysely<unknown>,
+  orderId: string,
+  syncRecord: Pick<
+    FrappeSalesOrderSyncRecord,
+    | "id"
+    | "status"
+    | "erpSalesOrderId"
+    | "erpSalesOrderName"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+) {
+  const orders = await readOrders(database)
+  const order = orders.find((item) => item.id === orderId)
+
+  if (!order) {
+    return null
+  }
+
+  const nextLink = toStorefrontErpSalesOrderLink(syncRecord)
+  const currentLink = order.erpSalesOrderLink
+
+  if (
+    currentLink &&
+    currentLink.connectorSyncId === nextLink.connectorSyncId &&
+    currentLink.status === nextLink.status &&
+    currentLink.salesOrderId === nextLink.salesOrderId &&
+    currentLink.salesOrderName === nextLink.salesOrderName &&
+    currentLink.lastAttemptedAt === nextLink.lastAttemptedAt &&
+    currentLink.failureMessage === nextLink.failureMessage
+  ) {
+    return order
+  }
+
+  const updatedOrder = storefrontOrderSchema.parse({
+    ...order,
+    erpSalesOrderLink: nextLink,
+    updatedAt: laterTimestamp(order.updatedAt, syncRecord.updatedAt),
+  })
+
+  await writeOrders(
+    database,
+    orders.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+  )
+
+  return updatedOrder
+}
+
+export async function attachStorefrontOrderErpDeliveryNoteLink(
+  database: Kysely<unknown>,
+  orderId: string,
+  syncRecord: Pick<
+    FrappeDeliveryNoteSyncRecord,
+    | "id"
+    | "status"
+    | "deliveryNoteId"
+    | "deliveryNoteName"
+    | "shipmentReference"
+    | "source"
+    | "deliveryStatus"
+    | "carrierName"
+    | "trackingId"
+    | "trackingUrl"
+    | "note"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+) {
+  const orders = await readOrders(database)
+  const order = orders.find((item) => item.id === orderId)
+
+  if (!order) {
+    return null
+  }
+
+  const nextLink = toStorefrontErpDeliveryNoteLink(syncRecord)
+  const currentLink = order.erpDeliveryNoteLink
+  const nextTimeline =
+    syncRecord.status !== "synced"
+      ? appendTimelineIfMissing(order, {
+          code: "erp_delivery_sync_failed",
+          label: "ERP delivery sync failed",
+          summary:
+            syncRecord.failureMessage?.trim() ||
+            "ERP delivery-note sync failed and is waiting for replay.",
+        })
+      : syncRecord.deliveryStatus === "delivered"
+        ? appendTimelineIfMissing(order, {
+            code: "erp_delivery_confirmed",
+            label: "ERP delivery confirmed",
+            summary: "ERP delivery-note sync marked the order as delivered.",
+          })
+        : appendTimelineIfMissing(order, {
+            code: "erp_shipment_confirmed",
+            label: "ERP shipment confirmed",
+            summary: "ERP delivery-note sync added shipment and delivery-note references.",
+          })
+
+  let nextOrder = storefrontOrderSchema.parse({
+    ...order,
+    erpDeliveryNoteLink: nextLink,
+    shipmentDetails: buildShipmentDetails(order, {
+      carrierName: syncRecord.carrierName,
+      trackingId: syncRecord.trackingId,
+      trackingUrl: syncRecord.trackingUrl,
+      note: syncRecord.note ?? order.shipmentDetails?.note ?? null,
+      shippedAt:
+        syncRecord.status === "synced" &&
+        (syncRecord.deliveryStatus === "shipped" || syncRecord.deliveryStatus === "delivered")
+          ? order.shipmentDetails?.shippedAt ?? syncRecord.syncedAt ?? syncRecord.lastAttemptedAt
+          : order.shipmentDetails?.shippedAt ?? null,
+      deliveredAt:
+        syncRecord.status === "synced" && syncRecord.deliveryStatus === "delivered"
+          ? syncRecord.syncedAt ?? syncRecord.lastAttemptedAt
+          : order.shipmentDetails?.deliveredAt ?? null,
+      updatedAt: syncRecord.updatedAt,
+    }),
+    timeline: nextTimeline,
+    updatedAt: laterTimestamp(order.updatedAt, syncRecord.updatedAt),
+  })
+
+  if (syncRecord.status === "synced") {
+    if (syncRecord.deliveryStatus === "delivered" && nextOrder.status !== "delivered") {
+      let advancedOrder = nextOrder
+
+      if (advancedOrder.status === "paid") {
+        advancedOrder = storefrontOrderSchema.parse({
+          ...transitionOrderStatus(advancedOrder, "fulfilment_pending"),
+          shipmentDetails: advancedOrder.shipmentDetails,
+          timeline: advancedOrder.timeline,
+          updatedAt: advancedOrder.updatedAt,
+        })
+      }
+
+      if (advancedOrder.status === "fulfilment_pending") {
+        advancedOrder = storefrontOrderSchema.parse({
+          ...transitionOrderStatus(advancedOrder, "shipped"),
+          shipmentDetails: advancedOrder.shipmentDetails,
+          timeline: advancedOrder.timeline,
+          updatedAt: advancedOrder.updatedAt,
+        })
+      }
+
+      nextOrder = storefrontOrderSchema.parse({
+        ...transitionOrderStatus(advancedOrder, "delivered"),
+        shipmentDetails: advancedOrder.shipmentDetails,
+        timeline: nextTimeline,
+        updatedAt: laterTimestamp(advancedOrder.updatedAt, syncRecord.updatedAt),
+      })
+    } else if (
+      syncRecord.deliveryStatus === "shipped" &&
+      (nextOrder.status === "paid" || nextOrder.status === "fulfilment_pending")
+    ) {
+      nextOrder = storefrontOrderSchema.parse({
+        ...transitionOrderStatus(nextOrder, "shipped"),
+        shipmentDetails: nextOrder.shipmentDetails,
+        timeline: nextTimeline,
+        updatedAt: laterTimestamp(nextOrder.updatedAt, syncRecord.updatedAt),
+      })
+    } else if (
+      syncRecord.deliveryStatus === "fulfilment_pending" &&
+      nextOrder.status === "paid"
+    ) {
+      nextOrder = storefrontOrderSchema.parse({
+        ...transitionOrderStatus(nextOrder, "fulfilment_pending"),
+        shipmentDetails: nextOrder.shipmentDetails,
+        timeline: nextTimeline,
+        updatedAt: laterTimestamp(nextOrder.updatedAt, syncRecord.updatedAt),
+      })
+    }
+  }
+
+  if (
+    currentLink &&
+    currentLink.connectorSyncId === nextLink.connectorSyncId &&
+    currentLink.status === nextLink.status &&
+    currentLink.deliveryNoteId === nextLink.deliveryNoteId &&
+    currentLink.deliveryNoteName === nextLink.deliveryNoteName &&
+    currentLink.shipmentReference === nextLink.shipmentReference &&
+    currentLink.lastAttemptedAt === nextLink.lastAttemptedAt &&
+    currentLink.failureMessage === nextLink.failureMessage &&
+    JSON.stringify(order.shipmentDetails) === JSON.stringify(nextOrder.shipmentDetails) &&
+    order.status === nextOrder.status
+  ) {
+    return order
+  }
+
+  await writeOrders(
+    database,
+    orders.map((item) => (item.id === nextOrder.id ? nextOrder : item))
+  )
+
+  return nextOrder
+}
+
+export async function attachStorefrontOrderErpInvoiceLink(
+  database: Kysely<unknown>,
+  orderId: string,
+  syncRecord: Pick<
+    FrappeInvoiceSyncRecord,
+    | "id"
+    | "status"
+    | "invoiceId"
+    | "invoiceName"
+    | "invoiceNumber"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+) {
+  const orders = await readOrders(database)
+  const order = orders.find((item) => item.id === orderId)
+
+  if (!order) {
+    return null
+  }
+
+  const nextLink = toStorefrontErpInvoiceLink(syncRecord)
+  const currentLink = order.erpInvoiceLink
+  const nextTimeline =
+    syncRecord.status === "synced"
+      ? appendTimelineIfMissing(order, {
+          code: "erp_invoice_linked",
+          label: "ERP invoice linked",
+          summary: "ERP invoice reference was synced back into ecommerce.",
+        })
+      : appendTimelineIfMissing(order, {
+          code: "erp_invoice_sync_failed",
+          label: "ERP invoice sync failed",
+          summary:
+            syncRecord.failureMessage?.trim() ||
+            "ERP invoice sync failed and is waiting for replay.",
+        })
+
+  const nextOrder = storefrontOrderSchema.parse({
+    ...order,
+    erpInvoiceLink: nextLink,
+    timeline: nextTimeline,
+    updatedAt: laterTimestamp(order.updatedAt, syncRecord.updatedAt),
+  })
+
+  if (
+    currentLink &&
+    currentLink.connectorSyncId === nextLink.connectorSyncId &&
+    currentLink.status === nextLink.status &&
+    currentLink.invoiceId === nextLink.invoiceId &&
+    currentLink.invoiceName === nextLink.invoiceName &&
+    currentLink.invoiceNumber === nextLink.invoiceNumber &&
+    currentLink.lastAttemptedAt === nextLink.lastAttemptedAt &&
+    currentLink.failureMessage === nextLink.failureMessage
+  ) {
+    return order
+  }
+
+  await writeOrders(
+    database,
+    orders.map((item) => (item.id === nextOrder.id ? nextOrder : item))
+  )
+
+  return nextOrder
+}
+
+export async function attachStorefrontOrderErpReturnLink(
+  database: Kysely<unknown>,
+  orderId: string,
+  syncRecord: Pick<
+    FrappeReturnSyncRecord,
+    | "id"
+    | "status"
+    | "returnId"
+    | "returnName"
+    | "creditNoteId"
+    | "creditNoteName"
+    | "returnStatus"
+    | "refundStatus"
+    | "refundAmount"
+    | "currency"
+    | "reason"
+    | "providerRefundId"
+    | "source"
+    | "lastAttemptedAt"
+    | "syncedAt"
+    | "failureMessage"
+    | "updatedAt"
+  >
+) {
+  const orders = await readOrders(database)
+  const order = orders.find((item) => item.id === orderId)
+
+  if (!order) {
+    return null
+  }
+
+  const nextLink = toStorefrontErpReturnLink(syncRecord)
+  const currentLink = order.erpReturnLink
+  const now = syncRecord.syncedAt ?? syncRecord.lastAttemptedAt
+
+  let nextOrder = storefrontOrderSchema.parse({
+    ...order,
+    erpReturnLink: nextLink,
+    refund:
+      syncRecord.status === "synced"
+        ? buildRefundRecord(order, {
+            type:
+              (syncRecord.refundAmount ?? order.totalAmount) < order.totalAmount
+                ? "partial"
+                : "full",
+            status: syncRecord.refundStatus,
+            requestedAmount: syncRecord.refundAmount ?? order.totalAmount,
+            currency: syncRecord.currency ?? order.currency,
+            reason: syncRecord.reason ?? order.refund?.reason ?? null,
+            requestedBy: order.refund?.requestedBy ?? "system",
+            requestedAt: order.refund?.requestedAt ?? now,
+            initiatedAt:
+              syncRecord.refundStatus === "processing" || syncRecord.refundStatus === "refunded"
+                ? order.refund?.initiatedAt ?? now
+                : order.refund?.initiatedAt ?? null,
+            completedAt:
+              syncRecord.refundStatus === "refunded"
+                ? now
+                : order.refund?.completedAt ?? null,
+            failedAt:
+              syncRecord.refundStatus === "failed"
+                ? now
+                : order.refund?.failedAt ?? null,
+            providerRefundId: syncRecord.providerRefundId ?? order.refund?.providerRefundId ?? null,
+            statusSummary:
+              syncRecord.status === "synced"
+                ? `ERP return sync recorded return status ${syncRecord.returnStatus ?? "unknown"}.`
+                : syncRecord.failureMessage ?? order.refund?.statusSummary ?? null,
+            updatedAt: syncRecord.updatedAt,
+          })
+        : order.refund,
+    paymentStatus:
+      syncRecord.status === "synced" && syncRecord.refundStatus === "refunded"
+        ? "refunded"
+        : order.paymentStatus,
+    timeline:
+      syncRecord.status === "synced"
+        ? appendTimelineIfMissing(order, {
+            code: "erp_return_synced",
+            label: "ERP return synced",
+            summary: "ERP return and refund state were synced back into ecommerce.",
+          })
+        : appendTimelineIfMissing(order, {
+            code: "erp_return_sync_failed",
+            label: "ERP return sync failed",
+            summary:
+              syncRecord.failureMessage?.trim() ||
+              "ERP return sync failed and is waiting for replay.",
+          }),
+    updatedAt: laterTimestamp(order.updatedAt, syncRecord.updatedAt),
+  })
+
+  if (
+    syncRecord.status === "synced" &&
+    syncRecord.refundStatus === "refunded" &&
+    nextOrder.status !== "refunded"
+  ) {
+    nextOrder = storefrontOrderSchema.parse({
+      ...transitionOrderStatus(nextOrder, "refunded"),
+      refund: nextOrder.refund,
+      erpReturnLink: nextOrder.erpReturnLink,
+      paymentStatus: "refunded",
+      timeline: nextOrder.timeline,
+      updatedAt: laterTimestamp(nextOrder.updatedAt, syncRecord.updatedAt),
+    })
+  }
+
+  if (
+    currentLink &&
+    currentLink.connectorSyncId === nextLink.connectorSyncId &&
+    currentLink.status === nextLink.status &&
+    currentLink.returnId === nextLink.returnId &&
+    currentLink.creditNoteId === nextLink.creditNoteId &&
+    currentLink.returnStatus === nextLink.returnStatus &&
+    currentLink.lastAttemptedAt === nextLink.lastAttemptedAt &&
+    currentLink.failureMessage === nextLink.failureMessage &&
+    order.paymentStatus === nextOrder.paymentStatus &&
+    order.status === nextOrder.status &&
+    JSON.stringify(order.refund) === JSON.stringify(nextOrder.refund)
+  ) {
+    return order
+  }
+
+  await writeOrders(
+    database,
+    orders.map((item) => (item.id === nextOrder.id ? nextOrder : item))
+  )
+
+  return nextOrder
 }
 
 async function writeOrders(database: Kysely<unknown>, items: StorefrontOrder[]) {
@@ -406,7 +948,7 @@ async function releaseOrderReservation(
     return order
   }
 
-  const products = await readCoreProducts(database)
+  const products = await readProjectedStorefrontProducts(database)
   const nextProducts = releaseReservationFromProducts(products, order.stockReservation, timestamp)
   await writeCoreProducts(database, nextProducts)
 
@@ -481,7 +1023,7 @@ async function expireStalePendingReservations(
   }
 
   const timestamp = new Date().toISOString()
-  let products = await readCoreProducts(database)
+  let products = await readProjectedStorefrontProducts(database)
   const customerAccounts = await readCustomerAccounts(database)
   const staleOrderIds = new Set(staleOrders.map((order) => order.id))
   const nextOrders = await Promise.all(orders.map(async (order) => {
@@ -1063,7 +1605,7 @@ export async function createCheckoutOrder(
       : null
     const settings = await getStorefrontSettings(database)
     const existingOrders = await expireStalePendingReservations(database, await readOrders(database))
-    const catalog = await readCoreProducts(database)
+    const catalog = await readProjectedStorefrontProducts(database)
     const now = new Date().toISOString()
 
     const chargeInputs: Array<{
@@ -1440,7 +1982,7 @@ export async function createCheckoutOrder(
           )
         }
       } else {
-        const products = await readCoreProducts(database)
+        const products = await readProjectedStorefrontProducts(database)
         const nextProducts = releaseReservationFromProducts(
           products,
           reservationRollback.reservation,

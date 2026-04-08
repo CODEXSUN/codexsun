@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react"
 
-import type { FrappeItem, FrappePurchaseReceipt, FrappeSettings, FrappeTodo } from "@frappe/shared"
+import type {
+  FrappeItem,
+  FrappeObservabilityReport,
+  FrappePurchaseReceipt,
+  FrappeSettings,
+  FrappeSyncPolicy,
+  FrappeTodo,
+} from "@frappe/shared"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import {
+  getFrappeObservabilityReport,
   getFrappeSettings,
+  getFrappeSyncPolicy,
   listFrappeItems,
   listFrappePurchaseReceipts,
   listFrappeTodos,
@@ -17,6 +26,8 @@ export function FrappeOverviewSection() {
   const { user } = useDashboardShell()
   const [state, setState] = useState<{
     settings: FrappeSettings | null
+    syncPolicy: FrappeSyncPolicy | null
+    observability: FrappeObservabilityReport | null
     todos: FrappeTodo[]
     items: FrappeItem[]
     receipts: FrappePurchaseReceipt[]
@@ -24,6 +35,8 @@ export function FrappeOverviewSection() {
     isLoading: boolean
   }>({
     settings: null,
+    syncPolicy: null,
+    observability: null,
     todos: [],
     items: [],
     receipts: [],
@@ -39,7 +52,14 @@ export function FrappeOverviewSection() {
       setState((current) => ({ ...current, error: null, isLoading: true }))
 
       try {
-        const [todoResponse, itemResponse, receiptResponse, settingsResponse] =
+        const [
+          todoResponse,
+          itemResponse,
+          receiptResponse,
+          settingsResponse,
+          syncPolicyResponse,
+          observabilityResponse,
+        ] =
           await Promise.all([
             listFrappeTodos(),
             listFrappeItems(),
@@ -47,11 +67,15 @@ export function FrappeOverviewSection() {
             user.isSuperAdmin
               ? getFrappeSettings().catch(() => null)
               : Promise.resolve(null),
+            getFrappeSyncPolicy(),
+            getFrappeObservabilityReport(),
           ])
 
         if (!cancelled) {
           setState({
             settings: settingsResponse?.settings ?? null,
+            syncPolicy: syncPolicyResponse.policy,
+            observability: observabilityResponse.report,
             todos: todoResponse.todos.items,
             items: itemResponse.manager.items,
             receipts: receiptResponse.manager.items,
@@ -63,6 +87,8 @@ export function FrappeOverviewSection() {
         if (!cancelled) {
           setState({
             settings: null,
+            syncPolicy: null,
+            observability: null,
             todos: [],
             items: [],
             receipts: [],
@@ -91,13 +117,17 @@ export function FrappeOverviewSection() {
   const syncedItems = state.items.filter((item) => item.isSyncedToProduct).length
   const syncedReceipts = state.receipts.filter((item) => item.isSyncedLocally).length
   const openTodos = state.todos.filter((item) => item.status === "Open").length
+  const erpReadPolicy = state.syncPolicy?.policies.find(
+    (policy) => policy.operationKey === "erp-read"
+  )
+  const connectorFailures = state.observability?.summary.connectorFailureCount ?? 0
 
   return (
     <SectionShell
       title="Frappe Overview"
       description="ERPNext connector readiness, local snapshots, and rebuild-safe sync status inside the app-owned Frappe boundary."
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard
           label="ToDos"
           value={state.todos.length}
@@ -129,6 +159,15 @@ export function FrappeOverviewSection() {
                 : "Connector is saved but not yet enabled."
               : "Connection details are visible to super-admin only."
           }
+        />
+        <MetricCard
+          label="Connector Health"
+          value={
+            state.observability?.summary.alertState === "breached"
+              ? "Alert"
+              : "Healthy"
+          }
+          hint={`${connectorFailures} connector failures recorded in the last 24 hours.`}
         />
       </div>
 
@@ -175,6 +214,76 @@ export function FrappeOverviewSection() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sync Guardrails</CardTitle>
+          <CardDescription>
+            Production-safe retry, timeout, and failure behavior the connector must follow once live ERP sync jobs are enabled.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="grid gap-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-card/70 p-4">
+              <p className="font-medium text-foreground">ERP read attempts</p>
+              <p>
+                {erpReadPolicy
+                  ? `${erpReadPolicy.maxAttempts} attempts with ${erpReadPolicy.backoffSeconds.join(", ")} second backoff.`
+                  : "Policy unavailable."}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card/70 p-4">
+              <p className="font-medium text-foreground">Timeout budget</p>
+              <p>
+                {erpReadPolicy
+                  ? `${erpReadPolicy.timeoutSeconds}s per connector call, derived from the saved connector settings.`
+                  : "Policy unavailable."}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card/70 p-4">
+              <p className="font-medium text-foreground">Failure mode</p>
+              <p>
+                Connector syncs fail closed after the final retry; downstream projection writes stay manual-replay only.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+            {state.syncPolicy?.operatorRules.map((rule) => (
+              <p key={rule}>{rule}</p>
+            )) ?? <p>Sync guardrails are unavailable right now.</p>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Connector Exceptions</CardTitle>
+          <CardDescription>
+            Latest verification and sync exceptions recorded into the shared monitoring and activity-log baseline.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {state.observability?.recentExceptions.length ? (
+            state.observability.recentExceptions.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-border/70 bg-card/70 p-4 text-muted-foreground"
+              >
+                <p className="font-medium text-foreground">{item.message}</p>
+                <p>{item.action}</p>
+                <p>
+                  {new Date(item.createdAt).toLocaleString("en-IN")}
+                  {item.referenceId ? ` | Ref: ${item.referenceId}` : ""}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              No connector exceptions recorded recently.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </SectionShell>
   )
 }

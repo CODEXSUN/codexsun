@@ -38,6 +38,7 @@ import {
   getStorefrontAccountingCompatibilityReport,
   getStorefrontPaymentDailySummaryDocument,
   getStorefrontOperationalAgingReport,
+  getStorefrontOrderForConnector,
   getStorefrontRefundReportDocument,
   getStorefrontPaymentOperationsReport,
   getStorefrontSettlementGapReportDocument,
@@ -45,6 +46,7 @@ import {
   reconcileRazorpayPayments,
   updateStorefrontRefundStatus,
 } from "../../../ecommerce/src/services/order-service.js"
+import { pushStorefrontOrderToFrappeSalesOrder } from "../../../frappe/src/services/sales-order-service.js"
 import {
   getStorefrontSupportQueueReport,
   updateStorefrontSupportCase,
@@ -169,6 +171,25 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       allowedActorTypes: ["admin", "staff"],
       requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:analytics:view"],
     })
+  const pushPaidOrdersToFrappe = async (
+    database: Parameters<typeof getStorefrontOrderForConnector>[0],
+    orderIds: string[],
+    source: "payment_reconcile"
+  ) => {
+    for (const orderId of [...new Set(orderIds.filter(Boolean))]) {
+      const order = await getStorefrontOrderForConnector(database, orderId)
+
+      if (!order || order.paymentStatus !== "paid") {
+        continue
+      }
+
+      try {
+        await pushStorefrontOrderToFrappeSalesOrder(database, order, { source })
+      } catch (error) {
+        console.error("Unable to push reconciled storefront order into ERPNext Sales Order.", error)
+      }
+    }
+  }
 
   return [
     defineInternalRoute("/ecommerce/storefront-settings", {
@@ -585,13 +606,22 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requirePaymentsManage(context)
 
-        return jsonResponse(
-          await reconcileRazorpayPayments(
-            context.databases.primary,
-            context.config,
-            context.request.jsonBody
-          )
+        const response = await reconcileRazorpayPayments(
+          context.databases.primary,
+          context.config,
+          context.request.jsonBody
         )
+        const paidOrderIds = response.items
+          .filter((item) => item.action === "paid")
+          .map((item) => item.orderId)
+
+        await pushPaidOrdersToFrappe(
+          context.databases.primary,
+          paidOrderIds,
+          "payment_reconcile"
+        )
+
+        return jsonResponse(response)
       },
     }),
     defineInternalRoute("/ecommerce/payments/refund-request", {

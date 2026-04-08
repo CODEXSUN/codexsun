@@ -476,7 +476,7 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
   {
     id: "observability",
     label: "Observability",
-    summary: "Application log level and operator alert thresholds for checkout, webhook, and mail health.",
+    summary: "Application log level and operator alert thresholds for commerce and connector health.",
     fields: [
       {
         key: "APP_LOG_LEVEL",
@@ -543,6 +543,14 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         type: "number",
         description: "Alert threshold for customer mail delivery failures within the monitoring window.",
         placeholder: "10",
+        required: true,
+      },
+      {
+        key: "ALERT_CONNECTOR_SYNC_FAILURE_THRESHOLD",
+        label: "Connector Sync Failure Threshold",
+        type: "number",
+        description: "Alert threshold for ERP connector verification and sync failures within the monitoring window.",
+        placeholder: "3",
         required: true,
       },
     ],

@@ -12,6 +12,7 @@ import {
   getStorefrontLegalPage,
   getStorefrontProduct,
 } from "../../apps/ecommerce/src/services/catalog-service.js"
+import { readProjectedStorefrontProducts } from "../../apps/ecommerce/src/services/projected-product-service.js"
 import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.js"
 import { defaultStorefrontSettings } from "../../apps/ecommerce/src/data/storefront-seed.js"
 import {
@@ -147,6 +148,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       const landing = await getStorefrontLanding(runtime.primary)
       const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const projectedProducts = await readProjectedStorefrontProducts(runtime.primary)
       const storedSettings = await getStorefrontSettings(runtime.primary)
       const storedHomeSlider = await getStorefrontHomeSlider(runtime.primary)
       const shippingPage = await getStorefrontLegalPage(runtime.primary, "shipping")
@@ -155,6 +157,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       })
 
       assert.equal(landing.settings.hero.title.length > 0, true)
+      assert.equal(projectedProducts.length > 0, true)
       assert.equal(storedSettings.search.departments.length > 0, true)
       assert.equal(storedSettings.shippingMethods.length > 0, true)
       assert.equal(storedSettings.shippingMethods.some((item) => item.isDefault), true)
@@ -799,6 +802,85 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(releasedProduct.item.availableQuantity, initialAvailableQuantity - 2)
     } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("storefront catalog reads and mock checkout do not depend on live fetch when Razorpay is disabled", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-no-live-erp-"))
+  const originalFetch = globalThis.fetch
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      globalThis.fetch = async () => {
+        throw new Error("Network access must not be required for storefront runtime reads.")
+      }
+
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const landing = await getStorefrontLanding(runtime.primary)
+      const product = await getStorefrontProduct(runtime.primary, {
+        slug: catalog.items[0]?.slug ?? null,
+      })
+      const checkout = await createCheckoutOrder(runtime.primary, config, {
+        customer: {
+          email: "guest@codexsun.local",
+          phoneNumber: "+91 90000 11111",
+          firstName: "Guest",
+          lastName: "Buyer",
+        },
+        shippingMethodId: "standard",
+        paymentMethod: "online",
+        shippingAddress: {
+          fullName: "Guest Buyer",
+          line1: "12 Market Street",
+          line2: "",
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+          phoneNumber: "+91 90000 11111",
+          email: "guest@codexsun.local",
+        },
+        billingAddress: {
+          fullName: "Guest Buyer",
+          line1: "12 Market Street",
+          line2: "",
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+          phoneNumber: "+91 90000 11111",
+          email: "guest@codexsun.local",
+        },
+        items: [
+          {
+            productId: catalog.items[0]!.id,
+            quantity: 1,
+          },
+        ],
+        notes: null,
+        couponCode: null,
+      })
+
+      assert.equal(landing.featured.length > 0, true)
+      assert.equal(product.item.id, catalog.items[0]?.id)
+      assert.equal(checkout.order.status, "payment_pending")
+      assert.equal(checkout.payment.mode, "mock")
+    } finally {
+      globalThis.fetch = originalFetch
       await runtime.destroy()
     }
   } finally {

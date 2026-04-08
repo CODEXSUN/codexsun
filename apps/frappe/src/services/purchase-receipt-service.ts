@@ -17,6 +17,7 @@ import {
 
 import { frappeTableNames } from "../../database/table-names.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
+import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
 import { frappeSettingsSchema } from "../../shared/index.js"
 
@@ -141,6 +142,17 @@ export async function syncFrappePurchaseReceipts(
   const selectedReceipts = receipts.filter((receipt) => receiptIds.includes(receipt.id))
 
   if (selectedReceipts.length !== receiptIds.length) {
+    await recordFrappeConnectorEvent(database, user, {
+      action: "purchase_receipts.sync",
+      status: "failure",
+      message: "Frappe purchase receipt sync failed because one or more receipts were missing.",
+      referenceId: receiptIds[0] ?? null,
+      details: {
+        requestedCount: receiptIds.length,
+        selectedCount: selectedReceipts.length,
+      },
+    })
+
     throw new ApplicationError(
       "One or more purchase receipts could not be found.",
       { receiptIds },
@@ -185,6 +197,19 @@ export async function syncFrappePurchaseReceipts(
     payload: receipt,
     updatedAt: receipt.modifiedAt,
   })))
+
+  await recordFrappeConnectorEvent(database, user, {
+    action: "purchase_receipts.sync",
+    status: "success",
+    message: `Frappe purchase receipt sync completed for ${syncResults.length} receipt${syncResults.length === 1 ? "" : "s"}.`,
+    referenceId: syncResults[0]?.syncedRecordId ?? null,
+    details: {
+      requestedCount: receiptIds.length,
+      successCount: syncResults.length,
+      createdCount: syncResults.filter((item) => item.mode === "create").length,
+      updatedCount: syncResults.filter((item) => item.mode === "update").length,
+    },
+  })
 
   return frappePurchaseReceiptSyncResponseSchema.parse({
     sync: {

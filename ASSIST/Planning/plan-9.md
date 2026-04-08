@@ -369,6 +369,22 @@ Current `apps/frappe` scope is partial:
 
 This is not yet a live commerce-to-ERP operating loop.
 
+Connector hardening baseline:
+
+- saved connector credentials remain app-owned in `apps/frappe` and must be masked when read back into admin clients
+- connection-setting edits must allow blank secret fields to retain the saved credential instead of de-configuring the connector during non-secret changes
+- verification may run against the saved connector payload and should persist the latest verification status only when the checked payload matches the saved settings record
+- future live connector syncs should use bounded automatic retry only for idempotent ERP reads and local snapshot refresh writes, while downstream projection or transactional writes remain manual-replay only until explicit idempotency contracts exist
+- connector observability should stay on the shared framework monitoring and activity-log baseline, with a dedicated connector channel and operator-facing exception review in the Frappe workspace
+- the ERP item master-sync baseline should treat `itemCode` as the upstream identity key and define a one-way `frappe item snapshot -> core product` contract before any projection write path is implemented
+- the ERP price master-sync baseline should treat price-list normalization as a `frappe` concern first and define a one-way `frappe item price snapshot -> core product price` contract before any live storefront pricing dependency is introduced
+- the ERP stock master-sync baseline should treat warehouse normalization and stock eligibility as a `frappe` concern first and define a one-way `frappe stock snapshot -> core product stock` contract before any storefront availability write path is implemented
+- the ERP customer commercial baseline should treat customer-group, territory, and price-list hints as a `frappe` enrichment concern first and define a one-way `frappe customer commercial snapshot -> ecommerce customer commercial profile` contract before any segmented-pricing or entitlement behavior is enabled
+- keep all connector orchestration code inside `apps/frappe`, with other apps consuming the connector only through shared contracts or internal API transport instead of importing connector services directly
+- make the first live projection slice the approved item-master contract only, projecting Frappe item snapshots into core product records before adding price, stock, or customer-commercial projection writes
+- add narrow ecommerce-facing read-model services for projected catalog data so storefront, checkout, SEO, and customer flows consume projected `core` data without direct Frappe imports or ad hoc cross-app read paths
+- confirm the storefront runtime path still works when general network fetch is unavailable, so projected catalog reads and mock-checkout are demonstrably decoupled from live ERP timing
+
 ### Recommended Integration Ownership
 
 #### ERPNext Should Own
@@ -409,6 +425,8 @@ This is not yet a live commerce-to-ERP operating loop.
 - Fulfilment start -> ERPNext Delivery Note / shipment reference
 - Invoice creation -> ERPNext Sales Invoice
 - Refund / return -> ERPNext return and finance linkage
+- transaction-push transport may start from checkout verify, webhook capture, or reconciliation entry points, but the idempotent ERP write and local connector sync record still belong inside `apps/frappe`
+- first push approval may be automatic for a newly committed paid order, but any retry after transactional failure should move to manual replay only until explicit operator tools exist
 
 #### Phase C: Reconciliation Loop
 
@@ -418,7 +436,9 @@ This is not yet a live commerce-to-ERP operating loop.
   - invoice id
   - shipment/tracking
   - return status
+- ecommerce should keep a local snapshot of linked ERP document ids once connector writes succeed so commerce-side admin and reporting surfaces do not depend on direct Frappe-store reads
 - Scheduled sync and exception queue for mismatches.
+- replay tools should operate from persisted connector records and local ecommerce snapshots instead of introducing new implicit live ERP reads during admin runtime.
 
 ### ERPNext Execution Notes
 
@@ -426,6 +446,34 @@ This is not yet a live commerce-to-ERP operating loop.
 - Keep sellable-stock authority in `apps/core` until a projection has been validated and persisted there.
 - Keep storefront pricing authority in `apps/core` until ERP price-list projections have been validated and persisted there.
 - If ERPNext owns price lists, select the storefront-effective price row before projection and persist only normalized effective pricing fields that `ecommerce` already understands.
+- preserve current storefront pricing semantics during ERP compatibility:
+  - projected `sellingPrice` is the effective transaction price
+  - projected `mrp` is the compare-at display price
+  - `basePrice` remains fallback only when no active projected or local core price row exists
+- preserve current storefront stock semantics during ERP compatibility:
+  - projected `quantity` feeds active core stock rows
+  - projected `reservedQuantity` must not silently erase active ecommerce checkout holds
+  - ecommerce storefront runtime still reads only aggregated sellable stock from active core rows, not live ERP warehouse detail
+- preserve current customer and promotion ownership during ERP compatibility:
+  - projected customer-group and territory data are enrichment hints only
+  - ecommerce retains customer auth, portal access, coupon lifecycle, rewards, and checkout validation ownership
+  - segmented pricing or entitlement behavior stays out of runtime until a later explicit pricing-engine phase
+- preserve the connector boundary during rollout:
+  - API transport may call `apps/frappe` services
+  - tests may import `apps/frappe` services for coverage
+  - product app code outside `apps/frappe` should not import Frappe service internals directly
+- preserve staged projection rollout:
+  - item-master projection is the first live write path
+  - price, stock, and customer-commercial projections still require their own explicit execution stages
+  - storefront runtime should continue reading projected core data, not live ERP responses
+- preserve narrow ecommerce consumption:
+  - ecommerce reads projected catalog data through local read-model services
+  - ecommerce does not import Frappe service internals directly
+  - future ERP-aware storefront behavior should extend these local read-model services rather than bypassing them
+- preserve no-live-ERP storefront runtime:
+  - landing, catalog, PDP, SEO, and mock-checkout must succeed from persisted projected data alone
+  - payment-provider network calls stay isolated in dedicated payment services
+  - storefront runtime must not block on live Frappe or ERP network response time
 - If ecommerce needs ERP-aware behavior, add narrow projection services in `apps/ecommerce`, not direct cross-app writes.
 - Start with one-way master sync and one-way order push before attempting full bidirectional transaction mutation.
 - Do not make storefront runtime depend on live ERPNext response time for page render or checkout completion.

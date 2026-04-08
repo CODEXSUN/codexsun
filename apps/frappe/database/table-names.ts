@@ -4,4 +4,8 @@ export const frappeTableNames = {
   items: "frappe_items",
   purchaseReceipts: "frappe_purchase_receipts",
   itemProductSyncLogs: "frappe_item_product_sync_logs",
+  salesOrderSyncs: "frappe_sales_order_syncs",
+  deliveryNoteSyncs: "frappe_delivery_note_syncs",
+  invoiceSyncs: "frappe_invoice_syncs",
+  returnSyncs: "frappe_return_syncs",
 } as const

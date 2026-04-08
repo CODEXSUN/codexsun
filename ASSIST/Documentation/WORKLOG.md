@@ -2,11 +2,101 @@
 
 ## Done Till Here
 
+### `#96` 2026-04-08
+
+- completed Stage `6.2.1` through `6.2.4` by adding connector-owned delivery-note, invoice, and return or refund sync-back records, a mismatch queue, and replay tools
+- extended ecommerce orders with ERP delivery, invoice, and return link snapshots, updated shipment and refund state from Frappe transaction sync records, and kept replay inside the connector boundary by reusing stored sync records or the existing Sales Order push path
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts`; the broad internal-routes suite still shows an unrelated billing year-end control failure outside this batch
+
+### `#95` 2026-04-08
+
+- completed Stage `6.1.3` by persisting the ERP Sales Order mapping on ecommerce orders
+- added an `erpSalesOrderLink` snapshot to storefront orders, kept legacy order restore safe with `null` fallback, and saved the Frappe sync result back onto ecommerce orders after checkout, webhook, and reconciliation push paths
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts`; a broader combined regression run surfaced an unrelated billing year-end route failure outside this batch
+
+### `#94` 2026-04-08
+
+- completed Stage `6.1.2` by defining the Sales Order push approval and retry rules as an explicit Frappe-owned policy contract
+- recorded that first push for a newly paid storefront order is auto-approved, duplicate pushes must be suppressed by prior synced payment identity, and any transactional ERP retry after failure is manual replay only
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#93` 2026-04-08
+
+- completed Stage `6.1.1` by adding a Frappe-owned ERPNext Sales Order push path for paid ecommerce orders
+- persisted connector-local Sales Order sync records, mapped paid storefront orders into ERP Sales Order requests from projected core product codes, and invoked the bridge from checkout verification, webhook capture, and payment reconciliation without coupling the paid storefront state to live ERP availability
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### `#72` 2026-04-08
 
 - completed billing Stage `B10`, including purchase-to-stock bridge, sales-linked stock reduction, stock adjustment workflow, landed-cost handling, and stock valuation reporting
 - synchronized posted billing inventory documents into shared `core` product stock movement while keeping valuation and warehouse-position reporting inside billing
 - validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+
+### `#92` 2026-04-08
+
+- completed Stage `5.3.3` by making the no-live-ERP storefront runtime guarantee executable through ecommerce boundary and runtime tests
+- blocked direct runtime network fetch calls in storefront-facing ecommerce services and proved landing, catalog, PDP, and mock-checkout still work when `fetch` is forced to fail with Razorpay disabled
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/boundary.test.ts tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#91` 2026-04-08
+
+- completed Stage `5.3.2` by adding a narrow ecommerce projected-product read-model service backed by persisted `core` product data
+- moved catalog, order, customer, and SEO consumers onto the local projection-consumption path and added a boundary test so future ecommerce ERP-aware work does not regress into direct Frappe imports or ad hoc projected catalog reads
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/boundary.test.ts tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#90` 2026-04-08
+
+- completed Stage `5.3.1` by turning the Frappe item-master sync placeholder into a real projection path from Frappe item snapshots into core product records
+- reused the existing core product write surface from inside `apps/frappe`, updated sync logs and connector monitoring to reflect real create or update outcomes, and kept the narrower staged boundary for price, stock, and customer-commercial projections
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/boundary.test.ts tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#89` 2026-04-08
+
+- completed Stage `5.2.5` by enforcing the rule that connector orchestration stays inside `apps/frappe`
+- added a repo boundary test that blocks direct `apps/frappe/src/services/*` imports from non-Frappe, non-API app code so future ERP integration work does not bypass the connector app
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/boundary.test.ts tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#88` 2026-04-08
+
+- completed Stage `5.2.4` by defining the source-controlled ERP customer-group and commercial-profile enrichment contract inside `apps/frappe`
+- recorded the current identity, field-mapping, lifecycle, and out-of-scope rules through a typed contract service and protected route so later segmentation and ERP-bridge work can build on one agreed commercial-profile baseline
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#87` 2026-04-08
+
+- completed Stage `5.2.3` by defining the source-controlled ERP warehouse and stock snapshot to core storefront-availability projection contract inside `apps/frappe`
+- recorded the current stock identity, field-mapping, lifecycle, and out-of-scope rules through a typed contract service and protected route so later projection code can implement against one agreed stock baseline
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#86` 2026-04-08
+
+- completed Stage `5.2.2` by defining the source-controlled ERP price-list snapshot to core commerce-pricing projection contract inside `apps/frappe`
+- recorded the current price identity, field-mapping, lifecycle, and out-of-scope rules through a typed contract service and protected route so later projection code can implement against one agreed pricing baseline
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#84` 2026-04-08
+
+- completed Stage `5.1.3` by adding connector-specific monitoring events, Frappe activity-log exception evidence, and an operator-facing observability report for current verification and sync flows
+- instrumented Frappe verification, blocked item sync, and purchase-receipt sync outcomes into the shared framework operational surfaces, then surfaced connector health plus recent exceptions in the Frappe overview workspace
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts tests/framework/runtime/monitoring.test.ts tests/framework/runtime/logger.test.ts`
+
+### `#85` 2026-04-08
+
+- completed Stage `5.2.1` by defining the source-controlled ERP item snapshot to core product projection contract inside `apps/frappe`
+- recorded the current identity, field-mapping, lifecycle, and out-of-scope rules through a typed contract service and protected route so later projection code can implement against one agreed baseline
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#82` 2026-04-08
+
+- completed Stage `5.1.1` by masking saved Frappe connector secrets on read, supporting secret retention across non-secret settings edits, and persisting the latest saved-setting verification result
+- updated the Frappe connection workspace so operators can see saved-credential state, verify the saved connector without re-entering secrets, and distinguish persisted verification status from one-off unsaved checks
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#83` 2026-04-08
+
+- completed Stage `5.1.2` by adding a typed Frappe sync-policy baseline that defines retryable connector reads, bounded backoff, timeout inheritance, and fail-closed manual replay boundaries
+- exposed the policy through a protected internal route and surfaced it in the Frappe overview workspace so operators can see the connector guardrails without reading backend code
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
 
 ### `#81` 2026-04-08
 

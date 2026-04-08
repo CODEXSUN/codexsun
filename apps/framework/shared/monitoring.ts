@@ -6,6 +6,7 @@ export const monitoringOperationSchema = z.enum([
   "webhook",
   "order_creation",
   "mail_send",
+  "connector_sync",
 ])
 
 export const monitoringStatusSchema = z.enum(["success", "failure"])
@@ -49,6 +50,7 @@ export const monitoringThresholdsSchema = z.object({
   webhookFailures: z.number().int().positive(),
   orderCreationFailures: z.number().int().positive(),
   mailFailures: z.number().int().positive(),
+  connectorSyncFailures: z.number().int().positive(),
 })
 
 export const monitoringDashboardResponseSchema = z.object({

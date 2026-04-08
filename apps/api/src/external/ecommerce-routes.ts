@@ -20,19 +20,41 @@ import {
   listCustomerOrderRequests,
 } from "../../../ecommerce/src/services/storefront-order-request-service.js"
 import {
+  attachStorefrontOrderErpSalesOrderLink,
   createCheckoutOrder,
   getCustomerOrder,
   getCustomerOrderReceiptDocument,
+  getStorefrontOrderForConnector,
   handleRazorpayWebhook,
   listCustomerOrders,
   verifyCheckoutPayment,
 } from "../../../ecommerce/src/services/order-service.js"
+import { pushStorefrontOrderToFrappeSalesOrder } from "../../../frappe/src/services/sales-order-service.js"
 import { getRazorpayPaymentConfig } from "../../../ecommerce/src/services/razorpay-service.js"
 import { defineExternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
 import { htmlResponse, jsonResponse } from "../shared/http-responses.js"
 import { readBearerToken, readHeader } from "../shared/request.js"
+
+async function pushPaidOrderIfAvailable(
+  database: Parameters<typeof getStorefrontOrderForConnector>[0],
+  orderId: string | null,
+  source: "checkout_verify" | "razorpay_webhook"
+) {
+  if (!orderId) {
+    return
+  }
+
+  const order = await getStorefrontOrderForConnector(database, orderId)
+
+  if (!order || order.paymentStatus !== "paid") {
+    return
+  }
+
+  const syncRecord = await pushStorefrontOrderToFrappeSalesOrder(database, order, { source })
+  await attachStorefrontOrderErpSalesOrderLink(database, order.id, syncRecord)
+}
 
 export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
   return [
@@ -300,28 +322,52 @@ export function createEcommerceExternalRoutes(): HttpRouteDefinition[] {
       auth: "none",
       method: "POST",
       summary: "Verify a Razorpay payment and confirm the storefront order.",
-      handler: async (context) =>
-        jsonResponse(
-          await verifyCheckoutPayment(
+      handler: async (context) => {
+        const response = await verifyCheckoutPayment(
+          context.databases.primary,
+          context.config,
+          context.request.jsonBody,
+          readBearerToken(context.request.headers)
+        )
+
+        try {
+          await pushPaidOrderIfAvailable(
             context.databases.primary,
-            context.config,
-            context.request.jsonBody,
-            readBearerToken(context.request.headers)
+            response.item.id,
+            "checkout_verify"
           )
-        ),
+        } catch (error) {
+          console.error("Unable to push paid storefront order into ERPNext Sales Order.", error)
+        }
+
+        return jsonResponse(response)
+      },
     }),
     defineExternalRoute("/storefront/payments/razorpay/webhook", {
       auth: "none",
       method: "POST",
       summary: "Receive and verify Razorpay webhook events for storefront payments.",
-      handler: async (context) =>
-        jsonResponse(
-          await handleRazorpayWebhook(context.databases.primary, context.config, {
-            bodyText: context.request.bodyText,
-            signature: readHeader(context.request.headers, "x-razorpay-signature") ?? null,
-            providerEventId: readHeader(context.request.headers, "x-razorpay-event-id") ?? null,
-          })
-        ),
+      handler: async (context) => {
+        const response = await handleRazorpayWebhook(context.databases.primary, context.config, {
+          bodyText: context.request.bodyText,
+          signature: readHeader(context.request.headers, "x-razorpay-signature") ?? null,
+          providerEventId: readHeader(context.request.headers, "x-razorpay-event-id") ?? null,
+        })
+
+        if (response.orderId && response.event === "payment.captured") {
+          try {
+            await pushPaidOrderIfAvailable(
+              context.databases.primary,
+              response.orderId,
+              "razorpay_webhook"
+            )
+          } catch (error) {
+            console.error("Unable to push webhook-paid storefront order into ERPNext Sales Order.", error)
+          }
+        }
+
+        return jsonResponse(response)
+      },
     }),
     defineExternalRoute("/storefront/payment-config", {
       auth: "none",

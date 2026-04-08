@@ -3,6 +3,11 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
+import {
+  createProduct,
+  listProducts,
+  updateProduct,
+} from "../../../core/src/services/product-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   frappeItemManagerResponseSchema,
@@ -21,6 +26,7 @@ import {
 
 import { frappeTableNames } from "../../database/table-names.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
+import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
 import { frappeSettingsSchema } from "../../shared/index.js"
 
@@ -79,6 +85,114 @@ async function readStoredDefaults(database: Kysely<unknown>) {
     defaultItemGroup: "",
     defaultPriceList: "",
   }
+}
+
+function toProjectedProductPayload(item: FrappeItem) {
+  const slugBase = slugify(item.itemName) || slugify(item.itemCode) || randomUUID()
+  const timestamp = new Date().toISOString()
+
+  return {
+    code: item.itemCode,
+    name: item.itemName,
+    slug: slugBase,
+    description: item.description,
+    shortDescription: item.itemName,
+    brandId: null,
+    brandName: item.brand,
+    categoryId: null,
+    categoryName: item.itemGroup,
+    productGroupId: null,
+    productGroupName: item.itemGroup,
+    productTypeId: null,
+    productTypeName: item.isStockItem ? "Finished Good" : "Service",
+    unitId: null,
+    hsnCodeId: item.gstHsnCode || null,
+    styleId: null,
+    sku: item.itemCode,
+    hasVariants: item.hasVariants,
+    basePrice: 0,
+    costPrice: 0,
+    taxId: null,
+    isFeatured: false,
+    isActive: !item.disabled,
+    storefrontDepartment: null,
+    homeSliderEnabled: false,
+    promoSliderEnabled: false,
+    featureSectionEnabled: false,
+    isNewArrival: false,
+    isBestSeller: false,
+    isFeaturedLabel: false,
+    images: [],
+    variants: [],
+    prices: [],
+    discounts: [],
+    offers: [],
+    attributes: [],
+    attributeValues: [],
+    variantMap: [],
+    stockItems: [],
+    stockMovements: [],
+    seo: {
+      metaTitle: item.itemName,
+      metaDescription: item.description || item.itemName,
+      metaKeywords: `${item.brand}, ${item.itemGroup}, ${item.itemCode}`,
+      isActive: true,
+    },
+    storefront: {
+      department: null,
+      homeSliderEnabled: false,
+      homeSliderOrder: 0,
+      promoSliderEnabled: false,
+      promoSliderOrder: 0,
+      featureSectionEnabled: false,
+      featureSectionOrder: 0,
+      isNewArrival: false,
+      isBestSeller: false,
+      isFeaturedLabel: false,
+      catalogBadge: null,
+      promoBadge: null,
+      promoTitle: null,
+      promoSubtitle: null,
+      promoCtaLabel: null,
+      fabric: null,
+      fit: null,
+      sleeve: null,
+      occasion: null,
+      shippingNote: "Projected from Frappe item snapshot.",
+      shippingCharge: null,
+      handlingCharge: null,
+      isActive: true,
+    },
+    tags: [
+      { name: "frappe", isActive: true },
+      { name: slugify(item.itemGroup) || "projected", isActive: true },
+    ],
+    reviews: [],
+    _projectedAt: timestamp,
+  }
+}
+
+async function resolveTargetProductId(
+  database: Kysely<unknown>,
+  item: FrappeItem
+) {
+  const products = await listProducts(database)
+
+  const linkedProduct = item.syncedProductId
+    ? products.items.find((product) => product.id === item.syncedProductId)
+    : null
+
+  if (linkedProduct) {
+    return linkedProduct.id
+  }
+
+  const directMatch = products.items.find(
+    (product) =>
+      product.code.trim().toLowerCase() === item.itemCode.trim().toLowerCase() ||
+      product.sku.trim().toLowerCase() === item.itemCode.trim().toLowerCase()
+  )
+
+  return directMatch?.id ?? null
 }
 
 export async function listFrappeItems(
@@ -249,29 +363,114 @@ export async function syncFrappeItemsToProducts(
   const itemIds = [...new Set(parsedPayload.itemIds.map((value) => value.trim()))]
   const items = await readItems(database)
   const startedAt = new Date().toISOString()
-  const syncLogItems: FrappeItemProductSyncLogItem[] = itemIds.map((itemId) => {
-    const item = items.find((entry) => entry.id === itemId) as FrappeItem | undefined
+  const selectedItems = itemIds.map((itemId) => items.find((entry) => entry.id === itemId) ?? null)
 
-    return {
-      frappeItemId: itemId,
-      frappeItemCode: item?.itemCode ?? itemId,
-      productId: null,
-      productName: null,
-      productSlug: null,
-      mode: "failed",
-      reason:
-        "Ecommerce is scaffold-only right now. Product sync is unavailable until the ecommerce rebuild lands.",
+  if (selectedItems.some((item) => item == null)) {
+    throw new ApplicationError(
+      "One or more Frappe items could not be found.",
+      { itemIds },
+      404
+    )
+  }
+
+  const syncLogItems: FrappeItemProductSyncLogItem[] = []
+  const syncResults: FrappeItemProductSyncResult[] = []
+  const nextItems = [...items]
+
+  for (const item of selectedItems as FrappeItem[]) {
+    const targetProductId = await resolveTargetProductId(database, item)
+
+    if (
+      parsedPayload.duplicateMode === "skip" &&
+      targetProductId &&
+      !item.syncedProductId
+    ) {
+      syncLogItems.push({
+        frappeItemId: item.id,
+        frappeItemCode: item.itemCode,
+        productId: targetProductId,
+        productName: null,
+        productSlug: null,
+        mode: "skipped",
+        reason:
+          "A matching core product already exists for this item code and duplicate mode is skip.",
+      })
+      continue
     }
-  })
-  const failureCount = syncLogItems.length
+
+    try {
+      const projectionPayload = toProjectedProductPayload(item)
+      const productResponse = targetProductId
+        ? await updateProduct(database, user, targetProductId, projectionPayload)
+        : await createProduct(database, user, projectionPayload)
+      const mode = targetProductId ? "update" : "create"
+
+      syncResults.push({
+        frappeItemId: item.id,
+        frappeItemCode: item.itemCode,
+        productId: productResponse.item.id,
+        productName: productResponse.item.name,
+        productSlug: productResponse.item.slug,
+        mode,
+      })
+      syncLogItems.push({
+        frappeItemId: item.id,
+        frappeItemCode: item.itemCode,
+        productId: productResponse.item.id,
+        productName: productResponse.item.name,
+        productSlug: productResponse.item.slug,
+        mode,
+        reason: "",
+      })
+
+      const nextItem = frappeItemSchema.parse({
+        ...item,
+        modifiedAt: new Date().toISOString(),
+        syncedProductId: productResponse.item.id,
+        syncedProductName: productResponse.item.name,
+        syncedProductSlug: productResponse.item.slug,
+        isSyncedToProduct: true,
+      })
+      const nextIndex = nextItems.findIndex((entry) => entry.id === item.id)
+      if (nextIndex >= 0) {
+        nextItems[nextIndex] = nextItem
+      }
+    } catch (error) {
+      syncLogItems.push({
+        frappeItemId: item.id,
+        frappeItemCode: item.itemCode,
+        productId: targetProductId,
+        productName: null,
+        productSlug: null,
+        mode: "failed",
+        reason: error instanceof Error ? error.message : "Projection failed.",
+      })
+    }
+  }
+
+  await replaceStorePayloads(
+    database,
+    frappeTableNames.items,
+    nextItems.map((item, index) => ({
+      id: item.id,
+      moduleKey: "items",
+      sortOrder: index + 1,
+      payload: item,
+      updatedAt: item.modifiedAt,
+    }))
+  )
+
+  const successCount = syncLogItems.filter((item) => item.mode === "create" || item.mode === "update").length
+  const skippedCount = syncLogItems.filter((item) => item.mode === "skipped").length
+  const failureCount = syncLogItems.filter((item) => item.mode === "failed").length
   const finishedAt = new Date().toISOString()
-  const summary = `Blocked ${failureCount} item sync request${failureCount === 1 ? "" : "s"} because ecommerce is scaffold-only.`
+  const summary = `Processed ${itemIds.length} Frappe item projection request${itemIds.length === 1 ? "" : "s"} into core products: ${successCount} synced, ${skippedCount} skipped, ${failureCount} failed.`
   const nextLog = frappeItemProductSyncLogSchema.parse({
     id: `frappe-sync-log:${randomUUID()}`,
     duplicateMode: parsedPayload.duplicateMode,
     requestedCount: itemIds.length,
-    successCount: 0,
-    skippedCount: 0,
+    successCount,
+    skippedCount,
     failureCount,
     startedAt,
     finishedAt,
@@ -294,12 +493,34 @@ export async function syncFrappeItemsToProducts(
       updatedAt: item.syncedAt,
     })))
 
-  throw new ApplicationError(
-    "Ecommerce is scaffold-only right now. Product sync is unavailable until the ecommerce rebuild lands.",
-    {
-      itemIds,
-      logId: nextLog.id,
+  await recordFrappeConnectorEvent(database, user, {
+    action: "items.sync_products",
+    status: failureCount > 0 ? "failure" : "success",
+    message:
+      failureCount > 0
+        ? `Frappe item projection completed with ${failureCount} failure${failureCount === 1 ? "" : "s"}.`
+        : `Frappe item projection completed for ${successCount} item${successCount === 1 ? "" : "s"}.`,
+    referenceId: nextLog.id,
+    details: {
+      requestedCount: itemIds.length,
+      duplicateMode: parsedPayload.duplicateMode,
+      successCount,
+      skippedCount,
+      failureCount,
     },
-    409
-  )
+  })
+
+  return frappeItemProductSyncResponseSchema.parse({
+    sync: {
+      items: syncResults,
+      summary: {
+        logId: nextLog.id,
+        requestedCount: itemIds.length,
+        successCount,
+        skippedCount,
+        failureCount,
+      },
+      syncedAt: finishedAt,
+    },
+  })
 }

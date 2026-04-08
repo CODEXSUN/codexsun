@@ -117,6 +117,9 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
       config.observability.thresholds.orderCreationFailures
     ),
     ALERT_MAIL_FAILURE_THRESHOLD: String(config.observability.thresholds.mailFailures),
+    ALERT_CONNECTOR_SYNC_FAILURE_THRESHOLD: String(
+      config.observability.thresholds.connectorSyncFailures
+    ),
     DB_BACKUP_ENABLED: config.operations.backups.enabled,
     DB_BACKUP_CADENCE_HOURS: String(config.operations.backups.cadenceHours),
     DB_BACKUP_RETENTION_DAYS: String(config.operations.backups.retentionDays),

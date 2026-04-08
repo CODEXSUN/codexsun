@@ -8,7 +8,7 @@ import {
 } from "../../shared/index.js"
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 
-import { readCoreProducts } from "./catalog-service.js"
+import { readProjectedStorefrontProducts } from "./projected-product-service.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
 
 function escapeXml(value: string) {
@@ -87,7 +87,7 @@ export async function getStorefrontSitemapXml(
   >
 ) {
   const settings = await getStorefrontSettings(database)
-  const products = await readCoreProducts(database)
+  const products = await readProjectedStorefrontProducts(database)
   const origin = resolveStorefrontPublicOrigin(config)
   const target = config.frontendTarget as StorefrontSeoTarget
   const staticEntries = [

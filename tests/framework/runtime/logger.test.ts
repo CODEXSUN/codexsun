@@ -73,8 +73,11 @@ function createConfig(logLevel: ServerConfig["observability"]["logLevel"]): Serv
       alertEmails: [],
       thresholds: {
         checkoutFailures: 5,
+        paymentVerifyFailures: 3,
         webhookFailures: 3,
+        orderCreationFailures: 5,
         mailFailures: 10,
+        connectorSyncFailures: 3,
       },
     },
     operations: {

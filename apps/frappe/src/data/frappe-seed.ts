@@ -21,6 +21,8 @@ export const frappeSettings: FrappeSettings = frappeSettingsSchema.parse({
   siteName: "",
   apiKey: "",
   apiSecret: "",
+  hasApiKey: false,
+  hasApiSecret: false,
   timeoutSeconds: 15,
   defaultCompany: "Codexsun Trading Pvt Ltd",
   defaultWarehouse: "Main Warehouse - CS",
@@ -28,6 +30,10 @@ export const frappeSettings: FrappeSettings = frappeSettingsSchema.parse({
   defaultCustomerGroup: "Retail Customer",
   defaultItemGroup: "Ready Goods",
   isConfigured: false,
+  lastVerifiedAt: "",
+  lastVerificationStatus: "idle",
+  lastVerificationMessage: "",
+  lastVerificationDetail: "",
 })
 
 export const frappeTodos: FrappeTodo[] = [
@@ -276,5 +282,8 @@ export const defaultFrappeVerificationResponse: FrappeConnectionVerificationResp
       serverUrl: "",
       siteName: "",
       connectedUser: "",
+      verifiedAt: "",
+      usedSavedCredentials: false,
+      persistedToSettings: false,
     },
   })

@@ -5,6 +5,9 @@ import type {
   FrappeItemProductSyncPayload,
   FrappeItemProductSyncResponse,
   FrappeItemResponse,
+  FrappeObservabilityReportResponse,
+  FrappeSalesOrderPushPolicyResponse,
+  FrappeSyncPolicyResponse,
   FrappeItemUpsertPayload,
   FrappePurchaseReceiptManagerResponse,
   FrappePurchaseReceiptResponse,
@@ -76,6 +79,22 @@ export function verifyFrappeConnection(payload: FrappeSettingsUpdatePayload) {
       method: "POST",
       body: JSON.stringify(payload),
     }
+  )
+}
+
+export function getFrappeSyncPolicy() {
+  return request<FrappeSyncPolicyResponse>("/internal/v1/frappe/sync-policy")
+}
+
+export function getFrappeObservabilityReport() {
+  return request<FrappeObservabilityReportResponse>(
+    "/internal/v1/frappe/observability"
+  )
+}
+
+export function getFrappeSalesOrderPushPolicy() {
+  return request<FrappeSalesOrderPushPolicyResponse>(
+    "/internal/v1/frappe/sales-order-push-policy"
   )
 }
 

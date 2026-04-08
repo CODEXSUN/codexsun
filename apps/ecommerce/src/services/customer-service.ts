@@ -52,7 +52,8 @@ import {
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 import { readStorefrontOrders } from "./storefront-order-storage.js"
-import { readCoreProducts, toStorefrontProductCard } from "./catalog-service.js"
+import { toStorefrontProductCard } from "./catalog-service.js"
+import { readProjectedStorefrontProducts } from "./projected-product-service.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
 import {
   sendStorefrontCampaignSubscriptionEmail,
@@ -416,7 +417,7 @@ function upsertPortalRecord(
 }
 
 export async function listWelcomeMailProducts(database: Kysely<unknown>) {
-  const products = (await readCoreProducts(database))
+  const products = (await readProjectedStorefrontProducts(database))
     .filter((item) => item.isActive)
     .map((item) => toStorefrontProductCard(item))
 
@@ -720,7 +721,7 @@ async function buildCustomerPortalResponse(
   const [profile, portalRecord, coreProducts, orders] = await Promise.all([
     buildCustomerProfile(database, account),
     ensureCustomerPortalRecord(database, account),
-    readCoreProducts(database),
+    readProjectedStorefrontProducts(database),
     readOrders(database),
   ])
 

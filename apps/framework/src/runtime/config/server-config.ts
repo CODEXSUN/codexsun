@@ -162,6 +162,7 @@ export type ServerConfig = {
       webhookFailures: number
       orderCreationFailures: number
       mailFailures: number
+      connectorSyncFailures: number
     }
   }
   operations: {
@@ -477,6 +478,11 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
           env.ALERT_MAIL_FAILURE_THRESHOLD,
           10,
           "ALERT_MAIL_FAILURE_THRESHOLD"
+        ),
+        connectorSyncFailures: readNumber(
+          env.ALERT_CONNECTOR_SYNC_FAILURE_THRESHOLD,
+          3,
+          "ALERT_CONNECTOR_SYNC_FAILURE_THRESHOLD"
         ),
       },
     },

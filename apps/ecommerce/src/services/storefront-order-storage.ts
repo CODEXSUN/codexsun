@@ -395,6 +395,123 @@ function normalizeTaxBreakdown(value: unknown): StorefrontOrderTaxBreakdown | nu
   }
 }
 
+function normalizeErpSalesOrderLink(
+  value: unknown
+): StorefrontOrder["erpSalesOrderLink"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const connectorSyncId = normalizeOptionalString(record.connectorSyncId)
+
+  if (!connectorSyncId) {
+    return null
+  }
+
+  return {
+    connectorSyncId,
+    status: record.status === "synced" ? "synced" : "failed",
+    salesOrderId: normalizeOptionalString(record.salesOrderId),
+    salesOrderName: normalizeOptionalString(record.salesOrderName),
+    source: normalizeRequiredString(record.source, "unknown"),
+    lastAttemptedAt: normalizeRequiredString(record.lastAttemptedAt, new Date().toISOString()),
+    syncedAt: normalizeOptionalString(record.syncedAt),
+    failureMessage: normalizeOptionalString(record.failureMessage),
+    updatedAt: normalizeRequiredString(record.updatedAt, new Date().toISOString()),
+  }
+}
+
+function normalizeErpDeliveryNoteLink(
+  value: unknown
+): StorefrontOrder["erpDeliveryNoteLink"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const connectorSyncId = normalizeOptionalString(record.connectorSyncId)
+
+  if (!connectorSyncId) {
+    return null
+  }
+
+  return {
+    connectorSyncId,
+    status: record.status === "synced" ? "synced" : "failed",
+    deliveryNoteId: normalizeOptionalString(record.deliveryNoteId),
+    deliveryNoteName: normalizeOptionalString(record.deliveryNoteName),
+    shipmentReference: normalizeOptionalString(record.shipmentReference),
+    source: normalizeRequiredString(record.source, "unknown"),
+    lastAttemptedAt: normalizeRequiredString(record.lastAttemptedAt, new Date().toISOString()),
+    syncedAt: normalizeOptionalString(record.syncedAt),
+    failureMessage: normalizeOptionalString(record.failureMessage),
+    updatedAt: normalizeRequiredString(record.updatedAt, new Date().toISOString()),
+  }
+}
+
+function normalizeErpInvoiceLink(
+  value: unknown
+): StorefrontOrder["erpInvoiceLink"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const connectorSyncId = normalizeOptionalString(record.connectorSyncId)
+
+  if (!connectorSyncId) {
+    return null
+  }
+
+  return {
+    connectorSyncId,
+    status: record.status === "synced" ? "synced" : "failed",
+    invoiceId: normalizeOptionalString(record.invoiceId),
+    invoiceName: normalizeOptionalString(record.invoiceName),
+    invoiceNumber: normalizeOptionalString(record.invoiceNumber),
+    source: normalizeRequiredString(record.source, "unknown"),
+    lastAttemptedAt: normalizeRequiredString(record.lastAttemptedAt, new Date().toISOString()),
+    syncedAt: normalizeOptionalString(record.syncedAt),
+    failureMessage: normalizeOptionalString(record.failureMessage),
+    updatedAt: normalizeRequiredString(record.updatedAt, new Date().toISOString()),
+  }
+}
+
+function normalizeErpReturnLink(
+  value: unknown
+): StorefrontOrder["erpReturnLink"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const connectorSyncId = normalizeOptionalString(record.connectorSyncId)
+
+  if (!connectorSyncId) {
+    return null
+  }
+
+  return {
+    connectorSyncId,
+    status: record.status === "synced" ? "synced" : "failed",
+    returnId: normalizeOptionalString(record.returnId),
+    returnName: normalizeOptionalString(record.returnName),
+    creditNoteId: normalizeOptionalString(record.creditNoteId),
+    creditNoteName: normalizeOptionalString(record.creditNoteName),
+    returnStatus: normalizeOptionalString(record.returnStatus),
+    source: normalizeRequiredString(record.source, "unknown"),
+    lastAttemptedAt: normalizeRequiredString(record.lastAttemptedAt, new Date().toISOString()),
+    syncedAt: normalizeOptionalString(record.syncedAt),
+    failureMessage: normalizeOptionalString(record.failureMessage),
+    updatedAt: normalizeRequiredString(record.updatedAt, new Date().toISOString()),
+  }
+}
+
 function normalizeTimelineEntry(
   value: unknown,
   orderId: string,
@@ -556,6 +673,10 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     stockReservation: normalizeStockReservation(record.stockReservation),
     appliedCoupon: normalizeAppliedCoupon(record.appliedCoupon),
     taxBreakdown: normalizeTaxBreakdown(record.taxBreakdown),
+    erpSalesOrderLink: normalizeErpSalesOrderLink(record.erpSalesOrderLink),
+    erpDeliveryNoteLink: normalizeErpDeliveryNoteLink(record.erpDeliveryNoteLink),
+    erpInvoiceLink: normalizeErpInvoiceLink(record.erpInvoiceLink),
+    erpReturnLink: normalizeErpReturnLink(record.erpReturnLink),
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
     checkoutFingerprint: normalizeOptionalString(record.checkoutFingerprint),

@@ -58,6 +58,7 @@ function getThresholds(config: ServerConfig): MonitoringThresholdMap {
     webhook: config.observability.thresholds.webhookFailures,
     order_creation: config.observability.thresholds.orderCreationFailures,
     mail_send: config.observability.thresholds.mailFailures,
+    connector_sync: config.observability.thresholds.connectorSyncFailures,
   }
 }
 
@@ -69,6 +70,8 @@ function getOperationLabel(operation: MonitoringOperation) {
       return "Order Creation"
     case "mail_send":
       return "Mail Send"
+    case "connector_sync":
+      return "Connector Sync"
     default:
       return operation
         .split("_")
@@ -156,6 +159,7 @@ export async function getMonitoringDashboard(
       webhookFailures: config.observability.thresholds.webhookFailures,
       orderCreationFailures: config.observability.thresholds.orderCreationFailures,
       mailFailures: config.observability.thresholds.mailFailures,
+      connectorSyncFailures: config.observability.thresholds.connectorSyncFailures,
     },
     summaries,
     recentFailures,

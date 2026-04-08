@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#81`
+`#96`
 
 ### Title
 
-`Storefront performance standards baseline`
+`ERP fulfilment and finance return sync baseline`
 
 ## Ecommerce Go-Live Schedule
 
@@ -157,38 +157,38 @@ Stage 1.1 baseline document:
 
 ### Stage 5.1: Connector Hardening
 
-- [ ] 5.1.1 harden Frappe connection management and verification workflows
-- [ ] 5.1.2 define production-safe retry, timeout, and failure behavior for connector syncs
-- [ ] 5.1.3 add connector observability and exception logging
+- [x] 5.1.1 harden Frappe connection management and verification workflows
+- [x] 5.1.2 define production-safe retry, timeout, and failure behavior for connector syncs
+- [x] 5.1.3 add connector observability and exception logging
 
 ### Stage 5.2: Master Sync Contracts
 
-- [ ] 5.2.1 define sync contract for ERPNext Item to `frappe` snapshot to `core` product projection
-- [ ] 5.2.2 define sync contract for price list projection into commerce pricing
-- [ ] 5.2.3 define sync contract for warehouse and stock projection into storefront availability
-- [ ] 5.2.4 define sync contract for customer group and commercial profile enrichment
-- [ ] 5.2.5 keep all connector orchestration inside `apps/frappe`
+- [x] 5.2.1 define sync contract for ERPNext Item to `frappe` snapshot to `core` product projection
+- [x] 5.2.2 define sync contract for price list projection into commerce pricing
+- [x] 5.2.3 define sync contract for warehouse and stock projection into storefront availability
+- [x] 5.2.4 define sync contract for customer group and commercial profile enrichment
+- [x] 5.2.5 keep all connector orchestration inside `apps/frappe`
 
 ### Stage 5.3: Projection Into Commerce
 
-- [ ] 5.3.1 add explicit projection services from `frappe` snapshots into `core`
-- [ ] 5.3.2 add narrow ecommerce-facing services that consume projected ERP data without direct cross-app writes
-- [ ] 5.3.3 confirm storefront runtime does not depend on live ERP response time
+- [x] 5.3.1 add explicit projection services from `frappe` snapshots into `core`
+- [x] 5.3.2 add narrow ecommerce-facing services that consume projected ERP data without direct cross-app writes
+- [x] 5.3.3 confirm storefront runtime does not depend on live ERP response time
 
 ## Phase 6: ERP Transaction Bridge
 
 ### Stage 6.1: Order Push
 
-- [ ] 6.1.1 push paid ecommerce orders into ERPNext Sales Order
-- [ ] 6.1.2 define internal approval and retry rules before ERP push
-- [ ] 6.1.3 add persistent mapping between ecommerce order ids and ERP sales-order ids
+- [x] 6.1.1 push paid ecommerce orders into ERPNext Sales Order
+- [x] 6.1.2 define internal approval and retry rules before ERP push
+- [x] 6.1.3 add persistent mapping between ecommerce order ids and ERP sales-order ids
 
 ### Stage 6.2: Fulfilment And Finance Return Flow
 
-- [ ] 6.2.1 sync delivery-note and shipment references back into ecommerce
-- [ ] 6.2.2 sync invoice references back into ecommerce
-- [ ] 6.2.3 sync refund and return states back into ecommerce
-- [ ] 6.2.4 add reconciliation queue for mismatches and replay tools
+- [x] 6.2.1 sync delivery-note and shipment references back into ecommerce
+- [x] 6.2.2 sync invoice references back into ecommerce
+- [x] 6.2.3 sync refund and return states back into ecommerce
+- [x] 6.2.4 add reconciliation queue for mismatches and replay tools
 
 ## Phase 7: Scale And Maturity
 

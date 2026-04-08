@@ -3,9 +3,8 @@ import type { Kysely } from "kysely"
 import {
   listJsonStorePayloads,
 } from "../../../framework/src/runtime/database/process/json-store.js"
-import { coreTableNames } from "../../../core/database/table-names.js"
 import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
-import { productSchema, type Product } from "../../../core/shared/index.js"
+import { type Product } from "../../../core/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   storefrontCatalogQuerySchema,
@@ -22,6 +21,10 @@ import {
   type StorefrontProductResponse,
 } from "../../shared/index.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
+import {
+  getProjectedStorefrontProduct,
+  readProjectedStorefrontProducts,
+} from "./projected-product-service.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 
@@ -235,45 +238,6 @@ function buildStorefrontProductSpecifications(
   )
 }
 
-export async function readCoreProducts(database: Kysely<unknown>) {
-  const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
-
-  return items.map((item) =>
-    productSchema.parse({
-      ...item,
-      attributeCount:
-        typeof (item as { attributeCount?: unknown }).attributeCount === "number"
-          ? (item as { attributeCount: number }).attributeCount
-          : Array.isArray((item as { attributes?: unknown }).attributes)
-            ? ((item as { attributes: unknown[] }).attributes?.length ?? 0)
-            : 0,
-      totalStockQuantity:
-        typeof (item as { totalStockQuantity?: unknown }).totalStockQuantity === "number"
-          ? (item as { totalStockQuantity: number }).totalStockQuantity
-          : [
-              ...(
-                Array.isArray((item as { stockItems?: unknown }).stockItems)
-                  ? ((item as { stockItems: Array<{ quantity?: unknown }> }).stockItems ?? [])
-                  : []
-              ),
-            ].reduce(
-              (sum, stockItem) =>
-                sum + (typeof stockItem.quantity === "number" ? stockItem.quantity : 0),
-              0
-            ) +
-            (
-              Array.isArray((item as { variants?: unknown }).variants)
-                ? ((item as { variants: Array<{ stockQuantity?: unknown }> }).variants ?? [])
-                : []
-            ).reduce(
-              (sum, variant) =>
-                sum + (typeof variant.stockQuantity === "number" ? variant.stockQuantity : 0),
-              0
-            ),
-    })
-  )
-}
-
 function toCategorySlug(item: Record<string, unknown>) {
   const base = typeof item.code === "string" && item.code.trim()
     ? item.code
@@ -371,7 +335,7 @@ function listStorefrontBrands(products: Product[]): StorefrontBrandDiscoveryCard
 
 export async function getStorefrontLanding(database: Kysely<unknown>) {
   const settings = await getStorefrontSettings(database)
-  const products = await readCoreProducts(database)
+  const products = await readProjectedStorefrontProducts(database)
   const items = products
     .filter((item) => item.isActive)
     .map(toStorefrontProductCard)
@@ -453,7 +417,7 @@ export async function getStorefrontLegalPage(
 export async function getStorefrontCatalog(database: Kysely<unknown>, query: unknown) {
   const settings = await getStorefrontSettings(database)
   const filters = storefrontCatalogQuerySchema.parse(query ?? {})
-  const products = await readCoreProducts(database)
+  const products = await readProjectedStorefrontProducts(database)
   const categories = await listStorefrontCategories(
     database,
     products.filter((item) => item.isActive).map(toStorefrontProductCard)
@@ -547,16 +511,8 @@ export async function getStorefrontProduct(
   query: { id?: string | null; slug?: string | null }
 ): Promise<StorefrontProductResponse> {
   const settings = await getStorefrontSettings(database)
-  const products = await readCoreProducts(database)
-  const product = products.find(
-    (item) =>
-      item.isActive &&
-      ((query.id && item.id === query.id) || (query.slug && item.slug === query.slug))
-  )
-
-  if (!product) {
-    throw new ApplicationError("Storefront product could not be found.", query, 404)
-  }
+  const products = await readProjectedStorefrontProducts(database)
+  const product = await getProjectedStorefrontProduct(database, query)
 
   const relatedItems = products
     .filter(

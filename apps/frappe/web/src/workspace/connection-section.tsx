@@ -29,6 +29,14 @@ export function FrappeConnectionSection() {
     createDefaultSettingsValues()
   )
   const [isConfigured, setIsConfigured] = useState(false)
+  const [hasApiKey, setHasApiKey] = useState(false)
+  const [hasApiSecret, setHasApiSecret] = useState(false)
+  const [lastVerifiedAt, setLastVerifiedAt] = useState("")
+  const [lastVerificationStatus, setLastVerificationStatus] = useState<
+    "idle" | "passed" | "failed"
+  >("idle")
+  const [lastVerificationMessage, setLastVerificationMessage] = useState("")
+  const [lastVerificationDetail, setLastVerificationDetail] = useState("")
   const [verification, setVerification] =
     useState<FrappeConnectionVerification | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +63,12 @@ export function FrappeConnectionSection() {
         if (!cancelled) {
           setValues(toSettingsValues(response.settings))
           setIsConfigured(response.settings.isConfigured)
+          setHasApiKey(response.settings.hasApiKey)
+          setHasApiSecret(response.settings.hasApiSecret)
+          setLastVerifiedAt(response.settings.lastVerifiedAt)
+          setLastVerificationStatus(response.settings.lastVerificationStatus)
+          setLastVerificationMessage(response.settings.lastVerificationMessage)
+          setLastVerificationDetail(response.settings.lastVerificationDetail)
         }
       } catch (nextError) {
         if (!cancelled) {
@@ -97,6 +111,12 @@ export function FrappeConnectionSection() {
       const response = await updateFrappeSettings(values)
       setValues(toSettingsValues(response.settings))
       setIsConfigured(response.settings.isConfigured)
+      setHasApiKey(response.settings.hasApiKey)
+      setHasApiSecret(response.settings.hasApiSecret)
+      setLastVerifiedAt(response.settings.lastVerifiedAt)
+      setLastVerificationStatus(response.settings.lastVerificationStatus)
+      setLastVerificationMessage(response.settings.lastVerificationMessage)
+      setLastVerificationDetail(response.settings.lastVerificationDetail)
     } catch (nextError) {
       setError(toErrorMessage(nextError))
     } finally {
@@ -111,6 +131,12 @@ export function FrappeConnectionSection() {
     try {
       const response = await verifyFrappeConnection(values)
       setVerification(response.verification)
+      if (response.verification.persistedToSettings) {
+        setLastVerifiedAt(response.verification.verifiedAt)
+        setLastVerificationStatus(response.verification.ok ? "passed" : "failed")
+        setLastVerificationMessage(response.verification.message)
+        setLastVerificationDetail(response.verification.detail)
+      }
     } catch (nextError) {
       setError(toErrorMessage(nextError))
       setVerification(null)
@@ -143,7 +169,11 @@ export function FrappeConnectionSection() {
         <MetricCard
           label="Credentials"
           value={isConfigured ? "Ready" : "Incomplete"}
-          hint="App-owned settings are stored in the Frappe database table."
+          hint={
+            hasApiKey && hasApiSecret
+              ? "Saved credentials exist and stay masked in the admin UI."
+              : "API key and secret are still incomplete."
+          }
         />
         <MetricCard
           label="Timeout"
@@ -154,6 +184,21 @@ export function FrappeConnectionSection() {
           label="ERPNext Site"
           value={values.siteName || "Default"}
           hint={values.baseUrl || "Base URL is not set yet."}
+        />
+        <MetricCard
+          label="Last Verification"
+          value={
+            lastVerificationStatus === "passed"
+              ? "Passed"
+              : lastVerificationStatus === "failed"
+                ? "Failed"
+                : "Not run"
+          }
+          hint={
+            lastVerifiedAt
+              ? `Last checked ${new Date(lastVerifiedAt).toLocaleString("en-IN")}.`
+              : "Verification status resets after connection changes."
+          }
         />
       </div>
 
@@ -170,6 +215,22 @@ export function FrappeConnectionSection() {
               Server: <span className="font-medium text-foreground">{verification.serverUrl || "Not provided"}</span>
               {verification.connectedUser ? ` | User: ${verification.connectedUser}` : ""}
             </p>
+            <p className="text-muted-foreground">
+              Checked at {verification.verifiedAt ? new Date(verification.verifiedAt).toLocaleString("en-IN") : "Not available"}
+              {verification.usedSavedCredentials ? " | Used saved credentials" : ""}
+              {verification.persistedToSettings ? " | Saved to connector status" : " | Unsaved verification only"}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {lastVerificationStatus !== "idle" ? (
+        <Card>
+          <CardContent className="space-y-1 p-5 text-sm">
+            <p className="font-medium text-foreground">{lastVerificationMessage}</p>
+            {lastVerificationDetail ? (
+              <p className="text-muted-foreground">{lastVerificationDetail}</p>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
@@ -222,18 +283,34 @@ export function FrappeConnectionSection() {
                 }
               />
             </Field>
-            <Field label="API Key">
+            <Field
+              label="API Key"
+              hint={
+                hasApiKey
+                  ? "Leave blank to keep the saved key, or paste a replacement key."
+                  : "Paste the ERPNext API key."
+              }
+            >
               <Input
                 value={values.apiKey}
+                placeholder={hasApiKey ? "Saved key retained unless replaced" : ""}
                 onChange={(event) =>
                   setValues((current) => ({ ...current, apiKey: event.target.value }))
                 }
               />
             </Field>
-            <Field label="API Secret">
+            <Field
+              label="API Secret"
+              hint={
+                hasApiSecret
+                  ? "Leave blank to keep the saved secret, or paste a replacement secret."
+                  : "Paste the ERPNext API secret."
+              }
+            >
               <Input
                 type="password"
                 value={values.apiSecret}
+                placeholder={hasApiSecret ? "Saved secret retained unless replaced" : ""}
                 onChange={(event) =>
                   setValues((current) => ({ ...current, apiSecret: event.target.value }))
                 }

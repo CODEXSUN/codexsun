@@ -11,16 +11,25 @@ import {
   frappeSettingsResponseSchema,
   frappeSettingsSchema,
   frappeSettingsUpdatePayloadSchema,
+  frappeSettingsVerificationPayloadSchema,
+  type FrappeConnectionVerification,
   type FrappeConnectionVerificationResponse,
+  type FrappeSettings,
   type FrappeSettingsUpdatePayload,
+  type FrappeSettingsVerificationPayload,
 } from "../../shared/index.js"
 
 import { frappeTableNames } from "../../database/table-names.js"
 import { assertSuperAdmin } from "./access.js"
+import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "")
+}
+
+function currentTimestamp() {
+  return new Date().toISOString()
 }
 
 function assertHttpUrl(value: string, fieldName: string) {
@@ -105,6 +114,170 @@ function normalizeSettings(payload: unknown): FrappeSettingsUpdatePayload {
   }
 }
 
+function normalizeVerificationPayload(
+  payload: unknown
+): FrappeSettingsVerificationPayload {
+  const parsedPayload = frappeSettingsVerificationPayloadSchema.parse(payload ?? {})
+
+  return {
+    ...parsedPayload,
+    baseUrl:
+      typeof parsedPayload.baseUrl === "string"
+        ? normalizeBaseUrl(parsedPayload.baseUrl)
+        : undefined,
+    siteName:
+      typeof parsedPayload.siteName === "string"
+        ? parsedPayload.siteName.trim()
+        : undefined,
+    apiKey:
+      typeof parsedPayload.apiKey === "string"
+        ? parsedPayload.apiKey.trim()
+        : undefined,
+    apiSecret:
+      typeof parsedPayload.apiSecret === "string"
+        ? parsedPayload.apiSecret.trim()
+        : undefined,
+    defaultCompany:
+      typeof parsedPayload.defaultCompany === "string"
+        ? parsedPayload.defaultCompany.trim()
+        : undefined,
+    defaultWarehouse:
+      typeof parsedPayload.defaultWarehouse === "string"
+        ? parsedPayload.defaultWarehouse.trim()
+        : undefined,
+    defaultPriceList:
+      typeof parsedPayload.defaultPriceList === "string"
+        ? parsedPayload.defaultPriceList.trim()
+        : undefined,
+    defaultCustomerGroup:
+      typeof parsedPayload.defaultCustomerGroup === "string"
+        ? parsedPayload.defaultCustomerGroup.trim()
+        : undefined,
+    defaultItemGroup:
+      typeof parsedPayload.defaultItemGroup === "string"
+        ? parsedPayload.defaultItemGroup.trim()
+        : undefined,
+  }
+}
+
+function toUpdatePayload(settings: FrappeSettings): FrappeSettingsUpdatePayload {
+  return {
+    enabled: settings.enabled,
+    baseUrl: settings.baseUrl,
+    siteName: settings.siteName,
+    apiKey: settings.apiKey,
+    apiSecret: settings.apiSecret,
+    timeoutSeconds: settings.timeoutSeconds,
+    defaultCompany: settings.defaultCompany,
+    defaultWarehouse: settings.defaultWarehouse,
+    defaultPriceList: settings.defaultPriceList,
+    defaultCustomerGroup: settings.defaultCustomerGroup,
+    defaultItemGroup: settings.defaultItemGroup,
+  }
+}
+
+function mergeSettings(
+  previousSettings: FrappeSettings,
+  nextSettings: FrappeSettingsUpdatePayload
+): FrappeSettingsUpdatePayload {
+  return {
+    ...nextSettings,
+    apiKey: nextSettings.apiKey || previousSettings.apiKey,
+    apiSecret: nextSettings.apiSecret || previousSettings.apiSecret,
+  }
+}
+
+function mergeVerificationSettings(
+  previousSettings: FrappeSettings,
+  nextSettings: FrappeSettingsVerificationPayload
+) {
+  const previousPayload = toUpdatePayload(previousSettings)
+
+  return {
+    ...previousPayload,
+    ...nextSettings,
+    baseUrl: nextSettings.baseUrl ?? previousPayload.baseUrl,
+    siteName: nextSettings.siteName ?? previousPayload.siteName,
+    apiKey:
+      nextSettings.apiKey === undefined || nextSettings.apiKey === ""
+        ? previousPayload.apiKey
+        : nextSettings.apiKey,
+    apiSecret:
+      nextSettings.apiSecret === undefined || nextSettings.apiSecret === ""
+        ? previousPayload.apiSecret
+        : nextSettings.apiSecret,
+    timeoutSeconds: nextSettings.timeoutSeconds ?? previousPayload.timeoutSeconds,
+    defaultCompany: nextSettings.defaultCompany ?? previousPayload.defaultCompany,
+    defaultWarehouse:
+      nextSettings.defaultWarehouse ?? previousPayload.defaultWarehouse,
+    defaultPriceList:
+      nextSettings.defaultPriceList ?? previousPayload.defaultPriceList,
+    defaultCustomerGroup:
+      nextSettings.defaultCustomerGroup ?? previousPayload.defaultCustomerGroup,
+    defaultItemGroup:
+      nextSettings.defaultItemGroup ?? previousPayload.defaultItemGroup,
+  } satisfies FrappeSettingsUpdatePayload
+}
+
+function shouldResetVerification(
+  previousSettings: FrappeSettings,
+  nextSettings: FrappeSettingsUpdatePayload
+) {
+  return (
+    previousSettings.baseUrl !== nextSettings.baseUrl ||
+    previousSettings.siteName !== nextSettings.siteName ||
+    previousSettings.apiKey !== nextSettings.apiKey ||
+    previousSettings.apiSecret !== nextSettings.apiSecret ||
+    previousSettings.timeoutSeconds !== nextSettings.timeoutSeconds
+  )
+}
+
+function matchesStoredSettings(
+  previousSettings: FrappeSettings,
+  nextSettings: FrappeSettingsUpdatePayload
+) {
+  return (
+    previousSettings.enabled === nextSettings.enabled &&
+    previousSettings.baseUrl === nextSettings.baseUrl &&
+    previousSettings.siteName === nextSettings.siteName &&
+    previousSettings.apiKey === nextSettings.apiKey &&
+    previousSettings.apiSecret === nextSettings.apiSecret &&
+    previousSettings.timeoutSeconds === nextSettings.timeoutSeconds &&
+    previousSettings.defaultCompany === nextSettings.defaultCompany &&
+    previousSettings.defaultWarehouse === nextSettings.defaultWarehouse &&
+    previousSettings.defaultPriceList === nextSettings.defaultPriceList &&
+    previousSettings.defaultCustomerGroup === nextSettings.defaultCustomerGroup &&
+    previousSettings.defaultItemGroup === nextSettings.defaultItemGroup
+  )
+}
+
+function applyVerificationStatus(
+  settings: FrappeSettings,
+  verification: FrappeConnectionVerification
+) {
+  return frappeSettingsSchema.parse({
+    ...settings,
+    hasApiKey: Boolean(settings.apiKey),
+    hasApiSecret: Boolean(settings.apiSecret),
+    isConfigured: isConfigured(toUpdatePayload(settings)),
+    lastVerifiedAt: verification.verifiedAt,
+    lastVerificationStatus: verification.ok ? "passed" : "failed",
+    lastVerificationMessage: verification.message,
+    lastVerificationDetail: verification.detail,
+  })
+}
+
+function sanitizeSettings(settings: FrappeSettings) {
+  return frappeSettingsSchema.parse({
+    ...settings,
+    apiKey: "",
+    apiSecret: "",
+    hasApiKey: Boolean(settings.apiKey),
+    hasApiSecret: Boolean(settings.apiSecret),
+    isConfigured: isConfigured(toUpdatePayload(settings)),
+  })
+}
+
 async function readResponseText(response: Response) {
   const contentType = response.headers.get("content-type") ?? ""
 
@@ -139,8 +312,11 @@ async function readStoredSettings(database: Kysely<unknown>) {
 }
 
 async function verifyAgainstFrappe(
-  settings: FrappeSettingsUpdatePayload
+  settings: FrappeSettingsUpdatePayload,
+  usedSavedCredentials: boolean
 ): Promise<FrappeConnectionVerificationResponse> {
+  const verifiedAt = currentTimestamp()
+
   if (!isConfigured(settings)) {
     return defaultFrappeVerificationResponse
   }
@@ -175,6 +351,9 @@ async function verifyAgainstFrappe(
           serverUrl: settings.baseUrl,
           siteName: settings.siteName,
           connectedUser: "",
+          verifiedAt,
+          usedSavedCredentials,
+          persistedToSettings: false,
         },
       })
     }
@@ -186,31 +365,37 @@ async function verifyAgainstFrappe(
       typeof payload?.message === "string" ? payload.message : ""
 
     return frappeConnectionVerificationResponseSchema.parse({
-      verification: {
-        ok: true,
-        message: "ERPNext connection verified.",
-        detail: connectedUser
-          ? `Authenticated as ${connectedUser}.`
-          : "ERPNext responded successfully.",
-        serverUrl: settings.baseUrl,
-        siteName: settings.siteName,
-        connectedUser,
-      },
-    })
+        verification: {
+          ok: true,
+          message: "ERPNext connection verified.",
+          detail: connectedUser
+            ? `Authenticated as ${connectedUser}.`
+            : "ERPNext responded successfully.",
+          serverUrl: settings.baseUrl,
+          siteName: settings.siteName,
+          connectedUser,
+          verifiedAt,
+          usedSavedCredentials,
+          persistedToSettings: false,
+        },
+      })
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown connection error."
 
     return frappeConnectionVerificationResponseSchema.parse({
-      verification: {
-        ok: false,
-        message: "Unable to reach ERPNext.",
-        detail: message,
-        serverUrl: settings.baseUrl,
-        siteName: settings.siteName,
-        connectedUser: "",
-      },
-    })
+        verification: {
+          ok: false,
+          message: "Unable to reach ERPNext.",
+          detail: message,
+          serverUrl: settings.baseUrl,
+          siteName: settings.siteName,
+          connectedUser: "",
+          verifiedAt,
+          usedSavedCredentials,
+          persistedToSettings: false,
+        },
+      })
   }
 }
 
@@ -223,10 +408,7 @@ export async function readFrappeSettings(
   const settings = await readStoredSettings(database)
 
   return frappeSettingsResponseSchema.parse({
-    settings: {
-      ...settings,
-      isConfigured: isConfigured(settings),
-    },
+    settings: sanitizeSettings(settings),
   })
 }
 
@@ -237,11 +419,32 @@ export async function saveFrappeSettings(
 ) {
   assertSuperAdmin(user)
 
-  const settings = normalizeSettings(payload)
-  validateConnectionPayload(settings, false)
+  const previousSettings = await readStoredSettings(database)
+  const nextSettings = mergeSettings(previousSettings, normalizeSettings(payload))
+
+  validateConnectionPayload(nextSettings, false)
+  const shouldInvalidateVerification = shouldResetVerification(
+    previousSettings,
+    nextSettings
+  )
   const storedSettings = frappeSettingsSchema.parse({
-    ...settings,
-    isConfigured: isConfigured(settings),
+    ...previousSettings,
+    ...nextSettings,
+    hasApiKey: Boolean(nextSettings.apiKey),
+    hasApiSecret: Boolean(nextSettings.apiSecret),
+    isConfigured: isConfigured(nextSettings),
+    lastVerifiedAt: shouldInvalidateVerification
+      ? ""
+      : previousSettings.lastVerifiedAt,
+    lastVerificationStatus: shouldInvalidateVerification
+      ? "idle"
+      : previousSettings.lastVerificationStatus,
+    lastVerificationMessage: shouldInvalidateVerification
+      ? ""
+      : previousSettings.lastVerificationMessage,
+    lastVerificationDetail: shouldInvalidateVerification
+      ? ""
+      : previousSettings.lastVerificationDetail,
   })
 
   await replaceStorePayloads(database, frappeTableNames.settings, [
@@ -257,13 +460,62 @@ export async function saveFrappeSettings(
 }
 
 export async function verifyFrappeSettings(
+  database: Kysely<unknown>,
   user: AuthUser,
   payload: unknown
 ) {
   assertSuperAdmin(user)
 
-  const settings = normalizeSettings(payload)
+  const previousSettings = await readStoredSettings(database)
+  const verificationPayload = normalizeVerificationPayload(payload)
+  const settings = mergeVerificationSettings(previousSettings, verificationPayload)
+  const usedSavedCredentials =
+    ((verificationPayload.apiKey ?? "") === "" && Boolean(previousSettings.apiKey)) ||
+    ((verificationPayload.apiSecret ?? "") === "" &&
+      Boolean(previousSettings.apiSecret))
+
   validateConnectionPayload(settings, true)
 
-  return verifyAgainstFrappe(settings)
+  const verificationResponse = await verifyAgainstFrappe(
+    settings,
+    usedSavedCredentials
+  )
+
+  await recordFrappeConnectorEvent(database, user, {
+    action: "settings.verify",
+    status: verificationResponse.verification.ok ? "success" : "failure",
+    message: verificationResponse.verification.message,
+    referenceId: "frappe-settings:default",
+    details: {
+      persistedToSettings: verificationResponse.verification.persistedToSettings,
+      usedSavedCredentials: verificationResponse.verification.usedSavedCredentials,
+      serverUrl: verificationResponse.verification.serverUrl,
+      siteName: verificationResponse.verification.siteName,
+    },
+  })
+
+  if (!matchesStoredSettings(previousSettings, settings)) {
+    return verificationResponse
+  }
+
+  const persistedSettings = applyVerificationStatus(
+    previousSettings,
+    verificationResponse.verification
+  )
+
+  await replaceStorePayloads(database, frappeTableNames.settings, [
+    {
+      id: "frappe-settings:default",
+      moduleKey: "settings",
+      sortOrder: 1,
+      payload: persistedSettings,
+    },
+  ])
+
+  return frappeConnectionVerificationResponseSchema.parse({
+    verification: {
+      ...verificationResponse.verification,
+      persistedToSettings: true,
+    },
+  })
 }

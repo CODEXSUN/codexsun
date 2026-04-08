@@ -27,6 +27,7 @@ test("monitoring dashboard summarizes threshold breaches and recent failures", a
     config.observability.thresholds.webhookFailures = 2
     config.observability.thresholds.orderCreationFailures = 3
     config.observability.thresholds.mailFailures = 1
+    config.observability.thresholds.connectorSyncFailures = 1
     config.observability.alertEmails = ["ops@example.com"]
     config.observability.alertWebhookUrl = "https://hooks.example.com/ops"
 
@@ -59,6 +60,12 @@ test("monitoring dashboard summarizes threshold breaches and recent failures", a
         status: "success",
         message: "Mail sent.",
       })
+      await recordMonitoringEvent(runtime.primary, {
+        sourceApp: "frappe",
+        operation: "connector_sync",
+        status: "failure",
+        message: "Connector sync failed.",
+      })
 
       const dashboard = await getMonitoringDashboard(runtime.primary, config, {
         windowHours: 24,
@@ -73,6 +80,9 @@ test("monitoring dashboard summarizes threshold breaches and recent failures", a
       const mailSummary = dashboard.summaries.find(
         (item) => item.operation === "mail_send"
       )
+      const connectorSummary = dashboard.summaries.find(
+        (item) => item.operation === "connector_sync"
+      )
 
       assert.equal(dashboard.channels.hasEmailTargets, true)
       assert.equal(dashboard.channels.hasWebhookTarget, true)
@@ -82,6 +92,8 @@ test("monitoring dashboard summarizes threshold breaches and recent failures", a
       assert.equal(paymentVerifySummary?.alertState, "breached")
       assert.equal(mailSummary?.successCount, 1)
       assert.equal(mailSummary?.alertState, "healthy")
+      assert.equal(connectorSummary?.failureCount, 1)
+      assert.equal(connectorSummary?.alertState, "breached")
       assert.equal(dashboard.recentFailures.length >= 3, true)
     } finally {
       await runtime.destroy()
