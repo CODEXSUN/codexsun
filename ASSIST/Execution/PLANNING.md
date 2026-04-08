@@ -4,63 +4,50 @@
 
 ### Reference
 
-`#45`
+`#60`
 
 ### Goal
 
-Standardize the live storefront desktop layout rails to `max-w-[96rem]` and tune the homepage hero so wider desktop space is filled by intentional design instead of empty gutters.
+Complete Stage `3.1.2` by defining low-stock and oversell prevention rules that match the current `core` stock model and the current `ecommerce` checkout path.
 
 ### Scope
 
-- `ASSIST/Execution/TASK.md`
-- `ASSIST/Execution/PLANNING.md`
-- `ASSIST/Documentation/CHANGELOG.md`
-- `apps/ecommerce/web/src/components/customer-portal-layout.tsx`
-- `apps/ecommerce/web/src/components/storefront-category-menu.tsx`
-- `apps/ecommerce/web/src/components/storefront-hero-slider.tsx`
-- `apps/ecommerce/web/src/pages/storefront-cart-page.tsx`
-- `apps/ecommerce/web/src/pages/storefront-catalog-page.tsx`
-- `apps/ecommerce/web/src/pages/storefront-checkout-page.tsx`
-- `apps/ecommerce/web/src/pages/storefront-home-page.tsx`
-- `apps/ecommerce/web/src/pages/storefront-product-page.tsx`
-- `apps/ui/src/components/ux/featured-card-row-surface.tsx`
-- `apps/ui/src/registry/blocks/commerce/featured-card-1.tsx`
-- `apps/ui/src/registry/blocks/commerce/featured-card-3.tsx`
-- `apps/ui/src/registry/blocks/commerce/featured-card-4.tsx`
-- `apps/ui/src/registry/blocks/commerce/featured-card-5.tsx`
-- `apps/ui/src/registry/blocks/commerce/featured-card-6.tsx`
-- `apps/ui/src/registry/blocks/data/storefront-search-01.tsx`
+- `Assist/Execution/TASK.md`
+- `Assist/Execution/PLANNING.md`
+- `Assist/Documentation/ARCHITECTURE.md`
+- `Assist/Documentation/CHANGELOG.md`
+- `Assist/Documentation/WORKLOG.md`
+- `Assist/Planning/plan-9.md`
 
 ### Canonical Decisions
 
-- main storefront desktop rails should stop at `max-w-[96rem]` so large screens gain usable width without drifting into overly loose layouts
-- mobile and tablet layouts should remain full width with existing responsive padding and stacking behavior unchanged
-- the homepage hero should use decorative fill and larger media framing so added desktop width reads as design, not empty whitespace
-- design-system storefront preview blocks may use preview-only width rules without changing live storefront commerce layouts
+- storefront sellable quantity remains `sum(active stock quantity - reservedQuantity)` from `apps/core`
+- low-stock state begins when sellable quantity is `1` to `5`; `0` is out of stock and blocks checkout, while quantities above `5` are treated as normal availability
+- cart quantity and PDP quantity are advisory only; the final oversell guard lives at checkout order creation where requested quantity must be less than or equal to the latest sellable quantity
+- until Stage `3.1.3` adds reservation behavior, `payment_pending` orders do not create a new stock hold, so low-stock items remain first-paid or first-verified rather than guaranteed by cart or pending payment presence
+- no backorders, silent partial fulfilment, or automatic oversell override should be introduced in storefront runtime without a later explicit batch
 
 ### Execution Plan
 
-1. update shared storefront preview blocks so design-system previews respect the requested width behavior
-2. widen the live storefront homepage, hero, and category rail to `max-w-[96rem]`
-3. standardize remaining main storefront commerce pages and the customer portal layout to the same desktop rail
-4. record the batch in task tracking, planning, and changelog
-5. validate the storefront width batch with `npm run typecheck` and `npm run build`
+1. mark Stage `3.1.2` complete in task tracking with a new batch reference
+2. record the low-stock thresholds and oversell-prevention rules in architecture and go-live planning
+3. update changelog and worklog so the inventory policy baseline is discoverable from delivery history
+4. leave reservation implementation and warehouse visibility behavior to Stages `3.1.3` and `3.1.4`
 
 ### Validation Plan
 
-- run `npm run typecheck`
-- run `npm run build`
-- confirm main storefront rails use `max-w-[96rem]`
-- confirm the homepage hero no longer leaves broad desktop side gutters
+- review the current ecommerce catalog and checkout code paths that compute `availableQuantity`
+- confirm checkout already rejects requests above current sellable quantity
+- ensure the documented rules do not imply reservation behavior that is not yet implemented
 
 ### Validation Status
 
-- [x] `npm run typecheck`
-- [x] `npm run build`
-- [x] main storefront rails updated to `max-w-[96rem]`
-- [x] homepage hero widened and visually filled for large desktop screens
+- [x] current availability path reviewed in catalog and checkout services
+- [x] checkout conflict behavior confirmed against sellable quantity validation
+- [x] policy documentation aligned with the current no-reservation runtime boundary
 
 ### Risks And Follow-Up
 
-- legal and tracking pages still use narrower layout widths by design; widen them only if the content strategy changes
-- if the storefront adopts a central container utility later, these page-level width classes should be consolidated into that shared layout primitive
+- concurrent payment attempts on the last units still have a residual race until `3.1.3` introduces reservation or hold behavior
+- storefront low-stock messaging can be added later, but it must reflect the same `1` to `5` threshold documented here
+- warehouse-level visibility, split stock exposure, and pickup-specific stock policy remain deferred to `3.1.4`

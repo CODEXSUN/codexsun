@@ -389,6 +389,83 @@ export const storefrontFailedPaymentReportDocumentSchema = z.object({
   csv: z.string().min(1),
 })
 
+export const storefrontRefundReportDocumentSchema = z.object({
+  fileName: z.string().min(1),
+  csv: z.string().min(1),
+})
+
+export const storefrontSettlementGapReportDocumentSchema = z.object({
+  fileName: z.string().min(1),
+  csv: z.string().min(1),
+})
+
+export const storefrontOperationalAgingBucketSchema = z.object({
+  key: z.enum(["under_24h", "between_24h_48h", "between_48h_72h", "over_72h"]),
+  label: z.string().min(1),
+  count: z.number().int().min(0),
+  amount: z.number().finite().nonnegative(),
+})
+
+export const storefrontFulfilmentAgingItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  itemSummary: z.string().min(1),
+  currency: z.string().min(1),
+  totalAmount: z.number().finite().nonnegative(),
+  ageHours: z.number().finite().nonnegative(),
+  agingStartedAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontRefundAgingItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  refundStatus: storefrontRefundStatusSchema,
+  customerName: z.string().min(1),
+  customerEmail: z.email(),
+  currency: z.string().min(1),
+  requestedAmount: z.number().finite().nonnegative(),
+  ageHours: z.number().finite().nonnegative(),
+  agingStartedAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  summary: z.string().min(1),
+})
+
+export const storefrontOperationalAgingReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    fulfilmentAgingCount: z.number().int().min(0),
+    fulfilmentOver72HoursCount: z.number().int().min(0),
+    refundAgingCount: z.number().int().min(0),
+    refundOver72HoursCount: z.number().int().min(0),
+  }),
+  fulfilmentBuckets: z.array(storefrontOperationalAgingBucketSchema),
+  refundBuckets: z.array(storefrontOperationalAgingBucketSchema),
+  fulfilmentItems: z.array(storefrontFulfilmentAgingItemSchema),
+  refundItems: z.array(storefrontRefundAgingItemSchema),
+})
+
+export const storefrontOverviewKpiReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  currency: z.string().min(1),
+  summary: z.object({
+    orderCount: z.number().int().min(0),
+    paidOrderCount: z.number().int().min(0),
+    failedOrderCount: z.number().int().min(0),
+    pendingOrderCount: z.number().int().min(0),
+    conversionRate: z.number().finite().min(0),
+    averageOrderValue: z.number().finite().nonnegative(),
+    fulfilmentAgingCount: z.number().int().min(0),
+    refundAgingCount: z.number().int().min(0),
+    fulfilmentOver72HoursCount: z.number().int().min(0),
+    refundOver72HoursCount: z.number().int().min(0),
+  }),
+})
+
 export const storefrontAdminOrderQueueBucketSchema = z.enum([
   "payment_attention",
   "fulfilment",
@@ -717,6 +794,27 @@ export type StorefrontPaymentDailySummaryDocument = z.infer<
 >
 export type StorefrontFailedPaymentReportDocument = z.infer<
   typeof storefrontFailedPaymentReportDocumentSchema
+>
+export type StorefrontRefundReportDocument = z.infer<
+  typeof storefrontRefundReportDocumentSchema
+>
+export type StorefrontSettlementGapReportDocument = z.infer<
+  typeof storefrontSettlementGapReportDocumentSchema
+>
+export type StorefrontOperationalAgingBucket = z.infer<
+  typeof storefrontOperationalAgingBucketSchema
+>
+export type StorefrontFulfilmentAgingItem = z.infer<
+  typeof storefrontFulfilmentAgingItemSchema
+>
+export type StorefrontRefundAgingItem = z.infer<
+  typeof storefrontRefundAgingItemSchema
+>
+export type StorefrontOperationalAgingReport = z.infer<
+  typeof storefrontOperationalAgingReportSchema
+>
+export type StorefrontOverviewKpiReport = z.infer<
+  typeof storefrontOverviewKpiReportSchema
 >
 export type StorefrontAdminOrderQueueBucket = z.infer<
   typeof storefrontAdminOrderQueueBucketSchema

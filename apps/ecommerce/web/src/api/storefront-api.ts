@@ -37,6 +37,7 @@ import type {
   StorefrontCommunicationLogResponse,
   StorefrontCommunicationResendResponse,
   StorefrontPaymentConfig,
+  StorefrontOperationalAgingReport,
   StorefrontPaymentOperationsReport,
   StorefrontPaymentReconciliationResponse,
   StorefrontProductResponse,
@@ -87,6 +88,35 @@ async function requestJson<T>(url: string, options: JsonRequestOptions = {}) {
   }
 
   return payload as T
+}
+
+async function downloadDocument(
+  accessToken: string,
+  url: URL,
+  fallbackFileName: string
+) {
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null
+    throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+  }
+
+  const text = await response.text()
+  return {
+    fileName: extractDownloadFileName(
+      response.headers.get("content-disposition"),
+      fallbackFileName
+    ),
+    blob: new Blob([text], {
+      type: response.headers.get("content-type") ?? "text/csv;charset=utf-8",
+    }),
+  }
 }
 
 function extractDownloadFileName(disposition: string | null, fallback: string) {
@@ -317,58 +347,35 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  getOperationalAgingReport(accessToken: string) {
+    return requestJson<StorefrontOperationalAgingReport>("/internal/v1/ecommerce/payments/aging-report", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
   async downloadPaymentsDailySummary(accessToken: string, days = 30) {
     const url = new URL("/internal/v1/ecommerce/payments/daily-summary-export", window.location.origin)
     url.searchParams.set("days", String(days))
 
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
-    })
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null
-      throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
-    }
-
-    const text = await response.text()
-    return {
-      fileName: extractDownloadFileName(
-        response.headers.get("content-disposition"),
-        "storefront-payment-daily-summary.csv"
-      ),
-      blob: new Blob([text], {
-        type: response.headers.get("content-type") ?? "text/csv;charset=utf-8",
-      }),
-    }
+    return downloadDocument(accessToken, url, "storefront-payment-daily-summary.csv")
   },
   async downloadFailedPaymentsReport(accessToken: string) {
     const url = new URL("/internal/v1/ecommerce/payments/failed-report-export", window.location.origin)
 
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
-    })
+    return downloadDocument(accessToken, url, "storefront-failed-payments.csv")
+  },
+  async downloadRefundsReport(accessToken: string) {
+    const url = new URL("/internal/v1/ecommerce/payments/refund-report-export", window.location.origin)
 
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null
-      throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
-    }
+    return downloadDocument(accessToken, url, "storefront-refunds.csv")
+  },
+  async downloadSettlementGapReport(accessToken: string) {
+    const url = new URL(
+      "/internal/v1/ecommerce/payments/settlement-gap-report-export",
+      window.location.origin
+    )
 
-    const text = await response.text()
-    return {
-      fileName: extractDownloadFileName(
-        response.headers.get("content-disposition"),
-        "storefront-failed-payments.csv"
-      ),
-      blob: new Blob([text], {
-        type: response.headers.get("content-type") ?? "text/csv;charset=utf-8",
-      }),
-    }
+    return downloadDocument(accessToken, url, "storefront-settlement-gaps.csv")
   },
   getOrdersReport(accessToken: string) {
     return requestJson<StorefrontAdminOrderOperationsReport>("/internal/v1/ecommerce/orders/report", {

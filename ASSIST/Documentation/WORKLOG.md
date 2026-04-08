@@ -2,6 +2,18 @@
 
 ## Done Till Here
 
+### `#60` 2026-04-08
+
+- completed Stage `3.1.2` by defining low-stock and oversell-prevention rules for the current storefront stock model
+- recorded sellable quantity as active stock minus reserved quantity, set low stock to quantities `1` through `5`, treated `0` as out of stock, and kept cart and PDP stock indicators advisory until checkout revalidation
+- documented that `payment_pending` still does not create a new stock hold, leaving reservation implementation for Stage `3.1.3`, then validated the batch with architecture, planning, and checkout code-path review
+
+### `#59` 2026-04-08
+
+- completed Stage `3.1.1` by deciding that `apps/core` remains the current authoritative source for sellable storefront stock
+- aligned architecture and go-live planning so `apps/ecommerce` reads stock only from `core`, while future ERPNext stock must enter through `apps/frappe` snapshot sync projected into `core`
+- validated the decision batch with architecture, planning, and runtime code-path consistency review across the current `core`, `ecommerce`, and `frappe` boundaries
+
 ### `#54` 2026-04-07
 
 - completed Stage `2.3.4` by adding ecommerce customer lifecycle states, admin customer operations, and portal-access enforcement for blocked, deleted, and anonymized accounts
@@ -237,3 +249,21 @@
 - completed Stage `2.4.1` by adding daily payment summary CSV export to the ecommerce payments operations screen
 - completed Stage `2.4.2` by adding failed-payment CSV export to the same payments operations screen
 - validated the batch with `npm run typecheck` and targeted `tsx` tests for ecommerce services and internal routes
+
+### `#56` 2026-04-08
+
+- completed Stage `2.4.3` by adding refund and settlement-gap CSV exports to the ecommerce payments operations screen
+- extended the shared ecommerce payment reporting contract, added protected internal export routes, and wired frontend API download helpers for both new reports
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#57` 2026-04-08
+
+- completed Stage `2.4.4` by adding fulfilment-aging and refund-aging operational reports to the ecommerce payments operations screen
+- extended the shared reporting contract with aging items and age-band summaries, exposed a protected internal aging-report route, and added frontend aging views for fulfilment and refund drill-down
+- prevented active refund work from showing in both fulfillment and refund aging at the same time, then validated with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### `#58` 2026-04-08
+
+- completed Stage `2.4.5` by adding ecommerce overview KPIs for conversion, AOV, order count, paid vs failed, fulfilment aging, and refund aging
+- added an ecommerce-owned overview KPI report and protected internal route for analytics readers, then replaced the static overview cards with live dashboard metrics and operations drill-down links
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`

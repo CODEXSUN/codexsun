@@ -100,6 +100,15 @@ Framework remains underneath CxApp as the reusable runtime.
 3. shared common modules and master data
 4. reusable ERP-common contracts for shared master records
 
+Inventory authority rule:
+
+1. `apps/core` is the current authoritative source for sellable storefront stock
+2. `apps/ecommerce` must read storefront availability from `core` stock rows and reserved quantities
+3. `apps/frappe` may project ERPNext stock into `core`, but storefront runtime and checkout must not depend on live ERP responses
+4. sellable quantity is `sum(active stock quantity - reservedQuantity)` and must never drop below zero in storefront reads
+5. low-stock state begins at sellable quantity `1` to `5`; sellable quantity `0` is out of stock
+6. cart and PDP quantities are advisory only until checkout confirms stock again; `payment_pending` does not yet create a new reservation hold
+
 ### API
 
 `apps/api` owns route definitions only.
@@ -159,6 +168,11 @@ Ecommerce owns:
 ### Frappe
 
 `apps/frappe` owns ERPNext-specific settings, snapshot storage, connector contracts, and sync orchestration.
+
+ERPNext stock integration rule:
+
+1. `apps/frappe` remains a connector and sync boundary, not the direct runtime stock authority for storefront requests
+2. future ERPNext stock flow must follow `frappe -> core -> ecommerce`
 
 ### Tally
 

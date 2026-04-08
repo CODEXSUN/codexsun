@@ -26,9 +26,13 @@ import {
   storefrontOrderResponseSchema,
   storefrontOrderSchema,
   storefrontPaymentOperationsReportSchema,
+  storefrontOperationalAgingReportSchema,
+  storefrontOverviewKpiReportSchema,
   storefrontPaymentDailySummaryDocumentSchema,
   storefrontPaymentDailySummaryReportSchema,
   storefrontFailedPaymentReportDocumentSchema,
+  storefrontRefundReportDocumentSchema,
+  storefrontSettlementGapReportDocumentSchema,
   storefrontRefundStatusUpdatePayloadSchema,
   storefrontOrderTrackingLookupSchema,
   storefrontRefundRequestPayloadSchema,
@@ -50,7 +54,12 @@ import {
   type StorefrontPaymentWebhookEvent,
   type StorefrontPaymentWebhookExceptionItem,
   type StorefrontPaymentReconciliationItem,
+  type StorefrontOperationalAgingBucket,
+  type StorefrontOperationalAgingReport,
+  type StorefrontOverviewKpiReport,
   type StorefrontRefundQueueItem,
+  type StorefrontFulfilmentAgingItem,
+  type StorefrontRefundAgingItem,
   type StorefrontOrderStatus,
   type StorefrontOrderTimelineEvent,
   type StorefrontShipmentDetails,
@@ -1598,6 +1607,57 @@ function getTimelineTimestamp(order: StorefrontOrder, code: string) {
   return order.timeline.find((entry) => entry.code === code)?.createdAt ?? null
 }
 
+function getAgeHoursFromTimestamp(value: string) {
+  const ageMs = Date.now() - new Date(value).getTime()
+
+  if (!Number.isFinite(ageMs) || ageMs <= 0) {
+    return 0
+  }
+
+  return Math.round((ageMs / (60 * 60 * 1000)) * 10) / 10
+}
+
+function resolveFulfilmentAgingStartedAt(order: StorefrontOrder) {
+  return (
+    getTimelineTimestamp(order, "fulfilment_ready") ??
+    getTimelineTimestamp(order, "order_paid") ??
+    getTimelineTimestamp(order, "payment_captured") ??
+    order.updatedAt
+  )
+}
+
+function buildOperationalAgingBuckets<
+  TItem extends { ageHours: number; totalAmount?: number; requestedAmount?: number }
+>(items: TItem[]) {
+  const seed: StorefrontOperationalAgingBucket[] = [
+    { key: "under_24h", label: "Under 24h", count: 0, amount: 0 },
+    { key: "between_24h_48h", label: "24h to 48h", count: 0, amount: 0 },
+    { key: "between_48h_72h", label: "48h to 72h", count: 0, amount: 0 },
+    { key: "over_72h", label: "Over 72h", count: 0, amount: 0 },
+  ]
+
+  for (const item of items) {
+    const amount = item.totalAmount ?? item.requestedAmount ?? 0
+    const target =
+      item.ageHours >= 72
+        ? seed[3]
+        : item.ageHours >= 48
+          ? seed[2]
+          : item.ageHours >= 24
+            ? seed[1]
+            : seed[0]
+
+    if (!target) {
+      continue
+    }
+
+    target.count += 1
+    target.amount += amount
+  }
+
+  return seed
+}
+
 function buildSettlementQueueItem(order: StorefrontOrder): StorefrontPaymentSettlementItem {
   return {
     orderId: order.id,
@@ -1954,6 +2014,120 @@ export async function getStorefrontPaymentOperationsReport(
   })
 }
 
+export async function getStorefrontOperationalAgingReport(
+  database: Kysely<unknown>
+) {
+  const [paymentsReport, orders] = await Promise.all([
+    getStorefrontPaymentOperationsReport(database),
+    readOrders(database),
+  ])
+
+  const fulfilmentItems = orders
+    .filter(
+      (order) =>
+        buildOrderQueueBucket(order) === "fulfilment" &&
+        !["requested", "queued", "processing", "failed"].includes(order.refund?.status ?? "none")
+    )
+    .map((order) => {
+      const queueItem = buildOrderQueueItem(order)
+      const agingStartedAt = resolveFulfilmentAgingStartedAt(order)
+
+      return {
+        orderId: queueItem.orderId,
+        orderNumber: queueItem.orderNumber,
+        orderStatus: queueItem.orderStatus,
+        customerName: queueItem.customerName,
+        customerEmail: queueItem.customerEmail,
+        itemSummary: queueItem.itemSummary,
+        currency: queueItem.currency,
+        totalAmount: queueItem.totalAmount,
+        ageHours: getAgeHoursFromTimestamp(agingStartedAt),
+        agingStartedAt,
+        updatedAt: queueItem.updatedAt,
+      } satisfies StorefrontFulfilmentAgingItem
+    })
+    .sort((left, right) => right.ageHours - left.ageHours)
+
+  const refundItems = paymentsReport.refundQueue
+    .filter((item) => ["requested", "queued", "processing", "failed"].includes(item.refundStatus))
+    .map((item) => ({
+      orderId: item.orderId,
+      orderNumber: item.orderNumber,
+      orderStatus: item.orderStatus,
+      refundStatus: item.refundStatus,
+      customerName: item.customerName,
+      customerEmail: item.customerEmail,
+      currency: item.currency,
+      requestedAmount: item.requestedAmount,
+      ageHours: getAgeHoursFromTimestamp(item.requestedAt ?? item.updatedAt),
+      agingStartedAt: item.requestedAt ?? item.updatedAt,
+      updatedAt: item.updatedAt,
+      summary: item.summary,
+    } satisfies StorefrontRefundAgingItem))
+    .sort((left, right) => right.ageHours - left.ageHours)
+
+  const report: StorefrontOperationalAgingReport = {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      fulfilmentAgingCount: fulfilmentItems.length,
+      fulfilmentOver72HoursCount: fulfilmentItems.filter((item) => item.ageHours >= 72).length,
+      refundAgingCount: refundItems.length,
+      refundOver72HoursCount: refundItems.filter((item) => item.ageHours >= 72).length,
+    },
+    fulfilmentBuckets: buildOperationalAgingBuckets(fulfilmentItems),
+    refundBuckets: buildOperationalAgingBuckets(refundItems),
+    fulfilmentItems,
+    refundItems,
+  }
+
+  return storefrontOperationalAgingReportSchema.parse(report)
+}
+
+export async function getStorefrontOverviewKpiReport(
+  database: Kysely<unknown>
+) {
+  const [orders, agingReport] = await Promise.all([
+    readOrders(database),
+    getStorefrontOperationalAgingReport(database),
+  ])
+
+  const orderCount = orders.length
+  const paidOrders = orders.filter((order) => order.paymentStatus === "paid")
+  const failedOrders = orders.filter((order) => order.paymentStatus === "failed")
+  const pendingOrders = orders.filter((order) => order.paymentStatus === "pending")
+  const averageOrderValue =
+    paidOrders.length > 0
+      ? paidOrders.reduce((sum, order) => sum + order.totalAmount, 0) / paidOrders.length
+      : 0
+  const conversionRate =
+    orderCount > 0 ? Math.round((paidOrders.length / orderCount) * 1000) / 10 : 0
+  const currency =
+    paidOrders[0]?.currency ??
+    orders[0]?.currency ??
+    agingReport.fulfilmentItems[0]?.currency ??
+    agingReport.refundItems[0]?.currency ??
+    "INR"
+
+  const report: StorefrontOverviewKpiReport = {
+    generatedAt: new Date().toISOString(),
+    currency,
+    summary: {
+      orderCount,
+      paidOrderCount: paidOrders.length,
+      failedOrderCount: failedOrders.length,
+      pendingOrderCount: pendingOrders.length,
+      conversionRate,
+      averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+      fulfilmentAgingCount: agingReport.summary.fulfilmentAgingCount,
+      refundAgingCount: agingReport.summary.refundAgingCount,
+      fulfilmentOver72HoursCount: agingReport.summary.fulfilmentOver72HoursCount,
+      refundOver72HoursCount: agingReport.summary.refundOver72HoursCount,
+    },
+  }
+
+  return storefrontOverviewKpiReportSchema.parse(report)
+}
+
 export async function getStorefrontPaymentDailySummaryReport(
   database: Kysely<unknown>,
   input: { days?: number } = {}
@@ -2056,6 +2230,98 @@ export async function getStorefrontFailedPaymentReportDocument(database: Kysely<
 
   return storefrontFailedPaymentReportDocumentSchema.parse({
     fileName: `storefront-failed-payments-${new Date().toISOString().slice(0, 10)}.csv`,
+    csv: lines.join("\n"),
+  })
+}
+
+export async function getStorefrontRefundReportDocument(database: Kysely<unknown>) {
+  const report = await getStorefrontPaymentOperationsReport(database)
+  const lines = [
+    [
+      "order_number",
+      "order_status",
+      "payment_status",
+      "refund_status",
+      "refund_type",
+      "customer_name",
+      "customer_email",
+      "currency",
+      "requested_amount",
+      "provider_payment_id",
+      "provider_refund_id",
+      "requested_at",
+      "updated_at",
+      "summary",
+    ].join(","),
+    ...report.refundQueue.map((item) =>
+      [
+        item.orderNumber,
+        item.orderStatus,
+        item.paymentStatus,
+        item.refundStatus,
+        item.refundType,
+        item.customerName,
+        item.customerEmail,
+        item.currency,
+        item.requestedAmount.toFixed(2),
+        item.providerPaymentId ?? "",
+        item.providerRefundId ?? "",
+        item.requestedAt ?? "",
+        item.updatedAt,
+        item.summary,
+      ]
+        .map(escapeCsvCell)
+        .join(",")
+    ),
+  ]
+
+  return storefrontRefundReportDocumentSchema.parse({
+    fileName: `storefront-refunds-${new Date().toISOString().slice(0, 10)}.csv`,
+    csv: lines.join("\n"),
+  })
+}
+
+export async function getStorefrontSettlementGapReportDocument(database: Kysely<unknown>) {
+  const report = await getStorefrontPaymentOperationsReport(database)
+  const lines = [
+    [
+      "order_number",
+      "order_status",
+      "payment_status",
+      "customer_name",
+      "customer_email",
+      "currency",
+      "total_amount",
+      "provider_order_id",
+      "provider_payment_id",
+      "paid_at",
+      "created_at",
+      "updated_at",
+      "age_hours",
+    ].join(","),
+    ...report.settlementQueue.map((item) =>
+      [
+        item.orderNumber,
+        item.orderStatus,
+        item.paymentStatus,
+        item.customerName,
+        item.customerEmail,
+        item.currency,
+        item.totalAmount.toFixed(2),
+        item.providerOrderId ?? "",
+        item.providerPaymentId ?? "",
+        item.paidAt ?? "",
+        item.createdAt,
+        item.updatedAt,
+        item.ageHours.toFixed(1),
+      ]
+        .map(escapeCsvCell)
+        .join(",")
+    ),
+  ]
+
+  return storefrontSettlementGapReportDocumentSchema.parse({
+    fileName: `storefront-settlement-gaps-${new Date().toISOString().slice(0, 10)}.csv`,
     csv: lines.join("\n"),
   })
 }

@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom"
 
 import type { ProductListResponse } from "@core/shared"
 import type { ProductResponse } from "@core/shared"
+import type { StorefrontOverviewKpiReport } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import {
   CommonModulesSection as ExactCoreCommonModulesSection,
@@ -213,6 +214,14 @@ function MetricCard({
   )
 }
 
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount)
+}
+
 function ActionLink({
   href,
   label,
@@ -262,30 +271,107 @@ function StateCard({ message }: { message: string }) {
 }
 
 function OverviewSection() {
+  const { data, error, isLoading } = useJsonResource<StorefrontOverviewKpiReport>(
+    "/internal/v1/ecommerce/overview-report"
+  )
+
+  if (isLoading) {
+    return <LoadingStateCard message="Loading ecommerce dashboard KPIs..." />
+  }
+
+  if (error || !data) {
+    return <StateCard message={error ?? "Ecommerce KPI data is unavailable."} />
+  }
+
+  const kpis = data.summary
+
   return (
     <div className="space-y-4">
       <SectionIntro
         eyebrow="Ecommerce"
         title="Commerce admin overview"
-        description="The ecommerce app owns storefront delivery, customer accounts, checkout, orders, tracking, and payment behavior. Shared products and contacts stay in core, but the commerce journey remains inside ecommerce."
+        description="The ecommerce app owns storefront delivery, customer accounts, checkout, orders, tracking, and payment behavior. Shared products and contacts stay in core, while this overview concentrates the current commerce KPI baseline."
       />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <MetricCard
-          icon={LayoutTemplate}
-          title="Storefront surface"
-          summary="Landing, catalog, PDP, cart, checkout, and order tracking are already live in the ecommerce web app."
-        />
-        <MetricCard
-          icon={Users}
-          title="Customer boundary"
-          summary="Registration creates ecommerce customer accounts and links them to shared core contacts."
+          icon={ShoppingBag}
+          title="Order count"
+          summary={`${kpis.orderCount} total orders are currently tracked in ecommerce.`}
         />
         <MetricCard
           icon={CreditCard}
-          title="Payment flow"
-          summary="Checkout supports Razorpay-ready live mode with a mock fallback for local development."
+          title="Paid vs failed"
+          summary={`${kpis.paidOrderCount} paid orders, ${kpis.failedOrderCount} failed orders, and ${kpis.pendingOrderCount} pending orders need tracking.`}
+        />
+        <MetricCard
+          icon={LayoutTemplate}
+          title="Conversion and AOV"
+          summary={`${kpis.conversionRate.toFixed(1)}% paid-order conversion with ${formatMoney(kpis.averageOrderValue, data.currency)} average order value.`}
+        />
+        <MetricCard
+          icon={Package}
+          title="Fulfilment aging"
+          summary={`${kpis.fulfilmentAgingCount} active fulfilment items, with ${kpis.fulfilmentOver72HoursCount} older than 72 hours.`}
+        />
+        <MetricCard
+          icon={Users}
+          title="Refund aging"
+          summary={`${kpis.refundAgingCount} active refund items, with ${kpis.refundOver72HoursCount} older than 72 hours.`}
+        />
+        <MetricCard
+          icon={CreditCard}
+          title="Finance focus"
+          summary="Use the payments workspace for settlement visibility, failed-payment recovery, refund exports, and aging drill-down."
         />
       </div>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>Operational focus</CardTitle>
+          <CardDescription>
+            Work revenue leakage first, then aging fulfilment and refund backlogs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Revenue capture
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Conversion is {kpis.conversionRate.toFixed(1)}%, with {kpis.failedOrderCount} failed orders still reducing captured revenue.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Fulfilment backlog
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {kpis.fulfilmentOver72HoursCount} fulfilment items have crossed 72 hours and should be escalated before routine packing work.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Refund backlog
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {kpis.refundOver72HoursCount} refund items are older than 72 hours and should be reviewed with support and settlement queues.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>KPI destinations</CardTitle>
+          <CardDescription>
+            Move from the overview into the detailed commerce operations queues.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <ActionLink href="/dashboard/apps/ecommerce/payments" label="Open payments operations" />
+          <ActionLink href="/dashboard/apps/ecommerce/orders" label="Open order queue" />
+          <ActionLink href="/dashboard/apps/ecommerce/support" label="Open support queue" />
+          <ActionLink href={storefrontPaths.trackOrder()} label="Track order page" />
+        </CardContent>
+      </Card>
       <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
         <CardHeader>
           <CardTitle>Quick access</CardTitle>
@@ -297,7 +383,6 @@ function OverviewSection() {
           <ActionLink href={storefrontPaths.home()} label="Open storefront" />
           <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Home slider designer" />
           <ActionLink href={storefrontPaths.catalog()} label="Open catalog" />
-          <ActionLink href={storefrontPaths.trackOrder()} label="Track order page" />
           <ActionLink href={storefrontPaths.accountLogin()} label="Customer login" />
         </CardContent>
       </Card>

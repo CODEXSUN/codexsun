@@ -3,8 +3,12 @@ import { useEffect, useState } from "react"
 
 import type {
   StorefrontPaymentExceptionItem,
+  StorefrontOperationalAgingBucket,
+  StorefrontOperationalAgingReport,
+  StorefrontFulfilmentAgingItem,
   StorefrontPaymentOperationsReport,
   StorefrontPaymentSettlementItem,
+  StorefrontRefundAgingItem,
   StorefrontRefundQueueItem,
   StorefrontPaymentWebhookExceptionItem,
 } from "@ecommerce/shared"
@@ -62,6 +66,34 @@ function SummaryCard({
         </p>
         <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
         <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AgingBucketSummary({
+  title,
+  buckets,
+  currency,
+}: {
+  title: string
+  buckets: StorefrontOperationalAgingBucket[]
+  currency: string
+}) {
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="space-y-3 p-5">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <div className="space-y-2">
+          {buckets.map((bucket) => (
+            <div key={bucket.key} className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">{bucket.label}</span>
+              <span className="text-right text-foreground">
+                {bucket.count} | {formatMoney(bucket.amount, currency)}
+              </span>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -337,8 +369,112 @@ function WebhookExceptionList({ items }: { items: StorefrontPaymentWebhookExcept
   )
 }
 
+function FulfilmentAgingList({
+  items,
+  onOpenOrder,
+}: {
+  items: StorefrontFulfilmentAgingItem[]
+  onOpenOrder: (orderId: string) => void
+}) {
+  if (items.length === 0) {
+    return (
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardContent className="p-5 text-sm text-muted-foreground">
+          No fulfilment-aging items are active right now.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="divide-y divide-border/70 p-0">
+        {items.map((item) => (
+          <div
+            key={item.orderId}
+            className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_auto]"
+          >
+            <div className="min-w-0 space-y-1">
+              <p className="font-medium text-foreground">{item.orderNumber}</p>
+              <p className="truncate text-sm text-muted-foreground">
+                {item.customerName} | {item.customerEmail}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">{item.itemSummary}</p>
+            </div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>{formatMoney(item.totalAmount, item.currency)}</p>
+              <p>Status: {item.orderStatus.replaceAll("_", " ")}</p>
+              <p>Aging since: {formatDateTime(item.agingStartedAt)}</p>
+            </div>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <Badge variant="outline">{item.ageHours.toFixed(1)} hrs</Badge>
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                View order
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function RefundAgingList({
+  items,
+  onOpenOrder,
+}: {
+  items: StorefrontRefundAgingItem[]
+  onOpenOrder: (orderId: string) => void
+}) {
+  if (items.length === 0) {
+    return (
+      <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+        <CardContent className="p-5 text-sm text-muted-foreground">
+          No refund-aging items are active right now.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
+      <CardContent className="divide-y divide-border/70 p-0">
+        {items.map((item) => (
+          <div
+            key={item.orderId}
+            className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_auto]"
+          >
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium text-foreground">{item.orderNumber}</p>
+                <Badge variant="outline">{item.refundStatus}</Badge>
+              </div>
+              <p className="truncate text-sm text-muted-foreground">
+                {item.customerName} | {item.customerEmail}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">{item.summary}</p>
+            </div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>{formatMoney(item.requestedAmount, item.currency)}</p>
+              <p>Status: {item.orderStatus.replaceAll("_", " ")}</p>
+              <p>Requested: {formatDateTime(item.agingStartedAt)}</p>
+            </div>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <Badge variant="outline">{item.ageHours.toFixed(1)} hrs</Badge>
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenOrder(item.orderId)}>
+                View order
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function StorefrontPaymentsSection() {
   const [report, setReport] = useState<StorefrontPaymentOperationsReport | null>(null)
+  const [agingReport, setAgingReport] = useState<StorefrontOperationalAgingReport | null>(null)
   const [exceptionSearchTerm, setExceptionSearchTerm] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -346,6 +482,8 @@ export function StorefrontPaymentsSection() {
   const [isReconciling, setIsReconciling] = useState(false)
   const [isExportingSummary, setIsExportingSummary] = useState(false)
   const [isExportingFailedPayments, setIsExportingFailedPayments] = useState(false)
+  const [isExportingRefunds, setIsExportingRefunds] = useState(false)
+  const [isExportingSettlementGaps, setIsExportingSettlementGaps] = useState(false)
   const [reconcilingOrderId, setReconcilingOrderId] = useState<string | null>(null)
   const [refundSearchTerm, setRefundSearchTerm] = useState("")
   const [updatingRefundOrderId, setUpdatingRefundOrderId] = useState<string | null>(null)
@@ -354,6 +492,8 @@ export function StorefrontPaymentsSection() {
       isReconciling ||
       isExportingSummary ||
       isExportingFailedPayments ||
+      isExportingRefunds ||
+      isExportingSettlementGaps ||
       Boolean(reconcilingOrderId) ||
       Boolean(updatingRefundOrderId)
   )
@@ -369,8 +509,12 @@ export function StorefrontPaymentsSection() {
         throw new Error("Admin access token is required.")
       }
 
-      const nextReport = await storefrontApi.getPaymentsReport(accessToken)
+      const [nextReport, nextAgingReport] = await Promise.all([
+        storefrontApi.getPaymentsReport(accessToken),
+        storefrontApi.getOperationalAgingReport(accessToken),
+      ])
       setReport(nextReport)
+      setAgingReport(nextAgingReport)
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load payment operations report."
@@ -495,6 +639,84 @@ export function StorefrontPaymentsSection() {
       })
     } finally {
       setIsExportingFailedPayments(false)
+    }
+  }
+
+  async function handleExportRefunds() {
+    setIsExportingRefunds(true)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const document = await storefrontApi.downloadRefundsReport(accessToken)
+      const href = window.URL.createObjectURL(document.blob)
+      const anchor = window.document.createElement("a")
+      anchor.href = href
+      anchor.download = document.fileName
+      anchor.click()
+      window.URL.revokeObjectURL(href)
+
+      showRecordToast({
+        entity: "Refund report",
+        action: "exported",
+        recordName: document.fileName,
+      })
+    } catch (exportError) {
+      const message =
+        exportError instanceof Error ? exportError.message : "Failed to export the refund report."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Refund export failed.",
+        description: message,
+      })
+    } finally {
+      setIsExportingRefunds(false)
+    }
+  }
+
+  async function handleExportSettlementGaps() {
+    setIsExportingSettlementGaps(true)
+    setError(null)
+
+    try {
+      const accessToken = getStoredAccessToken()
+
+      if (!accessToken) {
+        throw new Error("Admin access token is required.")
+      }
+
+      const document = await storefrontApi.downloadSettlementGapReport(accessToken)
+      const href = window.URL.createObjectURL(document.blob)
+      const anchor = window.document.createElement("a")
+      anchor.href = href
+      anchor.download = document.fileName
+      anchor.click()
+      window.URL.revokeObjectURL(href)
+
+      showRecordToast({
+        entity: "Settlement-gap report",
+        action: "exported",
+        recordName: document.fileName,
+      })
+    } catch (exportError) {
+      const message =
+        exportError instanceof Error
+          ? exportError.message
+          : "Failed to export the settlement-gap report."
+      setError(message)
+      showAppToast({
+        variant: "error",
+        title: "Settlement-gap export failed.",
+        description: message,
+      })
+    } finally {
+      setIsExportingSettlementGaps(false)
     }
   }
 
@@ -653,6 +875,25 @@ export function StorefrontPaymentsSection() {
           content: <WebhookExceptionList items={report.webhookExceptions} />,
         },
         {
+          value: "fulfilment_aging",
+          label: "Fulfilment aging",
+          content: (
+            <div className="space-y-4">
+              {agingReport ? (
+                <AgingBucketSummary
+                  title="Fulfilment aging bands"
+                  buckets={agingReport.fulfilmentBuckets}
+                  currency={agingReport.fulfilmentItems[0]?.currency ?? "INR"}
+                />
+              ) : null}
+              <FulfilmentAgingList
+                items={agingReport?.fulfilmentItems ?? []}
+                onOpenOrder={setSelectedOrderId}
+              />
+            </div>
+          ),
+        },
+        {
           value: "refunds",
           label: "Refund queue",
           content: (
@@ -676,6 +917,25 @@ export function StorefrontPaymentsSection() {
                 onOpenOrder={setSelectedOrderId}
                 onUpdateRefundStatus={handleRefundStatusUpdate}
                 updatingRefundOrderId={updatingRefundOrderId}
+              />
+            </div>
+          ),
+        },
+        {
+          value: "refund_aging",
+          label: "Refund aging",
+          content: (
+            <div className="space-y-4">
+              {agingReport ? (
+                <AgingBucketSummary
+                  title="Refund aging bands"
+                  buckets={agingReport.refundBuckets}
+                  currency={agingReport.refundItems[0]?.currency ?? "INR"}
+                />
+              ) : null}
+              <RefundAgingList
+                items={agingReport?.refundItems ?? []}
+                onOpenOrder={setSelectedOrderId}
               />
             </div>
           ),
@@ -730,6 +990,26 @@ export function StorefrontPaymentsSection() {
                 <AlertTriangle className="size-4" />
                 {isExportingFailedPayments ? "Exporting..." : "Export failed payments"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => void handleExportRefunds()}
+                disabled={isExportingRefunds}
+              >
+                <Wallet className="size-4" />
+                {isExportingRefunds ? "Exporting..." : "Export refunds"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => void handleExportSettlementGaps()}
+                disabled={isExportingSettlementGaps}
+              >
+                <AlertTriangle className="size-4" />
+                {isExportingSettlementGaps ? "Exporting..." : "Export settlement gaps"}
+              </Button>
               <Button type="button" className="gap-2" onClick={() => void handleReconcile()} disabled={isReconciling}>
                 <RefreshCw className={`size-4 ${isReconciling ? "animate-spin" : ""}`} />
                 {isReconciling ? "Reconciling..." : "Run reconciliation"}
@@ -768,6 +1048,16 @@ export function StorefrontPaymentsSection() {
             title="Refund queue"
             value={String(report.summary.refundQueueCount)}
             description={`${report.summary.refundInFlightCount} active refund requests and ${report.summary.refundedCount} completed refunds are tracked here.`}
+          />
+          <SummaryCard
+            title="Fulfilment aging"
+            value={String(agingReport?.summary.fulfilmentAgingCount ?? 0)}
+            description={`${agingReport?.summary.fulfilmentOver72HoursCount ?? 0} fulfilment orders have been open longer than 72 hours.`}
+          />
+          <SummaryCard
+            title="Refund aging"
+            value={String(agingReport?.summary.refundAgingCount ?? 0)}
+            description={`${agingReport?.summary.refundOver72HoursCount ?? 0} refund requests have been open longer than 72 hours.`}
           />
         </div>
       ) : null}

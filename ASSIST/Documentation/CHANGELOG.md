@@ -8,6 +8,36 @@
 
 ## v-0.0.1
 
+### [#60] 2026-04-08 - Low-stock and oversell rules baseline
+
+- completed Stage `3.1.2` by defining the storefront low-stock threshold and oversell-prevention rules against the existing `core` stock model
+- recorded sellable quantity as `active quantity - reservedQuantity`, set low stock to quantities `1` through `5`, treated `0` as out of stock, and kept cart and PDP stock indicators advisory until checkout revalidation
+- documented the current boundary that `payment_pending` does not yet create a new stock hold, so reservation behavior remains the explicit follow-up in Stage `3.1.3`, then validated the batch with architecture, planning, and checkout code-path review
+
+### [#59] 2026-04-08 - Inventory authority decision baseline
+
+- completed Stage `3.1.1` by recording `apps/core` as the current authoritative source for sellable storefront stock
+- aligned architecture and go-live planning so `apps/ecommerce` continues reading stock only from `core`, while future ERPNext stock must flow through `apps/frappe` snapshots projected into `core`
+- validated the batch with architecture, planning, and code-path consistency review across the current `core`, `ecommerce`, and `frappe` boundaries
+
+### [#58] 2026-04-08 - Ecommerce overview KPI dashboard
+
+- completed Stage `2.4.5` by adding ecommerce overview KPIs for conversion, AOV, order count, paid vs failed, fulfilment aging, and refund aging
+- exposed a protected internal overview-report route for ecommerce analytics readers and replaced the static ecommerce overview cards with live KPI-backed dashboard content plus drill-down links into payments, orders, and support
+- kept conversion and aging values aligned to the existing ecommerce order and operational-aging reports, then validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### [#57] 2026-04-08 - Ecommerce fulfilment and refund aging reports
+
+- completed Stage `2.4.4` by adding fulfilment-aging and refund-aging operational reporting derived from the existing ecommerce order and refund queues
+- exposed a protected internal aging-report route, shared aging-report schemas, and storefront admin client support so finance operators can review aging bands and order-level drill-down from the payments operations screen
+- kept active refund work from duplicating into fulfilment aging, then validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
+### [#56] 2026-04-08 - Ecommerce refund and settlement-gap exports
+
+- completed Stage `2.4.3` by adding refund and settlement-gap CSV exports from the existing ecommerce payments operations surface
+- exposed protected internal export routes, shared document schemas, and storefront admin client helpers so finance operators can download refund-queue and settlement-visibility data without leaving the payments screen
+- kept the reporting slice aligned to the existing live Razorpay settlement queue and refund queue models, then validated it with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`
+
 ### [#54] 2026-04-07 - Ecommerce customer lifecycle controls
 
 - completed Stage `2.3.4` by adding ecommerce-owned customer lifecycle states for `active`, `blocked`, `deleted`, and `anonymized`, with synchronized auth-session revocation and identity anonymization handling

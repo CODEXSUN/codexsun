@@ -267,10 +267,12 @@ Ecommerce is considered ready for go-live only when all of the following are tru
 
 #### Next Actions
 
-- Decide inventory authority:
-  - `core` only
-  - ERPNext
-  - staged sync with override rules
+- Keep `apps/core` as the current authoritative source for sellable storefront stock.
+- Keep `apps/ecommerce` runtime reads on `core` stock rows and reserved quantities only.
+- Stage future ERPNext stock through `apps/frappe` snapshots projected into `apps/core`, with any override rules applied before storefront reads.
+- Treat sellable quantity `1` to `5` as low stock, and treat `0` as out of stock with checkout blocked.
+- Keep cart and PDP stock indicators advisory only; checkout must revalidate against the latest sellable quantity before order creation.
+- Do not allow backorders, silent partial fulfilment, or automatic oversell overrides in storefront runtime.
 - Add stock reservation policy during checkout or payment-pending stage.
 - Add shipping methods and SLA model:
   - zone
@@ -359,7 +361,7 @@ This is not yet a live commerce-to-ERP operating loop.
 
 - ERPNext Item -> `apps/frappe` snapshot -> `apps/core` product projection -> `apps/ecommerce` storefront read
 - ERPNext Price List -> `apps/frappe` snapshot -> ecommerce/commercial pricing projection
-- ERPNext Warehouse/Stock -> stock availability projection for storefront
+- ERPNext Warehouse/Stock -> `apps/frappe` snapshot -> `apps/core` stock projection -> `apps/ecommerce` storefront read
 - ERPNext Customer Group / territory / sales settings -> customer commercial profile enrichment
 
 #### Phase B: Transaction Push
@@ -382,6 +384,7 @@ This is not yet a live commerce-to-ERP operating loop.
 ### ERPNext Execution Notes
 
 - Keep connector orchestration in `apps/frappe`.
+- Keep sellable-stock authority in `apps/core` until a projection has been validated and persisted there.
 - If ecommerce needs ERP-aware behavior, add narrow projection services in `apps/ecommerce`, not direct cross-app writes.
 - Start with one-way master sync and one-way order push before attempting full bidirectional transaction mutation.
 - Do not make storefront runtime depend on live ERPNext response time for page render or checkout completion.
@@ -466,7 +469,7 @@ This is not yet a live commerce-to-ERP operating loop.
 4. Build ecommerce admin order operations workspace.
 5. Finish stable guest and authenticated checkout e2e coverage.
 6. Define ERP authority model for item, stock, and price.
-7. Expand `apps/frappe` from snapshot management to explicit master-sync contracts.
+7. Expand `apps/frappe` from snapshot management to explicit master-sync contracts that project stock and pricing into `apps/core`.
 8. Add legal/trust/SEO baseline pages and metadata.
 9. Add production logging, alerts, and restore-tested backups.
 

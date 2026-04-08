@@ -58,7 +58,11 @@ import {
   getCustomerOrderReceiptDocument,
   getStorefrontFailedPaymentReportDocument,
   getStorefrontPaymentDailySummaryDocument,
+  getStorefrontOperationalAgingReport,
+  getStorefrontOverviewKpiReport,
   getStorefrontPaymentOperationsReport,
+  getStorefrontRefundReportDocument,
+  getStorefrontSettlementGapReportDocument,
   handleRazorpayWebhook,
   listCustomerOrders,
   reconcileRazorpayPayments,
@@ -1426,6 +1430,319 @@ test("payment operations report groups settlement queue and payment exceptions",
   }
 })
 
+test("operational aging report groups fulfilment and refund work by age bands", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-operational-aging-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const fulfilmentCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Fulfilment Aging Customer",
+          email: "fulfilment-aging@codexsun.local",
+          phoneNumber: "+919999999987",
+          line1: "13 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Fulfilment Aging Customer",
+          email: "fulfilment-aging@codexsun.local",
+          phoneNumber: "+919999999987",
+          line1: "13 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const refundCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Refund Aging Customer",
+          email: "refund-aging@codexsun.local",
+          phoneNumber: "+919999999986",
+          line1: "14 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Refund Aging Customer",
+          email: "refund-aging@codexsun.local",
+          phoneNumber: "+919999999986",
+          line1: "14 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const now = Date.now()
+      const fulfilmentStartedAt = new Date(now - 80 * 60 * 60 * 1000).toISOString()
+      const refundRequestedAt = new Date(now - 30 * 60 * 60 * 1000).toISOString()
+
+      const fulfilmentOrder = {
+        ...fulfilmentCheckout.order,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        paymentStatus: "paid" as const,
+        status: "fulfilment_pending" as const,
+        providerOrderId: "order_operational_aging_fulfilment",
+        providerPaymentId: "pay_operational_aging_fulfilment",
+        updatedAt: fulfilmentStartedAt,
+        timeline: [
+          ...fulfilmentCheckout.order.timeline,
+          {
+            id: "timeline:operational-aging-fulfilment",
+            code: "fulfilment_ready",
+            label: "Marked for fulfilment",
+            summary: "Order is queued for fulfilment aging coverage.",
+            createdAt: fulfilmentStartedAt,
+          },
+        ],
+      }
+
+      const refundOrder = {
+        ...refundCheckout.order,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        paymentStatus: "paid" as const,
+        status: "paid" as const,
+        providerOrderId: "order_operational_aging_refund",
+        providerPaymentId: "pay_operational_aging_refund",
+        refund: {
+          type: "full" as const,
+          status: "processing" as const,
+          requestedAmount: refundCheckout.order.totalAmount,
+          currency: refundCheckout.order.currency,
+          reason: "Refund aging coverage.",
+          requestedBy: "admin" as const,
+          requestedAt: refundRequestedAt,
+          initiatedAt: refundRequestedAt,
+          completedAt: null,
+          failedAt: null,
+          providerRefundId: null,
+          statusSummary: "Refund request is active for aging coverage.",
+          updatedAt: refundRequestedAt,
+        },
+        updatedAt: refundRequestedAt,
+      }
+
+      await replaceJsonStoreRecords(runtime.primary, ecommerceTableNames.orders, [
+        {
+          id: fulfilmentOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 1,
+          payload: fulfilmentOrder,
+          createdAt: fulfilmentOrder.createdAt,
+          updatedAt: fulfilmentOrder.updatedAt,
+        },
+        {
+          id: refundOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 2,
+          payload: refundOrder,
+          createdAt: refundOrder.createdAt,
+          updatedAt: refundOrder.updatedAt,
+        },
+      ])
+
+      const report = await getStorefrontOperationalAgingReport(runtime.primary)
+
+      assert.equal(report.summary.fulfilmentAgingCount, 1)
+      assert.equal(report.summary.fulfilmentOver72HoursCount, 1)
+      assert.equal(report.summary.refundAgingCount, 1)
+      assert.equal(report.summary.refundOver72HoursCount, 0)
+      assert.equal(report.fulfilmentBuckets.find((item) => item.key === "over_72h")?.count, 1)
+      assert.equal(report.refundBuckets.find((item) => item.key === "between_24h_48h")?.count, 1)
+      assert.equal(report.fulfilmentItems[0]?.orderId, fulfilmentOrder.id)
+      assert.equal(report.refundItems[0]?.orderId, refundOrder.id)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("overview KPI report summarizes conversion, AOV, order counts, and aging counts", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-overview-kpis-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const paidCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Overview Paid Customer",
+          email: "overview-paid@codexsun.local",
+          phoneNumber: "+919999999985",
+          line1: "15 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Overview Paid Customer",
+          email: "overview-paid@codexsun.local",
+          phoneNumber: "+919999999985",
+          line1: "15 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const failedCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Overview Failed Customer",
+          email: "overview-failed@codexsun.local",
+          phoneNumber: "+919999999984",
+          line1: "16 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Overview Failed Customer",
+          email: "overview-failed@codexsun.local",
+          phoneNumber: "+919999999984",
+          line1: "16 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const paidOrder = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: paidCheckout.order.id,
+        providerOrderId: paidCheckout.payment.providerOrderId,
+        providerPaymentId: "pay_overview_kpi_001",
+        signature: "mock_signature",
+      })
+
+      const now = Date.now()
+      const fulfilmentStartedAt = new Date(now - 80 * 60 * 60 * 1000).toISOString()
+      const refundRequestedAt = new Date(now - 30 * 60 * 60 * 1000).toISOString()
+
+      const fulfilmentOrder = {
+        ...paidOrder.item,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        status: "fulfilment_pending" as const,
+        updatedAt: fulfilmentStartedAt,
+        timeline: [
+          ...paidOrder.item.timeline,
+          {
+            id: "timeline:overview-kpi-fulfilment",
+            code: "fulfilment_ready",
+            label: "Marked for fulfilment",
+            summary: "Order is queued for KPI fulfilment aging coverage.",
+            createdAt: fulfilmentStartedAt,
+          },
+        ],
+      }
+
+      const failedOrder = {
+        ...failedCheckout.order,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        paymentStatus: "failed" as const,
+        status: "payment_pending" as const,
+        providerOrderId: "order_overview_kpi_failed",
+        providerPaymentId: "pay_overview_kpi_failed",
+        updatedAt: refundRequestedAt,
+      }
+
+      await replaceJsonStoreRecords(runtime.primary, ecommerceTableNames.orders, [
+        {
+          id: fulfilmentOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 1,
+          payload: fulfilmentOrder,
+          createdAt: fulfilmentOrder.createdAt,
+          updatedAt: fulfilmentOrder.updatedAt,
+        },
+        {
+          id: failedOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 2,
+          payload: failedOrder,
+          createdAt: failedOrder.createdAt,
+          updatedAt: failedOrder.updatedAt,
+        },
+      ])
+
+      const report = await getStorefrontOverviewKpiReport(runtime.primary)
+
+      assert.equal(report.summary.orderCount, 2)
+      assert.equal(report.summary.paidOrderCount, 1)
+      assert.equal(report.summary.failedOrderCount, 1)
+      assert.equal(report.summary.pendingOrderCount, 0)
+      assert.equal(report.summary.fulfilmentAgingCount, 1)
+      assert.equal(report.summary.refundAgingCount, 0)
+      assert.equal(report.summary.fulfilmentOver72HoursCount, 1)
+      assert.equal(report.summary.refundOver72HoursCount, 0)
+      assert.equal(report.summary.conversionRate, 50)
+      assert.equal(report.summary.averageOrderValue, fulfilmentOrder.totalAmount)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("daily payment summary export returns grouped csv output for finance ops", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-payment-summary-"))
 
@@ -1579,6 +1896,200 @@ test("failed-payment report export returns csv rows for payment exceptions", asy
       assert.match(document.csv, /ECM-/)
       assert.match(document.csv, /failed-report@codexsun\.local/)
       assert.match(document.csv, /pay_failed_report_001/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("refund report export returns csv rows for refund queue operations", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-refund-report-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const checkout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Refund Report Customer",
+          email: "refund-report@codexsun.local",
+          phoneNumber: "+919999999989",
+          line1: "11 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Refund Report Customer",
+          email: "refund-report@codexsun.local",
+          phoneNumber: "+919999999989",
+          line1: "11 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: checkout.order.id,
+        providerOrderId: checkout.payment.providerOrderId,
+        providerPaymentId: "pay_refund_report_001",
+        signature: "mock_signature",
+      })
+
+      const liveRefundOrder = {
+        ...checkout.order,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        paymentStatus: "paid" as const,
+        status: "paid" as const,
+        providerOrderId: "order_refund_report_001",
+        providerPaymentId: "pay_refund_report_001",
+        timeline: [
+          ...checkout.order.timeline,
+          {
+            id: "timeline:refund-report-paid",
+            code: "payment_captured",
+            label: "Payment captured",
+            summary: "Payment captured for refund report coverage.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }
+
+      await replaceJsonStoreRecords(runtime.primary, ecommerceTableNames.orders, [
+        {
+          id: liveRefundOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 1,
+          payload: liveRefundOrder,
+          createdAt: liveRefundOrder.createdAt,
+          updatedAt: liveRefundOrder.updatedAt,
+        },
+      ])
+
+      await requestStorefrontRefund(runtime.primary, {
+        orderId: checkout.order.id,
+        reason: "Customer requested refund report coverage.",
+      })
+
+      const document = await getStorefrontRefundReportDocument(runtime.primary)
+
+      assert.match(document.fileName, /storefront-refunds-/)
+      assert.match(document.csv, /order_number,order_status,payment_status,refund_status/)
+      assert.match(document.csv, /refund-report@codexsun\.local/)
+      assert.match(document.csv, /requested/)
+      assert.match(document.csv, /pay_refund_report_001/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("settlement-gap report export returns csv rows for paid live orders awaiting settlement visibility", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-settlement-gap-report-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const checkout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        shippingAddress: {
+          fullName: "Settlement Gap Customer",
+          email: "settlement-gap@codexsun.local",
+          phoneNumber: "+919999999988",
+          line1: "12 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Settlement Gap Customer",
+          email: "settlement-gap@codexsun.local",
+          phoneNumber: "+919999999988",
+          line1: "12 Finance Street",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const paidOrder = await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: checkout.order.id,
+        providerOrderId: checkout.payment.providerOrderId,
+        providerPaymentId: "pay_settlement_gap_001",
+        signature: "mock_signature",
+      })
+
+      const liveSettlementOrder = {
+        ...paidOrder.item,
+        paymentMode: "live" as const,
+        paymentProvider: "razorpay" as const,
+        providerOrderId: "order_settlement_gap_001",
+        providerPaymentId: "pay_settlement_gap_001",
+      }
+
+      await replaceJsonStoreRecords(runtime.primary, ecommerceTableNames.orders, [
+        {
+          id: liveSettlementOrder.id,
+          moduleKey: "storefront-order",
+          sortOrder: 1,
+          payload: liveSettlementOrder,
+          createdAt: liveSettlementOrder.createdAt,
+          updatedAt: liveSettlementOrder.updatedAt,
+        },
+      ])
+
+      const document = await getStorefrontSettlementGapReportDocument(runtime.primary)
+
+      assert.match(document.fileName, /storefront-settlement-gaps-/)
+      assert.match(document.csv, /order_number,order_status,payment_status/)
+      assert.match(document.csv, /settlement-gap@codexsun\.local/)
+      assert.match(document.csv, /pay_settlement_gap_001/)
+      assert.match(
+        document.csv,
+        new RegExp(paidOrder.item.totalAmount.toFixed(2).replace(".", "\\."))
+      )
     } finally {
       await runtime.destroy()
     }

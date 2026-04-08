@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#45`
+`#60`
 
 ### Title
 
-`Storefront desktop width standardization to 96rem`
+`Low-stock and oversell rules baseline`
 
 ## Ecommerce Go-Live Schedule
 
@@ -104,16 +104,16 @@ Stage 1.1 baseline document:
 
 - [x] 2.4.1 add daily payment summary export
 - [x] 2.4.2 add failed-payment report
-- [ ] 2.4.3 add refund and settlement gap reports
-- [ ] 2.4.4 add fulfilment-aging and refund-aging operational reports
-- [ ] 2.4.5 add dashboard KPIs for conversion, AOV, order count, paid vs failed, fulfilment aging, and refund aging
+- [x] 2.4.3 add refund and settlement gap reports
+- [x] 2.4.4 add fulfilment-aging and refund-aging operational reports
+- [x] 2.4.5 add dashboard KPIs for conversion, AOV, order count, paid vs failed, fulfilment aging, and refund aging
 
 ## Phase 3: Inventory, Pricing, Shipping, And Tax
 
 ### Stage 3.1: Inventory Authority
 
-- [ ] 3.1.1 decide authoritative source for sellable stock: `core`, ERPNext, or staged sync
-- [ ] 3.1.2 define low-stock and oversell prevention rules
+- [x] 3.1.1 decide authoritative source for sellable stock: `core`, ERPNext, or staged sync
+- [x] 3.1.2 define low-stock and oversell prevention rules
 - [ ] 3.1.3 add stock reservation policy during checkout or payment-pending stage
 - [ ] 3.1.4 define warehouse and stock visibility rules for storefront availability
 

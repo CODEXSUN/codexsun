@@ -30,8 +30,12 @@ import {
   getStorefrontAdminOrder,
   getStorefrontFailedPaymentReportDocument,
   getStorefrontAdminOrderOperationsReport,
+  getStorefrontOverviewKpiReport,
   getStorefrontPaymentDailySummaryDocument,
+  getStorefrontOperationalAgingReport,
+  getStorefrontRefundReportDocument,
   getStorefrontPaymentOperationsReport,
+  getStorefrontSettlementGapReportDocument,
   requestStorefrontRefund,
   reconcileRazorpayPayments,
   updateStorefrontRefundStatus,
@@ -91,6 +95,11 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
     requireAuthenticatedUser(context, {
       allowedActorTypes: ["admin", "staff"],
       requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:communications:view"],
+    })
+  const requireAnalyticsView = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
+    requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:analytics:view"],
     })
 
   return [
@@ -353,6 +362,16 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/ecommerce/overview-report", {
+      summary: "Read ecommerce overview KPIs for commerce operations dashboard cards.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontOverviewKpiReport(context.databases.primary)
+        )
+      },
+    }),
     defineInternalRoute("/ecommerce/customer", {
       summary: "Read one ecommerce customer account with lifecycle and activity summary.",
       handler: async (context) => {
@@ -500,6 +519,16 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/ecommerce/payments/aging-report", {
+      summary: "Read fulfilment-aging and refund-aging operational reporting for ecommerce finance operations.",
+      handler: async (context) => {
+        await requirePaymentsManage(context)
+
+        return jsonResponse(
+          await getStorefrontOperationalAgingReport(context.databases.primary)
+        )
+      },
+    }),
     defineInternalRoute("/ecommerce/payments/daily-summary-export", {
       summary: "Download the ecommerce daily payment summary export as CSV.",
       handler: async (context) => {
@@ -524,6 +553,40 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         await requirePaymentsManage(context)
 
         const document = await getStorefrontFailedPaymentReportDocument(
+          context.databases.primary
+        )
+
+        return textResponse(
+          document.csv,
+          "text/csv; charset=utf-8",
+          200,
+          document.fileName
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/refund-report-export", {
+      summary: "Download the ecommerce refund report as CSV.",
+      handler: async (context) => {
+        await requirePaymentsManage(context)
+
+        const document = await getStorefrontRefundReportDocument(
+          context.databases.primary
+        )
+
+        return textResponse(
+          document.csv,
+          "text/csv; charset=utf-8",
+          200,
+          document.fileName
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/payments/settlement-gap-report-export", {
+      summary: "Download the ecommerce settlement-gap report as CSV.",
+      handler: async (context) => {
+        await requirePaymentsManage(context)
+
+        const document = await getStorefrontSettlementGapReportDocument(
           context.databases.primary
         )
 
