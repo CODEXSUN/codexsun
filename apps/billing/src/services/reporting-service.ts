@@ -1,14 +1,22 @@
 import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
+import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
+import { listJsonStorePayloads } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
   billingAccountingReportsResponseSchema,
   type BillingAgingItem,
   type BillingAgingReport,
   type BillingBalanceSheetEntry,
+  type BillingInventoryAuthority,
   type BillingCustomerStatementEntry,
   type BillingCustomerStatementItem,
   type BillingPartySettlementSummaryItem,
+  type BillingStockAccountingRule,
+  type BillingStockLedgerEntry,
+  type BillingStockValuationPolicy,
+  type BillingStockValuationReport,
+  type BillingWarehouseStockPositionItem,
   type BillingSettlementExceptionItem,
   type BillingSettlementFollowUpItem,
   type BillingSupplierStatementEntry,
@@ -21,12 +29,16 @@ import {
   type BillingOutstandingItem,
   type BillingVoucher,
 } from "../../shared/index.js"
+import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
+import { productSchema, type Product } from "../../../core/shared/index.js"
 
 import { billingTableNames } from "../../database/table-names.js"
+import { coreTableNames } from "../../../core/database/table-names.js"
 
 import { assertBillingViewer } from "./access.js"
 import { listBillingLedgerEntries } from "./ledger-entry-store.js"
 import { listStorePayloads } from "./store.js"
+import { projectBillingInventory } from "./inventory-bridge-service.js"
 
 function roundCurrency(value: number) {
   return Number(value.toFixed(2))
@@ -64,6 +76,16 @@ async function readLedgers(database: Kysely<unknown>) {
 
 async function readVouchers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.vouchers, billingVoucherSchema)
+}
+
+async function readProducts(database: Kysely<unknown>) {
+  const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
+  return items.map((item) => productSchema.parse(item))
+}
+
+async function readWarehouses(database: Kysely<unknown>) {
+  const response = await listCommonModuleItems(database, "warehouses")
+  return response.items
 }
 
 function getLedgerMovement(entries: BillingLedgerEntry[]) {
@@ -205,7 +227,10 @@ function getCustomerStatementParty(
     }
   }
 
-  if (voucher.type === "credit_note" && voucher.sourceDocument) {
+  if (
+    (voucher.type === "credit_note" || voucher.type === "sales_return") &&
+    voucher.sourceDocument
+  ) {
     const sourceVoucher = voucherById.get(voucher.sourceDocument.voucherId)
 
     if (sourceVoucher?.sales) {
@@ -233,7 +258,10 @@ function getSupplierStatementParty(
   voucher: BillingVoucher,
   voucherById: Map<string, BillingVoucher>
 ) {
-  if (voucher.type === "debit_note" && voucher.sourceDocument) {
+  if (
+    (voucher.type === "debit_note" || voucher.type === "purchase_return") &&
+    voucher.sourceDocument
+  ) {
     const sourceVoucher = voucherById.get(voucher.sourceDocument.voucherId)
 
     if (sourceVoucher?.gst) {
@@ -391,12 +419,12 @@ function buildCustomerStatement(
       continue
     }
 
-    if (voucher.type === "credit_note") {
+    if (voucher.type === "credit_note" || voucher.type === "sales_return") {
       const party = getCustomerStatementParty(voucher, voucherById)
       appendStatementEntry(buckets, { partyId: party.customerId, partyName: party.customerName }, {
         voucherId: voucher.id,
         voucherNumber: voucher.voucherNumber,
-        voucherType: "credit_note",
+        voucherType: voucher.type,
         date: voucher.date,
         narration: voucher.narration,
         referenceVoucherNumber: voucher.sourceDocument?.voucherNumber ?? null,
@@ -519,12 +547,12 @@ function buildSupplierStatement(
       continue
     }
 
-    if (voucher.type === "debit_note") {
+    if (voucher.type === "debit_note" || voucher.type === "purchase_return") {
       const party = getSupplierStatementParty(voucher, voucherById)
       appendStatementEntry(buckets, { partyId: party.supplierId, partyName: party.supplierName }, {
         voucherId: voucher.id,
         voucherNumber: voucher.voucherNumber,
-        voucherType: "debit_note",
+        voucherType: voucher.type,
         date: voucher.date,
         narration: voucher.narration,
         referenceVoucherNumber: voucher.sourceDocument?.voucherNumber ?? null,
@@ -872,22 +900,575 @@ function buildPartySettlementSummary(postedVouchers: BillingVoucher[]) {
   }
 }
 
+function buildGstSalesRegister(
+  postedVouchers: BillingVoucher[],
+  asOfDate: string
+) {
+  const items = postedVouchers
+    .filter(
+      (voucher) =>
+        (
+          voucher.type === "sales" ||
+          voucher.type === "sales_return" ||
+          voucher.type === "credit_note"
+        ) &&
+        voucher.gst?.taxDirection === "output"
+    )
+    .map((voucher) => {
+      const direction =
+        voucher.type === "credit_note" || voucher.type === "sales_return" ? -1 : 1
+      const gst = voucher.gst!
+
+      return {
+        voucherId: voucher.id,
+        voucherNumber: voucher.voucherNumber,
+        voucherType: voucher.type,
+        documentLabel:
+          voucher.type === "credit_note"
+            ? "credit_note"
+            : voucher.type === "sales_return"
+              ? "sales_return"
+              : "tax_invoice",
+        date: voucher.date,
+        counterparty: voucher.counterparty,
+        partyGstin: gst.partyGstin,
+        placeOfSupply: gst.placeOfSupply,
+        supplyType: gst.supplyType,
+        hsnOrSac: gst.hsnOrSac,
+        taxRate: gst.taxRate,
+        taxableAmount: roundCurrency(gst.taxableAmount * direction),
+        cgstAmount: roundCurrency(gst.cgstAmount * direction),
+        sgstAmount: roundCurrency(gst.sgstAmount * direction),
+        igstAmount: roundCurrency(gst.igstAmount * direction),
+        totalTaxAmount: roundCurrency(gst.totalTaxAmount * direction),
+        invoiceAmount: roundCurrency(gst.invoiceAmount * direction),
+        referenceVoucherNumber: voucher.sourceDocument?.voucherNumber ?? null,
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.voucherNumber.localeCompare(right.voucherNumber)
+    )
+
+  return {
+    asOfDate,
+    invoiceCount: items.filter((item) => item.voucherType === "sales").length,
+    creditNoteCount: items.filter((item) => item.voucherType === "credit_note").length,
+    taxableAmountTotal: roundCurrency(
+      items.reduce((sum, item) => sum + item.taxableAmount, 0)
+    ),
+    cgstAmountTotal: roundCurrency(items.reduce((sum, item) => sum + item.cgstAmount, 0)),
+    sgstAmountTotal: roundCurrency(items.reduce((sum, item) => sum + item.sgstAmount, 0)),
+    igstAmountTotal: roundCurrency(items.reduce((sum, item) => sum + item.igstAmount, 0)),
+    totalTaxAmountTotal: roundCurrency(
+      items.reduce((sum, item) => sum + item.totalTaxAmount, 0)
+    ),
+    invoiceAmountTotal: roundCurrency(
+      items.reduce((sum, item) => sum + item.invoiceAmount, 0)
+    ),
+    items,
+  }
+}
+
+function buildGstPurchaseRegister(
+  postedVouchers: BillingVoucher[],
+  asOfDate: string
+) {
+  const items = postedVouchers
+    .filter(
+      (voucher) =>
+        (
+          voucher.type === "purchase" ||
+          voucher.type === "purchase_return" ||
+          voucher.type === "debit_note"
+        ) &&
+        voucher.gst?.taxDirection === "input"
+    )
+    .map((voucher) => {
+      const direction =
+        voucher.type === "debit_note" || voucher.type === "purchase_return" ? -1 : 1
+      const gst = voucher.gst!
+
+      return {
+        voucherId: voucher.id,
+        voucherNumber: voucher.voucherNumber,
+        voucherType: voucher.type,
+        documentLabel:
+          voucher.type === "debit_note"
+            ? "debit_note"
+            : voucher.type === "purchase_return"
+              ? "purchase_return"
+              : "purchase_invoice",
+        date: voucher.date,
+        counterparty: voucher.counterparty,
+        partyGstin: gst.partyGstin,
+        placeOfSupply: gst.placeOfSupply,
+        supplyType: gst.supplyType,
+        hsnOrSac: gst.hsnOrSac,
+        taxRate: gst.taxRate,
+        taxableAmount: roundCurrency(gst.taxableAmount * direction),
+        cgstAmount: roundCurrency(gst.cgstAmount * direction),
+        sgstAmount: roundCurrency(gst.sgstAmount * direction),
+        igstAmount: roundCurrency(gst.igstAmount * direction),
+        totalTaxAmount: roundCurrency(gst.totalTaxAmount * direction),
+        invoiceAmount: roundCurrency(gst.invoiceAmount * direction),
+        referenceVoucherNumber: voucher.sourceDocument?.voucherNumber ?? null,
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.voucherNumber.localeCompare(right.voucherNumber)
+    )
+
+  return {
+    asOfDate,
+    invoiceCount: items.filter((item) => item.voucherType === "purchase").length,
+    debitNoteCount: items.filter((item) => item.voucherType === "debit_note").length,
+    taxableAmountTotal: roundCurrency(
+      items.reduce((sum, item) => sum + item.taxableAmount, 0)
+    ),
+    cgstAmountTotal: roundCurrency(items.reduce((sum, item) => sum + item.cgstAmount, 0)),
+    sgstAmountTotal: roundCurrency(items.reduce((sum, item) => sum + item.sgstAmount, 0)),
+    igstAmountTotal: roundCurrency(items.reduce((sum, item) => sum + item.igstAmount, 0)),
+    totalTaxAmountTotal: roundCurrency(
+      items.reduce((sum, item) => sum + item.totalTaxAmount, 0)
+    ),
+    invoiceAmountTotal: roundCurrency(
+      items.reduce((sum, item) => sum + item.invoiceAmount, 0)
+    ),
+    items,
+  }
+}
+
+function buildInputOutputTaxSummary(postedVouchers: BillingVoucher[], asOfDate: string) {
+  const outputVouchers = postedVouchers.filter(
+    (voucher) =>
+      (
+        voucher.type === "sales" ||
+        voucher.type === "sales_return" ||
+        voucher.type === "credit_note"
+      ) &&
+      voucher.gst?.taxDirection === "output"
+  )
+  const inputVouchers = postedVouchers.filter(
+    (voucher) =>
+      (
+        voucher.type === "purchase" ||
+        voucher.type === "purchase_return" ||
+        voucher.type === "debit_note"
+      ) &&
+      voucher.gst?.taxDirection === "input"
+  )
+
+  const sumTax = (
+    vouchers: BillingVoucher[],
+    signResolver: (voucher: BillingVoucher) => number,
+    key: "cgstAmount" | "sgstAmount" | "igstAmount" | "totalTaxAmount"
+  ) =>
+    roundCurrency(
+      vouchers.reduce(
+        (sum, voucher) => sum + ((voucher.gst?.[key] ?? 0) * signResolver(voucher)),
+        0
+      )
+    )
+
+  const outputSign = (voucher: BillingVoucher) =>
+    voucher.type === "credit_note" || voucher.type === "sales_return" ? -1 : 1
+  const inputSign = (voucher: BillingVoucher) =>
+    voucher.type === "debit_note" || voucher.type === "purchase_return" ? -1 : 1
+
+  const outputCgst = sumTax(outputVouchers, outputSign, "cgstAmount")
+  const outputSgst = sumTax(outputVouchers, outputSign, "sgstAmount")
+  const outputIgst = sumTax(outputVouchers, outputSign, "igstAmount")
+  const outputTaxTotal = sumTax(outputVouchers, outputSign, "totalTaxAmount")
+
+  const inputCgst = sumTax(inputVouchers, inputSign, "cgstAmount")
+  const inputSgst = sumTax(inputVouchers, inputSign, "sgstAmount")
+  const inputIgst = sumTax(inputVouchers, inputSign, "igstAmount")
+  const inputTaxTotal = sumTax(inputVouchers, inputSign, "totalTaxAmount")
+
+  return {
+    asOfDate,
+    outputCgst,
+    outputSgst,
+    outputIgst,
+    outputTaxTotal,
+    inputCgst,
+    inputSgst,
+    inputIgst,
+    inputTaxTotal,
+    netCgstPayable: roundCurrency(outputCgst - inputCgst),
+    netSgstPayable: roundCurrency(outputSgst - inputSgst),
+    netIgstPayable: roundCurrency(outputIgst - inputIgst),
+    netTaxPayable: roundCurrency(outputTaxTotal - inputTaxTotal),
+  }
+}
+
+function toPeriodKey(date: string) {
+  return date.slice(0, 7)
+}
+
+function toPeriodLabel(periodKey: string) {
+  const [year, month] = periodKey.split("-")
+  const date = new Date(`${periodKey}-01T00:00:00.000Z`)
+  return `${date.toLocaleString("en-IN", { month: "short", timeZone: "UTC" })} ${year}`
+}
+
+function getPeriodEndDate(periodKey: string) {
+  const [yearText, monthText] = periodKey.split("-")
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  const nextMonthDate = new Date(Date.UTC(nextYear, nextMonth - 1, 1))
+  const endDate = new Date(nextMonthDate.getTime() - 24 * 60 * 60 * 1000)
+  return endDate.toISOString().slice(0, 10)
+}
+
+function buildGstFilingSummary(postedVouchers: BillingVoucher[]) {
+  const periodMap = new Map<
+    string,
+    {
+      periodKey: string
+      salesInvoiceCount: number
+      salesCreditNoteCount: number
+      purchaseInvoiceCount: number
+      purchaseDebitNoteCount: number
+      outwardTaxableAmount: number
+      inwardTaxableAmount: number
+      outputTaxTotal: number
+      inputTaxTotal: number
+    }
+  >()
+
+  for (const voucher of postedVouchers) {
+    if (!voucher.gst) {
+      continue
+    }
+
+    const periodKey = toPeriodKey(voucher.date)
+    const bucket = periodMap.get(periodKey) ?? {
+      periodKey,
+      salesInvoiceCount: 0,
+      salesCreditNoteCount: 0,
+      purchaseInvoiceCount: 0,
+      purchaseDebitNoteCount: 0,
+      outwardTaxableAmount: 0,
+      inwardTaxableAmount: 0,
+      outputTaxTotal: 0,
+      inputTaxTotal: 0,
+    }
+
+    if (voucher.type === "sales") {
+      bucket.salesInvoiceCount += 1
+      bucket.outwardTaxableAmount += voucher.gst.taxableAmount
+      bucket.outputTaxTotal += voucher.gst.totalTaxAmount
+    } else if (voucher.type === "credit_note" || voucher.type === "sales_return") {
+      bucket.salesCreditNoteCount += 1
+      bucket.outwardTaxableAmount -= voucher.gst.taxableAmount
+      bucket.outputTaxTotal -= voucher.gst.totalTaxAmount
+    } else if (voucher.type === "purchase") {
+      bucket.purchaseInvoiceCount += 1
+      bucket.inwardTaxableAmount += voucher.gst.taxableAmount
+      bucket.inputTaxTotal += voucher.gst.totalTaxAmount
+    } else if (voucher.type === "debit_note" || voucher.type === "purchase_return") {
+      bucket.purchaseDebitNoteCount += 1
+      bucket.inwardTaxableAmount -= voucher.gst.taxableAmount
+      bucket.inputTaxTotal -= voucher.gst.totalTaxAmount
+    }
+
+    periodMap.set(periodKey, bucket)
+  }
+
+  const periods = [...periodMap.values()]
+    .sort((left, right) => right.periodKey.localeCompare(left.periodKey))
+    .map((period) => ({
+      periodKey: period.periodKey,
+      label: toPeriodLabel(period.periodKey),
+      startDate: `${period.periodKey}-01`,
+      endDate: getPeriodEndDate(period.periodKey),
+      salesInvoiceCount: period.salesInvoiceCount,
+      salesCreditNoteCount: period.salesCreditNoteCount,
+      purchaseInvoiceCount: period.purchaseInvoiceCount,
+      purchaseDebitNoteCount: period.purchaseDebitNoteCount,
+      outwardTaxableAmount: roundCurrency(period.outwardTaxableAmount),
+      inwardTaxableAmount: roundCurrency(period.inwardTaxableAmount),
+      outputTaxTotal: roundCurrency(period.outputTaxTotal),
+      inputTaxTotal: roundCurrency(period.inputTaxTotal),
+      netTaxPayable: roundCurrency(period.outputTaxTotal - period.inputTaxTotal),
+    }))
+
+  return {
+    latestPeriodKey: periods[0]?.periodKey ?? null,
+    periods,
+  }
+}
+
+function buildInventoryAuthority(): BillingInventoryAuthority {
+  return {
+    masterOwner: "core",
+    warehouseOwner: "core",
+    transactionOwner: "billing",
+    valuationOwner: "billing",
+    summary:
+      "Core owns product and warehouse masters, while billing owns valuation policy, stock-ledger interpretation, and stock-to-account finance reporting.",
+  }
+}
+
+function buildStockValuationPolicy(
+  config?: ServerConfig
+): BillingStockValuationPolicy {
+  const method = config?.billing.compliance.stock.valuationMethod ?? "weighted_average"
+
+  return {
+    method,
+    costSource:
+      method === "moving_average" ? "derived_movement_average" : "core_cost_price",
+    summary:
+      method === "moving_average"
+        ? "Billing derives movement-sensitive stock value from average movement cost when explicit stock movements exist."
+        : method === "fifo"
+          ? "Billing keeps FIFO as the declared finance policy while the current foundation still values warehouse positions from shared core cost price."
+          : "Billing values warehouse stock from shared core product cost price using a weighted-average control posture.",
+  }
+}
+
+function getWarehouseName(
+  warehouseId: string,
+  warehouseMap: Map<string, string>
+) {
+  return warehouseMap.get(warehouseId) ?? warehouseId
+}
+
+function buildStockLedger(entries: BillingStockLedgerEntry[]) {
+  return {
+    asOfDate: new Date().toISOString().slice(0, 10),
+    items: entries,
+  }
+}
+
+function buildStockAccountingRules(
+  ledgers: BillingLedger[]
+): { items: BillingStockAccountingRule[] } {
+  const purchaseLedger = ledgers.find((ledger) => ledger.id === "ledger-purchase")?.name ?? "Purchase Account"
+  const salesLedger = ledgers.find((ledger) => ledger.id === "ledger-sales")?.name ?? "Sales Account"
+  const expenseLedger =
+    ledgers.find((ledger) => ledger.group.toLowerCase().includes("direct"))?.name ??
+    "Cost of Goods Sold"
+  const inventoryControl =
+    ledgers.find((ledger) => ledger.group.toLowerCase().includes("stock"))?.name ??
+    "Inventory Control (planned)"
+  const creditorLedger =
+    ledgers.find((ledger) => ledger.id === "ledger-sundry-creditors")?.name ?? "Sundry Creditors"
+  const debtorLedger =
+    ledgers.find((ledger) => ledger.id === "ledger-sundry-debtors")?.name ?? "Sundry Debtors"
+
+  return {
+    items: [
+      {
+        ruleKey: "purchase_receipt",
+        label: "Purchase to stock",
+        sourceVoucherTypes: ["purchase", "purchase_return"],
+        debitTarget: inventoryControl,
+        creditTarget: creditorLedger,
+        status: "active",
+        summary: "Purchase-side stock rows now bridge into inventory quantity and valuation while finance keeps supplier-side accounting in billing.",
+      },
+      {
+        ruleKey: "sales_issue",
+        label: "Sales issue to COGS",
+        sourceVoucherTypes: ["sales", "sales_return"],
+        debitTarget: expenseLedger,
+        creditTarget: inventoryControl,
+        status: "active",
+        summary: "Sales-side product-linked invoices now reduce stock position and valuation, with sales returns restoring quantity and value.",
+      },
+      {
+        ruleKey: "sales_revenue",
+        label: "Revenue posting",
+        sourceVoucherTypes: ["sales", "credit_note", "sales_return"],
+        debitTarget: debtorLedger,
+        creditTarget: salesLedger,
+        status: "active",
+        summary: "Commercial sales-side documents already post receivable and revenue movement in billing while stock accounting stays policy-driven until B10.",
+      },
+      {
+        ruleKey: "purchase_expense",
+        label: "Procurement posting",
+        sourceVoucherTypes: ["purchase", "debit_note", "purchase_return"],
+        debitTarget: purchaseLedger,
+        creditTarget: creditorLedger,
+        status: "active",
+        summary: "Commercial purchase-side documents already post procurement and payable movement in billing while stock capitalization remains staged for B10.",
+      },
+      {
+        ruleKey: "stock_adjustment",
+        label: "Stock adjustment",
+        sourceVoucherTypes: ["stock_adjustment"],
+        debitTarget: inventoryControl,
+        creditTarget: expenseLedger,
+        status: "active",
+        summary: "Manual stock adjustments now bridge quantity corrections into core inventory while finance lines capture loss or gain treatment.",
+      },
+      {
+        ruleKey: "landed_cost",
+        label: "Landed cost capitalization",
+        sourceVoucherTypes: ["landed_cost"],
+        debitTarget: inventoryControl,
+        creditTarget: purchaseLedger,
+        status: "active",
+        summary: "Landed cost vouchers capitalize non-quantity procurement overhead into stock valuation without separate quantity movement.",
+      },
+    ],
+  }
+}
+
+function buildWarehouseStockPosition(entries: BillingStockLedgerEntry[]) {
+  const positions = new Map<string, BillingWarehouseStockPositionItem>()
+
+  const latestByWarehouseProduct = new Map<string, BillingStockLedgerEntry>()
+
+  for (const entry of entries) {
+    const key = `${entry.warehouseId}:${entry.productId}`
+    const existing = latestByWarehouseProduct.get(key)
+
+    if (
+      !existing ||
+      entry.movementDate > existing.movementDate ||
+      (entry.movementDate === existing.movementDate && entry.entryId > existing.entryId)
+    ) {
+      latestByWarehouseProduct.set(key, entry)
+    }
+  }
+
+  for (const entry of latestByWarehouseProduct.values()) {
+    const current = positions.get(entry.warehouseId) ?? {
+        warehouseId: entry.warehouseId,
+        warehouseName: entry.warehouseName,
+        productCount: 0,
+        quantityOnHand: 0,
+        reservedQuantity: 0,
+        availableQuantity: 0,
+        inventoryValue: 0,
+    }
+
+    current.productCount += 1
+    current.quantityOnHand = roundCurrency(current.quantityOnHand + entry.balanceQuantity)
+    current.reservedQuantity = roundCurrency(
+      current.reservedQuantity + entry.reservedQuantity
+    )
+    current.availableQuantity = roundCurrency(
+      current.availableQuantity + entry.availableQuantity
+    )
+    current.inventoryValue = roundCurrency(current.inventoryValue + entry.balanceValue)
+    positions.set(entry.warehouseId, current)
+  }
+
+  const items = [...positions.values()].sort((left, right) =>
+    left.warehouseName.localeCompare(right.warehouseName)
+  )
+
+  return {
+    asOfDate: new Date().toISOString().slice(0, 10),
+    totalInventoryValue: roundCurrency(
+      items.reduce((sum, item) => sum + item.inventoryValue, 0)
+    ),
+    items,
+  }
+}
+
+function buildStockValuationReport(
+  entries: BillingStockLedgerEntry[],
+  valuationPolicy: BillingStockValuationPolicy
+): BillingStockValuationReport {
+  const latestByWarehouseProduct = new Map<string, BillingStockLedgerEntry>()
+
+  for (const entry of entries) {
+    const key = `${entry.warehouseId}:${entry.productId}`
+    const existing = latestByWarehouseProduct.get(key)
+
+    if (
+      !existing ||
+      entry.movementDate > existing.movementDate ||
+      (entry.movementDate === existing.movementDate && entry.entryId > existing.entryId)
+    ) {
+      latestByWarehouseProduct.set(key, entry)
+    }
+  }
+
+  const items = [...latestByWarehouseProduct.values()]
+    .map((entry) => ({
+      productId: entry.productId,
+      productName: entry.productName,
+      warehouseId: entry.warehouseId,
+      warehouseName: entry.warehouseName,
+      quantityOnHand: roundCurrency(entry.balanceQuantity),
+      unitCost: roundCurrency(entry.unitCost),
+      inventoryValue: roundCurrency(entry.balanceValue),
+      valuationMethod: valuationPolicy.method,
+      lastMovementDate: entry.movementDate,
+    }))
+    .sort(
+      (left, right) =>
+        left.productName.localeCompare(right.productName) ||
+        left.warehouseName.localeCompare(right.warehouseName)
+    )
+
+  return {
+    asOfDate: new Date().toISOString().slice(0, 10),
+    valuationMethod: valuationPolicy.method,
+    totalInventoryValue: roundCurrency(
+      items.reduce((sum, item) => sum + item.inventoryValue, 0)
+    ),
+    items,
+  }
+}
+
 export async function getBillingAccountingReports(
   database: Kysely<unknown>,
-  user: AuthUser
+  user: AuthUser,
+  config?: ServerConfig
 ) {
   assertBillingViewer(user)
 
-  const [ledgers, vouchers, ledgerEntries] = await Promise.all([
+  const [ledgers, vouchers, ledgerEntries, products, warehouses] = await Promise.all([
     readLedgers(database),
     readVouchers(database),
     listBillingLedgerEntries(database).then((response) => response.items),
+    readProducts(database),
+    readWarehouses(database),
   ])
   const postedVouchers = vouchers.filter((voucher) => voucher.status === "posted")
   const voucherById = new Map(vouchers.map((voucher) => [voucher.id, voucher]))
   const asOfDate = getMaxVoucherDate(postedVouchers)
   const movementByLedgerId = getLedgerMovement(ledgerEntries)
   const sourceReferencesByLedgerId = getLedgerSourceReferences(ledgerEntries)
+  const warehouseMap = new Map(
+    warehouses.map((item) => [
+      item.id,
+      typeof item.name === "string" && item.name.trim() ? item.name.trim() : item.id,
+    ])
+  )
+  const inventoryAuthority = buildInventoryAuthority()
+  const stockValuationPolicy = buildStockValuationPolicy(config)
+  const inventoryProjection = projectBillingInventory(
+    products,
+    vouchers,
+    stockValuationPolicy.method
+  )
+  const stockLedgerEntries = inventoryProjection.entries.map((entry) => ({
+    ...entry,
+    warehouseName: getWarehouseName(entry.warehouseId, warehouseMap),
+  }))
+  const stockLedger = buildStockLedger(stockLedgerEntries)
+  const stockAccountingRules = buildStockAccountingRules(ledgers)
+  const warehouseStockPosition = buildWarehouseStockPosition(stockLedgerEntries)
+  const stockValuationReport = buildStockValuationReport(
+    stockLedgerEntries,
+    stockValuationPolicy
+  )
 
   const trialBalanceItems = ledgers
     .map((ledger) => {
@@ -1275,6 +1856,16 @@ export async function getBillingAccountingReports(
       })(),
       customerStatement: buildCustomerStatement(postedVouchers, voucherById),
       supplierStatement: buildSupplierStatement(postedVouchers, voucherById),
+      gstSalesRegister: buildGstSalesRegister(postedVouchers, asOfDate),
+      gstPurchaseRegister: buildGstPurchaseRegister(postedVouchers, asOfDate),
+      inputOutputTaxSummary: buildInputOutputTaxSummary(postedVouchers, asOfDate),
+      gstFilingSummary: buildGstFilingSummary(postedVouchers),
+      inventoryAuthority,
+      stockValuationPolicy,
+      stockLedger,
+      stockAccountingRules,
+      warehouseStockPosition,
+      stockValuationReport,
     },
   })
 }

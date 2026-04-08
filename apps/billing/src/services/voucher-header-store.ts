@@ -38,6 +38,12 @@ type BillingVoucherHeaderRow = {
   source_voucher_id: string | null
   source_voucher_number: string | null
   source_voucher_type: string | null
+  review_status: string
+  review_requested_at: string | null
+  review_reviewed_at: string | null
+  review_reviewed_by_user_id: string | null
+  review_note: string
+  review_required_reason: string | null
   created_at: string
   updated_at: string
   created_by_user_id: string | null
@@ -94,6 +100,12 @@ export async function ensureBillingVoucherHeaderTable(database: Kysely<unknown>)
     .addColumn("source_voucher_id", "varchar(191)")
     .addColumn("source_voucher_number", "varchar(191)")
     .addColumn("source_voucher_type", "varchar(40)")
+    .addColumn("review_status", "varchar(40)", (column) => column.notNull().defaultTo("not_required"))
+    .addColumn("review_requested_at", "varchar(40)")
+    .addColumn("review_reviewed_at", "varchar(40)")
+    .addColumn("review_reviewed_by_user_id", "varchar(191)")
+    .addColumn("review_note", "text", (column) => column.notNull().defaultTo(""))
+    .addColumn("review_required_reason", "text")
     .addColumn("created_at", "varchar(40)", (column) => column.notNull())
     .addColumn("updated_at", "varchar(40)", (column) => column.notNull())
     .addColumn("created_by_user_id", "varchar(191)")
@@ -132,6 +144,12 @@ function toBillingVoucherHeaderRecord(voucher: BillingVoucher) {
     source_voucher_id: voucher.sourceDocument?.voucherId ?? null,
     source_voucher_number: voucher.sourceDocument?.voucherNumber ?? null,
     source_voucher_type: voucher.sourceDocument?.voucherType ?? null,
+    review_status: voucher.review.status,
+    review_requested_at: voucher.review.requestedAt,
+    review_reviewed_at: voucher.review.reviewedAt,
+    review_reviewed_by_user_id: voucher.review.reviewedByUserId,
+    review_note: voucher.review.note,
+    review_required_reason: voucher.review.requiredReason,
     created_at: voucher.createdAt,
     updated_at: voucher.updatedAt,
     created_by_user_id: voucher.createdByUserId,
@@ -173,6 +191,12 @@ function parseBillingVoucherHeaderRow(row: BillingVoucherHeaderRow) {
             voucherType: row.source_voucher_type,
           }
         : null,
+    reviewStatus: row.review_status,
+    reviewRequestedAt: row.review_requested_at,
+    reviewReviewedAt: row.review_reviewed_at,
+    reviewReviewedByUserId: row.review_reviewed_by_user_id,
+    reviewNote: row.review_note,
+    reviewRequiredReason: row.review_required_reason,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     createdByUserId: row.created_by_user_id,

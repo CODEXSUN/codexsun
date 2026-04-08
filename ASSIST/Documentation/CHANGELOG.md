@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#72] 2026-04-08 - Billing stock bridge and valuation baseline
+
+- completed Stage `B10` by bridging posted billing vouchers into `core` stock movement for purchase receipts, sales-linked stock reduction, stock adjustments, and landed-cost capitalization
+- added stock-aware billing voucher contracts, centralized inventory replay and synchronization logic, and a stock valuation report surfaced through the billing reporting workspace
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests\\billing\\voucher-service.test.ts tests\\billing\\reporting-service.test.ts tests\\api\\internal\\routes.test.ts`
+
 ### [#70] 2026-04-08 - Ecommerce accounting compatibility verification baseline
 
 - completed Stage `3.3.4` by adding an ecommerce accounting-compatibility report for invoice and GST workflow review

@@ -1024,3 +1024,638 @@ test("billing reporting service derives aging follow-up exceptions and party set
     rmSync(tempRoot, { recursive: true, force: true })
   }
 })
+
+test("billing reporting service builds GST sales register from posted sales invoices and credit notes", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-gst-sales-register-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const salesVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-960",
+        status: "posted",
+        type: "sales",
+        date: "2026-04-22",
+        counterparty: "GST Register Customer",
+        narration: "GST outward invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 10000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "CRN-2026-960",
+        status: "posted",
+        type: "credit_note",
+        sourceVoucherId: salesVoucher.item.id,
+        date: "2026-04-23",
+        counterparty: "GST Register Customer",
+        narration: "GST credit note.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 2000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const invoiceRow = reports.item.gstSalesRegister.items.find(
+        (item) => item.voucherNumber === "SAL-2026-960"
+      )
+      const creditNoteRow = reports.item.gstSalesRegister.items.find(
+        (item) => item.voucherNumber === "CRN-2026-960"
+      )
+
+      assert.ok(invoiceRow)
+      assert.ok(creditNoteRow)
+      assert.equal(reports.item.gstSalesRegister.invoiceCount >= 1, true)
+      assert.equal(reports.item.gstSalesRegister.creditNoteCount, 1)
+      assert.equal(invoiceRow.taxableAmount, 10000)
+      assert.equal(invoiceRow.totalTaxAmount, 1800)
+      assert.equal(creditNoteRow.taxableAmount, -2000)
+      assert.equal(creditNoteRow.totalTaxAmount, -360)
+      assert.equal(creditNoteRow.referenceVoucherNumber, "SAL-2026-960")
+      assert.equal(reports.item.gstSalesRegister.taxableAmountTotal >= 8000, true)
+      assert.equal(reports.item.gstSalesRegister.totalTaxAmountTotal >= 1440, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service builds GST purchase register from posted purchase invoices and debit notes", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-gst-purchase-register-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const purchaseVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-960",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-22",
+        counterparty: "GST Register Supplier",
+        narration: "GST inward invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 12000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "DBN-2026-960",
+        status: "posted",
+        type: "debit_note",
+        sourceVoucherId: purchaseVoucher.item.id,
+        date: "2026-04-23",
+        counterparty: "GST Register Supplier",
+        narration: "GST debit note.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 3000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const invoiceRow = reports.item.gstPurchaseRegister.items.find(
+        (item) => item.voucherNumber === "PUR-2026-960"
+      )
+      const debitNoteRow = reports.item.gstPurchaseRegister.items.find(
+        (item) => item.voucherNumber === "DBN-2026-960"
+      )
+
+      assert.ok(invoiceRow)
+      assert.ok(debitNoteRow)
+      assert.equal(reports.item.gstPurchaseRegister.invoiceCount >= 1, true)
+      assert.equal(reports.item.gstPurchaseRegister.debitNoteCount, 1)
+      assert.equal(invoiceRow.taxableAmount, 12000)
+      assert.equal(invoiceRow.totalTaxAmount, 1440)
+      assert.equal(debitNoteRow.taxableAmount, -3000)
+      assert.equal(debitNoteRow.totalTaxAmount, -360)
+      assert.equal(debitNoteRow.referenceVoucherNumber, "PUR-2026-960")
+      assert.equal(reports.item.gstPurchaseRegister.taxableAmountTotal >= 9000, true)
+      assert.equal(reports.item.gstPurchaseRegister.totalTaxAmountTotal >= 1080, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service builds input versus output GST summary from posted books", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-gst-tax-summary-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-970",
+        status: "posted",
+        type: "sales",
+        date: "2026-04-24",
+        counterparty: "Tax Summary Customer",
+        narration: "Output GST invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 10000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-970",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-24",
+        counterparty: "Tax Summary Supplier",
+        narration: "Input GST invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 4000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const summary = reports.item.inputOutputTaxSummary
+
+      assert.equal(summary.outputCgst >= 900, true)
+      assert.equal(summary.outputSgst >= 900, true)
+      assert.equal(summary.inputCgst >= 240, true)
+      assert.equal(summary.inputSgst >= 240, true)
+      assert.equal(summary.netCgstPayable >= 660, true)
+      assert.equal(summary.netSgstPayable >= 660, true)
+      assert.equal(summary.netTaxPayable >= 1320, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service builds filing-ready GST period summaries", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-gst-filing-summary-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-980",
+        status: "posted",
+        type: "sales",
+        date: "2026-04-10",
+        counterparty: "Period One Customer",
+        narration: "April output invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 10000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-980",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-12",
+        counterparty: "Period One Supplier",
+        narration: "April input invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 5000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-981",
+        status: "posted",
+        type: "sales",
+        date: "2026-05-05",
+        counterparty: "Period Two Customer",
+        narration: "May output invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "inter",
+          placeOfSupply: "TN",
+          partyGstin: "33ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 8000,
+          taxRate: 18,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const april = reports.item.gstFilingSummary.periods.find(
+        (period) => period.periodKey === "2026-04"
+      )
+      const may = reports.item.gstFilingSummary.periods.find(
+        (period) => period.periodKey === "2026-05"
+      )
+
+      assert.equal(reports.item.gstFilingSummary.latestPeriodKey, "2026-05")
+      assert.ok(april)
+      assert.ok(may)
+      assert.equal(april.salesInvoiceCount, 1)
+      assert.equal(april.purchaseInvoiceCount, 1)
+      assert.equal(april.outputTaxTotal, 1800)
+      assert.equal(april.inputTaxTotal, 600)
+      assert.equal(april.netTaxPayable, 1200)
+      assert.equal(may.salesInvoiceCount, 1)
+      assert.equal(may.purchaseInvoiceCount, 0)
+      assert.equal(may.outputTaxTotal, 1440)
+      assert.equal(may.inputTaxTotal, 0)
+      assert.equal(may.netTaxPayable, 1440)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service includes return documents in statements and GST registers", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-return-reports-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SRT-2026-701",
+        status: "posted",
+        type: "sales_return",
+        sourceVoucherId: "voucher-sales-001",
+        date: "2026-04-20",
+        counterparty: "Maya Fashion House",
+        narration: "Customer returned damaged units.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 2000,
+          taxRate: 5,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PRT-2026-702",
+        status: "posted",
+        type: "purchase_return",
+        sourceVoucherId: "voucher-purchase-001",
+        date: "2026-04-21",
+        counterparty: "Northwind Textiles LLP",
+        narration: "Supplier return for rejected fabric.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "inter",
+          placeOfSupply: "TN",
+          partyGstin: "33AAACS4321P1Z1",
+          hsnOrSac: "6205",
+          taxableAmount: 3000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+
+      assert.equal(
+        reports.item.customerStatement.items.some((item) =>
+          item.entries.some((entry) => entry.voucherType === "sales_return")
+        ),
+        true
+      )
+      assert.equal(
+        reports.item.supplierStatement.items.some((item) =>
+          item.entries.some((entry) => entry.voucherType === "purchase_return")
+        ),
+        true
+      )
+      assert.equal(
+        reports.item.gstSalesRegister.items.some((item) => item.voucherType === "sales_return"),
+        true
+      )
+      assert.equal(
+        reports.item.gstPurchaseRegister.items.some((item) => item.voucherType === "purchase_return"),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service exposes inventory authority, valuation policy, stock rules, and warehouse positions", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-stock-reporting-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.stock.valuationMethod = "weighted_average"
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.equal(reports.item.inventoryAuthority.masterOwner, "core")
+      assert.equal(reports.item.inventoryAuthority.transactionOwner, "billing")
+      assert.equal(reports.item.stockValuationPolicy.method, "weighted_average")
+      assert.ok(reports.item.stockAccountingRules.items.length >= 3)
+      assert.ok(reports.item.stockLedger.items.length >= 1)
+      assert.ok(reports.item.warehouseStockPosition.items.length >= 1)
+      assert.equal(
+        reports.item.warehouseStockPosition.items.some((item) => item.inventoryValue > 0),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service includes stock valuation after landed cost and stock adjustment", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-stock-valuation-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.stock.valuationMethod = "moving_average"
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "STA-2026-001",
+        status: "posted",
+        type: "stock_adjustment",
+        date: "2026-04-21",
+        counterparty: "Physical Count",
+        narration: "Positive physical adjustment.",
+        lines: [
+          {
+            ledgerId: "ledger-purchase",
+            side: "debit",
+            amount: 300,
+            note: "Inventory correction",
+          },
+          {
+            ledgerId: "ledger-rent",
+            side: "credit",
+            amount: 300,
+            note: "Offset account",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        sales: null,
+        stock: {
+          items: [
+            {
+              productId: "core-product:aster-linen-shirt",
+              warehouseId: "warehouse:default",
+              quantity: 3,
+              unit: "Nos",
+              unitCost: 100,
+              landedCostAmount: 0,
+              note: "Count gain",
+            },
+          ],
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "LCT-2026-001",
+        status: "posted",
+        type: "landed_cost",
+        sourceVoucherId: "voucher-purchase-001",
+        date: "2026-04-22",
+        counterparty: "Inbound Freight",
+        narration: "Freight capitalized into stock.",
+        lines: [
+          {
+            ledgerId: "ledger-purchase",
+            side: "debit",
+            amount: 150,
+            note: "Inventory capitalization",
+          },
+          {
+            ledgerId: "ledger-freight",
+            side: "credit",
+            amount: 150,
+            note: "Freight absorbed",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        sales: null,
+        stock: {
+          items: [
+            {
+              productId: "core-product:aster-linen-shirt",
+              warehouseId: "warehouse:default",
+              quantity: 0,
+              unit: "Nos",
+              unitCost: 0,
+              landedCostAmount: 150,
+              note: "Freight allocation",
+            },
+          ],
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.equal(reports.item.stockValuationReport.valuationMethod, "moving_average")
+      assert.equal(
+        reports.item.stockAccountingRules.items.some((item) => item.ruleKey === "stock_adjustment"),
+        true
+      )
+      assert.equal(
+        reports.item.stockAccountingRules.items.some((item) => item.ruleKey === "landed_cost"),
+        true
+      )
+      assert.equal(
+        reports.item.stockValuationReport.items.some(
+          (item) =>
+            item.productId === "core-product:aster-linen-shirt" &&
+            item.inventoryValue > 0
+        ),
+        true
+      )
+      assert.equal(
+        reports.item.stockLedger.items.some((item) => item.movementType === "billing_landed_cost"),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})

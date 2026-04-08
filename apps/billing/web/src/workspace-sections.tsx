@@ -26,9 +26,12 @@ import type {
   BillingVoucherMasterTypeListResponse,
   BillingVoucherMasterTypeResponse,
   BillingVoucher,
+  BillingVoucherDocumentResponse,
   BillingVoucherBankReconciliationResponse,
   BillingVoucherLifecycleStatus,
   BillingVoucherListResponse,
+  BillingVoucherReviewStatus,
+  BillingVoucherReviewResponse,
   BillingVoucherReverseResponse,
   BillingVoucherResponse,
   BillingVoucherType,
@@ -219,6 +222,79 @@ function createEmptyReports(): BillingAccountingReports {
     supplierStatement: {
       items: [],
     },
+    gstSalesRegister: {
+      asOfDate: "1970-01-01",
+      invoiceCount: 0,
+      creditNoteCount: 0,
+      taxableAmountTotal: 0,
+      cgstAmountTotal: 0,
+      sgstAmountTotal: 0,
+      igstAmountTotal: 0,
+      totalTaxAmountTotal: 0,
+      invoiceAmountTotal: 0,
+      items: [],
+    },
+    gstPurchaseRegister: {
+      asOfDate: "1970-01-01",
+      invoiceCount: 0,
+      debitNoteCount: 0,
+      taxableAmountTotal: 0,
+      cgstAmountTotal: 0,
+      sgstAmountTotal: 0,
+      igstAmountTotal: 0,
+      totalTaxAmountTotal: 0,
+      invoiceAmountTotal: 0,
+      items: [],
+    },
+    inputOutputTaxSummary: {
+      asOfDate: "1970-01-01",
+      outputCgst: 0,
+      outputSgst: 0,
+      outputIgst: 0,
+      outputTaxTotal: 0,
+      inputCgst: 0,
+      inputSgst: 0,
+      inputIgst: 0,
+      inputTaxTotal: 0,
+      netCgstPayable: 0,
+      netSgstPayable: 0,
+      netIgstPayable: 0,
+      netTaxPayable: 0,
+    },
+    gstFilingSummary: {
+      latestPeriodKey: null,
+      periods: [],
+    },
+    inventoryAuthority: {
+      masterOwner: "core",
+      warehouseOwner: "core",
+      transactionOwner: "billing",
+      valuationOwner: "billing",
+      summary: "",
+    },
+    stockValuationPolicy: {
+      method: "weighted_average",
+      costSource: "core_cost_price",
+      summary: "",
+    },
+    stockLedger: {
+      asOfDate: "1970-01-01",
+      items: [],
+    },
+    stockAccountingRules: {
+      items: [],
+    },
+    warehouseStockPosition: {
+      asOfDate: "1970-01-01",
+      totalInventoryValue: 0,
+      items: [],
+    },
+    stockValuationReport: {
+      asOfDate: "1970-01-01",
+      valuationMethod: "weighted_average",
+      totalInventoryValue: 0,
+      items: [],
+    },
   }
 }
 
@@ -243,9 +319,20 @@ type SalesItemForm = {
   hsnOrSac: string
   itemName: string
   productId: string
+  warehouseId: string
   quantity: string
   rate: string
   unit: string
+}
+
+type StockItemForm = {
+  landedCostAmount: string
+  note: string
+  productId: string
+  quantity: string
+  unit: string
+  unitCost: string
+  warehouseId: string
 }
 
 type SalesFormState = {
@@ -351,6 +438,9 @@ type VoucherFormState = {
   lines: VoucherFormLine[]
   narration: string
   sales: SalesFormState
+  stock: {
+    items: StockItemForm[]
+  }
   type: BillingVoucherType
   voucherNumber: string
 }
@@ -365,9 +455,20 @@ const defaultSalesItem: SalesItemForm = {
   hsnOrSac: "",
   itemName: "",
   productId: "",
+  warehouseId: "",
   quantity: "1",
   rate: "",
   unit: "Nos",
+}
+
+const defaultStockItem: StockItemForm = {
+  landedCostAmount: "0",
+  note: "",
+  productId: "",
+  quantity: "1",
+  unit: "Nos",
+  unitCost: "0",
+  warehouseId: "",
 }
 
 const defaultSalesForm: SalesFormState = {
@@ -445,6 +546,9 @@ function createDefaultVoucherForm(): VoucherFormState {
     ],
     narration: "",
     sales: createDefaultSalesForm(),
+    stock: {
+      items: [{ ...defaultStockItem }],
+    },
     type: "journal",
     voucherNumber: "",
   }
@@ -520,6 +624,19 @@ function toVoucherLifecycleLabel(status: BillingVoucherLifecycleStatus) {
   }
 }
 
+function toVoucherReviewLabel(status: BillingVoucherReviewStatus) {
+  switch (status) {
+    case "not_required":
+      return "No review"
+    case "pending_review":
+      return "Pending review"
+    case "approved":
+      return "Approved"
+    case "rejected":
+      return "Rejected"
+  }
+}
+
 function getVoucherLifecycleBadgeVariant(status: BillingVoucherLifecycleStatus) {
   switch (status) {
     case "posted":
@@ -532,6 +649,19 @@ function getVoucherLifecycleBadgeVariant(status: BillingVoucherLifecycleStatus) 
   }
 }
 
+function getVoucherReviewBadgeVariant(status: BillingVoucherReviewStatus) {
+  switch (status) {
+    case "approved":
+      return "outline" as const
+    case "pending_review":
+      return "secondary" as const
+    case "rejected":
+      return "destructive" as const
+    case "not_required":
+      return "secondary" as const
+  }
+}
+
 function titleFromVoucherType(type: BillingVoucherType) {
   switch (type) {
     case "payment":
@@ -540,12 +670,20 @@ function titleFromVoucherType(type: BillingVoucherType) {
       return "Receipt"
     case "sales":
       return "Sales"
+    case "sales_return":
+      return "Sales Return"
     case "credit_note":
       return "Credit Note"
     case "purchase":
       return "Purchase"
+    case "purchase_return":
+      return "Purchase Return"
     case "debit_note":
       return "Debit Note"
+    case "stock_adjustment":
+      return "Stock Adjustment"
+    case "landed_cost":
+      return "Landed Cost"
     case "contra":
       return "Contra"
     case "journal":
@@ -563,12 +701,19 @@ function getVoucherPostingRoute(voucherType: BillingVoucherType, voucherId: stri
       return `/dashboard/billing/receipt-vouchers/${encodedVoucherId}/edit`
     case "sales":
       return `/dashboard/billing/sales-vouchers/${encodedVoucherId}/edit`
+    case "sales_return":
+      return `/dashboard/billing/sales-return/${encodedVoucherId}/edit`
     case "credit_note":
       return `/dashboard/billing/credit-note/${encodedVoucherId}/edit`
     case "purchase":
       return `/dashboard/billing/purchase-vouchers/${encodedVoucherId}/edit`
+    case "purchase_return":
+      return `/dashboard/billing/purchase-return/${encodedVoucherId}/edit`
     case "debit_note":
       return `/dashboard/billing/debit-note/${encodedVoucherId}/edit`
+    case "stock_adjustment":
+    case "landed_cost":
+      return `/dashboard/billing/voucher-register`
     default:
       return null
   }
@@ -622,6 +767,29 @@ async function request<T>(path: string, init?: RequestInit) {
   }
 
   return payload as T
+}
+
+function downloadTextFile(fileName: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = fileName
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+function openPrintDocument(content: string) {
+  const printWindow = window.open("", "_blank", "noopener,noreferrer")
+
+  if (!printWindow) {
+    throw new Error("Print preview was blocked by the browser.")
+  }
+
+  printWindow.document.open()
+  printWindow.document.write(content)
+  printWindow.document.close()
+  printWindow.focus()
 }
 
 function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
@@ -681,7 +849,8 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
             description: item.description,
             hsnOrSac: item.hsnOrSac,
             itemName: item.itemName,
-            productId: "",
+            productId: item.productId ?? "",
+            warehouseId: item.warehouseId ?? "",
             quantity: String(item.quantity),
             rate: String(item.rate),
             unit: item.unit,
@@ -689,6 +858,20 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
           voucherTypeId: voucher.sales.voucherTypeId,
         }
       : createDefaultSalesForm(),
+    stock: {
+      items:
+        voucher.stock?.items.length
+          ? voucher.stock.items.map((item) => ({
+              landedCostAmount: String(item.landedCostAmount),
+              note: item.note,
+              productId: item.productId,
+              quantity: String(item.quantity),
+              unit: item.unit,
+              unitCost: String(item.unitCost),
+              warehouseId: item.warehouseId,
+            }))
+          : [{ ...defaultStockItem }],
+    },
     type: voucher.type,
     voucherNumber: voucher.voucherNumber,
   }
@@ -1013,6 +1196,7 @@ function VoucherEditor({
   ledgers,
   onChange,
   onDelete,
+  onDocumentAction,
   onBillAllocationChange,
   onBillAllocationCreate,
   onBillAllocationRemove,
@@ -1020,6 +1204,7 @@ function VoucherEditor({
   onLineCreate,
   onLineRemove,
   onReset,
+  onReview,
   onSave,
   selectedVoucher,
 }: {
@@ -1029,6 +1214,7 @@ function VoucherEditor({
   ledgers: BillingLedger[]
   onChange: (field: string, value: string) => void
   onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
   onBillAllocationChange: (
     index: number,
     field: keyof VoucherBillAllocationForm,
@@ -1044,13 +1230,15 @@ function VoucherEditor({
   onLineCreate: () => void
   onLineRemove: (index: number) => void
   onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
   onSave: () => void
   selectedVoucher: BillingVoucher | null
 }) {
   const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
   const provisionalVoucher = {
     lines:
-      form.gst.enabled && ["sales", "purchase"].includes(form.type)
+      form.gst.enabled &&
+      ["sales", "purchase", "sales_return", "purchase_return"].includes(form.type)
         ? []
         : form.lines.map((line) => ({
             amount: Number(line.amount || 0),
@@ -1067,7 +1255,9 @@ function VoucherEditor({
     form.gst.supplyType === "intra" ? Number((gstTotalTax / 2).toFixed(2)) : 0
   const gstIgst = form.gst.supplyType === "inter" ? gstTotalTax : 0
   const gstInvoiceAmount = Number((gstTaxableAmount + gstTotalTax).toFixed(2))
-  const gstModeEnabled = form.gst.enabled && ["sales", "purchase"].includes(form.type)
+  const gstModeEnabled =
+    form.gst.enabled &&
+    ["sales", "purchase", "sales_return", "purchase_return"].includes(form.type)
 
   return (
     <Card>
@@ -1117,7 +1307,20 @@ function VoucherEditor({
               value={form.type}
               onChange={(event) => onChange("type", event.target.value)}
             >
-              {(["payment", "receipt", "sales", "purchase", "contra", "journal"] as BillingVoucherType[]).map((type) => (
+              {([
+                "payment",
+                "receipt",
+                "sales",
+                "sales_return",
+                "purchase",
+                "purchase_return",
+                "credit_note",
+                "debit_note",
+                "stock_adjustment",
+                "landed_cost",
+                "contra",
+                "journal",
+              ] as BillingVoucherType[]).map((type) => (
                 <option key={type} value={type}>
                   {titleFromVoucherType(type)}
                 </option>
@@ -1177,13 +1380,26 @@ function VoucherEditor({
           )}
         </div>
 
+        {selectedVoucher ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <Badge variant={getVoucherReviewBadgeVariant(selectedVoucher.review.status)}>
+              {toVoucherReviewLabel(selectedVoucher.review.status)}
+            </Badge>
+            {selectedVoucher.review.requiredReason ? (
+              <p className="text-sm text-muted-foreground">
+                {selectedVoucher.review.requiredReason}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {selectedVoucher && !isMutableVoucher ? (
           <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             {toVoucherLifecycleLabel(selectedVoucher.status)} vouchers are read-only. Keep a voucher in draft for direct editing.
           </div>
         ) : null}
 
-        {["sales", "purchase"].includes(form.type) ? (
+        {["sales", "purchase", "sales_return", "purchase_return"].includes(form.type) ? (
           <div className="space-y-4 rounded-[1rem] border border-border/70 bg-card/70 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -1347,6 +1563,20 @@ function VoucherEditor({
                 ) : null}
               </>
             ) : null}
+          </div>
+        ) : null}
+
+        {["credit_note", "debit_note", "sales_return", "purchase_return"].includes(form.type) ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="voucher-source-id">
+              Source voucher id
+            </label>
+            <Input
+              id="voucher-source-id"
+              value={form.sourceVoucherId}
+              onChange={(event) => onChange("sourceVoucherId", event.target.value)}
+              placeholder="Required for notes and returns"
+            />
           </div>
         ) : null}
 
@@ -1580,6 +1810,29 @@ function VoucherEditor({
             New voucher
           </Button>
           {selectedVoucher ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>
+                Print
+              </Button>
+              <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "csv")}>
+                Export CSV
+              </Button>
+              <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "json")}>
+                Export JSON
+              </Button>
+              {selectedVoucher.review.status === "pending_review" ? (
+                <>
+                  <Button type="button" variant="outline" onClick={() => onReview(selectedVoucher.id, "approved")}>
+                    Approve
+                  </Button>
+                  <Button type="button" variant="destructive" onClick={() => onReview(selectedVoucher.id, "rejected")}>
+                    Reject
+                  </Button>
+                </>
+              ) : null}
+            </>
+          ) : null}
+          {selectedVoucher ? (
             <Button
               type="button"
               variant="destructive"
@@ -1602,7 +1855,9 @@ function SalesInvoiceEditor({
   ledgers,
   onChange,
   onDelete,
+  onDocumentAction,
   onReset,
+  onReview,
   onSave,
   onSalesItemProductChange,
   onSalesItemChange,
@@ -1618,7 +1873,9 @@ function SalesInvoiceEditor({
   ledgers: BillingLedger[]
   onChange: (field: string, value: string) => void
   onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
   onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
   onSave: () => void
   onSalesItemProductChange: (index: number, productId: string) => void
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
@@ -2046,6 +2303,19 @@ function SalesInvoiceEditor({
           </div>
         ) : null}
 
+        {selectedVoucher ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-border/70 bg-card/70 p-4">
+            <Badge variant={getVoucherReviewBadgeVariant(selectedVoucher.review.status)}>
+              {toVoucherReviewLabel(selectedVoucher.review.status)}
+            </Badge>
+            {selectedVoucher.review.requiredReason ? (
+              <p className="text-sm text-muted-foreground">
+                {selectedVoucher.review.requiredReason}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-3">
           <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
             {isSaving ? "Saving..." : selectedVoucher ? "Save sales invoice" : "Create sales invoice"}
@@ -2053,6 +2323,29 @@ function SalesInvoiceEditor({
           <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
             New invoice
           </Button>
+          {selectedVoucher ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>
+                Print
+              </Button>
+              <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "csv")}>
+                Export CSV
+              </Button>
+              <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "json")}>
+                Export JSON
+              </Button>
+              {selectedVoucher.review.status === "pending_review" ? (
+                <>
+                  <Button type="button" variant="outline" onClick={() => onReview(selectedVoucher.id, "approved")}>
+                    Approve
+                  </Button>
+                  <Button type="button" variant="destructive" onClick={() => onReview(selectedVoucher.id, "rejected")}>
+                    Reject
+                  </Button>
+                </>
+              ) : null}
+            </>
+          ) : null}
           {selectedVoucher ? (
             <Button
               type="button"
@@ -2106,6 +2399,14 @@ function getVoucherModuleLabel(moduleId: BillingVoucherType) {
         pageDescription: "Create and maintain purchase vouchers with GST-aware posting and supplier-side liability impact.",
         pageTitle: "Purchase",
       }
+    case "purchase_return":
+      return {
+        addLabel: "New Purchase Return",
+        amountLabel: "Return Total",
+        emptyMessage: "No purchase returns found.",
+        pageDescription: "Create and maintain purchase return vouchers tied back to source bills for supplier-side return control.",
+        pageTitle: "Purchase Return",
+      }
     case "debit_note":
       return {
         addLabel: "New Debit Note",
@@ -2121,6 +2422,14 @@ function getVoucherModuleLabel(moduleId: BillingVoucherType) {
         emptyMessage: "No credit notes found.",
         pageDescription: "Create and maintain customer credit notes for sales returns, receivable reductions, and commercial corrections.",
         pageTitle: "Credit Note",
+      }
+    case "sales_return":
+      return {
+        addLabel: "New Sales Return",
+        amountLabel: "Return Total",
+        emptyMessage: "No sales returns found.",
+        pageDescription: "Create and maintain sales return vouchers tied back to source invoices for customer return control.",
+        pageTitle: "Sales Return",
       }
     default:
       return {
@@ -2299,7 +2608,9 @@ function SalesVoucherUpsertSection({
   ledgers,
   onChange,
   onDelete,
+  onDocumentAction,
   onReset,
+  onReview,
   onSalesItemProductChange,
   onSalesItemChange,
   onSalesItemCreate,
@@ -2315,7 +2626,9 @@ function SalesVoucherUpsertSection({
   ledgers: BillingLedger[]
   onChange: (field: string, value: string) => void
   onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
   onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
   onSalesItemProductChange: (index: number, productId: string) => void
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
@@ -2334,7 +2647,9 @@ function SalesVoucherUpsertSection({
         ledgers={ledgers}
         onChange={onChange}
         onDelete={onDelete}
+        onDocumentAction={onDocumentAction}
         onReset={onReset}
+        onReview={onReview}
         onSave={onSave}
         onSalesItemProductChange={onSalesItemProductChange}
         onSalesItemChange={onSalesItemChange}
@@ -2356,7 +2671,14 @@ function VoucherModuleListSection({
   onSelectVoucher,
   vouchers,
 }: {
-  moduleId: "payment" | "receipt" | "purchase" | "credit_note" | "debit_note"
+  moduleId:
+    | "payment"
+    | "receipt"
+    | "purchase"
+    | "credit_note"
+    | "sales_return"
+    | "debit_note"
+    | "purchase_return"
   onCreate: () => void
   onEdit: (voucherId: string) => void
   onSelectVoucher: (voucher: BillingVoucher) => void
@@ -2510,10 +2832,12 @@ function VoucherModuleUpsertSection({
   onBillAllocationRemove,
   onChange,
   onDelete,
+  onDocumentAction,
   onLineChange,
   onLineCreate,
   onLineRemove,
   onReset,
+  onReview,
   onSave,
   selectedVoucher,
 }: {
@@ -2530,6 +2854,7 @@ function VoucherModuleUpsertSection({
   onBillAllocationRemove: (index: number) => void
   onChange: (field: string, value: string) => void
   onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
   onLineChange: (
     index: number,
     field: keyof VoucherFormLine,
@@ -2538,6 +2863,7 @@ function VoucherModuleUpsertSection({
   onLineCreate: () => void
   onLineRemove: (index: number) => void
   onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
   onSave: () => void
   selectedVoucher: BillingVoucher | null
 }) {
@@ -2550,6 +2876,7 @@ function VoucherModuleUpsertSection({
         ledgers={ledgers}
         onChange={onChange}
         onDelete={onDelete}
+        onDocumentAction={onDocumentAction}
         onBillAllocationChange={onBillAllocationChange}
         onBillAllocationCreate={onBillAllocationCreate}
         onBillAllocationRemove={onBillAllocationRemove}
@@ -2557,6 +2884,7 @@ function VoucherModuleUpsertSection({
         onLineCreate={onLineCreate}
         onLineRemove={onLineRemove}
         onReset={onReset}
+        onReview={onReview}
         onSave={onSave}
         selectedVoucher={selectedVoucher}
       />
@@ -2586,9 +2914,13 @@ function OverviewSection({
       payment: 0,
       receipt: 0,
       sales: 0,
+      sales_return: 0,
       credit_note: 0,
       purchase: 0,
+      purchase_return: 0,
       debit_note: 0,
+      stock_adjustment: 0,
+      landed_cost: 0,
       contra: 0,
       journal: 0,
     }
@@ -4000,6 +4332,7 @@ function VoucherRegisterSection({
   onChange,
   onCreate,
   onDelete,
+  onDocumentAction,
   onReverse,
   onBillAllocationChange,
   onBillAllocationCreate,
@@ -4009,6 +4342,7 @@ function VoucherRegisterSection({
   onLineRemove,
   onOpenChange,
   onReset,
+  onReview,
   onSalesItemProductChange,
   onSalesItemChange,
   onSalesItemCreate,
@@ -4028,6 +4362,7 @@ function VoucherRegisterSection({
   onChange: (field: string, value: string) => void
   onCreate: () => void
   onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
   onReverse: (voucher: BillingVoucher) => void
   onBillAllocationChange: (
     index: number,
@@ -4045,6 +4380,7 @@ function VoucherRegisterSection({
   onLineRemove: (index: number) => void
   onOpenChange: (open: boolean) => void
   onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
   onSalesItemProductChange: (index: number, productId: string) => void
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
@@ -4231,7 +4567,9 @@ function VoucherRegisterSection({
               ledgers={ledgers}
               onChange={onChange}
               onDelete={onDelete}
+              onDocumentAction={onDocumentAction}
               onReset={onReset}
+              onReview={onReview}
               onSave={onSave}
               onSalesItemProductChange={onSalesItemProductChange}
               onSalesItemChange={onSalesItemChange}
@@ -4249,6 +4587,7 @@ function VoucherRegisterSection({
               ledgers={ledgers}
               onChange={onChange}
               onDelete={onDelete}
+              onDocumentAction={onDocumentAction}
               onBillAllocationChange={onBillAllocationChange}
               onBillAllocationCreate={onBillAllocationCreate}
               onBillAllocationRemove={onBillAllocationRemove}
@@ -4256,6 +4595,7 @@ function VoucherRegisterSection({
               onLineCreate={onLineCreate}
               onLineRemove={onLineRemove}
               onReset={onReset}
+              onReview={onReview}
               onSave={onSave}
               selectedVoucher={selectedVoucher}
             />
@@ -4364,7 +4704,13 @@ function VoucherModuleSection({
   )
 }
 
-function StockSection({ ledgers }: { ledgers: BillingLedger[] }) {
+function StockSection({
+  ledgers,
+  reports,
+}: {
+  ledgers: BillingLedger[]
+  reports: BillingAccountingReports
+}) {
   const stockLedgers = ledgers.filter((ledger) =>
     ["stock", "purchase", "direct"].some((value) =>
       ledger.group.toLowerCase().includes(value)
@@ -4374,30 +4720,59 @@ function StockSection({ ledgers }: { ledgers: BillingLedger[] }) {
   return (
     <SectionShell
       title="Stock"
-      description="Inventory-facing page for stock-linked ledgers, valuation hooks, and future item-level stock books."
+      description="Inventory accounting control over shared core product and warehouse masters, including authority, valuation policy, stock ledger foundation, posting rules, and warehouse positions."
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Stock-linked groups"
-          value={new Set(stockLedgers.map((ledger) => ledger.group)).size}
-          hint="Groups currently aligned to stock, purchase, and direct cost treatment."
+          label="Master authority"
+          value={reports.inventoryAuthority.masterOwner.toUpperCase()}
+          hint="Shared product and warehouse masters stay in core while billing owns finance interpretation."
         />
         <MetricCard
-          label="Visible ledgers"
-          value={stockLedgers.length}
-          hint="Ledgers currently acting as inventory-side references in the books."
+          label="Valuation method"
+          value={reports.stockValuationPolicy.method.replace(/_/g, " ")}
+          hint="Billing stock value policy used for inventory finance reporting."
         />
         <MetricCard
-          label="Valuation mode"
-          value="Prepared"
-          hint="This page is ready for stock item, godown, and valuation extensions."
+          label="Warehouses"
+          value={reports.warehouseStockPosition.items.length}
+          hint="Warehouse positions currently visible from shared core stock masters."
         />
         <MetricCard
-          label="Inventory scope"
-          value="Billing"
-          hint="Designed to bridge current accounting books with later inventory masters."
+          label="Inventory value"
+          value={formatAmount(reports.stockValuationReport.totalInventoryValue)}
+          hint="Warehouse-wise stock value derived from current valuation policy."
         />
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Authority Decision</CardTitle>
+          <CardDescription>
+            Billing inventory foundation established for `B9.1`.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Product master</p>
+            <p className="mt-2 font-medium text-foreground">{reports.inventoryAuthority.masterOwner}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse master</p>
+            <p className="mt-2 font-medium text-foreground">{reports.inventoryAuthority.warehouseOwner}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Stock transactions</p>
+            <p className="mt-2 font-medium text-foreground">{reports.inventoryAuthority.transactionOwner}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Valuation owner</p>
+            <p className="mt-2 font-medium text-foreground">{reports.inventoryAuthority.valuationOwner}</p>
+          </div>
+        </CardContent>
+        <CardContent className="pt-0 text-sm leading-6 text-muted-foreground">
+          {reports.inventoryAuthority.summary}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Stock-linked ledgers</CardTitle>
@@ -4420,6 +4795,148 @@ function StockSection({ ledgers }: { ledgers: BillingLedger[] }) {
               </Badge>
             </div>
           ))}
+        </CardContent>
+      </Card>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Warehouse Positions</CardTitle>
+            <CardDescription>
+              Warehouse-wise stock position as of {reports.warehouseStockPosition.asOfDate}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Warehouse</TableHead>
+                  <TableHead>Products</TableHead>
+                  <TableHead>On hand</TableHead>
+                  <TableHead>Reserved</TableHead>
+                  <TableHead>Available</TableHead>
+                  <TableHead>Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.warehouseStockPosition.items.map((item) => (
+                  <TableRow key={item.warehouseId}>
+                    <TableCell className="font-medium">{item.warehouseName}</TableCell>
+                    <TableCell>{item.productCount}</TableCell>
+                    <TableCell>{item.quantityOnHand}</TableCell>
+                    <TableCell>{item.reservedQuantity}</TableCell>
+                    <TableCell>{item.availableQuantity}</TableCell>
+                    <TableCell>{formatAmount(item.inventoryValue)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock-to-Account Rules</CardTitle>
+            <CardDescription>
+              Posting posture established for `B9.4` before operational stock bridges in `B10`.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {reports.stockAccountingRules.items.map((item) => (
+              <div
+                key={item.ruleKey}
+                className="rounded-xl border border-border/70 bg-card/70 px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium text-foreground">{item.label}</p>
+                  <Badge variant={item.status === "active" ? "outline" : "secondary"}>
+                    {item.status}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Debit {item.debitTarget} / Credit {item.creditTarget}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Stock Ledger Foundation</CardTitle>
+          <CardDescription>
+            Inventory ledger view based on shared core stock items and movement history under the current valuation policy.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Warehouse</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>In</TableHead>
+                <TableHead>Out</TableHead>
+                <TableHead>Balance</TableHead>
+                <TableHead>Available</TableHead>
+                <TableHead>Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.stockLedger.items.slice(0, 24).map((item) => (
+                <TableRow key={item.entryId}>
+                  <TableCell>{item.movementDate}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium text-foreground">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">{item.productId}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{item.warehouseName}</TableCell>
+                  <TableCell>{item.movementType}</TableCell>
+                  <TableCell>{item.quantityIn || "-"}</TableCell>
+                  <TableCell>{item.quantityOut || "-"}</TableCell>
+                  <TableCell>{item.balanceQuantity}</TableCell>
+                  <TableCell>{item.availableQuantity}</TableCell>
+                  <TableCell>{formatAmount(item.balanceValue)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Stock Valuation</CardTitle>
+          <CardDescription>
+            Current inventory valuation by product and warehouse using the configured {reports.stockValuationReport.valuationMethod.replace(/_/g, " ")} method.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead>Warehouse</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Unit Cost</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Last Move</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.stockValuationReport.items.slice(0, 24).map((item) => (
+                <TableRow key={`${item.productId}:${item.warehouseId}`}>
+                  <TableCell className="font-medium">{item.productName}</TableCell>
+                  <TableCell>{item.warehouseName}</TableCell>
+                  <TableCell>{item.quantityOnHand}</TableCell>
+                  <TableCell>{formatAmount(item.unitCost)}</TableCell>
+                  <TableCell>{formatAmount(item.inventoryValue)}</TableCell>
+                  <TableCell>{item.lastMovementDate ?? "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </SectionShell>
@@ -4695,6 +5212,480 @@ function StatementsOverviewSection({ reports }: { reports: BillingAccountingRepo
           />
         </div>
       </div>
+    </SectionShell>
+  )
+}
+
+function GstSalesRegisterSection({ reports }: { reports: BillingAccountingReports }) {
+  const [selectedPeriodKey, setSelectedPeriodKey] = useState<string>("all")
+  const filteredItems =
+    selectedPeriodKey === "all"
+      ? reports.gstSalesRegister.items
+      : reports.gstSalesRegister.items.filter((item) => item.date.startsWith(selectedPeriodKey))
+
+  return (
+    <SectionShell
+      title="GST Sales Register"
+      description="Outward GST register built from posted sales invoices and credit notes with output-tax movement."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Invoices"
+          value={reports.gstSalesRegister.invoiceCount}
+          hint="Posted GST sales invoices included in the outward register."
+        />
+        <MetricCard
+          label="Credit notes"
+          value={reports.gstSalesRegister.creditNoteCount}
+          hint="Posted GST credit notes reducing outward tax liability."
+        />
+        <MetricCard
+          label="Taxable total"
+          value={formatAmount(reports.gstSalesRegister.taxableAmountTotal)}
+          hint="Net taxable turnover after sales invoices and credit notes."
+        />
+        <MetricCard
+          label="Invoice total"
+          value={formatAmount(reports.gstSalesRegister.invoiceAmountTotal)}
+          hint="Net document total including GST."
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="CGST"
+          value={formatAmount(reports.gstSalesRegister.cgstAmountTotal)}
+          hint="Net CGST reported in the outward register."
+        />
+        <MetricCard
+          label="SGST"
+          value={formatAmount(reports.gstSalesRegister.sgstAmountTotal)}
+          hint="Net SGST reported in the outward register."
+        />
+        <MetricCard
+          label="IGST"
+          value={formatAmount(reports.gstSalesRegister.igstAmountTotal)}
+          hint="Net IGST reported in the outward register."
+        />
+        <MetricCard
+          label="Total tax"
+          value={formatAmount(reports.gstSalesRegister.totalTaxAmountTotal)}
+          hint="Net GST liability from posted outward documents."
+        />
+      </div>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-5">
+          <label className="text-sm font-medium text-foreground" htmlFor="gst-sales-period">
+            Tax period
+          </label>
+          <select
+            id="gst-sales-period"
+            className={voucherInlineSelectClassName}
+            value={selectedPeriodKey}
+            onChange={(event) => setSelectedPeriodKey(event.target.value)}
+          >
+            <option value="all">All periods</option>
+            {reports.gstFilingSummary.periods.map((period) => (
+              <option key={period.periodKey} value={period.periodKey}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+        </CardContent>
+      </Card>
+      {filteredItems.length === 0 ? (
+        <StateCard message="No posted GST sales documents are available for the sales register yet." />
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Party</TableHead>
+                  <TableHead>GSTIN</TableHead>
+                  <TableHead>Supply</TableHead>
+                  <TableHead>Taxable</TableHead>
+                  <TableHead>CGST</TableHead>
+                  <TableHead>SGST</TableHead>
+                  <TableHead>IGST</TableHead>
+                  <TableHead>Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredItems.map((item) => (
+                  <TableRow key={item.voucherId}>
+                    <TableCell>{item.date}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{item.voucherNumber}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.documentLabel === "tax_invoice" ? "Tax Invoice" : "Credit Note"}
+                          {item.referenceVoucherNumber ? ` • Ref ${item.referenceVoucherNumber}` : ""}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p>{item.counterparty}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.hsnOrSac} • {item.taxRate}%
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.partyGstin ?? "--"}</TableCell>
+                    <TableCell>
+                      {item.placeOfSupply} • {item.supplyType === "intra" ? "Intra" : "Inter"}
+                    </TableCell>
+                    <TableCell>{formatAmount(item.taxableAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.cgstAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.sgstAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.igstAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.invoiceAmount)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </SectionShell>
+  )
+}
+
+function GstPurchaseRegisterSection({ reports }: { reports: BillingAccountingReports }) {
+  const [selectedPeriodKey, setSelectedPeriodKey] = useState<string>("all")
+  const filteredItems =
+    selectedPeriodKey === "all"
+      ? reports.gstPurchaseRegister.items
+      : reports.gstPurchaseRegister.items.filter((item) =>
+          item.date.startsWith(selectedPeriodKey)
+        )
+
+  return (
+    <SectionShell
+      title="GST Purchase Register"
+      description="Input GST register built from posted purchase invoices and debit notes with input-tax movement."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Invoices"
+          value={reports.gstPurchaseRegister.invoiceCount}
+          hint="Posted GST purchase invoices included in the input register."
+        />
+        <MetricCard
+          label="Debit notes"
+          value={reports.gstPurchaseRegister.debitNoteCount}
+          hint="Posted GST debit notes reducing input-tax claim value."
+        />
+        <MetricCard
+          label="Taxable total"
+          value={formatAmount(reports.gstPurchaseRegister.taxableAmountTotal)}
+          hint="Net taxable purchase value after purchase invoices and debit notes."
+        />
+        <MetricCard
+          label="Invoice total"
+          value={formatAmount(reports.gstPurchaseRegister.invoiceAmountTotal)}
+          hint="Net purchase document total including GST."
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="CGST"
+          value={formatAmount(reports.gstPurchaseRegister.cgstAmountTotal)}
+          hint="Net CGST available in the input register."
+        />
+        <MetricCard
+          label="SGST"
+          value={formatAmount(reports.gstPurchaseRegister.sgstAmountTotal)}
+          hint="Net SGST available in the input register."
+        />
+        <MetricCard
+          label="IGST"
+          value={formatAmount(reports.gstPurchaseRegister.igstAmountTotal)}
+          hint="Net IGST available in the input register."
+        />
+        <MetricCard
+          label="Total tax"
+          value={formatAmount(reports.gstPurchaseRegister.totalTaxAmountTotal)}
+          hint="Net input GST from posted inward documents."
+        />
+      </div>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-5">
+          <label className="text-sm font-medium text-foreground" htmlFor="gst-purchase-period">
+            Tax period
+          </label>
+          <select
+            id="gst-purchase-period"
+            className={voucherInlineSelectClassName}
+            value={selectedPeriodKey}
+            onChange={(event) => setSelectedPeriodKey(event.target.value)}
+          >
+            <option value="all">All periods</option>
+            {reports.gstFilingSummary.periods.map((period) => (
+              <option key={period.periodKey} value={period.periodKey}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+        </CardContent>
+      </Card>
+      {filteredItems.length === 0 ? (
+        <StateCard message="No posted GST purchase documents are available for the purchase register yet." />
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Party</TableHead>
+                  <TableHead>GSTIN</TableHead>
+                  <TableHead>Supply</TableHead>
+                  <TableHead>Taxable</TableHead>
+                  <TableHead>CGST</TableHead>
+                  <TableHead>SGST</TableHead>
+                  <TableHead>IGST</TableHead>
+                  <TableHead>Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredItems.map((item) => (
+                  <TableRow key={item.voucherId}>
+                    <TableCell>{item.date}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{item.voucherNumber}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.documentLabel === "purchase_invoice"
+                            ? "Purchase Invoice"
+                            : "Debit Note"}
+                          {item.referenceVoucherNumber ? ` • Ref ${item.referenceVoucherNumber}` : ""}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p>{item.counterparty}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.hsnOrSac} • {item.taxRate}%
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.partyGstin ?? "--"}</TableCell>
+                    <TableCell>
+                      {item.placeOfSupply} • {item.supplyType === "intra" ? "Intra" : "Inter"}
+                    </TableCell>
+                    <TableCell>{formatAmount(item.taxableAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.cgstAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.sgstAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.igstAmount)}</TableCell>
+                    <TableCell>{formatAmount(item.invoiceAmount)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </SectionShell>
+  )
+}
+
+function InputOutputTaxSummarySection({ reports }: { reports: BillingAccountingReports }) {
+  const [selectedPeriodKey, setSelectedPeriodKey] = useState<string>(
+    reports.gstFilingSummary.latestPeriodKey ?? "all"
+  )
+  const filingPeriod =
+    selectedPeriodKey === "all"
+      ? null
+      : reports.gstFilingSummary.periods.find((period) => period.periodKey === selectedPeriodKey) ??
+        null
+  const summary = reports.inputOutputTaxSummary
+
+  return (
+    <SectionShell
+      title="Input vs Output Tax"
+      description="Net GST control summary comparing outward tax liability against inward input-tax credit from posted GST documents."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="As of"
+          value={summary.asOfDate}
+          hint="Current posted-book cutoff for GST control totals."
+        />
+        <MetricCard
+          label="Output tax"
+          value={formatAmount(summary.outputTaxTotal)}
+          hint="Net outward GST from sales invoices and credit notes."
+        />
+        <MetricCard
+          label="Input tax"
+          value={formatAmount(summary.inputTaxTotal)}
+          hint="Net inward GST from purchase invoices and debit notes."
+        />
+        <MetricCard
+          label="Net payable"
+          value={formatAmount(summary.netTaxPayable)}
+          hint="Output GST less input credit across the current books."
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <MetricCard
+          label="CGST net"
+          value={formatAmount(summary.netCgstPayable)}
+          hint="Output CGST less input CGST."
+        />
+        <MetricCard
+          label="SGST net"
+          value={formatAmount(summary.netSgstPayable)}
+          hint="Output SGST less input SGST."
+        />
+        <MetricCard
+          label="IGST net"
+          value={formatAmount(summary.netIgstPayable)}
+          hint="Output IGST less input IGST."
+        />
+      </div>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-5">
+          <label className="text-sm font-medium text-foreground" htmlFor="gst-summary-period">
+            Tax period
+          </label>
+          <select
+            id="gst-summary-period"
+            className={voucherInlineSelectClassName}
+            value={selectedPeriodKey}
+            onChange={(event) => setSelectedPeriodKey(event.target.value)}
+          >
+            <option value="all">All periods</option>
+            {reports.gstFilingSummary.periods.map((period) => (
+              <option key={period.periodKey} value={period.periodKey}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+        </CardContent>
+      </Card>
+      {filingPeriod ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Period output"
+            value={formatAmount(filingPeriod.outputTaxTotal)}
+            hint={`${filingPeriod.label} outward GST for filing review.`}
+          />
+          <MetricCard
+            label="Period input"
+            value={formatAmount(filingPeriod.inputTaxTotal)}
+            hint={`${filingPeriod.label} inward GST credit for filing review.`}
+          />
+          <MetricCard
+            label="Period net"
+            value={formatAmount(filingPeriod.netTaxPayable)}
+            hint={`${filingPeriod.label} net GST payable after input setoff.`}
+          />
+          <MetricCard
+            label="Period docs"
+            value={
+              filingPeriod.salesInvoiceCount +
+              filingPeriod.salesCreditNoteCount +
+              filingPeriod.purchaseInvoiceCount +
+              filingPeriod.purchaseDebitNoteCount
+            }
+            hint="Posted GST documents in the selected filing period."
+          />
+        </div>
+      ) : null}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tax Head</TableHead>
+                <TableHead>Output</TableHead>
+                <TableHead>Input</TableHead>
+                <TableHead>Net</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">CGST</TableCell>
+                <TableCell>{formatAmount(summary.outputCgst)}</TableCell>
+                <TableCell>{formatAmount(summary.inputCgst)}</TableCell>
+                <TableCell>{formatAmount(summary.netCgstPayable)}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">SGST</TableCell>
+                <TableCell>{formatAmount(summary.outputSgst)}</TableCell>
+                <TableCell>{formatAmount(summary.inputSgst)}</TableCell>
+                <TableCell>{formatAmount(summary.netSgstPayable)}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">IGST</TableCell>
+                <TableCell>{formatAmount(summary.outputIgst)}</TableCell>
+                <TableCell>{formatAmount(summary.inputIgst)}</TableCell>
+                <TableCell>{formatAmount(summary.netIgstPayable)}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-semibold">Total</TableCell>
+                <TableCell className="font-semibold">
+                  {formatAmount(summary.outputTaxTotal)}
+                </TableCell>
+                <TableCell className="font-semibold">
+                  {formatAmount(summary.inputTaxTotal)}
+                </TableCell>
+                <TableCell className="font-semibold">
+                  {formatAmount(summary.netTaxPayable)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Filing Period Summary</CardTitle>
+          <CardDescription>
+            Monthly GST-ready summary built from posted books for filing review.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Period</TableHead>
+                <TableHead>Sales Docs</TableHead>
+                <TableHead>Purchase Docs</TableHead>
+                <TableHead>Outward Taxable</TableHead>
+                <TableHead>Inward Taxable</TableHead>
+                <TableHead>Output Tax</TableHead>
+                <TableHead>Input Tax</TableHead>
+                <TableHead>Net</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.gstFilingSummary.periods.map((period) => (
+                <TableRow key={period.periodKey}>
+                  <TableCell className="font-medium">{period.label}</TableCell>
+                  <TableCell>
+                    {period.salesInvoiceCount + period.salesCreditNoteCount}
+                  </TableCell>
+                  <TableCell>
+                    {period.purchaseInvoiceCount + period.purchaseDebitNoteCount}
+                  </TableCell>
+                  <TableCell>{formatAmount(period.outwardTaxableAmount)}</TableCell>
+                  <TableCell>{formatAmount(period.inwardTaxableAmount)}</TableCell>
+                  <TableCell>{formatAmount(period.outputTaxTotal)}</TableCell>
+                  <TableCell>{formatAmount(period.inputTaxTotal)}</TableCell>
+                  <TableCell>{formatAmount(period.netTaxPayable)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </SectionShell>
   )
 }
@@ -6212,7 +7203,9 @@ export function BillingWorkspaceSection({
       "debit-note-upsert": "debit_note",
       "payment-vouchers-upsert": "payment",
       "purchase-vouchers-upsert": "purchase",
+      "purchase-return-upsert": "purchase_return",
       "receipt-vouchers-upsert": "receipt",
+      "sales-return-upsert": "sales_return",
     } as const
     const moduleId = moduleBySection[currentSection as keyof typeof moduleBySection]
 
@@ -6253,6 +7246,7 @@ export function BillingWorkspaceSection({
         case "counterparty":
         case "date":
         case "narration":
+        case "sourceVoucherId":
         case "status":
         case "voucherNumber":
           return {
@@ -6457,7 +7451,6 @@ export function BillingWorkspaceSection({
           ["code", "name"]
         )
       : ""
-
     setForm((current) => ({
       ...current,
       sales: {
@@ -6547,7 +7540,11 @@ export function BillingWorkspaceSection({
   function buildPayload(): BillingVoucherUpsertPayload {
     const salesModeEnabled = form.type === "sales"
     const gstModeEnabled =
-      salesModeEnabled || (form.gst.enabled && ["sales", "purchase"].includes(form.type))
+      salesModeEnabled ||
+      (
+        form.gst.enabled &&
+        ["sales", "purchase", "sales_return", "purchase_return"].includes(form.type)
+      )
 
     return {
       status: form.status,
@@ -6602,6 +7599,8 @@ export function BillingWorkspaceSection({
             partyGstin: form.sales.partyGstin.trim() || null,
             taxRate: Number(form.sales.taxRate),
             items: form.sales.items.map((item) => ({
+              productId: item.productId.trim() || null,
+              warehouseId: item.warehouseId.trim() || null,
               itemName: item.itemName,
               description: item.description,
               hsnOrSac: item.hsnOrSac,
@@ -6611,6 +7610,24 @@ export function BillingWorkspaceSection({
             })),
           }
         : null,
+      stock:
+        ["purchase", "purchase_return", "sales_return", "stock_adjustment", "landed_cost"].includes(
+          form.type
+        )
+          ? {
+              items: form.stock.items
+                .filter((item) => item.productId && item.warehouseId)
+                .map((item) => ({
+                  productId: item.productId,
+                  warehouseId: item.warehouseId,
+                  quantity: Number(item.quantity),
+                  unit: item.unit,
+                  unitCost: Number(item.unitCost),
+                  landedCostAmount: Number(item.landedCostAmount),
+                  note: item.note,
+                })),
+            }
+          : null,
       transport:
         form.generateEWayBill && form.transport.enabled
           ? {
@@ -6654,7 +7671,9 @@ export function BillingWorkspaceSection({
         "debit-note-upsert": "/dashboard/billing/debit-note",
         "payment-vouchers-upsert": "/dashboard/billing/payment-vouchers",
         "purchase-vouchers-upsert": "/dashboard/billing/purchase-vouchers",
+        "purchase-return-upsert": "/dashboard/billing/purchase-return",
         "receipt-vouchers-upsert": "/dashboard/billing/receipt-vouchers",
+        "sales-return-upsert": "/dashboard/billing/sales-return",
         "sales-vouchers-upsert": "/dashboard/billing/sales-vouchers",
       } as const
 
@@ -6708,6 +7727,64 @@ export function BillingWorkspaceSection({
       )
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleDocumentAction(
+    voucherId: string,
+    format: "print" | "csv" | "json"
+  ) {
+    try {
+      const response = await request<BillingVoucherDocumentResponse>(
+        `/internal/v1/billing/voucher/document?id=${encodeURIComponent(voucherId)}&format=${encodeURIComponent(format)}`
+      )
+
+      if (format === "print") {
+        openPrintDocument(response.item.content)
+        return
+      }
+
+      downloadTextFile(
+        response.item.fileName,
+        response.item.content,
+        response.item.mimeType
+      )
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to prepare billing document."
+      )
+    }
+  }
+
+  async function handleReviewVoucher(
+    voucherId: string,
+    status: "approved" | "rejected"
+  ) {
+    const note = window.prompt(
+      `${status === "approved" ? "Approve" : "Reject"} ${voucherId} with review note:`,
+      ""
+    )
+
+    if (note === null) {
+      return
+    }
+
+    try {
+      await request<BillingVoucherReviewResponse>(
+        `/internal/v1/billing/voucher/review?id=${encodeURIComponent(voucherId)}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            status,
+            note,
+          }),
+        }
+      )
+      await loadResources()
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to update finance review."
+      )
     }
   }
 
@@ -7382,6 +8459,7 @@ export function BillingWorkspaceSection({
             setIsVoucherDialogOpen(true)
           }}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onReverse={handleReverse}
           onBillAllocationChange={handleBillAllocationChange}
           onBillAllocationCreate={handleBillAllocationCreate}
@@ -7396,6 +8474,7 @@ export function BillingWorkspaceSection({
             }
           }}
           onReset={resetForm}
+          onReview={handleReviewVoucher}
           onSalesItemProductChange={handleSalesItemProductChange}
           onSalesItemChange={handleSalesItemChange}
           onSalesItemCreate={handleSalesItemCreate}
@@ -7432,6 +8511,7 @@ export function BillingWorkspaceSection({
           onBillAllocationRemove={handleBillAllocationRemove}
           onChange={handleChange}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onLineChange={handleLineChange}
           onLineCreate={handleLineCreate}
           onLineRemove={handleLineRemove}
@@ -7439,6 +8519,7 @@ export function BillingWorkspaceSection({
             resetForm()
             void navigate("/dashboard/billing/payment-vouchers/new")
           }}
+          onReview={handleReviewVoucher}
           onSave={handleSave}
           selectedVoucher={selectedVoucher}
         />
@@ -7469,6 +8550,7 @@ export function BillingWorkspaceSection({
           onBillAllocationRemove={handleBillAllocationRemove}
           onChange={handleChange}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onLineChange={handleLineChange}
           onLineCreate={handleLineCreate}
           onLineRemove={handleLineRemove}
@@ -7476,6 +8558,7 @@ export function BillingWorkspaceSection({
             resetForm()
             void navigate("/dashboard/billing/receipt-vouchers/new")
           }}
+          onReview={handleReviewVoucher}
           onSave={handleSave}
           selectedVoucher={selectedVoucher}
         />
@@ -7502,10 +8585,12 @@ export function BillingWorkspaceSection({
           ledgers={state.ledgers}
           onChange={handleChange}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onReset={() => {
             resetForm()
             void navigate("/dashboard/billing/sales-vouchers/new")
           }}
+          onReview={handleReviewVoucher}
           onSalesItemProductChange={handleSalesItemProductChange}
           onSalesItemChange={handleSalesItemChange}
           onSalesItemCreate={handleSalesItemCreate}
@@ -7514,6 +8599,45 @@ export function BillingWorkspaceSection({
           products={state.products}
           selectedVoucher={selectedVoucher}
           voucherTypes={state.voucherTypes}
+        />
+      )
+    case "sales-return":
+      return (
+        <VoucherModuleListSection
+          moduleId="sales_return"
+          onCreate={() => {
+            void navigate("/dashboard/billing/sales-return/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/sales-return/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
+          onSelectVoucher={handleSelectVoucher}
+          vouchers={state.vouchers}
+        />
+      )
+    case "sales-return-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/sales-return/new")
+          }}
+          onReview={handleReviewVoucher}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
         />
       )
     case "purchase-vouchers":
@@ -7542,6 +8666,7 @@ export function BillingWorkspaceSection({
           onBillAllocationRemove={handleBillAllocationRemove}
           onChange={handleChange}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onLineChange={handleLineChange}
           onLineCreate={handleLineCreate}
           onLineRemove={handleLineRemove}
@@ -7549,6 +8674,46 @@ export function BillingWorkspaceSection({
             resetForm()
             void navigate("/dashboard/billing/purchase-vouchers/new")
           }}
+          onReview={handleReviewVoucher}
+          onSave={handleSave}
+          selectedVoucher={selectedVoucher}
+        />
+      )
+    case "purchase-return":
+      return (
+        <VoucherModuleListSection
+          moduleId="purchase_return"
+          onCreate={() => {
+            void navigate("/dashboard/billing/purchase-return/new")
+          }}
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/purchase-return/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
+          onSelectVoucher={handleSelectVoucher}
+          vouchers={state.vouchers}
+        />
+      )
+    case "purchase-return-upsert":
+      return (
+        <VoucherModuleUpsertSection
+          form={form}
+          formError={formError}
+          isSaving={isSaving}
+          ledgers={state.ledgers}
+          onBillAllocationChange={handleBillAllocationChange}
+          onBillAllocationCreate={handleBillAllocationCreate}
+          onBillAllocationRemove={handleBillAllocationRemove}
+          onChange={handleChange}
+          onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
+          onLineChange={handleLineChange}
+          onLineCreate={handleLineCreate}
+          onLineRemove={handleLineRemove}
+          onReset={() => {
+            resetForm()
+            void navigate("/dashboard/billing/purchase-return/new")
+          }}
+          onReview={handleReviewVoucher}
           onSave={handleSave}
           selectedVoucher={selectedVoucher}
         />
@@ -7579,6 +8744,7 @@ export function BillingWorkspaceSection({
           onBillAllocationRemove={handleBillAllocationRemove}
           onChange={handleChange}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onLineChange={handleLineChange}
           onLineCreate={handleLineCreate}
           onLineRemove={handleLineRemove}
@@ -7586,6 +8752,7 @@ export function BillingWorkspaceSection({
             resetForm()
             void navigate("/dashboard/billing/credit-note/new")
           }}
+          onReview={handleReviewVoucher}
           onSave={handleSave}
           selectedVoucher={selectedVoucher}
         />
@@ -7616,6 +8783,7 @@ export function BillingWorkspaceSection({
           onBillAllocationRemove={handleBillAllocationRemove}
           onChange={handleChange}
           onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
           onLineChange={handleLineChange}
           onLineCreate={handleLineCreate}
           onLineRemove={handleLineRemove}
@@ -7623,6 +8791,7 @@ export function BillingWorkspaceSection({
             resetForm()
             void navigate("/dashboard/billing/debit-note/new")
           }}
+          onReview={handleReviewVoucher}
           onSave={handleSave}
           selectedVoucher={selectedVoucher}
         />
@@ -7646,9 +8815,15 @@ export function BillingWorkspaceSection({
         />
       )
     case "stock":
-      return <StockSection ledgers={state.ledgers} />
+      return <StockSection ledgers={state.ledgers} reports={state.reports} />
     case "statements":
       return <StatementsOverviewSection reports={state.reports} />
+    case "gst-sales-register":
+      return <GstSalesRegisterSection reports={state.reports} />
+    case "gst-purchase-register":
+      return <GstPurchaseRegisterSection reports={state.reports} />
+    case "input-output-tax-summary":
+      return <InputOutputTaxSummarySection reports={state.reports} />
     case "day-book":
       return <DayBookSection vouchers={state.vouchers} />
     case "double-entry":

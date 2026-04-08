@@ -89,12 +89,20 @@ export function getVoucherPrefix(type: BillingVoucherType) {
       return "RCP"
     case "sales":
       return "SAL"
+    case "sales_return":
+      return "SRT"
     case "credit_note":
       return "CRN"
     case "purchase":
       return "PUR"
+    case "purchase_return":
+      return "PRT"
     case "debit_note":
       return "DBN"
+    case "stock_adjustment":
+      return "STA"
+    case "landed_cost":
+      return "LCT"
     case "contra":
       return "CON"
     case "journal":
@@ -102,11 +110,22 @@ export function getVoucherPrefix(type: BillingVoucherType) {
   }
 }
 
-export function createVoucherNumber(
+export function getConfiguredVoucherPrefix(
   type: BillingVoucherType,
-  financialYear: BillingVoucherFinancialYear
+  config: ServerConfig
 ) {
-  return `${financialYear.prefix}-${financialYear.label}-${pad(financialYear.sequenceNumber, 3)}`
+  return (
+    config.billing.compliance.documentNumbering.prefixes[type] ||
+    getVoucherPrefix(type)
+  )
+}
+
+export function createVoucherNumber(
+  _type: BillingVoucherType,
+  financialYear: BillingVoucherFinancialYear,
+  prefixOverride?: string
+) {
+  return `${prefixOverride ?? financialYear.prefix}-${financialYear.label}-${pad(financialYear.sequenceNumber, 3)}`
 }
 
 export function validateBillAllocations(
@@ -127,21 +146,14 @@ export function validateBillAllocations(
   }
 }
 
-function mockHash(value: string) {
-  let hash = 0
-
-  for (const char of value) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  }
-
-  return hash.toString(16).padStart(8, "0").slice(0, 8).toUpperCase()
-}
-
 export async function generateEInvoiceRecord(
   voucher: BillingVoucher,
   config: ServerConfig
 ): Promise<BillingVoucherEInvoice> {
-  if (!["sales", "credit_note", "debit_note"].includes(voucher.type) || voucher.gst === null) {
+  if (
+    !["sales", "sales_return", "credit_note", "debit_note"].includes(voucher.type) ||
+    voucher.gst === null
+  ) {
     return {
       status: "not_applicable",
       irn: null,
@@ -167,21 +179,28 @@ export async function generateEInvoiceRecord(
     }
   }
 
-  const timestamp = new Date().toISOString()
-  const seed = `${voucher.id}:${voucher.voucherNumber}:${voucher.gst.invoiceAmount}`
+  if (config.billing.compliance.eInvoice.mode === "manual") {
+    return {
+      status: "pending",
+      irn: null,
+      ackNo: null,
+      ackDate: null,
+      qrCodePayload: null,
+      signedInvoice: null,
+      generatedAt: null,
+      errorMessage: "Manual compliance mode is enabled. Capture IRN and acknowledgement details outside the system.",
+    }
+  }
 
   return {
-    status: "generated",
-    irn: `IRN${mockHash(seed)}${mockHash(`${seed}:irn`)}`,
-    ackNo: `${Date.now()}`.slice(-10),
-    ackDate: timestamp,
-    qrCodePayload: `mock-einvoice:${voucher.voucherNumber}:${voucher.gst.invoiceAmount}`,
-    signedInvoice:
-      config.billing.compliance.eInvoice.mode === "mock"
-        ? `SIGNED-INVOICE-${mockHash(`${seed}:signed`)}`
-        : null,
-    generatedAt: timestamp,
-    errorMessage: null,
+    status: "pending",
+    irn: null,
+    ackNo: null,
+    ackDate: null,
+    qrCodePayload: null,
+    signedInvoice: null,
+    generatedAt: null,
+    errorMessage: "Live e-invoice mode is configured, but provider submission is not implemented in this workspace yet.",
   }
 }
 
@@ -196,7 +215,10 @@ export async function generateEWayBillRecord(
       }
     | null
 ): Promise<BillingVoucherEWayBill> {
-  if (!["sales", "purchase", "credit_note", "debit_note"].includes(voucher.type) || voucher.gst === null) {
+  if (
+    !["sales", "purchase", "sales_return", "purchase_return", "credit_note", "debit_note"].includes(voucher.type) ||
+    voucher.gst === null
+  ) {
     return {
       status: "not_applicable",
       ewayBillNo: null,
@@ -238,19 +260,29 @@ export async function generateEWayBillRecord(
     }
   }
 
-  const generatedAt = new Date().toISOString()
-  const validUntil = new Date(Date.now() + Math.max(1, Math.ceil(transport.distanceKm / 100)) * 24 * 60 * 60 * 1000)
-    .toISOString()
+  if (config.billing.compliance.eWayBill.mode === "manual") {
+    return {
+      status: "pending",
+      ewayBillNo: null,
+      ewayBillDate: null,
+      validUpto: null,
+      distanceKm: transport.distanceKm,
+      vehicleNumber: transport.vehicleNumber,
+      transporterId: transport.transporterId,
+      generatedAt: null,
+      errorMessage: "Manual compliance mode is enabled. Capture e-way bill details outside the system.",
+    }
+  }
 
   return {
-    status: "generated",
-    ewayBillNo: `EWB${mockHash(`${voucher.id}:${transport.vehicleNumber}:${transport.distanceKm}`)}`,
-    ewayBillDate: generatedAt,
-    validUpto: validUntil,
+    status: "pending",
+    ewayBillNo: null,
+    ewayBillDate: null,
+    validUpto: null,
     distanceKm: transport.distanceKm,
     vehicleNumber: transport.vehicleNumber,
     transporterId: transport.transporterId,
-    generatedAt,
-    errorMessage: null,
+    generatedAt: null,
+    errorMessage: "Live e-way bill mode is configured, but provider submission is not implemented in this workspace yet.",
   }
 }

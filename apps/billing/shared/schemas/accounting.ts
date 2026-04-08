@@ -4,9 +4,13 @@ export const billingVoucherTypeSchema = z.enum([
   "payment",
   "receipt",
   "sales",
+  "sales_return",
   "credit_note",
   "purchase",
+  "purchase_return",
   "debit_note",
+  "stock_adjustment",
+  "landed_cost",
   "contra",
   "journal",
 ])
@@ -29,6 +33,15 @@ export const billingBankReconciliationStatusSchema = z.enum([
   "matched",
   "mismatch",
 ])
+
+export const billingVoucherReviewStatusSchema = z.enum([
+  "not_required",
+  "pending_review",
+  "approved",
+  "rejected",
+])
+
+export const billingVoucherDocumentFormatSchema = z.enum(["print", "csv", "json"])
 
 export const billingVoucherBankReconciliationSchema = z.object({
   status: billingBankReconciliationStatusSchema,
@@ -211,6 +224,8 @@ export const billingVoucherEWayBillSchema = z.object({
 
 export const billingSalesInvoiceItemSchema = z.object({
   id: z.string().trim().min(1),
+  productId: z.string().trim().min(1).nullable().default(null),
+  warehouseId: z.string().trim().min(1).nullable().default(null),
   itemName: z.string().trim().min(1),
   description: z.string().trim(),
   hsnOrSac: z.string().trim().min(1),
@@ -218,6 +233,24 @@ export const billingSalesInvoiceItemSchema = z.object({
   unit: z.string().trim().min(1),
   rate: z.number().positive(),
   amount: z.number().positive(),
+})
+
+export const billingVoucherStockItemSchema = z.object({
+  id: z.string().trim().min(1),
+  productId: z.string().trim().min(1),
+  productName: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  quantity: z.number().finite(),
+  unit: z.string().trim().min(1),
+  unitCost: z.number().nonnegative(),
+  landedCostAmount: z.number().nonnegative(),
+  totalCost: z.number(),
+  note: z.string().trim(),
+})
+
+export const billingVoucherStockSchema = z.object({
+  items: z.array(billingVoucherStockItemSchema).min(1),
 })
 
 export const billingSalesInvoiceSchema = z.object({
@@ -250,6 +283,25 @@ export const billingVoucherSourceDocumentSchema = z.object({
   voucherType: billingVoucherTypeSchema,
 })
 
+export const billingVoucherReviewSchema = z.object({
+  status: billingVoucherReviewStatusSchema,
+  requestedAt: z.string().trim().min(1).nullable().default(null),
+  reviewedAt: z.string().trim().min(1).nullable().default(null),
+  reviewedByUserId: z.string().trim().min(1).nullable().default(null),
+  note: z.string().trim().default(""),
+  requiredReason: z.string().trim().min(1).nullable().default(null),
+})
+
+export const billingVoucherDocumentTemplateSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  format: billingVoucherDocumentFormatSchema,
+  fileName: z.string().trim().min(1),
+  mimeType: z.string().trim().min(1),
+  content: z.string().trim(),
+})
+
 export const billingVoucherSchema = z.object({
   id: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
@@ -261,6 +313,14 @@ export const billingVoucherSchema = z.object({
   reversedAt: z.string().trim().min(1).nullable().default(null),
   reversalReason: z.string().trim().min(1).nullable().default(null),
   sourceDocument: billingVoucherSourceDocumentSchema.nullable().default(null),
+  review: billingVoucherReviewSchema.default({
+    status: "not_required",
+    requestedAt: null,
+    reviewedAt: null,
+    reviewedByUserId: null,
+    note: "",
+    requiredReason: null,
+  }),
   type: billingVoucherTypeSchema,
   date: z.string().trim().min(1),
   counterparty: z.string().trim().min(1),
@@ -268,6 +328,7 @@ export const billingVoucherSchema = z.object({
   lines: z.array(billingVoucherLineSchema).min(2),
   gst: billingVoucherGstSchema.nullable(),
   sales: billingSalesInvoiceSchema.nullable().default(null),
+  stock: billingVoucherStockSchema.nullable().default(null),
   financialYear: billingVoucherFinancialYearSchema,
   billAllocations: z.array(billingVoucherBillAllocationSchema),
   bankReconciliation: billingVoucherBankReconciliationSchema,
@@ -312,12 +373,30 @@ export const billingVoucherTransportPayloadSchema = z.object({
 })
 
 export const billingSalesInvoiceItemPayloadSchema = z.object({
+  productId: z.string().trim().min(1).nullable().default(null),
+  warehouseId: z.string().trim().min(1).nullable().default(null),
   itemName: z.string().trim().min(1),
   description: z.string().trim().default(""),
   hsnOrSac: z.string().trim().min(1),
   quantity: z.number().positive(),
   unit: z.string().trim().min(1),
   rate: z.number().positive(),
+})
+
+export const billingVoucherStockItemPayloadSchema = z.object({
+  productId: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  quantity: z.number().finite(),
+  unit: z.string().trim().min(1).default("Nos"),
+  unitCost: z.number().nonnegative().default(0),
+  landedCostAmount: z.number().nonnegative().default(0),
+  note: z.string().trim().default(""),
+}).refine((value) => value.quantity !== 0 || value.landedCostAmount > 0, {
+  message: "Stock item must carry quantity movement or landed cost.",
+})
+
+export const billingVoucherStockPayloadSchema = z.object({
+  items: z.array(billingVoucherStockItemPayloadSchema).min(1),
 })
 
 export const billingSalesInvoicePayloadSchema = z.object({
@@ -349,8 +428,14 @@ export const billingVoucherUpsertPayloadSchema = z.object({
   billAllocations: z.array(billingVoucherBillAllocationPayloadSchema).default([]),
   transport: billingVoucherTransportPayloadSchema.nullable().default(null),
   sales: billingSalesInvoicePayloadSchema.nullable().default(null),
+  stock: billingVoucherStockPayloadSchema.nullable().default(null),
   generateEInvoice: z.boolean().default(false),
   generateEWayBill: z.boolean().default(false),
+})
+
+export const billingVoucherReviewPayloadSchema = z.object({
+  status: z.enum(["approved", "rejected"]),
+  note: z.string().trim().default(""),
 })
 
 export const billingLedgerListResponseSchema = z.object({
@@ -386,6 +471,14 @@ export const billingVoucherBankReconciliationResponseSchema = z.object({
   item: billingVoucherSchema,
 })
 
+export const billingVoucherReviewResponseSchema = z.object({
+  item: billingVoucherSchema,
+})
+
+export const billingVoucherDocumentResponseSchema = z.object({
+  item: billingVoucherDocumentTemplateSchema,
+})
+
 export const billingVoucherHeaderSchema = z.object({
   voucherId: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
@@ -413,6 +506,12 @@ export const billingVoucherHeaderSchema = z.object({
   reversedAt: z.string().trim().min(1).nullable(),
   reversalReason: z.string().trim().min(1).nullable(),
   sourceDocument: billingVoucherSourceDocumentSchema.nullable(),
+  reviewStatus: billingVoucherReviewStatusSchema,
+  reviewRequestedAt: z.string().trim().min(1).nullable(),
+  reviewReviewedAt: z.string().trim().min(1).nullable(),
+  reviewReviewedByUserId: z.string().trim().min(1).nullable(),
+  reviewNote: z.string().trim(),
+  reviewRequiredReason: z.string().trim().min(1).nullable(),
   createdAt: z.string().trim().min(1),
   updatedAt: z.string().trim().min(1),
   createdByUserId: z.string().trim().nullable(),
@@ -737,7 +836,7 @@ export const billingBankReconciliationSchema = z.object({
 export const billingCustomerStatementEntrySchema = z.object({
   voucherId: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
-  voucherType: z.enum(["sales", "credit_note", "receipt"]),
+  voucherType: z.enum(["sales", "sales_return", "credit_note", "receipt"]),
   date: z.string().trim().min(1),
   narration: z.string().trim(),
   referenceVoucherNumber: z.string().trim().min(1).nullable(),
@@ -766,7 +865,7 @@ export const billingCustomerStatementSchema = z.object({
 export const billingSupplierStatementEntrySchema = z.object({
   voucherId: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
-  voucherType: z.enum(["purchase", "debit_note", "payment"]),
+  voucherType: z.enum(["purchase", "purchase_return", "debit_note", "payment"]),
   date: z.string().trim().min(1),
   narration: z.string().trim(),
   referenceVoucherNumber: z.string().trim().min(1).nullable(),
@@ -792,6 +891,207 @@ export const billingSupplierStatementSchema = z.object({
   items: z.array(billingSupplierStatementItemSchema),
 })
 
+export const billingGstSalesRegisterItemSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["sales", "sales_return", "credit_note"]),
+  documentLabel: z.enum(["tax_invoice", "sales_return", "credit_note"]),
+  date: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  partyGstin: z.string().trim().min(1).nullable(),
+  placeOfSupply: z.string().trim().min(1),
+  supplyType: z.enum(["intra", "inter"]),
+  hsnOrSac: z.string().trim().min(1),
+  taxRate: z.number().nonnegative(),
+  taxableAmount: z.number(),
+  cgstAmount: z.number(),
+  sgstAmount: z.number(),
+  igstAmount: z.number(),
+  totalTaxAmount: z.number(),
+  invoiceAmount: z.number(),
+  referenceVoucherNumber: z.string().trim().min(1).nullable(),
+})
+
+export const billingGstSalesRegisterSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  invoiceCount: z.number().int().nonnegative(),
+  creditNoteCount: z.number().int().nonnegative(),
+  taxableAmountTotal: z.number(),
+  cgstAmountTotal: z.number(),
+  sgstAmountTotal: z.number(),
+  igstAmountTotal: z.number(),
+  totalTaxAmountTotal: z.number(),
+  invoiceAmountTotal: z.number(),
+  items: z.array(billingGstSalesRegisterItemSchema),
+})
+
+export const billingGstPurchaseRegisterItemSchema = z.object({
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: z.enum(["purchase", "purchase_return", "debit_note"]),
+  documentLabel: z.enum(["purchase_invoice", "purchase_return", "debit_note"]),
+  date: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  partyGstin: z.string().trim().min(1).nullable(),
+  placeOfSupply: z.string().trim().min(1),
+  supplyType: z.enum(["intra", "inter"]),
+  hsnOrSac: z.string().trim().min(1),
+  taxRate: z.number().nonnegative(),
+  taxableAmount: z.number(),
+  cgstAmount: z.number(),
+  sgstAmount: z.number(),
+  igstAmount: z.number(),
+  totalTaxAmount: z.number(),
+  invoiceAmount: z.number(),
+  referenceVoucherNumber: z.string().trim().min(1).nullable(),
+})
+
+export const billingGstPurchaseRegisterSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  invoiceCount: z.number().int().nonnegative(),
+  debitNoteCount: z.number().int().nonnegative(),
+  taxableAmountTotal: z.number(),
+  cgstAmountTotal: z.number(),
+  sgstAmountTotal: z.number(),
+  igstAmountTotal: z.number(),
+  totalTaxAmountTotal: z.number(),
+  invoiceAmountTotal: z.number(),
+  items: z.array(billingGstPurchaseRegisterItemSchema),
+})
+
+export const billingInputOutputTaxSummarySchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  outputCgst: z.number(),
+  outputSgst: z.number(),
+  outputIgst: z.number(),
+  outputTaxTotal: z.number(),
+  inputCgst: z.number(),
+  inputSgst: z.number(),
+  inputIgst: z.number(),
+  inputTaxTotal: z.number(),
+  netCgstPayable: z.number(),
+  netSgstPayable: z.number(),
+  netIgstPayable: z.number(),
+  netTaxPayable: z.number(),
+})
+
+export const billingGstFilingPeriodSummarySchema = z.object({
+  periodKey: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  startDate: z.string().trim().min(1),
+  endDate: z.string().trim().min(1),
+  salesInvoiceCount: z.number().int().nonnegative(),
+  salesCreditNoteCount: z.number().int().nonnegative(),
+  purchaseInvoiceCount: z.number().int().nonnegative(),
+  purchaseDebitNoteCount: z.number().int().nonnegative(),
+  outwardTaxableAmount: z.number(),
+  inwardTaxableAmount: z.number(),
+  outputTaxTotal: z.number(),
+  inputTaxTotal: z.number(),
+  netTaxPayable: z.number(),
+})
+
+export const billingGstFilingSummarySchema = z.object({
+  latestPeriodKey: z.string().trim().min(1).nullable(),
+  periods: z.array(billingGstFilingPeriodSummarySchema),
+})
+
+export const billingInventoryAuthoritySchema = z.object({
+  masterOwner: z.enum(["core"]),
+  warehouseOwner: z.enum(["core"]),
+  transactionOwner: z.enum(["billing"]),
+  valuationOwner: z.enum(["billing"]),
+  summary: z.string().trim().min(1),
+})
+
+export const billingStockValuationMethodSchema = z.enum([
+  "weighted_average",
+  "moving_average",
+  "fifo",
+])
+
+export const billingStockValuationPolicySchema = z.object({
+  method: billingStockValuationMethodSchema,
+  costSource: z.enum(["core_cost_price", "derived_movement_average"]),
+  summary: z.string().trim().min(1),
+})
+
+export const billingStockLedgerEntrySchema = z.object({
+  entryId: z.string().trim().min(1),
+  productId: z.string().trim().min(1),
+  productName: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  movementDate: z.string().trim().min(1),
+  movementType: z.string().trim().min(1),
+  quantityIn: z.number().nonnegative(),
+  quantityOut: z.number().nonnegative(),
+  balanceQuantity: z.number(),
+  reservedQuantity: z.number().nonnegative(),
+  availableQuantity: z.number(),
+  unitCost: z.number().nonnegative(),
+  movementValue: z.number(),
+  balanceValue: z.number(),
+  referenceType: z.string().trim().min(1).nullable(),
+  referenceId: z.string().trim().min(1).nullable(),
+  sourceApp: z.enum(["core", "billing"]),
+  narration: z.string().trim(),
+})
+
+export const billingStockLedgerSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  items: z.array(billingStockLedgerEntrySchema),
+})
+
+export const billingStockAccountingRuleSchema = z.object({
+  ruleKey: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  sourceVoucherTypes: z.array(billingVoucherTypeSchema).min(1),
+  debitTarget: z.string().trim().min(1),
+  creditTarget: z.string().trim().min(1),
+  status: z.enum(["active", "foundation"]),
+  summary: z.string().trim().min(1),
+})
+
+export const billingStockAccountingRuleBookSchema = z.object({
+  items: z.array(billingStockAccountingRuleSchema),
+})
+
+export const billingStockValuationReportItemSchema = z.object({
+  productId: z.string().trim().min(1),
+  productName: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  quantityOnHand: z.number(),
+  unitCost: z.number().nonnegative(),
+  inventoryValue: z.number(),
+  valuationMethod: billingStockValuationMethodSchema,
+  lastMovementDate: z.string().trim().min(1).nullable(),
+})
+
+export const billingStockValuationReportSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  valuationMethod: billingStockValuationMethodSchema,
+  totalInventoryValue: z.number(),
+  items: z.array(billingStockValuationReportItemSchema),
+})
+
+export const billingWarehouseStockPositionItemSchema = z.object({
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  productCount: z.number().int().nonnegative(),
+  quantityOnHand: z.number(),
+  reservedQuantity: z.number().nonnegative(),
+  availableQuantity: z.number(),
+  inventoryValue: z.number(),
+})
+
+export const billingWarehouseStockPositionSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  totalInventoryValue: z.number(),
+  items: z.array(billingWarehouseStockPositionItemSchema),
+})
+
 export const billingAccountingReportsSchema = z.object({
   trialBalance: billingTrialBalanceSchema,
   profitAndLoss: billingProfitAndLossSchema,
@@ -808,6 +1108,16 @@ export const billingAccountingReportsSchema = z.object({
   bankReconciliation: billingBankReconciliationSchema,
   customerStatement: billingCustomerStatementSchema,
   supplierStatement: billingSupplierStatementSchema,
+  gstSalesRegister: billingGstSalesRegisterSchema,
+  gstPurchaseRegister: billingGstPurchaseRegisterSchema,
+  inputOutputTaxSummary: billingInputOutputTaxSummarySchema,
+  gstFilingSummary: billingGstFilingSummarySchema,
+  inventoryAuthority: billingInventoryAuthoritySchema,
+  stockValuationPolicy: billingStockValuationPolicySchema,
+  stockLedger: billingStockLedgerSchema,
+  stockAccountingRules: billingStockAccountingRuleBookSchema,
+  warehouseStockPosition: billingWarehouseStockPositionSchema,
+  stockValuationReport: billingStockValuationReportSchema,
 })
 
 export const billingAccountingReportsResponseSchema = z.object({
@@ -817,6 +1127,9 @@ export const billingAccountingReportsResponseSchema = z.object({
 export type BillingVoucherType = z.infer<typeof billingVoucherTypeSchema>
 export type BillingVoucherLifecycleStatus = z.infer<
   typeof billingVoucherLifecycleStatusSchema
+>
+export type BillingVoucherReviewStatus = z.infer<
+  typeof billingVoucherReviewStatusSchema
 >
 export type BillingVoucherReversePayload = z.infer<
   typeof billingVoucherReversePayloadSchema
@@ -853,18 +1166,27 @@ export type BillingVoucherEInvoice = z.infer<typeof billingVoucherEInvoiceSchema
 export type BillingVoucherEWayBill = z.infer<typeof billingVoucherEWayBillSchema>
 export type BillingSalesInvoiceItem = z.infer<typeof billingSalesInvoiceItemSchema>
 export type BillingSalesInvoice = z.infer<typeof billingSalesInvoiceSchema>
+export type BillingVoucherStockItem = z.infer<typeof billingVoucherStockItemSchema>
+export type BillingVoucherStock = z.infer<typeof billingVoucherStockSchema>
 export type BillingVoucher = z.infer<typeof billingVoucherSchema>
+export type BillingVoucherReview = z.infer<typeof billingVoucherReviewSchema>
 export type BillingVoucherBankReconciliation = z.infer<
   typeof billingVoucherBankReconciliationSchema
 >
 export type BillingVoucherHeader = z.infer<typeof billingVoucherHeaderSchema>
 export type BillingVoucherLineRecord = z.infer<typeof billingVoucherLineRecordSchema>
 export type BillingLedgerEntry = z.infer<typeof billingLedgerEntrySchema>
+export type BillingVoucherDocumentTemplate = z.infer<
+  typeof billingVoucherDocumentTemplateSchema
+>
 export type BillingVoucherUpsertPayload = z.infer<
   typeof billingVoucherUpsertPayloadSchema
 >
 export type BillingSalesInvoicePayload = z.infer<
   typeof billingSalesInvoicePayloadSchema
+>
+export type BillingVoucherStockPayload = z.infer<
+  typeof billingVoucherStockPayloadSchema
 >
 export type BillingVoucherGstPayload = z.infer<
   typeof billingVoucherGstPayloadSchema
@@ -901,11 +1223,23 @@ export type BillingVoucherResponse = z.infer<typeof billingVoucherResponseSchema
 export type BillingVoucherReverseResponse = z.infer<
   typeof billingVoucherReverseResponseSchema
 >
+export type BillingVoucherReviewPayload = z.infer<
+  typeof billingVoucherReviewPayloadSchema
+>
+export type BillingVoucherReviewResponse = z.infer<
+  typeof billingVoucherReviewResponseSchema
+>
 export type BillingVoucherBankReconciliationPayload = z.infer<
   typeof billingVoucherBankReconciliationPayloadSchema
 >
 export type BillingVoucherBankReconciliationResponse = z.infer<
   typeof billingVoucherBankReconciliationResponseSchema
+>
+export type BillingVoucherDocumentFormat = z.infer<
+  typeof billingVoucherDocumentFormatSchema
+>
+export type BillingVoucherDocumentResponse = z.infer<
+  typeof billingVoucherDocumentResponseSchema
 >
 export type BillingTrialBalanceItem = z.infer<typeof billingTrialBalanceItemSchema>
 export type BillingTrialBalance = z.infer<typeof billingTrialBalanceSchema>
@@ -970,6 +1304,55 @@ export type BillingSupplierStatementItem = z.infer<
 >
 export type BillingSupplierStatement = z.infer<
   typeof billingSupplierStatementSchema
+>
+export type BillingGstSalesRegisterItem = z.infer<
+  typeof billingGstSalesRegisterItemSchema
+>
+export type BillingGstSalesRegister = z.infer<
+  typeof billingGstSalesRegisterSchema
+>
+export type BillingGstPurchaseRegisterItem = z.infer<
+  typeof billingGstPurchaseRegisterItemSchema
+>
+export type BillingGstPurchaseRegister = z.infer<
+  typeof billingGstPurchaseRegisterSchema
+>
+export type BillingInputOutputTaxSummary = z.infer<
+  typeof billingInputOutputTaxSummarySchema
+>
+export type BillingGstFilingPeriodSummary = z.infer<
+  typeof billingGstFilingPeriodSummarySchema
+>
+export type BillingGstFilingSummary = z.infer<
+  typeof billingGstFilingSummarySchema
+>
+export type BillingInventoryAuthority = z.infer<
+  typeof billingInventoryAuthoritySchema
+>
+export type BillingStockValuationMethod = z.infer<
+  typeof billingStockValuationMethodSchema
+>
+export type BillingStockValuationPolicy = z.infer<
+  typeof billingStockValuationPolicySchema
+>
+export type BillingStockLedgerEntry = z.infer<
+  typeof billingStockLedgerEntrySchema
+>
+export type BillingStockLedger = z.infer<typeof billingStockLedgerSchema>
+export type BillingStockAccountingRule = z.infer<
+  typeof billingStockAccountingRuleSchema
+>
+export type BillingStockAccountingRuleBook = z.infer<
+  typeof billingStockAccountingRuleBookSchema
+>
+export type BillingWarehouseStockPositionItem = z.infer<
+  typeof billingWarehouseStockPositionItemSchema
+>
+export type BillingWarehouseStockPosition = z.infer<
+  typeof billingWarehouseStockPositionSchema
+>
+export type BillingStockValuationReport = z.infer<
+  typeof billingStockValuationReportSchema
 >
 export type BillingAccountingReports = z.infer<
   typeof billingAccountingReportsSchema

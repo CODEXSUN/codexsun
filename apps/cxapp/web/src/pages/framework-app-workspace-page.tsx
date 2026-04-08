@@ -23,6 +23,7 @@ import { DemoWorkspaceSection } from "@demo/web/src/workspace-sections"
 import { EcommerceWorkspaceSection } from "@ecommerce/web/src/workspace-sections"
 import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
+import { CrmWorkspaceSection } from "@crm/web/src/workspace-sections"
 import { getCoreCommonModuleMenuItem } from "@core/shared"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
@@ -290,10 +291,14 @@ export function FrameworkAppWorkspacePage({
         "receipt-vouchers-upsert",
         "sales-vouchers",
         "sales-vouchers-upsert",
+        "sales-return",
+        "sales-return-upsert",
         "credit-note",
         "credit-note-upsert",
         "purchase-vouchers",
         "purchase-vouchers-upsert",
+        "purchase-return",
+        "purchase-return-upsert",
         "debit-note",
         "debit-note-upsert",
       ].includes(sectionId ?? "overview")

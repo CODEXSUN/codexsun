@@ -191,9 +191,34 @@ export type ServerConfig = {
       financialYearStartDay: number
       lockDate?: string
       periodClosedThrough?: string
+      documentNumbering: {
+        policy: "auto" | "hybrid" | "manual"
+        prefixes: Record<
+          | "payment"
+          | "receipt"
+          | "sales"
+          | "sales_return"
+          | "credit_note"
+          | "purchase"
+          | "purchase_return"
+          | "debit_note"
+          | "stock_adjustment"
+          | "landed_cost"
+          | "contra"
+          | "journal",
+          string
+        >
+      }
+      review: {
+        enabled: boolean
+        amountThreshold: number
+      }
+      stock: {
+        valuationMethod: "weighted_average" | "moving_average" | "fifo"
+      }
       eInvoice: {
         enabled: boolean
-        mode: "mock" | "live"
+        mode: "manual" | "live"
         baseUrl?: string
         username?: string
         password?: string
@@ -203,7 +228,7 @@ export type ServerConfig = {
       }
       eWayBill: {
         enabled: boolean
-        mode: "mock" | "live"
+        mode: "manual" | "live"
         baseUrl?: string
         username?: string
         password?: string
@@ -503,9 +528,44 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         ),
         lockDate: env.BILLING_LOCK_DATE?.trim() || undefined,
         periodClosedThrough: env.BILLING_PERIOD_CLOSED_THROUGH?.trim() || undefined,
+        documentNumbering: {
+          policy:
+            (env.BILLING_DOCUMENT_NUMBERING_POLICY as "auto" | "hybrid" | "manual" | undefined) ??
+            "hybrid",
+          prefixes: {
+            payment: env.BILLING_PREFIX_PAYMENT?.trim() || "PAY",
+            receipt: env.BILLING_PREFIX_RECEIPT?.trim() || "RCP",
+            sales: env.BILLING_PREFIX_SALES?.trim() || "SAL",
+            sales_return: env.BILLING_PREFIX_SALES_RETURN?.trim() || "SRT",
+            credit_note: env.BILLING_PREFIX_CREDIT_NOTE?.trim() || "CRN",
+            purchase: env.BILLING_PREFIX_PURCHASE?.trim() || "PUR",
+            purchase_return: env.BILLING_PREFIX_PURCHASE_RETURN?.trim() || "PRT",
+            debit_note: env.BILLING_PREFIX_DEBIT_NOTE?.trim() || "DBN",
+            stock_adjustment: env.BILLING_PREFIX_STOCK_ADJUSTMENT?.trim() || "STA",
+            landed_cost: env.BILLING_PREFIX_LANDED_COST?.trim() || "LCT",
+            contra: env.BILLING_PREFIX_CONTRA?.trim() || "CON",
+            journal: env.BILLING_PREFIX_JOURNAL?.trim() || "JRN",
+          },
+        },
+        review: {
+          enabled: readBoolean(env.BILLING_REVIEW_ENABLED, true),
+          amountThreshold: readNumber(
+            env.BILLING_REVIEW_THRESHOLD_AMOUNT,
+            50000,
+            "BILLING_REVIEW_THRESHOLD_AMOUNT"
+          ),
+        },
+        stock: {
+          valuationMethod:
+            (env.BILLING_STOCK_VALUATION_METHOD as
+              | "weighted_average"
+              | "moving_average"
+              | "fifo"
+              | undefined) ?? "weighted_average",
+        },
         eInvoice: {
           enabled: readBoolean(env.BILLING_EINVOICE_ENABLED, false),
-          mode: (env.BILLING_EINVOICE_MODE as "mock" | "live" | undefined) ?? "mock",
+          mode: (env.BILLING_EINVOICE_MODE as "manual" | "live" | undefined) ?? "manual",
           baseUrl: env.BILLING_EINVOICE_BASE_URL?.trim() || undefined,
           username: env.BILLING_EINVOICE_USERNAME?.trim() || undefined,
           password: env.BILLING_EINVOICE_PASSWORD?.trim() || undefined,
@@ -515,7 +575,7 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         },
         eWayBill: {
           enabled: readBoolean(env.BILLING_EWAYBILL_ENABLED, false),
-          mode: (env.BILLING_EWAYBILL_MODE as "mock" | "live" | undefined) ?? "mock",
+          mode: (env.BILLING_EWAYBILL_MODE as "manual" | "live" | undefined) ?? "manual",
           baseUrl: env.BILLING_EWAYBILL_BASE_URL?.trim() || undefined,
           username: env.BILLING_EWAYBILL_USERNAME?.trim() || undefined,
           password: env.BILLING_EWAYBILL_PASSWORD?.trim() || undefined,

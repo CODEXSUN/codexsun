@@ -11,6 +11,8 @@ import { createDemoInternalRoutes } from "./demo-routes.js"
 import { createEcommerceInternalRoutes } from "./ecommerce-routes.js"
 import { createFrappeInternalRoutes } from "./frappe-routes.js"
 import { createFrameworkInternalRoutes } from "./framework-routes.js"
+import { createTaskInternalRoutes } from "./task-routes.js"
+import { createCrmInternalRoutes } from "./crm-routes.js"
 
 export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
@@ -47,5 +49,7 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
     ...createEcommerceInternalRoutes(),
     ...createBillingInternalRoutes(),
     ...createFrappeInternalRoutes(),
+    ...createTaskInternalRoutes(),
+    ...createCrmInternalRoutes(),
   ]
 }

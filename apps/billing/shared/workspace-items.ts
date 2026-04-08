@@ -73,10 +73,22 @@ export const billingWorkspaceItems: BillingWorkspaceItem[] = [
     summary: "Credit note workspace for sales returns, discounts, and customer adjustments.",
   },
   {
+    id: "sales-return",
+    name: "Sales Return",
+    route: "/dashboard/billing/sales-return",
+    summary: "Sales return workspace for customer returns linked back to original invoices.",
+  },
+  {
     id: "debit-note",
     name: "Debit Note",
     route: "/dashboard/billing/debit-note",
     summary: "Debit note workspace for purchase returns and supplier adjustments.",
+  },
+  {
+    id: "purchase-return",
+    name: "Purchase Return",
+    route: "/dashboard/billing/purchase-return",
+    summary: "Purchase return workspace for supplier return documents linked back to original bills.",
   },
   {
     id: "stock",
@@ -89,6 +101,24 @@ export const billingWorkspaceItems: BillingWorkspaceItem[] = [
     name: "Statements",
     route: "/dashboard/billing/statements",
     summary: "Party and book statements derived from posted vouchers and running balances.",
+  },
+  {
+    id: "gst-sales-register",
+    name: "GST Sales Register",
+    route: "/dashboard/billing/gst-sales-register",
+    summary: "Posted GST sales and credit-note register for outward tax reporting and review.",
+  },
+  {
+    id: "gst-purchase-register",
+    name: "GST Purchase Register",
+    route: "/dashboard/billing/gst-purchase-register",
+    summary: "Posted GST purchase and debit-note register for input-tax reporting and review.",
+  },
+  {
+    id: "input-output-tax-summary",
+    name: "Input vs Output Tax",
+    route: "/dashboard/billing/input-output-tax-summary",
+    summary: "Net GST control summary comparing output liability against input credit.",
   },
   {
     id: "voucher-register",

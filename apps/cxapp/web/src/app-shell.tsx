@@ -186,6 +186,14 @@ const BillingSalesFormPage = lazyNamed(
   () => import("./pages/billing-sales-form-page"),
   "BillingSalesFormPage",
 );
+const BillingSalesReturnFormPage = lazyNamed(
+  () => import("./pages/billing-sales-return-form-page"),
+  "BillingSalesReturnFormPage",
+);
+const BillingPurchaseReturnFormPage = lazyNamed(
+  () => import("./pages/billing-purchase-return-form-page"),
+  "BillingPurchaseReturnFormPage",
+);
 const FrameworkAppWorkspacePage = lazyNamed(
   () => import("./pages/framework-app-workspace-page"),
   "FrameworkAppWorkspacePage",
@@ -1288,6 +1296,36 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/purchase-return"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="purchase-return" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/purchase-return/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingPurchaseReturnFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/purchase-return/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingPurchaseReturnFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/contra-vouchers"
             element={
               <ProtectedRoute>
@@ -1323,6 +1361,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingSalesFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-return"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="sales-return" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-return/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingSalesReturnFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-return/:voucherId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingSalesReturnFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -1433,6 +1501,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingVoucherSectionPage sectionId="statements" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/gst-sales-register"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="gst-sales-register" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/gst-purchase-register"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="gst-purchase-register" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/input-output-tax-summary"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="input-output-tax-summary" />
                 </AdminLayout>
               </ProtectedRoute>
             }

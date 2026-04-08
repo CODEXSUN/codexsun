@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#72` 2026-04-08
+
+- completed billing Stage `B10`, including purchase-to-stock bridge, sales-linked stock reduction, stock adjustment workflow, landed-cost handling, and stock valuation reporting
+- synchronized posted billing inventory documents into shared `core` product stock movement while keeping valuation and warehouse-position reporting inside billing
+- validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+
 ### `#70` 2026-04-08
 
 - completed Stage `3.3.4` by adding an ecommerce accounting-compatibility report for invoice and GST workflow review

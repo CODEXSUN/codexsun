@@ -57,16 +57,32 @@ function resolvePostingTypeFromVoucherGroupName(name: string) {
   switch (normalizedName) {
     case "sales":
       return "sales" as const
+    case "sales return":
+    case "sales-return":
+    case "sales_return":
+      return "sales_return" as const
     case "credit note":
     case "credit-note":
     case "credit_note":
       return "credit_note" as const
     case "purchase":
       return "purchase" as const
+    case "purchase return":
+    case "purchase-return":
+    case "purchase_return":
+      return "purchase_return" as const
     case "debit note":
     case "debit-note":
     case "debit_note":
       return "debit_note" as const
+    case "stock adjustment":
+    case "stock-adjustment":
+    case "stock_adjustment":
+      return "stock_adjustment" as const
+    case "landed cost":
+    case "landed-cost":
+    case "landed_cost":
+      return "landed_cost" as const
     case "receipt":
       return "receipt" as const
     case "payment":
@@ -85,18 +101,27 @@ function resolveDefaultCategoryNameFromPostingType(
     | "payment"
     | "receipt"
     | "sales"
+    | "sales_return"
     | "credit_note"
     | "purchase"
+    | "purchase_return"
     | "debit_note"
+    | "stock_adjustment"
+    | "landed_cost"
     | "contra"
     | "journal"
 ) {
   switch (postingType) {
     case "sales":
       return "Income"
+    case "sales_return":
+      return "Income"
     case "credit_note":
     case "purchase":
+    case "purchase_return":
     case "debit_note":
+    case "stock_adjustment":
+    case "landed_cost":
       return "Expenses"
     case "payment":
     case "receipt":

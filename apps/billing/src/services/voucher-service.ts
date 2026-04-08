@@ -3,29 +3,40 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
+import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
+import { productSchema, type Product } from "../../../core/shared/index.js"
 import { writeActivityLog } from "../../../framework/src/runtime/activity-log/activity-log-service.js"
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
+import { listJsonStorePayloads } from "../../../framework/src/runtime/database/process/json-store.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   billingVoucherBankReconciliationPayloadSchema,
   billingVoucherBankReconciliationResponseSchema,
+  billingVoucherDocumentFormatSchema,
+  billingVoucherDocumentResponseSchema,
+  billingVoucherDocumentTemplateSchema,
   billingVoucherEInvoiceSchema,
   billingVoucherEWayBillSchema,
   billingLedgerSchema,
   billingSalesInvoiceSchema,
+  billingVoucherStockSchema,
   billingVoucherGstSchema,
   billingVoucherListResponseSchema,
   billingVoucherMasterTypeSchema,
+  billingVoucherReviewPayloadSchema,
+  billingVoucherReviewResponseSchema,
   billingVoucherReversePayloadSchema,
   billingVoucherReverseResponseSchema,
   billingVoucherResponseSchema,
   billingVoucherSchema,
   billingVoucherUpsertPayloadSchema,
   type BillingVoucher,
+  type BillingVoucherDocumentFormat,
   type BillingVoucherGst,
 } from "../../shared/index.js"
 
 import { billingTableNames } from "../../database/table-names.js"
+import { coreTableNames } from "../../../core/database/table-names.js"
 
 import { assertBillingViewer } from "./access.js"
 import {
@@ -33,6 +44,7 @@ import {
   createVoucherNumber,
   generateEInvoiceRecord,
   generateEWayBillRecord,
+  getConfiguredVoucherPrefix,
   getVoucherPrefix,
   resolveFinancialYear,
   validateBillAllocations,
@@ -45,6 +57,7 @@ import {
 import { replaceBillingVoucherHeaders } from "./voucher-header-store.js"
 import { replaceBillingVoucherLines } from "./voucher-line-store.js"
 import { replaceBillingLedgerEntries } from "./ledger-entry-store.js"
+import { synchronizeBillingInventoryToCore } from "./inventory-bridge-service.js"
 
 async function readLedgers(database: Kysely<unknown>) {
   return listStorePayloads(database, billingTableNames.ledgers, billingLedgerSchema)
@@ -56,6 +69,16 @@ async function readVoucherTypes(database: Kysely<unknown>) {
     billingTableNames.voucherTypes,
     billingVoucherMasterTypeSchema
   )
+}
+
+async function readProducts(database: Kysely<unknown>) {
+  const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
+  return items.map((item) => productSchema.parse(item))
+}
+
+async function readWarehouses(database: Kysely<unknown>) {
+  const response = await listCommonModuleItems(database, "warehouses")
+  return response.items
 }
 
 async function readVouchers(database: Kysely<unknown>) {
@@ -97,6 +120,7 @@ async function writeBillingVoucherAudit(
       | "voucher_delete"
       | "voucher_reverse"
       | "voucher_reconcile"
+      | "voucher_review"
     message: string
     voucher: BillingVoucher
     details?: Record<string, unknown>
@@ -146,6 +170,229 @@ function getVoucherTotals(voucher: Pick<BillingVoucher, "lines">) {
 
 function roundCurrency(value: number) {
   return Number(value.toFixed(2))
+}
+
+function getVoucherAbsoluteAmount(
+  voucherLike: Pick<BillingVoucher, "gst" | "sales" | "lines">
+) {
+  if (voucherLike.sales) {
+    return roundCurrency(voucherLike.sales.grandTotal)
+  }
+
+  if (voucherLike.gst) {
+    return roundCurrency(voucherLike.gst.invoiceAmount)
+  }
+
+  return roundCurrency(
+    voucherLike.lines.reduce((maxAmount, line) => Math.max(maxAmount, line.amount), 0)
+  )
+}
+
+function isSensitiveVoucherType(type: BillingVoucher["type"]) {
+  return [
+    "payment",
+    "contra",
+    "journal",
+    "credit_note",
+    "debit_note",
+    "sales_return",
+    "purchase_return",
+    "stock_adjustment",
+    "landed_cost",
+  ].includes(type)
+}
+
+function getRequiredSourceType(type: BillingVoucher["type"]) {
+  switch (type) {
+    case "credit_note":
+    case "sales_return":
+      return "sales" as const
+    case "debit_note":
+    case "purchase_return":
+    case "landed_cost":
+      return "purchase" as const
+    default:
+      return null
+  }
+}
+
+function getSourceDocumentLabel(type: BillingVoucher["type"]) {
+  switch (type) {
+    case "credit_note":
+      return "Credit note"
+    case "debit_note":
+      return "Debit note"
+    case "sales_return":
+      return "Sales return"
+    case "purchase_return":
+      return "Purchase return"
+    case "stock_adjustment":
+      return "Stock adjustment"
+    case "landed_cost":
+      return "Landed cost"
+    default:
+      return "Voucher"
+  }
+}
+
+function buildVoucherReviewState(
+  voucher: Pick<BillingVoucher, "type" | "gst" | "sales" | "lines">,
+  config: ServerConfig,
+  existing: BillingVoucher | undefined,
+  timestamp: string
+) {
+  const reviewEnabled = config.billing.compliance.review.enabled
+  const amount = getVoucherAbsoluteAmount(voucher)
+  const requiresReview =
+    reviewEnabled &&
+    (
+      isSensitiveVoucherType(voucher.type) ||
+      amount >= config.billing.compliance.review.amountThreshold
+    )
+
+  if (!requiresReview) {
+    return {
+      status: "not_required" as const,
+      requestedAt: null,
+      reviewedAt: null,
+      reviewedByUserId: null,
+      note: existing?.review.status === "not_required" ? existing.review.note : "",
+      requiredReason: null,
+    }
+  }
+
+  const requiredReason = isSensitiveVoucherType(voucher.type)
+    ? "Sensitive finance document type requires review."
+    : `Voucher amount ${amount.toFixed(2)} meets the finance review threshold.`
+
+  if (
+    existing?.review.status === "approved" ||
+    existing?.review.status === "rejected"
+  ) {
+    return {
+      ...existing.review,
+      requiredReason,
+    }
+  }
+
+  return {
+    status: "pending_review" as const,
+    requestedAt: existing?.review.requestedAt ?? timestamp,
+    reviewedAt: null,
+    reviewedByUserId: null,
+    note: existing?.review.note ?? "",
+    requiredReason,
+  }
+}
+
+function resolveVoucherNumber(
+  parsedPayload: ReturnType<typeof billingVoucherUpsertPayloadSchema.parse>,
+  financialYear: BillingVoucher["financialYear"],
+  config: ServerConfig
+) {
+  const manualVoucherNumber = parsedPayload.voucherNumber.trim()
+  const policy = config.billing.compliance.documentNumbering.policy
+  const prefix = financialYear.prefix
+
+  if (policy === "auto" && manualVoucherNumber.length > 0) {
+    throw new ApplicationError(
+      "Manual voucher numbers are disabled by the current billing numbering policy.",
+      { voucherNumber: manualVoucherNumber, policy },
+      409
+    )
+  }
+
+  if (policy === "manual" && manualVoucherNumber.length === 0) {
+    throw new ApplicationError(
+      "Manual voucher number is required by the current billing numbering policy.",
+      { policy, voucherType: parsedPayload.type },
+      409
+    )
+  }
+
+  return manualVoucherNumber || createVoucherNumber(parsedPayload.type, financialYear, prefix)
+}
+
+function buildVoucherDocumentTitle(voucher: BillingVoucher) {
+  switch (voucher.type) {
+    case "sales":
+      return "Sales Invoice"
+    case "purchase":
+      return "Purchase Voucher"
+    case "sales_return":
+      return "Sales Return"
+    case "purchase_return":
+      return "Purchase Return"
+    case "credit_note":
+      return "Credit Note"
+    case "debit_note":
+      return "Debit Note"
+    case "stock_adjustment":
+      return "Stock Adjustment"
+    case "landed_cost":
+      return "Landed Cost"
+    case "payment":
+      return "Payment Voucher"
+    case "receipt":
+      return "Receipt Voucher"
+    case "contra":
+      return "Contra Voucher"
+    case "journal":
+      return "Journal Voucher"
+  }
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+}
+
+function formatDocumentAmount(value: number) {
+  return value.toFixed(2)
+}
+
+function buildVoucherPrintDocument(voucher: BillingVoucher) {
+  const title = buildVoucherDocumentTitle(voucher)
+  const total = getVoucherAbsoluteAmount(voucher)
+  const lineRows = voucher.lines
+    .map(
+      (line) =>
+        `<tr><td>${escapeHtml(line.ledgerName)}</td><td>${escapeHtml(line.side)}</td><td style="text-align:right;">${formatDocumentAmount(line.amount)}</td><td>${escapeHtml(line.note)}</td></tr>`
+    )
+    .join("")
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)} ${escapeHtml(voucher.voucherNumber)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111827}h1{margin:0 0 8px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #d1d5db;padding:8px;font-size:12px}th{text-align:left;background:#f3f4f6}.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}.pill{display:inline-block;padding:4px 8px;border:1px solid #d1d5db;border-radius:999px;font-size:12px}</style></head><body><h1>${escapeHtml(title)}</h1><p class="pill">${escapeHtml(voucher.voucherNumber)}</p><div class="meta"><div><strong>Date:</strong> ${escapeHtml(voucher.date)}</div><div><strong>Counterparty:</strong> ${escapeHtml(voucher.counterparty)}</div><div><strong>Status:</strong> ${escapeHtml(voucher.status)}</div><div><strong>Review:</strong> ${escapeHtml(voucher.review.status)}</div></div><p><strong>Narration:</strong> ${escapeHtml(voucher.narration || "-")}</p><table><thead><tr><th>Ledger</th><th>Side</th><th>Amount</th><th>Note</th></tr></thead><tbody>${lineRows}</tbody></table><p style="margin-top:16px;"><strong>Total:</strong> ${formatDocumentAmount(total)}</p></body></html>`
+}
+
+function buildVoucherCsvDocument(voucher: BillingVoucher) {
+  const rows = [
+    ["Voucher Number", voucher.voucherNumber],
+    ["Title", buildVoucherDocumentTitle(voucher)],
+    ["Date", voucher.date],
+    ["Counterparty", voucher.counterparty],
+    ["Status", voucher.status],
+    ["Review Status", voucher.review.status],
+    ["Narration", voucher.narration],
+    [],
+    ["Ledger", "Side", "Amount", "Note"],
+    ...voucher.lines.map((line) => [
+      line.ledgerName,
+      line.side,
+      formatDocumentAmount(line.amount),
+      line.note,
+    ]),
+  ]
+
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+        .join(",")
+    )
+    .join("\n")
 }
 
 function isBankLedger(ledgerId: string, ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>) {
@@ -199,9 +446,11 @@ function buildAutoPostedGst(
   gstPayload: NonNullable<ReturnType<typeof billingVoucherUpsertPayloadSchema.parse>["gst"]>,
   ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>
 ) {
-  if (!["sales", "purchase", "credit_note", "debit_note"].includes(voucherType)) {
+  if (
+    !["sales", "purchase", "sales_return", "purchase_return", "credit_note", "debit_note"].includes(voucherType)
+  ) {
     throw new ApplicationError(
-      "GST auto-posting is available only for sales, purchase, credit note, and debit note vouchers.",
+      "GST auto-posting is available only for sales, purchase, return, credit note, and debit note vouchers.",
       { voucherType },
       400
     )
@@ -227,8 +476,15 @@ function buildAutoPostedGst(
   }
 
   const expectedTaxDirection =
-    voucherType === "sales" || voucherType === "credit_note" ? "output" : "input"
-  const isSalesLike = voucherType === "sales" || voucherType === "debit_note"
+    voucherType === "sales" ||
+    voucherType === "sales_return" ||
+    voucherType === "credit_note"
+      ? "output"
+      : "input"
+  const isSalesLike =
+    voucherType === "sales" ||
+    voucherType === "debit_note" ||
+    voucherType === "purchase_return"
   const taxRate = gstPayload.taxRate
   const taxableAmount = roundCurrency(gstPayload.taxableAmount)
   const totalTaxAmount = roundCurrency((taxableAmount * taxRate) / 100)
@@ -276,6 +532,7 @@ function buildAutoPostedGst(
             amount: invoiceAmount,
             note:
               voucherType === "debit_note"
+                || voucherType === "purchase_return"
                 ? "Supplier ledger debited for the GST note amount."
                 : "Customer or cash ledger raised for the GST invoice amount.",
           },
@@ -287,6 +544,7 @@ function buildAutoPostedGst(
             amount: taxableAmount,
             note:
               voucherType === "debit_note"
+                || voucherType === "purchase_return"
                 ? "Taxable value credited to the purchase correction ledger."
                 : "Taxable value credited to the sales ledger.",
           },
@@ -298,6 +556,7 @@ function buildAutoPostedGst(
             amount: entry.amount,
             note:
               voucherType === "debit_note"
+                || voucherType === "purchase_return"
                 ? `${entry.ledger.name} auto-posted as purchase-side tax reversal.`
                 : `${entry.ledger.name} auto-posted from GST rate calculation.`,
           })),
@@ -311,6 +570,7 @@ function buildAutoPostedGst(
             amount: taxableAmount,
             note:
               voucherType === "credit_note"
+                || voucherType === "sales_return"
                 ? "Taxable value debited to the sales correction ledger."
                 : "Taxable value debited to the purchase ledger.",
           },
@@ -322,6 +582,7 @@ function buildAutoPostedGst(
             amount: entry.amount,
             note:
               voucherType === "credit_note"
+                || voucherType === "sales_return"
                 ? `${entry.ledger.name} auto-posted as sales-side tax reversal.`
                 : `${entry.ledger.name} auto-posted as input tax credit.`,
           })),
@@ -333,6 +594,7 @@ function buildAutoPostedGst(
             amount: invoiceAmount,
             note:
               voucherType === "credit_note"
+                || voucherType === "sales_return"
                 ? "Customer ledger credited for the GST note amount."
                 : "Supplier ledger credited for the GST bill amount.",
           },
@@ -366,7 +628,8 @@ function buildAutoPostedGst(
 function buildSalesInvoice(
   salesPayload: NonNullable<ReturnType<typeof billingVoucherUpsertPayloadSchema.parse>["sales"]>,
   voucherTypeMap: Map<string, Awaited<ReturnType<typeof readVoucherTypes>>[number]>,
-  ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>
+  ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>,
+  productMap: Map<string, Product>
 ) {
   const voucherType = voucherTypeMap.get(salesPayload.voucherTypeId)
 
@@ -407,9 +670,16 @@ function buildSalesInvoice(
 
   const items = salesPayload.items.map((item) => {
     const amount = roundCurrency(item.quantity * item.rate)
+    const product = item.productId ? productMap.get(item.productId) : null
+    const warehouseId =
+      item.warehouseId ??
+      product?.stockItems.find((stockItem) => stockItem.isActive)?.warehouseId ??
+      null
 
     return {
       id: `sales-item:${randomUUID()}`,
+      productId: item.productId,
+      warehouseId,
       itemName: item.itemName,
       description: item.description,
       hsnOrSac: item.hsnOrSac,
@@ -467,6 +737,56 @@ function buildSalesInvoice(
   }
 }
 
+function buildVoucherStock(
+  voucherType: BillingVoucher["type"],
+  parsedPayload: ReturnType<typeof billingVoucherUpsertPayloadSchema.parse>,
+  salesInvoice: ReturnType<typeof buildSalesInvoice> | null,
+  productMap: Map<string, Product>,
+  warehouseNameMap: Map<string, string>,
+  existing?: BillingVoucher
+) {
+  if (voucherType === "sales" && salesInvoice?.sales) {
+    const items = salesInvoice.sales.items
+      .filter((item) => item.productId && item.warehouseId)
+      .map((item, index) => ({
+        id: existing?.stock?.items[index]?.id ?? `voucher-stock-item:${randomUUID()}`,
+        productId: item.productId as string,
+        productName: productMap.get(item.productId as string)?.name ?? item.itemName,
+        warehouseId: item.warehouseId as string,
+        warehouseName:
+          warehouseNameMap.get(item.warehouseId as string) ?? (item.warehouseId as string),
+        quantity: item.quantity,
+        unit: item.unit,
+        unitCost: 0,
+        landedCostAmount: 0,
+        totalCost: 0,
+        note: item.description,
+      }))
+
+    return items.length > 0 ? billingVoucherStockSchema.parse({ items }) : null
+  }
+
+  if (!parsedPayload.stock) {
+    return existing?.stock ?? null
+  }
+
+  return billingVoucherStockSchema.parse({
+    items: parsedPayload.stock.items.map((item, index) => ({
+      id: existing?.stock?.items[index]?.id ?? `voucher-stock-item:${randomUUID()}`,
+      productId: item.productId,
+      productName: productMap.get(item.productId)?.name ?? item.productId,
+      warehouseId: item.warehouseId,
+      warehouseName: warehouseNameMap.get(item.warehouseId) ?? item.warehouseId,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitCost: roundCurrency(item.unitCost),
+      landedCostAmount: roundCurrency(item.landedCostAmount),
+      totalCost: roundCurrency(item.quantity * item.unitCost + item.landedCostAmount),
+      note: item.note,
+    })),
+  })
+}
+
 async function buildVoucherRecord(
   database: Kysely<unknown>,
   user: AuthUser,
@@ -488,8 +808,19 @@ async function buildVoucherRecord(
   }
   const ledgers = await readLedgers(database)
   const voucherTypes = await readVoucherTypes(database)
+  const products = await readProducts(database)
+  const warehouses = await readWarehouses(database)
   const ledgerMap = new Map(ledgers.map((ledger) => [ledger.id, ledger]))
   const voucherTypeMap = new Map(voucherTypes.map((type) => [type.id, type]))
+  const productMap = new Map(products.map((product) => [product.id, product]))
+  const warehouseNameMap = new Map(
+    warehouses.map((warehouse) => [
+      warehouse.id,
+      typeof warehouse.name === "string" && warehouse.name.trim()
+        ? warehouse.name.trim()
+        : warehouse.id,
+    ])
+  )
   const normalizedVoucherNumber = parsedPayload.voucherNumber.trim().toLowerCase()
   const existingVouchers = await readVouchers(database)
   const duplicateVoucher = existingVouchers.find(
@@ -508,13 +839,14 @@ async function buildVoucherRecord(
   }
 
   let sourceDocument: BillingVoucher["sourceDocument"] = existing?.sourceDocument ?? null
+  const requiredSourceType = getRequiredSourceType(parsedPayload.type)
 
-  if (["credit_note", "debit_note"].includes(parsedPayload.type)) {
-    const requiredSourceType = parsedPayload.type === "credit_note" ? "sales" : "purchase"
+  if (requiredSourceType) {
+    const sourceDocumentLabel = getSourceDocumentLabel(parsedPayload.type)
 
     if (!parsedPayload.sourceVoucherId) {
       throw new ApplicationError(
-        `${parsedPayload.type === "credit_note" ? "Credit" : "Debit"} note requires a source voucher id.`,
+        `${sourceDocumentLabel} requires a source voucher id.`,
         { type: parsedPayload.type },
         400
       )
@@ -534,7 +866,7 @@ async function buildVoucherRecord(
 
     if (linkedVoucher.type !== requiredSourceType) {
       throw new ApplicationError(
-        `${parsedPayload.type === "credit_note" ? "Credit" : "Debit"} note must reference a ${requiredSourceType} voucher.`,
+        `${sourceDocumentLabel} must reference a ${requiredSourceType} voucher.`,
         { sourceVoucherId: linkedVoucher.id, sourceVoucherType: linkedVoucher.type },
         409
       )
@@ -547,7 +879,7 @@ async function buildVoucherRecord(
     }
   } else if (parsedPayload.sourceVoucherId !== null) {
     throw new ApplicationError(
-      "Source voucher linkage is supported only for credit and debit notes.",
+      "Source voucher linkage is supported only for returns, notes, and landed cost documents.",
       { type: parsedPayload.type, sourceVoucherId: parsedPayload.sourceVoucherId },
       400
     )
@@ -582,8 +914,16 @@ async function buildVoucherRecord(
 
   const salesInvoice =
     parsedPayload.type === "sales" && parsedPayload.sales !== null
-      ? buildSalesInvoice(parsedPayload.sales, voucherTypeMap, ledgerMap)
+      ? buildSalesInvoice(parsedPayload.sales, voucherTypeMap, ledgerMap, productMap)
       : null
+  const stock = buildVoucherStock(
+    parsedPayload.type,
+    parsedPayload,
+    salesInvoice,
+    productMap,
+    warehouseNameMap,
+    existing
+  )
   const derivedGstPayload = salesInvoice?.gstPayload ?? parsedPayload.gst
   const autoPosted =
     derivedGstPayload !== null
@@ -605,6 +945,17 @@ async function buildVoucherRecord(
   if (!counterparty) {
     throw new ApplicationError(
       "Counterparty is required.",
+      { type: parsedPayload.type },
+      400
+    )
+  }
+
+  if (
+    ["stock_adjustment", "landed_cost"].includes(parsedPayload.type) &&
+    stock === null
+  ) {
+    throw new ApplicationError(
+      "Stock-linked voucher requires stock rows.",
       { type: parsedPayload.type },
       400
     )
@@ -652,7 +1003,7 @@ async function buildVoucherRecord(
 
   const timestamp = new Date().toISOString()
   const fyBase = resolveFinancialYear(parsedPayload.date, config)
-  const prefix = getVoucherPrefix(parsedPayload.type)
+  const prefix = getConfiguredVoucherPrefix(parsedPayload.type, config)
   const sequenceNumber =
     existing?.financialYear.sequenceNumber ??
     existingVouchers.filter((voucher) => voucher.financialYear.code === fyBase.code && voucher.type === parsedPayload.type).length + 1
@@ -661,8 +1012,21 @@ async function buildVoucherRecord(
     sequenceNumber,
     prefix,
   }
-  const voucherNumber =
-    parsedPayload.voucherNumber.trim() || createVoucherNumber(parsedPayload.type, financialYear)
+  const voucherNumber = resolveVoucherNumber(parsedPayload, financialYear, config)
+  const review = buildVoucherReviewState(
+    {
+      type: parsedPayload.type,
+      gst,
+      lines,
+      sales:
+        parsedPayload.type === "sales"
+          ? salesInvoice?.sales ?? existing?.sales ?? null
+          : null,
+    },
+    config,
+    existing,
+    timestamp
+  )
 
   const baseRecord = {
     id: existing?.id ?? `voucher:${randomUUID()}`,
@@ -675,6 +1039,7 @@ async function buildVoucherRecord(
     reversedAt: existing?.reversedAt ?? null,
     reversalReason: existing?.reversalReason ?? null,
     sourceDocument,
+    review,
     type: parsedPayload.type,
     date: parsedPayload.date,
     counterparty,
@@ -685,6 +1050,7 @@ async function buildVoucherRecord(
       parsedPayload.type === "sales"
         ? salesInvoice?.sales ?? existing?.sales ?? null
         : null,
+    stock,
     financialYear,
     billAllocations: parsedPayload.billAllocations.map((allocation) => ({
       id:
@@ -868,6 +1234,7 @@ export async function createBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
     action: createdItem.status === "posted" ? "voucher_post" : "voucher_create",
@@ -929,6 +1296,7 @@ export async function updateBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   if (updatedItem.status === "posted" && existingItem.status !== "posted") {
     await writeBillingVoucherAudit(database, config, user, {
@@ -992,6 +1360,7 @@ export async function deleteBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
     action: "voucher_delete",
@@ -1058,7 +1427,7 @@ export async function reverseBillingVoucher(
     )
   }
   const fyBase = resolveFinancialYear(reversalDate, config)
-  const prefix = getVoucherPrefix(existingItem.type)
+  const prefix = getConfiguredVoucherPrefix(existingItem.type, config)
   const sequenceNumber =
     items.filter(
       (voucher) =>
@@ -1069,7 +1438,11 @@ export async function reverseBillingVoucher(
     sequenceNumber,
     prefix,
   }
-  const reversalVoucherNumber = createVoucherNumber(existingItem.type, financialYear)
+  const reversalVoucherNumber = createVoucherNumber(
+    existingItem.type,
+    financialYear,
+    prefix
+  )
 
   const reversalItem = billingVoucherSchema.parse({
     ...existingItem,
@@ -1083,6 +1456,7 @@ export async function reverseBillingVoucher(
     reversedAt: null,
     reversalReason: parsedPayload.reason,
     sourceDocument: null,
+    review: buildVoucherReviewState(existingItem, config, undefined, timestamp),
     date: reversalDate,
     narration: `Reversal of ${existingItem.voucherNumber}. ${parsedPayload.reason}`,
     lines: existingItem.lines.map((line) => ({
@@ -1151,6 +1525,7 @@ export async function reverseBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
     action: "voucher_reverse",
@@ -1241,6 +1616,7 @@ export async function reconcileBillingVoucher(
     await replaceBillingVoucherHeaders(database, nextItems)
     await replaceBillingVoucherLines(database, nextItems)
     await replaceBillingLedgerEntries(database, nextItems)
+    await synchronizeBillingInventoryToCore(database, nextItems, config)
 
     await writeBillingVoucherAudit(database, config, user, {
       action: "voucher_reconcile",
@@ -1301,6 +1677,7 @@ export async function reconcileBillingVoucher(
   await replaceBillingVoucherHeaders(database, nextItems)
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
+  await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
     action: "voucher_reconcile",
@@ -1318,5 +1695,133 @@ export async function reconcileBillingVoucher(
 
   return billingVoucherBankReconciliationResponseSchema.parse({
     item: updatedItem,
+  })
+}
+
+export async function reviewBillingVoucher(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  config: ServerConfig,
+  voucherId: string,
+  payload: unknown
+) {
+  assertBillingViewer(user)
+
+  const parsedPayload = billingVoucherReviewPayloadSchema.parse(payload)
+  const items = await readVouchers(database)
+  const existingItem = items.find((item) => item.id === voucherId)
+
+  if (!existingItem) {
+    throw new ApplicationError("Billing voucher could not be found.", { voucherId }, 404)
+  }
+
+  if (existingItem.review.status === "not_required") {
+    throw new ApplicationError(
+      "This billing voucher does not require review under the current policy.",
+      { voucherId, voucherNumber: existingItem.voucherNumber },
+      409
+    )
+  }
+
+  const timestamp = new Date().toISOString()
+  const updatedItem = billingVoucherSchema.parse({
+    ...existingItem,
+    updatedAt: timestamp,
+    review: {
+      ...existingItem.review,
+      status: parsedPayload.status,
+      reviewedAt: timestamp,
+      reviewedByUserId: user.id,
+      note: parsedPayload.note,
+    },
+  })
+
+  const nextItems = items.map((item) => (item.id === voucherId ? updatedItem : item))
+  await replaceStorePayloads(
+    database,
+    billingTableNames.vouchers,
+    nextItems.map((item, index) => ({
+      id: item.id,
+      moduleKey: "vouchers",
+      sortOrder: index + 1,
+      payload: item,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }))
+  )
+  await replaceBillingVoucherHeaders(database, nextItems)
+  await replaceBillingVoucherLines(database, nextItems)
+  await replaceBillingLedgerEntries(database, nextItems)
+  await synchronizeBillingInventoryToCore(database, nextItems, config)
+
+  await writeBillingVoucherAudit(database, config, user, {
+    action: "voucher_review",
+    message: `${parsedPayload.status === "approved" ? "Approved" : "Rejected"} billing voucher ${updatedItem.voucherNumber} for finance review.`,
+    voucher: updatedItem,
+    details: {
+      reviewStatus: parsedPayload.status,
+      reviewNote: parsedPayload.note,
+    },
+  })
+
+  return billingVoucherReviewResponseSchema.parse({
+    item: updatedItem,
+  })
+}
+
+export async function getBillingVoucherDocument(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  voucherId: string,
+  format: BillingVoucherDocumentFormat
+) {
+  assertBillingViewer(user)
+
+  const item = await getStorePayloadById(
+    database,
+    billingTableNames.vouchers,
+    voucherId,
+    billingVoucherSchema
+  )
+
+  if (!item) {
+    throw new ApplicationError("Billing voucher could not be found.", { voucherId }, 404)
+  }
+
+  const title = buildVoucherDocumentTitle(item)
+  const safeBaseName = `${item.voucherNumber}`.replace(/[^A-Za-z0-9._-]+/g, "-")
+  const documentItem =
+    format === "print"
+      ? billingVoucherDocumentTemplateSchema.parse({
+          voucherId: item.id,
+          voucherNumber: item.voucherNumber,
+          title,
+          format,
+          fileName: `${safeBaseName}.html`,
+          mimeType: "text/html",
+          content: buildVoucherPrintDocument(item),
+        })
+      : format === "csv"
+        ? billingVoucherDocumentTemplateSchema.parse({
+            voucherId: item.id,
+            voucherNumber: item.voucherNumber,
+            title,
+            format,
+            fileName: `${safeBaseName}.csv`,
+            mimeType: "text/csv",
+            content: buildVoucherCsvDocument(item),
+          })
+        : billingVoucherDocumentTemplateSchema.parse({
+            voucherId: item.id,
+            voucherNumber: item.voucherNumber,
+            title,
+            format,
+            fileName: `${safeBaseName}.json`,
+            mimeType: "application/json",
+            content: JSON.stringify(item, null, 2),
+          })
+
+  return billingVoucherDocumentResponseSchema.parse({
+    item: documentItem,
   })
 }

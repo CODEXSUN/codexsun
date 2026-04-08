@@ -149,6 +149,26 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     ),
     BILLING_LOCK_DATE: config.billing.compliance.lockDate ?? "",
     BILLING_PERIOD_CLOSED_THROUGH: config.billing.compliance.periodClosedThrough ?? "",
+    BILLING_DOCUMENT_NUMBERING_POLICY: config.billing.compliance.documentNumbering.policy,
+    BILLING_REVIEW_ENABLED: config.billing.compliance.review.enabled,
+    BILLING_REVIEW_THRESHOLD_AMOUNT: String(
+      config.billing.compliance.review.amountThreshold
+    ),
+    BILLING_STOCK_VALUATION_METHOD: config.billing.compliance.stock.valuationMethod,
+    BILLING_PREFIX_PAYMENT: config.billing.compliance.documentNumbering.prefixes.payment,
+    BILLING_PREFIX_RECEIPT: config.billing.compliance.documentNumbering.prefixes.receipt,
+    BILLING_PREFIX_SALES: config.billing.compliance.documentNumbering.prefixes.sales,
+    BILLING_PREFIX_SALES_RETURN: config.billing.compliance.documentNumbering.prefixes.sales_return,
+    BILLING_PREFIX_CREDIT_NOTE: config.billing.compliance.documentNumbering.prefixes.credit_note,
+    BILLING_PREFIX_PURCHASE: config.billing.compliance.documentNumbering.prefixes.purchase,
+    BILLING_PREFIX_PURCHASE_RETURN: config.billing.compliance.documentNumbering.prefixes.purchase_return,
+    BILLING_PREFIX_DEBIT_NOTE: config.billing.compliance.documentNumbering.prefixes.debit_note,
+    BILLING_PREFIX_STOCK_ADJUSTMENT:
+      config.billing.compliance.documentNumbering.prefixes.stock_adjustment,
+    BILLING_PREFIX_LANDED_COST:
+      config.billing.compliance.documentNumbering.prefixes.landed_cost,
+    BILLING_PREFIX_CONTRA: config.billing.compliance.documentNumbering.prefixes.contra,
+    BILLING_PREFIX_JOURNAL: config.billing.compliance.documentNumbering.prefixes.journal,
     BILLING_EINVOICE_ENABLED: config.billing.compliance.eInvoice.enabled,
     BILLING_EINVOICE_MODE: config.billing.compliance.eInvoice.mode,
     BILLING_EINVOICE_BASE_URL: config.billing.compliance.eInvoice.baseUrl ?? "",

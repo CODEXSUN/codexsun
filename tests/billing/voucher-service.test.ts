@@ -7,9 +7,11 @@ import test from "node:test"
 import {
   createBillingVoucher,
   deleteBillingVoucher,
+  getBillingVoucherDocument,
   listBillingVouchers,
   reconcileBillingVoucher,
   reverseBillingVoucher,
+  reviewBillingVoucher,
   updateBillingVoucher,
 } from "../../apps/billing/src/services/voucher-service.js"
 import { listBillingVoucherHeaders } from "../../apps/billing/src/services/voucher-header-store.js"
@@ -22,6 +24,7 @@ import {
 } from "../../apps/framework/src/runtime/database/index.js"
 import { ApplicationError } from "../../apps/framework/src/runtime/errors/application-error.js"
 import { listActivityLogs } from "../../apps/framework/src/runtime/activity-log/activity-log-service.js"
+import { getProduct, listProducts } from "../../apps/core/src/services/product-service.js"
 
 const adminUser = {
   id: "auth-user:platform-admin",
@@ -379,7 +382,7 @@ test("billing voucher service posts balanced vouchers and supports update/delete
   }
 })
 
-test("billing voucher service validates financial year rollover, auto numbering, bill allocation totals, and mock integrations", async () => {
+test("billing voucher service validates financial year rollover, auto numbering, bill allocation totals, and explicit compliance modes", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-parameters-"))
 
   try {
@@ -389,8 +392,8 @@ test("billing voucher service validates financial year rollover, auto numbering,
     config.offline.enabled = false
     config.billing.compliance.eInvoice.enabled = true
     config.billing.compliance.eWayBill.enabled = true
-    config.billing.compliance.eInvoice.mode = "mock"
-    config.billing.compliance.eWayBill.mode = "mock"
+    config.billing.compliance.eInvoice.mode = "manual"
+    config.billing.compliance.eWayBill.mode = "manual"
 
     const runtime = createRuntimeDatabases(config)
 
@@ -436,10 +439,12 @@ test("billing voucher service validates financial year rollover, auto numbering,
       assert.match(fyBoundaryVoucher.item.voucherNumber, /^SAL-2025-26-\d{3}$/)
       assert.equal(fyBoundaryVoucher.item.gst?.igstAmount, 18000)
       assert.equal(fyBoundaryVoucher.item.gst?.cgstAmount, 0)
-      assert.equal(fyBoundaryVoucher.item.eInvoice.status, "generated")
-      assert.equal(fyBoundaryVoucher.item.eWayBill.status, "generated")
-      assert.equal(fyBoundaryVoucher.item.eInvoice.irn !== null, true)
-      assert.equal(fyBoundaryVoucher.item.eWayBill.ewayBillNo !== null, true)
+      assert.equal(fyBoundaryVoucher.item.eInvoice.status, "pending")
+      assert.equal(fyBoundaryVoucher.item.eWayBill.status, "pending")
+      assert.equal(fyBoundaryVoucher.item.eInvoice.irn, null)
+      assert.equal(fyBoundaryVoucher.item.eWayBill.ewayBillNo, null)
+      assert.match(fyBoundaryVoucher.item.eInvoice.errorMessage ?? "", /Manual compliance mode/i)
+      assert.match(fyBoundaryVoucher.item.eWayBill.errorMessage ?? "", /Manual compliance mode/i)
 
       const fyNextVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
         voucherNumber: "",
@@ -1475,7 +1480,7 @@ test("billing voucher service supports credit note documents as first-class vouc
   }
 })
 
-test("billing voucher service auto-posts GST correctly for credit and debit notes", async () => {
+test("billing voucher service auto-posts GST correctly for credit and debit notes under explicit compliance modes", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-note-gst-"))
 
   try {
@@ -1485,8 +1490,8 @@ test("billing voucher service auto-posts GST correctly for credit and debit note
     config.offline.enabled = false
     config.billing.compliance.eInvoice.enabled = true
     config.billing.compliance.eWayBill.enabled = true
-    config.billing.compliance.eInvoice.mode = "mock"
-    config.billing.compliance.eWayBill.mode = "mock"
+    config.billing.compliance.eInvoice.mode = "manual"
+    config.billing.compliance.eWayBill.mode = "live"
 
     const runtime = createRuntimeDatabases(config)
 
@@ -1526,8 +1531,10 @@ test("billing voucher service auto-posts GST correctly for credit and debit note
       assert.equal(creditNote.item.lines[0]?.side, "debit")
       assert.equal(creditNote.item.lines[1]?.side, "debit")
       assert.equal(creditNote.item.lines[3]?.side, "credit")
-      assert.equal(creditNote.item.eInvoice.status, "generated")
-      assert.equal(creditNote.item.eWayBill.status, "generated")
+      assert.equal(creditNote.item.eInvoice.status, "pending")
+      assert.equal(creditNote.item.eWayBill.status, "pending")
+      assert.match(creditNote.item.eInvoice.errorMessage ?? "", /Manual compliance mode/i)
+      assert.match(creditNote.item.eWayBill.errorMessage ?? "", /Live e-way bill mode/i)
 
       const debitNote = await createBillingVoucher(runtime.primary, adminUser, config, {
         voucherNumber: "",
@@ -1562,8 +1569,10 @@ test("billing voucher service auto-posts GST correctly for credit and debit note
       assert.equal(debitNote.item.lines[0]?.side, "debit")
       assert.equal(debitNote.item.lines[1]?.side, "credit")
       assert.equal(debitNote.item.lines[3]?.side, "credit")
-      assert.equal(debitNote.item.eInvoice.status, "generated")
-      assert.equal(debitNote.item.eWayBill.status, "generated")
+      assert.equal(debitNote.item.eInvoice.status, "pending")
+      assert.equal(debitNote.item.eWayBill.status, "pending")
+      assert.match(debitNote.item.eInvoice.errorMessage ?? "", /Manual compliance mode/i)
+      assert.match(debitNote.item.eWayBill.errorMessage ?? "", /Live e-way bill mode/i)
     } finally {
       await runtime.destroy()
     }
@@ -1840,6 +1849,377 @@ test("billing voucher service enforces lock date and closed period rules on crea
           error instanceof ApplicationError &&
           error.statusCode === 409 &&
           error.message.includes("blocked")
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service supports return workflows and numbering policy controls", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-returns-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.documentNumbering.policy = "auto"
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await assert.rejects(
+        () =>
+          createBillingVoucher(runtime.primary, adminUser, config, {
+            voucherNumber: "SRT-MANUAL-001",
+            status: "posted",
+            type: "sales_return",
+            sourceVoucherId: "voucher-sales-001",
+            date: "2026-04-14",
+            counterparty: "Maya Fashion House",
+            narration: "Manual numbering should be blocked in auto mode.",
+            lines: [],
+            billAllocations: [],
+            gst: {
+              supplyType: "intra",
+              placeOfSupply: "KA",
+              partyGstin: "29ABCDE1234F1Z5",
+              hsnOrSac: "6204",
+              taxableAmount: 1000,
+              taxRate: 5,
+              taxableLedgerId: "ledger-sales",
+              partyLedgerId: "ledger-sundry-debtors",
+            },
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("Manual voucher numbers are disabled")
+      )
+
+      const salesReturn = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        status: "posted",
+        type: "sales_return",
+        sourceVoucherId: "voucher-sales-001",
+        date: "2026-04-14",
+        counterparty: "Maya Fashion House",
+        narration: "Returned two rolls against sales invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "6204",
+          taxableAmount: 12000,
+          taxRate: 5,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(salesReturn.item.type, "sales_return")
+      assert.equal(salesReturn.item.sourceDocument?.voucherId, "voucher-sales-001")
+      assert.match(salesReturn.item.voucherNumber, /^SRT-/)
+      assert.equal(salesReturn.item.gst?.taxDirection, "output")
+
+      const purchaseReturn = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "",
+        status: "posted",
+        type: "purchase_return",
+        sourceVoucherId: "voucher-purchase-001",
+        date: "2026-04-15",
+        counterparty: "Northwind Textiles LLP",
+        narration: "Returned damaged lot to supplier.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "inter",
+          placeOfSupply: "TN",
+          partyGstin: "33AAACS4321P1Z1",
+          hsnOrSac: "6205",
+          taxableAmount: 15000,
+          taxRate: 12,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(purchaseReturn.item.type, "purchase_return")
+      assert.equal(purchaseReturn.item.sourceDocument?.voucherId, "voucher-purchase-001")
+      assert.match(purchaseReturn.item.voucherNumber, /^PRT-/)
+      assert.equal(purchaseReturn.item.gst?.taxDirection, "input")
+
+      config.billing.compliance.documentNumbering.policy = "manual"
+
+      await assert.rejects(
+        () =>
+          createBillingVoucher(runtime.primary, adminUser, config, {
+            voucherNumber: "",
+            status: "draft",
+            type: "journal",
+            date: "2026-04-16",
+            counterparty: "Manual policy",
+            narration: "Manual numbering is required here.",
+            lines: [
+              {
+                ledgerId: "ledger-rent",
+                side: "debit",
+                amount: 1000,
+                note: "Expense",
+              },
+              {
+                ledgerId: "ledger-sundry-creditors",
+                side: "credit",
+                amount: 1000,
+                note: "Liability",
+              },
+            ],
+            billAllocations: [],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("Manual voucher number is required")
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service supports sensitive review flow and document export templates", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-review-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.billing.compliance.review.enabled = true
+    config.billing.compliance.review.amountThreshold = 20000
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const created = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-811",
+        status: "posted",
+        type: "payment",
+        date: "2026-04-18",
+        counterparty: "Sensitive Supplier",
+        narration: "High-value payment that should enter review.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 30000,
+            note: "Supplier settlement",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 30000,
+            note: "Bank payout",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(created.item.review.status, "pending_review")
+
+      const reviewed = await reviewBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        created.item.id,
+        {
+          status: "approved",
+          note: "Verified by finance manager.",
+        }
+      )
+
+      assert.equal(reviewed.item.review.status, "approved")
+      assert.equal(reviewed.item.review.reviewedByUserId, adminUser.id)
+
+      const printDocument = await getBillingVoucherDocument(
+        runtime.primary,
+        adminUser,
+        created.item.id,
+        "print"
+      )
+      const csvDocument = await getBillingVoucherDocument(
+        runtime.primary,
+        adminUser,
+        created.item.id,
+        "csv"
+      )
+      const jsonDocument = await getBillingVoucherDocument(
+        runtime.primary,
+        adminUser,
+        created.item.id,
+        "json"
+      )
+
+      assert.equal(printDocument.item.mimeType, "text/html")
+      assert.match(printDocument.item.content, /Payment Voucher/)
+      assert.equal(csvDocument.item.mimeType, "text/csv")
+      assert.match(csvDocument.item.content, /Review Status/)
+      assert.equal(jsonDocument.item.mimeType, "application\/json")
+      assert.match(jsonDocument.item.content, /approved/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service bridges purchase receipts and sales issues into core stock", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-stock-bridge-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const products = await listProducts(runtime.primary)
+      const productId = products.items[0]?.id
+
+      assert.ok(productId)
+
+      const beforeProduct = await getProduct(runtime.primary, adminUser, productId)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-880",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-19",
+        counterparty: "Northwind Textiles LLP",
+        narration: "Purchase receipt with stock bridge.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29AAACS4321P1Z1",
+          hsnOrSac: "6204",
+          taxableAmount: 1000,
+          taxRate: 5,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        stock: {
+          items: [
+            {
+              productId,
+              warehouseId: "warehouse:default",
+              quantity: 5,
+              unit: "Nos",
+              unitCost: 200,
+              landedCostAmount: 0,
+              note: "Received into stock",
+            },
+          ],
+        },
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-880",
+        status: "posted",
+        type: "sales",
+        date: "2026-04-20",
+        counterparty: "Maya Fashion House",
+        narration: "Sales issue with product-linked stock reduction.",
+        lines: [],
+        billAllocations: [],
+        gst: null,
+        sales: {
+          voucherTypeId: "voucher-type-garment-sales",
+          customerLedgerId: "ledger-sundry-debtors",
+          billToName: "Maya Fashion House",
+          billToAddress: "Bengaluru",
+          shipToName: "Maya Fashion House",
+          shipToAddress: "Bengaluru",
+          dueDate: "2026-04-25",
+          referenceNumber: "PO-STOCK-001",
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29AABCN1234D1Z5",
+          taxRate: 5,
+          items: [
+            {
+              productId,
+              warehouseId: "warehouse:default",
+              itemName: beforeProduct.item.name,
+              description: "Stock-linked sale",
+              hsnOrSac: "6204",
+              quantity: 2,
+              unit: "Nos",
+              rate: 400,
+            },
+          ],
+        },
+        stock: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const afterProduct = await getProduct(runtime.primary, adminUser, productId)
+
+      assert.equal(afterProduct.item.totalStockQuantity, beforeProduct.item.totalStockQuantity + 3)
+      assert.equal(
+        afterProduct.item.stockMovements.some(
+          (movement) =>
+            movement.referenceType === "billing_voucher" &&
+            movement.movementType === "billing_purchase_receipt"
+        ),
+        true
+      )
+      assert.equal(
+        afterProduct.item.stockMovements.some(
+          (movement) =>
+            movement.referenceType === "billing_voucher" &&
+            movement.movementType === "billing_sales_issue"
+        ),
+        true
       )
     } finally {
       await runtime.destroy()

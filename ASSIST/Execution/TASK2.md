@@ -96,37 +96,37 @@ It is the app that should own:
 
 ### Stage B7: GST And Tax
 
-- [ ] B7.1 add GST sales register
-- [ ] B7.2 add GST purchase register
-- [ ] B7.3 add input vs output tax summary
-- [ ] B7.4 add tax-period filters and filing-ready summaries
-- [ ] B7.5 replace mock-only posture with explicit live or manual-compliance mode
+- [x] B7.1 add GST sales register
+- [x] B7.2 add GST purchase register
+- [x] B7.3 add input vs output tax summary
+- [x] B7.4 add tax-period filters and filing-ready summaries
+- [x] B7.5 replace mock-only posture with explicit live or manual-compliance mode
 
 ### Stage B8: Sales And Purchase Document Maturity
 
-- [ ] B8.1 add sales return workflow
-- [ ] B8.2 add purchase return workflow
-- [ ] B8.3 add invoice print and export templates
-- [ ] B8.4 add document numbering policy controls
-- [ ] B8.5 add approval or review flow for sensitive finance documents
+- [x] B8.1 add sales return workflow
+- [x] B8.2 add purchase return workflow
+- [x] B8.3 add invoice print and export templates
+- [x] B8.4 add document numbering policy controls
+- [x] B8.5 add approval or review flow for sensitive finance documents
 
 ## Inventory And Accounting Integration
 
 ### Stage B9: Stock Accounting Foundation
 
-- [ ] B9.1 decide inventory authority between `billing` and shared masters in `core`
-- [ ] B9.2 define stock ledger model
-- [ ] B9.3 define valuation method policy
-- [ ] B9.4 add stock-to-account posting rules
-- [ ] B9.5 add warehouse-wise stock position reporting
+- [x] B9.1 decide inventory authority between `billing` and shared masters in `core`
+- [x] B9.2 define stock ledger model
+- [x] B9.3 define valuation method policy
+- [x] B9.4 add stock-to-account posting rules
+- [x] B9.5 add warehouse-wise stock position reporting
 
 ### Stage B10: Commercial Inventory Operations
 
-- [ ] B10.1 add purchase-to-stock accounting bridge
-- [ ] B10.2 add sales-to-stock reduction accounting bridge
-- [ ] B10.3 add stock adjustment workflow
-- [ ] B10.4 add landed-cost handling
-- [ ] B10.5 add stock valuation report
+- [x] B10.1 add purchase-to-stock accounting bridge
+- [x] B10.2 add sales-to-stock reduction accounting bridge
+- [x] B10.3 add stock adjustment workflow
+- [x] B10.4 add landed-cost handling
+- [x] B10.5 add stock valuation report
 
 ## Control, Close, And Audit
 

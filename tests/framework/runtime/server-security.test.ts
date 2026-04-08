@@ -69,11 +69,11 @@ function createConfig(): ServerConfig {
         financialYearStartDay: 1,
         eInvoice: {
           enabled: false,
-          mode: "mock",
+          mode: "manual",
         },
         eWayBill: {
           enabled: false,
-          mode: "mock",
+          mode: "manual",
         },
       },
     },

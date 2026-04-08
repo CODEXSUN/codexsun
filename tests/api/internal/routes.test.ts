@@ -87,8 +87,10 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("GET /internal/v1/billing/vouchers"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/reports"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/voucher/document"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/vouchers"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reverse"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/review"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reconciliation"))
   assert.ok(routePaths.includes("PATCH /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
@@ -283,6 +285,8 @@ test("authenticated core runtime settings routes read and save env-backed settin
               APP_HTTP_PORT: "3200",
               DB_DRIVER: "sqlite",
               SQLITE_FILE: "storage/runtime.sqlite",
+              BILLING_EINVOICE_MODE: "manual",
+              BILLING_EWAYBILL_MODE: "manual",
             },
           }),
           jsonBody: {
@@ -293,6 +297,8 @@ test("authenticated core runtime settings routes read and save env-backed settin
               APP_HTTP_PORT: "3200",
               DB_DRIVER: "sqlite",
               SQLITE_FILE: "storage/runtime.sqlite",
+              BILLING_EINVOICE_MODE: "manual",
+              BILLING_EWAYBILL_MODE: "manual",
             },
           },
         },
@@ -1937,6 +1943,14 @@ test("authenticated billing internal routes return categories, vouchers, reports
         (candidate) =>
           candidate.method === "POST" && candidate.path === "/internal/v1/billing/voucher/reverse"
       )
+      const reviewRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/billing/voucher/review"
+      )
+      const documentRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/billing/voucher/document"
+      )
       const reconcileRoute = routes.find(
         (candidate) =>
           candidate.method === "POST" &&
@@ -1953,6 +1967,8 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.ok(reportsRoute)
       assert.ok(createRoute)
       assert.ok(reverseRoute)
+      assert.ok(reviewRoute)
+      assert.ok(documentRoute)
       assert.ok(reconcileRoute)
 
       const categoryListResponse = await categoryListRoute.handler({
@@ -2242,13 +2258,92 @@ test("authenticated billing internal routes return categories, vouchers, reports
       })
 
       const createdPayload = JSON.parse(createResponse.body) as {
-        item: { status: string; voucherNumber: string; financialYear: { code: string } }
+        item: { id: string; status: string; voucherNumber: string; financialYear: { code: string } }
       }
 
       assert.equal(createResponse.statusCode, 201)
       assert.equal(createdPayload.item.status, "draft")
       assert.match(createdPayload.item.voucherNumber, /^JRN-2026-27-\d{3}$/)
       assert.equal(createdPayload.item.financialYear.code, "FY2026-27")
+
+      const sensitiveCreateResponse = await createRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/vouchers",
+          url: new URL("http://localhost/internal/v1/billing/vouchers"),
+          headers,
+          bodyText: JSON.stringify({
+            voucherNumber: "PAY-2026-901",
+            status: "posted",
+            type: "payment",
+            date: "2026-04-06",
+            counterparty: "Route Sensitive Supplier",
+            narration: "Sensitive route review coverage.",
+            lines: [
+              {
+                ledgerId: "ledger-sundry-creditors",
+                side: "debit",
+                amount: 22000,
+                note: "Supplier settlement.",
+              },
+              {
+                ledgerId: "ledger-hdfc",
+                side: "credit",
+                amount: 22000,
+                note: "Bank payment.",
+              },
+            ],
+            billAllocations: [],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          }),
+          jsonBody: {
+            voucherNumber: "PAY-2026-901",
+            status: "posted",
+            type: "payment",
+            date: "2026-04-06",
+            counterparty: "Route Sensitive Supplier",
+            narration: "Sensitive route review coverage.",
+            lines: [
+              {
+                ledgerId: "ledger-sundry-creditors",
+                side: "debit",
+                amount: 22000,
+                note: "Supplier settlement.",
+              },
+              {
+                ledgerId: "ledger-hdfc",
+                side: "credit",
+                amount: 22000,
+                note: "Bank payment.",
+              },
+            ],
+            billAllocations: [],
+            gst: null,
+            transport: null,
+            generateEInvoice: false,
+            generateEWayBill: false,
+          },
+        },
+        route: {
+          auth: createRoute.auth,
+          path: createRoute.path,
+          surface: createRoute.surface,
+          version: createRoute.version,
+        },
+      })
+
+      const sensitiveCreatedPayload = JSON.parse(sensitiveCreateResponse.body) as {
+        item: { id: string; review: { status: string } }
+      }
+
+      assert.equal(sensitiveCreateResponse.statusCode, 201)
+      assert.equal(sensitiveCreatedPayload.item.review.status, "pending_review")
 
       const reverseResponse = await reverseRoute.handler({
         appSuite,
@@ -2331,6 +2426,69 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.equal(reconcilePayload.item.bankReconciliation.status, "mismatch")
       assert.equal(reconcilePayload.item.bankReconciliation.statementReference, "ROUTE-STMT-001")
       assert.equal(reconcilePayload.item.bankReconciliation.mismatchAmount, 14500)
+
+      const reviewResponse = await reviewRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/voucher/review",
+          url: new URL(`http://localhost/internal/v1/billing/voucher/review?id=${encodeURIComponent(sensitiveCreatedPayload.item.id)}`),
+          headers,
+          bodyText: JSON.stringify({
+            status: "approved",
+            note: "Route approval coverage.",
+          }),
+          jsonBody: {
+            status: "approved",
+            note: "Route approval coverage.",
+          },
+        },
+        route: {
+          auth: reviewRoute.auth,
+          path: reviewRoute.path,
+          surface: reviewRoute.surface,
+          version: reviewRoute.version,
+        },
+      })
+
+      const reviewPayload = JSON.parse(reviewResponse.body) as {
+        item: { review: { status: string; reviewedByUserId: string | null } }
+      }
+
+      assert.equal(reviewResponse.statusCode, 200)
+      assert.equal(reviewPayload.item.review.status, "approved")
+      assert.equal(typeof reviewPayload.item.review.reviewedByUserId, "string")
+
+      const documentResponse = await documentRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/billing/voucher/document",
+          url: new URL(`http://localhost/internal/v1/billing/voucher/document?id=${encodeURIComponent("voucher-sales-001")}&format=csv`),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: documentRoute.auth,
+          path: documentRoute.path,
+          surface: documentRoute.surface,
+          version: documentRoute.version,
+        },
+      })
+
+      const documentPayload = JSON.parse(documentResponse.body) as {
+        item: { mimeType: string; fileName: string; content: string }
+      }
+
+      assert.equal(documentResponse.statusCode, 200)
+      assert.equal(documentPayload.item.mimeType, "text/csv")
+      assert.match(documentPayload.item.fileName, /\.csv$/)
+      assert.match(documentPayload.item.content, /Voucher Number/)
 
       const reportsResponse = await reportsRoute.handler({
         appSuite,

@@ -1,13 +1,13 @@
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
-import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, reconcileBillingVoucher, reverseBillingVoucher, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
+import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, getBillingVoucherDocument, listBillingVouchers, reconcileBillingVoucher, reverseBillingVoucher, reviewBillingVoucher, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
 import { createBillingCategory, deleteBillingCategory, getBillingCategory, listBillingCategories, restoreBillingCategory, updateBillingCategory } from "../../../billing/src/services/category-service.js"
 import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
 import { createBillingVoucherGroup, deleteBillingVoucherGroup, listBillingVoucherGroups, restoreBillingVoucherGroup, updateBillingVoucherGroup } from "../../../billing/src/services/voucher-group-service.js"
 import { createBillingVoucherType, deleteBillingVoucherType, listBillingVoucherTypes, restoreBillingVoucherType, updateBillingVoucherType } from "../../../billing/src/services/voucher-type-service.js"
 import { getBillingAccountingReports } from "../../../billing/src/services/reporting-service.js"
-import { billingVoucherTypeSchema } from "../../../billing/shared/index.js"
+import { billingVoucherDocumentFormatSchema, billingVoucherTypeSchema } from "../../../billing/shared/index.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
@@ -403,7 +403,7 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(
-          await getBillingAccountingReports(context.databases.primary, user)
+          await getBillingAccountingReports(context.databases.primary, user, context.config)
         )
       },
     }),
@@ -534,6 +534,53 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
             context.config,
             voucherId,
             context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher/review", {
+      method: "POST",
+      summary: "Approve or reject a billing voucher in the finance review flow.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await reviewBillingVoucher(
+            context.databases.primary,
+            user,
+            context.config,
+            voucherId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher/document", {
+      summary: "Return a billing document template or export payload for print, csv, or json.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+        const formatParam = context.request.url.searchParams.get("format") ?? "print"
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingVoucherDocument(
+            context.databases.primary,
+            user,
+            voucherId,
+            billingVoucherDocumentFormatSchema.parse(formatParam)
           )
         )
       },

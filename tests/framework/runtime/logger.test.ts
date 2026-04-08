@@ -94,11 +94,11 @@ function createConfig(logLevel: ServerConfig["observability"]["logLevel"]): Serv
         financialYearStartDay: 1,
         eInvoice: {
           enabled: false,
-          mode: "mock",
+          mode: "manual",
         },
         eWayBill: {
           enabled: false,
-          mode: "mock",
+          mode: "manual",
         },
       },
     },

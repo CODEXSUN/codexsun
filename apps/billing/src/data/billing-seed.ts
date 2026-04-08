@@ -300,6 +300,15 @@ export const billingVoucherMasterTypes: BillingVoucherMasterType[] = [
   },
 ]
 
+const defaultVoucherReview = {
+  status: "not_required" as const,
+  requestedAt: null,
+  reviewedAt: null,
+  reviewedByUserId: null,
+  note: "",
+  requiredReason: null,
+}
+
 export const billingVouchers: BillingVoucher[] = [
   {
     id: "voucher-sales-001",
@@ -312,6 +321,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    review: defaultVoucherReview,
     type: "sales",
     date: "2026-03-24",
     counterparty: "Maya Fashion House",
@@ -392,6 +402,8 @@ export const billingVouchers: BillingVoucher[] = [
       items: [
         {
           id: "sales-item:seed:001",
+          productId: null,
+          warehouseId: null,
           itemName: "Women's Kurti Set",
           description: "Spring collection premium stitched set.",
           hsnOrSac: "6204",
@@ -402,6 +414,8 @@ export const billingVouchers: BillingVoucher[] = [
         },
         {
           id: "sales-item:seed:002",
+          productId: null,
+          warehouseId: null,
           itemName: "Printed Palazzo",
           description: "Coordinated bottom wear for the same collection.",
           hsnOrSac: "6204",
@@ -412,6 +426,7 @@ export const billingVouchers: BillingVoucher[] = [
         },
       ],
     },
+    stock: null,
     financialYear: {
       code: "FY2025-26",
       label: "2025-26",
@@ -465,6 +480,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    review: defaultVoucherReview,
     type: "purchase",
     date: "2026-03-25",
     counterparty: "Northwind Textiles LLP",
@@ -514,6 +530,7 @@ export const billingVouchers: BillingVoucher[] = [
       invoiceAmount: 94640,
     },
     sales: null,
+    stock: null,
     financialYear: {
       code: "FY2025-26",
       label: "2025-26",
@@ -567,6 +584,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    review: defaultVoucherReview,
     type: "receipt",
     date: "2026-03-26",
     counterparty: "Maya Fashion House",
@@ -591,6 +609,7 @@ export const billingVouchers: BillingVoucher[] = [
     ],
     gst: null,
     sales: null,
+    stock: null,
     financialYear: {
       code: "FY2025-26",
       label: "2025-26",
@@ -654,6 +673,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    review: defaultVoucherReview,
     type: "payment",
     date: "2026-03-27",
     counterparty: "Northwind Textiles LLP",
@@ -678,6 +698,7 @@ export const billingVouchers: BillingVoucher[] = [
     ],
     gst: null,
     sales: null,
+    stock: null,
     financialYear: {
       code: "FY2025-26",
       label: "2025-26",
@@ -741,6 +762,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    review: defaultVoucherReview,
     type: "contra",
     date: "2026-03-29",
     counterparty: "Internal transfer",
@@ -765,6 +787,7 @@ export const billingVouchers: BillingVoucher[] = [
     ],
     gst: null,
     sales: null,
+    stock: null,
     financialYear: {
       code: "FY2025-26",
       label: "2025-26",
@@ -818,6 +841,7 @@ export const billingVouchers: BillingVoucher[] = [
     reversedAt: null,
     reversalReason: null,
     sourceDocument: null,
+    review: defaultVoucherReview,
     type: "journal",
     date: "2026-03-31",
     counterparty: "Month-end adjustment",
@@ -842,6 +866,7 @@ export const billingVouchers: BillingVoucher[] = [
     ],
     gst: null,
     sales: null,
+    stock: null,
     financialYear: {
       code: "FY2025-26",
       label: "2025-26",

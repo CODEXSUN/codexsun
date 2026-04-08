@@ -46,6 +46,7 @@ import { coreCommonModuleMenuGroups, coreWorkspaceItems } from "@core/shared"
 import { demoWorkspaceItems } from "@demo/shared"
 import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
+import { taskWorkspaceItems } from "@task/shared"
 import { docsCategories } from "@/registry/data/catalog"
 import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
@@ -73,6 +74,7 @@ const appIconMap: Record<string, LucideIcon> = {
   site: Globe,
   tally: Database,
   task: Workflow,
+  crm: Users,
   ui: Blocks,
 }
 
@@ -524,6 +526,27 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "task") {
+    const taskWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      kanban: Workflow,
+      routines: Blocks,
+      templates: ClipboardList,
+      performance: LineChart,
+    }
+
+    return [
+      ...taskWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: taskWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -832,6 +855,46 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/billing`,
                   `/dashboard/apps/${app.id}/frappe`,
+                ].includes(item.route)
+              ),
+            },
+          ]
+      : app.id === "task"
+        ? [
+            {
+              id: `${app.id}-execution`,
+              label: "Execution",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                  `/dashboard/apps/${app.id}/kanban`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-systems`,
+              label: "Systems",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/routines`,
+                  `/dashboard/apps/${app.id}/templates`,
+                  `/dashboard/apps/${app.id}/performance`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
                 ].includes(item.route)
               ),
             },
