@@ -8,6 +8,18 @@
 
 ## v-0.0.1
 
+### [#105] 2026-04-08 - ERP integration decision signoff
+
+- completed Stage `8.5` by making the release-governance ERP mode explicit from the implemented repo state
+- recorded the current decision as `transactional bridge enabled`, because paid ecommerce orders already push into ERPNext Sales Order and connector-owned fulfilment, invoice, return, and refund sync-back flows already write local ecommerce snapshots
+- kept the decision bounded by the existing operational rules: storefront paid state commits locally first, ERP write failures fail closed, and transactional retries remain manual replay only after operator review
+
+### [#103] 2026-04-08 - Security and operations checklist gate
+
+- completed Stage `8.3` by defining one dedicated release-ops command and checklist for monitoring, backup, restore-drill, and security-review controls
+- added `npm.cmd run test:release:security-ops` over the existing framework route checks plus the admin-shell framework operations e2e, then recorded the checklist scope in a dedicated planning artifact
+- validated the gate with `npm.cmd run test:release:security-ops`; this closes repo-runtime operational checks while leaving production credential and destination verification for Stage `8.4`
+
 ### [#101] 2026-04-08 - Storefront smoke checklist gate
 
 - completed Stage `8.1` by defining one dedicated storefront smoke command and checklist for the homepage-to-paid-order-to-tracking journey

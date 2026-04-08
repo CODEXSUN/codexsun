@@ -526,6 +526,8 @@ Connector hardening baseline:
 - Add backup, monitoring, and alerting.
 - Close the storefront smoke gate with one explicit buy-to-track command before broader release signoff.
 - Close the ecommerce admin operations gate with one explicit content-orders-payments-support command before broader release signoff.
+- Close the security and operations gate with one explicit monitoring-backup-restore-security command before environment signoff.
+- Record the ERP integration mode explicitly at release time as one of: deferred, master-sync only, or transactional bridge enabled.
 
 ### Wave 2: Commerce Operations
 
@@ -572,6 +574,7 @@ Connector hardening baseline:
 - Ecommerce and ERPNext ownership boundaries stay explicit.
 - Frontend, backend, admin, customer, and ERP support work are separated into executable waves.
 - The blueprint can be used as the release-governance checklist for first production launch.
+- Current release decision: ERP integration is `transactional bridge enabled` in a bounded form, because paid ecommerce orders already push into ERPNext Sales Order and fulfilment/invoice/refund sync-back already updates ecommerce from persisted connector records; this remains fail-closed and manual-replay for transactional retry.
 
 ## Reference Notes
 

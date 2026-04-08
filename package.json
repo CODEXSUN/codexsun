@@ -24,6 +24,8 @@
     "test:e2e": "playwright test",
     "test:e2e:storefront-smoke": "playwright test tests/e2e/storefront-order-flow.spec.ts tests/e2e/storefront-checkout.spec.ts tests/e2e/storefront-accessibility.spec.ts tests/e2e/storefront-mobile-matrix.spec.ts",
     "test:e2e:ecommerce-admin-ops": "playwright test tests/e2e/ecommerce-admin-operations.spec.ts",
+    "test:release:security-ops": "tsx --test tests/api/internal/routes.test.ts --test-name-pattern \"authenticated framework alerts dashboard route returns monitoring summaries|authenticated framework backup and security review routes return operational data\" && playwright test tests/e2e/framework-operations.spec.ts",
+    "test:release:env": "tsx apps/cli/src/release-env-check.ts",
     "test:e2e:performance": "playwright test -c playwright.performance.config.ts"
   },
   "dependencies": {

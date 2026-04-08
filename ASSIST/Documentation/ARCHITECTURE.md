@@ -293,6 +293,7 @@ ERPNext stock integration rule:
 23. ecommerce orders should persist a local ERP Sales Order link snapshot derived from the Frappe sync result so later commerce-side operations can resolve `order id -> ERP Sales Order id` without querying connector internals directly; legacy orders without that field must continue restoring safely as `null`
 24. fulfilment, invoice, and return or refund sync-back must follow the same connector-owned pattern: `apps/frappe` stores the latest ERP delivery-note, invoice, and return snapshots, then applies those results onto ecommerce orders as local ERP link snapshots plus lifecycle updates without requiring live ERP reads during storefront or admin runtime
 25. reconciliation and replay for ERP transaction sync-back should derive from persisted connector records and ecommerce order snapshots only; replay may reapply the latest stored connector record or rerun the existing Sales Order push path, but it must not silently create fresh live-ERP side effects outside the explicit connector boundary
+26. current release governance treats ERP integration as `transactional bridge enabled`, because the repo already contains live paid-order Sales Order push and transaction sync-back flows; this is still a bounded bridge, not a claim that ERP is the only runtime authority for storefront pricing, stock, auth, or customer lifecycle state
 
 ### Tally
 
@@ -448,5 +449,8 @@ Still future work:
 7. framework may host reusable auth primitives, but auth domain rules, tables, mailbox records, bootstrap state, and company records stay app-owned in `cxapp`
 8. `ecommerce` must not create a second browser auth store or JWT/session system; customer portal access must resolve through the shared `cxapp` auth session
 - Final release governance now uses two explicit ecommerce e2e gates before broader signoff:
+- Final release governance now uses three explicit repo-level gates before environment signoff:
   - `npm.cmd run test:e2e:storefront-smoke` for the public homepage-to-paid-order-to-tracking journey
   - `npm.cmd run test:e2e:ecommerce-admin-ops` for storefront content, orders, payments, and support operator surfaces
+  - `npm.cmd run test:release:security-ops` for monitoring, backup, restore-drill, and security-review checks
+9. final ERP release signoff must choose explicitly between `deferred`, `master-sync only`, or `transactional bridge enabled`; the current repo state is the third option, with fail-closed connector writes and manual replay after transactional failure

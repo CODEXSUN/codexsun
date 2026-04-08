@@ -541,3 +541,7 @@
 # 2026-04-08
 
 - `#102` Added the dedicated ecommerce admin-operations smoke spec and command, documented the Stage `8.2` checklist, and advanced the release gate to `8.3`.
+# 2026-04-08
+
+- `#105` Recorded the explicit ERP release mode as `transactional bridge enabled` with bounded scope covering Sales Order push plus connector-owned sync-back, while keeping fail-closed and manual-replay rules in force.
+- `#103` Added the dedicated security-and-operations release gate command, documented the Stage `8.3` checklist, and advanced the release gate to `8.4`.

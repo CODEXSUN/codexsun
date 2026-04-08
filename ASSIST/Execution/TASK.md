@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#102`
+`#106`
 
 ### Title
 
-`Admin operations checklist gate`
+`Go-live signoff record`
 
 ## Ecommerce Go-Live Schedule
 
@@ -209,7 +209,7 @@ Stage 1.1 baseline document:
 
 - [x] 8.1 full ecommerce smoke checklist passes from homepage to paid order and tracking
 - [x] 8.2 admin operations checklist passes for content, orders, payments, and support
-- [ ] 8.3 security, backup, restore, and monitoring checks pass
+- [x] 8.3 security, backup, restore, and monitoring checks pass
 - [ ] 8.4 production env and secret checklist passes
-- [ ] 8.5 ERP integration decision is explicit: deferred, master-sync only, or transactional bridge enabled
+- [x] 8.5 ERP integration decision is explicit: deferred, master-sync only, or transactional bridge enabled
 - [ ] 8.6 go-live signoff is recorded with rollback plan and owner list
