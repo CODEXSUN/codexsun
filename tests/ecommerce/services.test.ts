@@ -40,6 +40,7 @@ import {
 import {
   createCustomerOrderRequest,
   getStorefrontOrderRequestQueueReport,
+  getStorefrontRmaCustomerServiceReport,
   listCustomerOrderRequests,
   reviewStorefrontOrderRequest,
 } from "../../apps/ecommerce/src/services/storefront-order-request-service.js"
@@ -69,6 +70,8 @@ import {
   getStorefrontFailedPaymentReportDocument,
   getStorefrontPaymentDailySummaryDocument,
   getStorefrontAccountingCompatibilityReport,
+  getStorefrontAttributionReport,
+  getStorefrontMultiWarehouseReadinessReport,
   getStorefrontOperationalAgingReport,
   getStorefrontOverviewKpiReport,
   getStorefrontPaymentOperationsReport,
@@ -161,6 +164,9 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       })
       const recommendationPreview = await getStorefrontRecommendationReport(runtime.primary)
       const merchandisingReport = await getStorefrontMerchandisingAutomationReport(runtime.primary)
+      const multiWarehouseReadiness = await getStorefrontMultiWarehouseReadinessReport(
+        runtime.primary
+      )
 
       assert.equal(landing.settings.hero.title.length > 0, true)
       assert.equal(projectedProducts.length > 0, true)
@@ -180,6 +186,12 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(product.recommendedItems.length > 0, true)
       assert.equal(catalog.recommendationRail.length > 0, true)
       assert.equal(merchandisingReport.experimentSurfaces.length, 9)
+      assert.equal(multiWarehouseReadiness.summary.totalActiveProducts > 0, true)
+      assert.equal(
+        multiWarehouseReadiness.products.some((item) => item.activeWarehouseCount >= 1),
+        true
+      )
+      assert.equal(multiWarehouseReadiness.policy.storefrontAvailabilityModel, "aggregated")
 
       const savedSettings = await saveStorefrontSettings(runtime.primary, {
         announcement: "Updated storefront announcement",
@@ -531,6 +543,14 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(
         checkout.order.stockReservation?.items.reduce((sum, item) => sum + item.quantity, 0),
         2
+      )
+      const multiWarehouseReadinessAfterReservation =
+        await getStorefrontMultiWarehouseReadinessReport(runtime.primary)
+      assert.equal(
+        multiWarehouseReadinessAfterReservation.reservedOrders.some(
+          (item) => item.orderId === checkout.order.id
+        ),
+        true
       )
 
       const reservedProduct = await getStorefrontProduct(runtime.primary, {
@@ -1162,11 +1182,12 @@ test("customer cancellation and return requests flow through review and order op
 
       const approvedCancellation = await reviewStorefrontOrderRequest(runtime.primary, config, {
         requestId: cancellationRequest.item.id,
-        status: "approved",
+        status: "refund_pending",
         adminNote: "Cancellation approved before dispatch.",
       })
 
-      assert.equal(approvedCancellation.item.status, "approved")
+      assert.equal(approvedCancellation.item.status, "refund_pending")
+      assert.equal(Boolean(approvedCancellation.item.supportCaseNumber), true)
 
       const cancelledOrder = await getStorefrontAdminOrder(
         runtime.primary,
@@ -1254,13 +1275,21 @@ test("customer cancellation and return requests flow through review and order op
       assert.equal(queueReport.summary.cancellationCount, 1)
       assert.equal(queueReport.summary.returnCount, 1)
 
-      const approvedReturn = await reviewStorefrontOrderRequest(runtime.primary, config, {
+      const awaitingReturn = await reviewStorefrontOrderRequest(runtime.primary, config, {
         requestId: returnRequest.item.id,
-        status: "approved",
+        status: "awaiting_return",
         adminNote: "Return approved after delivered-item review.",
       })
 
-      assert.equal(approvedReturn.item.status, "approved")
+      assert.equal(awaitingReturn.item.status, "awaiting_return")
+
+      const approvedReturn = await reviewStorefrontOrderRequest(runtime.primary, config, {
+        requestId: returnRequest.item.id,
+        status: "refund_pending",
+        adminNote: "Return parcel received and refund initiated.",
+      })
+
+      assert.equal(approvedReturn.item.status, "refund_pending")
 
       const returnOrderAfterApproval = await getStorefrontAdminOrder(
         runtime.primary,
@@ -1269,6 +1298,11 @@ test("customer cancellation and return requests flow through review and order op
 
       assert.equal(returnOrderAfterApproval.item.status, "delivered")
       assert.equal(returnOrderAfterApproval.item.refund?.status, "requested")
+
+      const rmaReport = await getStorefrontRmaCustomerServiceReport(runtime.primary)
+      assert.equal(rmaReport.summary.totalItems, 2)
+      assert.equal(rmaReport.summary.financeRefundCount, 2)
+      assert.equal(rmaReport.items[0]?.supportCaseNumber != null, true)
 
       const customerRequests = await listCustomerOrderRequests(
         runtime.primary,
@@ -2084,6 +2118,125 @@ test("overview KPI report summarizes conversion, AOV, order counts, and aging co
       assert.equal(report.summary.refundOver72HoursCount, 0)
       assert.equal(report.summary.conversionRate, 50)
       assert.equal(report.summary.averageOrderValue, fulfilmentOrder.totalAmount)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("attribution report groups stored checkout attribution into channel and campaign performance", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-attribution-report-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      const organicCheckout = await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        attribution: {
+          source: "google",
+          medium: "organic",
+          campaign: "summer-glow",
+          content: null,
+          term: "serum",
+          referrer: "https://www.google.com/search?q=serum",
+          landingPath: "/products",
+          sessionKey: "session-organic-001",
+          channel: "unknown",
+          capturedAt: new Date().toISOString(),
+        },
+        shippingAddress: {
+          fullName: "Analytics Customer",
+          email: "analytics@codexsun.local",
+          phoneNumber: "+91 90000 22222",
+          line1: "14 Market Road",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Analytics Customer",
+          email: "analytics@codexsun.local",
+          phoneNumber: "+91 90000 22222",
+          line1: "14 Market Road",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      await verifyCheckoutPayment(runtime.primary, config, {
+        orderId: organicCheckout.order.id,
+        providerOrderId: organicCheckout.payment.providerOrderId,
+        providerPaymentId: "pay_attr_organic_001",
+        signature: "mock_signature",
+      })
+
+      await createCheckoutOrder(runtime.primary, config, {
+        items: [{ productId, quantity: 1 }],
+        attribution: {
+          source: "newsletter",
+          medium: "email",
+          campaign: "vip-drop",
+          content: "hero-banner",
+          term: null,
+          referrer: null,
+          landingPath: "/",
+          sessionKey: "session-email-001",
+          channel: "unknown",
+          capturedAt: new Date().toISOString(),
+        },
+        shippingAddress: {
+          fullName: "Analytics Customer",
+          email: "analytics2@codexsun.local",
+          phoneNumber: "+91 90000 33333",
+          line1: "18 Market Road",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        billingAddress: {
+          fullName: "Analytics Customer",
+          email: "analytics2@codexsun.local",
+          phoneNumber: "+91 90000 33333",
+          line1: "18 Market Road",
+          line2: null,
+          city: "Chennai",
+          state: "Tamil Nadu",
+          country: "India",
+          pincode: "600001",
+        },
+        notes: null,
+      })
+
+      const report = await getStorefrontAttributionReport(runtime.primary)
+      assert.equal(report.summary.trackedOrderCount, 2)
+      assert.equal(report.summary.paidTrackedOrderCount, 1)
+      assert.equal(report.summary.campaignAttributedOrderCount, 2)
+      assert.equal(report.summary.organicOrderCount, 1)
+      assert.equal(report.items.some((item) => item.channel === "organic_search"), true)
+      assert.equal(report.items.some((item) => item.channel === "email"), true)
     } finally {
       await runtime.destroy()
     }

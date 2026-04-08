@@ -279,6 +279,7 @@ Ecommerce is considered ready for go-live only when all of the following are tru
 - Treat storefront availability as one aggregated pool across all active product stock rows, and keep warehouse-level detail internal to operations for now.
 - Do not expose warehouse selection, split-shipment promises, pickup-only stock claims, or warehouse-specific ETA messaging until a later multi-warehouse implementation exists.
 - Keep store pickup on the same shared sellable pool used by delivery orders until warehouse-aware allocation rules are implemented.
+- Add an operator-facing multi-warehouse readiness report over active stock rows and active reservations before enabling any customer-visible warehouse logic, so the team can see where stock is already distributed across warehouses and where current reservations split across multiple locations.
 - Keep `apps/core` as the current authoritative source for storefront sell price and compare-at price.
 - Keep `apps/ecommerce` runtime pricing reads on active `core` price rows using `sellingPrice` and `mrp`, with `basePrice` only as fallback when no active row exists.
 - Do not derive effective customer-facing price from ERP snapshots, offer records, or coupon copy at request time until a later pricing-engine batch makes that behavior explicit.
@@ -510,7 +511,8 @@ Connector hardening baseline:
 - richer promotion engine and segmented pricing beyond the new deterministic ecommerce baseline.
 - recommendation/search ranking logic beyond the new local affinity and scoring baseline.
 - Multi-warehouse and reservation model.
-- Customer service and RMA workflow.
+- Customer service and RMA workflow now linked across order requests, support cases, and refund progression, with deeper reverse-logistics and attribution work still staged.
+- deeper analytics and attribution now have a local ecommerce baseline through persisted order snapshots, with real traffic ingest and external marketing analytics still staged.
 - deeper A/B experimentation and merchandising insights beyond the new readiness and hypothesis layer.
 
 ## Execution Plan
@@ -522,6 +524,8 @@ Connector hardening baseline:
 - Add missing mailbox templates and order communications.
 - Finish e2e and smoke coverage.
 - Add backup, monitoring, and alerting.
+- Close the storefront smoke gate with one explicit buy-to-track command before broader release signoff.
+- Close the ecommerce admin operations gate with one explicit content-orders-payments-support command before broader release signoff.
 
 ### Wave 2: Commerce Operations
 

@@ -8,6 +8,30 @@
 
 ## v-0.0.1
 
+### [#101] 2026-04-08 - Storefront smoke checklist gate
+
+- completed Stage `8.1` by defining one dedicated storefront smoke command and checklist for the homepage-to-paid-order-to-tracking journey
+- added `npm.cmd run test:e2e:storefront-smoke` over the existing ecommerce end-to-end specs covering buy flow, checkout, confirmation, tracking, accessibility labels, and mobile viewport sanity, then recorded the checklist scope in a dedicated planning artifact
+- validated the gate with `npm.cmd run test:e2e:storefront-smoke`; the run passed while still surfacing non-blocking SMTP authentication failures and a Frappe Sales Order settings parse warning outside the storefront smoke path
+
+### [#100] 2026-04-08 - Analytics and attribution model baseline
+
+- completed Stage `7.2.3` by adding a persisted ecommerce-owned attribution snapshot on storefront orders plus a protected attribution-performance report for operators
+- extended checkout and order contracts with optional source, medium, campaign, referrer, landing-path, and channel grouping data, normalized that snapshot safely for legacy orders, and exposed grouped channel or campaign reporting through an internal analytics route
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`; test runs still emit expected SMTP authentication warnings from the current mail configuration
+
+### [#99] 2026-04-08 - RMA and customer-service workflow maturity
+
+- completed Stage `7.2.2` by linking customer return or cancellation requests, support handling, and refund progression into one storefront RMA workflow
+- extended ecommerce support-case and order-request contracts with linked ids, team ownership, richer `awaiting_return -> refund_pending -> completed` lifecycle state, and a unified RMA or customer-service report for operators
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`; test runs still emit expected SMTP authentication warnings from the current mail configuration
+
+### [#98] 2026-04-08 - Multi-warehouse readiness baseline
+
+- completed Stage `7.2.1` by adding an operator-facing multi-warehouse readiness report on top of the current aggregated-stock storefront model
+- extended ecommerce reporting contracts with active product warehouse-spread and active reservation split-allocation visibility, then exposed the report through a protected internal ecommerce analytics route without changing customer-facing warehouse behavior
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test --test-name-pattern "internal route registry includes" tests/api/internal/routes.test.ts`
+
 ### [#97] 2026-04-08 - Advanced commerce maturity baseline
 
 - completed Stage `7.1.1` through `7.1.4` by adding ecommerce-owned recommendation and search-ranking improvements, deterministic segment pricing, lifecycle-marketing state, and merchandising-experiment readiness
@@ -686,3 +710,6 @@
 - completed Stage `T5.2` by adding bill reference, bill settlement, and overdue tracking tables with write rules for invoices, settlements, notes, and returns
 - started Stage `T5.3` by adding a split-register query service and protected billing register route so register reads can target voucher-family tables without loading full voucher JSON payloads
 - validated the batch with `npm run typecheck` and targeted billing service plus route tests
+# 2026-04-08
+
+- `#102` Completed Stage `8.2` by adding an explicit ecommerce admin operations release gate, a dedicated Playwright command, and a checklist artifact for storefront content, orders, payments, and support.

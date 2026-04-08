@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#97`
+`#102`
 
 ### Title
 
-`Advanced commerce maturity baseline`
+`Admin operations checklist gate`
 
 ## Ecommerce Go-Live Schedule
 
@@ -201,14 +201,14 @@ Stage 1.1 baseline document:
 
 ### Stage 7.2: Advanced Operations
 
-- [ ] 7.2.1 add multi-warehouse readiness if inventory authority requires it
-- [ ] 7.2.2 add full RMA and customer-service workflow maturity
-- [ ] 7.2.3 add deeper analytics and attribution model
+- [x] 7.2.1 add multi-warehouse readiness if inventory authority requires it
+- [x] 7.2.2 add full RMA and customer-service workflow maturity
+- [x] 7.2.3 add deeper analytics and attribution model
 
 ## Final Release Gate
 
-- [ ] 8.1 full ecommerce smoke checklist passes from homepage to paid order and tracking
-- [ ] 8.2 admin operations checklist passes for content, orders, payments, and support
+- [x] 8.1 full ecommerce smoke checklist passes from homepage to paid order and tracking
+- [x] 8.2 admin operations checklist passes for content, orders, payments, and support
 - [ ] 8.3 security, backup, restore, and monitoring checks pass
 - [ ] 8.4 production env and secret checklist passes
 - [ ] 8.5 ERP integration decision is explicit: deferred, master-sync only, or transactional bridge enabled

@@ -1499,6 +1499,7 @@ export function StorefrontCheckoutContent({
         paymentMethod,
         shippingMethodId: fulfillmentMethod === "delivery" ? selectedDeliveryPreference : null,
         couponCode: couponCode.trim().toUpperCase() || null,
+        attribution: null,
         shippingAddress: {
           ...shippingAddress,
           line2: shippingAddress.line2 || null,

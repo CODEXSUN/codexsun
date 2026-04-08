@@ -8,7 +8,9 @@ import type {
   StorefrontOrderRequest,
   StorefrontOrderRequestCreatePayload,
   StorefrontOrderRequestReviewPayload,
+  StorefrontOrderRequestStatus,
   StorefrontOrderRequestView,
+  StorefrontRmaCustomerServiceItem,
 } from "../../shared/index.js"
 import {
   storefrontOrderRequestCreatePayloadSchema,
@@ -18,6 +20,7 @@ import {
   storefrontOrderRequestReviewPayloadSchema,
   storefrontOrderRequestSchema,
   storefrontOrderRequestViewSchema,
+  storefrontRmaCustomerServiceReportSchema,
 } from "../../shared/index.js"
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import {
@@ -34,6 +37,10 @@ import {
   requestStorefrontRefund,
 } from "./order-service.js"
 import { readStorefrontOrders } from "./storefront-order-storage.js"
+import {
+  createLinkedSupportCaseForOrderRequest,
+  readStorefrontSupportCases,
+} from "./storefront-support-service.js"
 
 function orderBelongsToCustomer(order: StorefrontOrder, customer: CustomerAccount) {
   if (order.customerAccountId === customer.id) {
@@ -78,10 +85,22 @@ function buildRequestNumber(existingItems: StorefrontOrderRequest[]) {
   return `REQ-${String(existingItems.length + 1).padStart(4, "0")}`
 }
 
-function toRequestView(item: StorefrontOrderRequest, order: StorefrontOrder) {
+function buildRmaNumber(existingItems: StorefrontOrderRequest[]) {
+  return `RMA-${String(existingItems.filter((item) => item.type === "return").length + 1).padStart(4, "0")}`
+}
+
+function toRequestView(
+  item: StorefrontOrderRequest,
+  order: StorefrontOrder,
+  supportCaseLookup?: Map<string, { caseNumber: string; status: string }>
+) {
   const orderItem =
     item.orderItemId != null
       ? order.items.find((entry) => entry.id === item.orderItemId) ?? null
+      : null
+  const supportCase =
+    item.linkedSupportCaseId && supportCaseLookup
+      ? supportCaseLookup.get(item.linkedSupportCaseId) ?? null
       : null
 
   return storefrontOrderRequestViewSchema.parse({
@@ -91,6 +110,8 @@ function toRequestView(item: StorefrontOrderRequest, order: StorefrontOrder) {
     totalAmount: order.totalAmount,
     currency: order.currency,
     itemName: orderItem?.name ?? null,
+    supportCaseNumber: supportCase?.caseNumber ?? null,
+    supportCaseStatus: supportCase?.status ?? null,
   })
 }
 
@@ -118,18 +139,61 @@ function ensureReturnEligibility(order: StorefrontOrder) {
   }
 }
 
+function isRequestOperationallyActive(status: StorefrontOrderRequestStatus) {
+  return [
+    "requested",
+    "in_review",
+    "awaiting_return",
+    "refund_pending",
+  ].includes(status)
+}
+
+function summarizeRmaItem(input: {
+  request: StorefrontOrderRequest
+  order: StorefrontOrder
+}) {
+  if (input.request.type === "cancellation") {
+    return `Cancellation workflow for ${input.order.orderNumber} is ${input.request.status.replaceAll("_", " ")}.`
+  }
+
+  return `Return workflow for ${input.order.orderNumber} is ${input.request.status.replaceAll("_", " ")}.`
+}
+
+function deriveEscalationBucket(input: {
+  request: StorefrontOrderRequest
+  order: StorefrontOrder
+}) {
+  if (input.request.status === "completed" || input.request.status === "rejected") {
+    return "resolved" as const
+  }
+
+  if (input.request.status === "refund_pending") {
+    return input.order.erpReturnLink?.status === "failed" ? "erp_reconciliation" as const : "finance_refund" as const
+  }
+
+  if (input.request.status === "awaiting_return") {
+    return "awaiting_customer_return" as const
+  }
+
+  return "ops_review" as const
+}
+
 export async function listCustomerOrderRequests(
   database: Kysely<unknown>,
   config: ServerConfig,
   token: string,
   orderId?: string | null
 ) {
-  const [customer, items, orders] = await Promise.all([
+  const [customer, items, orders, supportCases] = await Promise.all([
     resolveAuthenticatedCustomerAccount(database, config, token),
     readStorefrontOrderRequests(database),
     readStorefrontOrders(database),
+    readStorefrontSupportCases(database),
   ])
   const orderLookup = new Map(orders.map((item) => [item.id, item]))
+  const supportCaseLookup = new Map(
+    supportCases.map((item) => [item.id, { caseNumber: item.caseNumber, status: item.status }])
+  )
 
   return storefrontOrderRequestListResponseSchema.parse({
     items: sortRequests(
@@ -147,7 +211,7 @@ export async function listCustomerOrderRequests(
     )
       .map((item) => {
         const order = orderLookup.get(item.orderId)
-        return order ? toRequestView(item, order) : null
+        return order ? toRequestView(item, order, supportCaseLookup) : null
       })
       .filter((item): item is StorefrontOrderRequestView => Boolean(item)),
   })
@@ -187,7 +251,7 @@ export async function createCustomerOrderRequest(
     (item) =>
       item.orderId === order.id &&
       item.type === parsed.type &&
-      ["requested", "in_review", "approved"].includes(item.status)
+      isRequestOperationallyActive(item.status)
   )
 
   if (activeRequest) {
@@ -202,11 +266,13 @@ export async function createCustomerOrderRequest(
   const request = storefrontOrderRequestSchema.parse({
     id: `storefront-order-request:${randomUUID()}`,
     requestNumber: buildRequestNumber(requests),
+    rmaNumber: parsed.type === "return" ? buildRmaNumber(requests) : null,
     type: parsed.type,
     status: "requested",
     orderId: order.id,
     orderNumber: order.orderNumber,
     orderItemId: parsed.orderItemId,
+    linkedSupportCaseId: null,
     customerAccountId: customer.id,
     coreContactId: customer.coreContactId,
     customerName: customer.displayName,
@@ -215,24 +281,45 @@ export async function createCustomerOrderRequest(
     reason: parsed.reason,
     adminNote: null,
     requestedAt: now,
+    approvedAt: null,
     reviewedAt: null,
+    receivedAt: null,
+    completedAt: null,
+    resolutionCode: null,
     createdAt: now,
     updatedAt: now,
   })
+  const supportCase = await createLinkedSupportCaseForOrderRequest(database, {
+    order,
+    request,
+  })
+  const linkedRequest = storefrontOrderRequestSchema.parse({
+    ...request,
+    linkedSupportCaseId: supportCase.id,
+    updatedAt: now,
+  })
 
-  await writeStorefrontOrderRequests(database, sortRequests([request, ...requests]))
+  await writeStorefrontOrderRequests(database, sortRequests([linkedRequest, ...requests]))
 
   return storefrontOrderRequestResponseSchema.parse({
-    item: toRequestView(request, order),
+    item: toRequestView(
+      linkedRequest,
+      order,
+      new Map([[supportCase.id, { caseNumber: supportCase.caseNumber, status: supportCase.status }]])
+    ),
   })
 }
 
 export async function getStorefrontOrderRequestQueueReport(database: Kysely<unknown>) {
-  const [requests, orders] = await Promise.all([
+  const [requests, orders, supportCases] = await Promise.all([
     readStorefrontOrderRequests(database),
     readStorefrontOrders(database),
+    readStorefrontSupportCases(database),
   ])
   const orderLookup = new Map(orders.map((item) => [item.id, item]))
+  const supportCaseLookup = new Map(
+    supportCases.map((item) => [item.id, { caseNumber: item.caseNumber, status: item.status }])
+  )
   const sortedItems = sortRequests(requests)
 
   return storefrontOrderRequestQueueReportSchema.parse({
@@ -243,13 +330,83 @@ export async function getStorefrontOrderRequestQueueReport(database: Kysely<unkn
       returnCount: sortedItems.filter((item) => item.type === "return").length,
       requestedCount: sortedItems.filter((item) => item.status === "requested").length,
       inReviewCount: sortedItems.filter((item) => item.status === "in_review").length,
+      awaitingReturnCount: sortedItems.filter((item) => item.status === "awaiting_return").length,
+      refundPendingCount: sortedItems.filter((item) => item.status === "refund_pending").length,
+      completedCount: sortedItems.filter((item) => item.status === "completed").length,
     },
     items: sortedItems
       .map((item) => {
         const order = orderLookup.get(item.orderId)
-        return order ? toRequestView(item, order) : null
+        return order ? toRequestView(item, order, supportCaseLookup) : null
       })
       .filter((item): item is StorefrontOrderRequestView => Boolean(item)),
+  })
+}
+
+export async function getStorefrontRmaCustomerServiceReport(database: Kysely<unknown>) {
+  const [requests, orders, supportCases] = await Promise.all([
+    readStorefrontOrderRequests(database),
+    readStorefrontOrders(database),
+    readStorefrontSupportCases(database),
+  ])
+  const orderLookup = new Map(orders.map((item) => [item.id, item]))
+  const supportCaseLookup = new Map(supportCases.map((item) => [item.id, item]))
+
+  const items: StorefrontRmaCustomerServiceItem[] = sortRequests(requests)
+    .map((request) => {
+      const order = orderLookup.get(request.orderId)
+
+      if (!order) {
+        return null
+      }
+
+      const supportCase =
+        request.linkedSupportCaseId != null
+          ? supportCaseLookup.get(request.linkedSupportCaseId) ?? null
+          : null
+
+      return {
+        requestId: request.id,
+        requestNumber: request.requestNumber,
+        rmaNumber: request.rmaNumber,
+        type: request.type,
+        status: request.status,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        supportCaseId: supportCase?.id ?? null,
+        supportCaseNumber: supportCase?.caseNumber ?? null,
+        supportStatus: supportCase?.status ?? null,
+        assignedTeam: supportCase?.assignedTeam ?? null,
+        orderStatus: order.status,
+        paymentStatus: order.paymentStatus,
+        refundStatus: order.refund?.status ?? null,
+        erpReturnStatus: order.erpReturnLink?.returnStatus ?? null,
+        customerName: request.customerName,
+        totalAmount: order.totalAmount,
+        currency: order.currency,
+        requestedAt: request.requestedAt,
+        updatedAt: request.updatedAt,
+        issueSummary: summarizeRmaItem({ request, order }),
+        escalationBucket: deriveEscalationBucket({ request, order }),
+      } satisfies StorefrontRmaCustomerServiceItem
+    })
+    .filter((item): item is StorefrontRmaCustomerServiceItem => item !== null)
+
+  return storefrontRmaCustomerServiceReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalItems: items.length,
+      opsReviewCount: items.filter((item) => item.escalationBucket === "ops_review").length,
+      awaitingCustomerReturnCount: items.filter(
+        (item) => item.escalationBucket === "awaiting_customer_return"
+      ).length,
+      financeRefundCount: items.filter((item) => item.escalationBucket === "finance_refund").length,
+      erpReconciliationCount: items.filter(
+        (item) => item.escalationBucket === "erp_reconciliation"
+      ).length,
+      resolvedCount: items.filter((item) => item.escalationBucket === "resolved").length,
+    },
+    items,
   })
 }
 
@@ -269,20 +426,38 @@ export async function reviewStorefrontOrderRequest(
   }
 
   const now = new Date().toISOString()
+  const adminOrder = await getStorefrontAdminOrder(database, request.orderId)
+  let nextStatus = parsed.status
   let nextRequest = storefrontOrderRequestSchema.parse({
     ...request,
-    status: parsed.status,
+    status: nextStatus,
     adminNote: parsed.adminNote ?? request.adminNote,
     reviewedAt: now,
+    approvedAt:
+      parsed.status === "awaiting_return" || parsed.status === "refund_pending" || parsed.status === "completed"
+        ? request.approvedAt ?? now
+        : request.approvedAt,
+    receivedAt:
+      parsed.status === "refund_pending" && request.type === "return"
+        ? request.receivedAt ?? now
+        : request.receivedAt,
+    completedAt: parsed.status === "completed" ? request.completedAt ?? now : request.completedAt,
+    resolutionCode:
+      parsed.status === "rejected"
+        ? "request_rejected"
+        : parsed.status === "completed" && request.type === "cancellation"
+          ? "cancelled_before_dispatch"
+          : parsed.status === "completed"
+            ? "refund_completed"
+            : request.resolutionCode,
     updatedAt: now,
   })
 
-  if (parsed.status === "approved") {
+  if (parsed.status === "refund_pending" || parsed.status === "completed") {
     if (request.type === "cancellation") {
-      const adminOrder = await getStorefrontAdminOrder(database, request.orderId)
       ensureCancellationEligibility(adminOrder.item)
 
-      if (adminOrder.item.paymentStatus === "paid") {
+      if (adminOrder.item.paymentStatus === "paid" && adminOrder.item.refund?.status !== "requested") {
         await requestStorefrontRefund(database, {
           orderId: request.orderId,
           reason: request.reason,
@@ -290,22 +465,57 @@ export async function reviewStorefrontOrderRequest(
         })
       }
 
-      await applyStorefrontAdminOrderAction(database, config, {
-        orderId: request.orderId,
-        action: "cancel",
-        note:
-          parsed.adminNote?.trim() ||
-          "Cancellation request approved from customer workflow.",
+      if (adminOrder.item.status !== "cancelled") {
+        await applyStorefrontAdminOrderAction(database, config, {
+          orderId: request.orderId,
+          action: "cancel",
+          note:
+            parsed.adminNote?.trim() ||
+            "Cancellation request approved from customer workflow.",
+        })
+      }
+
+      nextStatus = adminOrder.item.paymentStatus === "paid" ? "refund_pending" : "completed"
+      nextRequest = storefrontOrderRequestSchema.parse({
+        ...nextRequest,
+        status: nextStatus,
+        completedAt: nextStatus === "completed" ? nextRequest.completedAt ?? now : null,
       })
     } else {
-      const adminOrder = await getStorefrontAdminOrder(database, request.orderId)
       ensureReturnEligibility(adminOrder.item)
-      await requestStorefrontRefund(database, {
-        orderId: request.orderId,
-        reason: request.reason,
-        requestedBy: "customer",
+
+      if (adminOrder.item.paymentStatus === "paid" && adminOrder.item.refund?.status !== "requested") {
+        await requestStorefrontRefund(database, {
+          orderId: request.orderId,
+          reason: request.reason,
+          requestedBy: "customer",
+        })
+      }
+
+      nextStatus = adminOrder.item.paymentStatus === "paid" ? "refund_pending" : "completed"
+      nextRequest = storefrontOrderRequestSchema.parse({
+        ...nextRequest,
+        status: nextStatus,
+        receivedAt: nextRequest.receivedAt ?? now,
+        resolutionCode:
+          nextStatus === "completed" ? "return_received" : nextRequest.resolutionCode,
+        completedAt: nextStatus === "completed" ? nextRequest.completedAt ?? now : null,
       })
     }
+  } else if (parsed.status === "awaiting_return") {
+    if (request.type !== "return") {
+      throw new ApplicationError(
+        "Awaiting-return status is only valid for return requests.",
+        { requestId: request.id, type: request.type },
+        409
+      )
+    }
+
+    ensureReturnEligibility(adminOrder.item)
+    nextRequest = storefrontOrderRequestSchema.parse({
+      ...nextRequest,
+      approvedAt: request.approvedAt ?? now,
+    })
   }
 
   const updatedRequests = sortRequests(
@@ -314,8 +524,12 @@ export async function reviewStorefrontOrderRequest(
   await writeStorefrontOrderRequests(database, updatedRequests)
 
   const latestOrder = await getStorefrontAdminOrder(database, request.orderId)
+  const supportCases = await readStorefrontSupportCases(database)
+  const supportCaseLookup = new Map(
+    supportCases.map((item) => [item.id, { caseNumber: item.caseNumber, status: item.status }])
+  )
 
   return storefrontOrderRequestResponseSchema.parse({
-    item: toRequestView(nextRequest, latestOrder.item),
+    item: toRequestView(nextRequest, latestOrder.item, supportCaseLookup),
   })
 }

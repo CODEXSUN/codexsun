@@ -39,6 +39,8 @@ import {
   getStorefrontFailedPaymentReportDocument,
   getStorefrontAdminOrderOperationsReport,
   getStorefrontOverviewKpiReport,
+  getStorefrontAttributionReport,
+  getStorefrontMultiWarehouseReadinessReport,
   getStorefrontAccountingCompatibilityReport,
   getStorefrontPaymentDailySummaryDocument,
   getStorefrontOperationalAgingReport,
@@ -65,6 +67,7 @@ import {
 } from "../../../ecommerce/src/services/customer-service.js"
 import {
   getStorefrontOrderRequestQueueReport,
+  getStorefrontRmaCustomerServiceReport,
   reviewStorefrontOrderRequest,
 } from "../../../ecommerce/src/services/storefront-order-request-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
@@ -512,6 +515,26 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/ecommerce/analytics/attribution-report", {
+      summary: "Read ecommerce attribution and channel-performance reporting from stored storefront order snapshots.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontAttributionReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/inventory/multi-warehouse-readiness", {
+      summary: "Read multi-warehouse readiness across aggregated storefront stock and active order reservations.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontMultiWarehouseReadinessReport(context.databases.primary)
+        )
+      },
+    }),
     defineInternalRoute("/ecommerce/advanced-commerce/recommendations", {
       summary: "Read recommendation and search-ranking preview output for advanced ecommerce merchandising.",
       handler: async (context) => {
@@ -828,6 +851,16 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontOrderRequestQueueReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/rma/report", {
+      summary: "Read the unified ecommerce RMA and customer-service workflow queue.",
+      handler: async (context) => {
+        await requireSupportManage(context)
+
+        return jsonResponse(
+          await getStorefrontRmaCustomerServiceReport(context.databases.primary)
         )
       },
     }),

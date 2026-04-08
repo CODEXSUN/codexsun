@@ -112,6 +112,8 @@ Inventory authority rule:
 8. pending-payment reservation expiry follows the current `15` minute checkout-reuse window, and late payment capture must be rejected once the hold has been released
 9. storefront availability is currently aggregated across all active product stock rows; warehouse-level stock remains internal and is not exposed directly on customer-facing storefront surfaces
 10. store pickup currently uses the same shared sellable pool as delivery orders, so no pickup-only warehouse promise should be implied until warehouse-aware allocation exists
+11. current multi-warehouse readiness is operator-facing only: ecommerce may report warehouse spread and split-allocation posture from persisted stock rows and active reservations, but storefront runtime still must not expose warehouse choice or split-shipment promises
+12. current reservation allocation is first-fit across active stock rows, so readiness reporting may show split allocations even while the customer-facing storefront remains warehouse-agnostic
 
 Pricing authority rule:
 
@@ -163,6 +165,27 @@ Tax review rule:
 5. shipping and handling charge tax treatment is not yet modeled explicitly in storefront runtime and must be decided in accounting-compatibility work before invoices become the authoritative tax document
 6. current billing sales invoice posting supports one GST rate per voucher, so storefront orders carrying multiple GST rates must stay in manual-review accounting flow until billing supports multi-rate posting or document splitting
 7. storefront refund state is not itself the accounting reversal document; billing credit-note workflow remains the authoritative accounting treatment for refunded storefront orders
+
+RMA and customer-service rule:
+
+1. storefront return and cancellation handling stays inside `apps/ecommerce` and extends the existing order-request plus support-case stores instead of creating a separate reverse-logistics data silo
+2. every customer-created return or cancellation request must open or link one support case so support, operations, and finance can work from a shared customer-service thread
+3. customer-facing order requests must progress through explicit operational states where relevant: `requested`, `in_review`, `awaiting_return`, `refund_pending`, `completed`, or `rejected`
+4. cancellation requests may move directly into `refund_pending` or `completed` depending on whether the order was prepaid, but return requests should not imply refund completion until the reverse-flow review advances them
+5. unified operator visibility for advanced operations should be derived from order requests, support cases, current refund state, and ERP return-sync context rather than from disconnected queue fragments
+
+Analytics and attribution rule:
+
+1. current deeper storefront attribution remains owned by `apps/ecommerce` and is derived from persisted checkout or order snapshots, not from live third-party analytics calls during storefront runtime
+2. attribution capture is optional on checkout payloads and may store source, medium, campaign, content, term, referrer, landing-path, session key, and a normalized channel grouping on the storefront order
+3. orders without attribution remain valid and should be grouped explicitly as `direct` or `unknown` in operator reporting instead of being discarded
+4. operator analytics may aggregate performance by channel, source, medium, and campaign from stored storefront orders, but this stage does not imply complete session analytics, ad spend ingest, or multi-touch attribution
+
+Storefront smoke gate rule:
+
+1. the public storefront release gate for homepage through paid order and tracking should run as one explicit command rather than a loose collection of e2e files
+2. the smoke command must cover homepage, catalog, product detail, cart, checkout, paid-order confirmation, and tracking, plus basic accessibility labels and mobile viewport sanity on the same path
+3. non-blocking downstream warnings such as mail-delivery failures or deferred ERP push issues should be recorded separately, but they do not fail the storefront smoke gate unless the buy-to-track journey itself breaks
 
 Storefront designer governance rule:
 
@@ -424,3 +447,6 @@ Still future work:
 6. CxApp may orchestrate apps, but it must not erase app ownership boundaries
 7. framework may host reusable auth primitives, but auth domain rules, tables, mailbox records, bootstrap state, and company records stay app-owned in `cxapp`
 8. `ecommerce` must not create a second browser auth store or JWT/session system; customer portal access must resolve through the shared `cxapp` auth session
+- Final release governance now uses two explicit ecommerce e2e gates before broader signoff:
+  - `npm.cmd run test:e2e:storefront-smoke` for the public homepage-to-paid-order-to-tracking journey
+  - `npm.cmd run test:e2e:ecommerce-admin-ops` for storefront content, orders, payments, and support operator surfaces

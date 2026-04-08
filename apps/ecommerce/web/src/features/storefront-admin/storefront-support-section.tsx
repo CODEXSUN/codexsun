@@ -160,6 +160,8 @@ export function StorefrontSupportSection() {
             waitingCustomerCount: nextItems.filter((entry) => entry.status === "waiting_customer").length,
             resolvedCount: nextItems.filter((entry) => ["resolved", "closed"].includes(entry.status)).length,
             urgentCount: nextItems.filter((entry) => entry.priority === "urgent").length,
+            rmaLinkedCount: nextItems.filter((entry) => Boolean(entry.orderRequestId)).length,
+            financeOwnedCount: nextItems.filter((entry) => entry.assignedTeam === "finance").length,
           },
         }
       })

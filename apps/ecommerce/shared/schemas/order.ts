@@ -273,6 +273,31 @@ export const storefrontOrderStatusSchema = z.enum([
   "refunded",
 ])
 
+export const storefrontAttributionChannelSchema = z.enum([
+  "direct",
+  "organic_search",
+  "paid_search",
+  "social",
+  "email",
+  "referral",
+  "campaign",
+  "marketplace",
+  "unknown",
+])
+
+export const storefrontAttributionSnapshotSchema = z.object({
+  source: z.string().min(1),
+  medium: z.string().nullable().default(null),
+  campaign: z.string().nullable().default(null),
+  content: z.string().nullable().default(null),
+  term: z.string().nullable().default(null),
+  referrer: z.string().nullable().default(null),
+  landingPath: z.string().nullable().default(null),
+  sessionKey: z.string().nullable().default(null),
+  channel: storefrontAttributionChannelSchema,
+  capturedAt: z.string().min(1),
+})
+
 export const storefrontOrderSchema = z.object({
   id: z.string().min(1),
   orderNumber: z.string().min(1),
@@ -300,6 +325,7 @@ export const storefrontOrderSchema = z.object({
   providerOrderId: z.string().nullable(),
   providerPaymentId: z.string().nullable(),
   checkoutFingerprint: z.string().nullable(),
+  attribution: storefrontAttributionSnapshotSchema.nullable().default(null),
   shippingAddress: storefrontAddressSchema,
   billingAddress: storefrontAddressSchema,
   items: z.array(storefrontOrderItemSchema).min(1),
@@ -322,6 +348,7 @@ export const storefrontCheckoutPayloadSchema = z.object({
   paymentMethod: storefrontCheckoutPaymentMethodSchema.default("online"),
   shippingMethodId: z.string().trim().min(1).nullable().optional().default(null),
   couponCode: z.string().trim().min(1).nullable().optional().default(null),
+  attribution: storefrontAttributionSnapshotSchema.nullable().optional().default(null),
   shippingAddress: storefrontAddressSchema,
   billingAddress: storefrontAddressSchema,
   notes: z.string().trim().nullable().optional().default(null),
@@ -658,6 +685,80 @@ export const storefrontOverviewKpiReportSchema = z.object({
   }),
 })
 
+export const storefrontAttributionReportItemSchema = z.object({
+  key: z.string().min(1),
+  channel: storefrontAttributionChannelSchema,
+  source: z.string().min(1),
+  medium: z.string().nullable(),
+  campaign: z.string().nullable(),
+  orderCount: z.number().int().min(0),
+  paidOrderCount: z.number().int().min(0),
+  refundedOrderCount: z.number().int().min(0),
+  grossRevenue: z.number().finite().nonnegative(),
+  paidRevenue: z.number().finite().nonnegative(),
+  refundedRevenue: z.number().finite().nonnegative(),
+  conversionRate: z.number().finite().min(0),
+  averageOrderValue: z.number().finite().nonnegative(),
+  latestOrderAt: z.string().nullable(),
+})
+
+export const storefrontAttributionReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  currency: z.string().min(1),
+  summary: z.object({
+    trackedOrderCount: z.number().int().min(0),
+    paidTrackedOrderCount: z.number().int().min(0),
+    unattributedOrderCount: z.number().int().min(0),
+    campaignAttributedOrderCount: z.number().int().min(0),
+    organicOrderCount: z.number().int().min(0),
+    returningCustomerAttributedCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontAttributionReportItemSchema),
+})
+
+export const storefrontMultiWarehouseProductReadinessItemSchema = z.object({
+  productId: z.string().min(1),
+  productName: z.string().min(1),
+  productSlug: z.string().min(1),
+  totalSellableQuantity: z.number().int().min(0),
+  activeWarehouseCount: z.number().int().min(0),
+  activeStockRowCount: z.number().int().min(0),
+  warehouseIds: z.array(z.string().min(1)),
+  isSplitAllocationReady: z.boolean(),
+  isLowStock: z.boolean(),
+})
+
+export const storefrontMultiWarehouseOrderReadinessItemSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  orderStatus: storefrontOrderStatusSchema,
+  fulfillmentMethod: storefrontFulfillmentMethodSchema,
+  reservedWarehouseCount: z.number().int().min(0),
+  reservedItemCount: z.number().int().min(0),
+  usesSplitAllocation: z.boolean(),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontMultiWarehouseReadinessReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalActiveProducts: z.number().int().min(0),
+    multiWarehouseProductCount: z.number().int().min(0),
+    splitAllocationReadyCount: z.number().int().min(0),
+    lowStockMultiWarehouseCount: z.number().int().min(0),
+    reservedOrderCount: z.number().int().min(0),
+    splitReservedOrderCount: z.number().int().min(0),
+  }),
+  products: z.array(storefrontMultiWarehouseProductReadinessItemSchema),
+  reservedOrders: z.array(storefrontMultiWarehouseOrderReadinessItemSchema),
+  policy: z.object({
+    storefrontAvailabilityModel: z.literal("aggregated"),
+    storefrontWarehouseSelectionEnabled: z.literal(false),
+    pickupUsesSharedPool: z.literal(true),
+    splitShipmentCustomerPromiseEnabled: z.literal(false),
+  }),
+})
+
 export const storefrontAdminOrderQueueBucketSchema = z.enum([
   "payment_attention",
   "fulfilment",
@@ -781,6 +882,21 @@ export const storefrontSupportCaseCategorySchema = z.enum([
   "other",
 ])
 
+export const storefrontSupportAssignedTeamSchema = z.enum([
+  "support",
+  "operations",
+  "finance",
+])
+
+export const storefrontSupportResolutionCodeSchema = z.enum([
+  "resolved",
+  "refund_processed",
+  "return_authorized",
+  "replacement_advised",
+  "customer_education",
+  "closed_no_action",
+])
+
 export const storefrontSupportCaseSchema = z.object({
   id: z.string().min(1),
   caseNumber: z.string().min(1),
@@ -788,12 +904,16 @@ export const storefrontSupportCaseSchema = z.object({
   coreContactId: z.string().min(1),
   orderId: z.string().nullable(),
   orderNumber: z.string().nullable(),
+  orderRequestId: z.string().nullable().default(null),
   status: storefrontSupportCaseStatusSchema,
   priority: storefrontSupportCasePrioritySchema,
   category: storefrontSupportCaseCategorySchema,
+  assignedTeam: storefrontSupportAssignedTeamSchema.default("support"),
   subject: z.string().min(1),
   message: z.string().min(1),
   adminNote: z.string().nullable(),
+  resolutionCode: storefrontSupportResolutionCodeSchema.nullable().default(null),
+  firstResponseDueAt: z.string().nullable().default(null),
   customerName: z.string().min(1),
   customerEmail: z.email(),
   customerPhone: z.string().min(1),
@@ -804,6 +924,7 @@ export const storefrontSupportCaseSchema = z.object({
 
 export const storefrontSupportCaseViewSchema = storefrontSupportCaseSchema.extend({
   orderStatus: storefrontOrderStatusSchema.nullable(),
+  orderRequestStatus: z.string().nullable().default(null),
   paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]).nullable(),
   orderTotalAmount: z.number().finite().nonnegative().nullable(),
   currency: z.string().nullable(),
@@ -829,7 +950,9 @@ export const storefrontSupportCaseAdminUpdatePayloadSchema = z.object({
   caseId: z.string().min(1),
   status: storefrontSupportCaseStatusSchema,
   priority: storefrontSupportCasePrioritySchema.optional(),
+  assignedTeam: storefrontSupportAssignedTeamSchema.optional(),
   adminNote: z.string().trim().nullable().optional().default(null),
+  resolutionCode: storefrontSupportResolutionCodeSchema.nullable().optional().default(null),
 })
 
 export const storefrontSupportQueueReportSchema = z.object({
@@ -841,6 +964,8 @@ export const storefrontSupportQueueReportSchema = z.object({
     waitingCustomerCount: z.number().int().min(0),
     resolvedCount: z.number().int().min(0),
     urgentCount: z.number().int().min(0),
+    rmaLinkedCount: z.number().int().min(0),
+    financeOwnedCount: z.number().int().min(0),
   }),
   items: z.array(storefrontSupportCaseViewSchema),
 })
@@ -854,18 +979,29 @@ export const storefrontOrderRequestTypeSchema = z.enum(["cancellation", "return"
 export const storefrontOrderRequestStatusSchema = z.enum([
   "requested",
   "in_review",
-  "approved",
+  "awaiting_return",
+  "refund_pending",
+  "completed",
   "rejected",
+])
+
+export const storefrontOrderRequestResolutionCodeSchema = z.enum([
+  "cancelled_before_dispatch",
+  "return_received",
+  "refund_completed",
+  "request_rejected",
 ])
 
 export const storefrontOrderRequestSchema = z.object({
   id: z.string().min(1),
   requestNumber: z.string().min(1),
+  rmaNumber: z.string().nullable().default(null),
   type: storefrontOrderRequestTypeSchema,
   status: storefrontOrderRequestStatusSchema,
   orderId: z.string().min(1),
   orderNumber: z.string().min(1),
   orderItemId: z.string().nullable(),
+  linkedSupportCaseId: z.string().nullable().default(null),
   customerAccountId: z.string().min(1),
   coreContactId: z.string().min(1),
   customerName: z.string().min(1),
@@ -874,7 +1010,11 @@ export const storefrontOrderRequestSchema = z.object({
   reason: z.string().min(1),
   adminNote: z.string().nullable(),
   requestedAt: z.string().min(1),
+  approvedAt: z.string().nullable().default(null),
   reviewedAt: z.string().nullable(),
+  receivedAt: z.string().nullable().default(null),
+  completedAt: z.string().nullable().default(null),
+  resolutionCode: storefrontOrderRequestResolutionCodeSchema.nullable().default(null),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })
@@ -885,6 +1025,8 @@ export const storefrontOrderRequestViewSchema = storefrontOrderRequestSchema.ext
   totalAmount: z.number().finite().nonnegative(),
   currency: z.string().min(1),
   itemName: z.string().nullable(),
+  supportCaseNumber: z.string().nullable().default(null),
+  supportCaseStatus: storefrontSupportCaseStatusSchema.nullable().default(null),
 })
 
 export const storefrontOrderRequestListResponseSchema = z.object({
@@ -904,7 +1046,13 @@ export const storefrontOrderRequestCreatePayloadSchema = z.object({
 
 export const storefrontOrderRequestReviewPayloadSchema = z.object({
   requestId: z.string().min(1),
-  status: z.enum(["in_review", "approved", "rejected"]),
+  status: z.enum([
+    "in_review",
+    "awaiting_return",
+    "refund_pending",
+    "completed",
+    "rejected",
+  ]),
   adminNote: z.string().trim().nullable().optional().default(null),
 })
 
@@ -916,8 +1064,55 @@ export const storefrontOrderRequestQueueReportSchema = z.object({
     returnCount: z.number().int().min(0),
     requestedCount: z.number().int().min(0),
     inReviewCount: z.number().int().min(0),
+    awaitingReturnCount: z.number().int().min(0),
+    refundPendingCount: z.number().int().min(0),
+    completedCount: z.number().int().min(0),
   }),
   items: z.array(storefrontOrderRequestViewSchema),
+})
+
+export const storefrontRmaCustomerServiceItemSchema = z.object({
+  requestId: z.string().min(1),
+  requestNumber: z.string().min(1),
+  rmaNumber: z.string().nullable(),
+  type: storefrontOrderRequestTypeSchema,
+  status: storefrontOrderRequestStatusSchema,
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  supportCaseId: z.string().nullable(),
+  supportCaseNumber: z.string().nullable(),
+  supportStatus: storefrontSupportCaseStatusSchema.nullable(),
+  assignedTeam: storefrontSupportAssignedTeamSchema.nullable(),
+  orderStatus: storefrontOrderStatusSchema,
+  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]),
+  refundStatus: storefrontRefundStatusSchema.nullable(),
+  erpReturnStatus: z.string().nullable(),
+  customerName: z.string().min(1),
+  totalAmount: z.number().finite().nonnegative(),
+  currency: z.string().min(1),
+  requestedAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  issueSummary: z.string().min(1),
+  escalationBucket: z.enum([
+    "ops_review",
+    "awaiting_customer_return",
+    "finance_refund",
+    "erp_reconciliation",
+    "resolved",
+  ]),
+})
+
+export const storefrontRmaCustomerServiceReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalItems: z.number().int().min(0),
+    opsReviewCount: z.number().int().min(0),
+    awaitingCustomerReturnCount: z.number().int().min(0),
+    financeRefundCount: z.number().int().min(0),
+    erpReconciliationCount: z.number().int().min(0),
+    resolvedCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontRmaCustomerServiceItemSchema),
 })
 
 export type StorefrontAddress = z.infer<typeof storefrontAddressSchema>
@@ -937,6 +1132,8 @@ export type StorefrontRefundRecord = z.infer<typeof storefrontRefundRecordSchema
 export type StorefrontOrderTaxLine = z.infer<typeof storefrontOrderTaxLineSchema>
 export type StorefrontOrderTaxBreakdown = z.infer<typeof storefrontOrderTaxBreakdownSchema>
 export type StorefrontOrderStatus = z.infer<typeof storefrontOrderStatusSchema>
+export type StorefrontAttributionChannel = z.infer<typeof storefrontAttributionChannelSchema>
+export type StorefrontAttributionSnapshot = z.infer<typeof storefrontAttributionSnapshotSchema>
 export type StorefrontOrder = z.infer<typeof storefrontOrderSchema>
 export type StorefrontCheckoutPayload = z.infer<typeof storefrontCheckoutPayloadSchema>
 export type StorefrontCheckoutResponse = z.infer<typeof storefrontCheckoutResponseSchema>
@@ -1022,6 +1219,21 @@ export type StorefrontAccountingCompatibilityReport = z.infer<
 export type StorefrontOverviewKpiReport = z.infer<
   typeof storefrontOverviewKpiReportSchema
 >
+export type StorefrontAttributionReportItem = z.infer<
+  typeof storefrontAttributionReportItemSchema
+>
+export type StorefrontAttributionReport = z.infer<
+  typeof storefrontAttributionReportSchema
+>
+export type StorefrontMultiWarehouseProductReadinessItem = z.infer<
+  typeof storefrontMultiWarehouseProductReadinessItemSchema
+>
+export type StorefrontMultiWarehouseOrderReadinessItem = z.infer<
+  typeof storefrontMultiWarehouseOrderReadinessItemSchema
+>
+export type StorefrontMultiWarehouseReadinessReport = z.infer<
+  typeof storefrontMultiWarehouseReadinessReportSchema
+>
 export type StorefrontStockReservation = z.infer<typeof storefrontStockReservationSchema>
 export type StorefrontAppliedCoupon = z.infer<typeof storefrontAppliedCouponSchema>
 export type StorefrontAppliedPromotion = z.infer<typeof storefrontAppliedPromotionSchema>
@@ -1059,6 +1271,8 @@ export type StorefrontCommunicationHealthResponse = z.infer<
 export type StorefrontSupportCaseStatus = z.infer<typeof storefrontSupportCaseStatusSchema>
 export type StorefrontSupportCasePriority = z.infer<typeof storefrontSupportCasePrioritySchema>
 export type StorefrontSupportCaseCategory = z.infer<typeof storefrontSupportCaseCategorySchema>
+export type StorefrontSupportAssignedTeam = z.infer<typeof storefrontSupportAssignedTeamSchema>
+export type StorefrontSupportResolutionCode = z.infer<typeof storefrontSupportResolutionCodeSchema>
 export type StorefrontSupportCase = z.infer<typeof storefrontSupportCaseSchema>
 export type StorefrontSupportCaseView = z.infer<typeof storefrontSupportCaseViewSchema>
 export type StorefrontSupportCaseListResponse = z.infer<
@@ -1079,6 +1293,9 @@ export type StorefrontSupportQueueReport = z.infer<
 export type StorefrontReceiptDocument = z.infer<typeof storefrontReceiptDocumentSchema>
 export type StorefrontOrderRequestType = z.infer<typeof storefrontOrderRequestTypeSchema>
 export type StorefrontOrderRequestStatus = z.infer<typeof storefrontOrderRequestStatusSchema>
+export type StorefrontOrderRequestResolutionCode = z.infer<
+  typeof storefrontOrderRequestResolutionCodeSchema
+>
 export type StorefrontOrderRequest = z.infer<typeof storefrontOrderRequestSchema>
 export type StorefrontOrderRequestView = z.infer<typeof storefrontOrderRequestViewSchema>
 export type StorefrontOrderRequestListResponse = z.infer<
@@ -1095,4 +1312,10 @@ export type StorefrontOrderRequestReviewPayload = z.infer<
 >
 export type StorefrontOrderRequestQueueReport = z.infer<
   typeof storefrontOrderRequestQueueReportSchema
+>
+export type StorefrontRmaCustomerServiceItem = z.infer<
+  typeof storefrontRmaCustomerServiceItemSchema
+>
+export type StorefrontRmaCustomerServiceReport = z.infer<
+  typeof storefrontRmaCustomerServiceReportSchema
 >

@@ -2,6 +2,30 @@
 
 ## Done Till Here
 
+### `#101` 2026-04-08
+
+- completed Stage `8.1` by turning the storefront smoke gate into one explicit command and checklist instead of leaving the release proof scattered across separate e2e files
+- added `npm.cmd run test:e2e:storefront-smoke`, documented the gate scope, and verified the full storefront journey from homepage through paid order and tracking along with accessibility and mobile sanity checks
+- validated the batch with `npm.cmd run test:e2e:storefront-smoke`; the smoke run passed while still logging SMTP authentication failures and a non-blocking Frappe Sales Order settings parse warning
+
+### `#100` 2026-04-08
+
+- completed Stage `7.2.3` by introducing an ecommerce-owned attribution snapshot and grouped attribution reporting over persisted storefront orders
+- added optional checkout attribution fields, legacy-safe order normalization, and a protected analytics report that groups performance by channel, source, medium, and campaign without depending on live external analytics services
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`; SMTP authentication warnings still appear during tests because the suite uses temp runtime configs
+
+### `#99` 2026-04-08
+
+- completed Stage `7.2.2` by maturing storefront RMA and customer-service handling without adding a separate persistence model
+- linked customer order requests to auto-created support cases, introduced explicit return and refund progression states, and exposed a unified RMA queue derived from requests, support cases, and live order or ERP refund context
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts tests/api/internal/routes.test.ts`; SMTP authentication warnings still appear during tests because the suite uses temp runtime configs
+
+### `#98` 2026-04-08
+
+- completed Stage `7.2.1` by adding a multi-warehouse readiness report over active projected product stock rows and active storefront reservations
+- kept storefront availability and pickup behavior aggregated and warehouse-agnostic for customers, while giving operators explicit visibility into warehouse spread and split-allocation posture through a protected analytics route
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test --test-name-pattern "internal route registry includes" tests/api/internal/routes.test.ts`
+
 ### `#97` 2026-04-08
 
 - completed Stage `7.1.1` through `7.1.4` by adding local advanced-commerce capability inside ecommerce for recommendation and search-ranking improvements, segment pricing, lifecycle marketing, and merchandising experimentation readiness
@@ -514,3 +538,6 @@
 - completed Stage `T5.2` by adding bill references, bill settlements, and overdue tracking projections wired into the voucher lifecycle
 - started Stage `T5.3` with a split-register query service and protected `/internal/v1/billing/registers` route for voucher-family register reads
 - validated the split-table batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+# 2026-04-08
+
+- `#102` Added the dedicated ecommerce admin-operations smoke spec and command, documented the Stage `8.2` checklist, and advanced the release gate to `8.3`.

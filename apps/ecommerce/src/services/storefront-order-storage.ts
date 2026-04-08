@@ -35,6 +35,20 @@ function normalizeOptionalString(value: unknown) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function normalizeAttributionChannel(value: unknown) {
+  return value === "direct" ||
+    value === "organic_search" ||
+    value === "paid_search" ||
+    value === "social" ||
+    value === "email" ||
+    value === "referral" ||
+    value === "campaign" ||
+    value === "marketplace" ||
+    value === "unknown"
+    ? value
+    : "unknown"
+}
+
 function normalizeNumber(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback
 }
@@ -269,6 +283,35 @@ function normalizeAppliedCoupon(
       record.status === "used" || record.status === "released"
         ? record.status
         : "reserved",
+  }
+}
+
+function normalizeAttribution(
+  value: unknown
+): StorefrontOrder["attribution"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const source = normalizeOptionalString(record.source)
+
+  if (!source) {
+    return null
+  }
+
+  return {
+    source,
+    medium: normalizeOptionalString(record.medium),
+    campaign: normalizeOptionalString(record.campaign),
+    content: normalizeOptionalString(record.content),
+    term: normalizeOptionalString(record.term),
+    referrer: normalizeOptionalString(record.referrer),
+    landingPath: normalizeOptionalString(record.landingPath),
+    sessionKey: normalizeOptionalString(record.sessionKey),
+    channel: normalizeAttributionChannel(record.channel),
+    capturedAt: normalizeRequiredString(record.capturedAt, new Date().toISOString()),
   }
 }
 
@@ -714,6 +757,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     providerOrderId: normalizeOptionalString(record.providerOrderId),
     providerPaymentId: normalizeOptionalString(record.providerPaymentId),
     checkoutFingerprint: normalizeOptionalString(record.checkoutFingerprint),
+    attribution: normalizeAttribution(record.attribution),
     shippingAddress,
     billingAddress,
     items,

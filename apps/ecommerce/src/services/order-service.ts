@@ -37,6 +37,8 @@ import {
   storefrontOperationalAgingReportSchema,
   storefrontAccountingCompatibilityReportSchema,
   storefrontOverviewKpiReportSchema,
+  storefrontAttributionReportSchema,
+  storefrontMultiWarehouseReadinessReportSchema,
   storefrontPaymentDailySummaryDocumentSchema,
   storefrontPaymentDailySummaryReportSchema,
   storefrontFailedPaymentReportDocumentSchema,
@@ -76,6 +78,9 @@ import {
   type StorefrontErpReturnLink,
   type StorefrontErpSalesOrderLink,
   type StorefrontOverviewKpiReport,
+  type StorefrontAttributionChannel,
+  type StorefrontAttributionReport,
+  type StorefrontMultiWarehouseReadinessReport,
   type StorefrontStockReservation,
   type StorefrontRefundQueueItem,
   type StorefrontFulfilmentAgingItem,
@@ -1880,6 +1885,25 @@ export async function createCheckoutOrder(
       providerOrderId: null,
       providerPaymentId: null,
       checkoutFingerprint,
+      attribution:
+        parsed.attribution == null
+          ? null
+          : {
+              ...parsed.attribution,
+              source: parsed.attribution.source.trim(),
+              medium: normalizeOptionalString(parsed.attribution.medium),
+              campaign: normalizeOptionalString(parsed.attribution.campaign),
+              content: normalizeOptionalString(parsed.attribution.content),
+              term: normalizeOptionalString(parsed.attribution.term),
+              referrer: normalizeOptionalString(parsed.attribution.referrer),
+              landingPath: normalizeOptionalString(parsed.attribution.landingPath),
+              sessionKey: normalizeOptionalString(parsed.attribution.sessionKey),
+              channel: deriveAttributionChannel({
+                source: parsed.attribution.source,
+                medium: parsed.attribution.medium,
+                campaign: parsed.attribution.campaign,
+              }),
+            },
       shippingAddress: parsed.shippingAddress,
       billingAddress: parsed.billingAddress,
       items,
@@ -3534,6 +3558,260 @@ export async function getStorefrontOverviewKpiReport(
   }
 
   return storefrontOverviewKpiReportSchema.parse(report)
+}
+
+function normalizeAttributionText(value: string | null | undefined) {
+  return normalizeOptionalString(value)?.toLowerCase() ?? null
+}
+
+function deriveAttributionChannel(input: {
+  source: string | null
+  medium: string | null
+  campaign: string | null
+}): StorefrontAttributionChannel {
+  const source = normalizeAttributionText(input.source)
+  const medium = normalizeAttributionText(input.medium)
+  const campaign = normalizeAttributionText(input.campaign)
+
+  if (!source && !medium && !campaign) {
+    return "direct"
+  }
+
+  if (medium === "organic" || source === "google" || source === "bing") {
+    return "organic_search"
+  }
+
+  if (medium === "cpc" || medium === "ppc" || medium === "paid_search") {
+    return "paid_search"
+  }
+
+  if (medium === "social" || source === "instagram" || source === "facebook") {
+    return "social"
+  }
+
+  if (medium === "email" || source === "newsletter") {
+    return "email"
+  }
+
+  if (medium === "referral") {
+    return "referral"
+  }
+
+  if (campaign) {
+    return "campaign"
+  }
+
+  if (medium === "marketplace") {
+    return "marketplace"
+  }
+
+  return "unknown"
+}
+
+export async function getStorefrontAttributionReport(
+  database: Kysely<unknown>
+) {
+  const orders = await readOrders(database)
+  const itemsByKey = new Map<
+    string,
+    {
+      channel: StorefrontAttributionChannel
+      source: string
+      medium: string | null
+      campaign: string | null
+      orderCount: number
+      paidOrderCount: number
+      refundedOrderCount: number
+      grossRevenue: number
+      paidRevenue: number
+      refundedRevenue: number
+      latestOrderAt: string | null
+    }
+  >()
+
+  for (const order of orders) {
+    const source = order.attribution?.source ?? "direct"
+    const medium = order.attribution?.medium ?? null
+    const campaign = order.attribution?.campaign ?? null
+    const channel =
+      order.attribution?.channel ??
+      deriveAttributionChannel({
+        source,
+        medium,
+        campaign,
+      })
+    const key = [channel, source, medium ?? "", campaign ?? ""].join("|")
+    const current =
+      itemsByKey.get(key) ??
+      {
+        channel,
+        source,
+        medium,
+        campaign,
+        orderCount: 0,
+        paidOrderCount: 0,
+        refundedOrderCount: 0,
+        grossRevenue: 0,
+        paidRevenue: 0,
+        refundedRevenue: 0,
+        latestOrderAt: null,
+      }
+
+    current.orderCount += 1
+    current.grossRevenue += order.totalAmount
+
+    if (order.paymentStatus === "paid") {
+      current.paidOrderCount += 1
+      current.paidRevenue += order.totalAmount
+    }
+
+    if (order.paymentStatus === "refunded") {
+      current.refundedOrderCount += 1
+      current.refundedRevenue += order.totalAmount
+    }
+
+    current.latestOrderAt =
+      current.latestOrderAt == null || current.latestOrderAt.localeCompare(order.createdAt) < 0
+        ? order.createdAt
+        : current.latestOrderAt
+
+    itemsByKey.set(key, current)
+  }
+
+  const items = [...itemsByKey.entries()]
+    .map(([key, item]) => ({
+      key,
+      channel: item.channel,
+      source: item.source,
+      medium: item.medium,
+      campaign: item.campaign,
+      orderCount: item.orderCount,
+      paidOrderCount: item.paidOrderCount,
+      refundedOrderCount: item.refundedOrderCount,
+      grossRevenue: Math.round(item.grossRevenue * 100) / 100,
+      paidRevenue: Math.round(item.paidRevenue * 100) / 100,
+      refundedRevenue: Math.round(item.refundedRevenue * 100) / 100,
+      conversionRate:
+        item.orderCount > 0 ? Math.round((item.paidOrderCount / item.orderCount) * 1000) / 10 : 0,
+      averageOrderValue:
+        item.paidOrderCount > 0 ? Math.round((item.paidRevenue / item.paidOrderCount) * 100) / 100 : 0,
+      latestOrderAt: item.latestOrderAt,
+    }))
+    .sort(
+      (left, right) =>
+        right.paidRevenue - left.paidRevenue ||
+        right.orderCount - left.orderCount ||
+        left.source.localeCompare(right.source)
+    )
+
+  const report: StorefrontAttributionReport = {
+    generatedAt: new Date().toISOString(),
+    currency: orders[0]?.currency ?? "INR",
+    summary: {
+      trackedOrderCount: orders.filter((order) => order.attribution != null).length,
+      paidTrackedOrderCount: orders.filter(
+        (order) => order.attribution != null && order.paymentStatus === "paid"
+      ).length,
+      unattributedOrderCount: orders.filter((order) => order.attribution == null).length,
+      campaignAttributedOrderCount: orders.filter((order) => Boolean(order.attribution?.campaign)).length,
+      organicOrderCount: orders.filter(
+        (order) => (order.attribution?.channel ?? "direct") === "organic_search"
+      ).length,
+      returningCustomerAttributedCount: orders.filter(
+        (order) => order.customerAccountId != null && order.attribution != null
+      ).length,
+    },
+    items,
+  }
+
+  return storefrontAttributionReportSchema.parse(report)
+}
+
+export async function getStorefrontMultiWarehouseReadinessReport(
+  database: Kysely<unknown>
+) {
+  const [products, orders] = await Promise.all([
+    readProjectedStorefrontProducts(database),
+    readOrders(database),
+  ])
+
+  const productItems = products
+    .filter((product) => product.isActive)
+    .map((product) => {
+      const activeStockItems = product.stockItems.filter((item) => item.isActive)
+      const warehouseIds = Array.from(
+        new Set(activeStockItems.map((item) => item.warehouseId).filter(Boolean))
+      )
+      const totalSellableQuantity = activeStockItems.reduce(
+        (sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity),
+        0
+      )
+
+      return {
+        productId: product.id,
+        productName: product.name,
+        productSlug: product.slug,
+        totalSellableQuantity,
+        activeWarehouseCount: warehouseIds.length,
+        activeStockRowCount: activeStockItems.length,
+        warehouseIds,
+        isSplitAllocationReady: warehouseIds.length > 1 && totalSellableQuantity > 0,
+        isLowStock: totalSellableQuantity > 0 && totalSellableQuantity <= 5,
+      }
+    })
+    .sort(
+      (left, right) =>
+        right.activeWarehouseCount - left.activeWarehouseCount ||
+        right.totalSellableQuantity - left.totalSellableQuantity ||
+        left.productName.localeCompare(right.productName)
+    )
+
+  const reservedOrders = orders
+    .filter(
+      (order) =>
+        order.stockReservation &&
+        order.stockReservation.status === "active" &&
+        order.stockReservation.items.length > 0
+    )
+    .map((order) => {
+      const warehouseIds = Array.from(
+        new Set(order.stockReservation?.items.map((item) => item.warehouseId) ?? [])
+      )
+
+      return {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        orderStatus: order.status,
+        fulfillmentMethod: order.fulfillmentMethod,
+        reservedWarehouseCount: warehouseIds.length,
+        reservedItemCount: order.stockReservation?.items.length ?? 0,
+        usesSplitAllocation: warehouseIds.length > 1,
+        updatedAt: order.updatedAt,
+      }
+    })
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+  return storefrontMultiWarehouseReadinessReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalActiveProducts: productItems.length,
+      multiWarehouseProductCount: productItems.filter((item) => item.activeWarehouseCount > 1).length,
+      splitAllocationReadyCount: productItems.filter((item) => item.isSplitAllocationReady).length,
+      lowStockMultiWarehouseCount: productItems.filter(
+        (item) => item.activeWarehouseCount > 1 && item.isLowStock
+      ).length,
+      reservedOrderCount: reservedOrders.length,
+      splitReservedOrderCount: reservedOrders.filter((item) => item.usesSplitAllocation).length,
+    },
+    products: productItems,
+    reservedOrders,
+    policy: {
+      storefrontAvailabilityModel: "aggregated",
+      storefrontWarehouseSelectionEnabled: false,
+      pickupUsesSharedPool: true,
+      splitShipmentCustomerPromiseEnabled: false,
+    },
+  })
 }
 
 export async function getStorefrontPaymentDailySummaryReport(
