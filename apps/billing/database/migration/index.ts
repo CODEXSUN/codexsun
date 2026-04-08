@@ -17,6 +17,15 @@ import { billingContraVouchersMigration } from "./13-contra-vouchers.js"
 import { billingPettyCashVouchersMigration } from "./14-petty-cash-vouchers.js"
 import { billingBankBookEntriesMigration } from "./15-bank-book-entries.js"
 import { billingCashBookEntriesMigration } from "./16-cash-book-entries.js"
+import { billingSalesItemVouchersMigration } from "./17-sales-item-vouchers.js"
+import { billingPurchaseItemVouchersMigration } from "./18-purchase-item-vouchers.js"
+import { billingReceiptItemVouchersMigration } from "./19-receipt-item-vouchers.js"
+import { billingPaymentItemVouchersMigration } from "./20-payment-item-vouchers.js"
+import { billingJournalItemVouchersMigration } from "./21-journal-item-vouchers.js"
+import { billingContraItemVouchersMigration } from "./22-contra-item-vouchers.js"
+import { billingBillReferencesMigration } from "./23-bill-references.js"
+import { billingBillSettlementsMigration } from "./24-bill-settlements.js"
+import { billingBillOverdueTrackingMigration } from "./25-bill-overdue-tracking.js"
 
 export const billingDatabaseMigrations = [
   // ── Foundation ────────────────────────────────────────────────────────────
@@ -40,4 +49,13 @@ export const billingDatabaseMigrations = [
   billingPettyCashVouchersMigration,
   billingBankBookEntriesMigration,
   billingCashBookEntriesMigration,
+  billingSalesItemVouchersMigration,
+  billingPurchaseItemVouchersMigration,
+  billingReceiptItemVouchersMigration,
+  billingPaymentItemVouchersMigration,
+  billingJournalItemVouchersMigration,
+  billingContraItemVouchersMigration,
+  billingBillReferencesMigration,
+  billingBillSettlementsMigration,
+  billingBillOverdueTrackingMigration,
 ]

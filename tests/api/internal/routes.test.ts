@@ -100,6 +100,7 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/ledger"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/vouchers"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/reports"))
+  assert.ok(routePaths.includes("GET /internal/v1/billing/registers"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/audit-trail"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher/document"))

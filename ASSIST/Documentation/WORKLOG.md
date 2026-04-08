@@ -501,3 +501,10 @@
 - completed billing Stage `B11` with approval policy enforcement, finance roles, accounting dimensions, exception reporting, and dashboard KPIs
 - completed billing Stage `B12` with month-end checklist, year-close workflow, opening-balance rollover, audit-trail review, and year-end control policy surfaces
 - validated the billing controls batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
+
+### `#74` 2026-04-08
+
+- completed Stage `T5.1` by adding billing item split tables for sales, purchase, receipt, payment, journal, and contra voucher families
+- completed Stage `T5.2` by adding bill references, bill settlements, and overdue tracking projections wired into the voucher lifecycle
+- started Stage `T5.3` with a split-register query service and protected `/internal/v1/billing/registers` route for voucher-family register reads
+- validated the split-table batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`

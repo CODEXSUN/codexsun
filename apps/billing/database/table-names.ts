@@ -26,4 +26,13 @@ export const billingTableNames = {
   pettyCashVouchers: "billing_petty_cash_vouchers",
   bankBookEntries: "billing_bank_book_entries",
   cashBookEntries: "billing_cash_book_entries",
+  salesItemVouchers: "billing_sales_item_vouchers",
+  purchaseItemVouchers: "billing_purchase_item_vouchers",
+  receiptItemVouchers: "billing_receipt_item_vouchers",
+  paymentItemVouchers: "billing_payment_item_vouchers",
+  journalItemVouchers: "billing_journal_item_vouchers",
+  contraItemVouchers: "billing_contra_item_vouchers",
+  billReferences: "billing_bill_references",
+  billSettlements: "billing_bill_settlements",
+  billOverdueTracking: "billing_bill_overdue_tracking",
 } as const

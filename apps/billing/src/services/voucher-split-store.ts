@@ -15,7 +15,6 @@
  */
 
 import type { Kysely } from "kysely"
-import { nanoid } from "nanoid"
 
 import type { BillingVoucher } from "../../shared/index.js"
 import { billingTableNames } from "../../database/table-names.js"
@@ -65,6 +64,29 @@ function isCashAccount(ledgerName: string): boolean {
 function gstType(voucher: BillingVoucher): string | null {
   if (!voucher.gst) return null
   return voucher.gst.supplyType === "inter" ? "IGST" : "CGST_SGST"
+}
+
+function roundAmount(value: number) {
+  return Number(value.toFixed(2))
+}
+
+function buildTaxBreakdown(
+  taxableAmount: number,
+  taxRate: number,
+  supplyType: "intra" | "inter" | null
+) {
+  const totalTaxAmount = roundAmount((taxableAmount * taxRate) / 100)
+  const cgstAmount = supplyType === "intra" ? roundAmount(totalTaxAmount / 2) : 0
+  const sgstAmount = supplyType === "intra" ? roundAmount(totalTaxAmount / 2) : 0
+  const igstAmount = supplyType === "inter" ? totalTaxAmount : 0
+
+  return {
+    cgstAmount,
+    sgstAmount,
+    igstAmount,
+    totalTaxAmount,
+    netAmount: roundAmount(taxableAmount + totalTaxAmount),
+  }
 }
 
 // ─── 1. Sales ─────────────────────────────────────────────────────────────────
@@ -608,6 +630,419 @@ function toCashBookRows(v: BillingVoucher): CashBookRow[] {
 
 // ─── Table writers ────────────────────────────────────────────────────────────
 
+type SalesItemRow = {
+  item_id: string
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  financial_year_code: string
+  line_order: number
+  product_id: string | null
+  warehouse_id: string | null
+  item_name: string
+  description: string
+  hsn_or_sac: string
+  quantity: number
+  unit: string
+  rate: number
+  gross_amount: number
+  discount_rate: number
+  discount_amount: number
+  taxable_amount: number
+  tax_rate: number
+  cgst_amount: number
+  sgst_amount: number
+  igst_amount: number
+  total_tax_amount: number
+  net_amount: number
+  supply_type: string | null
+  place_of_supply: string | null
+  created_at: string
+  updated_at: string
+}
+
+function toSalesItemRows(v: BillingVoucher): SalesItemRow[] {
+  if (v.sales?.items.length) {
+    return v.sales.items.map((item, index) => {
+      const grossAmount = roundAmount(item.quantity * item.rate)
+      const taxRate = v.sales?.taxRate ?? v.gst?.taxRate ?? 0
+      const tax = buildTaxBreakdown(
+        grossAmount,
+        taxRate,
+        v.sales?.supplyType ?? v.gst?.supplyType ?? null
+      )
+
+      return {
+        item_id: `sales-item:${v.id}:${index + 1}`,
+        voucher_id: v.id,
+        voucher_number: v.voucherNumber,
+        voucher_date: v.date,
+        financial_year_code: v.financialYear.code,
+        line_order: index + 1,
+        product_id: item.productId,
+        warehouse_id: item.warehouseId,
+        item_name: item.itemName,
+        description: item.description,
+        hsn_or_sac: item.hsnOrSac,
+        quantity: roundAmount(item.quantity),
+        unit: item.unit,
+        rate: roundAmount(item.rate),
+        gross_amount: grossAmount,
+        discount_rate: 0,
+        discount_amount: 0,
+        taxable_amount: grossAmount,
+        tax_rate: roundAmount(taxRate),
+        cgst_amount: tax.cgstAmount,
+        sgst_amount: tax.sgstAmount,
+        igst_amount: tax.igstAmount,
+        total_tax_amount: tax.totalTaxAmount,
+        net_amount: tax.netAmount,
+        supply_type: v.sales?.supplyType ?? v.gst?.supplyType ?? null,
+        place_of_supply: v.sales?.placeOfSupply ?? v.gst?.placeOfSupply ?? null,
+        created_at: v.createdAt,
+        updated_at: v.updatedAt,
+      }
+    })
+  }
+
+  if (!v.gst) {
+    return []
+  }
+
+  return [
+    {
+      item_id: `sales-item:${v.id}:1`,
+      voucher_id: v.id,
+      voucher_number: v.voucherNumber,
+      voucher_date: v.date,
+      financial_year_code: v.financialYear.code,
+      line_order: 1,
+      product_id: null,
+      warehouse_id: null,
+      item_name: v.counterparty,
+      description: v.narration,
+      hsn_or_sac: v.gst.hsnOrSac,
+      quantity: 1,
+      unit: "Nos",
+      rate: roundAmount(v.gst.taxableAmount),
+      gross_amount: roundAmount(v.gst.taxableAmount),
+      discount_rate: 0,
+      discount_amount: 0,
+      taxable_amount: roundAmount(v.gst.taxableAmount),
+      tax_rate: roundAmount(v.gst.taxRate),
+      cgst_amount: roundAmount(v.gst.cgstAmount),
+      sgst_amount: roundAmount(v.gst.sgstAmount),
+      igst_amount: roundAmount(v.gst.igstAmount),
+      total_tax_amount: roundAmount(v.gst.totalTaxAmount),
+      net_amount: roundAmount(v.gst.invoiceAmount),
+      supply_type: v.gst.supplyType,
+      place_of_supply: v.gst.placeOfSupply,
+      created_at: v.createdAt,
+      updated_at: v.updatedAt,
+    },
+  ]
+}
+
+type PurchaseItemRow = {
+  item_id: string
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  financial_year_code: string
+  line_order: number
+  product_id: string | null
+  warehouse_id: string | null
+  item_name: string
+  description: string
+  hsn_or_sac: string
+  quantity: number
+  unit: string
+  rate: number
+  gross_amount: number
+  discount_rate: number
+  discount_amount: number
+  taxable_amount: number
+  tax_rate: number
+  cgst_amount: number
+  sgst_amount: number
+  igst_amount: number
+  total_tax_amount: number
+  net_amount: number
+  itc_eligible: number
+  itc_reversal_reason: string | null
+  supply_type: string | null
+  place_of_supply: string | null
+  created_at: string
+  updated_at: string
+}
+
+function toPurchaseItemRows(v: BillingVoucher): PurchaseItemRow[] {
+  if (v.stock?.items.length) {
+    const supplyType = v.gst?.supplyType ?? null
+    const taxRate = v.gst?.taxRate ?? 0
+    const itemGrossAmounts = v.stock.items.map((item) =>
+      roundAmount(
+        item.quantity === 0
+          ? item.landedCostAmount
+          : item.quantity * item.unitCost + item.landedCostAmount
+      )
+    )
+    const grossTotal = itemGrossAmounts.reduce((sum, amount) => sum + amount, 0)
+    const totalTaxable = v.gst?.taxableAmount ?? grossTotal
+
+    return v.stock.items.map((item, index) => {
+      const grossAmount = itemGrossAmounts[index] ?? 0
+      const taxableAmount =
+        grossTotal > 0
+          ? roundAmount(totalTaxable * (grossAmount / grossTotal))
+          : roundAmount(totalTaxable)
+      const tax = buildTaxBreakdown(taxableAmount, taxRate, supplyType)
+
+      return {
+        item_id: `purchase-item:${v.id}:${index + 1}`,
+        voucher_id: v.id,
+        voucher_number: v.voucherNumber,
+        voucher_date: v.date,
+        financial_year_code: v.financialYear.code,
+        line_order: index + 1,
+        product_id: item.productId,
+        warehouse_id: item.warehouseId,
+        item_name: item.productName,
+        description: item.note,
+        hsn_or_sac: v.gst?.hsnOrSac ?? "MIXED",
+        quantity: roundAmount(item.quantity),
+        unit: item.unit,
+        rate: roundAmount(item.unitCost),
+        gross_amount: grossAmount,
+        discount_rate: 0,
+        discount_amount: 0,
+        taxable_amount: taxableAmount,
+        tax_rate: roundAmount(taxRate),
+        cgst_amount: tax.cgstAmount,
+        sgst_amount: tax.sgstAmount,
+        igst_amount: tax.igstAmount,
+        total_tax_amount: tax.totalTaxAmount,
+        net_amount: tax.netAmount,
+        itc_eligible: 1,
+        itc_reversal_reason: null,
+        supply_type: supplyType,
+        place_of_supply: v.gst?.placeOfSupply ?? null,
+        created_at: v.createdAt,
+        updated_at: v.updatedAt,
+      }
+    })
+  }
+
+  if (!v.gst) {
+    return []
+  }
+
+  return [
+    {
+      item_id: `purchase-item:${v.id}:1`,
+      voucher_id: v.id,
+      voucher_number: v.voucherNumber,
+      voucher_date: v.date,
+      financial_year_code: v.financialYear.code,
+      line_order: 1,
+      product_id: null,
+      warehouse_id: null,
+      item_name: v.counterparty,
+      description: v.narration,
+      hsn_or_sac: v.gst.hsnOrSac,
+      quantity: 1,
+      unit: "Nos",
+      rate: roundAmount(v.gst.taxableAmount),
+      gross_amount: roundAmount(v.gst.taxableAmount),
+      discount_rate: 0,
+      discount_amount: 0,
+      taxable_amount: roundAmount(v.gst.taxableAmount),
+      tax_rate: roundAmount(v.gst.taxRate),
+      cgst_amount: roundAmount(v.gst.cgstAmount),
+      sgst_amount: roundAmount(v.gst.sgstAmount),
+      igst_amount: roundAmount(v.gst.igstAmount),
+      total_tax_amount: roundAmount(v.gst.totalTaxAmount),
+      net_amount: roundAmount(v.gst.invoiceAmount),
+      itc_eligible: 1,
+      itc_reversal_reason: null,
+      supply_type: v.gst.supplyType,
+      place_of_supply: v.gst.placeOfSupply,
+      created_at: v.createdAt,
+      updated_at: v.updatedAt,
+    },
+  ]
+}
+
+type ReceiptItemRow = {
+  item_id: string
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  financial_year_code: string
+  line_order: number
+  reference_type: string
+  reference_number: string
+  reference_date: string | null
+  due_date: string | null
+  original_amount: number
+  allocated_amount: number
+  balance_amount: number
+  note: string
+  created_at: string
+  updated_at: string
+}
+
+function toReceiptItemRows(v: BillingVoucher): ReceiptItemRow[] {
+  return v.billAllocations.map((allocation, index) => ({
+    item_id: `receipt-alloc:${v.id}:${index + 1}`,
+    voucher_id: v.id,
+    voucher_number: v.voucherNumber,
+    voucher_date: v.date,
+    financial_year_code: v.financialYear.code,
+    line_order: index + 1,
+    reference_type: allocation.referenceType,
+    reference_number: allocation.referenceNumber,
+    reference_date: allocation.referenceDate,
+    due_date: allocation.dueDate,
+    original_amount: roundAmount(allocation.amount),
+    allocated_amount: roundAmount(allocation.amount),
+    balance_amount: 0,
+    note: allocation.note,
+    created_at: v.createdAt,
+    updated_at: v.updatedAt,
+  }))
+}
+
+type PaymentItemRow = {
+  item_id: string
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  financial_year_code: string
+  line_order: number
+  reference_type: string
+  reference_number: string
+  reference_date: string | null
+  due_date: string | null
+  original_amount: number
+  allocated_amount: number
+  balance_amount: number
+  tds_deducted: number
+  tds_section: string | null
+  note: string
+  created_at: string
+  updated_at: string
+}
+
+function toPaymentItemRows(v: BillingVoucher): PaymentItemRow[] {
+  return v.billAllocations.map((allocation, index) => ({
+    item_id: `payment-alloc:${v.id}:${index + 1}`,
+    voucher_id: v.id,
+    voucher_number: v.voucherNumber,
+    voucher_date: v.date,
+    financial_year_code: v.financialYear.code,
+    line_order: index + 1,
+    reference_type: allocation.referenceType,
+    reference_number: allocation.referenceNumber,
+    reference_date: allocation.referenceDate,
+    due_date: allocation.dueDate,
+    original_amount: roundAmount(allocation.amount),
+    allocated_amount: roundAmount(allocation.amount),
+    balance_amount: 0,
+    tds_deducted: 0,
+    tds_section: null,
+    note: allocation.note,
+    created_at: v.createdAt,
+    updated_at: v.updatedAt,
+  }))
+}
+
+type JournalItemRow = {
+  item_id: string
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  financial_year_code: string
+  line_order: number
+  ledger_id: string
+  ledger_name: string
+  ledger_group: string
+  side: string
+  amount: number
+  note: string
+  dimension_branch: string | null
+  dimension_project: string | null
+  dimension_cost_center: string | null
+  created_at: string
+  updated_at: string
+}
+
+function toJournalItemRows(v: BillingVoucher): JournalItemRow[] {
+  return v.lines.map((line, index) => ({
+    item_id: `journal-line:${v.id}:${index + 1}`,
+    voucher_id: v.id,
+    voucher_number: v.voucherNumber,
+    voucher_date: v.date,
+    financial_year_code: v.financialYear.code,
+    line_order: index + 1,
+    ledger_id: line.ledgerId,
+    ledger_name: line.ledgerName,
+    ledger_group: "",
+    side: line.side,
+    amount: roundAmount(line.amount),
+    note: line.note,
+    dimension_branch: v.dimensions.branch,
+    dimension_project: v.dimensions.project,
+    dimension_cost_center: v.dimensions.costCenter,
+    created_at: v.createdAt,
+    updated_at: v.updatedAt,
+  }))
+}
+
+type ContraItemRow = {
+  item_id: string
+  voucher_id: string
+  voucher_number: string
+  voucher_date: string
+  financial_year_code: string
+  line_order: number
+  ledger_id: string
+  ledger_name: string
+  account_type: string
+  side: string
+  amount: number
+  instrument_type: string | null
+  instrument_number: string | null
+  instrument_date: string | null
+  note: string
+  created_at: string
+  updated_at: string
+}
+
+function toContraItemRows(v: BillingVoucher): ContraItemRow[] {
+  return v.lines
+    .filter((line) => isBankAccount(line.ledgerName) || isCashAccount(line.ledgerName))
+    .map((line, index) => ({
+      item_id: `contra-line:${v.id}:${index + 1}`,
+      voucher_id: v.id,
+      voucher_number: v.voucherNumber,
+      voucher_date: v.date,
+      financial_year_code: v.financialYear.code,
+      line_order: index + 1,
+      ledger_id: line.ledgerId,
+      ledger_name: line.ledgerName,
+      account_type: isBankAccount(line.ledgerName) ? "bank" : "cash",
+      side: line.side,
+      amount: roundAmount(line.amount),
+      instrument_type: isCashAccount(line.ledgerName) ? "cash" : null,
+      instrument_number: v.bankReconciliation?.statementReference ?? null,
+      instrument_date: v.bankReconciliation?.clearedDate ?? null,
+      note: line.note,
+      created_at: v.createdAt,
+      updated_at: v.updatedAt,
+    }))
+}
+
 async function replaceTable<T extends Record<string, unknown>>(
   database: Kysely<unknown>,
   tableName: string,
@@ -687,6 +1122,46 @@ export async function replaceBillingVoucherSplitTables(
   )
 
   // ── Book-of-account tables ───────────────────────────────────────────────
+  await replaceTable(
+    database,
+    billingTableNames.salesItemVouchers,
+    vouchers
+      .filter((v) => isType(v, "sales", "sales_return", "credit_note"))
+      .flatMap(toSalesItemRows)
+  )
+
+  await replaceTable(
+    database,
+    billingTableNames.purchaseItemVouchers,
+    vouchers
+      .filter((v) => isType(v, "purchase", "purchase_return", "debit_note", "landed_cost"))
+      .flatMap(toPurchaseItemRows)
+  )
+
+  await replaceTable(
+    database,
+    billingTableNames.receiptItemVouchers,
+    vouchers.filter((v) => isType(v, "receipt")).flatMap(toReceiptItemRows)
+  )
+
+  await replaceTable(
+    database,
+    billingTableNames.paymentItemVouchers,
+    vouchers.filter((v) => isType(v, "payment")).flatMap(toPaymentItemRows)
+  )
+
+  await replaceTable(
+    database,
+    billingTableNames.journalItemVouchers,
+    vouchers.filter((v) => isType(v, "journal")).flatMap(toJournalItemRows)
+  )
+
+  await replaceTable(
+    database,
+    billingTableNames.contraItemVouchers,
+    vouchers.filter((v) => isType(v, "contra")).flatMap(toContraItemRows)
+  )
+
   const bankRows = vouchers.flatMap(toBankBookRows)
   await replaceTable(database, billingTableNames.bankBookEntries, bankRows)
 

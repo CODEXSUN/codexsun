@@ -8,6 +8,7 @@ import { createBillingVoucherGroup, deleteBillingVoucherGroup, listBillingVouche
 import { createBillingVoucherType, deleteBillingVoucherType, listBillingVoucherTypes, restoreBillingVoucherType, updateBillingVoucherType } from "../../../billing/src/services/voucher-type-service.js"
 import { getBillingAuditTrailReview } from "../../../billing/src/services/audit-trail-service.js"
 import { getBillingAccountingReports } from "../../../billing/src/services/reporting-service.js"
+import { listBillingRegisterSummaries } from "../../../billing/src/services/register-query-service.js"
 import { executeBillingOpeningBalanceRollover } from "../../../billing/src/services/opening-balance-rollover-service.js"
 import { executeBillingYearEndAdjustmentControl } from "../../../billing/src/services/year-end-control-service.js"
 import { executeBillingYearCloseWorkflow } from "../../../billing/src/services/year-close-service.js"
@@ -447,6 +448,32 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getBillingAccountingReports(context.databases.primary, user, context.config)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/registers", {
+      summary: "Return split-table billing register summaries for operational voucher lanes.",
+      handler: async (context) => {
+        await requireBillingReportsView(context)
+        const moduleParam = context.request.url.searchParams.get("module")
+
+        if (
+          moduleParam !== "sales" &&
+          moduleParam !== "purchase" &&
+          moduleParam !== "receipt" &&
+          moduleParam !== "payment" &&
+          moduleParam !== "journal" &&
+          moduleParam !== "contra"
+        ) {
+          throw new ApplicationError(
+            "Billing register module must be one of sales, purchase, receipt, payment, journal, or contra.",
+            { module: moduleParam },
+            400
+          )
+        }
+
+        return jsonResponse(
+          await listBillingRegisterSummaries(context.databases.primary, moduleParam)
         )
       },
     }),

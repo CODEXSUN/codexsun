@@ -84,6 +84,14 @@ export async function executeBillingYearEndAdjustmentControl(
     : yearCloseWorkflows.find((item) => item.status === "closed") ?? yearCloseWorkflows[0]
 
   if (!sourceWorkflow) {
+    if (parsedPayload.sourceFinancialYearCode) {
+      throw new ApplicationError(
+        "Year-end controls require a closed billing financial year.",
+        { financialYearCode: parsedPayload.sourceFinancialYearCode, status: "missing" },
+        409
+      )
+    }
+
     throw new ApplicationError(
       "No billing financial year is available for year-end controls.",
       {},

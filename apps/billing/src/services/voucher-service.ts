@@ -58,6 +58,7 @@ import { replaceBillingVoucherHeaders } from "./voucher-header-store.js"
 import { replaceBillingVoucherLines } from "./voucher-line-store.js"
 import { replaceBillingLedgerEntries } from "./ledger-entry-store.js"
 import { replaceBillingVoucherSplitTables } from "./voucher-split-store.js"
+import { replaceBillingBillEngineTables } from "./bill-engine-store.js"
 import { synchronizeBillingInventoryToCore } from "./inventory-bridge-service.js"
 
 async function readLedgers(database: Kysely<unknown>) {
@@ -1301,6 +1302,7 @@ export async function createBillingVoucher(
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
   await replaceBillingVoucherSplitTables(database, nextItems)
+  await replaceBillingBillEngineTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1364,6 +1366,7 @@ export async function updateBillingVoucher(
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
   await replaceBillingVoucherSplitTables(database, nextItems)
+  await replaceBillingBillEngineTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   if (updatedItem.status === "posted" && existingItem.status !== "posted") {
@@ -1429,6 +1432,7 @@ export async function deleteBillingVoucher(
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
   await replaceBillingVoucherSplitTables(database, nextItems)
+  await replaceBillingBillEngineTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1595,6 +1599,7 @@ export async function reverseBillingVoucher(
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
   await replaceBillingVoucherSplitTables(database, nextItems)
+  await replaceBillingBillEngineTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1687,6 +1692,7 @@ export async function reconcileBillingVoucher(
     await replaceBillingVoucherLines(database, nextItems)
     await replaceBillingLedgerEntries(database, nextItems)
     await replaceBillingVoucherSplitTables(database, nextItems)
+    await replaceBillingBillEngineTables(database, nextItems)
     await synchronizeBillingInventoryToCore(database, nextItems, config)
 
     await writeBillingVoucherAudit(database, config, user, {
@@ -1749,6 +1755,7 @@ export async function reconcileBillingVoucher(
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
   await replaceBillingVoucherSplitTables(database, nextItems)
+  await replaceBillingBillEngineTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {
@@ -1842,6 +1849,7 @@ export async function reviewBillingVoucher(
   await replaceBillingVoucherLines(database, nextItems)
   await replaceBillingLedgerEntries(database, nextItems)
   await replaceBillingVoucherSplitTables(database, nextItems)
+  await replaceBillingBillEngineTables(database, nextItems)
   await synchronizeBillingInventoryToCore(database, nextItems, config)
 
   await writeBillingVoucherAudit(database, config, user, {

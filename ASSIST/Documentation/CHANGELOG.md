@@ -673,3 +673,10 @@
 - completed billing Stage `B11` with maker-checker controls, finance roles and permissions, accounting dimensions, exception reporting, and finance KPIs
 - completed billing Stage `B12` with month-end checklist, financial-year close workflow, opening-balance rollover policy, audit-trail review surface, and year-end adjustment plus carry-forward controls
 - extended the billing close workspace, protected internal route surface, and targeted billing route or reporting tests so control-state review and period-close actions use the shared platform audit and runtime model
+
+### [#74] 2026-04-08 - Billing split-table storage and query baseline
+
+- completed Stage `T5.1` by adding item split tables for sales, purchase, receipt, payment, journal, and contra vouchers and syncing them from the billing voucher lifecycle
+- completed Stage `T5.2` by adding bill reference, bill settlement, and overdue tracking tables with write rules for invoices, settlements, notes, and returns
+- started Stage `T5.3` by adding a split-register query service and protected billing register route so register reads can target voucher-family tables without loading full voucher JSON payloads
+- validated the batch with `npm run typecheck` and targeted billing service plus route tests

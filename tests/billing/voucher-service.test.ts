@@ -14,6 +14,7 @@ import {
   reviewBillingVoucher,
   updateBillingVoucher,
 } from "../../apps/billing/src/services/voucher-service.js"
+import { billingTableNames } from "../../apps/billing/database/table-names.js"
 import { getBillingAuditTrailReview } from "../../apps/billing/src/services/audit-trail-service.js"
 import { executeBillingOpeningBalanceRollover } from "../../apps/billing/src/services/opening-balance-rollover-service.js"
 import { executeBillingYearEndAdjustmentControl } from "../../apps/billing/src/services/year-end-control-service.js"
@@ -2612,6 +2613,452 @@ test("billing voucher service bridges purchase receipts and sales issues into co
         ),
         true
       )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service syncs item split tables for major voucher families", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-split-items-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const products = await listProducts(runtime.primary)
+      const productId = products.items[0]?.id
+
+      assert.ok(productId)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-SPLIT",
+        type: "sales",
+        date: "2026-04-21",
+        counterparty: "",
+        narration: "Sales invoice for split-table sync.",
+        lines: [],
+        billAllocations: [],
+        gst: null,
+        sales: {
+          voucherTypeId: "voucher-type-fabric-sales",
+          customerLedgerId: "ledger-sundry-debtors",
+          billToName: "Split Customer",
+          billToAddress: "Bengaluru",
+          shipToName: "Split Customer",
+          shipToAddress: "Bengaluru",
+          dueDate: "2026-04-30",
+          referenceNumber: "PO-SPLIT-001",
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          taxRate: 5,
+          items: [
+            {
+              productId,
+              warehouseId: "warehouse:default",
+              itemName: "Cotton Roll",
+              description: "Line one",
+              hsnOrSac: "5208",
+              quantity: 2,
+              unit: "Nos",
+              rate: 500,
+            },
+            {
+              productId,
+              warehouseId: "warehouse:default",
+              itemName: "Linen Roll",
+              description: "Line two",
+              hsnOrSac: "5309",
+              quantity: 1,
+              unit: "Nos",
+              rate: 800,
+            },
+          ],
+        },
+        stock: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PUR-2026-SPLIT",
+        status: "posted",
+        type: "purchase",
+        date: "2026-04-21",
+        counterparty: "Split Supplier",
+        narration: "Purchase invoice for split-table sync.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29AAACS4321P1Z1",
+          hsnOrSac: "5208",
+          taxableAmount: 1000,
+          taxRate: 5,
+          taxableLedgerId: "ledger-purchase",
+          partyLedgerId: "ledger-sundry-creditors",
+        },
+        stock: {
+          items: [
+            {
+              productId,
+              warehouseId: "warehouse:default",
+              quantity: 5,
+              unit: "Nos",
+              unitCost: 200,
+              landedCostAmount: 0,
+              note: "Stock receipt",
+            },
+          ],
+        },
+        transport: null,
+        sales: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-SPLIT",
+        status: "posted",
+        type: "receipt",
+        date: "2026-04-22",
+        counterparty: "Split Customer",
+        narration: "Receipt allocation split.",
+        lines: [
+          { ledgerId: "ledger-hdfc", side: "debit", amount: 1000, note: "Bank" },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 1000,
+            note: "Customer",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "SAL-2026-SPLIT",
+            referenceDate: "2026-04-21",
+            dueDate: "2026-04-30",
+            amount: 1000,
+            note: "Full allocation",
+          },
+        ],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-SPLIT",
+        status: "posted",
+        type: "payment",
+        date: "2026-04-22",
+        counterparty: "Split Supplier",
+        narration: "Payment allocation split.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 1000,
+            note: "Supplier",
+          },
+          { ledgerId: "ledger-hdfc", side: "credit", amount: 1000, note: "Bank" },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "PUR-2026-SPLIT",
+            referenceDate: "2026-04-21",
+            dueDate: "2026-04-30",
+            amount: 1000,
+            note: "Full allocation",
+          },
+        ],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "JRN-2026-SPLIT",
+        status: "posted",
+        type: "journal",
+        date: "2026-04-22",
+        counterparty: "Internal",
+        narration: "Journal line split.",
+        lines: [
+          { ledgerId: "ledger-rent", side: "debit", amount: 300, note: "Expense" },
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "credit",
+            amount: 300,
+            note: "Payable",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "CON-2026-SPLIT",
+        status: "posted",
+        type: "contra",
+        date: "2026-04-22",
+        counterparty: "Internal Transfer",
+        narration: "Contra line split.",
+        lines: [
+          { ledgerId: "ledger-cash", side: "credit", amount: 400, note: "Cash out" },
+          { ledgerId: "ledger-hdfc", side: "debit", amount: 400, note: "Bank in" },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const salesItems = await runtime.primary
+        .selectFrom(billingTableNames.salesItemVouchers)
+        .selectAll()
+        .execute()
+      const purchaseItems = await runtime.primary
+        .selectFrom(billingTableNames.purchaseItemVouchers)
+        .selectAll()
+        .execute()
+      const receiptItems = await runtime.primary
+        .selectFrom(billingTableNames.receiptItemVouchers)
+        .selectAll()
+        .execute()
+      const paymentItems = await runtime.primary
+        .selectFrom(billingTableNames.paymentItemVouchers)
+        .selectAll()
+        .execute()
+      const journalItems = await runtime.primary
+        .selectFrom(billingTableNames.journalItemVouchers)
+        .selectAll()
+        .execute()
+      const contraItems = await runtime.primary
+        .selectFrom(billingTableNames.contraItemVouchers)
+        .selectAll()
+        .execute()
+
+      const splitSalesItems = salesItems.filter((item) => item.voucher_number === "SAL-2026-SPLIT")
+      const splitPurchaseItems = purchaseItems.filter(
+        (item) => item.voucher_number === "PUR-2026-SPLIT"
+      )
+      const splitReceiptItems = receiptItems.filter(
+        (item) => item.voucher_number === "RCPT-2026-SPLIT"
+      )
+      const splitPaymentItems = paymentItems.filter(
+        (item) => item.voucher_number === "PAY-2026-SPLIT"
+      )
+      const splitJournalItems = journalItems.filter(
+        (item) => item.voucher_number === "JRN-2026-SPLIT"
+      )
+      const splitContraItems = contraItems.filter(
+        (item) => item.voucher_number === "CON-2026-SPLIT"
+      )
+
+      assert.equal(splitSalesItems.length, 2)
+      assert.equal(splitPurchaseItems.length, 1)
+      assert.equal(splitReceiptItems.length, 1)
+      assert.equal(splitPaymentItems.length, 1)
+      assert.equal(splitJournalItems.length, 2)
+      assert.equal(splitContraItems.length, 2)
+      assert.equal(splitSalesItems[0]?.voucher_number, "SAL-2026-SPLIT")
+      assert.equal(splitPurchaseItems[0]?.voucher_number, "PUR-2026-SPLIT")
+      assert.equal(splitReceiptItems[0]?.reference_number, "SAL-2026-SPLIT")
+      assert.equal(splitPaymentItems[0]?.reference_number, "PUR-2026-SPLIT")
+      assert.equal(splitJournalItems[0]?.voucher_number, "JRN-2026-SPLIT")
+      assert.equal(
+        splitContraItems.every(
+          (item) => item.account_type === "bank" || item.account_type === "cash"
+        ),
+        true
+      )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service syncs bill references settlements and overdue tracking", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-bill-engine-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const invoice = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "SAL-2026-BILLREF",
+        type: "sales",
+        date: "2026-04-01",
+        counterparty: "",
+        narration: "Sales invoice for bill register.",
+        lines: [],
+        billAllocations: [],
+        gst: null,
+        sales: {
+          voucherTypeId: "voucher-type-fabric-sales",
+          customerLedgerId: "ledger-sundry-debtors",
+          billToName: "Bill Ref Customer",
+          billToAddress: "Bengaluru",
+          shipToName: "Bill Ref Customer",
+          shipToAddress: "Bengaluru",
+          dueDate: "2026-04-10",
+          referenceNumber: "PO-BILL-001",
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          taxRate: 10,
+          items: [
+            {
+              itemName: "Fabric Lot",
+              description: "Bill engine line",
+              hsnOrSac: "5208",
+              quantity: 2,
+              unit: "Nos",
+              rate: 500,
+            },
+          ],
+        },
+        stock: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-BILLREF",
+        status: "posted",
+        type: "receipt",
+        date: "2026-04-12",
+        counterparty: "Bill Ref Customer",
+        narration: "Partial settlement against invoice.",
+        lines: [
+          { ledgerId: "ledger-hdfc", side: "debit", amount: 400, note: "Bank" },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 400,
+            note: "Customer",
+          },
+        ],
+        billAllocations: [
+          {
+            referenceType: "against_ref",
+            referenceNumber: "SAL-2026-BILLREF",
+            referenceDate: "2026-04-01",
+            dueDate: "2026-04-10",
+            amount: 400,
+            note: "Partial receipt",
+          },
+        ],
+        gst: null,
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "CRN-2026-BILLREF",
+        status: "posted",
+        type: "credit_note",
+        sourceVoucherId: invoice.item.id,
+        date: "2026-04-13",
+        counterparty: "Bill Ref Customer",
+        narration: "Credit note against original invoice.",
+        lines: [],
+        billAllocations: [],
+        gst: {
+          supplyType: "intra",
+          placeOfSupply: "KA",
+          partyGstin: "29ABCDE1234F1Z5",
+          hsnOrSac: "5208",
+          taxableAmount: 200,
+          taxRate: 10,
+          taxableLedgerId: "ledger-sales",
+          partyLedgerId: "ledger-sundry-debtors",
+        },
+        transport: null,
+        sales: null,
+        stock: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const references = await runtime.primary
+        .selectFrom(billingTableNames.billReferences)
+        .selectAll()
+        .where("ref_number", "=", "SAL-2026-BILLREF")
+        .execute()
+      const settlements = await runtime.primary
+        .selectFrom(billingTableNames.billSettlements)
+        .selectAll()
+        .where("ref_number", "=", "SAL-2026-BILLREF")
+        .execute()
+      const overdue = await runtime.primary
+        .selectFrom(billingTableNames.billOverdueTracking)
+        .selectAll()
+        .where("ref_number", "=", "SAL-2026-BILLREF")
+        .execute()
+
+      assert.equal(references.length, 1)
+      assert.equal(settlements.length, 2)
+      assert.equal(overdue.length, 1)
+      assert.equal(references[0]?.direction, "receivable")
+      assert.equal(references[0]?.original_amount, 1100)
+      assert.equal(references[0]?.settled_amount, 400)
+      assert.equal(references[0]?.discount_amount, 220)
+      assert.equal(references[0]?.balance_amount, 480)
+      assert.equal(references[0]?.status, "partial")
+      assert.equal(
+        settlements.some((item) => item.settlement_voucher_number === "RCPT-2026-BILLREF"),
+        true
+      )
+      assert.equal(
+        settlements.some((item) => item.settlement_voucher_number === "CRN-2026-BILLREF"),
+        true
+      )
+      assert.equal(overdue[0]?.status, "overdue")
+      assert.equal(overdue[0]?.bucket_key, "1_30")
+      assert.equal(overdue[0]?.overdue_amount, 480)
     } finally {
       await runtime.destroy()
     }
