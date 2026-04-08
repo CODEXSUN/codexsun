@@ -70,6 +70,7 @@ import {
   type StorefrontAccountingCompatibilityItem,
   type StorefrontAccountingCompatibilityReport,
   type StorefrontAppliedCoupon,
+  type StorefrontAppliedPromotion,
   type StorefrontErpDeliveryNoteLink,
   type StorefrontErpInvoiceLink,
   type StorefrontErpReturnLink,
@@ -92,6 +93,7 @@ import {
 } from "./razorpay-service.js"
 import {
   consumeCustomerPortalCoupon,
+  getCustomerCommercialContext,
   readCustomerAccounts,
   releaseCustomerPortalCoupon,
   reserveCustomerPortalCoupon,
@@ -176,6 +178,51 @@ function normalizeOptionalString(value: string | null | undefined) {
 
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function roundCurrencyAmount(value: number) {
+  return Math.round(Math.max(0, value) * 100) / 100
+}
+
+function buildSegmentPromotion(
+  subtotalAmount: number,
+  context:
+    | {
+        commercialProfile: {
+          segmentKey: StorefrontAppliedPromotion["segmentKey"]
+          priceAdjustmentPercent: number
+          promotionLabel: string | null
+        }
+      }
+    | null
+): StorefrontAppliedPromotion | null {
+  if (!context || context.commercialProfile.priceAdjustmentPercent <= 0) {
+    return null
+  }
+
+  const discountAmount = roundCurrencyAmount(
+    subtotalAmount * (context.commercialProfile.priceAdjustmentPercent / 100)
+  )
+
+  if (discountAmount <= 0) {
+    return null
+  }
+
+  return {
+    promotionKey: `segment:${context.commercialProfile.segmentKey}`,
+    label:
+      context.commercialProfile.promotionLabel ??
+      `${context.commercialProfile.segmentKey.replaceAll("_", " ")} promotion`,
+    segmentKey: context.commercialProfile.segmentKey,
+    source:
+      context.commercialProfile.segmentKey === "at_risk" ||
+      context.commercialProfile.segmentKey === "dormant"
+        ? "lifecycle_marketing"
+        : "segment_pricing",
+    discountPercent: context.commercialProfile.priceAdjustmentPercent,
+    discountAmount,
+    appliedAt: new Date().toISOString(),
+  }
 }
 
 async function readOrders(database: Kysely<unknown>) {
@@ -1603,6 +1650,9 @@ export async function createCheckoutOrder(
     const customer = token
       ? await resolveAuthenticatedCustomerAccount(database, config, token)
       : null
+    const customerCommercialContext = customer
+      ? await getCustomerCommercialContext(database, customer)
+      : null
     const settings = await getStorefrontSettings(database)
     const existingOrders = await expireStalePendingReservations(database, await readOrders(database))
     const catalog = await readProjectedStorefrontProducts(database)
@@ -1761,6 +1811,10 @@ export async function createCheckoutOrder(
     orderCreationAttempted = true
     const orderId = `storefront-order:${randomUUID()}`
     let appliedCoupon: StorefrontAppliedCoupon | null = null
+    const appliedPromotion = buildSegmentPromotion(
+      subtotalAmount,
+      customerCommercialContext
+    )
 
     if (parsed.couponCode) {
       if (!customer) {
@@ -1821,6 +1875,7 @@ export async function createCheckoutOrder(
       refund: null,
       stockReservation: null,
       appliedCoupon,
+      appliedPromotion,
       taxBreakdown,
       providerOrderId: null,
       providerPaymentId: null,
@@ -1830,10 +1885,18 @@ export async function createCheckoutOrder(
       items,
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       subtotalAmount,
-      discountAmount: discountAmount + (appliedCoupon?.discountAmount ?? 0),
+      discountAmount:
+        discountAmount +
+        (appliedPromotion?.discountAmount ?? 0) +
+        (appliedCoupon?.discountAmount ?? 0),
       shippingAmount,
       handlingAmount,
-      totalAmount: Math.max(0, totalAmount - (appliedCoupon?.discountAmount ?? 0)),
+      totalAmount: Math.max(
+        0,
+        totalAmount -
+          (appliedPromotion?.discountAmount ?? 0) -
+          (appliedCoupon?.discountAmount ?? 0)
+      ),
       currency: "INR",
       notes: normalizeOptionalString(parsed.notes),
       timeline: [

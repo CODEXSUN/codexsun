@@ -423,6 +423,39 @@ function normalizeErpSalesOrderLink(
   }
 }
 
+function normalizeAppliedPromotion(
+  value: unknown
+): StorefrontOrder["appliedPromotion"] {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const promotionKey = normalizeOptionalString(record.promotionKey)
+  const label = normalizeOptionalString(record.label)
+
+  if (!promotionKey || !label) {
+    return null
+  }
+
+  return {
+    promotionKey,
+    label,
+    segmentKey:
+      record.segmentKey === "repeat_customer" ||
+      record.segmentKey === "vip" ||
+      record.segmentKey === "at_risk" ||
+      record.segmentKey === "dormant"
+        ? record.segmentKey
+        : "new_customer",
+    source: record.source === "lifecycle_marketing" ? "lifecycle_marketing" : "segment_pricing",
+    discountPercent: Math.max(0, normalizeNumber(record.discountPercent, 0)),
+    discountAmount: Math.max(0, normalizeNumber(record.discountAmount, 0)),
+    appliedAt: normalizeRequiredString(record.appliedAt, new Date().toISOString()),
+  }
+}
+
 function normalizeErpDeliveryNoteLink(
   value: unknown
 ): StorefrontOrder["erpDeliveryNoteLink"] {
@@ -672,6 +705,7 @@ function normalizeOrderRecord(value: unknown, index: number): StorefrontOrder | 
     }),
     stockReservation: normalizeStockReservation(record.stockReservation),
     appliedCoupon: normalizeAppliedCoupon(record.appliedCoupon),
+    appliedPromotion: normalizeAppliedPromotion(record.appliedPromotion),
     taxBreakdown: normalizeTaxBreakdown(record.taxBreakdown),
     erpSalesOrderLink: normalizeErpSalesOrderLink(record.erpSalesOrderLink),
     erpDeliveryNoteLink: normalizeErpDeliveryNoteLink(record.erpDeliveryNoteLink),

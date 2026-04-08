@@ -28,6 +28,8 @@ import {
   customerPortalPreferencesUpdatePayloadSchema,
   customerPortalRecordSchema,
   customerPortalResponseSchema,
+  customerCommercialProfileSchema,
+  customerLifecycleMarketingStateSchema,
   customerLifecycleStateSchema,
   customerAccountSchema,
   customerProfileLookupResponseSchema,
@@ -41,13 +43,19 @@ import {
   storefrontCustomerSecurityReviewPayloadSchema,
   customerWishlistTogglePayloadSchema,
   type CustomerAccount,
+  type CustomerCommercialProfile,
   type CustomerLifecycleState,
+  type CustomerLifecycleMarketingState,
   type CustomerPortalCoupon,
   type CustomerPortalRecord,
   type CustomerPortalResponse,
   type CustomerProfile,
+  type StorefrontCustomerSegmentReport,
+  type StorefrontLifecycleMarketingReport,
   type StorefrontCustomerAdminView,
   type StorefrontCustomerSuspiciousLoginEvent,
+  storefrontCustomerSegmentReportSchema,
+  storefrontLifecycleMarketingReportSchema,
 } from "../../shared/index.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
@@ -181,7 +189,48 @@ async function readCustomerPortalRecords(database: Kysely<unknown>) {
     ecommerceTableNames.customerPortal
   )
 
-  return items.map((item) => customerPortalRecordSchema.parse(item))
+  return items.map((item) => {
+    const baseProfile = customerCommercialProfileSchema.parse({
+      segmentKey:
+        item.commercialProfile?.segmentKey === "repeat_customer" ||
+        item.commercialProfile?.segmentKey === "vip" ||
+        item.commercialProfile?.segmentKey === "at_risk" ||
+        item.commercialProfile?.segmentKey === "dormant"
+          ? item.commercialProfile.segmentKey
+          : "new_customer",
+      orderCount: Math.max(0, Number(item.commercialProfile?.orderCount ?? 0)),
+      lifetimeSpend: roundCurrencyAmount(Number(item.commercialProfile?.lifetimeSpend ?? 0)),
+      lastOrderAt: item.commercialProfile?.lastOrderAt ?? null,
+      priceAdjustmentPercent: Number(item.commercialProfile?.priceAdjustmentPercent ?? 0),
+      promotionLabel: item.commercialProfile?.promotionLabel ?? null,
+      source:
+        item.commercialProfile?.source === "frappe_enrichment"
+          ? "frappe_enrichment"
+          : "ecommerce_rules",
+    })
+
+    return customerPortalRecordSchema.parse({
+      ...item,
+      wishlistUpdatedAt: item.wishlistUpdatedAt ?? null,
+      commercialProfile: baseProfile,
+      lifecycleMarketing: customerLifecycleMarketingStateSchema.parse({
+        stage: item.lifecycleMarketing?.stage ?? "welcome",
+        emailSubscriptionStatus:
+          item.lifecycleMarketing?.emailSubscriptionStatus === "suppressed"
+            ? "suppressed"
+            : item.lifecycleMarketing?.emailSubscriptionStatus === "unsubscribed"
+              ? "unsubscribed"
+              : "subscribed",
+        lastOrderAt: item.lifecycleMarketing?.lastOrderAt ?? baseProfile.lastOrderAt ?? null,
+        lastWishlistActivityAt: item.lifecycleMarketing?.lastWishlistActivityAt ?? item.wishlistUpdatedAt ?? null,
+        lastMarketingEngagementAt: item.lifecycleMarketing?.lastMarketingEngagementAt ?? null,
+        nextCampaignKey: item.lifecycleMarketing?.nextCampaignKey ?? "welcome_series",
+        automationFlags: Array.isArray(item.lifecycleMarketing?.automationFlags)
+          ? item.lifecycleMarketing.automationFlags
+          : [],
+      }),
+    })
+  })
 }
 
 async function writeCustomerPortalRecords(database: Kysely<unknown>, items: CustomerPortalRecord[]) {
@@ -306,6 +355,115 @@ function nextTierTarget(tier: "bronze" | "silver" | "gold" | "platinum") {
   }
 }
 
+function roundCurrencyAmount(value: number) {
+  return Math.round(Math.max(0, value) * 100) / 100
+}
+
+function deriveCommercialProfile(
+  orders: StorefrontOrder[],
+  portalRecord: Pick<CustomerPortalRecord, "preferences" | "wishlistProductIds" | "wishlistUpdatedAt">
+): CustomerCommercialProfile {
+  const paidOrders = orders.filter((item) => item.paymentStatus === "paid")
+  const orderCount = paidOrders.length
+  const lifetimeSpend = roundCurrencyAmount(
+    paidOrders.reduce((sum, item) => sum + item.totalAmount, 0)
+  )
+  const lastOrderAt =
+    paidOrders
+      .map((item) => item.updatedAt)
+      .sort((left, right) => right.localeCompare(left))[0] ?? null
+  const daysSinceLastOrder =
+    lastOrderAt == null
+      ? Number.POSITIVE_INFINITY
+      : (Date.now() - new Date(lastOrderAt).getTime()) / (1000 * 60 * 60 * 24)
+
+  let segmentKey: CustomerCommercialProfile["segmentKey"] = "new_customer"
+  let priceAdjustmentPercent = 0
+  let promotionLabel: string | null = null
+
+  if (orderCount >= 5 || lifetimeSpend >= 25000) {
+    segmentKey = "vip"
+    priceAdjustmentPercent = 5
+    promotionLabel = "VIP loyalty price"
+  } else if (orderCount >= 2) {
+    segmentKey = "repeat_customer"
+    priceAdjustmentPercent = 3
+    promotionLabel = "Repeat customer price"
+  }
+
+  if (orderCount > 0 && daysSinceLastOrder >= 45 && daysSinceLastOrder < 90) {
+    segmentKey = "at_risk"
+    priceAdjustmentPercent = 7
+    promotionLabel = "Come-back promotion"
+  } else if (orderCount > 0 && daysSinceLastOrder >= 90) {
+    segmentKey = "dormant"
+    priceAdjustmentPercent = 10
+    promotionLabel = "Win-back promotion"
+  }
+
+  if (portalRecord.preferences.marketingEmails === false && segmentKey === "new_customer") {
+    promotionLabel = null
+  }
+
+  return customerCommercialProfileSchema.parse({
+    segmentKey,
+    orderCount,
+    lifetimeSpend,
+    lastOrderAt,
+    priceAdjustmentPercent,
+    promotionLabel,
+    source: "ecommerce_rules",
+  })
+}
+
+function deriveLifecycleMarketingState(
+  portalRecord: Pick<
+    CustomerPortalRecord,
+    "preferences" | "wishlistProductIds" | "wishlistUpdatedAt" | "commercialProfile"
+  >,
+  commercialProfile: CustomerCommercialProfile
+): CustomerLifecycleMarketingState {
+  const subscribed = portalRecord.preferences.marketingEmails
+  let stage: CustomerLifecycleMarketingState["stage"] = "welcome"
+  let nextCampaignKey: string | null = "welcome_series"
+  const automationFlags: string[] = []
+
+  if (!subscribed) {
+    stage = "suppressed"
+    nextCampaignKey = null
+  } else if (commercialProfile.segmentKey === "vip") {
+    stage = "vip"
+    nextCampaignKey = "vip_early_access"
+    automationFlags.push("vip_curated_drop")
+  } else if (commercialProfile.segmentKey === "at_risk" || commercialProfile.segmentKey === "dormant") {
+    stage = "winback"
+    nextCampaignKey = "winback_offer"
+    automationFlags.push("winback_offer")
+  } else if (commercialProfile.segmentKey === "repeat_customer") {
+    stage = "active"
+    nextCampaignKey = "repeat_purchase_cross_sell"
+    automationFlags.push("cross_sell_followup")
+  } else if (portalRecord.wishlistProductIds.length > 0) {
+    stage = "nurture"
+    nextCampaignKey = "wishlist_price_drop"
+    automationFlags.push("wishlist_price_drop")
+  }
+
+  if (portalRecord.preferences.priceDropAlerts && portalRecord.wishlistProductIds.length > 0) {
+    automationFlags.push("price_drop_watch")
+  }
+
+  return customerLifecycleMarketingStateSchema.parse({
+    stage,
+    emailSubscriptionStatus: subscribed ? "subscribed" : "unsubscribed",
+    lastOrderAt: commercialProfile.lastOrderAt,
+    lastWishlistActivityAt: portalRecord.wishlistUpdatedAt,
+    lastMarketingEngagementAt: null,
+    nextCampaignKey,
+    automationFlags,
+  })
+}
+
 function createDefaultPortalRecord(account: CustomerAccount): CustomerPortalRecord {
   const now = new Date().toISOString()
   const codeBase = account.displayName
@@ -318,11 +476,38 @@ function createDefaultPortalRecord(account: CustomerAccount): CustomerPortalReco
   const pointsBalance = 120
   const tier = inferRewardsTier(pointsBalance)
   const nextTier = nextTierTarget(tier)
+  const commercialProfile = deriveCommercialProfile([], {
+    preferences: {
+      orderUpdates: true,
+      wishlistAlerts: true,
+      priceDropAlerts: true,
+      marketingEmails: true,
+      smsAlerts: false,
+    },
+    wishlistProductIds: [],
+    wishlistUpdatedAt: null,
+  })
+  const lifecycleMarketing = deriveLifecycleMarketingState(
+    {
+      preferences: {
+        orderUpdates: true,
+        wishlistAlerts: true,
+        priceDropAlerts: true,
+        marketingEmails: true,
+        smsAlerts: false,
+      },
+      wishlistProductIds: [],
+      wishlistUpdatedAt: null,
+      commercialProfile,
+    },
+    commercialProfile
+  )
 
   return customerPortalRecordSchema.parse({
     id: `customer-portal:${account.id}`,
     customerAccountId: account.id,
     wishlistProductIds: [],
+    wishlistUpdatedAt: null,
     coupons: [
       {
         id: `coupon:${account.id}:welcome`,
@@ -396,6 +581,8 @@ function createDefaultPortalRecord(account: CustomerAccount): CustomerPortalReco
       marketingEmails: true,
       smsAlerts: false,
     },
+    commercialProfile,
+    lifecycleMarketing,
     createdAt: now,
     updatedAt: now,
   })
@@ -732,6 +919,16 @@ async function buildCustomerPortalResponse(
     .map(toStorefrontProductCard)
 
   const customerOrders = orders.filter((item) => orderBelongsToAccount(item, account))
+  const commercialProfile = deriveCommercialProfile(customerOrders, portalRecord)
+  const lifecycleMarketing = deriveLifecycleMarketingState(
+    {
+      preferences: portalRecord.preferences,
+      wishlistProductIds: portalRecord.wishlistProductIds,
+      wishlistUpdatedAt: portalRecord.wishlistUpdatedAt,
+      commercialProfile,
+    },
+    commercialProfile
+  )
 
   return customerPortalResponseSchema.parse({
     profile,
@@ -740,6 +937,8 @@ async function buildCustomerPortalResponse(
     giftCards: portalRecord.giftCards,
     rewards: portalRecord.rewards,
     preferences: portalRecord.preferences,
+    commercialProfile,
+    lifecycleMarketing,
     stats: {
       orderCount: customerOrders.length,
       wishlistCount: wishlist.length,
@@ -747,6 +946,34 @@ async function buildCustomerPortalResponse(
       activeGiftCardCount: portalRecord.giftCards.filter((item) => item.status === "active").length,
     },
   })
+}
+
+export async function getCustomerCommercialContext(
+  database: Kysely<unknown>,
+  account: CustomerAccount
+) {
+  const [portalRecord, orders] = await Promise.all([
+    ensureCustomerPortalRecord(database, account),
+    readOrders(database),
+  ])
+  const customerOrders = orders.filter((item) => orderBelongsToAccount(item, account))
+  const commercialProfile = deriveCommercialProfile(customerOrders, portalRecord)
+  const lifecycleMarketing = deriveLifecycleMarketingState(
+    {
+      preferences: portalRecord.preferences,
+      wishlistProductIds: portalRecord.wishlistProductIds,
+      wishlistUpdatedAt: portalRecord.wishlistUpdatedAt,
+      commercialProfile,
+    },
+    commercialProfile
+  )
+
+  return {
+    portalRecord,
+    customerOrders,
+    commercialProfile,
+    lifecycleMarketing,
+  }
 }
 
 async function findAccountByEmail(database: Kysely<unknown>, email: string) {
@@ -1229,9 +1456,25 @@ export async function toggleCustomerWishlistItem(
   const nextWishlistProductIds = record.wishlistProductIds.includes(parsed.productId)
     ? record.wishlistProductIds.filter((item) => item !== parsed.productId)
     : [parsed.productId, ...record.wishlistProductIds]
+  const commercialProfile = deriveCommercialProfile([], {
+    preferences: record.preferences,
+    wishlistProductIds: nextWishlistProductIds,
+    wishlistUpdatedAt: new Date().toISOString(),
+  })
   const updatedRecord = customerPortalRecordSchema.parse({
     ...record,
     wishlistProductIds: nextWishlistProductIds,
+    wishlistUpdatedAt: new Date().toISOString(),
+    commercialProfile,
+    lifecycleMarketing: deriveLifecycleMarketingState(
+      {
+        preferences: record.preferences,
+        wishlistProductIds: nextWishlistProductIds,
+        wishlistUpdatedAt: new Date().toISOString(),
+        commercialProfile,
+      },
+      commercialProfile
+    ),
     updatedAt: new Date().toISOString(),
   })
 
@@ -1426,6 +1669,77 @@ export async function getStorefrontCustomerOperationsReport(database: Kysely<unk
       suspiciousReviewCount: items.filter((item) => item.suspiciousLoginOpenCount > 0).length,
     },
     items,
+  })
+}
+
+export async function getStorefrontCustomerSegmentationReport(
+  database: Kysely<unknown>
+): Promise<StorefrontCustomerSegmentReport> {
+  const accounts = await readCustomerAccounts(database)
+
+  const items = await Promise.all(
+    accounts.map(async (account) => {
+      const { commercialProfile } = await getCustomerCommercialContext(database, account)
+
+      return {
+        customerAccountId: account.id,
+        displayName: account.displayName,
+        email: account.email,
+        segmentKey: commercialProfile.segmentKey,
+        orderCount: commercialProfile.orderCount,
+        lifetimeSpend: commercialProfile.lifetimeSpend,
+        priceAdjustmentPercent: commercialProfile.priceAdjustmentPercent,
+        promotionLabel: commercialProfile.promotionLabel,
+        lastOrderAt: commercialProfile.lastOrderAt,
+      }
+    })
+  )
+  return storefrontCustomerSegmentReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalCustomers: items.length,
+      newCustomerCount: items.filter((item) => item.segmentKey === "new_customer").length,
+      repeatCustomerCount: items.filter((item) => item.segmentKey === "repeat_customer").length,
+      vipCount: items.filter((item) => item.segmentKey === "vip").length,
+      atRiskCount: items.filter((item) => item.segmentKey === "at_risk").length,
+      dormantCount: items.filter((item) => item.segmentKey === "dormant").length,
+    },
+    items: items.sort((left, right) => left.displayName.localeCompare(right.displayName)),
+  })
+}
+
+export async function getStorefrontLifecycleMarketingReport(
+  database: Kysely<unknown>
+): Promise<StorefrontLifecycleMarketingReport> {
+  const accounts = await readCustomerAccounts(database)
+  const items = await Promise.all(
+    accounts.map(async (account) => {
+      const { lifecycleMarketing } = await getCustomerCommercialContext(database, account)
+
+      return {
+        customerAccountId: account.id,
+        displayName: account.displayName,
+        email: account.email,
+        stage: lifecycleMarketing.stage,
+        emailSubscriptionStatus: lifecycleMarketing.emailSubscriptionStatus,
+        nextCampaignKey: lifecycleMarketing.nextCampaignKey,
+        automationFlags: lifecycleMarketing.automationFlags,
+        lastOrderAt: lifecycleMarketing.lastOrderAt,
+        lastWishlistActivityAt: lifecycleMarketing.lastWishlistActivityAt,
+      }
+    })
+  )
+
+  return storefrontLifecycleMarketingReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalCustomers: items.length,
+      subscribedCount: items.filter((item) => item.emailSubscriptionStatus === "subscribed").length,
+      winbackCount: items.filter((item) => item.stage === "winback").length,
+      vipJourneyCount: items.filter((item) => item.stage === "vip").length,
+      suppressedCount: items.filter((item) => item.stage === "suppressed").length,
+    },
+    items: items.sort((left, right) => left.displayName.localeCompare(right.displayName)),
   })
 }
 

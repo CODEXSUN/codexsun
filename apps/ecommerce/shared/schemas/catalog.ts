@@ -489,6 +489,22 @@ export const storefrontProductCardSchema = z.object({
   tagNames: z.array(z.string().min(1)),
 })
 
+export const storefrontRecommendationReasonSchema = z.enum([
+  "search_match",
+  "category_affinity",
+  "brand_affinity",
+  "tag_affinity",
+  "wishlist_affinity",
+  "repeat_order_affinity",
+  "new_arrival",
+  "best_seller",
+])
+
+export const storefrontRecommendationItemSchema = storefrontProductCardSchema.extend({
+  reason: storefrontRecommendationReasonSchema,
+  score: z.number().finite().nonnegative(),
+})
+
 export const storefrontCategorySummarySchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
@@ -662,6 +678,7 @@ export const storefrontCatalogResponseSchema = z.object({
     sort: z.enum(["featured", "latest", "price-asc", "price-desc"]).default("featured"),
   }),
   items: z.array(storefrontProductCardSchema),
+  recommendationRail: z.array(storefrontRecommendationItemSchema).default([]),
   availableCategories: z.array(storefrontCategorySummarySchema),
   availableDepartments: z.array(z.string().min(1)),
   availableTags: z.array(z.string().min(1)),
@@ -695,6 +712,47 @@ export const storefrontProductResponseSchema = z.object({
   settings: storefrontSettingsSchema,
   item: storefrontProductDetailSchema,
   relatedItems: z.array(storefrontProductCardSchema),
+  recommendedItems: z.array(storefrontRecommendationItemSchema).default([]),
+})
+
+export const storefrontRecommendationReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  searchPreview: z.array(storefrontRecommendationItemSchema),
+  productPreview: z.array(storefrontRecommendationItemSchema),
+  trendingPreview: z.array(storefrontRecommendationItemSchema),
+})
+
+export const storefrontMerchandisingExperimentSurfaceSchema = z.object({
+  surfaceKey: z.enum([
+    "hero",
+    "featured",
+    "new_arrivals",
+    "best_sellers",
+    "coupon_banner",
+    "gift_corner",
+    "trending",
+    "brand_showcase",
+    "campaign",
+  ]),
+  hypothesis: z.string().min(1),
+  primaryMetric: z.string().min(1),
+  secondaryMetric: z.string().min(1),
+  status: z.enum(["ready", "watch", "blocked"]),
+})
+
+export const storefrontMerchandisingAutomationReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalActiveProducts: z.number().int().min(0),
+    featuredCandidateCount: z.number().int().min(0),
+    lowStockFeaturedCount: z.number().int().min(0),
+    automationReadyCount: z.number().int().min(0),
+    experimentSurfaceCount: z.number().int().min(0),
+  }),
+  featuredCandidates: z.array(storefrontRecommendationItemSchema),
+  lowStockFeaturedItems: z.array(storefrontProductCardSchema),
+  staleMerchandisingItems: z.array(storefrontProductCardSchema),
+  experimentSurfaces: z.array(storefrontMerchandisingExperimentSurfaceSchema),
 })
 
 export const storefrontLegalPageResponseSchema = z.object({
@@ -735,6 +793,12 @@ export type StorefrontGiftCorner = z.infer<typeof storefrontGiftCornerSchema>
 export type StorefrontTrendingCard = z.infer<typeof storefrontTrendingCardSchema>
 export type StorefrontTrendingSection = z.infer<typeof storefrontTrendingSectionSchema>
 export type StorefrontProductCard = z.infer<typeof storefrontProductCardSchema>
+export type StorefrontRecommendationReason = z.infer<
+  typeof storefrontRecommendationReasonSchema
+>
+export type StorefrontRecommendationItem = z.infer<
+  typeof storefrontRecommendationItemSchema
+>
 export type StorefrontCategorySummary = z.infer<typeof storefrontCategorySummarySchema>
 export type StorefrontBrandDiscoveryCard = z.infer<typeof storefrontBrandDiscoveryCardSchema>
 export type StorefrontBrandShowcase = z.infer<typeof storefrontBrandShowcaseSchema>
@@ -763,3 +827,12 @@ export type StorefrontCatalogResponse = z.infer<typeof storefrontCatalogResponse
 export type StorefrontProductDetail = z.infer<typeof storefrontProductDetailSchema>
 export type StorefrontProductResponse = z.infer<typeof storefrontProductResponseSchema>
 export type StorefrontLegalPageResponse = z.infer<typeof storefrontLegalPageResponseSchema>
+export type StorefrontRecommendationReport = z.infer<
+  typeof storefrontRecommendationReportSchema
+>
+export type StorefrontMerchandisingExperimentSurface = z.infer<
+  typeof storefrontMerchandisingExperimentSurfaceSchema
+>
+export type StorefrontMerchandisingAutomationReport = z.infer<
+  typeof storefrontMerchandisingAutomationReportSchema
+>

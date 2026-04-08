@@ -25,6 +25,10 @@ import {
   saveStorefrontSettings,
 } from "../../../ecommerce/src/services/storefront-settings-service.js"
 import {
+  getStorefrontMerchandisingAutomationReport,
+  getStorefrontRecommendationReport,
+} from "../../../ecommerce/src/services/catalog-service.js"
+import {
   assertStorefrontMailboxTemplates,
   listStorefrontCommunicationLog,
   resendStorefrontCommunication,
@@ -54,7 +58,9 @@ import {
 import {
   applyStorefrontCustomerLifecycleAction,
   getStorefrontCustomerAccount,
+  getStorefrontCustomerSegmentationReport,
   getStorefrontCustomerOperationsReport,
+  getStorefrontLifecycleMarketingReport,
   markStorefrontCustomerSecurityReview,
 } from "../../../ecommerce/src/services/customer-service.js"
 import {
@@ -503,6 +509,46 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontOverviewKpiReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/advanced-commerce/recommendations", {
+      summary: "Read recommendation and search-ranking preview output for advanced ecommerce merchandising.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontRecommendationReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/advanced-commerce/segments", {
+      summary: "Read customer commercial segmentation and segment-pricing posture for advanced ecommerce operations.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontCustomerSegmentationReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/advanced-commerce/lifecycle-marketing", {
+      summary: "Read lifecycle marketing readiness, subscription posture, and next-campaign recommendations.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontLifecycleMarketingReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/advanced-commerce/merchandising", {
+      summary: "Read merchandising automation candidates and experimentation-ready storefront surfaces.",
+      handler: async (context) => {
+        await requireAnalyticsView(context)
+
+        return jsonResponse(
+          await getStorefrontMerchandisingAutomationReport(context.databases.primary)
         )
       },
     }),

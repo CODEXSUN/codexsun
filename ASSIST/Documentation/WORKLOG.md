@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#97` 2026-04-08
+
+- completed Stage `7.1.1` through `7.1.4` by adding local advanced-commerce capability inside ecommerce for recommendation and search-ranking improvements, segment pricing, lifecycle marketing, and merchandising experimentation readiness
+- extended ecommerce shared contracts with recommendation rails, commercial profiles, lifecycle-marketing state, merchandising automation reports, and applied-promotion snapshots, then wired catalog ranking, PDP recommendations, and authenticated checkout promotion handling onto those contracts
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test --test-name-pattern "internal route registry includes" tests/api/internal/routes.test.ts`; the broader internal-route billing year-end failure remains unrelated and unchanged
+
 ### `#96` 2026-04-08
 
 - completed Stage `6.2.1` through `6.2.4` by adding connector-owned delivery-note, invoice, and return or refund sync-back records, a mismatch queue, and replay tools

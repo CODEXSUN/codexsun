@@ -103,6 +103,43 @@ export const customerPortalPreferencesSchema = z.object({
   smsAlerts: z.boolean().default(false),
 })
 
+export const customerCommercialSegmentSchema = z.enum([
+  "new_customer",
+  "repeat_customer",
+  "vip",
+  "at_risk",
+  "dormant",
+])
+
+export const customerCommercialProfileSchema = z.object({
+  segmentKey: customerCommercialSegmentSchema,
+  orderCount: z.number().int().min(0),
+  lifetimeSpend: z.number().finite().nonnegative(),
+  lastOrderAt: z.string().nullable(),
+  priceAdjustmentPercent: z.number().finite(),
+  promotionLabel: z.string().nullable(),
+  source: z.enum(["ecommerce_rules", "frappe_enrichment"]).default("ecommerce_rules"),
+})
+
+export const customerLifecycleMarketingStageSchema = z.enum([
+  "welcome",
+  "active",
+  "nurture",
+  "vip",
+  "winback",
+  "suppressed",
+])
+
+export const customerLifecycleMarketingStateSchema = z.object({
+  stage: customerLifecycleMarketingStageSchema,
+  emailSubscriptionStatus: z.enum(["subscribed", "unsubscribed", "suppressed"]),
+  lastOrderAt: z.string().nullable(),
+  lastWishlistActivityAt: z.string().nullable(),
+  lastMarketingEngagementAt: z.string().nullable(),
+  nextCampaignKey: z.string().nullable(),
+  automationFlags: z.array(z.string().min(1)),
+})
+
 export const customerPortalCouponSchema = z.object({
   id: z.string().min(1),
   code: z.string().min(1),
@@ -154,10 +191,13 @@ export const customerPortalRecordSchema = z.object({
   id: z.string().min(1),
   customerAccountId: z.string().min(1),
   wishlistProductIds: z.array(z.string().min(1)),
+  wishlistUpdatedAt: z.string().nullable().default(null),
   coupons: z.array(customerPortalCouponSchema),
   giftCards: z.array(customerPortalGiftCardSchema),
   rewards: customerRewardsSchema,
   preferences: customerPortalPreferencesSchema,
+  commercialProfile: customerCommercialProfileSchema,
+  lifecycleMarketing: customerLifecycleMarketingStateSchema,
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })
@@ -176,7 +216,58 @@ export const customerPortalResponseSchema = z.object({
   giftCards: z.array(customerPortalGiftCardSchema),
   rewards: customerRewardsSchema,
   preferences: customerPortalPreferencesSchema,
+  commercialProfile: customerCommercialProfileSchema,
+  lifecycleMarketing: customerLifecycleMarketingStateSchema,
   stats: customerPortalStatsSchema,
+})
+
+export const storefrontCustomerSegmentItemSchema = z.object({
+  customerAccountId: z.string().min(1),
+  displayName: z.string().min(1),
+  email: z.email(),
+  segmentKey: customerCommercialSegmentSchema,
+  orderCount: z.number().int().min(0),
+  lifetimeSpend: z.number().finite().nonnegative(),
+  priceAdjustmentPercent: z.number().finite(),
+  promotionLabel: z.string().nullable(),
+  lastOrderAt: z.string().nullable(),
+})
+
+export const storefrontCustomerSegmentReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalCustomers: z.number().int().min(0),
+    newCustomerCount: z.number().int().min(0),
+    repeatCustomerCount: z.number().int().min(0),
+    vipCount: z.number().int().min(0),
+    atRiskCount: z.number().int().min(0),
+    dormantCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontCustomerSegmentItemSchema),
+})
+
+export const storefrontLifecycleMarketingItemSchema = z.object({
+  customerAccountId: z.string().min(1),
+  displayName: z.string().min(1),
+  email: z.email(),
+  stage: customerLifecycleMarketingStageSchema,
+  emailSubscriptionStatus: z.enum(["subscribed", "unsubscribed", "suppressed"]),
+  nextCampaignKey: z.string().nullable(),
+  automationFlags: z.array(z.string().min(1)),
+  lastOrderAt: z.string().nullable(),
+  lastWishlistActivityAt: z.string().nullable(),
+})
+
+export const storefrontLifecycleMarketingReportSchema = z.object({
+  generatedAt: z.string().min(1),
+  summary: z.object({
+    totalCustomers: z.number().int().min(0),
+    subscribedCount: z.number().int().min(0),
+    winbackCount: z.number().int().min(0),
+    vipJourneyCount: z.number().int().min(0),
+    suppressedCount: z.number().int().min(0),
+  }),
+  items: z.array(storefrontLifecycleMarketingItemSchema),
 })
 
 export const storefrontCustomerAdminViewSchema = z.object({
@@ -291,6 +382,14 @@ export type CustomerAccount = z.infer<typeof customerAccountSchema>
 export type CustomerProfile = z.infer<typeof customerProfileSchema>
 export type CustomerProfileLookupResponse = z.infer<typeof customerProfileLookupResponseSchema>
 export type CustomerPortalPreferences = z.infer<typeof customerPortalPreferencesSchema>
+export type CustomerCommercialSegment = z.infer<typeof customerCommercialSegmentSchema>
+export type CustomerCommercialProfile = z.infer<typeof customerCommercialProfileSchema>
+export type CustomerLifecycleMarketingStage = z.infer<
+  typeof customerLifecycleMarketingStageSchema
+>
+export type CustomerLifecycleMarketingState = z.infer<
+  typeof customerLifecycleMarketingStateSchema
+>
 export type CustomerPortalCoupon = z.infer<typeof customerPortalCouponSchema>
 export type CustomerPortalGiftCard = z.infer<typeof customerPortalGiftCardSchema>
 export type CustomerRewardActivity = z.infer<typeof customerRewardActivitySchema>
@@ -298,6 +397,18 @@ export type CustomerRewards = z.infer<typeof customerRewardsSchema>
 export type CustomerPortalRecord = z.infer<typeof customerPortalRecordSchema>
 export type CustomerPortalStats = z.infer<typeof customerPortalStatsSchema>
 export type CustomerPortalResponse = z.infer<typeof customerPortalResponseSchema>
+export type StorefrontCustomerSegmentItem = z.infer<
+  typeof storefrontCustomerSegmentItemSchema
+>
+export type StorefrontCustomerSegmentReport = z.infer<
+  typeof storefrontCustomerSegmentReportSchema
+>
+export type StorefrontLifecycleMarketingItem = z.infer<
+  typeof storefrontLifecycleMarketingItemSchema
+>
+export type StorefrontLifecycleMarketingReport = z.infer<
+  typeof storefrontLifecycleMarketingReportSchema
+>
 export type CustomerLifecycleState = z.infer<typeof customerLifecycleStateSchema>
 export type StorefrontCustomerSuspiciousLoginEvent = z.infer<
   typeof storefrontCustomerSuspiciousLoginEventSchema

@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#96`
+`#97`
 
 ### Title
 
-`ERP fulfilment and finance return sync baseline`
+`Advanced commerce maturity baseline`
 
 ## Ecommerce Go-Live Schedule
 
@@ -194,10 +194,10 @@ Stage 1.1 baseline document:
 
 ### Stage 7.1: Advanced Commerce
 
-- [ ] 7.1.1 add recommendation or search-ranking improvements
-- [ ] 7.1.2 add segmented pricing and promotion maturity
-- [ ] 7.1.3 add customer lifecycle marketing support
-- [ ] 7.1.4 add merchandising automation and experimentation support
+- [x] 7.1.1 add recommendation or search-ranking improvements
+- [x] 7.1.2 add segmented pricing and promotion maturity
+- [x] 7.1.3 add customer lifecycle marketing support
+- [x] 7.1.4 add merchandising automation and experimentation support
 
 ### Stage 7.2: Advanced Operations
 

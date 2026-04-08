@@ -10,7 +10,9 @@ import {
   getStorefrontCatalog,
   getStorefrontLanding,
   getStorefrontLegalPage,
+  getStorefrontMerchandisingAutomationReport,
   getStorefrontProduct,
+  getStorefrontRecommendationReport,
 } from "../../apps/ecommerce/src/services/catalog-service.js"
 import { readProjectedStorefrontProducts } from "../../apps/ecommerce/src/services/projected-product-service.js"
 import { ecommerceTableNames } from "../../apps/ecommerce/database/table-names.js"
@@ -20,7 +22,9 @@ import {
   getAuthenticatedCustomer,
   getAuthenticatedCustomerPortal,
   getStorefrontCustomerAccount,
+  getStorefrontCustomerSegmentationReport,
   getStorefrontCustomerOperationsReport,
+  getStorefrontLifecycleMarketingReport,
   markStorefrontCustomerSecurityReview,
   registerCustomer,
   toggleCustomerWishlistItem,
@@ -155,6 +159,8 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       const product = await getStorefrontProduct(runtime.primary, {
         slug: catalog.items[0]?.slug ?? null,
       })
+      const recommendationPreview = await getStorefrontRecommendationReport(runtime.primary)
+      const merchandisingReport = await getStorefrontMerchandisingAutomationReport(runtime.primary)
 
       assert.equal(landing.settings.hero.title.length > 0, true)
       assert.equal(projectedProducts.length > 0, true)
@@ -170,6 +176,10 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(catalog.items.length > 0, true)
       assert.equal(product.item.id, catalog.items[0]?.id)
       assert.equal(landing.categories.some((item) => item.showInTopMenu), true)
+      assert.equal(recommendationPreview.searchPreview.length > 0, true)
+      assert.equal(product.recommendedItems.length > 0, true)
+      assert.equal(catalog.recommendationRail.length > 0, true)
+      assert.equal(merchandisingReport.experimentSurfaces.length, 9)
 
       const savedSettings = await saveStorefrontSettings(runtime.primary, {
         announcement: "Updated storefront announcement",
@@ -452,6 +462,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(updatedPortal.preferences.smsAlerts, true)
       assert.equal(updatedPortal.preferences.marketingEmails, false)
+      assert.equal(updatedPortal.lifecycleMarketing.emailSubscriptionStatus, "unsubscribed")
 
       const wishlistedPortal = await toggleCustomerWishlistItem(
         runtime.primary,
@@ -464,6 +475,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
 
       assert.equal(wishlistedPortal.wishlist.length, 1)
       assert.equal(wishlistedPortal.wishlist[0]?.id, product.item.id)
+      assert.equal(wishlistedPortal.lifecycleMarketing.stage, "suppressed")
       const initialAvailableQuantity = product.item.availableQuantity
 
       const checkout = await createCheckoutOrder(
@@ -505,6 +517,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(checkout.order.status, "payment_pending")
       assert.equal(checkout.order.appliedCoupon?.code, welcomeCoupon.code)
       assert.equal(checkout.order.appliedCoupon?.status, "reserved")
+      assert.equal(checkout.order.appliedPromotion, null)
       assert.equal(checkout.order.stockReservation?.status, "active")
       assert.equal(checkout.order.shippingMethod?.id, "priority")
       assert.equal(checkout.order.shippingMethod?.courierName, "Blue Dart Express")
@@ -727,6 +740,7 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         portalAfterPaidCoupon.coupons.find((coupon) => coupon.id === welcomeCoupon.id)?.status,
         "used"
       )
+      assert.equal(portalAfterPaidCoupon.commercialProfile.segmentKey, "new_customer")
 
       const secondCheckout = await createCheckoutOrder(
         runtime.primary,
@@ -794,6 +808,16 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(
         portalAfterCancelledCoupon.coupons.find((coupon) => coupon.id === shippingCoupon.id)?.status,
         "active"
+      )
+
+      const segmentReport = await getStorefrontCustomerSegmentationReport(runtime.primary)
+      const lifecycleReport = await getStorefrontLifecycleMarketingReport(runtime.primary)
+
+      assert.equal(segmentReport.summary.totalCustomers >= 1, true)
+      assert.equal(lifecycleReport.summary.totalCustomers >= 1, true)
+      assert.equal(
+        lifecycleReport.items.some((item) => item.customerAccountId === registration.id),
+        true
       )
 
       const releasedProduct = await getStorefrontProduct(runtime.primary, {
@@ -2598,6 +2622,135 @@ test("refund initiation records refund metadata and refund webhook completes it"
         tracked.item.timeline.some((entry) => entry.code === "payment_refunded"),
         true
       )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("repeat customers receive deterministic segment promotions during checkout", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-ecommerce-segment-pricing-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+    config.commerce.razorpay.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await registerVerifiedCustomer(runtime, config, {
+        displayName: "Repeat Buyer",
+        email: "repeat@codexsun.local",
+        phoneNumber: "+919999999998",
+        password: "Password@123",
+        companyName: "",
+        gstin: "",
+        addressLine1: "22 Repeat Street",
+        addressLine2: "",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        country: "India",
+        pincode: "600001",
+      })
+
+      const authService = createAuthService(runtime.primary, config)
+      const session = await authService.login({
+        email: "repeat@codexsun.local",
+        password: "Password@123",
+      })
+      const catalog = await getStorefrontCatalog(runtime.primary, {})
+      const productId = catalog.items[0]?.id
+
+      assert.ok(productId)
+
+      for (const paymentId of ["pay_repeat_001", "pay_repeat_002"]) {
+        const checkout = await createCheckoutOrder(
+          runtime.primary,
+          config,
+          {
+            items: [{ productId, quantity: 1 }],
+            shippingAddress: {
+              fullName: "Repeat Buyer",
+              email: "repeat@codexsun.local",
+              phoneNumber: "+919999999998",
+              line1: "22 Repeat Street",
+              line2: null,
+              city: "Chennai",
+              state: "Tamil Nadu",
+              country: "India",
+              pincode: "600001",
+            },
+            billingAddress: {
+              fullName: "Repeat Buyer",
+              email: "repeat@codexsun.local",
+              phoneNumber: "+919999999998",
+              line1: "22 Repeat Street",
+              line2: null,
+              city: "Chennai",
+              state: "Tamil Nadu",
+              country: "India",
+              pincode: "600001",
+            },
+            notes: null,
+          },
+          session.accessToken
+        )
+
+        await verifyCheckoutPayment(runtime.primary, config, {
+          orderId: checkout.order.id,
+          providerOrderId: checkout.payment.providerOrderId ?? checkout.order.id,
+          providerPaymentId: paymentId,
+          signature: "mock_signature",
+        })
+      }
+
+      const promotedCheckout = await createCheckoutOrder(
+        runtime.primary,
+        config,
+        {
+          items: [{ productId, quantity: 1 }],
+          shippingAddress: {
+            fullName: "Repeat Buyer",
+            email: "repeat@codexsun.local",
+            phoneNumber: "+919999999998",
+            line1: "22 Repeat Street",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          billingAddress: {
+            fullName: "Repeat Buyer",
+            email: "repeat@codexsun.local",
+            phoneNumber: "+919999999998",
+            line1: "22 Repeat Street",
+            line2: null,
+            city: "Chennai",
+            state: "Tamil Nadu",
+            country: "India",
+            pincode: "600001",
+          },
+          notes: null,
+        },
+        session.accessToken
+      )
+
+      assert.equal(promotedCheckout.order.appliedPromotion?.segmentKey, "repeat_customer")
+      assert.equal(promotedCheckout.order.appliedPromotion?.source, "segment_pricing")
+      assert.equal((promotedCheckout.order.appliedPromotion?.discountAmount ?? 0) > 0, true)
+
+      const portal = await getAuthenticatedCustomerPortal(runtime.primary, config, session.accessToken)
+
+      assert.equal(portal.commercialProfile.segmentKey, "repeat_customer")
+      assert.equal(portal.commercialProfile.priceAdjustmentPercent, 3)
     } finally {
       await runtime.destroy()
     }

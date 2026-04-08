@@ -131,7 +131,17 @@ Promotion rule:
 
 1. current transactional promotion behavior is limited to ecommerce-owned customer coupons layered on top of `core` price authority
 2. current storefront campaign, coupon-banner, gift-corner, and promo-copy surfaces are merchandising presentation, not the authoritative pricing engine
-3. future rule-driven promotion logic must be introduced in phased ecommerce-owned layers with explicit stacking, audit, and checkout determinism rather than ad hoc price overrides
+3. the current advanced-commerce baseline now includes ecommerce-owned customer commercial segments, deterministic segment pricing, and lifecycle-derived promotion cues, all resolved from persisted local customer and order state
+4. checkout must persist any segment-driven discount as an explicit local applied-promotion snapshot on the order so later finance, support, and ERP flows can audit what commercial logic ran
+5. future richer rule-driven promotion logic must still be introduced in phased ecommerce-owned layers with explicit stacking, audit, and checkout determinism rather than ad hoc price overrides
+
+Advanced commerce rule:
+
+1. storefront search ranking may use deterministic local scoring over projected catalog fields plus ecommerce merchandising flags, but must remain explainable and must not require live third-party ranking services
+2. storefront recommendations may use projected catalog affinity, wishlist hints, order history, and merchandising flags, but must remain bounded to persisted local data and in-stock-aware ranking
+3. customer lifecycle marketing state is ecommerce-owned and currently derived from local portal preferences, wishlist activity, and paid-order history
+4. lifecycle marketing support currently means derived next-campaign cues, automation flags, and segment-aware promotion readiness; it does not yet imply a full external campaign-execution platform
+5. merchandising automation and experimentation support currently live as operator-facing readiness, candidate, and hypothesis reporting inside ecommerce analytics surfaces before full traffic allocation or statistical experiment engines exist
 
 Shipping rule:
 
@@ -401,7 +411,7 @@ Still future work:
 2. richer relational schemas and write flows beyond the current module-payload baseline
 3. richer connector execution flows such as webhooks, job queues, and deeper bidirectional reconciliation
 4. auth hardening such as refresh-token rotation, MFA, rate limiting, richer admin UX, and deeper audit flows
-5. promotions, couponing, inventory reservation, shipment carriers, and post-order commerce workflows inside `apps/ecommerce`
+5. promotions, segmented pricing, recommendations, lifecycle marketing, inventory reservation, shipment carriers, and post-order commerce workflows inside `apps/ecommerce`
 6. Electron desktop runtime
 
 ## Boundary Rules

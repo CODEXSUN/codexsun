@@ -293,8 +293,8 @@ Ecommerce is considered ready for go-live only when all of the following are tru
 - Keep current storefront campaign, coupon-banner, gift-corner, promo slider, and related merchandising blocks as presentation-only promotion surfaces rather than transactional price authority.
 - Phase the future promotion engine:
   - Phase A: current live baseline using `core` price authority plus ecommerce-owned customer coupons
-  - Phase B: rule-driven ecommerce promotions for explicit percentage, fixed-amount, free-shipping, first-order, and catalog-scope rules with stacking precedence and audit visibility
-  - Phase C: segmented pricing, customer targeting, and ERP-aware commercial models only after segmentation, analytics, and price-list contracts are defined
+  - Phase B: current advanced-commerce baseline using ecommerce-owned commercial segments, deterministic segment pricing, lifecycle-derived promotion cues, and auditable applied-promotion snapshots at checkout
+  - Phase C: broader rule-driven promotions and ERP-aware commercial models only after richer segmentation, analytics, price-list contracts, and experiment measurement are defined
 - Do not let future promotion logic bypass the current staged-sync pricing model or introduce live ERP promotion evaluation into storefront runtime.
 - Add shipping methods and SLA model:
   - delivery-method catalog in `apps/ecommerce` storefront settings
@@ -507,11 +507,11 @@ Connector hardening baseline:
 ### P2: Scale And Maturity
 
 - ERPNext transactional sync.
-- Promotion engine and segmented pricing.
-- Recommendation/search ranking logic.
+- richer promotion engine and segmented pricing beyond the new deterministic ecommerce baseline.
+- recommendation/search ranking logic beyond the new local affinity and scoring baseline.
 - Multi-warehouse and reservation model.
 - Customer service and RMA workflow.
-- A/B experimentation and merchandising insights.
+- deeper A/B experimentation and merchandising insights beyond the new readiness and hypothesis layer.
 
 ## Execution Plan
 

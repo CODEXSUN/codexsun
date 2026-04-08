@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#97] 2026-04-08 - Advanced commerce maturity baseline
+
+- completed Stage `7.1.1` through `7.1.4` by adding ecommerce-owned recommendation and search-ranking improvements, deterministic segment pricing, lifecycle-marketing state, and merchandising-experiment readiness
+- extended shared ecommerce catalog, customer, and order contracts with recommendation rails, customer commercial profiles, lifecycle-marketing state, merchandising automation reports, and auditable applied-promotion snapshots
+- improved storefront catalog ranking and PDP recommendations, added internal advanced-commerce analytics routes, applied repeat-segment pricing during authenticated checkout, and validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test --test-name-pattern "internal route registry includes" tests/api/internal/routes.test.ts`
+
 ### [#96] 2026-04-08 - ERP fulfilment and finance return sync baseline
 
 - completed Stage `6.2.1` through `6.2.4` by adding connector-owned delivery-note, invoice, and return or refund sync-back flows plus a reconciliation queue and replay entrypoint

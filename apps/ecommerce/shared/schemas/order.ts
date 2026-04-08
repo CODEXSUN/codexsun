@@ -97,6 +97,16 @@ export const storefrontAppliedCouponSchema = z.object({
   status: z.enum(["reserved", "used", "released"]),
 })
 
+export const storefrontAppliedPromotionSchema = z.object({
+  promotionKey: z.string().min(1),
+  label: z.string().min(1),
+  segmentKey: z.enum(["new_customer", "repeat_customer", "vip", "at_risk", "dormant"]),
+  source: z.enum(["segment_pricing", "lifecycle_marketing"]),
+  discountPercent: z.number().finite().nonnegative(),
+  discountAmount: z.number().finite().nonnegative(),
+  appliedAt: z.string().min(1),
+})
+
 export const storefrontShipmentDetailsSchema = z.object({
   carrierName: z.string().trim().min(1).nullable(),
   trackingId: z.string().trim().min(1).nullable(),
@@ -281,6 +291,7 @@ export const storefrontOrderSchema = z.object({
   refund: storefrontRefundRecordSchema.nullable(),
   stockReservation: storefrontStockReservationSchema.nullable(),
   appliedCoupon: storefrontAppliedCouponSchema.nullable(),
+  appliedPromotion: storefrontAppliedPromotionSchema.nullable().default(null),
   taxBreakdown: storefrontOrderTaxBreakdownSchema.nullable().default(null),
   erpSalesOrderLink: storefrontErpSalesOrderLinkSchema.nullable().default(null),
   erpDeliveryNoteLink: storefrontErpDeliveryNoteLinkSchema.nullable().default(null),
@@ -1013,6 +1024,7 @@ export type StorefrontOverviewKpiReport = z.infer<
 >
 export type StorefrontStockReservation = z.infer<typeof storefrontStockReservationSchema>
 export type StorefrontAppliedCoupon = z.infer<typeof storefrontAppliedCouponSchema>
+export type StorefrontAppliedPromotion = z.infer<typeof storefrontAppliedPromotionSchema>
 export type StorefrontErpSalesOrderLink = z.infer<typeof storefrontErpSalesOrderLinkSchema>
 export type StorefrontErpDeliveryNoteLink = z.infer<typeof storefrontErpDeliveryNoteLinkSchema>
 export type StorefrontErpInvoiceLink = z.infer<typeof storefrontErpInvoiceLinkSchema>

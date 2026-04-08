@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#96`
+`#97`
 
 ### Goal
 
-Complete Stage `6.2.1` through `6.2.4` by syncing fulfilment, invoice, and return/refund ERP transaction state back into ecommerce and adding a replay-ready reconciliation queue.
+Complete Stage `7.1.1` through `7.1.4` by adding advanced-commerce recommendation, segmentation, lifecycle-marketing, and merchandising-experiment readiness inside the ecommerce boundary.
 
 ### Scope
 
@@ -18,51 +18,50 @@ Complete Stage `6.2.1` through `6.2.4` by syncing fulfilment, invoice, and retur
 - `ASSIST/Documentation/CHANGELOG.md`
 - `ASSIST/Documentation/WORKLOG.md`
 - `ASSIST/Planning/plan-9.md`
-- `apps/api/src/external/ecommerce-routes.ts`
 - `apps/api/src/internal/ecommerce-routes.ts`
-- `apps/api/src/external/ecommerce-routes.ts`
-- `apps/api/src/internal/ecommerce-routes.ts`
-- `apps/api/src/internal/frappe-routes.ts`
 - `apps/demo/src/data/demo-seed.ts`
+- `apps/ecommerce/shared/schemas/catalog.ts`
+- `apps/ecommerce/shared/schemas/customer.ts`
 - `apps/ecommerce/shared/schemas/order.ts`
+- `apps/ecommerce/src/services/catalog-service.ts`
+- `apps/ecommerce/src/services/customer-service.ts`
 - `apps/ecommerce/src/services/order-service.ts`
 - `apps/ecommerce/src/services/storefront-order-storage.ts`
-- `apps/frappe/database/table-names.ts`
-- `apps/frappe/shared/schemas/frappe.ts`
-- `apps/frappe/src/services/transaction-sync-service.ts`
-- `tests/frappe/services.test.ts`
+- `tests/ecommerce/services.test.ts`
 - `tests/api/internal/routes.test.ts`
 
 ### Canonical Decisions
 
-- delivery-note, invoice, and return/refund sync-back must remain connector-owned inside `apps/frappe`, but ecommerce orders should persist local snapshots of those ERP references and resulting lifecycle state
-- replay tools should never invent live ERP reads; they must reapply the latest connector-owned sync record or rerun the existing Sales Order push path where that already exists
-- legacy ecommerce orders must continue restoring safely with `null` ERP link fields until backfill or new connector syncs populate them
+- advanced-commerce logic stays ecommerce-owned and deterministic from persisted local state; storefront runtime still must not depend on live ERP or live external marketing systems
+- recommendation and search-ranking improvements may use projected catalog data, order history, and merchandising flags, but should remain explainable and bounded rather than opaque scoring
+- segmented pricing must remain explicit on the order as a local applied-promotion snapshot so checkout totals stay auditable beside existing coupon handling
+- lifecycle marketing and merchandising experimentation support can start as operator-facing derived reports and deterministic automation cues before a full campaign-execution platform exists
 
 ### Execution Plan
 
-1. extend the storefront order model with delivery-note, invoice, and return/refund ERP link snapshots, then add matching ecommerce helper functions to apply sync-back updates safely
-2. add connector-owned inbound sync records for delivery notes, invoices, and returns inside `apps/frappe`, plus routes that update ecommerce orders from those records
-3. derive a reconciliation queue across sales-order, delivery-note, invoice, and return/refund states and add replay tools that reapply the latest connector record or rerun Sales Order push where appropriate
-4. validate the sync-back and replay path with focused Frappe service tests, then sync the planning and architecture records
+1. extend shared ecommerce schemas with recommendation, commercial-profile, lifecycle-marketing, merchandising-report, and applied-promotion contracts
+2. improve storefront catalog ranking and product recommendations, then add internal recommendation and merchandising report routes
+3. derive customer commercial profiles and lifecycle-marketing state from local portal and order data, and apply segment pricing during authenticated checkout
+4. validate the new advanced-commerce behavior with ecommerce service coverage plus internal route-registration coverage, then sync architecture and planning docs
 
 ### Validation Plan
 
 - run `npm.cmd run typecheck`
-- run `npx.cmd tsx --test tests/frappe/services.test.ts tests/api/internal/routes.test.ts`
-- note unrelated failure in the broad internal routes suite caused by existing billing year-end controls, not the Frappe transaction-sync work
+- run `npx.cmd tsx --test tests/ecommerce/services.test.ts`
+- run `npx.cmd tsx --test --test-name-pattern "internal route registry includes" tests/api/internal/routes.test.ts`
+- note the existing unrelated broad billing-route failure if the full internal-route suite is run again
 
 ### Validation Status
 
 - [x] typecheck completed
-- [x] transaction sync-back validation completed
-- [x] reconciliation queue and replay validation completed
+- [x] ecommerce advanced-commerce service validation completed
 - [x] internal route registration validation completed
-- [x] unrelated billing-route failure noted in broad internal route suite
+- [x] unrelated broad billing-route failure remains isolated outside this batch
 - [x] architecture and planning sync completed
 
 ### Risks And Follow-Up
 
-- ecommerce now stores ERP transaction link snapshots for sales orders, delivery notes, invoices, and returns, but there is still no operator-facing workspace UI for the reconciliation queue
-- the broad `tests/api/internal/routes.test.ts` suite currently contains an unrelated billing year-end failure (`No billing financial year is available for year-end controls.`), which is outside this ERP mapping batch
-- the next scheduled task is `7.1.1`
+- segment pricing is intentionally deterministic and local-rule based today; it is not yet ERP price-list selection or a full entitlement engine
+- lifecycle marketing support currently derives next-campaign and automation cues from local portal state, but it does not yet execute outbound journeys automatically beyond the already-existing welcome and subscription emails
+- merchandising experimentation support is operator-facing readiness and hypothesis reporting only; full experiment allocation and statistical outcome tracking remain a later stage
+- the next scheduled task is `7.2.1`

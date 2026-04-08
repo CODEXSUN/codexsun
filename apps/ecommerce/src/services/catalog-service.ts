@@ -11,20 +11,27 @@ import {
   storefrontCatalogResponseSchema,
   storefrontLegalPageResponseSchema,
   storefrontLandingResponseSchema,
+  storefrontMerchandisingAutomationReportSchema,
   storefrontProductResponseSchema,
   storefrontBrandDiscoveryCardSchema,
+  storefrontRecommendationReportSchema,
   type StorefrontCategorySummary,
   type StorefrontBrandDiscoveryCard,
   type StorefrontLegalPage,
+  type StorefrontMerchandisingAutomationReport,
   type StorefrontProductCard,
   type StorefrontProductDetail,
   type StorefrontProductResponse,
+  type StorefrontRecommendationItem,
+  type StorefrontRecommendationReason,
+  type StorefrontRecommendationReport,
 } from "../../shared/index.js"
 import { getStorefrontSettings } from "./storefront-settings-service.js"
 import {
   getProjectedStorefrontProduct,
   readProjectedStorefrontProducts,
 } from "./projected-product-service.js"
+import { readStorefrontOrders } from "./storefront-order-storage.js"
 
 import { ecommerceTableNames } from "../../database/table-names.js"
 
@@ -82,6 +89,140 @@ export function toStorefrontProductCard(
     availableQuantity: resolveAvailableQuantity(product),
     tagNames: product.tagNames,
   }
+}
+
+function tokenizeSearchInput(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/i)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+}
+
+function scoreSearchResult(item: StorefrontProductCard, search: string) {
+  const normalizedSearch = search.trim().toLowerCase()
+  const tokens = tokenizeSearchInput(normalizedSearch)
+  const name = item.name.toLowerCase()
+  const brand = item.brandName?.toLowerCase() ?? ""
+  const category = item.categoryName?.toLowerCase() ?? ""
+  const department = item.department?.toLowerCase() ?? ""
+  const description = item.shortDescription?.toLowerCase() ?? ""
+  const tags = item.tagNames.map((entry) => entry.toLowerCase())
+
+  let score = 0
+
+  if (name === normalizedSearch) {
+    score += 80
+  } else if (name.startsWith(normalizedSearch)) {
+    score += 48
+  } else if (name.includes(normalizedSearch)) {
+    score += 32
+  }
+
+  if (brand === normalizedSearch) {
+    score += 24
+  }
+
+  if (category === normalizedSearch || department === normalizedSearch) {
+    score += 20
+  }
+
+  for (const token of tokens) {
+    if (name.includes(token)) {
+      score += 12
+    }
+    if (brand.includes(token)) {
+      score += 8
+    }
+    if (category.includes(token) || department.includes(token)) {
+      score += 6
+    }
+    if (description.includes(token)) {
+      score += 4
+    }
+    if (tags.some((entry) => entry.includes(token))) {
+      score += 6
+    }
+  }
+
+  score += item.availableQuantity > 0 ? 4 : 0
+  score += item.isBestSeller ? 5 : 0
+  score += item.isFeaturedLabel ? 4 : 0
+  score += item.isNewArrival ? 3 : 0
+
+  return score
+}
+
+function buildRecommendationCandidates(
+  products: Product[],
+  input: {
+    baseProduct?: Product | null
+    search?: string | null
+    limit: number
+  }
+): StorefrontRecommendationItem[] {
+  const base = input.baseProduct ?? null
+  const search = input.search?.trim() ?? ""
+  const baseTags = new Set(base?.tagNames.map((item) => item.toLowerCase()) ?? [])
+
+  const candidates = products
+    .filter((item) => item.isActive)
+    .filter((item) => (base ? item.id !== base.id : true))
+    .map((product) => {
+      const card = toStorefrontProductCard(product)
+      let reason: StorefrontRecommendationReason = "best_seller"
+      let score = 0
+
+      if (search) {
+        score = scoreSearchResult(card, search)
+        reason = "search_match"
+      } else if (base && product.categoryName === base.categoryName) {
+        score += 30
+        reason = "category_affinity"
+      } else if (base && product.brandName === base.brandName) {
+        score += 26
+        reason = "brand_affinity"
+      }
+
+      if (
+        base &&
+        product.tagNames.some((item) => baseTags.has(item.toLowerCase()))
+      ) {
+        score += 18
+        reason = "tag_affinity"
+      }
+
+      if (product.isBestSeller) {
+        score += 12
+        reason = reason === "search_match" ? reason : "best_seller"
+      }
+
+      if (product.isNewArrival) {
+        score += 8
+        if (reason !== "search_match") {
+          reason = "new_arrival"
+        }
+      }
+
+      if (card.availableQuantity > 0) {
+        score += 6
+      }
+
+      return {
+        ...card,
+        reason,
+        score,
+      }
+    })
+    .filter((item) => item.score > 0)
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.availableQuantity - left.availableQuantity ||
+        left.name.localeCompare(right.name)
+    )
+
+  return candidates.slice(0, input.limit)
 }
 
 function createSpecificationGroup(
@@ -431,6 +572,11 @@ export async function getStorefrontCatalog(database: Kysely<unknown>, query: unk
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(search))
     )
+    items.sort(
+      (left, right) =>
+        scoreSearchResult(right, search) - scoreSearchResult(left, search) ||
+        left.name.localeCompare(right.name)
+    )
   }
 
   if (filters.category) {
@@ -487,6 +633,10 @@ export async function getStorefrontCatalog(database: Kysely<unknown>, query: unk
       sort: filters.sort ?? "featured",
     },
     items,
+    recommendationRail: buildRecommendationCandidates(products, {
+      search: filters.search ?? null,
+      limit: 6,
+    }),
     availableCategories: categories.filter((item) => item.productCount > 0),
     availableDepartments: Array.from(
       new Set(
@@ -525,6 +675,10 @@ export async function getStorefrontProduct(
     )
     .slice(0, 4)
     .map(toStorefrontProductCard)
+  const recommendedItems = buildRecommendationCandidates(products, {
+    baseProduct: product,
+    limit: 4,
+  })
 
   const card = toStorefrontProductCard(product)
   const detail = {
@@ -559,6 +713,135 @@ export async function getStorefrontProduct(
     settings,
     item: detail,
     relatedItems,
+    recommendedItems,
+  })
+}
+
+export async function getStorefrontRecommendationReport(
+  database: Kysely<unknown>
+): Promise<StorefrontRecommendationReport> {
+  const products = await readProjectedStorefrontProducts(database)
+  const activeProducts = products.filter((item) => item.isActive)
+
+  return storefrontRecommendationReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    searchPreview: buildRecommendationCandidates(activeProducts, {
+      search: activeProducts[0]?.brandName ?? activeProducts[0]?.name ?? "catalog",
+      limit: 5,
+    }),
+    productPreview: buildRecommendationCandidates(activeProducts, {
+      baseProduct: activeProducts[0] ?? null,
+      limit: 5,
+    }),
+    trendingPreview: buildRecommendationCandidates(activeProducts, {
+      limit: 5,
+    }),
+  })
+}
+
+export async function getStorefrontMerchandisingAutomationReport(
+  database: Kysely<unknown>
+): Promise<StorefrontMerchandisingAutomationReport> {
+  const [products, orders, settings] = await Promise.all([
+    readProjectedStorefrontProducts(database),
+    readStorefrontOrders(database),
+    getStorefrontSettings(database),
+  ])
+  const activeProducts = products.filter((item) => item.isActive)
+  const productCards = activeProducts.map(toStorefrontProductCard)
+  const featuredCandidates = buildRecommendationCandidates(activeProducts, {
+    limit: 6,
+  })
+  const lowStockFeaturedItems = productCards.filter(
+    (item) => item.isFeaturedLabel && item.availableQuantity > 0 && item.availableQuantity <= 5
+  )
+  const staleMerchandisingItems = productCards.filter((item) => {
+    const paidCount = orders.filter(
+      (order) =>
+        order.paymentStatus === "paid" &&
+        order.items.some((orderItem) => orderItem.productId === item.id)
+    ).length
+
+    return item.isFeaturedLabel && paidCount === 0
+  })
+
+  return storefrontMerchandisingAutomationReportSchema.parse({
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalActiveProducts: activeProducts.length,
+      featuredCandidateCount: featuredCandidates.length,
+      lowStockFeaturedCount: lowStockFeaturedItems.length,
+      automationReadyCount: featuredCandidates.filter((item) => item.availableQuantity > 5).length,
+      experimentSurfaceCount: 9,
+    },
+    featuredCandidates,
+    lowStockFeaturedItems,
+    staleMerchandisingItems,
+    experimentSurfaces: [
+      {
+        surfaceKey: "hero",
+        hypothesis: "Editorial hero copy converts better when anchored to best-selling live stock.",
+        primaryMetric: "hero_to_catalog_ctr",
+        secondaryMetric: "homepage_conversion_rate",
+        status: settings.visibility.hero ? "ready" : "blocked",
+      },
+      {
+        surfaceKey: "featured",
+        hypothesis: "Featured rails should prefer in-stock best sellers with higher search affinity.",
+        primaryMetric: "featured_clickthrough_rate",
+        secondaryMetric: "featured_add_to_cart_rate",
+        status: settings.visibility.featured ? "ready" : "blocked",
+      },
+      {
+        surfaceKey: "new_arrivals",
+        hypothesis: "Fresh drops convert better when separated from repeat hero inventory.",
+        primaryMetric: "new_arrival_ctr",
+        secondaryMetric: "new_arrival_revenue_share",
+        status: settings.visibility.newArrivals ? "ready" : "blocked",
+      },
+      {
+        surfaceKey: "best_sellers",
+        hypothesis: "Best-seller rails should automatically demote low-stock items before outages.",
+        primaryMetric: "best_seller_ctr",
+        secondaryMetric: "best_seller_stockout_rate",
+        status: settings.visibility.bestSellers ? "ready" : "blocked",
+      },
+      {
+        surfaceKey: "coupon_banner",
+        hypothesis: "Coupon-banner placement should follow segment-aware promotion windows.",
+        primaryMetric: "coupon_banner_apply_rate",
+        secondaryMetric: "coupon_assisted_conversion_rate",
+        status: "watch",
+      },
+      {
+        surfaceKey: "gift_corner",
+        hypothesis: "Gift-corner storytelling should be tested against direct catalog CTAs.",
+        primaryMetric: "gift_corner_ctr",
+        secondaryMetric: "gift_corner_revenue",
+        status: "watch",
+      },
+      {
+        surfaceKey: "trending",
+        hypothesis: "Trending cards should rotate based on recommendation and search demand overlap.",
+        primaryMetric: "trending_card_ctr",
+        secondaryMetric: "trend_to_pdp_rate",
+        status: settings.trendingSection.enabled ? "ready" : "blocked",
+      },
+      {
+        surfaceKey: "brand_showcase",
+        hypothesis: "Brand storytelling should prioritize brands with active recommendation lift.",
+        primaryMetric: "brand_showcase_ctr",
+        secondaryMetric: "brand_catalog_conversion",
+        status: settings.brandShowcase.enabled ? "ready" : "blocked",
+      },
+      {
+        surfaceKey: "campaign",
+        hypothesis: "Campaign layouts should pair lifecycle win-back messaging with strong stock posture.",
+        primaryMetric: "campaign_cta_ctr",
+        secondaryMetric: "campaign_conversion_rate",
+        status: settings.visibility.cta ? "ready" : "blocked",
+      },
+    ],
   })
 }
 
