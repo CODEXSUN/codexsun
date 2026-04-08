@@ -1,20 +1,16 @@
+import { lazy, Suspense, type ReactNode } from "react"
 import { ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import { CampaignTrustSection } from "@/components/blocks/campaign-trust-section"
 import { Button } from "@/components/ui/button"
-import { CouponBanner } from "@/components/blocks/coupon-banner"
-import { GiftCorner } from "@/components/blocks/gift-corner"
-import { BrandStoryRail } from "@/components/blocks/brand-story-rail"
-import { TrendingSection } from "@/components/blocks/trending-section"
 import { Card, CardContent } from "@/components/ui/card"
-import { CategoryCardGridSurface } from "@/components/ux/category-card-grid-surface"
-import { FeaturedCardRowSurface } from "@/components/ux/featured-card-row-surface"
 
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontAnnouncementBar } from "../components/storefront-announcement-bar"
+import { StorefrontDeferredSection } from "../components/storefront-deferred-section"
 import { StorefrontHeroSlider } from "../components/storefront-hero-slider"
 import { StorefrontLayout } from "../components/storefront-layout"
+import { storefrontHomepageSectionPerformance } from "../components/storefront-performance-standards"
 import { StorefrontProductCardGrid } from "../components/storefront-product-card-grid"
 import {
   StorefrontCategoryCardSkeleton,
@@ -28,6 +24,33 @@ import {
   normalizeStorefrontHref,
   storefrontPaths,
 } from "../lib/storefront-routes"
+
+const CampaignTrustSection = lazy(async () => import("@/components/blocks/campaign-trust-section").then((module) => ({ default: module.CampaignTrustSection })))
+const CouponBanner = lazy(async () => import("@/components/blocks/coupon-banner").then((module) => ({ default: module.CouponBanner })))
+const GiftCorner = lazy(async () => import("@/components/blocks/gift-corner").then((module) => ({ default: module.GiftCorner })))
+const BrandStoryRail = lazy(async () => import("@/components/blocks/brand-story-rail").then((module) => ({ default: module.BrandStoryRail })))
+const TrendingSection = lazy(async () => import("@/components/blocks/trending-section").then((module) => ({ default: module.TrendingSection })))
+const CategoryCardGridSurface = lazy(async () => import("@/components/ux/category-card-grid-surface").then((module) => ({ default: module.CategoryCardGridSurface })))
+const FeaturedCardRowSurface = lazy(async () => import("@/components/ux/featured-card-row-surface").then((module) => ({ default: module.FeaturedCardRowSurface })))
+
+function SectionShell({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-5">
+          <StorefrontSectionHeadingSkeleton />
+          <div className="grid gap-5 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <StorefrontProductCardSkeleton key={index} />
+            ))}
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  )
+}
 
 function hasContent(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0
@@ -124,6 +147,11 @@ export function StorefrontHomePage() {
         ) : null}
 
         {hasFeaturedSection ? (
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.featured.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.featured.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.featured.fallback}
+          >
           <section className="space-y-5">
             <div className="flex items-end justify-between gap-4">
               <div>
@@ -158,41 +186,44 @@ export function StorefrontHomePage() {
                 </Button>
               ) : null}
             </div>
-            <FeaturedCardRowSurface
-              cardsPerRow={data?.settings.sections.featured.cardsPerRow ?? 3}
-              cardDesign={data?.settings.sections.featured.cardDesign}
-              items={featuredItems
-                .slice(
-                  0,
-                  (data?.settings.sections.featured.cardsPerRow ?? 3) *
-                    (data?.settings.sections.featured.rowsToShow ?? 1)
-                )
-                .map((item) => ({
-                id: item.id,
-                href: storefrontPaths.product(item.slug),
-                name: item.name,
-                imageUrl: item.primaryImageUrl,
-                badge: item.badge ?? item.categoryName,
-                brandName: item.brandName,
-                categoryName: item.categoryName,
-                shortDescription: item.shortDescription,
-                amount: item.sellingPrice,
-                compareAtAmount: item.mrp > item.sellingPrice ? item.mrp : null,
-                availableQuantity: item.availableQuantity,
-                onAddToCart: () =>
-                  cart.addItem({
-                    productId: item.id,
-                    slug: item.slug,
+            <SectionShell>
+              <FeaturedCardRowSurface
+                cardsPerRow={data?.settings.sections.featured.cardsPerRow ?? 3}
+                cardDesign={data?.settings.sections.featured.cardDesign}
+                items={featuredItems
+                  .slice(
+                    0,
+                    (data?.settings.sections.featured.cardsPerRow ?? 3) *
+                      (data?.settings.sections.featured.rowsToShow ?? 1)
+                  )
+                  .map((item) => ({
+                    id: item.id,
+                    href: storefrontPaths.product(item.slug),
                     name: item.name,
                     imageUrl: item.primaryImageUrl,
-                    unitPrice: item.sellingPrice,
-                    mrp: item.mrp,
-                    shippingCharge: item.shippingCharge,
-                    handlingCharge: item.handlingCharge,
-                  }),
-              }))}
-            />
+                    badge: item.badge ?? item.categoryName,
+                    brandName: item.brandName,
+                    categoryName: item.categoryName,
+                    shortDescription: item.shortDescription,
+                    amount: item.sellingPrice,
+                    compareAtAmount: item.mrp > item.sellingPrice ? item.mrp : null,
+                    availableQuantity: item.availableQuantity,
+                    onAddToCart: () =>
+                      cart.addItem({
+                        productId: item.id,
+                        slug: item.slug,
+                        name: item.name,
+                        imageUrl: item.primaryImageUrl,
+                        unitPrice: item.sellingPrice,
+                        mrp: item.mrp,
+                        shippingCharge: item.shippingCharge,
+                        handlingCharge: item.handlingCharge,
+                      }),
+                  }))}
+              />
+            </SectionShell>
           </section>
+          </StorefrontDeferredSection>
         ) : isLoading ? (
           <section className="space-y-5">
             <StorefrontSectionHeadingSkeleton />
@@ -205,6 +236,11 @@ export function StorefrontHomePage() {
         ) : null}
 
         {hasCategorySection ? (
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.categories.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.categories.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.categories.fallback}
+          >
           <section className="space-y-5">
             <div>
               {hasContent(data?.settings.sections.categories.eyebrow) ? (
@@ -223,27 +259,30 @@ export function StorefrontHomePage() {
                 </p>
               ) : null}
             </div>
-            <CategoryCardGridSurface
-              items={categoryItems
-                .slice(
-                  0,
-                  (data?.settings.sections.categories.cardsPerRow ?? 3) *
-                    (data?.settings.sections.categories.rowsToShow ?? 1)
-                )
-                .map((category) => ({
-                  id: category.id,
-                  name: category.name,
-                  description: category.description,
-                  imageUrl: category.imageUrl,
-                  productCount: category.productCount,
-                  href:
-                    normalizeStorefrontHref(category.href) ?? storefrontPaths.catalog(),
-                }))}
-              cardsPerRow={data?.settings.sections.categories.cardsPerRow ?? 3}
-              rowsToShow={data?.settings.sections.categories.rowsToShow ?? 1}
-              cardDesign={data?.settings.sections.categories.cardDesign}
-            />
+            <SectionShell>
+              <CategoryCardGridSurface
+                items={categoryItems
+                  .slice(
+                    0,
+                    (data?.settings.sections.categories.cardsPerRow ?? 3) *
+                      (data?.settings.sections.categories.rowsToShow ?? 1)
+                  )
+                  .map((category) => ({
+                    id: category.id,
+                    name: category.name,
+                    description: category.description,
+                    imageUrl: category.imageUrl,
+                    productCount: category.productCount,
+                    href:
+                      normalizeStorefrontHref(category.href) ?? storefrontPaths.catalog(),
+                  }))}
+                cardsPerRow={data?.settings.sections.categories.cardsPerRow ?? 3}
+                rowsToShow={data?.settings.sections.categories.rowsToShow ?? 1}
+                cardDesign={data?.settings.sections.categories.cardDesign}
+              />
+            </SectionShell>
           </section>
+          </StorefrontDeferredSection>
         ) : isLoading ? (
           <section className="space-y-5">
             <StorefrontSectionHeadingSkeleton />
@@ -255,7 +294,17 @@ export function StorefrontHomePage() {
           </section>
         ) : null}
 
-        {hasCouponBanner ? <CouponBanner config={couponBanner!} /> : null}
+        {hasCouponBanner ? (
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.couponBanner.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.couponBanner.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.couponBanner.fallback}
+          >
+            <Suspense fallback={null}>
+              <CouponBanner config={couponBanner!} />
+            </Suspense>
+          </StorefrontDeferredSection>
+        ) : null}
 
         {hasNewArrivalsSection ? (
           <section className="space-y-5">
@@ -371,36 +420,72 @@ export function StorefrontHomePage() {
           </section>
         ) : null}
 
-        {hasGiftCorner ? <GiftCorner config={giftCorner!} /> : null}
+        {hasGiftCorner ? (
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.giftCorner.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.giftCorner.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.giftCorner.fallback}
+          >
+            <Suspense fallback={null}>
+              <GiftCorner config={giftCorner!} />
+            </Suspense>
+          </StorefrontDeferredSection>
+        ) : null}
 
-        {hasTrendingSection ? <TrendingSection config={trendingSection!} /> : null}
+        {hasTrendingSection ? (
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.trending.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.trending.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.trending.fallback}
+          >
+            <Suspense fallback={null}>
+              <TrendingSection config={trendingSection!} />
+            </Suspense>
+          </StorefrontDeferredSection>
+        ) : null}
 
         {hasBrandStories ? (
-          <BrandStoryRail
-            title={brandShowcase?.title ?? "More Beauty To Love"}
-            description={brandShowcase?.description}
-            cards={brandStories}
-          />
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.brandStories.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.brandStories.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.brandStories.fallback}
+          >
+            <Suspense fallback={null}>
+              <BrandStoryRail
+                title={brandShowcase?.title ?? "More Beauty To Love"}
+                description={brandShowcase?.description}
+                cards={brandStories}
+              />
+            </Suspense>
+          </StorefrontDeferredSection>
         ) : null}
 
         {showPromoGrid ? (
-          <CampaignTrustSection
-            campaign={{
-              ...data!.settings.sections.cta,
-              primaryCtaHref:
-                normalizeStorefrontHref(data?.settings.sections.cta.primaryCtaHref) ??
-                storefrontPaths.catalog(),
-              secondaryCtaHref:
-                normalizeStorefrontHref(data?.settings.sections.cta.secondaryCtaHref) ??
-                storefrontPaths.cart(),
-            }}
-            trustNotes={trustNotes}
-            design={data?.settings.campaignDesign}
-            visibility={{
-              cta: visibility?.cta,
-              trust: visibility?.trust,
-            }}
-          />
+          <StorefrontDeferredSection
+            rootMargin={storefrontHomepageSectionPerformance.campaignTrust.rootMargin}
+            minHeightClassName={storefrontHomepageSectionPerformance.campaignTrust.minHeightClassName}
+            fallback={storefrontHomepageSectionPerformance.campaignTrust.fallback}
+          >
+            <Suspense fallback={null}>
+              <CampaignTrustSection
+                campaign={{
+                  ...data!.settings.sections.cta,
+                  primaryCtaHref:
+                    normalizeStorefrontHref(data?.settings.sections.cta.primaryCtaHref) ??
+                    storefrontPaths.catalog(),
+                  secondaryCtaHref:
+                    normalizeStorefrontHref(data?.settings.sections.cta.secondaryCtaHref) ??
+                    storefrontPaths.cart(),
+                }}
+                trustNotes={trustNotes}
+                design={data?.settings.campaignDesign}
+                visibility={{
+                  cta: visibility?.cta,
+                  trust: visibility?.trust,
+                }}
+              />
+            </Suspense>
+          </StorefrontDeferredSection>
         ) : null}
 
       </div>

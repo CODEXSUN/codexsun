@@ -39,6 +39,7 @@ import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontSupportSection } from "./features/storefront-admin/storefront-support-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
+import { useStorefrontDesignerAccess } from "./features/storefront-admin/storefront-designer-access"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
 import { StorefrontSettingsSection } from "./features/storefront-admin/storefront-settings-section"
 
@@ -271,6 +272,7 @@ function StateCard({ message }: { message: string }) {
 }
 
 function OverviewSection() {
+  const { canViewStorefrontDesigner } = useStorefrontDesignerAccess()
   const { data, error, isLoading } = useJsonResource<StorefrontOverviewKpiReport>(
     "/internal/v1/ecommerce/overview-report"
   )
@@ -381,7 +383,9 @@ function OverviewSection() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <ActionLink href={storefrontPaths.home()} label="Open storefront" />
-          <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Home slider designer" />
+          {canViewStorefrontDesigner ? (
+            <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Home slider designer" />
+          ) : null}
           <ActionLink href={storefrontPaths.catalog()} label="Open catalog" />
           <ActionLink href={storefrontPaths.accountLogin()} label="Customer login" />
         </CardContent>
@@ -869,6 +873,7 @@ function CheckoutSection() {
 }
 
 function SettingsSection() {
+  const { canViewStorefrontDesigner } = useStorefrontDesignerAccess()
   return (
     <div className="space-y-4">
       <SectionIntro
@@ -899,16 +904,16 @@ function SettingsSection() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           <ActionLink href="/dashboard/settings/core-settings" label="Open runtime settings" />
-          <ActionLink href="/dashboard/apps/ecommerce/storefront" label="Open storefront admin" />
-          <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Open slider designer" />
-          <ActionLink href="/dashboard/apps/ecommerce/campaign" label="Open campaign designer" />
-          <ActionLink href="/dashboard/apps/ecommerce/footer" label="Open footer designer" />
-          <ActionLink href="/dashboard/apps/ecommerce/floating-contact" label="Open floating contact" />
-          <ActionLink href="/dashboard/apps/ecommerce/pickup" label="Open pickup designer" />
-          <ActionLink href="/dashboard/apps/ecommerce/coupon-banner" label="Open coupon banner" />
-          <ActionLink href="/dashboard/apps/ecommerce/gift-corner" label="Open gift corner" />
-          <ActionLink href="/dashboard/apps/ecommerce/trending" label="Open trending designer" />
-          <ActionLink href="/dashboard/apps/ecommerce/branding" label="Open branding designer" />
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/storefront" label="Open storefront admin" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/home-slider" label="Open slider designer" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/campaign" label="Open campaign designer" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/footer" label="Open footer designer" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/floating-contact" label="Open floating contact" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/pickup" label="Open pickup designer" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/coupon-banner" label="Open coupon banner" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/gift-corner" label="Open gift corner" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/trending" label="Open trending designer" /> : null}
+          {canViewStorefrontDesigner ? <ActionLink href="/dashboard/apps/ecommerce/branding" label="Open branding designer" /> : null}
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,7 @@ import {
   type StorefrontHomeSlider,
   type StorefrontHomeSliderSlide,
   type StorefrontHomeSliderTheme,
+  type StorefrontSettingsVersionHistoryResponse,
 } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +31,14 @@ import {
   resolveHomeSliderThemeStyles,
 } from "../../lib/home-slider-theme"
 import { storefrontPaths } from "../../lib/storefront-routes"
+import {
+  StorefrontDesignerPermissionCard,
+  useStorefrontDesignerAccess,
+} from "./storefront-designer-access"
+import {
+  StorefrontDesignerValidationCard,
+  validateHomeSliderDesigner,
+} from "./storefront-designer-validation"
 
 function createDefaultTheme(themeKey = homeSliderThemeOptions[0]?.value ?? "signature-ember") {
   return applyHomeSliderThemePreset(
@@ -250,13 +259,17 @@ function HomeSliderPreview({
 }
 
 export function HomeSliderSection() {
+  const { canEditStorefrontDesigner, canApproveStorefrontDesigner } = useStorefrontDesignerAccess()
   const [draft, setDraft] = useState<StorefrontHomeSlider | null>(null)
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
+  const [history, setHistory] = useState<StorefrontSettingsVersionHistoryResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const accessToken = getStoredAccessToken()
+  const validationIssues = draft ? validateHomeSliderDesigner(draft) : []
+  const hasValidationIssues = validationIssues.length > 0
 
   useGlobalLoading(isLoading || isSaving)
 
@@ -272,8 +285,10 @@ export function HomeSliderSection() {
 
       try {
         const settings = await storefrontApi.getHomeSlider(accessToken)
+        const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
         if (!cancelled) {
           setDraft(settings)
+          setHistory(historyState)
           setSelectedSlideId(settings.slides[0]?.id ?? null)
           setError(null)
         }
@@ -780,10 +795,18 @@ export function HomeSliderSection() {
         <Button
           type="button"
           className="rounded-full"
-          disabled={isSaving}
+          disabled={!canEditStorefrontDesigner || isSaving || hasValidationIssues}
           onClick={async () => {
             if (!accessToken) {
               setError("Admin session is required.")
+              return
+            }
+            if (!canEditStorefrontDesigner) {
+              setError("This role has read-only storefront designer access.")
+              return
+            }
+            if (!draft || hasValidationIssues) {
+              setError(validationIssues[0]?.message ?? "Fix validation issues before saving.")
               return
             }
 
@@ -794,7 +817,9 @@ export function HomeSliderSection() {
             try {
               const parsedDraft = storefrontHomeSliderSchema.parse(draft)
               const saved = await storefrontApi.updateHomeSlider(accessToken, parsedDraft)
+              const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
               setDraft(saved)
+              setHistory(historyState)
               setSelectedSlideId(
                 saved.slides.find((slide) => slide.id === selectedSlideId)?.id ??
                   saved.slides[0]?.id ??
@@ -833,11 +858,50 @@ export function HomeSliderSection() {
         {saveMessage ? <p className="text-sm text-muted-foreground">{saveMessage}</p> : null}
       </div>
 
+      <StorefrontDesignerPermissionCard
+        canEdit={canEditStorefrontDesigner}
+        canApprove={canApproveStorefrontDesigner}
+      />
+
+      {history ? (
+        <Card className="rounded-[1.5rem] border-border/70 py-0 shadow-sm">
+          <CardContent className="space-y-3 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Home slider version history
+              </p>
+              <span className="text-xs text-muted-foreground">{history.homeSlider.length} entries</span>
+            </div>
+            <div className="space-y-2">
+              {history.homeSlider.slice(0, 5).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-[1rem] border border-border/70 bg-card/60 px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground">{entry.summary}</p>
+                    <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px]">
+                      {entry.source.replaceAll("_", " ")}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{entry.createdAt}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {error ? (
         <Card className="rounded-[1.5rem] border-destructive/20 bg-destructive/5 py-0 shadow-sm">
           <CardContent className="p-5 text-sm text-destructive">{error}</CardContent>
         </Card>
       ) : null}
+
+      <StorefrontDesignerValidationCard
+        issues={validationIssues}
+        title="Home slider validation"
+      />
 
       <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
         <Card className="overflow-hidden border-border/70 py-0 shadow-sm">

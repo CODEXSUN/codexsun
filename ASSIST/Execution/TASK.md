@@ -4,11 +4,11 @@
 
 ### Reference
 
-`#70`
+`#81`
 
 ### Title
 
-`Invoice and tax accounting compatibility baseline`
+`Storefront performance standards baseline`
 
 ## Ecommerce Go-Live Schedule
 
@@ -135,23 +135,23 @@ Stage 1.1 baseline document:
 
 ### Stage 4.1: Storefront Designer Governance
 
-- [ ] 4.1.1 ensure every storefront block supports enable or disable, content, media, links, preview, validation, and safe defaults
-- [ ] 4.1.2 add server-side validation for URLs, colors, and media references
-- [ ] 4.1.3 add designer-level permissions by role
-- [ ] 4.1.4 remove risky direct-live editing patterns where rollback is not possible
+- [x] 4.1.1 ensure every storefront block supports enable or disable, content, media, links, preview, validation, and safe defaults
+- [x] 4.1.2 add server-side validation for URLs, colors, and media references
+- [x] 4.1.3 add designer-level permissions by role
+- [x] 4.1.4 remove risky direct-live editing patterns where rollback is not possible
 
 ### Stage 4.2: Publishing Workflow
 
-- [ ] 4.2.1 add draft, preview, publish, and rollback workflow for storefront content
-- [ ] 4.2.2 add version history for storefront settings and key content blocks
-- [ ] 4.2.3 define approval flow for production content changes
+- [x] 4.2.1 add draft, preview, publish, and rollback workflow for storefront content
+- [x] 4.2.2 add version history for storefront settings and key content blocks
+- [x] 4.2.3 define approval flow for production content changes
 
 ### Stage 4.3: Storefront Performance
 
-- [ ] 4.3.1 add performance budget and Lighthouse or Web Vitals CI checks
-- [ ] 4.3.2 continue optimizing image delivery, sizes, and formats
-- [ ] 4.3.3 review remaining heavy homepage sections for rendering and scroll performance
-- [ ] 4.3.4 define standards for adding future rails, cards, and blocks without degrading first paint
+- [x] 4.3.1 add performance budget and Lighthouse or Web Vitals CI checks
+- [x] 4.3.2 continue optimizing image delivery, sizes, and formats
+- [x] 4.3.3 review remaining heavy homepage sections for rendering and scroll performance
+- [x] 4.3.4 define standards for adding future rails, cards, and blocks without degrading first paint
 
 ## Phase 5: ERPNext Foundation Through Frappe
 

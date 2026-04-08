@@ -2,6 +2,67 @@ import { z } from "zod"
 
 const hexColorSchema = z.string().regex(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i)
 
+function isValidStorefrontLink(value: string) {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return false
+  }
+
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) {
+    return true
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    return (
+      parsed.protocol === "http:" ||
+      parsed.protocol === "https:" ||
+      parsed.protocol === "mailto:" ||
+      parsed.protocol === "tel:"
+    )
+  } catch {
+    return false
+  }
+}
+
+function isValidStorefrontMediaReference(value: string) {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return false
+  }
+
+  if (trimmed.startsWith("/")) {
+    return true
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+const storefrontLinkSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(isValidStorefrontLink, {
+    message: "Link must be a relative path, anchor, or valid http/mailto/tel URL.",
+  })
+
+const storefrontOptionalLinkSchema = storefrontLinkSchema.nullable().default(null)
+
+const storefrontMediaReferenceSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(isValidStorefrontMediaReference, {
+    message: "Media reference must be a root-relative asset path or valid http/https URL.",
+  })
+
 export const storefrontHighlightSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -42,7 +103,7 @@ export const storefrontAnnouncementDesignSchema = z.object({
 export const storefrontAnnouncementItemSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
-  href: z.string().min(1).nullable().default(null),
+  href: storefrontOptionalLinkSchema,
 })
 
 export const storefrontHeroSchema = z.object({
@@ -50,10 +111,10 @@ export const storefrontHeroSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   primaryCtaLabel: z.string().min(1),
-  primaryCtaHref: z.string().min(1),
+  primaryCtaHref: storefrontLinkSchema,
   secondaryCtaLabel: z.string().min(1),
-  secondaryCtaHref: z.string().min(1),
-  heroImageUrl: z.string().min(1),
+  secondaryCtaHref: storefrontLinkSchema,
+  heroImageUrl: storefrontMediaReferenceSchema,
   highlights: z.array(storefrontHighlightSchema).min(1),
 })
 
@@ -95,7 +156,7 @@ export const storefrontSectionCopySchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   ctaLabel: z.string().min(1).nullable(),
-  ctaHref: z.string().min(1).nullable(),
+  ctaHref: storefrontLinkSchema.nullable(),
   cardsPerRow: z.union([z.literal(3), z.literal(4), z.literal(5), z.literal(6)]).default(3),
 })
 
@@ -104,7 +165,7 @@ export const storefrontProductLaneSectionSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   ctaLabel: z.string().min(1).nullable(),
-  ctaHref: z.string().min(1).nullable(),
+  ctaHref: storefrontLinkSchema.nullable(),
   cardsPerRow: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).default(3),
   rowsToShow: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
 })
@@ -159,9 +220,9 @@ export const storefrontPromoSectionSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   primaryCtaLabel: z.string().min(1),
-  primaryCtaHref: z.string().min(1),
+  primaryCtaHref: storefrontLinkSchema,
   secondaryCtaLabel: z.string().min(1),
-  secondaryCtaHref: z.string().min(1),
+  secondaryCtaHref: storefrontLinkSchema,
 })
 
 export const storefrontTrustNoteSchema = z.object({
@@ -212,13 +273,13 @@ export const storefrontVisibilitySchema = z.object({
 
 export const storefrontFooterLinkSchema = z.object({
   label: z.string().min(1),
-  href: z.string().min(1),
+  href: storefrontLinkSchema,
 })
 
 export const storefrontFooterSocialLinkSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
-  href: z.string().min(1),
+  href: storefrontLinkSchema,
   platform: z
     .enum([
       "facebook",
@@ -341,7 +402,7 @@ export const storefrontCouponBannerSchema = z.object({
   summary: z.string().min(1),
   couponCode: z.string().min(1),
   buttonLabel: z.string().min(1),
-  buttonHref: z.string().min(1).nullable().default(null),
+  buttonHref: storefrontOptionalLinkSchema,
   helperText: z.string().min(1),
   backgroundColor: hexColorSchema,
   borderColor: hexColorSchema,
@@ -361,8 +422,8 @@ export const storefrontGiftCornerSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   buttonLabel: z.string().min(1),
-  buttonHref: z.string().min(1).nullable().default(null),
-  imageUrl: z.string().min(1),
+  buttonHref: storefrontOptionalLinkSchema,
+  imageUrl: storefrontMediaReferenceSchema,
   backgroundFrom: hexColorSchema,
   backgroundTo: hexColorSchema,
   eyebrowColor: hexColorSchema,
@@ -380,8 +441,8 @@ export const storefrontTrendingCardSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   caption: z.string().min(1),
-  href: z.string().min(1).nullable().default(null),
-  imageUrl: z.string().min(1),
+  href: storefrontOptionalLinkSchema,
+  imageUrl: storefrontMediaReferenceSchema,
   backgroundColor: hexColorSchema,
   titleColor: hexColorSchema,
   captionBackgroundColor: hexColorSchema,
@@ -394,8 +455,8 @@ export const storefrontTrendingSectionSchema = z.object({
   description: z.string().min(1),
   featureTitle: z.string().min(1),
   featureSummary: z.string().min(1),
-  featureImageUrl: z.string().min(1),
-  featureHref: z.string().min(1).nullable().default(null),
+  featureImageUrl: storefrontMediaReferenceSchema,
+  featureHref: storefrontOptionalLinkSchema,
   featureBackgroundColor: hexColorSchema,
   featureTextColor: hexColorSchema,
   cards: z.array(storefrontTrendingCardSchema).min(1),
@@ -437,7 +498,7 @@ export const storefrontCategorySummarySchema = z.object({
   showInTopMenu: z.boolean(),
   positionOrder: z.number().int(),
   productCount: z.number().int().min(0),
-  href: z.string().min(1),
+  href: storefrontLinkSchema,
 })
 
 export const storefrontBrandDiscoveryCardSchema = z.object({
@@ -445,8 +506,8 @@ export const storefrontBrandDiscoveryCardSchema = z.object({
   brandName: z.string().min(1),
   title: z.string().min(1),
   summary: z.string().min(1),
-  imageUrl: z.string().min(1),
-  href: z.string().min(1),
+  imageUrl: storefrontMediaReferenceSchema,
+  href: storefrontLinkSchema,
 })
 
 export const storefrontBrandShowcaseSchema = z.object({
@@ -532,6 +593,46 @@ export const storefrontSettingsSchema = z.object({
   defaultHandlingAmount: z.number().finite().nonnegative(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
+})
+
+export const storefrontSettingsRevisionSchema = z.object({
+  id: z.string().min(1),
+  settingsId: z.string().min(1),
+  source: z.enum(["live-save", "publish", "rollback"]),
+  snapshot: storefrontSettingsSchema,
+  snapshotUpdatedAt: z.string().min(1),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+})
+
+export const storefrontSettingsWorkflowStatusSchema = z.object({
+  liveSettings: storefrontSettingsSchema,
+  draftSettings: storefrontSettingsSchema.nullable(),
+  previewSettings: storefrontSettingsSchema,
+  revisions: z.array(storefrontSettingsRevisionSchema),
+  hasDraft: z.boolean(),
+  hasUnpublishedChanges: z.boolean(),
+})
+
+export const storefrontSettingsRollbackPayloadSchema = z.object({
+  revisionId: z.string().min(1).nullable().default(null),
+})
+
+export const storefrontSettingsVersionHistoryEntrySchema = z.object({
+  id: z.string().min(1),
+  scope: z.enum(["settings", "home_slider", "footer", "campaign"]),
+  source: z.enum(["live-save", "publish", "rollback", "current_live"]),
+  revisionId: z.string().min(1).nullable().default(null),
+  snapshotUpdatedAt: z.string().min(1),
+  createdAt: z.string().min(1),
+  summary: z.string().min(1),
+})
+
+export const storefrontSettingsVersionHistoryResponseSchema = z.object({
+  settings: z.array(storefrontSettingsVersionHistoryEntrySchema),
+  homeSlider: z.array(storefrontSettingsVersionHistoryEntrySchema),
+  footer: z.array(storefrontSettingsVersionHistoryEntrySchema),
+  campaign: z.array(storefrontSettingsVersionHistoryEntrySchema),
 })
 
 export const storefrontLandingResponseSchema = z.object({
@@ -643,6 +744,19 @@ export type StorefrontLegalPageFaq = z.infer<typeof storefrontLegalPageFaqSchema
 export type StorefrontLegalPage = z.infer<typeof storefrontLegalPageSchema>
 export type StorefrontLegalPages = z.infer<typeof storefrontLegalPagesSchema>
 export type StorefrontSettings = z.infer<typeof storefrontSettingsSchema>
+export type StorefrontSettingsRevision = z.infer<typeof storefrontSettingsRevisionSchema>
+export type StorefrontSettingsWorkflowStatus = z.infer<
+  typeof storefrontSettingsWorkflowStatusSchema
+>
+export type StorefrontSettingsRollbackPayload = z.infer<
+  typeof storefrontSettingsRollbackPayloadSchema
+>
+export type StorefrontSettingsVersionHistoryEntry = z.infer<
+  typeof storefrontSettingsVersionHistoryEntrySchema
+>
+export type StorefrontSettingsVersionHistoryResponse = z.infer<
+  typeof storefrontSettingsVersionHistoryResponseSchema
+>
 export type StorefrontLandingResponse = z.infer<typeof storefrontLandingResponseSchema>
 export type StorefrontCatalogQuery = z.infer<typeof storefrontCatalogQuerySchema>
 export type StorefrontCatalogResponse = z.infer<typeof storefrontCatalogResponseSchema>

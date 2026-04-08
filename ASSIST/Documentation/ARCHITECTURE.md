@@ -154,6 +154,25 @@ Tax review rule:
 6. current billing sales invoice posting supports one GST rate per voucher, so storefront orders carrying multiple GST rates must stay in manual-review accounting flow until billing supports multi-rate posting or document splitting
 7. storefront refund state is not itself the accounting reversal document; billing credit-note workflow remains the authoritative accounting treatment for refunded storefront orders
 
+Storefront designer governance rule:
+
+1. editable storefront content blocks must keep explicit enable or disable control, editable content fields, live preview, and seeded safe defaults
+2. where a block depends on media or links, the designer surface must validate those fields before save and block invalid submissions client-side
+3. client-side validation is a usability baseline only; schema parsing on the ecommerce backend remains the final authority for persisted storefront settings
+4. persisted storefront links may only use root-relative paths, anchors, or explicit `http`, `https`, `mailto`, or `tel` URLs
+5. persisted storefront media references may only use root-relative asset paths or explicit `http` or `https` URLs
+6. storefront designer access is role-scoped: read-only visibility and edit rights are separate permissions, and only edit-capable roles may save designer changes
+7. legacy `ecommerce:storefront:manage` remains a compatibility fallback while the new read-vs-edit storefront role split is introduced
+8. direct-live storefront saves must create immutable pre-change revision snapshots so the previous live state is never destroyed without recovery context
+9. storefront designer saves now land in a shared draft settings record; public storefront runtime continues reading only the live settings record until an explicit publish action promotes the draft
+10. rollback must restore live storefront content only from immutable live revision snapshots, and publish or rollback clears the active draft workspace
+11. storefront version history is derived from the live revision snapshots plus the current live document, and block-level history should suppress entries where that block did not actually change
+12. storefront production approval is role-gated: draft edit access and live publish or rollback approval are separate permissions, with approval authority required before any draft changes can affect the public storefront
+13. storefront performance budgets must be measured against a production-like built frontend surface, not the development server, and budget checks should cover at least homepage, catalog, and product detail routes
+14. storefront image delivery should flow through shared image primitives with explicit intrinsic dimensions and consistent eager-vs-lazy policy on the main storefront surfaces before adding more image-heavy blocks
+15. heavy below-the-fold homepage merchandising rails should mount lazily behind intersection-aware storefront wrappers so they do not expand the first-render path unnecessarily
+16. future homepage rails and blocks must declare their deferral, root-margin, reserved-height, and fallback behavior through shared storefront performance standards instead of ad hoc inline decisions
+
 ### API
 
 `apps/api` owns route definitions only.

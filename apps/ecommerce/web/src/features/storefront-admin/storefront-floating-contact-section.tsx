@@ -23,6 +23,10 @@ import { FloatingContactButton } from "@/components/blocks/floating-contact-butt
 
 import { storefrontApi } from "../../api/storefront-api"
 import { invalidateStorefrontShellData, useStorefrontShellData } from "../../hooks/use-storefront-shell-data"
+import {
+  StorefrontDesignerPermissionCard,
+  useStorefrontDesignerAccess,
+} from "./storefront-designer-access"
 
 function ColorField({
   label,
@@ -42,6 +46,7 @@ function ColorField({
 }
 
 export function StorefrontFloatingContactSection() {
+  const { canEditStorefrontDesigner } = useStorefrontDesignerAccess()
   const { data } = useStorefrontShellData()
   const [draft, setDraft] = useState<StorefrontFloatingContact | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -86,6 +91,10 @@ export function StorefrontFloatingContactSection() {
 
   async function handleSave() {
     if (!draft) {
+      return
+    }
+    if (!canEditStorefrontDesigner) {
+      setError("This role has read-only storefront designer access.")
       return
     }
 
@@ -249,11 +258,13 @@ export function StorefrontFloatingContactSection() {
       ) : null}
 
       <div className="flex items-center justify-end">
-        <Button type="button" className="gap-2" disabled={!draft || isSaving} onClick={() => void handleSave()}>
+        <Button type="button" className="gap-2" disabled={!draft || !canEditStorefrontDesigner || isSaving} onClick={() => void handleSave()}>
           <Save className="size-4" />
           {isSaving ? "Saving..." : "Save floating contact"}
         </Button>
       </div>
+
+      <StorefrontDesignerPermissionCard canEdit={canEditStorefrontDesigner} />
 
       <Card className="overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm">
         <CardHeader className="border-b border-border/70">

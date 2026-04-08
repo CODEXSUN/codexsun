@@ -40,7 +40,12 @@ import {
 } from "../../apps/ecommerce/src/services/storefront-order-request-service.js"
 import {
   getStorefrontHomeSlider,
+  getStorefrontDesignerSettings,
   getStorefrontSettings,
+  getStorefrontSettingsWorkflowStatus,
+  getStorefrontSettingsVersionHistory,
+  publishStorefrontSettingsDraft,
+  rollbackStorefrontSettings,
   saveStorefrontHomeSlider,
   saveStorefrontSettings,
 } from "../../apps/ecommerce/src/services/storefront-settings-service.js"
@@ -80,7 +85,10 @@ import {
   prepareApplicationDatabase,
 } from "../../apps/framework/src/runtime/database/index.js"
 import { getMonitoringDashboard } from "../../apps/framework/src/runtime/monitoring/monitoring-service.js"
-import { replaceJsonStoreRecords } from "../../apps/framework/src/runtime/database/process/json-store.js"
+import {
+  listJsonStorePayloads,
+  replaceJsonStoreRecords,
+} from "../../apps/framework/src/runtime/database/process/json-store.js"
 
 async function registerVerifiedCustomer(
   runtime: ReturnType<typeof createRuntimeDatabases>,
@@ -161,7 +169,6 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(landing.categories.some((item) => item.showInTopMenu), true)
 
       const savedSettings = await saveStorefrontSettings(runtime.primary, {
-        ...storedSettings,
         announcement: "Updated storefront announcement",
         announcementDesign: {
           ...storedSettings.announcementDesign,
@@ -175,6 +182,11 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(savedSettings.announcementDesign.iconKey, "truck")
       assert.equal(savedSettings.announcementDesign.cornerStyle, "rounded")
       assert.equal(savedSettings.shippingMethods.length > 0, true)
+      assert.equal((await getStorefrontSettings(runtime.primary)).announcement, storedSettings.announcement)
+      assert.equal(
+        (await getStorefrontDesignerSettings(runtime.primary)).announcement,
+        "Updated storefront announcement"
+      )
 
       const partiallySavedSettings = await saveStorefrontSettings(runtime.primary, {
         search: undefined,
@@ -211,6 +223,69 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(partiallySavedSettings.shippingMethods[0]?.courierName, "DTDC Express")
       assert.equal(partiallySavedSettings.shippingZones[0]?.label, "Updated metro zone")
       assert.equal(partiallySavedSettings.shippingZones[0]?.shippingSurchargeAmount, 25)
+
+      const workflowBeforePublish = await getStorefrontSettingsWorkflowStatus(runtime.primary)
+      assert.equal(workflowBeforePublish.hasDraft, true)
+      assert.equal(workflowBeforePublish.hasUnpublishedChanges, true)
+      assert.equal(
+        workflowBeforePublish.previewSettings.footer.description,
+        "Updated footer description"
+      )
+
+      const publishedWorkflow = await publishStorefrontSettingsDraft(runtime.primary)
+      assert.equal(publishedWorkflow.hasDraft, false)
+      assert.equal(publishedWorkflow.hasUnpublishedChanges, false)
+      assert.equal(
+        (await getStorefrontSettings(runtime.primary)).footer.description,
+        "Updated footer description"
+      )
+
+      const storefrontRevisions = await listJsonStorePayloads<{
+        snapshot: { announcement: string; updatedAt: string }
+        snapshotUpdatedAt: string
+        source: string
+      }>(runtime.primary, ecommerceTableNames.storefrontSettingsRevisions)
+
+      assert.equal(storefrontRevisions.length >= 1, true)
+      assert.equal(storefrontRevisions[0]?.source, "publish")
+
+      const versionHistory = await getStorefrontSettingsVersionHistory(runtime.primary)
+      assert.equal(versionHistory.settings.length >= 2, true)
+      assert.equal(versionHistory.settings[0]?.source, "current_live")
+      assert.equal(versionHistory.homeSlider.length >= 1, true)
+
+      await saveStorefrontSettings(runtime.primary, {
+        announcement: "Rollback candidate announcement",
+      })
+      await rollbackStorefrontSettings(runtime.primary, {
+        revisionId: storefrontRevisions[0]?.id ?? null,
+      })
+      assert.equal(
+        (await getStorefrontSettings(runtime.primary)).announcement,
+        "Updated storefront announcement"
+      )
+
+      await assert.rejects(
+        () =>
+          saveStorefrontSettings(runtime.primary, {
+            couponBanner: {
+              ...storedSettings.couponBanner,
+              buttonHref: "javascript:alert('xss')",
+            },
+          }),
+        /Link must be a relative path, anchor, or valid http\/mailto\/tel URL\./
+      )
+
+      await assert.rejects(
+        () =>
+          saveStorefrontSettings(runtime.primary, {
+            giftCorner: {
+              ...storedSettings.giftCorner,
+              imageUrl: "ftp://example.com/bad-image.png",
+            },
+          }),
+        /Media reference must be a root-relative asset path or valid http\/https URL\./
+      )
 
       const savedHomeSlider = await saveStorefrontHomeSlider(runtime.primary, {
         slides: [

@@ -8,6 +8,72 @@
 - synchronized posted billing inventory documents into shared `core` product stock movement while keeping valuation and warehouse-position reporting inside billing
 - validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests/billing/voucher-service.test.ts tests/billing/reporting-service.test.ts tests/api/internal/routes.test.ts`
 
+### `#81` 2026-04-08
+
+- completed Stage `4.3.4` by moving storefront homepage rail deferral and fallback rules into a shared performance-standards layer
+- kept the homepage implementation aligned to those standards and revalidated it against the production-like storefront performance gate
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### `#80` 2026-04-08
+
+- completed Stage `4.3.3` by deferring heavy below-the-fold homepage sections behind an intersection-aware storefront wrapper and lazy-loaded block imports
+- kept above-the-fold storefront hero and announcement behavior immediate while narrowing the initial homepage render path for featured, category, promo, and merchandising rails
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### `#79` 2026-04-08
+
+- completed Stage `4.3.2` by normalizing storefront image delivery through a shared image component with explicit intrinsic dimensions and consistent fallback handling
+- updated the hero, category menu, product cards, and product gallery to use the shared image path so eager and lazy loading behavior is clearer and more consistent across the main storefront surfaces
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### `#78` 2026-04-08
+
+- completed Stage `4.3.1` by adding a production-like Playwright storefront performance budget gate across home, catalog, and product routes
+- introduced a reusable vitals-capture helper and a dedicated package script so performance checks are runnable now and ready for later CI workflow wiring
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### `#77` 2026-04-08
+
+- completed Stage `4.2.3` by making storefront publish and rollback operations approval-gated instead of inheriting directly from draft-edit access
+- introduced a dedicated storefront approval permission, assigned it to ecommerce-admin authority, and updated designer messaging so draft-only roles are clearly separated from live publishing roles
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### `#76` 2026-04-08
+
+- completed Stage `4.2.2` by exposing derived storefront version history from immutable revision snapshots for the main settings document and key editor scopes
+- added recent version visibility to the storefront settings and home-slider designer screens so operators can see current live state and prior saved versions without leaving the workspace
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### `#75` 2026-04-08
+
+- completed Stage `4.2.1` by separating storefront designer draft saves from the live storefront settings record and adding explicit publish plus rollback workflow endpoints
+- updated the main storefront settings workspace to show draft-vs-live state, publish live changes, and rollback from immutable live revision snapshots
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### `#74` 2026-04-08
+
+- completed Stage `4.1.4` by adding automatic pre-save storefront settings revisions so direct-live designer saves no longer destroy rollback context
+- fixed storefront settings timestamp hydration so persisted live settings keep their real `createdAt` and `updatedAt` values across reads and successive saves
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`
+
+### `#73` 2026-04-08
+
+- completed Stage `4.1.3` by introducing explicit storefront designer view and edit permissions into the ecommerce role baseline
+- enforced the split across internal ecommerce routes and the main storefront editor surfaces so read-only roles can review but not save designer changes
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### `#72` 2026-04-08
+
+- completed Stage `4.1.2` by adding shared server-side validation for editable storefront links and media references inside the ecommerce schema layer
+- kept the existing client-side designer checks as the usability layer, while making persisted storefront settings reject unsafe or malformed bypass payloads
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`
+
+### `#71` 2026-04-08
+
+- completed Stage `4.1.1` by adding a shared validation helper and validation summary card across the main editable storefront block designers
+- blocked invalid saves for homepage and merchandising block editors while preserving the live preview and seeded-default behavior already in place
+- validated the batch with `npm.cmd run typecheck`
+
 ### `#70` 2026-04-08
 
 - completed Stage `3.3.4` by adding an ecommerce accounting-compatibility report for invoice and GST workflow review

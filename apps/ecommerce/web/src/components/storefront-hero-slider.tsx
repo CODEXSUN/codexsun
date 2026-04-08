@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { resolveHomeSliderThemeStyles } from "../lib/home-slider-theme"
 import { storefrontPaths } from "../lib/storefront-routes"
+import { StorefrontImage } from "./storefront-image"
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -220,9 +221,12 @@ export function StorefrontHeroSlider({
                         className="h-full w-full overflow-hidden rounded-[1.3rem]"
                         style={{ background: sliderStyles.imagePanelBackground }}
                       >
-                        <img
-                          src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
+                        <StorefrontImage
+                          imageUrl={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
+                          fallbackLabel={activeItem.name}
                           alt={activeItem.name}
+                          width={960}
+                          height={1200}
                           className="h-full w-full object-cover object-center"
                           loading="eager"
                           decoding="async"
@@ -486,9 +490,12 @@ export function StorefrontHeroSlider({
                       className="h-full w-full overflow-hidden rounded-[1.58rem]"
                       style={{ background: sliderStyles.imagePanelBackground }}
                     >
-                      <img
-                        src={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
+                      <StorefrontImage
+                        imageUrl={activeItem.primaryImageUrl ?? landing.settings.hero.heroImageUrl}
+                        fallbackLabel={activeItem.name}
                         alt={activeItem.name}
+                        width={1240}
+                        height={1500}
                         className="h-full w-full object-cover object-center"
                         loading="eager"
                         decoding="async"

@@ -180,6 +180,10 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("GET /internal/v1/ecommerce/payments/refund-report-export"))
   assert.ok(routePaths.includes("GET /internal/v1/ecommerce/payments/settlement-gap-report-export"))
   assert.ok(routePaths.includes("POST /internal/v1/ecommerce/customer/security-review"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/storefront-settings/workflow"))
+  assert.ok(routePaths.includes("GET /internal/v1/ecommerce/storefront-settings/history"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/storefront-settings/publish"))
+  assert.ok(routePaths.includes("POST /internal/v1/ecommerce/storefront-settings/rollback"))
 })
 
 test("authenticated core runtime settings routes read and save env-backed settings", async () => {
@@ -979,6 +983,7 @@ test("authenticated core auth routes manage roles, permissions, and users", asyn
       assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:customers:manage"))
       assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:orders:manage"))
       assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:payments:manage"))
+      assert.ok(permissionsPayload.items.some((item) => item.key === "ecommerce:storefront:approve"))
 
       const createPermissionResponse = await createPermissionRoute.handler({
         appSuite,
@@ -1391,12 +1396,51 @@ test("ecommerce internal routes enforce operator permissions by role", async () 
       )
 
       await authService.createAdminUser({
+        displayName: "Ecommerce Admin",
+        email: "ecommerce.admin@codexsun.local",
+        phoneNumber: "+919000000009",
+        password: "Password@123",
+        actorType: "staff",
+        roleKeys: ["ecommerce_admin"],
+        isSuperAdmin: false,
+        isActive: true,
+        organizationName: "Codexsun",
+        avatarUrl: null,
+      })
+
+      await authService.createAdminUser({
         displayName: "Support Agent",
         email: "support.agent@codexsun.local",
         phoneNumber: "+919000000010",
         password: "Password@123",
         actorType: "staff",
         roleKeys: ["ecommerce_support_agent"],
+        isSuperAdmin: false,
+        isActive: true,
+        organizationName: "Codexsun",
+        avatarUrl: null,
+      })
+
+      await authService.createAdminUser({
+        displayName: "Catalog Manager",
+        email: "catalog.manager@codexsun.local",
+        phoneNumber: "+919000000011",
+        password: "Password@123",
+        actorType: "staff",
+        roleKeys: ["ecommerce_catalog_manager"],
+        isSuperAdmin: false,
+        isActive: true,
+        organizationName: "Codexsun",
+        avatarUrl: null,
+      })
+
+      await authService.createAdminUser({
+        displayName: "Analyst",
+        email: "analyst@codexsun.local",
+        phoneNumber: "+919000000012",
+        password: "Password@123",
+        actorType: "staff",
+        roleKeys: ["ecommerce_analyst"],
         isSuperAdmin: false,
         isActive: true,
         organizationName: "Codexsun",
@@ -1414,8 +1458,50 @@ test("ecommerce internal routes enforce operator permissions by role", async () 
         }
       )
 
+      const ecommerceAdminLogin = await authService.login(
+        {
+          email: "ecommerce.admin@codexsun.local",
+          password: "Password@123",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
+      const catalogLogin = await authService.login(
+        {
+          email: "catalog.manager@codexsun.local",
+          password: "Password@123",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
+      const analystLogin = await authService.login(
+        {
+          email: "analyst@codexsun.local",
+          password: "Password@123",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
       const supportHeaders = {
         authorization: `Bearer ${supportLogin.accessToken}`,
+      }
+      const ecommerceAdminHeaders = {
+        authorization: `Bearer ${ecommerceAdminLogin.accessToken}`,
+      }
+      const catalogHeaders = {
+        authorization: `Bearer ${catalogLogin.accessToken}`,
+      }
+      const analystHeaders = {
+        authorization: `Bearer ${analystLogin.accessToken}`,
       }
 
       const supportReportRoute = routes.find(
@@ -1427,10 +1513,36 @@ test("ecommerce internal routes enforce operator permissions by role", async () 
       const ordersReportRoute = routes.find(
         (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/orders/report"
       )
+      const storefrontSettingsRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/ecommerce/storefront-settings"
+      )
+      const storefrontSettingsSaveRoute = routes.find(
+        (candidate) => candidate.method === "PATCH" && candidate.path === "/internal/v1/ecommerce/storefront-settings"
+      )
+      const storefrontWorkflowRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" &&
+          candidate.path === "/internal/v1/ecommerce/storefront-settings/workflow"
+      )
+      const storefrontHistoryRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" &&
+          candidate.path === "/internal/v1/ecommerce/storefront-settings/history"
+      )
+      const storefrontPublishRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/ecommerce/storefront-settings/publish"
+      )
 
       assert.ok(supportReportRoute)
       assert.ok(customersReportRoute)
       assert.ok(ordersReportRoute)
+      assert.ok(storefrontSettingsRoute)
+      assert.ok(storefrontSettingsSaveRoute)
+      assert.ok(storefrontWorkflowRoute)
+      assert.ok(storefrontHistoryRoute)
+      assert.ok(storefrontPublishRoute)
 
       const supportReportResponse = await supportReportRoute.handler({
         appSuite,
@@ -1474,6 +1586,212 @@ test("ecommerce internal routes enforce operator permissions by role", async () 
       })
 
       assert.equal(customersReportResponse.statusCode, 200)
+
+      await assert.rejects(
+        () =>
+          storefrontSettingsRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "GET",
+              pathname: "/internal/v1/ecommerce/storefront-settings",
+              url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings"),
+              headers: supportHeaders,
+              bodyText: null,
+              jsonBody: null,
+            },
+            route: {
+              auth: storefrontSettingsRoute.auth,
+              path: storefrontSettingsRoute.path,
+              surface: storefrontSettingsRoute.surface,
+              version: storefrontSettingsRoute.version,
+            },
+          }),
+        /You do not have permission to access this route/
+      )
+
+      const storefrontSettingsReadResponse = await storefrontSettingsRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/ecommerce/storefront-settings",
+          url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings"),
+          headers: analystHeaders,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: storefrontSettingsRoute.auth,
+          path: storefrontSettingsRoute.path,
+          surface: storefrontSettingsRoute.surface,
+          version: storefrontSettingsRoute.version,
+        },
+      })
+
+      assert.equal(storefrontSettingsReadResponse.statusCode, 200)
+
+      const storefrontWorkflowReadResponse = await storefrontWorkflowRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/ecommerce/storefront-settings/workflow",
+          url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings/workflow"),
+          headers: analystHeaders,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: storefrontWorkflowRoute.auth,
+          path: storefrontWorkflowRoute.path,
+          surface: storefrontWorkflowRoute.surface,
+          version: storefrontWorkflowRoute.version,
+        },
+      })
+
+      assert.equal(storefrontWorkflowReadResponse.statusCode, 200)
+
+      const storefrontHistoryReadResponse = await storefrontHistoryRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/ecommerce/storefront-settings/history",
+          url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings/history"),
+          headers: analystHeaders,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: storefrontHistoryRoute.auth,
+          path: storefrontHistoryRoute.path,
+          surface: storefrontHistoryRoute.surface,
+          version: storefrontHistoryRoute.version,
+        },
+      })
+
+      assert.equal(storefrontHistoryReadResponse.statusCode, 200)
+
+      await assert.rejects(
+        () =>
+          storefrontSettingsSaveRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "PATCH",
+              pathname: "/internal/v1/ecommerce/storefront-settings",
+              url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings"),
+              headers: analystHeaders,
+              bodyText: JSON.stringify({ announcement: "Read-only analyst edit" }),
+              jsonBody: { announcement: "Read-only analyst edit" },
+            },
+            route: {
+              auth: storefrontSettingsSaveRoute.auth,
+              path: storefrontSettingsSaveRoute.path,
+              surface: storefrontSettingsSaveRoute.surface,
+              version: storefrontSettingsSaveRoute.version,
+            },
+          }),
+        /You do not have permission to access this route/
+      )
+
+      await assert.rejects(
+        () =>
+          storefrontPublishRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "POST",
+              pathname: "/internal/v1/ecommerce/storefront-settings/publish",
+              url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings/publish"),
+              headers: analystHeaders,
+              bodyText: JSON.stringify({}),
+              jsonBody: {},
+            },
+            route: {
+              auth: storefrontPublishRoute.auth,
+              path: storefrontPublishRoute.path,
+              surface: storefrontPublishRoute.surface,
+              version: storefrontPublishRoute.version,
+            },
+          }),
+        /You do not have permission to access this route/
+      )
+
+      await assert.rejects(
+        () =>
+          storefrontPublishRoute.handler({
+            appSuite,
+            config,
+            databases: runtime,
+            request: {
+              method: "POST",
+              pathname: "/internal/v1/ecommerce/storefront-settings/publish",
+              url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings/publish"),
+              headers: catalogHeaders,
+              bodyText: JSON.stringify({}),
+              jsonBody: {},
+            },
+            route: {
+              auth: storefrontPublishRoute.auth,
+              path: storefrontPublishRoute.path,
+              surface: storefrontPublishRoute.surface,
+              version: storefrontPublishRoute.version,
+            },
+          }),
+        /You do not have permission to access this route/
+      )
+
+      const storefrontSettingsSaveResponse = await storefrontSettingsSaveRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/ecommerce/storefront-settings",
+          url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings"),
+          headers: catalogHeaders,
+          bodyText: JSON.stringify({ announcement: "Catalog manager storefront update" }),
+          jsonBody: { announcement: "Catalog manager storefront update" },
+        },
+        route: {
+          auth: storefrontSettingsSaveRoute.auth,
+          path: storefrontSettingsSaveRoute.path,
+          surface: storefrontSettingsSaveRoute.surface,
+          version: storefrontSettingsSaveRoute.version,
+        },
+      })
+
+      assert.equal(storefrontSettingsSaveResponse.statusCode, 200)
+
+      const storefrontPublishResponse = await storefrontPublishRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/ecommerce/storefront-settings/publish",
+          url: new URL("http://localhost/internal/v1/ecommerce/storefront-settings/publish"),
+          headers: ecommerceAdminHeaders,
+          bodyText: JSON.stringify({}),
+          jsonBody: {},
+        },
+        route: {
+          auth: storefrontPublishRoute.auth,
+          path: storefrontPublishRoute.path,
+          surface: storefrontPublishRoute.surface,
+          version: storefrontPublishRoute.version,
+        },
+      })
+
+      assert.equal(storefrontPublishResponse.statusCode, 200)
 
       await assert.rejects(
         () =>

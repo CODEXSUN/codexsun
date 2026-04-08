@@ -15,6 +15,10 @@ import { Label } from "@/components/ui/label"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 import { storefrontApi } from "../../api/storefront-api"
+import {
+  StorefrontDesignerPermissionCard,
+  useStorefrontDesignerAccess,
+} from "./storefront-designer-access"
 
 function createShippingMethodDraft(index: number): StorefrontShippingMethod {
   return {
@@ -52,6 +56,7 @@ function createShippingZoneDraft(index: number): StorefrontShippingZone {
 }
 
 export function ShippingSettingsSection() {
+  const { canEditStorefrontDesigner } = useStorefrontDesignerAccess()
   const [settings, setSettings] = useState<StorefrontSettings | null>(null)
   const [draft, setDraft] = useState<StorefrontSettings | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -103,6 +108,10 @@ export function ShippingSettingsSection() {
 
   async function handleSave() {
     if (!draft) {
+      return
+    }
+    if (!canEditStorefrontDesigner) {
+      setError("This role has read-only storefront designer access.")
       return
     }
 
@@ -305,6 +314,8 @@ export function ShippingSettingsSection() {
           <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
         </Card>
       ) : null}
+
+      <StorefrontDesignerPermissionCard canEdit={canEditStorefrontDesigner} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <Card className="rounded-[1.6rem] border-border/70 py-0 shadow-sm">
@@ -605,7 +616,7 @@ export function ShippingSettingsSection() {
               type="button"
               className="gap-2"
               onClick={() => void handleSave()}
-              disabled={isSaving || !draft}
+              disabled={!canEditStorefrontDesigner || isSaving || !draft}
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save shipping settings"}
@@ -811,7 +822,7 @@ export function ShippingSettingsSection() {
               type="button"
               className="gap-2"
               onClick={() => void handleSave()}
-              disabled={isSaving || !draft}
+              disabled={!canEditStorefrontDesigner || isSaving || !draft}
             >
               <Save className="size-4" />
               {isSaving ? "Saving..." : "Save shipping settings"}

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@ui/lib/utils"
 
+import { StorefrontImage } from "./storefront-image"
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -77,9 +79,12 @@ export function StorefrontProductCard({
         )}
       >
         {item.primaryImageUrl ? (
-          <img
-            src={item.primaryImageUrl}
+          <StorefrontImage
+            imageUrl={item.primaryImageUrl}
+            fallbackLabel={resolveFallbackLabel(item)}
             alt={item.name}
+            width={800}
+            height={870}
             className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
             loading="lazy"
             decoding="async"

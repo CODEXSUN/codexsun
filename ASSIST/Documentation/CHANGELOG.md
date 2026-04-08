@@ -14,6 +14,72 @@
 - added stock-aware billing voucher contracts, centralized inventory replay and synchronization logic, and a stock valuation report surfaced through the billing reporting workspace
 - validated the batch with `npm run typecheck` and `npx.cmd tsx --test tests\\billing\\voucher-service.test.ts tests\\billing\\reporting-service.test.ts tests\\api\\internal\\routes.test.ts`
 
+### [#81] 2026-04-08 - Storefront performance standards baseline
+
+- completed Stage `4.3.4` by codifying homepage rail and block performance rules into a shared storefront performance-standards layer instead of leaving them inline or docs-only
+- moved homepage deferral, root-margin, reserved-height, and fallback rules onto a reusable standards map so future storefront rails can follow the same contract without reopening first-paint policy each time
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### [#80] 2026-04-08 - Storefront homepage deferral baseline
+
+- completed Stage `4.3.3` by deferring heavy below-the-fold homepage merchandising sections behind intersection-aware rendering and lazy-loaded block imports
+- kept the hero and announcement surfaces immediate while moving featured, category, coupon, gift, trending, brand-story, and campaign-trust sections onto deferred mounting so first render and scroll work stay narrower
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### [#79] 2026-04-08 - Storefront image delivery baseline
+
+- completed Stage `4.3.2` by introducing a shared storefront image primitive and moving key storefront hero, category, product-card, and product-gallery surfaces onto explicit intrinsic sizing and consistent loading behavior
+- kept hero imagery eager with high priority while preserving lazy loading for lower-priority card and gallery images, so the production-like performance gate continues to pass after the image-delivery changes
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### [#78] 2026-04-08 - Storefront performance budget baseline
+
+- completed Stage `4.3.1` by adding a production-like Playwright performance budget gate for home, catalog, and product storefront routes
+- introduced a dedicated performance test config, browser-side vitals capture helper, and package script so the storefront budget can run locally now and in CI once workflow wiring is added
+- validated the batch with `npm.cmd run typecheck` and `npm.cmd run test:e2e:performance`
+
+### [#77] 2026-04-08 - Storefront publishing approval baseline
+
+- completed Stage `4.2.3` by separating storefront draft editing from live publish and rollback approval authority
+- added a dedicated storefront approval permission, kept legacy storefront-manage as compatibility fallback, and enforced approval-only access on live publish or rollback routes while leaving draft save with designer-edit access
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### [#76] 2026-04-08 - Storefront version history baseline
+
+- completed Stage `4.2.2` by deriving storefront version history from immutable live revision snapshots for the full settings document and key content blocks
+- exposed protected history reads through ecommerce internal routes and surfaced recent settings plus home-slider version entries inside the existing designer workspaces
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### [#75] 2026-04-08 - Storefront publishing workflow baseline
+
+- completed Stage `4.2.1` by moving storefront designer saves onto a draft settings record with explicit publish and rollback actions
+- kept public storefront reads on the live settings document, exposed internal workflow state for draft-vs-live preview, and wired the main storefront settings workspace to publish or rollback from immutable live revisions
+- validated the batch with `npm.cmd run typecheck`, `npx.cmd tsx --test tests/ecommerce/services.test.ts`, and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### [#71] 2026-04-08 - Storefront block governance validation baseline
+
+- completed Stage `4.1.1` by adding a shared validation layer across the editable storefront block designers
+- wired client-side validation and save blocking into the main homepage and merchandising block editors while keeping seeded defaults and live previews intact
+- validated the batch with `npm.cmd run typecheck`
+
+### [#72] 2026-04-08 - Storefront server-side payload validation baseline
+
+- completed Stage `4.1.2` by enforcing shared server-side validation for editable storefront links and media references
+- hardened the ecommerce catalog schemas so persisted storefront settings only accept root-relative or explicit safe-link formats, and media fields only accept root-relative or `http(s)` references
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`
+
+### [#73] 2026-04-08 - Storefront designer role permission baseline
+
+- completed Stage `4.1.3` by splitting storefront designer visibility from storefront designer edit access in the ecommerce role model
+- updated internal storefront routes and the main designer surfaces so read-only roles can inspect content while save actions remain limited to edit-capable roles, with legacy `ecommerce:storefront:manage` kept as compatibility fallback
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/api/internal/routes.test.ts`
+
+### [#74] 2026-04-08 - Storefront live revision safety baseline
+
+- completed Stage `4.1.4` by snapshotting the current live storefront settings into an immutable revision store before each live overwrite
+- added bounded storefront revision retention and corrected storefront settings hydration so persisted timestamps survive reads, preventing live history from collapsing back to seed defaults
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`
+
 ### [#70] 2026-04-08 - Ecommerce accounting compatibility verification baseline
 
 - completed Stage `3.3.4` by adding an ecommerce accounting-compatibility report for invoice and GST workflow review

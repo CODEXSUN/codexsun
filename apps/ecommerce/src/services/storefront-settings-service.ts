@@ -2,6 +2,7 @@ import type { Kysely } from "kysely"
 
 import {
   getFirstJsonStorePayload,
+  listJsonStorePayloads,
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
@@ -15,6 +16,10 @@ import {
   storefrontCampaignSectionSchema,
   storefrontAnnouncementItemSchema,
   storefrontSettingsSchema,
+  storefrontSettingsRollbackPayloadSchema,
+  storefrontSettingsRevisionSchema,
+  storefrontSettingsVersionHistoryResponseSchema,
+  storefrontSettingsWorkflowStatusSchema,
   storefrontHomeSliderSchema,
   storefrontHomeSliderSlideSchema,
   storefrontHomeSliderThemeSchema,
@@ -22,6 +27,10 @@ import {
   type StorefrontHomeSliderSlide,
   type StorefrontHomeSliderTheme,
   type StorefrontSettings,
+  type StorefrontSettingsRevision,
+  type StorefrontSettingsVersionHistoryEntry,
+  type StorefrontSettingsVersionHistoryResponse,
+  type StorefrontSettingsWorkflowStatus,
 } from "../../shared/index.js"
 import { ecommerceTableNames } from "../../database/table-names.js"
 import { defaultStorefrontSettings } from "../data/storefront-seed.js"
@@ -53,6 +62,47 @@ const fallbackHomeSliderTheme: StorefrontHomeSliderTheme = {
   outerFrameBorderColor: null,
   innerFrameBorderColor: null,
   imagePanelBackground: "#ffffff",
+}
+
+const storefrontSettingsRevisionRetentionLimit = 25
+
+async function writeStorefrontSettingsRevision(
+  database: Kysely<unknown>,
+  settings: StorefrontSettings,
+  timestamp: string,
+  source: StorefrontSettingsRevision["source"] = "live-save"
+) {
+  const existing = await listJsonStorePayloads<StorefrontSettingsRevision>(
+    database,
+    ecommerceTableNames.storefrontSettingsRevisions
+  )
+
+  const nextRevision = storefrontSettingsRevisionSchema.parse({
+    id: `${settings.id}:${timestamp}`,
+    settingsId: settings.id,
+    source,
+    snapshot: settings,
+    snapshotUpdatedAt: settings.updatedAt,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  })
+
+  const revisions = [
+    nextRevision,
+    ...existing.filter((item) => item.snapshotUpdatedAt !== settings.updatedAt),
+  ].slice(0, storefrontSettingsRevisionRetentionLimit)
+
+  await replaceJsonStoreRecords(
+    database,
+    ecommerceTableNames.storefrontSettingsRevisions,
+    revisions.map((revision, index) => ({
+      id: revision.id,
+      sortOrder: index + 1,
+      payload: revision,
+      createdAt: revision.createdAt,
+      updatedAt: revision.updatedAt,
+    }))
+  )
 }
 
 function buildMergedHomeSliderTheme(
@@ -139,7 +189,7 @@ function buildMergedHomeSlider(
 function buildMergedStorefrontSettings(
   base: StorefrontSettings,
   payload: unknown,
-  timestamp = base.updatedAt
+  timestamp?: string
 ) {
   const payloadRecord = asRecord(payload) ?? {}
   const heroRecord = asRecord(payloadRecord.hero)
@@ -171,6 +221,17 @@ function buildMergedStorefrontSettings(
   const ctaRecord = asRecord(sectionsRecord?.cta)
   const featuredCardDesignRecord = asRecord(featuredRecord?.cardDesign)
   const categoriesCardDesignRecord = asRecord(categoriesRecord?.cardDesign)
+
+  const createdAt =
+    typeof payloadRecord.createdAt === "string" && payloadRecord.createdAt.trim().length > 0
+      ? payloadRecord.createdAt
+      : base.createdAt
+  const updatedAt =
+    typeof timestamp === "string" && timestamp.trim().length > 0
+      ? timestamp
+      : typeof payloadRecord.updatedAt === "string" && payloadRecord.updatedAt.trim().length > 0
+        ? payloadRecord.updatedAt
+        : base.updatedAt
 
   return storefrontSettingsSchema.parse({
     ...base,
@@ -374,15 +435,224 @@ function buildMergedStorefrontSettings(
         }
       : base.legalPages,
     id: base.id,
-    createdAt: base.createdAt,
-    updatedAt: timestamp,
+    createdAt,
+    updatedAt,
+  })
+}
+
+async function readStoredStorefrontSettings(
+  database: Kysely<unknown>,
+  tableName: string
+) {
+  return getFirstJsonStorePayload<StorefrontSettings>(database, tableName)
+}
+
+async function writeStoredStorefrontSettings(
+  database: Kysely<unknown>,
+  tableName: string,
+  settings: StorefrontSettings | null
+) {
+  await replaceJsonStoreRecords(
+    database,
+    tableName,
+    settings
+      ? [
+          {
+            id: settings.id,
+            payload: settings,
+            createdAt: settings.createdAt,
+            updatedAt: settings.updatedAt,
+          },
+        ]
+      : []
+  )
+}
+
+async function getDraftStorefrontSettings(
+  database: Kysely<unknown>
+): Promise<StorefrontSettings | null> {
+  const stored = await readStoredStorefrontSettings(
+    database,
+    ecommerceTableNames.storefrontSettingsDrafts
+  )
+
+  return stored ? buildMergedStorefrontSettings(defaultStorefrontSettings, stored) : null
+}
+
+async function getStorefrontSettingsRevisions(
+  database: Kysely<unknown>
+): Promise<StorefrontSettingsRevision[]> {
+  return listJsonStorePayloads<StorefrontSettingsRevision>(
+    database,
+    ecommerceTableNames.storefrontSettingsRevisions
+  )
+}
+
+function buildVersionHistoryEntries<TValue>(
+  scope: StorefrontSettingsVersionHistoryEntry["scope"],
+  currentLive: StorefrontSettings,
+  revisions: StorefrontSettingsRevision[],
+  selector: (settings: StorefrontSettings) => TValue,
+  summary: (settings: StorefrontSettings) => string
+) {
+  const entries: StorefrontSettingsVersionHistoryEntry[] = []
+  const currentValue = selector(currentLive)
+  let previousValue = JSON.stringify(currentValue)
+
+  entries.push({
+    id: `${scope}:current:${currentLive.updatedAt}`,
+    scope,
+    source: "current_live",
+    revisionId: null,
+    snapshotUpdatedAt: currentLive.updatedAt,
+    createdAt: currentLive.updatedAt,
+    summary: summary(currentLive),
+  })
+
+  for (const revision of revisions) {
+    const revisionValue = JSON.stringify(selector(revision.snapshot))
+
+    if (revisionValue === previousValue) {
+      continue
+    }
+
+    previousValue = revisionValue
+    entries.push({
+      id: `${scope}:${revision.id}`,
+      scope,
+      source: revision.source,
+      revisionId: revision.id,
+      snapshotUpdatedAt: revision.snapshotUpdatedAt,
+      createdAt: revision.createdAt,
+      summary: summary(revision.snapshot),
+    })
+  }
+
+  return entries
+}
+
+async function replaceLiveStorefrontSettings(
+  database: Kysely<unknown>,
+  payload: unknown,
+  options: {
+    revisionSource?: StorefrontSettingsRevision["source"]
+  } = {}
+): Promise<StorefrontSettings> {
+  const current = await getStorefrontDesignerSettings(database)
+  const timestamp = new Date().toISOString()
+  const nextSettings = buildMergedStorefrontSettings(current, payload, timestamp)
+
+  await writeStorefrontSettingsRevision(
+    database,
+    current,
+    timestamp,
+    options.revisionSource ?? "live-save"
+  )
+
+  await writeStoredStorefrontSettings(
+    database,
+    ecommerceTableNames.storefrontSettings,
+    nextSettings
+  )
+
+  return nextSettings
+}
+
+async function replaceDraftStorefrontSettings(
+  database: Kysely<unknown>,
+  payload: unknown
+): Promise<StorefrontSettings> {
+  const current = (await getDraftStorefrontSettings(database)) ?? (await getStorefrontSettings(database))
+  const timestamp = new Date().toISOString()
+  const nextSettings = buildMergedStorefrontSettings(current, payload, timestamp)
+
+  await writeStoredStorefrontSettings(
+    database,
+    ecommerceTableNames.storefrontSettingsDrafts,
+    nextSettings
+  )
+
+  return nextSettings
+}
+
+export async function getStorefrontDesignerSettings(
+  database: Kysely<unknown>
+): Promise<StorefrontSettings> {
+  return (await getDraftStorefrontSettings(database)) ?? getStorefrontSettings(database)
+}
+
+export async function getStorefrontSettingsWorkflowStatus(
+  database: Kysely<unknown>
+): Promise<StorefrontSettingsWorkflowStatus> {
+  const [liveSettings, draftSettings, revisions] = await Promise.all([
+    getStorefrontSettings(database),
+    getDraftStorefrontSettings(database),
+    getStorefrontSettingsRevisions(database),
+  ])
+
+  return storefrontSettingsWorkflowStatusSchema.parse({
+    liveSettings,
+    draftSettings,
+    previewSettings: draftSettings ?? liveSettings,
+    revisions,
+    hasDraft: draftSettings != null,
+    hasUnpublishedChanges:
+      draftSettings != null && JSON.stringify(draftSettings) !== JSON.stringify(liveSettings),
+  })
+}
+
+export async function getStorefrontSettingsVersionHistory(
+  database: Kysely<unknown>
+): Promise<StorefrontSettingsVersionHistoryResponse> {
+  const [liveSettings, revisions] = await Promise.all([
+    getStorefrontSettings(database),
+    getStorefrontSettingsRevisions(database),
+  ])
+
+  return storefrontSettingsVersionHistoryResponseSchema.parse({
+    settings: buildVersionHistoryEntries(
+      "settings",
+      liveSettings,
+      revisions,
+      (settings) => settings,
+      (settings) => settings.announcement
+    ),
+    homeSlider: buildVersionHistoryEntries(
+      "home_slider",
+      liveSettings,
+      revisions,
+      (settings) => settings.homeSlider,
+      (settings) => `${settings.homeSlider.slides.length} slider themes`
+    ),
+    footer: buildVersionHistoryEntries(
+      "footer",
+      liveSettings,
+      revisions,
+      (settings) => settings.footer,
+      (settings) => settings.footer.description
+    ),
+    campaign: buildVersionHistoryEntries(
+      "campaign",
+      liveSettings,
+      revisions,
+      (settings) => ({
+        visibility: {
+          cta: settings.visibility.cta,
+          trust: settings.visibility.trust,
+        },
+        cta: settings.sections.cta,
+        trustNotes: settings.trustNotes,
+        design: settings.campaignDesign,
+      }),
+      (settings) => settings.sections.cta.title
+    ),
   })
 }
 
 export async function getStorefrontSettings(
   database: Kysely<unknown>
 ): Promise<StorefrontSettings> {
-  const stored = await getFirstJsonStorePayload<StorefrontSettings>(
+  const stored = await readStoredStorefrontSettings(
     database,
     ecommerceTableNames.storefrontSettings
   )
@@ -394,26 +664,61 @@ export async function saveStorefrontSettings(
   database: Kysely<unknown>,
   payload: unknown
 ): Promise<StorefrontSettings> {
-  const current = await getStorefrontSettings(database)
-  const timestamp = new Date().toISOString()
-  const nextSettings = buildMergedStorefrontSettings(current, payload, timestamp)
+  return replaceDraftStorefrontSettings(database, payload)
+}
 
-  await replaceJsonStoreRecords(database, ecommerceTableNames.storefrontSettings, [
-    {
-      id: nextSettings.id,
-      payload: nextSettings,
-      createdAt: nextSettings.createdAt,
-      updatedAt: nextSettings.updatedAt,
-    },
-  ])
+export async function publishStorefrontSettingsDraft(
+  database: Kysely<unknown>
+): Promise<StorefrontSettingsWorkflowStatus> {
+  const draftSettings = await getDraftStorefrontSettings(database)
 
-  return nextSettings
+  if (!draftSettings) {
+    return getStorefrontSettingsWorkflowStatus(database)
+  }
+
+  await replaceLiveStorefrontSettings(database, draftSettings, {
+    revisionSource: "publish",
+  })
+  await writeStoredStorefrontSettings(
+    database,
+    ecommerceTableNames.storefrontSettingsDrafts,
+    null
+  )
+
+  return getStorefrontSettingsWorkflowStatus(database)
+}
+
+export async function rollbackStorefrontSettings(
+  database: Kysely<unknown>,
+  payload: unknown
+): Promise<StorefrontSettingsWorkflowStatus> {
+  const input = storefrontSettingsRollbackPayloadSchema.parse(payload ?? {})
+  const revisions = await getStorefrontSettingsRevisions(database)
+  const targetRevision =
+    (input.revisionId
+      ? revisions.find((revision) => revision.id === input.revisionId)
+      : revisions[0]) ?? null
+
+  if (!targetRevision) {
+    throw new Error("No storefront revision is available for rollback.")
+  }
+
+  await replaceLiveStorefrontSettings(database, targetRevision.snapshot, {
+    revisionSource: "rollback",
+  })
+  await writeStoredStorefrontSettings(
+    database,
+    ecommerceTableNames.storefrontSettingsDrafts,
+    null
+  )
+
+  return getStorefrontSettingsWorkflowStatus(database)
 }
 
 export async function getStorefrontHomeSlider(
   database: Kysely<unknown>
 ): Promise<StorefrontHomeSlider> {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontHomeSliderSchema.parse(settings.homeSlider)
 }
 
@@ -421,7 +726,7 @@ export async function saveStorefrontHomeSlider(
   database: Kysely<unknown>,
   payload: unknown
 ): Promise<StorefrontHomeSlider> {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const parsedPayload = buildMergedHomeSlider(current.homeSlider, payload)
 
   const nextSettings = await saveStorefrontSettings(database, {
@@ -434,7 +739,7 @@ export async function saveStorefrontHomeSlider(
 export async function getStorefrontFooter(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontFooterSchema.parse(settings.footer)
 }
 
@@ -442,7 +747,7 @@ export async function saveStorefrontFooter(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     footer: storefrontFooterSchema.parse({
       ...current.footer,
@@ -466,7 +771,7 @@ export async function saveStorefrontFooter(
 export async function getStorefrontFloatingContact(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontFloatingContactSchema.parse(settings.floatingContact)
 }
 
@@ -474,7 +779,7 @@ export async function saveStorefrontFloatingContact(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     floatingContact: storefrontFloatingContactSchema.parse({
       ...current.floatingContact,
@@ -488,7 +793,7 @@ export async function saveStorefrontFloatingContact(
 export async function getStorefrontPickupLocation(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontPickupLocationSchema.parse(settings.pickupLocation)
 }
 
@@ -496,7 +801,7 @@ export async function saveStorefrontPickupLocation(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     pickupLocation: storefrontPickupLocationSchema.parse({
       ...current.pickupLocation,
@@ -510,7 +815,7 @@ export async function saveStorefrontPickupLocation(
 export async function getStorefrontCouponBanner(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontCouponBannerSchema.parse(settings.couponBanner)
 }
 
@@ -518,7 +823,7 @@ export async function saveStorefrontCouponBanner(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     couponBanner: storefrontCouponBannerSchema.parse({
       ...current.couponBanner,
@@ -532,7 +837,7 @@ export async function saveStorefrontCouponBanner(
 export async function getStorefrontGiftCorner(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontGiftCornerSchema.parse(settings.giftCorner)
 }
 
@@ -540,7 +845,7 @@ export async function saveStorefrontGiftCorner(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     giftCorner: storefrontGiftCornerSchema.parse({
       ...current.giftCorner,
@@ -554,7 +859,7 @@ export async function saveStorefrontGiftCorner(
 export async function getStorefrontTrendingSection(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontTrendingSectionSchema.parse(settings.trendingSection)
 }
 
@@ -562,7 +867,7 @@ export async function saveStorefrontTrendingSection(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     trendingSection: storefrontTrendingSectionSchema.parse({
       ...current.trendingSection,
@@ -579,7 +884,7 @@ export async function saveStorefrontTrendingSection(
 export async function getStorefrontBrandShowcase(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
   return storefrontBrandShowcaseSchema.parse(settings.brandShowcase)
 }
 
@@ -587,7 +892,7 @@ export async function saveStorefrontBrandShowcase(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const nextSettings = await saveStorefrontSettings(database, {
     brandShowcase: storefrontBrandShowcaseSchema.parse({
       ...current.brandShowcase,
@@ -604,7 +909,7 @@ export async function saveStorefrontBrandShowcase(
 export async function getStorefrontCampaign(
   database: Kysely<unknown>
 ) {
-  const settings = await getStorefrontSettings(database)
+  const settings = await getStorefrontDesignerSettings(database)
 
   return storefrontCampaignSectionSchema.parse({
     visibility: {
@@ -621,7 +926,7 @@ export async function saveStorefrontCampaign(
   database: Kysely<unknown>,
   payload: unknown
 ) {
-  const current = await getStorefrontSettings(database)
+  const current = await getStorefrontDesignerSettings(database)
   const payloadRecord = asRecord(payload)
   const parsedPayload = storefrontCampaignSectionSchema.parse({
     visibility: {

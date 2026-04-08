@@ -17,6 +17,14 @@ import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navig
 
 import { storefrontApi } from "../../api/storefront-api"
 import { invalidateStorefrontShellData } from "../../hooks/use-storefront-shell-data"
+import {
+  StorefrontDesignerPermissionCard,
+  useStorefrontDesignerAccess,
+} from "./storefront-designer-access"
+import {
+  StorefrontDesignerValidationCard,
+  validateTrendingDesigner,
+} from "./storefront-designer-validation"
 
 function ColorField({
   label,
@@ -50,10 +58,13 @@ function createCard(index: number): StorefrontTrendingCard {
 }
 
 export function StorefrontTrendingSectionSection() {
+  const { canEditStorefrontDesigner } = useStorefrontDesignerAccess()
   const [draft, setDraft] = useState<StorefrontTrendingSection | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const validationIssues = draft ? validateTrendingDesigner(draft) : []
+  const hasValidationIssues = validationIssues.length > 0
   useGlobalLoading(isLoading || isSaving)
 
   useEffect(() => {
@@ -93,6 +104,14 @@ export function StorefrontTrendingSectionSection() {
 
   async function handleSave() {
     if (!draft) {
+      return
+    }
+    if (!canEditStorefrontDesigner) {
+      setError("This role has read-only storefront designer access.")
+      return
+    }
+    if (hasValidationIssues) {
+      setError(validationIssues[0]?.message ?? "Fix validation issues before saving.")
       return
     }
 
@@ -277,11 +296,18 @@ export function StorefrontTrendingSectionSection() {
       ) : null}
 
       <div className="flex items-center justify-end">
-        <Button type="button" className="gap-2" disabled={!draft || isSaving} onClick={() => void handleSave()}>
+        <Button type="button" className="gap-2" disabled={!draft || !canEditStorefrontDesigner || isSaving || hasValidationIssues} onClick={() => void handleSave()}>
           <Save className="size-4" />
           {isSaving ? "Saving..." : "Save trending section"}
         </Button>
       </div>
+
+      <StorefrontDesignerPermissionCard canEdit={canEditStorefrontDesigner} />
+
+      <StorefrontDesignerValidationCard
+        issues={validationIssues}
+        title="Trending section validation"
+      />
 
       <Card className="overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm">
         <CardHeader className="border-b border-border/70">

@@ -8,7 +8,11 @@ import {
   getStorefrontCampaign,
   getStorefrontTrendingSection,
   getStorefrontHomeSlider,
-  getStorefrontSettings,
+  getStorefrontDesignerSettings,
+  getStorefrontSettingsVersionHistory,
+  getStorefrontSettingsWorkflowStatus,
+  publishStorefrontSettingsDraft,
+  rollbackStorefrontSettings,
   saveStorefrontFooter,
   saveStorefrontFloatingContact,
   saveStorefrontPickupLocation,
@@ -55,6 +59,7 @@ import {
   getStorefrontOrderRequestQueueReport,
   reviewStorefrontOrderRequest,
 } from "../../../ecommerce/src/services/storefront-order-request-service.js"
+import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
@@ -62,16 +67,78 @@ import { jsonResponse, textResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
-  const requireStorefrontView = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
-    requireAuthenticatedUser(context, {
+  const storefrontDesignerViewPermissionKeys = new Set([
+    "ecommerce:storefront:view",
+    "ecommerce:storefront:design",
+    "ecommerce:storefront:manage",
+  ])
+  const storefrontDesignerEditPermissionKeys = new Set([
+    "ecommerce:storefront:design",
+    "ecommerce:storefront:manage",
+  ])
+  const storefrontDesignerApprovePermissionKeys = new Set([
+    "ecommerce:storefront:approve",
+    "ecommerce:storefront:manage",
+  ])
+
+  const requireStorefrontView = async (context: Parameters<typeof requireAuthenticatedUser>[0]) => {
+    const session = await requireAuthenticatedUser(context, {
       allowedActorTypes: ["admin", "staff"],
-      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:storefront:manage"],
+      requiredPermissionKeys: ["ecommerce:workspace:view"],
     })
-  const requireStorefrontManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
-    requireAuthenticatedUser(context, {
+
+    if (
+      !session.user.isSuperAdmin &&
+      !session.user.permissions.some((permission) =>
+        storefrontDesignerViewPermissionKeys.has(permission.key)
+      )
+    ) {
+      throw new ApplicationError("You do not have permission to access this route.", {
+        missingPermissionKeys: ["ecommerce:storefront:view"],
+      }, 403)
+    }
+
+    return session
+  }
+
+  const requireStorefrontManage = async (context: Parameters<typeof requireAuthenticatedUser>[0]) => {
+    const session = await requireAuthenticatedUser(context, {
       allowedActorTypes: ["admin", "staff"],
-      requiredPermissionKeys: ["ecommerce:workspace:view", "ecommerce:storefront:manage"],
+      requiredPermissionKeys: ["ecommerce:workspace:view"],
     })
+
+    if (
+      !session.user.isSuperAdmin &&
+      !session.user.permissions.some((permission) =>
+        storefrontDesignerEditPermissionKeys.has(permission.key)
+      )
+    ) {
+      throw new ApplicationError("You do not have permission to access this route.", {
+        missingPermissionKeys: ["ecommerce:storefront:design"],
+      }, 403)
+    }
+
+    return session
+  }
+  const requireStorefrontApprove = async (context: Parameters<typeof requireAuthenticatedUser>[0]) => {
+    const session = await requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin", "staff"],
+      requiredPermissionKeys: ["ecommerce:workspace:view"],
+    })
+
+    if (
+      !session.user.isSuperAdmin &&
+      !session.user.permissions.some((permission) =>
+        storefrontDesignerApprovePermissionKeys.has(permission.key)
+      )
+    ) {
+      throw new ApplicationError("You do not have permission to access this route.", {
+        missingPermissionKeys: ["ecommerce:storefront:approve"],
+      }, 403)
+    }
+
+    return session
+  }
   const requireOrdersManage = (context: Parameters<typeof requireAuthenticatedUser>[0]) =>
     requireAuthenticatedUser(context, {
       allowedActorTypes: ["admin", "staff"],
@@ -109,12 +176,32 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireStorefrontView(context)
 
-        return jsonResponse(await getStorefrontSettings(context.databases.primary))
+        return jsonResponse(await getStorefrontDesignerSettings(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-settings/workflow", {
+      summary: "Read storefront draft, live, preview, and rollback workflow state for the admin editor.",
+      handler: async (context) => {
+        await requireStorefrontView(context)
+
+        return jsonResponse(
+          await getStorefrontSettingsWorkflowStatus(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-settings/history", {
+      summary: "Read storefront version history for the full settings document and key content blocks.",
+      handler: async (context) => {
+        await requireStorefrontView(context)
+
+        return jsonResponse(
+          await getStorefrontSettingsVersionHistory(context.databases.primary)
+        )
       },
     }),
     defineInternalRoute("/ecommerce/storefront-settings", {
       method: "PATCH",
-      summary: "Update ecommerce-owned storefront settings used by public surfaces.",
+      summary: "Save ecommerce-owned storefront settings into the draft editor workspace.",
       handler: async (context) => {
         await requireStorefrontManage(context)
 
@@ -360,6 +447,31 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await getStorefrontCustomerOperationsReport(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-settings/publish", {
+      method: "POST",
+      summary: "Publish the current storefront draft into the live public storefront configuration.",
+      handler: async (context) => {
+        await requireStorefrontApprove(context)
+
+        return jsonResponse(
+          await publishStorefrontSettingsDraft(context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-settings/rollback", {
+      method: "POST",
+      summary: "Rollback the live storefront configuration to a previous immutable revision snapshot.",
+      handler: async (context) => {
+        await requireStorefrontApprove(context)
+
+        return jsonResponse(
+          await rollbackStorefrontSettings(
+            context.databases.primary,
+            context.request.jsonBody
+          )
         )
       },
     }),

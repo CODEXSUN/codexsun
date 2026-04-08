@@ -14,14 +14,11 @@ import { CommerceQuantityStepper } from "@/components/ux/commerce-quantity-stepp
 import { storefrontApi } from "../api/storefront-api"
 import { useStorefrontCart } from "../cart/storefront-cart"
 import { StorefrontLayout } from "../components/storefront-layout"
+import { StorefrontImage } from "../components/storefront-image"
 import { StorefrontProductCard } from "../components/storefront-product-card"
 import { StorefrontProductSpecifications } from "../components/storefront-product-specifications"
 import { useStorefrontCustomerPortal } from "../hooks/use-storefront-customer-portal"
 import { StorefrontProductPageSkeleton } from "../components/storefront-skeletons"
-import {
-  handleStorefrontImageError,
-  resolveStorefrontImageUrl,
-} from "../lib/storefront-image"
 import { storefrontPaths } from "../lib/storefront-routes"
 
 export function StorefrontProductPage() {
@@ -106,14 +103,16 @@ export function StorefrontProductPage() {
                 <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(251,247,242,0.94))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
                   <CardContent className="space-y-4 p-4 sm:p-5">
                     <div className="mx-auto max-w-[44rem] overflow-hidden rounded-[1.75rem] border border-[#e4d6c7] bg-[linear-gradient(180deg,#f7efe6,#fbf7f2)] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
-                      <img
-                        src={resolveStorefrontImageUrl(gallery[selectedImage], product.name)}
+                      <StorefrontImage
+                        imageUrl={gallery[selectedImage]}
+                        fallbackLabel={product.name}
                         alt={product.name}
+                        width={960}
+                        height={1164}
                         className="aspect-[4/4.85] w-full object-contain"
                         loading="eager"
                         decoding="async"
                         fetchPriority="high"
-                        onError={(event) => handleStorefrontImageError(event, product.name)}
                       />
                     </div>
                     {gallery.length > 1 ? (
@@ -131,13 +130,15 @@ export function StorefrontProductPage() {
                             }`}
                             onClick={() => setSelectedImage(index)}
                           >
-                            <img
-                              src={resolveStorefrontImageUrl(imageUrl, product.name)}
+                            <StorefrontImage
+                              imageUrl={imageUrl}
+                              fallbackLabel={product.name}
                               alt={product.name}
+                              width={240}
+                              height={240}
                               className="aspect-square w-full object-contain"
                               loading="lazy"
                               decoding="async"
-                              onError={(event) => handleStorefrontImageError(event, product.name)}
                             />
                           </button>
                         ))}

@@ -6,6 +6,7 @@ import type { StorefrontCategorySummary } from "@ecommerce/shared"
 import { cn } from "@/lib/utils"
 
 import { normalizeStorefrontHref, storefrontPaths } from "../lib/storefront-routes"
+import { StorefrontImage } from "./storefront-image"
 
 function CategoryPill({
   compact = false,
@@ -51,9 +52,12 @@ function CategoryPill({
           )}
         >
           {imageUrl ? (
-            <img
-              src={imageUrl}
+            <StorefrontImage
+              imageUrl={imageUrl}
+              fallbackLabel={label}
               alt={label}
+              width={320}
+              height={320}
               className={cn(
                 "h-full w-full origin-bottom object-cover transition-[transform,filter] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105",
                 compact ? "duration-[440ms]" : "duration-[680ms]",

@@ -17,6 +17,8 @@ import type {
   StorefrontOrderRequestResponse,
   StorefrontHomeSlider,
   StorefrontSettings,
+  StorefrontSettingsVersionHistoryResponse,
+  StorefrontSettingsWorkflowStatus,
   StorefrontFooter,
   StorefrontFloatingContact,
   StorefrontPickupLocation,
@@ -168,12 +170,52 @@ export const storefrontApi = {
       cache: "no-store",
     })
   },
+  getStorefrontSettingsWorkflow(accessToken: string) {
+    return requestJson<StorefrontSettingsWorkflowStatus>(
+      "/internal/v1/ecommerce/storefront-settings/workflow",
+      {
+        accessToken,
+        cache: "no-store",
+      }
+    )
+  },
+  getStorefrontSettingsHistory(accessToken: string) {
+    return requestJson<StorefrontSettingsVersionHistoryResponse>(
+      "/internal/v1/ecommerce/storefront-settings/history",
+      {
+        accessToken,
+        cache: "no-store",
+      }
+    )
+  },
   updateStorefrontSettings(accessToken: string, payload: StorefrontSettings) {
     return requestJson<StorefrontSettings>("/internal/v1/ecommerce/storefront-settings", {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),
     })
+  },
+  publishStorefrontSettings(accessToken: string) {
+    return requestJson<StorefrontSettingsWorkflowStatus>(
+      "/internal/v1/ecommerce/storefront-settings/publish",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify({}),
+      }
+    )
+  },
+  rollbackStorefrontSettings(accessToken: string, revisionId?: string | null) {
+    return requestJson<StorefrontSettingsWorkflowStatus>(
+      "/internal/v1/ecommerce/storefront-settings/rollback",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify({
+          revisionId: revisionId?.trim() ? revisionId : null,
+        }),
+      }
+    )
   },
   getHomeSlider(accessToken: string) {
     return requestJson<StorefrontHomeSlider>("/internal/v1/ecommerce/home-slider", {

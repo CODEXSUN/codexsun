@@ -15,8 +15,13 @@ import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navig
 
 import { storefrontApi } from "../../api/storefront-api"
 import { invalidateStorefrontShellData } from "../../hooks/use-storefront-shell-data"
+import {
+  StorefrontDesignerPermissionCard,
+  useStorefrontDesignerAccess,
+} from "./storefront-designer-access"
 
 export function StorefrontPickupSection() {
+  const { canEditStorefrontDesigner } = useStorefrontDesignerAccess()
   const [draft, setDraft] = useState<StorefrontPickupLocation | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -60,6 +65,10 @@ export function StorefrontPickupSection() {
 
   async function handleSave() {
     if (!draft) {
+      return
+    }
+    if (!canEditStorefrontDesigner) {
+      setError("This role has read-only storefront designer access.")
       return
     }
 
@@ -207,11 +216,13 @@ export function StorefrontPickupSection() {
       ) : null}
 
       <div className="flex items-center justify-end">
-        <Button type="button" className="gap-2" disabled={!draft || isSaving} onClick={() => void handleSave()}>
+        <Button type="button" className="gap-2" disabled={!draft || !canEditStorefrontDesigner || isSaving} onClick={() => void handleSave()}>
           <Save className="size-4" />
           {isSaving ? "Saving..." : "Save pickup"}
         </Button>
       </div>
+
+      <StorefrontDesignerPermissionCard canEdit={canEditStorefrontDesigner} />
 
       <Card className="overflow-hidden rounded-[1.6rem] border-border/70 py-0 shadow-sm">
         <CardHeader className="border-b border-border/70">

@@ -187,6 +187,30 @@ export const authPermissions: AuthPermission[] = [
     { appId: "ecommerce", route: "/dashboard/apps/ecommerce", actionKey: "view" }
   ),
   definePermission(
+    "ecommerce:storefront:view",
+    "Storefront Designer Visibility",
+    "Review storefront designers, preview content blocks, and inspect publishing-facing ecommerce settings without edit access.",
+    "workspace",
+    "ecommerce-storefront",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/storefront", actionKey: "view" }
+  ),
+  definePermission(
+    "ecommerce:storefront:design",
+    "Storefront Designer Edit",
+    "Edit storefront blocks, campaign content, and publishing-facing ecommerce settings.",
+    "workspace",
+    "ecommerce-storefront",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/storefront", actionKey: "design" }
+  ),
+  definePermission(
+    "ecommerce:storefront:approve",
+    "Storefront Publish Approval",
+    "Approve and publish storefront draft changes or rollback live storefront content.",
+    "workspace",
+    "ecommerce-storefront",
+    { appId: "ecommerce", route: "/dashboard/apps/ecommerce/storefront", actionKey: "approve" }
+  ),
+  definePermission(
     "ecommerce:storefront:manage",
     "Storefront Management",
     "Manage storefront blocks, campaign content, and publishing-facing ecommerce settings.",
@@ -284,6 +308,9 @@ export const authRoles: AuthRole[] = [
         "dashboard:view",
         "customers:view",
         "ecommerce:workspace:view",
+        "ecommerce:storefront:view",
+        "ecommerce:storefront:design",
+        "ecommerce:storefront:approve",
         "ecommerce:storefront:manage",
         "ecommerce:catalog:manage",
         "ecommerce:customers:manage",
@@ -304,7 +331,8 @@ export const authRoles: AuthRole[] = [
       [
         "dashboard:view",
         "ecommerce:workspace:view",
-        "ecommerce:storefront:manage",
+        "ecommerce:storefront:view",
+        "ecommerce:storefront:design",
         "ecommerce:catalog:manage",
         "ecommerce:analytics:view",
       ].includes(permission.key)
@@ -367,6 +395,7 @@ export const authRoles: AuthRole[] = [
         "dashboard:view",
         "customers:view",
         "ecommerce:workspace:view",
+        "ecommerce:storefront:view",
         "ecommerce:communications:view",
         "ecommerce:analytics:view",
       ].includes(permission.key)

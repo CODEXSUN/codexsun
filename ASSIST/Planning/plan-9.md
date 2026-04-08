@@ -103,6 +103,7 @@ Ecommerce is considered ready for go-live only when all of the following are tru
   - preview
   - publish
   - rollback
+- keep designer governance explicit by enforcing client-side validation for required content, media, and link fields across the editable storefront homepage blocks before save
 - Add server-side validation for links, color fields, and media references.
 - Add designer-level permissions so not every admin can edit every live storefront surface.
 
@@ -307,6 +308,17 @@ Ecommerce is considered ready for go-live only when all of the following are tru
 - Add GST review on each order as a stored operational snapshot derived from product tax ids and seller-state versus customer-state comparison.
 - Keep the current review tax-inclusive for item prices, and defer authoritative invoice-posting and shipping-charge tax treatment to accounting compatibility work.
 - Verify accounting compatibility from the ecommerce side with an operator-facing report that flags mixed-rate GST orders, refund note follow-up, and unmapped shipping or handling tax treatment before billing entry.
+- Keep storefront designer link and media persistence behind shared server-side schema validation so bypassed admin clients cannot save unsafe URL protocols or invalid asset references.
+- Split storefront designer permissions into read-only visibility and edit rights so content-review roles can inspect live configuration without inheriting direct mutation access.
+- Keep direct-live storefront editing behind automatic revision snapshots until the full draft, publish, and rollback workflow is introduced, so each live change preserves a recoverable previous state.
+- Keep public storefront rendering on the live settings document only, while internal designers save into a shared draft workspace and publish explicitly when ready.
+- Support rollback by restoring only immutable live revision snapshots, and clear the active draft after publish or rollback so editor state matches the currently effective live storefront.
+- Derive storefront version history from the same immutable live revision snapshots, and expose filtered block-aware history so unchanged blocks do not show noisy duplicate versions.
+- Split storefront production approval from storefront draft editing so catalog-design roles can prepare changes while only approval-capable roles publish or rollback live storefront content.
+- Keep storefront performance budgets on a production-like built frontend path, and enforce them at least across home, catalog, and product detail routes before adding more homepage surface weight.
+- Normalize storefront image delivery through shared image primitives with explicit intrinsic sizing on hero, category, card, and product-gallery surfaces before introducing more media-heavy merchandising sections.
+- Defer heavy below-the-fold homepage merchandising sections behind intersection-aware rendering and lazy-loaded block imports so homepage first render stays narrower as more rails are added.
+- Keep future homepage rails behind shared storefront performance standards that define deferral, reserved layout footprint, and fallback behavior before the rail is added to the public composition path.
 
 ### 9. Security, Compliance, And Operations
 

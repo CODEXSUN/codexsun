@@ -23,6 +23,10 @@ import { storefrontApi } from "../../api/storefront-api"
 import { StorefrontFooterSurface } from "../../components/storefront-footer-surface"
 import { invalidateStorefrontShellData } from "../../hooks/use-storefront-shell-data"
 import {
+  StorefrontDesignerPermissionCard,
+  useStorefrontDesignerAccess,
+} from "./storefront-designer-access"
+import {
   FOOTER_SOCIAL_PLATFORM_OPTIONS,
   getFooterSocialPlatformIcon,
 } from "../../lib/storefront-footer-socials"
@@ -62,6 +66,7 @@ function ColorField({
 }
 
 export function StorefrontFooterSection() {
+  const { canEditStorefrontDesigner } = useStorefrontDesignerAccess()
   const { brand } = useRuntimeBrand()
   const [draft, setDraft] = useState<StorefrontFooter | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -106,6 +111,10 @@ export function StorefrontFooterSection() {
 
   async function handleSave() {
     if (!draft) {
+      return
+    }
+    if (!canEditStorefrontDesigner) {
+      setError("This role has read-only storefront designer access.")
       return
     }
 
@@ -448,8 +457,10 @@ export function StorefrontFooterSection() {
         </Card>
       ) : null}
 
+      <StorefrontDesignerPermissionCard canEdit={canEditStorefrontDesigner} />
+
       <div className="flex items-center justify-end">
-        <Button type="button" className="gap-2" disabled={!draft || isSaving} onClick={() => void handleSave()}>
+        <Button type="button" className="gap-2" disabled={!draft || !canEditStorefrontDesigner || isSaving} onClick={() => void handleSave()}>
           <Save className="size-4" />
           {isSaving ? "Saving..." : "Save footer"}
         </Button>
