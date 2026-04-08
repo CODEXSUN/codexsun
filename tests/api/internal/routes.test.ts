@@ -89,6 +89,7 @@ test("internal route registry includes the billing voucher and report endpoints"
   assert.ok(routePaths.includes("GET /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/vouchers"))
   assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reverse"))
+  assert.ok(routePaths.includes("POST /internal/v1/billing/voucher/reconciliation"))
   assert.ok(routePaths.includes("PATCH /internal/v1/billing/voucher"))
   assert.ok(routePaths.includes("DELETE /internal/v1/billing/voucher"))
 })
@@ -1936,6 +1937,11 @@ test("authenticated billing internal routes return categories, vouchers, reports
         (candidate) =>
           candidate.method === "POST" && candidate.path === "/internal/v1/billing/voucher/reverse"
       )
+      const reconcileRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" &&
+          candidate.path === "/internal/v1/billing/voucher/reconciliation"
+      )
 
       assert.ok(categoryListRoute)
       assert.ok(categoryCreateRoute)
@@ -1947,6 +1953,7 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.ok(reportsRoute)
       assert.ok(createRoute)
       assert.ok(reverseRoute)
+      assert.ok(reconcileRoute)
 
       const categoryListResponse = await categoryListRoute.handler({
         appSuite,
@@ -2277,6 +2284,53 @@ test("authenticated billing internal routes return categories, vouchers, reports
       assert.equal(reversedPayload.reversalItem.status, "posted")
       assert.equal(reversedPayload.reversalItem.reversalOfVoucherNumber, "SAL-2026-001")
       assert.equal(typeof reversedPayload.item.reversedByVoucherNumber, "string")
+
+      const reconcileResponse = await reconcileRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/billing/voucher/reconciliation",
+          url: new URL("http://localhost/internal/v1/billing/voucher/reconciliation?id=voucher-payment-001"),
+          headers,
+          bodyText: JSON.stringify({
+            status: "mismatch",
+            clearedDate: "2026-04-08",
+            statementReference: "ROUTE-STMT-001",
+            statementAmount: 38000,
+            note: "Route mismatch coverage.",
+          }),
+          jsonBody: {
+            status: "mismatch",
+            clearedDate: "2026-04-08",
+            statementReference: "ROUTE-STMT-001",
+            statementAmount: 38000,
+            note: "Route mismatch coverage.",
+          },
+        },
+        route: {
+          auth: reconcileRoute.auth,
+          path: reconcileRoute.path,
+          surface: reconcileRoute.surface,
+          version: reconcileRoute.version,
+        },
+      })
+
+      const reconcilePayload = JSON.parse(reconcileResponse.body) as {
+        item: {
+          bankReconciliation: {
+            status: string
+            statementReference: string | null
+            mismatchAmount: number | null
+          }
+        }
+      }
+
+      assert.equal(reconcileResponse.statusCode, 200)
+      assert.equal(reconcilePayload.item.bankReconciliation.status, "mismatch")
+      assert.equal(reconcilePayload.item.bankReconciliation.statementReference, "ROUTE-STMT-001")
+      assert.equal(reconcilePayload.item.bankReconciliation.mismatchAmount, 14500)
 
       const reportsResponse = await reportsRoute.handler({
         appSuite,

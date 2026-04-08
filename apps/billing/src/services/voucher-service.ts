@@ -7,6 +7,8 @@ import { writeActivityLog } from "../../../framework/src/runtime/activity-log/ac
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
+  billingVoucherBankReconciliationPayloadSchema,
+  billingVoucherBankReconciliationResponseSchema,
   billingVoucherEInvoiceSchema,
   billingVoucherEWayBillSchema,
   billingLedgerSchema,
@@ -88,7 +90,13 @@ async function writeBillingVoucherAudit(
   config: ServerConfig,
   user: AuthUser,
   input: {
-    action: "voucher_create" | "voucher_post" | "voucher_cancel" | "voucher_delete" | "voucher_reverse"
+    action:
+      | "voucher_create"
+      | "voucher_post"
+      | "voucher_cancel"
+      | "voucher_delete"
+      | "voucher_reverse"
+      | "voucher_reconcile"
     message: string
     voucher: BillingVoucher
     details?: Record<string, unknown>
@@ -138,6 +146,28 @@ function getVoucherTotals(voucher: Pick<BillingVoucher, "lines">) {
 
 function roundCurrency(value: number) {
   return Number(value.toFixed(2))
+}
+
+function isBankLedger(ledgerId: string, ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>) {
+  return ledgerMap.get(ledgerId)?.group === "Bank Accounts"
+}
+
+function hasBankLedgerLine(
+  lines: BillingVoucher["lines"],
+  ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>
+) {
+  return lines.some((line) => isBankLedger(line.ledgerId, ledgerMap))
+}
+
+function getBankLedgerSettlementAmount(
+  lines: BillingVoucher["lines"],
+  ledgerMap: Map<string, Awaited<ReturnType<typeof readLedgers>>[number]>
+) {
+  return roundCurrency(
+    lines
+      .filter((line) => isBankLedger(line.ledgerId, ledgerMap))
+      .reduce((sum, line) => sum + line.amount, 0)
+  )
 }
 
 function summarizeHsnOrSac(items: Array<{ hsnOrSac: string }>) {
@@ -668,6 +698,24 @@ async function buildVoucherRecord(
       amount: allocation.amount,
       note: allocation.note,
     })),
+    bankReconciliation:
+      hasBankLedgerLine(lines, ledgerMap)
+        ? existing?.bankReconciliation ?? {
+            status: "pending" as const,
+            clearedDate: null,
+            statementReference: null,
+            statementAmount: null,
+            mismatchAmount: null,
+            note: "",
+          }
+        : {
+            status: "not_applicable" as const,
+            clearedDate: null,
+            statementReference: null,
+            statementAmount: null,
+            mismatchAmount: null,
+            note: "",
+          },
     createdAt: existing?.createdAt ?? timestamp,
     updatedAt: timestamp,
     createdByUserId: existing?.createdByUserId ?? user.id,
@@ -1118,5 +1166,157 @@ export async function reverseBillingVoucher(
   return billingVoucherReverseResponseSchema.parse({
     item: updatedOriginal,
     reversalItem,
+  })
+}
+
+export async function reconcileBillingVoucher(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  config: ServerConfig,
+  voucherId: string,
+  payload: unknown
+) {
+  assertBillingViewer(user)
+
+  const parsedPayload = billingVoucherBankReconciliationPayloadSchema.parse(payload)
+  const items = await readVouchers(database)
+  const existingItem = items.find((item) => item.id === voucherId)
+
+  if (!existingItem) {
+    throw new ApplicationError("Billing voucher could not be found.", { voucherId }, 404)
+  }
+
+  if (existingItem.status !== "posted") {
+    throw new ApplicationError(
+      "Only posted vouchers can be reconciled.",
+      { voucherId, status: existingItem.status },
+      409
+    )
+  }
+
+  const ledgers = await readLedgers(database)
+  const ledgerMap = new Map(ledgers.map((ledger) => [ledger.id, ledger]))
+
+  if (!hasBankLedgerLine(existingItem.lines, ledgerMap)) {
+    throw new ApplicationError(
+      "Only vouchers with bank-ledger movement can be reconciled.",
+      { voucherId, voucherNumber: existingItem.voucherNumber },
+      409
+    )
+  }
+
+  const bankAmount = getBankLedgerSettlementAmount(existingItem.lines, ledgerMap)
+  const statementAmount = parsedPayload.statementAmount
+  const mismatchAmount =
+    statementAmount === null ? null : roundCurrency(Math.abs(statementAmount - bankAmount))
+  const timestamp = new Date().toISOString()
+
+  if (parsedPayload.status === "pending") {
+    const updatedItem = billingVoucherSchema.parse({
+      ...existingItem,
+      updatedAt: timestamp,
+      bankReconciliation: {
+        status: "pending",
+        clearedDate: null,
+        statementReference: null,
+        statementAmount: null,
+        mismatchAmount: null,
+        note: parsedPayload.note,
+      },
+    })
+
+    const nextItems = items.map((item) => (item.id === voucherId ? updatedItem : item))
+    await replaceStorePayloads(
+      database,
+      billingTableNames.vouchers,
+      nextItems.map((item, index) => ({
+        id: item.id,
+        moduleKey: "vouchers",
+        sortOrder: index + 1,
+        payload: item,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }))
+    )
+    await replaceBillingVoucherHeaders(database, nextItems)
+    await replaceBillingVoucherLines(database, nextItems)
+    await replaceBillingLedgerEntries(database, nextItems)
+
+    await writeBillingVoucherAudit(database, config, user, {
+      action: "voucher_reconcile",
+      message: `Reset bank reconciliation for billing voucher ${updatedItem.voucherNumber} to pending.`,
+      voucher: updatedItem,
+      details: {
+        reconciliationStatus: "pending",
+      },
+    })
+
+    return billingVoucherBankReconciliationResponseSchema.parse({
+      item: updatedItem,
+    })
+  }
+
+  if (!parsedPayload.clearedDate || !parsedPayload.statementReference || statementAmount === null) {
+    throw new ApplicationError(
+      "Cleared date, statement reference, and statement amount are required for matched or mismatch reconciliation.",
+      { voucherId, status: parsedPayload.status },
+      400
+    )
+  }
+
+  if (parsedPayload.status === "matched" && mismatchAmount !== null && mismatchAmount > 0) {
+    throw new ApplicationError(
+      "Matched reconciliation requires statement amount to equal the bank-book amount.",
+      { voucherId, statementAmount, bankAmount, mismatchAmount },
+      409
+    )
+  }
+
+  const updatedItem = billingVoucherSchema.parse({
+    ...existingItem,
+    updatedAt: timestamp,
+    bankReconciliation: {
+      status: parsedPayload.status,
+      clearedDate: parsedPayload.clearedDate,
+      statementReference: parsedPayload.statementReference,
+      statementAmount,
+      mismatchAmount: parsedPayload.status === "mismatch" ? mismatchAmount : 0,
+      note: parsedPayload.note,
+    },
+  })
+
+  const nextItems = items.map((item) => (item.id === voucherId ? updatedItem : item))
+  await replaceStorePayloads(
+    database,
+    billingTableNames.vouchers,
+    nextItems.map((item, index) => ({
+      id: item.id,
+      moduleKey: "vouchers",
+      sortOrder: index + 1,
+      payload: item,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }))
+  )
+  await replaceBillingVoucherHeaders(database, nextItems)
+  await replaceBillingVoucherLines(database, nextItems)
+  await replaceBillingLedgerEntries(database, nextItems)
+
+  await writeBillingVoucherAudit(database, config, user, {
+    action: "voucher_reconcile",
+    message: `Updated bank reconciliation for billing voucher ${updatedItem.voucherNumber} as ${parsedPayload.status}.`,
+    voucher: updatedItem,
+    details: {
+      reconciliationStatus: parsedPayload.status,
+      clearedDate: parsedPayload.clearedDate,
+      statementReference: parsedPayload.statementReference,
+      statementAmount,
+      bankAmount,
+      mismatchAmount: parsedPayload.status === "mismatch" ? mismatchAmount : 0,
+    },
+  })
+
+  return billingVoucherBankReconciliationResponseSchema.parse({
+    item: updatedItem,
   })
 }

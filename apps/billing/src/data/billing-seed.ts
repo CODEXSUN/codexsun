@@ -421,6 +421,14 @@ export const billingVouchers: BillingVoucher[] = [
       prefix: "SAL",
     },
     billAllocations: [],
+    bankReconciliation: {
+      status: "not_applicable",
+      clearedDate: null,
+      statementReference: null,
+      statementAmount: null,
+      mismatchAmount: null,
+      note: "",
+    },
     eInvoice: {
       status: "pending",
       irn: null,
@@ -515,6 +523,14 @@ export const billingVouchers: BillingVoucher[] = [
       prefix: "PUR",
     },
     billAllocations: [],
+    bankReconciliation: {
+      status: "not_applicable",
+      clearedDate: null,
+      statementReference: null,
+      statementAmount: null,
+      mismatchAmount: null,
+      note: "",
+    },
     eInvoice: {
       status: "not_applicable",
       irn: null,
@@ -594,6 +610,14 @@ export const billingVouchers: BillingVoucher[] = [
         note: "Part collection against sales invoice.",
       },
     ],
+    bankReconciliation: {
+      status: "pending",
+      clearedDate: null,
+      statementReference: null,
+      statementAmount: null,
+      mismatchAmount: null,
+      note: "",
+    },
     eInvoice: {
       status: "not_applicable",
       irn: null,
@@ -673,6 +697,14 @@ export const billingVouchers: BillingVoucher[] = [
         note: "Part payment against purchase bill.",
       },
     ],
+    bankReconciliation: {
+      status: "pending",
+      clearedDate: null,
+      statementReference: null,
+      statementAmount: null,
+      mismatchAmount: null,
+      note: "",
+    },
     eInvoice: {
       status: "not_applicable",
       irn: null,
@@ -742,6 +774,14 @@ export const billingVouchers: BillingVoucher[] = [
       prefix: "CON",
     },
     billAllocations: [],
+    bankReconciliation: {
+      status: "pending",
+      clearedDate: null,
+      statementReference: null,
+      statementAmount: null,
+      mismatchAmount: null,
+      note: "",
+    },
     eInvoice: {
       status: "not_applicable",
       irn: null,
@@ -811,6 +851,14 @@ export const billingVouchers: BillingVoucher[] = [
       prefix: "JRN",
     },
     billAllocations: [],
+    bankReconciliation: {
+      status: "not_applicable",
+      clearedDate: null,
+      statementReference: null,
+      statementAmount: null,
+      mismatchAmount: null,
+      note: "",
+    },
     eInvoice: {
       status: "not_applicable",
       irn: null,

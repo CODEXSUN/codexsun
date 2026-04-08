@@ -86,11 +86,11 @@ It is the app that should own:
 
 ### Stage B6: Bank And Cash Control
 
-- [ ] B6.1 add bank book
-- [ ] B6.2 add cash book
-- [ ] B6.3 add bank reconciliation workflow
-- [ ] B6.4 add cleared date, statement reference, and mismatch handling
-- [ ] B6.5 add reconciliation reports
+- [x] B6.1 add bank book
+- [x] B6.2 add cash book
+- [x] B6.3 add bank reconciliation workflow
+- [x] B6.4 add cleared date, statement reference, and mismatch handling
+- [x] B6.5 add reconciliation reports
 
 ## Compliance And Commercial Documents
 

@@ -8,6 +8,7 @@ import {
   createBillingVoucher,
   deleteBillingVoucher,
   listBillingVouchers,
+  reconcileBillingVoucher,
   reverseBillingVoucher,
   updateBillingVoucher,
 } from "../../apps/billing/src/services/voucher-service.js"
@@ -1290,6 +1291,123 @@ test("billing voucher service keeps immutable posted ledger entries in sync with
       assert.equal(reversalEntries[0]?.reversalOfVoucherId, reversal.item.id)
       assert.equal(reversalEntries[0]?.side, "credit")
       assert.equal(reversalEntries[1]?.side, "debit")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing voucher service persists matched and mismatched bank reconciliation state", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-bank-reconcile-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const postedVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-725",
+        status: "posted",
+        type: "receipt",
+        date: "2026-04-14",
+        counterparty: "Bank Recon Counterparty",
+        narration: "Receipt awaiting statement matching.",
+        lines: [
+          {
+            ledgerId: "ledger-hdfc",
+            side: "debit",
+            amount: 1800,
+            note: "Bank receipt.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 1800,
+            note: "Customer settlement.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      assert.equal(postedVoucher.item.bankReconciliation.status, "pending")
+
+      const matched = await reconcileBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedVoucher.item.id,
+        {
+          status: "matched",
+          clearedDate: "2026-04-15",
+          statementReference: "HDFC-STMT-001",
+          statementAmount: 1800,
+          note: "Matched with statement.",
+        }
+      )
+
+      assert.equal(matched.item.bankReconciliation.status, "matched")
+      assert.equal(matched.item.bankReconciliation.statementReference, "HDFC-STMT-001")
+      assert.equal(matched.item.bankReconciliation.mismatchAmount, 0)
+
+      const mismatched = await reconcileBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedVoucher.item.id,
+        {
+          status: "mismatch",
+          clearedDate: "2026-04-16",
+          statementReference: "HDFC-STMT-002",
+          statementAmount: 1750,
+          note: "Statement short by bank charge.",
+        }
+      )
+
+      assert.equal(mismatched.item.bankReconciliation.status, "mismatch")
+      assert.equal(mismatched.item.bankReconciliation.statementAmount, 1750)
+      assert.equal(mismatched.item.bankReconciliation.mismatchAmount, 50)
+
+      const resetPending = await reconcileBillingVoucher(
+        runtime.primary,
+        adminUser,
+        config,
+        postedVoucher.item.id,
+        {
+          status: "pending",
+          note: "Reset for further review.",
+        }
+      )
+
+      assert.equal(resetPending.item.bankReconciliation.status, "pending")
+      assert.equal(resetPending.item.bankReconciliation.statementReference, null)
+      assert.equal(resetPending.item.bankReconciliation.statementAmount, null)
+
+      await assert.rejects(
+        () =>
+          reconcileBillingVoucher(runtime.primary, adminUser, config, "voucher-sales-001", {
+            status: "matched",
+            clearedDate: "2026-04-16",
+            statementReference: "BAD-REF",
+            statementAmount: 1000,
+            note: "",
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 409 &&
+          error.message.includes("bank-ledger movement")
+      )
     } finally {
       await runtime.destroy()
     }

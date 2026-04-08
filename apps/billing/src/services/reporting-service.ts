@@ -1147,6 +1147,132 @@ export async function getBillingAccountingReports(
       generalLedger: {
         items: generalLedgerItems,
       },
+      bankBook: {
+        items: generalLedgerItems.filter((item) => item.group === "Bank Accounts"),
+      },
+      cashBook: {
+        items: generalLedgerItems.filter((item) => item.group === "Cash-in-Hand"),
+      },
+      bankReconciliation: (() => {
+        const bankLedgers = generalLedgerItems.filter((item) => item.group === "Bank Accounts")
+        const ledgers = bankLedgers.map((item) => {
+          const enrichedEntries = item.entries.map((entry) => {
+            const reconciliation = voucherById.get(entry.voucherId)?.bankReconciliation ?? {
+              status: "not_applicable" as const,
+              clearedDate: null,
+              statementReference: null,
+              statementAmount: null,
+              mismatchAmount: null,
+              note: "",
+            }
+
+            return {
+              entryId: entry.entryId,
+              voucherId: entry.voucherId,
+              voucherNumber: entry.voucherNumber,
+              voucherType: entry.voucherType,
+              voucherDate: entry.voucherDate,
+              counterparty: entry.counterparty,
+              narration: entry.narration,
+              side: entry.side,
+              amount: entry.amount,
+              reconciliationStatus: reconciliation.status,
+              clearedDate: reconciliation.clearedDate,
+              statementReference: reconciliation.statementReference,
+              statementAmount: reconciliation.statementAmount,
+              mismatchAmount: reconciliation.mismatchAmount,
+              pendingAgeDays:
+                reconciliation.status === "pending"
+                  ? getDaysBetween(entry.voucherDate, asOfDate)
+                  : null,
+              note: reconciliation.note,
+            }
+          })
+          const matchedEntries = enrichedEntries.filter(
+            (entry) => entry.reconciliationStatus === "matched"
+          )
+          const pendingEntries = enrichedEntries.filter(
+            (entry) => entry.reconciliationStatus === "pending"
+          )
+          const mismatchedEntries = enrichedEntries.filter(
+            (entry) => entry.reconciliationStatus === "mismatch"
+          )
+
+          return {
+            ledgerId: item.ledgerId,
+            ledgerName: item.ledgerName,
+            openingSide: item.openingSide,
+            openingAmount: item.openingAmount,
+            closingSide: item.closingSide,
+            closingAmount: item.closingAmount,
+            matchedEntryCount: matchedEntries.length,
+            matchedDebitTotal: roundCurrency(
+              matchedEntries
+                .filter((entry) => entry.side === "debit")
+                .reduce((sum, entry) => sum + entry.amount, 0)
+            ),
+            matchedCreditTotal: roundCurrency(
+              matchedEntries
+                .filter((entry) => entry.side === "credit")
+                .reduce((sum, entry) => sum + entry.amount, 0)
+            ),
+            pendingDebitTotal: roundCurrency(
+              pendingEntries
+                .filter((entry) => entry.side === "debit")
+                .reduce((sum, entry) => sum + entry.amount, 0)
+            ),
+            pendingCreditTotal: roundCurrency(
+              pendingEntries
+                .filter((entry) => entry.side === "credit")
+                .reduce((sum, entry) => sum + entry.amount, 0)
+            ),
+            oldestPendingDays: pendingEntries.reduce(
+              (max, entry) => Math.max(max, entry.pendingAgeDays ?? 0),
+              0
+            ),
+            mismatchEntryCount: mismatchedEntries.length,
+            mismatchAmountTotal: roundCurrency(
+              mismatchedEntries.reduce(
+                (sum, entry) => sum + (entry.mismatchAmount ?? 0),
+                0
+              )
+            ),
+            matchedEntries,
+            pendingEntries,
+            mismatchedEntries,
+          }
+        })
+
+        return {
+          asOfDate,
+          matchedEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.matchedEntryCount, 0),
+          matchedDebitTotal: roundCurrency(
+            ledgers.reduce((sum, ledger) => sum + ledger.matchedDebitTotal, 0)
+          ),
+          matchedCreditTotal: roundCurrency(
+            ledgers.reduce((sum, ledger) => sum + ledger.matchedCreditTotal, 0)
+          ),
+          pendingEntryCount: ledgers.reduce((sum, ledger) => sum + ledger.pendingEntries.length, 0),
+          pendingDebitTotal: roundCurrency(
+            ledgers.reduce((sum, ledger) => sum + ledger.pendingDebitTotal, 0)
+          ),
+          pendingCreditTotal: roundCurrency(
+            ledgers.reduce((sum, ledger) => sum + ledger.pendingCreditTotal, 0)
+          ),
+          oldestPendingDays: ledgers.reduce(
+            (max, ledger) => Math.max(max, ledger.oldestPendingDays),
+            0
+          ),
+          mismatchEntryCount: ledgers.reduce(
+            (sum, ledger) => sum + ledger.mismatchEntryCount,
+            0
+          ),
+          mismatchAmountTotal: roundCurrency(
+            ledgers.reduce((sum, ledger) => sum + ledger.mismatchAmountTotal, 0)
+          ),
+          ledgers,
+        }
+      })(),
       customerStatement: buildCustomerStatement(postedVouchers, voucherById),
       supplierStatement: buildSupplierStatement(postedVouchers, voucherById),
     },

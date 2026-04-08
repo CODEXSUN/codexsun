@@ -26,6 +26,7 @@ import type {
   BillingVoucherMasterTypeListResponse,
   BillingVoucherMasterTypeResponse,
   BillingVoucher,
+  BillingVoucherBankReconciliationResponse,
   BillingVoucherLifecycleStatus,
   BillingVoucherListResponse,
   BillingVoucherReverseResponse,
@@ -192,6 +193,25 @@ function createEmptyReports(): BillingAccountingReports {
     },
     generalLedger: {
       items: [],
+    },
+    bankBook: {
+      items: [],
+    },
+    cashBook: {
+      items: [],
+    },
+    bankReconciliation: {
+      asOfDate: "1970-01-01",
+      matchedEntryCount: 0,
+      matchedDebitTotal: 0,
+      matchedCreditTotal: 0,
+      pendingEntryCount: 0,
+      pendingDebitTotal: 0,
+      pendingCreditTotal: 0,
+      oldestPendingDays: 0,
+      mismatchEntryCount: 0,
+      mismatchAmountTotal: 0,
+      ledgers: [],
     },
     customerStatement: {
       items: [],
@@ -4992,6 +5012,546 @@ function GeneralLedgerSection({ reports }: { reports: BillingAccountingReports }
   )
 }
 
+function BankBookSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="Bank Book"
+      description="Bank-ledger running book built from posted normalized ledger entries."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Bank ledgers"
+          value={reports.bankBook.items.length}
+          hint="Bank account ledgers contributing to the current bank book."
+        />
+        <MetricCard
+          label="Entry rows"
+          value={reports.bankBook.items.reduce((sum, item) => sum + item.entries.length, 0)}
+          hint="Posted bank-book movements across all bank ledgers."
+        />
+        <MetricCard
+          label="Largest debit"
+          value={formatAmount(
+            Math.max(0, ...reports.bankBook.items.map((item) => item.debitTotal))
+          )}
+          hint="Highest debit movement across bank ledgers."
+        />
+        <MetricCard
+          label="Largest credit"
+          value={formatAmount(
+            Math.max(0, ...reports.bankBook.items.map((item) => item.creditTotal))
+          )}
+          hint="Highest credit movement across bank ledgers."
+        />
+      </div>
+      {reports.bankBook.items.length === 0 ? (
+        <StateCard message="No bank ledgers with posted movement are available yet." />
+      ) : (
+        <div className="space-y-4">
+          {reports.bankBook.items.map((ledger) => (
+            <Card key={ledger.ledgerId}>
+              <CardHeader>
+                <CardTitle>{ledger.ledgerName}</CardTitle>
+                <CardDescription>
+                  {ledger.group} | Opening {formatAmount(ledger.openingAmount)}{" "}
+                  {ledger.openingSide === "debit" ? "Dr" : "Cr"} | Closing{" "}
+                  {formatAmount(ledger.closingAmount)}{" "}
+                  {ledger.closingSide === "debit" ? "Dr" : "Cr"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <MetricCard
+                    label="Debit total"
+                    value={formatAmount(ledger.debitTotal)}
+                    hint="Money received into the bank ledger."
+                  />
+                  <MetricCard
+                    label="Credit total"
+                    value={formatAmount(ledger.creditTotal)}
+                    hint="Money paid out of the bank ledger."
+                  />
+                  <MetricCard
+                    label="Entries"
+                    value={ledger.entries.length}
+                    hint="Running rows available for drillback."
+                  />
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Voucher</TableHead>
+                      <TableHead>Counterparty</TableHead>
+                      <TableHead>Dr/Cr</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Running</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ledger.entries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-muted-foreground">
+                          No posted movements for this bank ledger yet.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ledger.entries.map((entry) => (
+                        <TableRow key={entry.entryId}>
+                          <TableCell>{entry.voucherDate}</TableCell>
+                          <TableCell className="font-medium">
+                            {getVoucherPostingRoute(entry.voucherType, entry.voucherId) ? (
+                              <Link
+                                className="underline-offset-4 hover:underline"
+                                to={getVoucherPostingRoute(entry.voucherType, entry.voucherId)!}
+                              >
+                                {entry.voucherNumber}
+                              </Link>
+                            ) : (
+                              entry.voucherNumber
+                            )}
+                          </TableCell>
+                          <TableCell>{entry.counterparty}</TableCell>
+                          <TableCell>{entry.side === "debit" ? "Dr" : "Cr"}</TableCell>
+                          <TableCell>{formatAmount(entry.amount)}</TableCell>
+                          <TableCell>
+                            {formatAmount(entry.runningAmount)}{" "}
+                            {entry.runningSide === "debit" ? "Dr" : "Cr"}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </SectionShell>
+  )
+}
+
+function CashBookSection({ reports }: { reports: BillingAccountingReports }) {
+  return (
+    <SectionShell
+      title="Cash Book"
+      description="Cash-ledger running book built from posted normalized ledger entries."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Cash ledgers"
+          value={reports.cashBook.items.length}
+          hint="Cash ledgers contributing to the current cash book."
+        />
+        <MetricCard
+          label="Entry rows"
+          value={reports.cashBook.items.reduce((sum, item) => sum + item.entries.length, 0)}
+          hint="Posted cash-book movements across all cash ledgers."
+        />
+        <MetricCard
+          label="Largest debit"
+          value={formatAmount(
+            Math.max(0, ...reports.cashBook.items.map((item) => item.debitTotal))
+          )}
+          hint="Highest debit movement across cash ledgers."
+        />
+        <MetricCard
+          label="Largest credit"
+          value={formatAmount(
+            Math.max(0, ...reports.cashBook.items.map((item) => item.creditTotal))
+          )}
+          hint="Highest credit movement across cash ledgers."
+        />
+      </div>
+      {reports.cashBook.items.length === 0 ? (
+        <StateCard message="No cash ledgers with posted movement are available yet." />
+      ) : (
+        <div className="space-y-4">
+          {reports.cashBook.items.map((ledger) => (
+            <Card key={ledger.ledgerId}>
+              <CardHeader>
+                <CardTitle>{ledger.ledgerName}</CardTitle>
+                <CardDescription>
+                  {ledger.group} | Opening {formatAmount(ledger.openingAmount)}{" "}
+                  {ledger.openingSide === "debit" ? "Dr" : "Cr"} | Closing{" "}
+                  {formatAmount(ledger.closingAmount)}{" "}
+                  {ledger.closingSide === "debit" ? "Dr" : "Cr"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <MetricCard
+                    label="Debit total"
+                    value={formatAmount(ledger.debitTotal)}
+                    hint="Cash received into this ledger."
+                  />
+                  <MetricCard
+                    label="Credit total"
+                    value={formatAmount(ledger.creditTotal)}
+                    hint="Cash paid out from this ledger."
+                  />
+                  <MetricCard
+                    label="Entries"
+                    value={ledger.entries.length}
+                    hint="Running rows available for drillback."
+                  />
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Voucher</TableHead>
+                      <TableHead>Counterparty</TableHead>
+                      <TableHead>Dr/Cr</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Running</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ledger.entries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-muted-foreground">
+                          No posted movements for this cash ledger yet.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ledger.entries.map((entry) => (
+                        <TableRow key={entry.entryId}>
+                          <TableCell>{entry.voucherDate}</TableCell>
+                          <TableCell className="font-medium">
+                            {getVoucherPostingRoute(entry.voucherType, entry.voucherId) ? (
+                              <Link
+                                className="underline-offset-4 hover:underline"
+                                to={getVoucherPostingRoute(entry.voucherType, entry.voucherId)!}
+                              >
+                                {entry.voucherNumber}
+                              </Link>
+                            ) : (
+                              entry.voucherNumber
+                            )}
+                          </TableCell>
+                          <TableCell>{entry.counterparty}</TableCell>
+                          <TableCell>{entry.side === "debit" ? "Dr" : "Cr"}</TableCell>
+                          <TableCell>{formatAmount(entry.amount)}</TableCell>
+                          <TableCell>
+                            {formatAmount(entry.runningAmount)}{" "}
+                            {entry.runningSide === "debit" ? "Dr" : "Cr"}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </SectionShell>
+  )
+}
+
+function BankReconciliationSection({
+  reports,
+  onReconcileVoucher,
+}: {
+  reports: BillingAccountingReports
+  onReconcileVoucher: (
+    voucherId: string,
+    status: "pending" | "matched" | "mismatch"
+  ) => Promise<void>
+}) {
+  return (
+    <SectionShell
+      title="Bank Reconciliation"
+      description="Pending and mismatched bank-entry reconciliation workbench built from posted bank-book movement and stored voucher reconciliation state."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="As of"
+          value={reports.bankReconciliation.asOfDate}
+          hint="Current reconciliation view cutoff date."
+        />
+        <MetricCard
+          label="Matched rows"
+          value={reports.bankReconciliation.matchedEntryCount}
+          hint="Bank entries already tied to statement references and cleared dates."
+        />
+        <MetricCard
+          label="Pending rows"
+          value={reports.bankReconciliation.pendingEntryCount}
+          hint="Bank-entry rows still awaiting reconciliation treatment."
+        />
+        <MetricCard
+          label="Mismatch amount"
+          value={formatAmount(reports.bankReconciliation.mismatchAmountTotal)}
+          hint="Absolute statement-to-book mismatch currently under review."
+        />
+        <MetricCard
+          label="Oldest pending"
+          value={`${reports.bankReconciliation.oldestPendingDays} days`}
+          hint="Age of the oldest unreconciled bank entry in the current books."
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Matched debit"
+          value={formatAmount(reports.bankReconciliation.matchedDebitTotal)}
+          hint="Cleared bank inflows matched to statement activity."
+        />
+        <MetricCard
+          label="Matched credit"
+          value={formatAmount(reports.bankReconciliation.matchedCreditTotal)}
+          hint="Cleared bank outflows matched to statement activity."
+        />
+        <MetricCard
+          label="Pending debit"
+          value={formatAmount(reports.bankReconciliation.pendingDebitTotal)}
+          hint="Bank inflow movement pending reconciliation."
+        />
+        <MetricCard
+          label="Pending credit"
+          value={formatAmount(reports.bankReconciliation.pendingCreditTotal)}
+          hint="Bank outflow movement pending reconciliation."
+        />
+      </div>
+      {reports.bankReconciliation.ledgers.length === 0 ? (
+        <StateCard message="No bank-ledger entries are available for reconciliation yet." />
+      ) : (
+        <div className="space-y-4">
+          {reports.bankReconciliation.ledgers.map((ledger) => (
+            <Card key={ledger.ledgerId}>
+              <CardHeader>
+                <CardTitle>{ledger.ledgerName}</CardTitle>
+                <CardDescription>
+                  Opening {formatAmount(ledger.openingAmount)}{" "}
+                  {ledger.openingSide === "debit" ? "Dr" : "Cr"} | Closing{" "}
+                  {formatAmount(ledger.closingAmount)}{" "}
+                  {ledger.closingSide === "debit" ? "Dr" : "Cr"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <MetricCard
+                    label="Matched rows"
+                    value={ledger.matchedEntryCount}
+                    hint="Cleared rows for this bank ledger."
+                  />
+                  <MetricCard
+                    label="Matched debit"
+                    value={formatAmount(ledger.matchedDebitTotal)}
+                    hint="Debit rows already matched to statement movement."
+                  />
+                  <MetricCard
+                    label="Matched credit"
+                    value={formatAmount(ledger.matchedCreditTotal)}
+                    hint="Credit rows already matched to statement movement."
+                  />
+                  <MetricCard
+                    label="Pending debit"
+                    value={formatAmount(ledger.pendingDebitTotal)}
+                    hint="Debit-side entries awaiting statement matching."
+                  />
+                  <MetricCard
+                    label="Pending credit"
+                    value={formatAmount(ledger.pendingCreditTotal)}
+                    hint="Credit-side entries awaiting statement matching."
+                  />
+                  <MetricCard
+                    label="Mismatch rows"
+                    value={ledger.mismatchEntryCount}
+                    hint="Voucher rows with statement differences that need resolution."
+                  />
+                  <MetricCard
+                    label="Mismatch amount"
+                    value={formatAmount(ledger.mismatchAmountTotal)}
+                    hint="Absolute amount difference across mismatched rows."
+                  />
+                  <MetricCard
+                    label="Oldest pending"
+                    value={`${ledger.oldestPendingDays} days`}
+                    hint="Age of the oldest pending row in this ledger."
+                  />
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Voucher</TableHead>
+                      <TableHead>Counterparty</TableHead>
+                      <TableHead>Dr/Cr</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Age</TableHead>
+                      <TableHead>Statement state</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ledger.pendingEntries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-muted-foreground">
+                          No pending statement matches for this ledger.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ledger.pendingEntries.map((entry) => (
+                        <TableRow key={entry.entryId}>
+                          <TableCell>{entry.voucherDate}</TableCell>
+                          <TableCell className="font-medium">
+                            {getVoucherPostingRoute(entry.voucherType, entry.voucherId) ? (
+                              <Link
+                                className="underline-offset-4 hover:underline"
+                                to={getVoucherPostingRoute(entry.voucherType, entry.voucherId)!}
+                              >
+                                {entry.voucherNumber}
+                              </Link>
+                            ) : (
+                              entry.voucherNumber
+                            )}
+                          </TableCell>
+                          <TableCell>{entry.counterparty}</TableCell>
+                          <TableCell>{entry.side === "debit" ? "Dr" : "Cr"}</TableCell>
+                          <TableCell>{formatAmount(entry.amount)}</TableCell>
+                          <TableCell>{entry.pendingAgeDays ?? 0} days</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            Awaiting statement reference and cleared amount.
+                          </TableCell>
+                          <TableCell className="space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void onReconcileVoucher(entry.voucherId, "matched")}
+                            >
+                              Mark Cleared
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => void onReconcileVoucher(entry.voucherId, "mismatch")}
+                            >
+                              Mark Mismatch
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                    </Table>
+                    {ledger.matchedEntries.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">Matched Entries</div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Voucher</TableHead>
+                              <TableHead>Cleared Date</TableHead>
+                              <TableHead>Statement Ref</TableHead>
+                              <TableHead>Dr/Cr</TableHead>
+                              <TableHead>Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {ledger.matchedEntries.map((entry) => (
+                              <TableRow key={entry.entryId}>
+                                <TableCell>{entry.voucherDate}</TableCell>
+                                <TableCell className="font-medium">
+                                  {getVoucherPostingRoute(entry.voucherType, entry.voucherId) ? (
+                                    <Link
+                                      className="underline-offset-4 hover:underline"
+                                      to={getVoucherPostingRoute(entry.voucherType, entry.voucherId)!}
+                                    >
+                                      {entry.voucherNumber}
+                                    </Link>
+                                  ) : (
+                                    entry.voucherNumber
+                                  )}
+                                </TableCell>
+                                <TableCell>{entry.clearedDate ?? "--"}</TableCell>
+                                <TableCell>{entry.statementReference ?? "--"}</TableCell>
+                                <TableCell>{entry.side === "debit" ? "Dr" : "Cr"}</TableCell>
+                                <TableCell>{formatAmount(entry.amount)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : null}
+                {ledger.mismatchedEntries.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium">Mismatched Entries</div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Voucher</TableHead>
+                          <TableHead>Statement Ref</TableHead>
+                          <TableHead>Book Amount</TableHead>
+                          <TableHead>Statement Amount</TableHead>
+                          <TableHead>Mismatch</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ledger.mismatchedEntries.map((entry) => (
+                          <TableRow key={entry.entryId}>
+                            <TableCell>{entry.voucherDate}</TableCell>
+                            <TableCell className="font-medium">
+                              {getVoucherPostingRoute(entry.voucherType, entry.voucherId) ? (
+                                <Link
+                                  className="underline-offset-4 hover:underline"
+                                  to={getVoucherPostingRoute(entry.voucherType, entry.voucherId)!}
+                                >
+                                  {entry.voucherNumber}
+                                </Link>
+                              ) : (
+                                entry.voucherNumber
+                              )}
+                            </TableCell>
+                            <TableCell>{entry.statementReference ?? "--"}</TableCell>
+                            <TableCell>{formatAmount(entry.amount)}</TableCell>
+                            <TableCell>
+                              {entry.statementAmount !== null
+                                ? formatAmount(entry.statementAmount)
+                                : "--"}
+                            </TableCell>
+                            <TableCell>
+                              {entry.mismatchAmount !== null
+                                ? formatAmount(entry.mismatchAmount)
+                                : "--"}
+                            </TableCell>
+                            <TableCell className="space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void onReconcileVoucher(entry.voucherId, "matched")}
+                              >
+                                Mark Cleared
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => void onReconcileVoucher(entry.voucherId, "pending")}
+                              >
+                                Reset Pending
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </SectionShell>
+  )
+}
+
 function ProfitAndLossSection({ reports }: { reports: BillingAccountingReports }) {
   return (
     <SectionShell
@@ -6184,6 +6744,82 @@ export function BillingWorkspaceSection({
     }
   }
 
+  async function handleBankReconciliation(
+    voucherId: string,
+    status: "pending" | "matched" | "mismatch"
+  ) {
+    setFormError(null)
+
+    const note =
+      window.prompt(
+        status === "pending"
+          ? "Optional note for resetting this voucher to pending:"
+          : `Optional note for marking this voucher as ${status}:`,
+        ""
+      ) ?? ""
+
+    const clearedDate =
+      status === "pending"
+        ? null
+        : window.prompt("Enter cleared date (YYYY-MM-DD):", state.reports.bankReconciliation.asOfDate)
+
+    if (status !== "pending" && (!clearedDate || !clearedDate.trim())) {
+      return
+    }
+
+    const statementReference =
+      status === "pending"
+        ? null
+        : window.prompt("Enter bank statement reference:", "")
+
+    if (status !== "pending" && (!statementReference || !statementReference.trim())) {
+      return
+    }
+
+    const statementAmountInput =
+      status === "pending"
+        ? null
+        : window.prompt("Enter statement amount:", "")
+
+    if (status !== "pending" && (!statementAmountInput || !statementAmountInput.trim())) {
+      return
+    }
+
+    const statementAmount =
+      status === "pending" ? null : Number(statementAmountInput)
+
+    if (
+      status !== "pending" &&
+      (!Number.isFinite(statementAmount) || Number(statementAmount) <= 0)
+    ) {
+      setFormError("Statement amount must be a valid positive number.")
+      return
+    }
+
+    try {
+      await request<BillingVoucherBankReconciliationResponse>(
+        `/internal/v1/billing/voucher/reconciliation?id=${encodeURIComponent(voucherId)}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            status,
+            clearedDate: clearedDate?.trim() || null,
+            statementReference: statementReference?.trim() || null,
+            statementAmount,
+            note: note.trim(),
+          }),
+        }
+      )
+      await loadResources()
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update bank reconciliation."
+      )
+    }
+  }
+
   async function handleLedgerSave() {
     setFormError(null)
     setIsSaving(true)
@@ -7019,6 +7655,17 @@ export function BillingWorkspaceSection({
       return <DoubleEntrySection vouchers={state.vouchers} />
     case "general-ledger":
       return <GeneralLedgerSection reports={state.reports} />
+    case "bank-book":
+      return <BankBookSection reports={state.reports} />
+    case "cash-book":
+      return <CashBookSection reports={state.reports} />
+    case "bank-reconciliation":
+      return (
+        <BankReconciliationSection
+          reports={state.reports}
+          onReconcileVoucher={handleBankReconciliation}
+        />
+      )
     case "trial-balance":
       return <TrialBalanceSection reports={state.reports} />
     case "profit-and-loss":

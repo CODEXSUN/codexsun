@@ -1,7 +1,7 @@
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
-import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, reverseBillingVoucher, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
+import { createBillingVoucher, deleteBillingVoucher, getBillingVoucher, listBillingVouchers, reconcileBillingVoucher, reverseBillingVoucher, updateBillingVoucher } from "../../../billing/src/services/voucher-service.js"
 import { createBillingCategory, deleteBillingCategory, getBillingCategory, listBillingCategories, restoreBillingCategory, updateBillingCategory } from "../../../billing/src/services/category-service.js"
 import { createBillingLedger, deleteBillingLedger, getBillingLedger, listBillingLedgers, updateBillingLedger } from "../../../billing/src/services/ledger-service.js"
 import { createBillingVoucherGroup, deleteBillingVoucherGroup, listBillingVoucherGroups, restoreBillingVoucherGroup, updateBillingVoucherGroup } from "../../../billing/src/services/voucher-group-service.js"
@@ -505,6 +505,30 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await reverseBillingVoucher(
+            context.databases.primary,
+            user,
+            context.config,
+            voucherId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/voucher/reconciliation", {
+      method: "POST",
+      summary: "Update matched, mismatch, or pending bank reconciliation metadata for a posted bank voucher.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const voucherId = context.request.url.searchParams.get("id")
+
+        if (!voucherId) {
+          throw new ApplicationError("Billing voucher id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await reconcileBillingVoucher(
             context.databases.primary,
             user,
             context.config,

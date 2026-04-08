@@ -1478,6 +1478,36 @@ function AuthenticatedAppShell() {
             }
           />
           <Route
+            path="/dashboard/billing/bank-book"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="bank-book" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/cash-book"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="cash-book" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/bank-reconciliation"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingVoucherSectionPage sectionId="bank-reconciliation" />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/billing/trial-balance"
             element={
               <ProtectedRoute>

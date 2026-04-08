@@ -109,6 +109,24 @@ export const billingWorkspaceItems: BillingWorkspaceItem[] = [
     summary: "Per-voucher debit and credit inspection with balancing checks and posting notes.",
   },
   {
+    id: "bank-book",
+    name: "Bank Book",
+    route: "/dashboard/billing/bank-book",
+    summary: "Bank-ledger running book for posted receipts, payments, contra, and bank-linked movements.",
+  },
+  {
+    id: "cash-book",
+    name: "Cash Book",
+    route: "/dashboard/billing/cash-book",
+    summary: "Cash-ledger running book for posted cash receipts, cash payments, and contra-linked movements.",
+  },
+  {
+    id: "bank-reconciliation",
+    name: "Bank Reconciliation",
+    route: "/dashboard/billing/bank-reconciliation",
+    summary: "Pending bank-entry reconciliation queue prepared for statement matching and clearance workflow.",
+  },
+  {
     id: "trial-balance",
     name: "Trial Balance",
     route: "/dashboard/billing/trial-balance",

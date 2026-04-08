@@ -8,6 +8,7 @@ import { getBillingAccountingReports } from "../../apps/billing/src/services/rep
 import { replaceBillingLedgerEntries } from "../../apps/billing/src/services/ledger-entry-store.js"
 import {
   createBillingVoucher,
+  reconcileBillingVoucher,
   reverseBillingVoucher,
 } from "../../apps/billing/src/services/voucher-service.js"
 import { getServerConfig } from "../../apps/framework/src/runtime/config/index.js"
@@ -293,6 +294,253 @@ test("billing reporting service builds a running general ledger from posted entr
         createdEntries[1]?.runningAmount >= createdEntries[0]!.runningAmount,
         true
       )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service builds bank book from bank ledgers only", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-bank-book-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "CNT-2026-920",
+        status: "posted",
+        type: "contra",
+        date: "2026-04-18",
+        counterparty: "Internal Transfer",
+        narration: "Cash deposited into bank.",
+        lines: [
+          {
+            ledgerId: "ledger-hdfc",
+            side: "debit",
+            amount: 3000,
+            note: "Bank debit.",
+          },
+          {
+            ledgerId: "ledger-cash",
+            side: "credit",
+            amount: 3000,
+            note: "Cash credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const bankLedger = reports.item.bankBook.items.find((item) => item.ledgerId === "ledger-hdfc")
+      const cashLedger = reports.item.bankBook.items.find((item) => item.ledgerId === "ledger-cash")
+
+      assert.ok(bankLedger)
+      assert.equal(bankLedger.entries.some((item) => item.voucherNumber === "CNT-2026-920"), true)
+      assert.equal(bankLedger.debitTotal >= 3000, true)
+      assert.equal(cashLedger, undefined)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service builds cash book from cash ledgers only", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-cash-book-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "CNT-2026-921",
+        status: "posted",
+        type: "contra",
+        date: "2026-04-19",
+        counterparty: "Internal Transfer",
+        narration: "Cash withdrawn from bank.",
+        lines: [
+          {
+            ledgerId: "ledger-cash",
+            side: "debit",
+            amount: 2500,
+            note: "Cash debit.",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 2500,
+            note: "Bank credit.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const cashLedger = reports.item.cashBook.items.find((item) => item.ledgerId === "ledger-cash")
+      const bankLedger = reports.item.cashBook.items.find((item) => item.ledgerId === "ledger-hdfc")
+
+      assert.ok(cashLedger)
+      assert.equal(cashLedger.entries.some((item) => item.voucherNumber === "CNT-2026-921"), true)
+      assert.equal(cashLedger.debitTotal >= 2500, true)
+      assert.equal(bankLedger, undefined)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service exposes bank reconciliation workflow from bank book movement", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-bank-reconciliation-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const baselineReports = await getBillingAccountingReports(runtime.primary, adminUser)
+
+      const receiptVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "RCPT-2026-922",
+        status: "posted",
+        type: "receipt",
+        date: "2026-04-20",
+        counterparty: "Recon Customer",
+        narration: "Receipt entering bank pending reconciliation.",
+        lines: [
+          {
+            ledgerId: "ledger-hdfc",
+            side: "debit",
+            amount: 4200,
+            note: "Bank receipt.",
+          },
+          {
+            ledgerId: "ledger-sundry-debtors",
+            side: "credit",
+            amount: 4200,
+            note: "Customer settled.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      const paymentVoucher = await createBillingVoucher(runtime.primary, adminUser, config, {
+        voucherNumber: "PAY-2026-923",
+        status: "posted",
+        type: "payment",
+        date: "2026-04-20",
+        counterparty: "Recon Supplier",
+        narration: "Payment with statement mismatch.",
+        lines: [
+          {
+            ledgerId: "ledger-sundry-creditors",
+            side: "debit",
+            amount: 2100,
+            note: "Supplier settlement.",
+          },
+          {
+            ledgerId: "ledger-hdfc",
+            side: "credit",
+            amount: 2100,
+            note: "Bank payment.",
+          },
+        ],
+        billAllocations: [],
+        gst: null,
+        transport: null,
+        generateEInvoice: false,
+        generateEWayBill: false,
+      })
+
+      await reconcileBillingVoucher(runtime.primary, adminUser, config, receiptVoucher.item.id, {
+        status: "matched",
+        clearedDate: "2026-04-21",
+        statementReference: "HDFC-MATCH-001",
+        statementAmount: 4200,
+        note: "Matched cleanly.",
+      })
+
+      await reconcileBillingVoucher(runtime.primary, adminUser, config, paymentVoucher.item.id, {
+        status: "mismatch",
+        clearedDate: "2026-04-21",
+        statementReference: "HDFC-MISMATCH-001",
+        statementAmount: 2050,
+        note: "Statement differs by charge.",
+      })
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser)
+      const bankLedger = reports.item.bankReconciliation.ledgers.find(
+        (item) => item.ledgerId === "ledger-hdfc"
+      )
+
+      assert.ok(bankLedger)
+      assert.equal(reports.item.bankReconciliation.matchedEntryCount, 1)
+      assert.equal(reports.item.bankReconciliation.matchedDebitTotal, 4200)
+      assert.equal(reports.item.bankReconciliation.matchedCreditTotal, 0)
+      assert.equal(
+        reports.item.bankReconciliation.pendingEntryCount,
+        baselineReports.item.bankReconciliation.pendingEntryCount
+      )
+      assert.equal(reports.item.bankReconciliation.oldestPendingDays >= 0, true)
+      assert.equal(reports.item.bankReconciliation.mismatchEntryCount, 1)
+      assert.equal(reports.item.bankReconciliation.mismatchAmountTotal, 50)
+      assert.equal(
+        bankLedger.matchedEntries.some((item) => item.voucherNumber === "RCPT-2026-922"),
+        true
+      )
+      assert.equal(bankLedger.matchedEntryCount >= 1, true)
+      assert.equal(bankLedger.oldestPendingDays >= 0, true)
+      assert.equal(
+        bankLedger.pendingEntries.some((item) => item.voucherNumber === "RCPT-2026-922"),
+        false
+      )
+      assert.equal(
+        bankLedger.mismatchedEntries.some((item) => item.voucherNumber === "PAY-2026-923"),
+        true
+      )
+      const mismatchEntry = bankLedger.mismatchedEntries.find(
+        (item) => item.voucherNumber === "PAY-2026-923"
+      )
+      assert.equal(mismatchEntry?.statementReference, "HDFC-MISMATCH-001")
+      assert.equal(mismatchEntry?.mismatchAmount, 50)
     } finally {
       await runtime.destroy()
     }

@@ -23,6 +23,37 @@ export const billingVoucherReversePayloadSchema = z.object({
   date: z.string().trim().min(1).optional(),
 })
 
+export const billingBankReconciliationStatusSchema = z.enum([
+  "not_applicable",
+  "pending",
+  "matched",
+  "mismatch",
+])
+
+export const billingVoucherBankReconciliationSchema = z.object({
+  status: billingBankReconciliationStatusSchema,
+  clearedDate: z.string().trim().min(1).nullable().default(null),
+  statementReference: z.string().trim().min(1).nullable().default(null),
+  statementAmount: z.number().positive().nullable().default(null),
+  mismatchAmount: z.number().nonnegative().nullable().default(null),
+  note: z.string().trim().default(""),
+}).default({
+  status: "not_applicable",
+  clearedDate: null,
+  statementReference: null,
+  statementAmount: null,
+  mismatchAmount: null,
+  note: "",
+})
+
+export const billingVoucherBankReconciliationPayloadSchema = z.object({
+  status: z.enum(["pending", "matched", "mismatch"]),
+  clearedDate: z.string().trim().nullable().default(null),
+  statementReference: z.string().trim().nullable().default(null),
+  statementAmount: z.number().positive().nullable().default(null),
+  note: z.string().trim().default(""),
+})
+
 export const billingEntrySideSchema = z.enum(["debit", "credit"])
 
 export const billingLedgerSchema = z.object({
@@ -239,6 +270,7 @@ export const billingVoucherSchema = z.object({
   sales: billingSalesInvoiceSchema.nullable().default(null),
   financialYear: billingVoucherFinancialYearSchema,
   billAllocations: z.array(billingVoucherBillAllocationSchema),
+  bankReconciliation: billingVoucherBankReconciliationSchema,
   eInvoice: billingVoucherEInvoiceSchema,
   eWayBill: billingVoucherEWayBillSchema,
   createdAt: z.string().trim().min(1),
@@ -348,6 +380,10 @@ export const billingVoucherResponseSchema = z.object({
 export const billingVoucherReverseResponseSchema = z.object({
   item: billingVoucherSchema,
   reversalItem: billingVoucherSchema,
+})
+
+export const billingVoucherBankReconciliationResponseSchema = z.object({
+  item: billingVoucherSchema,
 })
 
 export const billingVoucherHeaderSchema = z.object({
@@ -637,6 +673,67 @@ export const billingGeneralLedgerSchema = z.object({
   items: z.array(billingGeneralLedgerItemSchema),
 })
 
+export const billingBankBookSchema = z.object({
+  items: z.array(billingGeneralLedgerItemSchema),
+})
+
+export const billingCashBookSchema = z.object({
+  items: z.array(billingGeneralLedgerItemSchema),
+})
+
+export const billingBankReconciliationEntrySchema = z.object({
+  entryId: z.string().trim().min(1),
+  voucherId: z.string().trim().min(1),
+  voucherNumber: z.string().trim().min(1),
+  voucherType: billingVoucherTypeSchema,
+  voucherDate: z.string().trim().min(1),
+  counterparty: z.string().trim().min(1),
+  narration: z.string().trim(),
+  side: billingEntrySideSchema,
+  amount: z.number().positive(),
+  reconciliationStatus: billingBankReconciliationStatusSchema,
+  clearedDate: z.string().trim().min(1).nullable(),
+  statementReference: z.string().trim().min(1).nullable(),
+  statementAmount: z.number().positive().nullable(),
+  mismatchAmount: z.number().nonnegative().nullable(),
+  pendingAgeDays: z.number().int().nonnegative().nullable(),
+  note: z.string().trim(),
+})
+
+export const billingBankReconciliationLedgerSchema = z.object({
+  ledgerId: z.string().trim().min(1),
+  ledgerName: z.string().trim().min(1),
+  openingSide: billingEntrySideSchema,
+  openingAmount: z.number().nonnegative(),
+  closingSide: billingEntrySideSchema,
+  closingAmount: z.number().nonnegative(),
+  matchedEntryCount: z.number().int().nonnegative(),
+  matchedDebitTotal: z.number().nonnegative(),
+  matchedCreditTotal: z.number().nonnegative(),
+  pendingDebitTotal: z.number().nonnegative(),
+  pendingCreditTotal: z.number().nonnegative(),
+  oldestPendingDays: z.number().int().nonnegative(),
+  mismatchEntryCount: z.number().int().nonnegative(),
+  mismatchAmountTotal: z.number().nonnegative(),
+  matchedEntries: z.array(billingBankReconciliationEntrySchema),
+  pendingEntries: z.array(billingBankReconciliationEntrySchema),
+  mismatchedEntries: z.array(billingBankReconciliationEntrySchema),
+})
+
+export const billingBankReconciliationSchema = z.object({
+  asOfDate: z.string().trim().min(1),
+  matchedEntryCount: z.number().int().nonnegative(),
+  matchedDebitTotal: z.number().nonnegative(),
+  matchedCreditTotal: z.number().nonnegative(),
+  pendingEntryCount: z.number().int().nonnegative(),
+  pendingDebitTotal: z.number().nonnegative(),
+  pendingCreditTotal: z.number().nonnegative(),
+  oldestPendingDays: z.number().int().nonnegative(),
+  mismatchEntryCount: z.number().int().nonnegative(),
+  mismatchAmountTotal: z.number().nonnegative(),
+  ledgers: z.array(billingBankReconciliationLedgerSchema),
+})
+
 export const billingCustomerStatementEntrySchema = z.object({
   voucherId: z.string().trim().min(1),
   voucherNumber: z.string().trim().min(1),
@@ -706,6 +803,9 @@ export const billingAccountingReportsSchema = z.object({
   settlementExceptions: billingSettlementExceptionSummarySchema,
   partySettlementSummary: billingPartySettlementSummarySchema,
   generalLedger: billingGeneralLedgerSchema,
+  bankBook: billingBankBookSchema,
+  cashBook: billingCashBookSchema,
+  bankReconciliation: billingBankReconciliationSchema,
   customerStatement: billingCustomerStatementSchema,
   supplierStatement: billingSupplierStatementSchema,
 })
@@ -720,6 +820,9 @@ export type BillingVoucherLifecycleStatus = z.infer<
 >
 export type BillingVoucherReversePayload = z.infer<
   typeof billingVoucherReversePayloadSchema
+>
+export type BillingBankReconciliationStatus = z.infer<
+  typeof billingBankReconciliationStatusSchema
 >
 export type BillingEntrySide = z.infer<typeof billingEntrySideSchema>
 export type BillingLedger = z.infer<typeof billingLedgerSchema>
@@ -751,6 +854,9 @@ export type BillingVoucherEWayBill = z.infer<typeof billingVoucherEWayBillSchema
 export type BillingSalesInvoiceItem = z.infer<typeof billingSalesInvoiceItemSchema>
 export type BillingSalesInvoice = z.infer<typeof billingSalesInvoiceSchema>
 export type BillingVoucher = z.infer<typeof billingVoucherSchema>
+export type BillingVoucherBankReconciliation = z.infer<
+  typeof billingVoucherBankReconciliationSchema
+>
 export type BillingVoucherHeader = z.infer<typeof billingVoucherHeaderSchema>
 export type BillingVoucherLineRecord = z.infer<typeof billingVoucherLineRecordSchema>
 export type BillingLedgerEntry = z.infer<typeof billingLedgerEntrySchema>
@@ -795,6 +901,12 @@ export type BillingVoucherResponse = z.infer<typeof billingVoucherResponseSchema
 export type BillingVoucherReverseResponse = z.infer<
   typeof billingVoucherReverseResponseSchema
 >
+export type BillingVoucherBankReconciliationPayload = z.infer<
+  typeof billingVoucherBankReconciliationPayloadSchema
+>
+export type BillingVoucherBankReconciliationResponse = z.infer<
+  typeof billingVoucherBankReconciliationResponseSchema
+>
 export type BillingTrialBalanceItem = z.infer<typeof billingTrialBalanceItemSchema>
 export type BillingTrialBalance = z.infer<typeof billingTrialBalanceSchema>
 export type BillingProfitAndLossEntry = z.infer<
@@ -829,6 +941,17 @@ export type BillingPartySettlementSummaryItem = z.infer<
 >
 export type BillingPartySettlementSummary = z.infer<
   typeof billingPartySettlementSummarySchema
+>
+export type BillingBankBook = z.infer<typeof billingBankBookSchema>
+export type BillingCashBook = z.infer<typeof billingCashBookSchema>
+export type BillingBankReconciliationEntry = z.infer<
+  typeof billingBankReconciliationEntrySchema
+>
+export type BillingBankReconciliationLedger = z.infer<
+  typeof billingBankReconciliationLedgerSchema
+>
+export type BillingBankReconciliation = z.infer<
+  typeof billingBankReconciliationSchema
 >
 export type BillingCustomerStatementEntry = z.infer<
   typeof billingCustomerStatementEntrySchema
