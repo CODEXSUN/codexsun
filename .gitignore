@@ -28,3 +28,7 @@ dist-ssr
 *.sw?
 /.idea
 /storage/*
+.expo/
+apps/mobile/.expo/
+apps/mobile/.expo-web-export/
+apps/mobile/.expo-export/

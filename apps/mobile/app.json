@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Codexsun Mobile",
+    "slug": "codexsun-mobile",
+    "scheme": "codexsun-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f4efe6"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:3001"
+    }
+  }
+}

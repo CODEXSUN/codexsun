@@ -1,0 +1,25 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@mobile/*": ["./src/*"],
+      "@shared-ui/*": ["../ui/src/*"],
+      "@core/*": ["../core/*"],
+      "@ecommerce/*": ["../ecommerce/*"],
+      "@framework/*": ["../framework/*"]
+    }
+  },
+  "include": [
+    "./App.tsx",
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "../ui/src/design-system/data/project-defaults.ts",
+    "../core/shared/domain/module-registry.ts",
+    "../ecommerce/shared/schemas/catalog.ts",
+    "../framework/src/application/app-manifest.ts"
+  ]
+}
