@@ -19,6 +19,7 @@ import { FRAMEWORK_TOKENS } from "@framework/di/tokens";
 import type { AuthUser } from "@cxapp/shared";
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader";
 import { RuntimeBrandProvider } from "@/features/branding/runtime-brand-provider";
+import { TechnicalNameOverlayProvider } from "@/components/system/technical-name-overlay-provider";
 import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider";
 import { Toaster } from "@/components/ui/sonner";
 import type { DashboardUser } from "@/features/dashboard/types";
@@ -246,6 +247,10 @@ const FrameworkDataBackupPage = lazyNamed(
   () => import("./pages/framework-data-backup-page"),
   "FrameworkDataBackupPage",
 );
+const FrameworkDeveloperSettingsPage = lazyNamed(
+  () => import("./pages/framework-developer-settings-page"),
+  "FrameworkDeveloperSettingsPage",
+);
 const FrameworkQueueManagerPage = lazyNamed(
   () => import("./pages/framework-queue-manager-page"),
   "FrameworkQueueManagerPage",
@@ -352,6 +357,11 @@ function FrameworkUtilityPage({
             title: "Core Settings",
             href: "/dashboard/settings/core-settings",
             summary: "Runtime environment settings and operational controls.",
+          },
+          {
+            title: "Developer Settings",
+            href: "/dashboard/settings/developer-settings",
+            summary: "Internal refactor helpers, technical naming controls, and developer-only visibility tools.",
           },
           {
             title: "Activity Log",
@@ -512,12 +522,14 @@ function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <RuntimeBrandProvider>
       <RuntimeAppSettingsProvider>
-        <ProjectDefaultsProvider>
-          <StorefrontCartProvider>
-            <AppToastLayer />
-            {children}
-          </StorefrontCartProvider>
-        </ProjectDefaultsProvider>
+        <TechnicalNameOverlayProvider>
+          <ProjectDefaultsProvider>
+            <StorefrontCartProvider>
+              <AppToastLayer />
+              {children}
+            </StorefrontCartProvider>
+          </ProjectDefaultsProvider>
+        </TechnicalNameOverlayProvider>
       </RuntimeAppSettingsProvider>
     </RuntimeBrandProvider>
   );
@@ -856,6 +868,16 @@ function AuthenticatedAppShell() {
                     appId="core"
                     sectionId="core-settings"
                   />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/developer-settings"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkDeveloperSettingsPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

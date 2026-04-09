@@ -23,7 +23,7 @@ export function RuntimeAppSettingsProvider({
   const { data: settings } = useRuntimeAppSettingsQuery()
 
   return (
-    <RuntimeAppSettingsContext.Provider value={{ settings }}>
+    <RuntimeAppSettingsContext.Provider value={{ settings: settings ?? null }}>
       {children}
     </RuntimeAppSettingsContext.Provider>
   )

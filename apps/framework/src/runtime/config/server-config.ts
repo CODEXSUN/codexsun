@@ -41,6 +41,12 @@ function readToastTone(value: string | undefined): ToastTone {
   return value === "solid" ? "solid" : "soft"
 }
 
+function readBillingComplianceMode(value: string | undefined): "manual" | "live" {
+  const normalizedValue = (value ?? "").trim().toLowerCase()
+
+  return normalizedValue === "live" ? "live" : "manual"
+}
+
 function readLogLevel(value: string | undefined): LogLevel {
   const normalizedValue = (value ?? "").trim().toLowerCase()
 
@@ -151,6 +157,9 @@ export type ServerConfig = {
       position: ToastPosition
       tone: ToastTone
     }
+  }
+  developerTools: {
+    showTechnicalNames: boolean
   }
   observability: {
     logLevel: LogLevel
@@ -449,6 +458,9 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         tone: readToastTone(env.VITE_TOAST_TONE),
       },
     },
+    developerTools: {
+      showTechnicalNames: readBoolean(env.VITE_SHOW_DEVOPS_NAMES, false),
+    },
     observability: {
       logLevel: readLogLevel(env.APP_LOG_LEVEL),
       alertEmails: readStringList(env.OPS_ALERT_EMAILS),
@@ -571,7 +583,7 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         },
         eInvoice: {
           enabled: readBoolean(env.BILLING_EINVOICE_ENABLED, false),
-          mode: (env.BILLING_EINVOICE_MODE as "manual" | "live" | undefined) ?? "manual",
+          mode: readBillingComplianceMode(env.BILLING_EINVOICE_MODE),
           baseUrl: env.BILLING_EINVOICE_BASE_URL?.trim() || undefined,
           username: env.BILLING_EINVOICE_USERNAME?.trim() || undefined,
           password: env.BILLING_EINVOICE_PASSWORD?.trim() || undefined,
@@ -581,7 +593,7 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         },
         eWayBill: {
           enabled: readBoolean(env.BILLING_EWAYBILL_ENABLED, false),
-          mode: (env.BILLING_EWAYBILL_MODE as "manual" | "live" | undefined) ?? "manual",
+          mode: readBillingComplianceMode(env.BILLING_EWAYBILL_MODE),
           baseUrl: env.BILLING_EWAYBILL_BASE_URL?.trim() || undefined,
           username: env.BILLING_EWAYBILL_USERNAME?.trim() || undefined,
           password: env.BILLING_EWAYBILL_PASSWORD?.trim() || undefined,

@@ -130,20 +130,27 @@ export function StorefrontHomePage() {
 
   return (
     <StorefrontLayout>
-      <div className="mx-auto grid w-full max-w-[96rem] gap-12 px-5 pt-8 lg:px-8 lg:pt-10 2xl:px-10">
+      <div
+        className="mx-auto grid w-full max-w-[96rem] gap-12 px-5 pt-8 lg:px-8 lg:pt-10 2xl:px-10"
+        data-technical-name="page.storefront.home"
+      >
         {error ? (
-          <Card className="border-destructive/20 bg-destructive/5">
+          <Card className="border-destructive/20 bg-destructive/5" data-technical-name="section.storefront.home.error">
             <CardContent className="p-6 text-sm text-destructive">{error}</CardContent>
           </Card>
         ) : null}
         {visibility?.hero ? (
-          data ? <StorefrontHeroSlider landing={data} /> : <StorefrontHeroSkeleton />
+          <div data-technical-name="section.storefront.home.hero">
+            {data ? <StorefrontHeroSlider landing={data} /> : <StorefrontHeroSkeleton />}
+          </div>
         ) : null}
 
         {visibility?.announcement || visibility?.support ? (
-          <StorefrontAnnouncementBar
-            landing={data ?? null}
-          />
+          <div data-technical-name="section.storefront.home.announcement">
+            <StorefrontAnnouncementBar
+              landing={data ?? null}
+            />
+          </div>
         ) : null}
 
         {hasFeaturedSection ? (
@@ -152,7 +159,7 @@ export function StorefrontHomePage() {
             minHeightClassName={storefrontHomepageSectionPerformance.featured.minHeightClassName}
             fallback={storefrontHomepageSectionPerformance.featured.fallback}
           >
-          <section className="space-y-5">
+          <section className="space-y-5" data-technical-name="section.storefront.home.featured">
             <div className="flex items-end justify-between gap-4">
               <div>
                 {hasContent(data?.settings.sections.featured.eyebrow) ? (
@@ -225,7 +232,7 @@ export function StorefrontHomePage() {
           </section>
           </StorefrontDeferredSection>
         ) : isLoading ? (
-          <section className="space-y-5">
+          <section className="space-y-5" data-technical-name="section.storefront.home.categories">
             <StorefrontSectionHeadingSkeleton />
             <div className="grid gap-5 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -300,14 +307,16 @@ export function StorefrontHomePage() {
             minHeightClassName={storefrontHomepageSectionPerformance.couponBanner.minHeightClassName}
             fallback={storefrontHomepageSectionPerformance.couponBanner.fallback}
           >
-            <Suspense fallback={null}>
-              <CouponBanner config={couponBanner!} />
-            </Suspense>
+            <div data-technical-name="section.storefront.home.coupon-banner">
+              <Suspense fallback={null}>
+                <CouponBanner config={couponBanner!} />
+              </Suspense>
+            </div>
           </StorefrontDeferredSection>
         ) : null}
 
         {hasNewArrivalsSection ? (
-          <section className="space-y-5">
+          <section className="space-y-5" data-technical-name="section.storefront.home.new-arrivals">
             <div className="flex items-end justify-between gap-4">
               <div>
                 {hasContent(data?.settings.sections.newArrivals.eyebrow) ? (
@@ -364,7 +373,7 @@ export function StorefrontHomePage() {
         ) : null}
 
         {hasBestSellersSection ? (
-          <section className="space-y-5">
+          <section className="space-y-5" data-technical-name="section.storefront.home.best-sellers">
             <div className="flex items-end justify-between gap-4">
               <div>
                 {hasContent(data?.settings.sections.bestSellers.eyebrow) ? (
@@ -426,9 +435,11 @@ export function StorefrontHomePage() {
             minHeightClassName={storefrontHomepageSectionPerformance.giftCorner.minHeightClassName}
             fallback={storefrontHomepageSectionPerformance.giftCorner.fallback}
           >
-            <Suspense fallback={null}>
-              <GiftCorner config={giftCorner!} />
-            </Suspense>
+            <div data-technical-name="section.storefront.home.gift-corner">
+              <Suspense fallback={null}>
+                <GiftCorner config={giftCorner!} />
+              </Suspense>
+            </div>
           </StorefrontDeferredSection>
         ) : null}
 
@@ -438,9 +449,11 @@ export function StorefrontHomePage() {
             minHeightClassName={storefrontHomepageSectionPerformance.trending.minHeightClassName}
             fallback={storefrontHomepageSectionPerformance.trending.fallback}
           >
-            <Suspense fallback={null}>
-              <TrendingSection config={trendingSection!} />
-            </Suspense>
+            <div data-technical-name="section.storefront.home.trending">
+              <Suspense fallback={null}>
+                <TrendingSection config={trendingSection!} />
+              </Suspense>
+            </div>
           </StorefrontDeferredSection>
         ) : null}
 
@@ -450,13 +463,15 @@ export function StorefrontHomePage() {
             minHeightClassName={storefrontHomepageSectionPerformance.brandStories.minHeightClassName}
             fallback={storefrontHomepageSectionPerformance.brandStories.fallback}
           >
-            <Suspense fallback={null}>
-              <BrandStoryRail
-                title={brandShowcase?.title ?? "More Beauty To Love"}
-                description={brandShowcase?.description}
-                cards={brandStories}
-              />
-            </Suspense>
+            <div data-technical-name="section.storefront.home.brand-stories">
+              <Suspense fallback={null}>
+                <BrandStoryRail
+                  title={brandShowcase?.title ?? "More Beauty To Love"}
+                  description={brandShowcase?.description}
+                  cards={brandStories}
+                />
+              </Suspense>
+            </div>
           </StorefrontDeferredSection>
         ) : null}
 
@@ -466,25 +481,27 @@ export function StorefrontHomePage() {
             minHeightClassName={storefrontHomepageSectionPerformance.campaignTrust.minHeightClassName}
             fallback={storefrontHomepageSectionPerformance.campaignTrust.fallback}
           >
-            <Suspense fallback={null}>
-              <CampaignTrustSection
-                campaign={{
-                  ...data!.settings.sections.cta,
-                  primaryCtaHref:
-                    normalizeStorefrontHref(data?.settings.sections.cta.primaryCtaHref) ??
-                    storefrontPaths.catalog(),
-                  secondaryCtaHref:
-                    normalizeStorefrontHref(data?.settings.sections.cta.secondaryCtaHref) ??
-                    storefrontPaths.cart(),
-                }}
-                trustNotes={trustNotes}
-                design={data?.settings.campaignDesign}
-                visibility={{
-                  cta: visibility?.cta,
-                  trust: visibility?.trust,
-                }}
-              />
-            </Suspense>
+            <div data-technical-name="section.storefront.home.campaign-trust">
+              <Suspense fallback={null}>
+                <CampaignTrustSection
+                  campaign={{
+                    ...data!.settings.sections.cta,
+                    primaryCtaHref:
+                      normalizeStorefrontHref(data?.settings.sections.cta.primaryCtaHref) ??
+                      storefrontPaths.catalog(),
+                    secondaryCtaHref:
+                      normalizeStorefrontHref(data?.settings.sections.cta.secondaryCtaHref) ??
+                      storefrontPaths.cart(),
+                  }}
+                  trustNotes={trustNotes}
+                  design={data?.settings.campaignDesign}
+                  visibility={{
+                    cta: visibility?.cta,
+                    trust: visibility?.trust,
+                  }}
+                />
+              </Suspense>
+            </div>
           </StorefrontDeferredSection>
         ) : null}
 

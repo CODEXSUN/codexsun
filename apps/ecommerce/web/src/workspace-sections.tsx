@@ -14,6 +14,7 @@ import {
 } from "@core/web/src/workspace-sections"
 import { getCoreCommonModuleMenuItem } from "@core/shared"
 import { MasterList } from "@/components/blocks/master-list"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -176,13 +177,24 @@ function SectionIntro({
   eyebrow,
   title,
   description,
+  technicalName,
 }: {
   eyebrow: string
   title: string
   description: string
+  technicalName?: string
 }) {
   return (
-    <Card className="border border-border/70 bg-background/90 shadow-sm">
+    <Card
+      className="relative overflow-visible border border-border/70 bg-background/90 shadow-sm"
+      data-technical-name={technicalName ?? null}
+    >
+      {technicalName ? (
+        <TechnicalNameBadge
+          name={technicalName}
+          className="absolute -top-3 right-4 z-20"
+        />
+      ) : null}
       <CardHeader>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
           {eyebrow}
@@ -200,13 +212,24 @@ function MetricCard({
   icon: Icon,
   title,
   summary,
+  technicalName,
 }: {
   icon: LucideIcon
   title: string
   summary: string
+  technicalName?: string
 }) {
   return (
-    <Card className="rounded-[1.3rem] border-border/70 py-0 shadow-sm">
+    <Card
+      className="relative overflow-visible rounded-[1.3rem] border-border/70 py-0 shadow-sm"
+      data-technical-name={technicalName ?? null}
+    >
+      {technicalName ? (
+        <TechnicalNameBadge
+          name={technicalName}
+          className="absolute -top-3 right-4 z-20"
+        />
+      ) : null}
       <CardContent className="space-y-3 p-5">
         <div className="flex size-10 items-center justify-center rounded-xl bg-accent/10">
           <Icon className="size-5 text-accent" />
@@ -299,7 +322,14 @@ function OverviewSection() {
         title="Commerce admin overview"
         description="The ecommerce app owns storefront delivery, customer accounts, checkout, orders, tracking, and payment behavior. Shared products and contacts stay in core, while this overview concentrates the current commerce KPI baseline."
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div
+        className="relative grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+        data-technical-name="section.ecommerce.products.metrics"
+      >
+        <TechnicalNameBadge
+          name="section.ecommerce.products.metrics"
+          className="absolute -top-3 right-4 z-20"
+        />
         <MetricCard
           icon={ShoppingBag}
           title="Order count"
@@ -491,22 +521,26 @@ function ProductsSection() {
         eyebrow="Products"
         title="Core products consumed by ecommerce"
         description="Products remain owned by core. Ecommerce reads those product masters and uses their merchandising, category, pricing, image, and storefront metadata to shape discovery, PDP, cart, and checkout behavior."
+        technicalName="section.ecommerce.products.intro"
       />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           icon={Package}
           title="Shared products"
           summary={`${safeData.items.length} total shared products are available to the ecommerce storefront boundary.`}
+          technicalName="card.ecommerce.products.shared-products"
         />
         <MetricCard
           icon={LayoutTemplate}
           title="Storefront-ready"
           summary={`${storefrontReadyProducts} active products already have slug and primary image data for storefront delivery.`}
+          technicalName="card.ecommerce.products.storefront-ready"
         />
         <MetricCard
           icon={ShoppingBag}
           title="Merchandised"
           summary={`${merchandisedProducts} products currently carry ecommerce-facing merchandising flags or feature placement.`}
+          technicalName="card.ecommerce.products.merchandised"
         />
       </div>
       <MasterList
@@ -514,6 +548,7 @@ function ProductsSection() {
           pageTitle: "Products",
           pageDescription:
             "Review the core product masters ecommerce currently consumes. Create or edit shared products in core, then return here to validate their ecommerce-facing merchandising fields.",
+          technicalName: "page.ecommerce.products",
           addLabel: "New Product",
           onAddClick: () => {
             void navigate("/dashboard/apps/ecommerce/products/new")
@@ -527,11 +562,17 @@ function ProductsSection() {
           },
           placeholder: "Search products, brands, categories, or tags",
         }}
-        filters={buildStatusFilters(statusFilter, (value) => {
-          setStatusFilter(value)
-          setCurrentPage(1)
-        })}
+        filters={{
+          ...buildStatusFilters(statusFilter, (value) => {
+            setStatusFilter(value)
+            setCurrentPage(1)
+          }),
+          collapsible: true,
+          collapseLabel: "Product filters",
+          technicalName: "section.ecommerce.products.filters",
+        }}
         table={{
+          technicalName: "section.ecommerce.products.table",
           columns: [
             {
               id: "product",

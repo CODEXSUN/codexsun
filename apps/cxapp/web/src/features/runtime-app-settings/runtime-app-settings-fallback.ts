@@ -59,6 +59,7 @@ const resources = [
   ["permissions", "Permissions", "framework", "/dashboard/settings/permissions", "module", "Framework permission manager."],
   ["companies", "Companies", "framework", "/dashboard/settings/companies", "module", "Framework company manager."],
   ["core-settings", "Core Settings", "framework", "/dashboard/settings/core-settings", "workspace", "Framework runtime settings."],
+  ["developer-settings", "Developer Settings", "framework", "/dashboard/settings/developer-settings", "workspace", "Framework developer toggles, technical naming helpers, and refactor visibility controls."],
   ["activity-log", "Activity Log", "framework", "/dashboard/settings/activity-log", "page", "Framework audit and admin activity ledger."],
   ["alerts-dashboard", "Alerts Dashboard", "framework", "/dashboard/settings/alerts-dashboard", "page", "Framework monitoring and alert coverage dashboard."],
   ["data-backup", "Data Backup", "framework", "/dashboard/settings/data-backup", "page", "Framework backup cadence, retention, restore drill, and off-machine archive controls."],
@@ -137,5 +138,8 @@ export const fallbackRuntimeAppSettings: AppSettingsSnapshot = {
       position: "top-right",
       tone: "soft",
     },
+  },
+  uiDeveloperTools: {
+    showTechnicalNames: false,
   },
 }

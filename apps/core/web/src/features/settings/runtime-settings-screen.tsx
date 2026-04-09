@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 
 import {
   runtimeSettingGroups,
@@ -6,6 +7,7 @@ import {
   type RuntimeSettingsSaveResponse,
   type RuntimeSettingsSnapshot,
 } from "../../../../../framework/shared/runtime-settings"
+import type { AppSettingsSnapshot } from "../../../../../framework/shared/index.js"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 
 import { Button } from "@/components/ui/button"
@@ -24,9 +26,11 @@ import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { getActivityStatusPanelClassName } from "@/features/status/activity-status"
 import { cn } from "@/lib/utils"
+import { queryKeys } from "@cxapp/web/src/query/query-keys"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
 
 type RuntimeSettingsValueMap = RuntimeSettingsSnapshot["values"]
+const DEVTOOLS_NAMES_STORAGE_KEY = "codexsun.ui.developer-tools.show-technical-names"
 
 function generateJwtSecret() {
   const characters =
@@ -35,6 +39,19 @@ function generateJwtSecret() {
   window.crypto.getRandomValues(bytes)
 
   return Array.from(bytes, (value) => characters[value % characters.length]).join("")
+}
+
+function getSelectFieldValue(
+  field: RuntimeSettingGroup["fields"][number],
+  value: string | boolean | undefined
+) {
+  if (typeof value !== "string") {
+    return ""
+  }
+
+  const allowedValues = new Set((field.options ?? []).map((option) => option.value))
+
+  return allowedValues.has(value) ? value : ""
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -143,7 +160,7 @@ function RuntimeSettingsGroupCard({
               </div>
               {field.type === "select" ? (
                 <Select
-                  value={typeof value === "string" ? value : ""}
+                  value={getSelectFieldValue(field, value)}
                   onValueChange={(nextValue) => onChange(field.key, nextValue)}
                 >
                   <SelectTrigger id={elementId}>
@@ -192,6 +209,7 @@ export function RuntimeSettingsScreen({
   recordName: string
   groupIds?: string[]
 }) {
+  const queryClient = useQueryClient()
   const [envFilePath, setEnvFilePath] = useState("")
   const [values, setValues] = useState<RuntimeSettingsValueMap>({})
   const [isLoading, setIsLoading] = useState(true)
@@ -253,6 +271,27 @@ export function RuntimeSettingsScreen({
 
       setEnvFilePath(response.snapshot.envFilePath)
       setValues(response.snapshot.values)
+
+      const nextTechnicalNamesValue = response.snapshot.values.VITE_SHOW_DEVOPS_NAMES
+      if (typeof nextTechnicalNamesValue === "boolean" && typeof window !== "undefined") {
+        window.localStorage.setItem(
+          DEVTOOLS_NAMES_STORAGE_KEY,
+          nextTechnicalNamesValue ? "true" : "false"
+        )
+        const currentAppSettings = window.__CODEXSUN_APP_SETTINGS__
+        if (currentAppSettings) {
+          const nextAppSettings: AppSettingsSnapshot = {
+            ...currentAppSettings,
+            uiDeveloperTools: {
+              ...currentAppSettings.uiDeveloperTools,
+              showTechnicalNames: nextTechnicalNamesValue,
+            },
+          }
+          window.__CODEXSUN_APP_SETTINGS__ = nextAppSettings
+          queryClient.setQueryData(queryKeys.runtimeAppSettings, nextAppSettings)
+        }
+      }
+
       setMessage(
         restart
           ? "Settings saved. Restarting application..."

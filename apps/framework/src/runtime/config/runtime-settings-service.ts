@@ -64,6 +64,7 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     VITE_FRONTEND_TARGET: config.frontendTarget,
     VITE_TOAST_POSITION: config.notifications.toast.position,
     VITE_TOAST_TONE: config.notifications.toast.tone,
+    VITE_SHOW_DEVOPS_NAMES: config.developerTools.showTechnicalNames,
     DB_DRIVER: config.database.driver,
     DB_HOST: config.database.host ?? "",
     DB_PORT: config.database.port ? String(config.database.port) : "",

@@ -62,6 +62,9 @@ export async function getAppSettingsSnapshot(
           tone: config.notifications.toast.tone,
         },
       },
+      uiDeveloperTools: {
+        showTechnicalNames: config.developerTools.showTechnicalNames,
+      },
     },
   })
 }

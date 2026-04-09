@@ -246,7 +246,7 @@ export function FrameworkSystemUpdateSection() {
           </Button>
           {!status?.isClean || localChanges.length > 0 ? (
             <AlertDialog>
-              <AlertDialogTrigger>
+              <AlertDialogTrigger asChild>
                 <Button type="button" variant="destructive" disabled={isLoading || isUpdating}>
                   <Trash2Icon className="size-4" />
                   Force Reset

@@ -17,7 +17,7 @@ function AppLayout({ children }: AppLayoutProps) {
         <SidebarInset>
           <div className="theme-shell min-h-screen">
             <AppHeader />
-            <main className="mx-auto w-full max-w-7xl px-4 py-4 md:px-6 md:py-6">
+            <main className="mx-auto w-full max-w-[96rem] px-4 py-4 md:px-6 md:py-6">
               {children}
             </main>
           </div>

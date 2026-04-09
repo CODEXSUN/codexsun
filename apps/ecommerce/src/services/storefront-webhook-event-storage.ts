@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely"
 
 import {
+  ensureJsonStoreTable,
   listJsonStorePayloads,
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
@@ -12,6 +13,8 @@ import {
 import { ecommerceTableNames } from "../../database/table-names.js"
 
 export async function readStorefrontPaymentWebhookEvents(database: Kysely<unknown>) {
+  await ensureJsonStoreTable(database, ecommerceTableNames.paymentWebhookEvents)
+
   const items = await listJsonStorePayloads<unknown>(
     database,
     ecommerceTableNames.paymentWebhookEvents
@@ -24,6 +27,8 @@ export async function writeStorefrontPaymentWebhookEvents(
   database: Kysely<unknown>,
   items: StorefrontPaymentWebhookEvent[]
 ) {
+  await ensureJsonStoreTable(database, ecommerceTableNames.paymentWebhookEvents)
+
   await replaceJsonStoreRecords(
     database,
     ecommerceTableNames.paymentWebhookEvents,

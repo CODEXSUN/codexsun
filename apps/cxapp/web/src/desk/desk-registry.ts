@@ -1278,6 +1278,15 @@ export function resolveDeskLocation(
       }
     }
 
+    if (pathname === "/dashboard/settings/developer-settings" || pathname.startsWith("/dashboard/settings/developer-settings/")) {
+      return {
+        section: "Framework",
+        title: "Developer Settings",
+        description: "Developer-only visibility tools, technical naming helpers, and refactor support controls.",
+        app: null,
+      }
+    }
+
     if (pathname === "/dashboard/settings/activity-log" || pathname.startsWith("/dashboard/settings/activity-log/")) {
       return {
         section: "Framework",

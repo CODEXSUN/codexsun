@@ -12,6 +12,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -75,6 +76,7 @@ export type MasterListProps<TData> = {
   header: {
     pageTitle: string
     pageDescription: string
+    technicalName?: string
     addLabel?: string
     onAddClick?: () => void
     addDisabled?: boolean
@@ -91,6 +93,10 @@ export type MasterListProps<TData> = {
     activeFilters?: MasterListActiveFilter[]
     onRemoveFilter?: (key: string) => void
     onClearAllFilters?: () => void
+    collapsible?: boolean
+    collapsedByDefault?: boolean
+    collapseLabel?: string
+    technicalName?: string
   }
   table: {
     columns: MasterListColumn<TData>[]
@@ -99,6 +105,7 @@ export type MasterListProps<TData> = {
     loadingMessage?: string
     emptyMessage?: string
     rowKey?: (row: TData, index: number) => string | number
+    technicalName?: string
   }
   rowSelection?: {
     selectedRowIds: Array<string | number>
@@ -313,9 +320,19 @@ export function MasterList<TData>({
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      className="relative space-y-4"
+      data-technical-name={header.technicalName ?? "block.master-list"}
+    >
+      <TechnicalNameBadge
+        name={header.technicalName ?? "block.master-list"}
+        className="absolute -top-3 right-4 z-20"
+      />
       <section className="flex flex-col gap-4 px-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
+          <h1 className="font-heading text-2xl tracking-tight text-foreground">
+            {header.pageTitle}
+          </h1>
           <p className="max-w-3xl text-sm text-muted-foreground/80">{header.pageDescription}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -336,128 +353,137 @@ export function MasterList<TData>({
 
       {showSearchSection ? (
         <section className="bg-transparent">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-md">
-              <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search?.value ?? ""}
-                onChange={(event) => search?.onChange(event.target.value)}
-                placeholder={search?.placeholder ?? "Search records"}
-                className="h-10 rounded-md border-border bg-white pr-3 pl-9"
-              />
-            </div>
+          <div
+            className="relative overflow-visible rounded-[1.2rem] border border-border/70 bg-card/80 p-4 shadow-sm"
+            data-technical-name={filters?.technicalName ?? "block.master-list.filters"}
+          >
+            <TechnicalNameBadge
+              name={filters?.technicalName ?? "block.master-list.filters"}
+              className="absolute -top-3 right-4 z-20"
+            />
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="relative w-full lg:max-w-md">
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search?.value ?? ""}
+                  onChange={(event) => search?.onChange(event.target.value)}
+                  placeholder={search?.placeholder ?? "Search records"}
+                  className="h-10 rounded-md border-border bg-white pr-3 pl-9"
+                />
+              </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {filters?.options && filters.options.length > 0 ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="gap-2 rounded-md bg-transparent"
-                    >
-                      <FunnelIcon className="size-4" />
-                      <span>{filters.buttonLabel ?? "Filters"}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuGroup>
-                      <div className="flex items-center justify-between px-1.5 py-1">
-                        <DropdownMenuLabel className="p-0">Filter options</DropdownMenuLabel>
-                        <button
-                          type="button"
-                          className="text-xs font-medium text-primary transition hover:text-primary/80"
-                          onClick={handleClearAllFilters}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <DropdownMenuSeparator />
-                      {filters.options.map((option) => (
-                        <DropdownMenuCheckboxItem
-                          key={option.key}
-                          checked={Boolean(option.isActive)}
-                          onCheckedChange={(checked) => {
-                            if (option.onCheckedChange) {
-                              option.onCheckedChange(checked)
-                              return
-                            }
-
-                            option.onSelect()
-                          }}
-                        >
-                          {option.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null}
-
-              {table.columns.length > 1 ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="gap-2 rounded-md bg-transparent"
-                    >
-                      <SlidersHorizontalIcon className="size-4" />
-                      <span>Columns</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuGroup>
-                      <div className="flex items-center justify-between px-1.5 py-1">
-                        <DropdownMenuLabel className="p-0">Visible columns</DropdownMenuLabel>
-                        <button
-                          type="button"
-                          className="text-xs font-medium text-primary transition hover:text-primary/80"
-                          onClick={() => {
-                            setVisibleColumnIds(table.columns.map((column) => column.id))
-                          }}
-                        >
-                          Show all
-                        </button>
-                      </div>
-                      <DropdownMenuSeparator />
-                      {table.columns.map((column) => {
-                        const activeVisibleColumnIds =
-                          visibleColumnIds.length > 0 ? visibleColumnIds : defaultVisibleColumnIds
-                        const isVisible = activeVisibleColumnIds.includes(column.id)
-                        const disableToggle = isVisible && activeVisibleColumnIds.length === 1
-
-                        return (
+              <div className="flex flex-wrap items-center gap-2">
+                {filters?.options && filters.options.length > 0 ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 rounded-md bg-transparent"
+                      >
+                        <FunnelIcon className="size-4" />
+                        <span>{filters.buttonLabel ?? "Filters"}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuGroup>
+                        <div className="flex items-center justify-between px-1.5 py-1">
+                          <DropdownMenuLabel className="p-0">Filter options</DropdownMenuLabel>
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary transition hover:text-primary/80"
+                            onClick={handleClearAllFilters}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        <DropdownMenuSeparator />
+                        {filters.options.map((option) => (
                           <DropdownMenuCheckboxItem
-                            key={column.id}
-                            checked={isVisible}
-                            disabled={disableToggle}
+                            key={option.key}
+                            checked={Boolean(option.isActive)}
                             onCheckedChange={(checked) => {
-                              setVisibleColumnIds((current) => {
-                                const nextCurrent =
-                                  current.length > 0 ? current : defaultVisibleColumnIds
-                                if (checked) {
-                                  return nextCurrent.includes(column.id)
-                                    ? nextCurrent
-                                    : [...nextCurrent, column.id]
-                                }
+                              if (option.onCheckedChange) {
+                                option.onCheckedChange(checked)
+                                return
+                              }
 
-                                if (nextCurrent.length === 1) {
-                                  return nextCurrent
-                                }
-
-                                return nextCurrent.filter((id) => id !== column.id)
-                              })
+                              option.onSelect()
                             }}
                           >
-                            {column.header}
+                            {option.label}
                           </DropdownMenuCheckboxItem>
-                        )
-                      })}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null}
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+
+                {table.columns.length > 1 ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 rounded-md bg-transparent"
+                      >
+                        <SlidersHorizontalIcon className="size-4" />
+                        <span>Columns</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuGroup>
+                        <div className="flex items-center justify-between px-1.5 py-1">
+                          <DropdownMenuLabel className="p-0">Visible columns</DropdownMenuLabel>
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary transition hover:text-primary/80"
+                            onClick={() => {
+                              setVisibleColumnIds(table.columns.map((column) => column.id))
+                            }}
+                          >
+                            Show all
+                          </button>
+                        </div>
+                        <DropdownMenuSeparator />
+                        {table.columns.map((column) => {
+                          const activeVisibleColumnIds =
+                            visibleColumnIds.length > 0 ? visibleColumnIds : defaultVisibleColumnIds
+                          const isVisible = activeVisibleColumnIds.includes(column.id)
+                          const disableToggle = isVisible && activeVisibleColumnIds.length === 1
+
+                          return (
+                            <DropdownMenuCheckboxItem
+                              key={column.id}
+                              checked={isVisible}
+                              disabled={disableToggle}
+                              onCheckedChange={(checked) => {
+                                setVisibleColumnIds((current) => {
+                                  const nextCurrent =
+                                    current.length > 0 ? current : defaultVisibleColumnIds
+                                  if (checked) {
+                                    return nextCurrent.includes(column.id)
+                                      ? nextCurrent
+                                      : [...nextCurrent, column.id]
+                                  }
+
+                                  if (nextCurrent.length === 1) {
+                                    return nextCurrent
+                                  }
+
+                                  return nextCurrent.filter((id) => id !== column.id)
+                                })
+                              }}
+                            >
+                              {column.header}
+                            </DropdownMenuCheckboxItem>
+                          )
+                        })}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+              </div>
             </div>
           </div>
         </section>
@@ -499,7 +525,14 @@ export function MasterList<TData>({
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+      <section
+        className="relative overflow-visible rounded-md border bg-card shadow-sm"
+        data-technical-name={table.technicalName ?? "block.master-list.table"}
+      >
+        <TechnicalNameBadge
+          name={table.technicalName ?? "block.master-list.table"}
+          className="absolute -top-3 right-4 z-20"
+        />
         <Table className="min-w-full">
           <TableHeader className="bg-muted">
             <TableRow className="sticky top-0 z-10 hover:bg-muted">

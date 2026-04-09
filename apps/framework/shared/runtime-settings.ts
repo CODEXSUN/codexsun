@@ -262,6 +262,20 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
     ],
   },
   {
+    id: "developer-tools",
+    label: "Developer Settings",
+    summary: "Internal developer and refactor aids that should remain hidden during normal business usage.",
+    fields: [
+      {
+        key: "VITE_SHOW_DEVOPS_NAMES",
+        label: "Show Devops Names",
+        type: "boolean",
+        description:
+          "Reveal technical page, shell, section, and block identifiers across the application for refactor and rewrite coordination.",
+      },
+    ],
+  },
+  {
     id: "database",
     label: "Database",
     summary: "Primary runtime storage including MariaDB, PostgreSQL, or SQLite fallback.",

@@ -26,6 +26,7 @@ import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
 import { MasterList } from "@/components/blocks/master-list"
 import { RecordActionMenu } from "@/components/blocks/record-action-menu"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1128,7 +1129,7 @@ function RecordShowActions({
 }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger>
+      <AlertDialogTrigger asChild>
         <Button type="button" className="gap-2 bg-destructive text-white hover:bg-destructive/90">
           <Trash2Icon className="size-4" />
           Delete
@@ -2986,7 +2987,11 @@ export function ProductsSection({
           {listError}
         </div>
       ) : null}
-      <Card className="mb-4">
+      <Card className="relative mb-4 overflow-visible" data-technical-name="section.core.products.filters">
+        <TechnicalNameBadge
+          name="section.core.products.filters"
+          className="absolute -top-3 right-4 z-20"
+        />
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Product Filters</CardTitle>
           <CardDescription>
@@ -3152,6 +3157,7 @@ export function ProductsSection({
           pageTitle: "Products",
           pageDescription:
             "Create and manage shared product masters with variants, pricing, and stock.",
+          technicalName: "page.core.products",
           actions: (
             <Button
               type="button"
@@ -3182,6 +3188,7 @@ export function ProductsSection({
           setCurrentPage(1)
         })}
         table={{
+          technicalName: "section.core.products.table",
           columns: [
             {
               id: "name",

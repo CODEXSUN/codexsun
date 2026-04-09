@@ -38,9 +38,14 @@ export const uiFeedbackSettingsSchema = z.object({
   toast: toastSettingsSchema,
 })
 
+export const uiDeveloperToolsSettingsSchema = z.object({
+  showTechnicalNames: z.boolean(),
+})
+
 export const appSettingsSnapshotSchema = z.object({
   authMetadata: authMetadataSettingsSchema,
   uiFeedback: uiFeedbackSettingsSchema,
+  uiDeveloperTools: uiDeveloperToolsSettingsSchema,
   loadedAt: z.string().min(1),
 })
 
@@ -54,5 +59,6 @@ export type ToastPosition = z.infer<typeof toastPositionSchema>
 export type ToastTone = z.infer<typeof toastToneSchema>
 export type ToastSettings = z.infer<typeof toastSettingsSchema>
 export type UiFeedbackSettings = z.infer<typeof uiFeedbackSettingsSchema>
+export type UiDeveloperToolsSettings = z.infer<typeof uiDeveloperToolsSettingsSchema>
 export type AppSettingsSnapshot = z.infer<typeof appSettingsSnapshotSchema>
 export type AppSettingsResponse = z.infer<typeof appSettingsResponseSchema>

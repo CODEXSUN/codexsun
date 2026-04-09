@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Users,
   Workflow,
+  Wrench,
 } from "lucide-react"
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -105,6 +106,22 @@ const frameworkUtilityGroups = [
         icon: Settings2,
         name: "Core Settings",
         route: "/dashboard/settings/core-settings",
+      },
+      {
+        icon: Building2,
+        name: "Companies",
+        route: "/dashboard/settings/companies",
+      },
+    ],
+  },
+  {
+    id: "developer",
+    label: "Developer",
+    items: [
+      {
+        icon: Wrench,
+        name: "Developer Settings",
+        route: "/dashboard/settings/developer-settings",
       },
       {
         icon: ShieldCheck,

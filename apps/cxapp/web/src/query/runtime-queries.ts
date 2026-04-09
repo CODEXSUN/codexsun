@@ -13,6 +13,42 @@ declare global {
   }
 }
 
+const DEVTOOLS_NAMES_STORAGE_KEY = "codexsun.ui.developer-tools.show-technical-names"
+
+function readShowTechnicalNamesOverride() {
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  const value = window.localStorage.getItem(DEVTOOLS_NAMES_STORAGE_KEY)
+
+  if (value === "true") {
+    return true
+  }
+
+  if (value === "false") {
+    return false
+  }
+
+  return null
+}
+
+function applyAppSettingsOverrides(settings: AppSettingsSnapshot) {
+  const showTechnicalNamesOverride = readShowTechnicalNamesOverride()
+
+  if (showTechnicalNamesOverride == null) {
+    return settings
+  }
+
+  return {
+    ...settings,
+    uiDeveloperTools: {
+      ...settings.uiDeveloperTools,
+      showTechnicalNames: showTechnicalNamesOverride,
+    },
+  }
+}
+
 async function requestJson<T>(path: string, withAuth = false) {
   const accessToken = withAuth ? getStoredAccessToken() : null
   const response = await fetch(path, {
@@ -66,22 +102,26 @@ export function useRuntimeAppSettingsQuery() {
     queryKey: queryKeys.runtimeAppSettings,
     queryFn: async () => {
       if (window.__CODEXSUN_APP_SETTINGS__) {
-        return window.__CODEXSUN_APP_SETTINGS__ ?? null
+        return applyAppSettingsOverrides(window.__CODEXSUN_APP_SETTINGS__) ?? null
       }
 
       try {
         const payload = await requestJson<AppSettingsSnapshot>("/public/v1/app-settings")
-        const settings = payload.item ?? fallbackRuntimeAppSettings
+        const settings = applyAppSettingsOverrides(payload.item ?? fallbackRuntimeAppSettings)
         window.__CODEXSUN_APP_SETTINGS__ = settings
 
         return settings
       } catch {
-        window.__CODEXSUN_APP_SETTINGS__ = fallbackRuntimeAppSettings
-        return fallbackRuntimeAppSettings
+        const settings = applyAppSettingsOverrides(fallbackRuntimeAppSettings)
+        window.__CODEXSUN_APP_SETTINGS__ = settings
+        return settings
       }
 
     },
-    initialData: () => window.__CODEXSUN_APP_SETTINGS__ ?? fallbackRuntimeAppSettings,
+    initialData: () =>
+      window.__CODEXSUN_APP_SETTINGS__
+        ? applyAppSettingsOverrides(window.__CODEXSUN_APP_SETTINGS__)
+        : undefined,
     retry: false,
   })
 }
