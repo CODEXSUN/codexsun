@@ -88,6 +88,15 @@ Every app folder must keep the same baseline shape:
 19. Keep suite-facing auth pages and browser session persistence in `apps/cxapp`; do not move routed auth workflows into `apps/ui`.
 20. Keep ERPNext connection settings, todo/item/receipt snapshots, and connector sync logs inside `apps/frappe`; if the connector needs to project into another app such as `ecommerce`, add a narrow app-owned service in the target app instead of writing across boundaries ad hoc.
 21. Keep only one browser login and backend session system in `apps/cxapp`; customer portal access in `apps/ecommerce` must consume that shared auth session instead of creating a second login store or token flow.
+22. All upcoming code and newly created files must be written in small, clean, responsibility-focused modules; do not create new oversized files or mixed-responsibility files.
+23. New frontend files must keep presentation, local UI state, business logic, data access, and mapping clearly separated; do not bury domain behavior inside routed page components.
+24. New backend files must follow clean architecture where relevant: controller or route layer for transport, service layer for business rules, repository or data layer for persistence access, and helper or type modules only when they have a clear single purpose.
+25. Prefer creating a new focused file over extending an already large or noisy file, but only when the new file has clear ownership and naming.
+26. Aim to keep new files reviewable and compact; if a file is growing toward a large mixed-responsibility surface, stop and move the new concern into an app-owned module before it becomes hard to maintain.
+27. Every new file must have an obvious ownership boundary, predictable name, and direct import path; avoid vague utility dumping and hidden cross-app coupling.
+28. For upcoming UI work, preserve the existing design system, behavior, UX flow, naming, and product nature; new implementation must use the established system instead of inventing a parallel one.
+29. Do not create a new concept, shared abstraction, engine layer, naming system, or repo-wide pattern for new code unless the user explicitly approves it first.
+30. Write upcoming code so the repository becomes easier to maintain and easier to open source later, with strong developer experience, clear module boundaries, and minimal hidden behavior.
 
 ## Implementation Style
 
