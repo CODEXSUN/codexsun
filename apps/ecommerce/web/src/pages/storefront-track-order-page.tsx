@@ -68,7 +68,7 @@ export function StorefrontTrackOrderPage() {
         <Card className="rounded-[1.8rem] border-border/70 py-0 shadow-sm">
           <CardContent className="p-5">
             <form
-              className="grid gap-4 md:grid-cols-[1fr_1fr_auto]"
+              className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end"
               onSubmit={(event) => {
                 event.preventDefault()
                 const next = new URLSearchParams()
@@ -94,7 +94,7 @@ export function StorefrontTrackOrderPage() {
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </div>
-              <Button type="submit" className="self-end rounded-full">
+              <Button type="submit" className="w-full self-end rounded-full md:w-auto">
                 Track
               </Button>
             </form>

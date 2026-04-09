@@ -201,10 +201,10 @@ export function StorefrontProductPage() {
                           onChange={setQuantity}
                         />
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-3">
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                         <Button
                           size="lg"
-                          className="rounded-full bg-[#201712] text-white hover:bg-[#31231b]"
+                          className="w-full rounded-full bg-[#201712] text-white hover:bg-[#31231b] sm:w-auto"
                           disabled={product.availableQuantity <= 0}
                           onClick={() =>
                             cart.addItem(
@@ -228,7 +228,7 @@ export function StorefrontProductPage() {
                         <Button
                           size="lg"
                           variant="outline"
-                          className="rounded-full border-[#ddd1c2] bg-white/92 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white"
+                          className="w-full rounded-full border-[#ddd1c2] bg-white/92 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white sm:w-auto"
                           disabled={product.availableQuantity <= 0}
                           onClick={() => {
                             cart.addItem(
@@ -252,7 +252,7 @@ export function StorefrontProductPage() {
                         <Button
                           size="lg"
                           variant="outline"
-                          className="rounded-full border-[#ddd1c2] bg-white/92 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white"
+                          className="w-full rounded-full border-[#ddd1c2] bg-white/92 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white sm:w-auto"
                           onClick={() => void handleToggleWishlist(product.id)}
                         >
                           <Heart className={isWishlisted ? "fill-current text-rose-600" : undefined} />
@@ -290,7 +290,7 @@ export function StorefrontProductPage() {
               </div>
             </section>
             <section className="space-y-5">
-              <div className="flex items-end justify-between gap-4">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                     Related
@@ -299,7 +299,7 @@ export function StorefrontProductPage() {
                     You may also like
                   </h2>
                 </div>
-                <Button asChild variant="outline" className="rounded-full">
+                <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
                   <Link to={storefrontPaths.catalog()}>Back to catalog</Link>
                 </Button>
               </div>

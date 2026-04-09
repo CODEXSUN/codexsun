@@ -2358,8 +2358,8 @@ export function StorefrontCheckoutContent({
       </div>
 
       <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
-        <DialogContent className="w-[min(94vw,58rem)] gap-5 rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(252,248,243,0.96))] p-0 shadow-[0_36px_90px_-52px_rgba(48,31,19,0.28)]">
-          <DialogHeader className="border-b border-[#efe4d8] px-6 pt-6 pb-5">
+        <DialogContent className="w-[min(94vw,58rem)] max-h-[90vh] gap-5 overflow-hidden rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(252,248,243,0.96))] p-0 shadow-[0_36px_90px_-52px_rgba(48,31,19,0.28)]">
+          <DialogHeader className="border-b border-[#efe4d8] px-4 pt-5 pb-4 sm:px-6 sm:pt-6 sm:pb-5">
             <DialogTitle className="text-[1.75rem] tracking-tight">
               {editingAddressKey ? "Edit delivery address" : "Add delivery address"}
             </DialogTitle>
@@ -2370,7 +2370,7 @@ export function StorefrontCheckoutContent({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 px-6 pb-6">
+          <div className="space-y-5 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {addressDialogError ? (
               <div className="flex items-start gap-3 rounded-[1.25rem] border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-950">
                 <CircleAlert className="mt-0.5 size-4 shrink-0" />
@@ -2877,18 +2877,18 @@ export function StorefrontCheckoutContent({
               </div>
             ) : null}
 
-            <DialogFooter className="pt-1">
+            <DialogFooter className="pt-1 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl border-[#ddd1c2] bg-white/85 px-5 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white"
+                className="w-full rounded-xl border-[#ddd1c2] bg-white/85 px-5 text-[#2f241d] hover:border-[#d0c0ae] hover:bg-white sm:w-auto"
                 onClick={() => setIsAddressDialogOpen(false)}
               >
                 Cancel
               </Button>
               <Button
                 type="button"
-                className="rounded-xl bg-[#201712] px-5 text-white hover:bg-[#31231b]"
+                className="w-full rounded-xl bg-[#201712] px-5 text-white hover:bg-[#31231b] sm:w-auto"
                 disabled={isSavingAddress || isLoadingLookups}
                 onClick={() => void handleSaveAddress()}
               >

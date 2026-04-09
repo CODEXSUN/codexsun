@@ -122,11 +122,11 @@ export function CampaignTrustSection({
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex w-full flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
               {hasContent(campaign.primaryCtaLabel) ? (
                 <Button
                   asChild
-                  className="h-11 min-w-[10.75rem] rounded-full border px-5 shadow-[0_16px_34px_-20px_rgba(10,6,3,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-22px_rgba(10,6,3,0.62)]"
+                  className="h-11 w-full rounded-full border px-5 shadow-[0_16px_34px_-20px_rgba(10,6,3,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-22px_rgba(10,6,3,0.62)] sm:w-auto"
                   style={{
                     backgroundColor: design?.primaryButtonBackgroundColor ?? "#fffaf5",
                     color: design?.primaryButtonTextColor ?? "#241913",
@@ -146,7 +146,7 @@ export function CampaignTrustSection({
                 <Button
                   asChild
                   variant="outline"
-                  className="h-11 min-w-[10.75rem] rounded-full border px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_34px_-22px_rgba(0,0,0,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_40px_-24px_rgba(0,0,0,0.62)]"
+                  className="h-11 w-full rounded-full border px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_34px_-22px_rgba(0,0,0,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_40px_-24px_rgba(0,0,0,0.62)] sm:w-auto"
                   style={{
                     backgroundColor: design?.secondaryButtonBackgroundColor ?? "#543724",
                     color: design?.secondaryButtonTextColor ?? "#fff4e8",

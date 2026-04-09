@@ -160,7 +160,7 @@ export function StorefrontHomePage() {
             fallback={storefrontHomepageSectionPerformance.featured.fallback}
           >
           <section className="space-y-5" data-technical-name="section.storefront.home.featured">
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 {hasContent(data?.settings.sections.featured.eyebrow) ? (
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -179,7 +179,7 @@ export function StorefrontHomePage() {
                 ) : null}
               </div>
               {hasContent(data?.settings.sections.featured.ctaLabel) ? (
-                <Button asChild variant="outline" className="rounded-full">
+                <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
                   <Link
                     to={
                       normalizeStorefrontHref(data?.settings.sections.featured.ctaHref) ??
@@ -317,7 +317,7 @@ export function StorefrontHomePage() {
 
         {hasNewArrivalsSection ? (
           <section className="space-y-5" data-technical-name="section.storefront.home.new-arrivals">
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 {hasContent(data?.settings.sections.newArrivals.eyebrow) ? (
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -336,7 +336,7 @@ export function StorefrontHomePage() {
                 ) : null}
               </div>
               {hasContent(data?.settings.sections.newArrivals.ctaLabel) ? (
-                <Button asChild variant="outline" className="rounded-full">
+                <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
                   <Link
                     to={
                       normalizeStorefrontHref(data?.settings.sections.newArrivals.ctaHref) ??
@@ -374,7 +374,7 @@ export function StorefrontHomePage() {
 
         {hasBestSellersSection ? (
           <section className="space-y-5" data-technical-name="section.storefront.home.best-sellers">
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 {hasContent(data?.settings.sections.bestSellers.eyebrow) ? (
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -393,7 +393,7 @@ export function StorefrontHomePage() {
                 ) : null}
               </div>
               {hasContent(data?.settings.sections.bestSellers.ctaLabel) ? (
-                <Button asChild variant="outline" className="rounded-full">
+                <Button asChild variant="outline" className="w-full rounded-full sm:w-auto">
                   <Link
                     to={
                       normalizeStorefrontHref(data?.settings.sections.bestSellers.ctaHref) ??

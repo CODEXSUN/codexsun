@@ -168,7 +168,7 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
           <button
             type="button"
             onClick={() => void handleCopyCode()}
-            className="group relative flex min-w-[14rem] items-center justify-between overflow-hidden rounded-[1.6rem] border px-4 py-4 text-left transition-transform hover:-translate-y-0.5"
+            className="group relative flex w-full flex-col items-start gap-3 overflow-hidden rounded-[1.6rem] border px-4 py-4 text-left transition-transform hover:-translate-y-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             style={{
               backgroundColor: config.codeBackgroundColor,
               borderColor: `${config.codeTextColor}22`,
@@ -196,7 +196,7 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
           {hasContent(config.buttonLabel) && hasContent(config.buttonHref) ? (
             <Button
               asChild
-              className="h-12 min-w-[12rem] rounded-full border px-6 shadow-[0_18px_34px_-20px_rgba(31,24,19,0.48)] transition-transform duration-300 hover:-translate-y-0.5"
+              className="h-12 w-full rounded-full border px-6 shadow-[0_18px_34px_-20px_rgba(31,24,19,0.48)] transition-transform duration-300 hover:-translate-y-0.5 sm:w-auto"
               style={{
                 backgroundColor: config.buttonBackgroundColor,
                 color: config.buttonTextColor,
