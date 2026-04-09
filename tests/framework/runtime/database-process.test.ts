@@ -11,6 +11,7 @@ import {
   coreTableNames,
 } from "../../../apps/core/database/table-names.js"
 import { cxappTableNames } from "../../../apps/cxapp/database/table-names.js"
+import { coreMailboxArchiveMigration } from "../../../apps/cxapp/database/migration/08-mailbox-archive.js"
 import { listCommonModuleSummaries } from "../../../apps/core/src/services/common-module-service.js"
 import { listCompanies } from "../../../apps/cxapp/src/services/company-service.js"
 import { listContacts } from "../../../apps/core/src/services/contact-service.js"
@@ -263,6 +264,40 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
       assert.equal(frappeTodos.todos.items.length, 3)
       assert.equal(frappeItems.manager.items.length, 3)
       assert.equal(frappeReceipts.manager.items.length, 2)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("mailbox archive migration tolerates an existing archived_at column", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-db-mailbox-archive-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      const queryDatabase = runtime.primary as Kysely<DynamicDatabase>
+
+      await queryDatabase.schema
+        .createTable(cxappTableNames.mailboxMessages)
+        .addColumn("id", "varchar(191)", (column) => column.primaryKey())
+        .addColumn("subject", "text", (column) => column.notNull())
+        .addColumn("from_email", "varchar(255)", (column) => column.notNull())
+        .addColumn("status", "varchar(64)", (column) => column.notNull())
+        .addColumn("created_at", "varchar(40)", (column) => column.notNull())
+        .addColumn("updated_at", "varchar(40)", (column) => column.notNull())
+        .addColumn("archived_at", "varchar(40)")
+        .execute()
+
+      await coreMailboxArchiveMigration.up({ database: runtime.primary })
     } finally {
       await runtime.destroy()
     }

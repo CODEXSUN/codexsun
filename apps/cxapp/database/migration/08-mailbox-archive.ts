@@ -8,9 +8,28 @@ export const coreMailboxArchiveMigration = defineDatabaseMigration({
   name: "Add archive state to mailbox messages",
   order: 80,
   up: async ({ database }) => {
-    await database.schema
-      .alterTable(cxappTableNames.mailboxMessages)
-      .addColumn("archived_at", "varchar(40)")
-      .execute()
+    try {
+      await database.schema
+        .alterTable(cxappTableNames.mailboxMessages)
+        .addColumn("archived_at", "varchar(40)")
+        .execute()
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String(error.code).toLowerCase()
+          : ""
+
+      if (
+        message.includes("duplicate column") ||
+        message.includes("duplicate column name") ||
+        message.includes("already exists") ||
+        code === "sqlite_error"
+      ) {
+        return
+      }
+
+      throw error
+    }
   },
 })
