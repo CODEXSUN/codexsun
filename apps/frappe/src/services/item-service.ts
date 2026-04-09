@@ -28,7 +28,7 @@ import { frappeTableNames } from "../../database/table-names.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
-import { frappeSettingsSchema } from "../../shared/index.js"
+import { readStoredFrappeSettings } from "./settings-service.js"
 
 function slugify(value: string) {
   return value
@@ -73,11 +73,7 @@ async function readItemSyncLogs(database: Kysely<unknown>) {
 }
 
 async function readStoredDefaults(database: Kysely<unknown>) {
-  const [settings] = await listStorePayloads(
-    database,
-    frappeTableNames.settings,
-    frappeSettingsSchema
-  )
+  const settings = await readStoredFrappeSettings(database)
 
   return settings ?? {
     defaultCompany: "",

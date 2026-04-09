@@ -332,7 +332,40 @@ async function readPurchaseItemRows(database: Kysely<unknown>) {
 
 async function readProducts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
-  return items.map((item) => productSchema.parse(item))
+  return items.map((item) =>
+    productSchema.parse({
+      ...item,
+      attributeCount:
+        typeof (item as { attributeCount?: unknown }).attributeCount === "number"
+          ? (item as { attributeCount: number }).attributeCount
+          : Array.isArray((item as { attributes?: unknown }).attributes)
+            ? ((item as { attributes: unknown[] }).attributes?.length ?? 0)
+            : 0,
+      totalStockQuantity:
+        typeof (item as { totalStockQuantity?: unknown }).totalStockQuantity === "number"
+          ? (item as { totalStockQuantity: number }).totalStockQuantity
+          : [
+              ...(
+                Array.isArray((item as { stockItems?: unknown }).stockItems)
+                  ? ((item as { stockItems: Array<{ quantity?: unknown }> }).stockItems ?? [])
+                  : []
+              ),
+            ].reduce(
+              (sum, stockItem) =>
+                sum + (typeof stockItem.quantity === "number" ? stockItem.quantity : 0),
+              0
+            ) +
+            (
+              Array.isArray((item as { variants?: unknown }).variants)
+                ? ((item as { variants: Array<{ stockQuantity?: unknown }> }).variants ?? [])
+                : []
+            ).reduce(
+              (sum, variant) =>
+                sum + (typeof variant.stockQuantity === "number" ? variant.stockQuantity : 0),
+              0
+            ),
+    })
+  )
 }
 
 async function readWarehouses(database: Kysely<unknown>) {

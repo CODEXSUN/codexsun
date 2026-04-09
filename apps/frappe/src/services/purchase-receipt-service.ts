@@ -19,7 +19,7 @@ import { frappeTableNames } from "../../database/table-names.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
-import { frappeSettingsSchema } from "../../shared/index.js"
+import { readStoredFrappeSettings } from "./settings-service.js"
 
 function createReferenceOptions(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
@@ -47,19 +47,6 @@ async function readReceipts(database: Kysely<unknown>) {
   )
 }
 
-async function readStoredSettings(database: Kysely<unknown>) {
-  const [settings] = await listStorePayloads(
-    database,
-    frappeTableNames.settings,
-    frappeSettingsSchema
-  )
-
-  return settings ?? {
-    defaultCompany: "",
-    defaultWarehouse: "",
-  }
-}
-
 function decorateReceipt(receipt: FrappePurchaseReceipt) {
   const decoratedItems = receipt.items.map((item) => ({
     ...item,
@@ -85,7 +72,7 @@ export async function listFrappePurchaseReceipts(
 
   const [receipts, settings] = await Promise.all([
     readReceipts(database),
-    readStoredSettings(database),
+    readStoredFrappeSettings(database),
   ])
   const items = receipts.map((receipt) => decorateReceipt(receipt))
 

@@ -5,6 +5,7 @@ import path from "node:path"
 import test from "node:test"
 
 import {
+  listFrappeItems,
   listFrappeItemProductSyncLogs,
   syncFrappeItemsToProducts,
 } from "../../apps/frappe/src/services/item-service.js"
@@ -33,6 +34,7 @@ import { readFrappeStockProjectionContract } from "../../apps/frappe/src/service
 import { readFrappeCustomerCommercialProfileContract } from "../../apps/frappe/src/services/customer-commercial-profile-contract-service.js"
 import { readFrappeSalesOrderPushPolicy } from "../../apps/frappe/src/services/sales-order-policy-service.js"
 import { readFrappeSyncPolicy } from "../../apps/frappe/src/services/sync-policy-service.js"
+import { frappeTableNames } from "../../apps/frappe/database/table-names.js"
 import {
   attachStorefrontOrderErpSalesOrderLink,
   createCheckoutOrder,
@@ -298,6 +300,102 @@ test("frappe sync policy derives timeout and retry guardrails from saved connect
         policy.policy.operatorRules.join(" "),
         /fail closed|manual-replay/i
       )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("frappe services tolerate legacy settings rows without derived verification fields", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-legacy-settings-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const adminUser = createAdminUser()
+      await saveFrappeSettings(runtime.primary, adminUser, {
+        enabled: true,
+        baseUrl: "https://erp.example.test",
+        siteName: "codexsun",
+        apiKey: "saved-key",
+        apiSecret: "saved-secret",
+        timeoutSeconds: 25,
+        defaultCompany: "Codexsun Trading Pvt Ltd",
+        defaultWarehouse: "Main Warehouse - CS",
+        defaultPriceList: "Standard Selling",
+        defaultCustomerGroup: "Retail Customer",
+        defaultItemGroup: "Ready Goods",
+      })
+
+      const database = runtime.primary as {
+        selectFrom: (table: string) => {
+          select: (columns: string[]) => {
+            where: (column: string, op: string, value: string) => {
+              executeTakeFirst: () => Promise<{ payload: string } | undefined>
+            }
+          }
+        }
+        updateTable: (table: string) => {
+          set: (values: Record<string, unknown>) => {
+            where: (column: string, op: string, value: string) => {
+              execute: () => Promise<unknown>
+            }
+          }
+        }
+      }
+      const row = await database
+        .selectFrom(frappeTableNames.settings)
+        .select(["payload"])
+        .where("id", "=", "frappe-settings:default")
+        .executeTakeFirst()
+
+      assert.ok(row)
+
+      const legacyPayload = JSON.parse(row.payload) as Record<string, unknown>
+      delete legacyPayload.hasApiKey
+      delete legacyPayload.hasApiSecret
+      delete legacyPayload.lastVerifiedAt
+      delete legacyPayload.lastVerificationStatus
+      delete legacyPayload.lastVerificationMessage
+      delete legacyPayload.lastVerificationDetail
+
+      await database
+        .updateTable(frappeTableNames.settings)
+        .set({ payload: JSON.stringify(legacyPayload) })
+        .where("id", "=", "frappe-settings:default")
+        .execute()
+
+      const [settings, items, receipts, syncPolicy, salesOrderPolicy] =
+        await Promise.all([
+          readFrappeSettings(runtime.primary, adminUser),
+          listFrappeItems(runtime.primary, adminUser),
+          listFrappePurchaseReceipts(runtime.primary, adminUser),
+          readFrappeSyncPolicy(runtime.primary, adminUser),
+          readFrappeSalesOrderPushPolicy(runtime.primary, adminUser),
+        ])
+
+      assert.equal(settings.settings.hasApiKey, true)
+      assert.equal(settings.settings.hasApiSecret, true)
+      assert.equal(settings.settings.lastVerificationStatus, "idle")
+      assert.equal(items.manager.references.defaults.company, "Codexsun Trading Pvt Ltd")
+      assert.equal(
+        receipts.manager.references.defaults.warehouse,
+        "Main Warehouse - CS"
+      )
+      assert.equal(syncPolicy.policy.connectorEnabled, true)
+      assert.equal(syncPolicy.policy.verificationStatus, "idle")
+      assert.equal(salesOrderPolicy.policy.connectorEnabled, true)
+      assert.equal(salesOrderPolicy.policy.verificationStatus, "idle")
     } finally {
       await runtime.destroy()
     }

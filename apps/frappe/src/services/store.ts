@@ -42,6 +42,22 @@ export async function listStorePayloads<T>(
   return rows.map((row) => schema.parse(JSON.parse(row.payload)))
 }
 
+export async function listStorePayloadsRaw(
+  database: Kysely<unknown>,
+  tableName: string
+) {
+  await ensureJsonStoreTable(database, tableName)
+
+  const rows = (await asQueryDatabase(database)
+    .selectFrom(tableName)
+    .select(["id", "payload"])
+    .orderBy("sort_order")
+    .orderBy("id")
+    .execute()) as JsonStoreRow[]
+
+  return rows.map((row) => JSON.parse(row.payload) as unknown)
+}
+
 export async function getStorePayloadById<T>(
   database: Kysely<unknown>,
   tableName: string,

@@ -5,6 +5,7 @@ import path from "node:path"
 import test from "node:test"
 
 import { billingTableNames } from "../../apps/billing/database/table-names.js"
+import { coreTableNames } from "../../apps/core/database/table-names.js"
 import { executeBillingOpeningBalanceRollover } from "../../apps/billing/src/services/opening-balance-rollover-service.js"
 import { getBillingAccountingReports } from "../../apps/billing/src/services/reporting-service.js"
 import { executeBillingYearEndAdjustmentControl } from "../../apps/billing/src/services/year-end-control-service.js"
@@ -20,6 +21,27 @@ import {
   createRuntimeDatabases,
   prepareApplicationDatabase,
 } from "../../apps/framework/src/runtime/database/index.js"
+
+type DynamicDatabase = Record<string, Record<string, unknown>>
+
+function asDb(database: unknown) {
+  return database as {
+    selectFrom: (tableName: string) => {
+      select: (columns: string[]) => {
+        where: (column: string, operator: string, value: string) => {
+          executeTakeFirstOrThrow: () => Promise<{ id: string; payload: string }>
+        }
+      }
+    }
+    updateTable: (tableName: string) => {
+      set: (values: Record<string, unknown>) => {
+        where: (column: string, operator: string, value: string) => {
+          execute: () => Promise<unknown>
+        }
+      }
+    }
+  } & DynamicDatabase
+}
 
 const adminUser = {
   id: "auth-user:platform-admin",
@@ -1938,6 +1960,51 @@ test("billing reporting service exposes inventory authority, valuation policy, s
         reports.item.warehouseStockPosition.items.some((item) => item.inventoryValue > 0),
         true
       )
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("billing reporting service tolerates legacy product payloads without derived counters", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-billing-legacy-products-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const queryDb = asDb(runtime.primary)
+      const seededProductRow = await queryDb
+        .selectFrom(coreTableNames.products)
+        .select(["id", "payload"])
+        .where("id", "=", "core-product:aster-linen-shirt")
+        .executeTakeFirstOrThrow()
+      const legacyProduct = JSON.parse(seededProductRow.payload) as Record<string, unknown>
+
+      delete legacyProduct.attributeCount
+      delete legacyProduct.totalStockQuantity
+
+      await queryDb
+        .updateTable(coreTableNames.products)
+        .set({
+          payload: JSON.stringify(legacyProduct),
+        })
+        .where("id", "=", seededProductRow.id)
+        .execute()
+
+      const reports = await getBillingAccountingReports(runtime.primary, adminUser, config)
+
+      assert.ok(reports.item.stockValuationReport.items.length >= 1)
+      assert.ok(reports.item.warehouseStockPosition.items.length >= 1)
     } finally {
       await runtime.destroy()
     }

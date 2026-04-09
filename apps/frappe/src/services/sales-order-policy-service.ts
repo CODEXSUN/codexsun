@@ -1,24 +1,10 @@
 import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
-import {
-  frappeSalesOrderPushPolicyResponseSchema,
-  frappeSettingsSchema,
-} from "../../shared/index.js"
+import { frappeSalesOrderPushPolicyResponseSchema } from "../../shared/index.js"
 
-import { frappeTableNames } from "../../database/table-names.js"
 import { assertFrappeViewer } from "./access.js"
-import { listStorePayloads } from "./store.js"
-
-async function readStoredSettings(database: Kysely<unknown>) {
-  const [settings] = await listStorePayloads(
-    database,
-    frappeTableNames.settings,
-    frappeSettingsSchema
-  )
-
-  return settings ?? null
-}
+import { readStoredFrappeSettings } from "./settings-service.js"
 
 export async function readFrappeSalesOrderPushPolicy(
   database: Kysely<unknown>,
@@ -26,7 +12,7 @@ export async function readFrappeSalesOrderPushPolicy(
 ) {
   assertFrappeViewer(user)
 
-  const settings = await readStoredSettings(database)
+  const settings = await readStoredFrappeSettings(database)
 
   return frappeSalesOrderPushPolicyResponseSchema.parse({
     policy: {

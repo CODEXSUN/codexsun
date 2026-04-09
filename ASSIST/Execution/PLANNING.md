@@ -201,3 +201,10 @@ Manual review only for this batch.
 1. confirmed source constraints from `ASSIST/AI_RULES.md`
 2. confirmed refactor intent from `ASSIST/Execution/refactor.md`
 3. wrote planning as phased, modular, and implementation-safe
+
+## #107 Execution Notes
+
+1. Phase `1.1` was executed as a behavior-preserving billing workspace split that keeps the public entry stable while moving lower-coupling sections into app-owned modules under `apps/billing/web/src/workspace-sections/`.
+2. During validation, billing and Frappe surfaced seeded-data compatibility failures where older stored payloads no longer satisfied newer strict schemas.
+3. The batch therefore included narrow backward-compatible normalization in billing reporting and Frappe settings reads instead of broad contract changes.
+4. Validation for the executed scope covered `npm.cmd run typecheck`, `npm.cmd run build`, `npx.cmd tsx --test tests/billing/reporting-service.test.ts`, and `npx.cmd tsx --test tests/frappe/services.test.ts`.

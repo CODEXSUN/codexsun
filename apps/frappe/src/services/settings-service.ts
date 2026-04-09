@@ -22,7 +22,10 @@ import {
 import { frappeTableNames } from "../../database/table-names.js"
 import { assertSuperAdmin } from "./access.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
-import { listStorePayloads, replaceStorePayloads } from "./store.js"
+import {
+  listStorePayloadsRaw,
+  replaceStorePayloads,
+} from "./store.js"
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "")
@@ -278,6 +281,48 @@ function sanitizeSettings(settings: FrappeSettings) {
   })
 }
 
+function normalizeStoredSettingsPayload(payload: unknown) {
+  const candidate =
+    payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>)
+      : {}
+
+  return {
+    ...defaultFrappeSettings,
+    ...candidate,
+    hasApiKey:
+      typeof candidate.hasApiKey === "boolean"
+        ? candidate.hasApiKey
+        : Boolean(candidate.apiKey),
+    hasApiSecret:
+      typeof candidate.hasApiSecret === "boolean"
+        ? candidate.hasApiSecret
+        : Boolean(candidate.apiSecret),
+    isConfigured:
+      typeof candidate.isConfigured === "boolean"
+        ? candidate.isConfigured
+        : Boolean(candidate.baseUrl && candidate.apiKey && candidate.apiSecret),
+    lastVerifiedAt:
+      typeof candidate.lastVerifiedAt === "string"
+        ? candidate.lastVerifiedAt
+        : "",
+    lastVerificationStatus:
+      candidate.lastVerificationStatus === "passed" ||
+      candidate.lastVerificationStatus === "failed" ||
+      candidate.lastVerificationStatus === "idle"
+        ? candidate.lastVerificationStatus
+        : "idle",
+    lastVerificationMessage:
+      typeof candidate.lastVerificationMessage === "string"
+        ? candidate.lastVerificationMessage
+        : "",
+    lastVerificationDetail:
+      typeof candidate.lastVerificationDetail === "string"
+        ? candidate.lastVerificationDetail
+        : "",
+  }
+}
+
 async function readResponseText(response: Response) {
   const contentType = response.headers.get("content-type") ?? ""
 
@@ -301,14 +346,14 @@ async function readResponseText(response: Response) {
   return (await response.text().catch(() => "")).trim() || `HTTP ${response.status}`
 }
 
-async function readStoredSettings(database: Kysely<unknown>) {
-  const [settings] = await listStorePayloads(
-    database,
-    frappeTableNames.settings,
-    frappeSettingsSchema
-  )
+export async function readStoredFrappeSettings(database: Kysely<unknown>) {
+  const [settings] = await listStorePayloadsRaw(database, frappeTableNames.settings)
 
-  return settings ?? defaultFrappeSettings
+  if (!settings) {
+    return defaultFrappeSettings
+  }
+
+  return frappeSettingsSchema.parse(normalizeStoredSettingsPayload(settings))
 }
 
 async function verifyAgainstFrappe(
@@ -405,7 +450,7 @@ export async function readFrappeSettings(
 ) {
   assertSuperAdmin(user)
 
-  const settings = await readStoredSettings(database)
+  const settings = await readStoredFrappeSettings(database)
 
   return frappeSettingsResponseSchema.parse({
     settings: sanitizeSettings(settings),
@@ -419,7 +464,7 @@ export async function saveFrappeSettings(
 ) {
   assertSuperAdmin(user)
 
-  const previousSettings = await readStoredSettings(database)
+  const previousSettings = await readStoredFrappeSettings(database)
   const nextSettings = mergeSettings(previousSettings, normalizeSettings(payload))
 
   validateConnectionPayload(nextSettings, false)
@@ -466,7 +511,7 @@ export async function verifyFrappeSettings(
 ) {
   assertSuperAdmin(user)
 
-  const previousSettings = await readStoredSettings(database)
+  const previousSettings = await readStoredFrappeSettings(database)
   const verificationPayload = normalizeVerificationPayload(payload)
   const settings = mergeVerificationSettings(previousSettings, verificationPayload)
   const usedSavedCredentials =

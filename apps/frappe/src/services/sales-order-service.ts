@@ -7,7 +7,7 @@ import type { StorefrontOrder } from "../../../ecommerce/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   frappeSalesOrderSyncRecordSchema,
-  frappeSettingsSchema,
+  type FrappeSettings,
   type FrappeSalesOrderSyncLine,
   type FrappeSalesOrderSyncRecord,
 } from "../../shared/index.js"
@@ -15,6 +15,7 @@ import {
 import { frappeTableNames } from "../../database/table-names.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
+import { readStoredFrappeSettings } from "./settings-service.js"
 
 function formatDate(value: string) {
   const date = new Date(value)
@@ -45,16 +46,6 @@ function deriveCustomerCode(order: StorefrontOrder) {
   }
 
   return `ECOM-CONTACT-${order.coreContactId.replace(/[^A-Za-z0-9]+/g, "-").toUpperCase()}`
-}
-
-async function readStoredSettings(database: Kysely<unknown>) {
-  const [settings] = await listStorePayloads(
-    database,
-    frappeTableNames.settings,
-    frappeSettingsSchema
-  )
-
-  return settings ?? null
 }
 
 async function readSalesOrderSyncs(database: Kysely<unknown>) {
@@ -160,7 +151,7 @@ async function readResponseText(response: Response) {
 }
 
 function buildSalesOrderRequest(
-  settings: NonNullable<Awaited<ReturnType<typeof readStoredSettings>>>,
+  settings: FrappeSettings,
   order: StorefrontOrder,
   itemLines: FrappeSalesOrderSyncLine[]
 ) {
@@ -288,7 +279,7 @@ export async function pushStorefrontOrderToFrappeSalesOrder(
   }
 
   const [settings, syncs] = await Promise.all([
-    readStoredSettings(database),
+    readStoredFrappeSettings(database),
     readSalesOrderSyncs(database),
   ])
   const existingRecord = syncs.find((item) => item.storefrontOrderId === order.id) ?? null

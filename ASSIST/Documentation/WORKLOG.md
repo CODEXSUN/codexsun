@@ -2,6 +2,12 @@
 
 ## Done Till Here
 
+### `#107` 2026-04-09
+
+- completed Phase `1.1` by moving the oversized billing workspace entry behind a stable re-export and extracting overview, stock, audit, reporting, shared UI helpers, and billing workspace utilities into focused app-owned modules
+- fixed the billing `Invalid request payload.` crash by normalizing legacy core-product rows inside billing reporting reads, then fixed the same class of break in Frappe by normalizing older stored connector settings rows before strict schema parsing
+- validated the batch with `npm.cmd run typecheck`, `npm.cmd run build`, `npx.cmd tsx --test tests/billing/reporting-service.test.ts`, and `npx.cmd tsx --test tests/frappe/services.test.ts`; the remaining billing e2e failure is a seeded outstanding-bill expectation mismatch, not the payload-parse issue
+
 ### `#101` 2026-04-08
 
 - completed Stage `8.1` by turning the storefront smoke gate into one explicit command and checklist instead of leaving the release proof scattered across separate e2e files

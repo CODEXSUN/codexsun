@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#107] 2026-04-09 - Billing workspace split and legacy billing or Frappe payload compatibility
+
+- completed Phase `1.1` by splitting the billing workspace entry surface into app-owned section modules while preserving the public import path through `apps/billing/web/src/workspace-sections.tsx`
+- hardened billing reporting reads and Frappe connector settings reads so older persisted payloads missing newer derived fields no longer break the billing reports workspace or Frappe settings, items, purchase receipts, and policy screens with `Invalid request payload`
+- validated the batch with `npm.cmd run typecheck`, `npm.cmd run build`, `npx.cmd tsx --test tests/billing/reporting-service.test.ts`, and `npx.cmd tsx --test tests/frappe/services.test.ts`; the existing billing e2e outstanding-bill assertion mismatch remains outside the fixed payload-parse regression
+
 ### [#105] 2026-04-08 - ERP integration decision signoff
 
 - completed Stage `8.5` by making the release-governance ERP mode explicit from the implemented repo state

@@ -45,17 +45,21 @@ This is the largest active UI surface in the repo and the strongest candidate fo
 
 ### 1.1
 
-- [ ] Refactor candidate: `apps/billing/web/src/workspace-sections.tsx`
-- [ ] Current size: `9223` lines
-- [ ] Goal: split workspace sections by billing module and section responsibility
-- [ ] Preserve: current billing UX flow, screen behavior, routing, and existing design-system usage
+- [x] Refactor candidate: `apps/billing/web/src/workspace-sections.tsx`
+- [x] Current size at planning start: `9223` lines
+- [x] Goal: split workspace sections by billing module and section responsibility
+- [x] Preserve: current billing UX flow, screen behavior, routing, and existing design-system usage
+- [x] Status: entrypoint stabilized via `workspace-sections.tsx` re-export and section modules extracted under `apps/billing/web/src/workspace-sections/`
+- [x] Validation: `npm.cmd run typecheck` and `npm.cmd run build`
 
 ### 1.2
 
-- [ ] Refactor candidate: `apps/billing/src/services/reporting-service.ts`
-- [ ] Current size: `2399` lines
-- [ ] Goal: split report generation, report mapping, filtering, calculations, and output shaping into app-owned modules
-- [ ] Preserve: reporting correctness and current report outputs
+- [x] Refactor candidate: `apps/billing/src/services/reporting-service.ts`
+- [x] Current size: `2399` lines
+- [x] Goal: split report generation, report mapping, filtering, calculations, and output shaping into app-owned modules
+- [x] Preserve: reporting correctness and current report outputs
+- [x] Status: behavior hardened first by normalizing legacy product payloads that were breaking `/internal/v1/billing/reports` with `Invalid request payload.`
+- [x] Validation: `npx.cmd tsx --test tests/billing/reporting-service.test.ts`
 
 ### 1.3
 

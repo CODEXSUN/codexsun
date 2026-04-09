@@ -1,29 +1,9 @@
 import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
-import {
-  frappeSettingsSchema,
-  frappeSyncPolicyResponseSchema,
-} from "../../shared/index.js"
-import { frappeTableNames } from "../../database/table-names.js"
+import { frappeSyncPolicyResponseSchema } from "../../shared/index.js"
 import { assertFrappeViewer } from "./access.js"
-import { listStorePayloads } from "./store.js"
-
-async function readStoredSettings(database: Kysely<unknown>) {
-  const [settings] = await listStorePayloads(
-    database,
-    frappeTableNames.settings,
-    frappeSettingsSchema
-  )
-
-  return (
-    settings ?? {
-      enabled: false,
-      timeoutSeconds: 15,
-      lastVerificationStatus: "idle" as const,
-    }
-  )
-}
+import { readStoredFrappeSettings } from "./settings-service.js"
 
 export async function readFrappeSyncPolicy(
   database: Kysely<unknown>,
@@ -31,7 +11,7 @@ export async function readFrappeSyncPolicy(
 ) {
   assertFrappeViewer(user)
 
-  const settings = await readStoredSettings(database)
+  const settings = await readStoredFrappeSettings(database)
   const timeoutSeconds = settings.timeoutSeconds || 15
 
   return frappeSyncPolicyResponseSchema.parse({
