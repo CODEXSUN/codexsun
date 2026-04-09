@@ -33,10 +33,12 @@ IMAGE_TAG="${IMAGE_TAG:-codexsun-app:v1}"
 CODEXSUN_COMPOSE_FILE="${CODEXSUN_COMPOSE_FILE:-.container/clients/codexsun/docker-compose.yml}"
 TMNEXT_COMPOSE_FILE="${TMNEXT_COMPOSE_FILE:-.container/clients/tmnext_in/docker-compose.yml}"
 TIRUPUR_COMPOSE_FILE="${TIRUPUR_COMPOSE_FILE:-.container/clients/tirupur_direct/docker-compose.yml}"
+TECHMEDIA_COMPOSE_FILE="${TECHMEDIA_COMPOSE_FILE:-.container/clients/techmedia_in/docker-compose.yml}"
 
 CODEXSUN_VOLUME="${CODEXSUN_VOLUME:-codexsun_codexsun_runtime}"
 TMNEXT_VOLUME="${TMNEXT_VOLUME:-tmnext-in_tmnext_in_runtime}"
 TIRUPUR_VOLUME="${TIRUPUR_VOLUME:-tirupur-direct_tirupur_direct_runtime}"
+TECHMEDIA_VOLUME="${TECHMEDIA_VOLUME:-techmedia-in_techmedia_in_runtime}"
 
 stop_stack() {
   local label="$1"
@@ -62,10 +64,12 @@ log "Cleaning Codexsun app stacks, runtime volumes, image, and unused Docker res
 stop_stack "codexsun" "$CODEXSUN_COMPOSE_FILE"
 stop_stack "tmnext.in" "$TMNEXT_COMPOSE_FILE"
 stop_stack "tirupurdirect.com" "$TIRUPUR_COMPOSE_FILE"
+stop_stack "techmedia.in" "$TECHMEDIA_COMPOSE_FILE"
 
 remove_volume "$CODEXSUN_VOLUME"
 remove_volume "$TMNEXT_VOLUME"
 remove_volume "$TIRUPUR_VOLUME"
+remove_volume "$TECHMEDIA_VOLUME"
 
 log "Removing image ${IMAGE_TAG}..."
 docker image rm "$IMAGE_TAG" >/dev/null 2>&1 || true
