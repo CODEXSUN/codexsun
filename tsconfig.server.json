@@ -36,5 +36,8 @@
     "apps/*/database/**/*.ts",
     "apps/*/helper/**/*.ts",
     "apps/*/shared/**/*.ts"
+  ],
+  "exclude": [
+    "apps/mobile/**"
   ]
 }
