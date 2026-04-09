@@ -1,0 +1,28 @@
+name: techmedia-in
+
+services:
+  app:
+    image: codexsun-app:v1
+    pull_policy: never
+    build:
+      context: ../../..
+      dockerfile: .container/Dockerfile
+      args:
+        VITE_FRONTEND_TARGET: shop
+    container_name: techmedia-in-app
+    ports:
+      - "4008:4000"
+      - "5008:4000"
+    restart: unless-stopped
+    volumes:
+      - techmedia_in_runtime:/opt/codexsun/runtime
+    networks:
+      - codexion-network
+
+volumes:
+  techmedia_in_runtime:
+
+networks:
+  codexion-network:
+    external: true
+    name: codexion-network
