@@ -97,6 +97,14 @@ Every app folder must keep the same baseline shape:
 28. For upcoming UI work, preserve the existing design system, behavior, UX flow, naming, and product nature; new implementation must use the established system instead of inventing a parallel one.
 29. Do not create a new concept, shared abstraction, engine layer, naming system, or repo-wide pattern for new code unless the user explicitly approves it first.
 30. Write upcoming code so the repository becomes easier to maintain and easier to open source later, with strong developer experience, clear module boundaries, and minimal hidden behavior.
+31. For all upcoming backend-facing UI work, add clear technical-name badges to the outer shell or refactor target surface so future agents and maintainers can identify the exact page, section, block, or shell without ambiguity.
+32. Technical names must be attached in a reasonable outer-shell manner only; do not spam inner sub-elements such as content wrappers, labels, helper text, or minor controls unless explicitly requested.
+33. When a shared block or shell already has a stable generic technical name such as `block.master-list.filters`, preserve that shared name instead of inventing a page-specific override unless the surface has distinct business ownership.
+34. When a screen has business-owned surfaces beyond shared blocks, assign explicit names such as `page.*`, `section.*`, `card.*`, or `shell.*` on the real refactor boundary that a future agent should edit.
+35. Technical-name badges must remain visually lightweight, must not break layout, and should sit on the shell edge in a way that keeps the UX intact while still being easy to inspect and copy.
+36. Any new technical-name badge rendered in UI must support straightforward developer use, including easy text selection or click-to-copy when the shared badge component is used.
+37. If developer visibility depends on a runtime toggle, the toggle must work immediately in the current browser session whenever practical; do not require a restart for purely frontend inspection aids unless there is no safe alternative.
+38. Before adding new UI shells or major reusable blocks, decide and encode the technical name at implementation time rather than leaving the surface unnamed for later cleanup.
 
 ## Implementation Style
 

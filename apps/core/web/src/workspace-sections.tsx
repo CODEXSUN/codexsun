@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeftIcon, ArrowRightIcon, CopyIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CopyIcon,
+  PencilLineIcon,
+  Trash2Icon,
+} from "lucide-react"
 
 import {
   coreCommonModuleMenuGroups,
@@ -2686,6 +2692,7 @@ export function ProductsSection({
   const [contentFilter, setContentFilter] = useState<"all" | "yes" | "no">("all")
   const [stockFilter, setStockFilter] = useState<"all" | "yes" | "no">("all")
   const [promoFilter, setPromoFilter] = useState<"all" | "yes" | "no">("all")
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [selectedProductIds, setSelectedProductIds] = useState<Array<string | number>>([])
@@ -2993,164 +3000,183 @@ export function ProductsSection({
           className="absolute -top-3 right-4 z-20"
         />
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Product Filters</CardTitle>
-          <CardDescription>
-            Filter products by category, brand, storefront publishing, content readiness, stock, and promo state.
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Product Filters</CardTitle>
+              <CardDescription>
+                Filter products by category, brand, storefront publishing, content readiness, stock, and promo state.
+              </CardDescription>
+            </div>
+            <label
+              className="flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-muted-foreground"
+              htmlFor="core-products-filters-toggle"
+            >
+              <span>{filtersCollapsed ? "Show filters" : "Hide filters"}</span>
+              <Switch
+                id="core-products-filters-toggle"
+                checked={!filtersCollapsed}
+                onCheckedChange={(checked) => setFiltersCollapsed(!checked)}
+                aria-expanded={!filtersCollapsed}
+                aria-controls="core-products-filter-panel"
+              />
+            </label>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Category</label>
-            <AutocompleteLookupField
-              value={categoryFilter}
-              onChange={(value) => {
-                setCategoryFilter(value)
-                setCurrentPage(1)
-              }}
-              options={[{ label: "All categories", value: "__all__" }, ...categoryOptions.filter((option) => option.value !== "__keep__" && option.value !== "__clear__")]}
-              placeholder="Choose category"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Brand</label>
-            <AutocompleteLookupField
-              value={brandFilter}
-              onChange={(value) => {
-                setBrandFilter(value)
-                setCurrentPage(1)
-              }}
-              options={brandOptions}
-              placeholder="Choose brand"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Storefront</label>
-            <Select
-              value={storefrontFilter}
-              onValueChange={(value) => {
-                setStorefrontFilter(value)
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All storefront" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All storefront states</SelectItem>
-                <SelectItem value="any-storefront">Any storefront placement</SelectItem>
-                <SelectItem value="feature-section">Feature section</SelectItem>
-                <SelectItem value="home-slider">Home slider</SelectItem>
-                <SelectItem value="new-arrival">New arrival</SelectItem>
-                <SelectItem value="best-seller">Best seller</SelectItem>
-                <SelectItem value="featured-badge">Featured badge</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Has Attributes</label>
-            <Select
-              value={attributeFilter}
-              onValueChange={(value) => {
-                setAttributeFilter(value as "all" | "yes" | "no")
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Attributes" />
-              </SelectTrigger>
-              <SelectContent>
-                {presenceFilterOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Has Content</label>
-            <Select
-              value={contentFilter}
-              onValueChange={(value) => {
-                setContentFilter(value as "all" | "yes" | "no")
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Content" />
-              </SelectTrigger>
-              <SelectContent>
-                {presenceFilterOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">In Stock</label>
-            <Select
-              value={stockFilter}
-              onValueChange={(value) => {
-                setStockFilter(value as "all" | "yes" | "no")
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Stock" />
-              </SelectTrigger>
-              <SelectContent>
-                {presenceFilterOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Promo Enabled</label>
-            <Select
-              value={promoFilter}
-              onValueChange={(value) => {
-                setPromoFilter(value as "all" | "yes" | "no")
-                setCurrentPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Promo" />
-              </SelectTrigger>
-              <SelectContent>
-                {presenceFilterOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setCategoryFilter("__all__")
-                setBrandFilter("__all__")
-                setStorefrontFilter("all")
-                setAttributeFilter("all")
-                setContentFilter("all")
-                setStockFilter("all")
-                setPromoFilter("all")
-                setStatusFilter("all")
-                setCurrentPage(1)
-              }}
-            >
-              Clear Product Filters
-            </Button>
-          </div>
-        </CardContent>
+        {!filtersCollapsed ? (
+          <CardContent id="core-products-filter-panel" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Category</label>
+              <AutocompleteLookupField
+                value={categoryFilter}
+                onChange={(value) => {
+                  setCategoryFilter(value)
+                  setCurrentPage(1)
+                }}
+                options={[{ label: "All categories", value: "__all__" }, ...categoryOptions.filter((option) => option.value !== "__keep__" && option.value !== "__clear__")]}
+                placeholder="Choose category"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Brand</label>
+              <AutocompleteLookupField
+                value={brandFilter}
+                onChange={(value) => {
+                  setBrandFilter(value)
+                  setCurrentPage(1)
+                }}
+                options={brandOptions}
+                placeholder="Choose brand"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Storefront</label>
+              <Select
+                value={storefrontFilter}
+                onValueChange={(value) => {
+                  setStorefrontFilter(value)
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All storefront" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All storefront states</SelectItem>
+                  <SelectItem value="any-storefront">Any storefront placement</SelectItem>
+                  <SelectItem value="feature-section">Feature section</SelectItem>
+                  <SelectItem value="home-slider">Home slider</SelectItem>
+                  <SelectItem value="new-arrival">New arrival</SelectItem>
+                  <SelectItem value="best-seller">Best seller</SelectItem>
+                  <SelectItem value="featured-badge">Featured badge</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Has Attributes</label>
+              <Select
+                value={attributeFilter}
+                onValueChange={(value) => {
+                  setAttributeFilter(value as "all" | "yes" | "no")
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Attributes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {presenceFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Has Content</label>
+              <Select
+                value={contentFilter}
+                onValueChange={(value) => {
+                  setContentFilter(value as "all" | "yes" | "no")
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Content" />
+                </SelectTrigger>
+                <SelectContent>
+                  {presenceFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">In Stock</label>
+              <Select
+                value={stockFilter}
+                onValueChange={(value) => {
+                  setStockFilter(value as "all" | "yes" | "no")
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Stock" />
+                </SelectTrigger>
+                <SelectContent>
+                  {presenceFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Promo Enabled</label>
+              <Select
+                value={promoFilter}
+                onValueChange={(value) => {
+                  setPromoFilter(value as "all" | "yes" | "no")
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Promo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {presenceFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setCategoryFilter("__all__")
+                  setBrandFilter("__all__")
+                  setStorefrontFilter("all")
+                  setAttributeFilter("all")
+                  setContentFilter("all")
+                  setStockFilter("all")
+                  setPromoFilter("all")
+                  setStatusFilter("all")
+                  setCurrentPage(1)
+                }}
+              >
+                Clear Product Filters
+              </Button>
+            </div>
+          </CardContent>
+        ) : null}
       </Card>
       <MasterList
         header={{
