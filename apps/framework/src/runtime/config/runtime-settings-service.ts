@@ -19,6 +19,9 @@ import { scheduleFallbackRestart, triggerDevelopmentRestart } from "./runtime-re
 import { parseEnvFile } from "./env.js"
 import { getServerConfig } from "./server-config.js"
 
+const defaultGitRepositoryUrl = "https://github.com/CODEXSUN/codexsun.git"
+const defaultGitBranch = "main"
+
 export function resolveRuntimeSettingsRoot(config: ServerConfig) {
   return path.resolve(config.webRoot, "..", "..", "..", "..")
 }
@@ -41,6 +44,7 @@ function toStringValue(value: unknown) {
 
 function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()) {
   const config = getServerConfig(cwd)
+  const envValues = parseEnvFile(envFilePath(cwd))
   const valueMap: Record<string, string | boolean> = {
     APP_ENV: config.environment,
     APP_NAME: config.appName,
@@ -65,6 +69,11 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     VITE_TOAST_POSITION: config.notifications.toast.position,
     VITE_TOAST_TONE: config.notifications.toast.tone,
     VITE_SHOW_DEVOPS_NAMES: config.developerTools.showTechnicalNames,
+    GIT_SYNC_ENABLED: toBooleanValue(envValues.GIT_SYNC_ENABLED ?? "false"),
+    GIT_REPOSITORY_URL: envValues.GIT_REPOSITORY_URL ?? defaultGitRepositoryUrl,
+    GIT_BRANCH: envValues.GIT_BRANCH ?? defaultGitBranch,
+    GIT_AUTO_UPDATE_ON_START: toBooleanValue(envValues.GIT_AUTO_UPDATE_ON_START ?? "false"),
+    GIT_FORCE_UPDATE_ON_START: toBooleanValue(envValues.GIT_FORCE_UPDATE_ON_START ?? "false"),
     DB_DRIVER: config.database.driver,
     DB_HOST: config.database.host ?? "",
     DB_PORT: config.database.port ? String(config.database.port) : "",

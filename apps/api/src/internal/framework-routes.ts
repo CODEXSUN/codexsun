@@ -31,6 +31,7 @@ import {
   uploadMediaImage,
 } from "../../../framework/src/runtime/media/media-service.js"
 import {
+  getSystemUpdatePreview,
   getSystemUpdateStatus,
   listSystemUpdateHistory,
   resetSystemToLastCommit,
@@ -62,9 +63,19 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(listSystemUpdateHistory(context.config))
       },
     }),
+    defineInternalRoute("/framework/system-update/preview", {
+      summary: "Read the pending commit list from the configured runtime git branch before update.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(await getSystemUpdatePreview(context.config))
+      },
+    }),
     defineInternalRoute("/framework/system-update", {
       method: "POST",
-      summary: "Fetch latest tracked git commit, build the suite, and restart when the worktree is clean.",
+      summary: "Discard runtime worktree drift, sync from the configured git branch, rebuild cleanly, and restart.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin"],
@@ -88,7 +99,7 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
     }),
     defineInternalRoute("/framework/system-update/reset", {
       method: "POST",
-      summary: "Force reset the git worktree to the current commit, clean local files, rebuild, and restart.",
+      summary: "Force reset the runtime git worktree to the current commit, clean local files, rebuild, and restart.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin"],

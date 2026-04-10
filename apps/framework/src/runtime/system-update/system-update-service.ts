@@ -6,16 +6,25 @@ import path from "node:path"
 import { promisify } from "node:util"
 
 import {
+  buildRuntimeGitCommandPlan,
+  parseRemoteHeadCommit,
+  resolveRuntimeGitSyncTarget,
+  type RuntimeGitSyncTarget,
+} from "../../../../cli/src/system-update-helper.js"
+import {
   systemUpdateHistorySchema,
+  systemUpdatePreviewSchema,
   systemUpdateResetPayloadSchema,
   systemUpdateRunResponseSchema,
   systemUpdateStatusSchema,
   type SystemUpdateHistory,
   type SystemUpdateHistoryEntry,
+  type SystemUpdatePreview,
   type SystemUpdateResetPayload,
   type SystemUpdateRunResponse,
   type SystemUpdateStatus,
 } from "../../../shared/system-update.js"
+import { parseEnvFile } from "../config/env.js"
 import { resolveRuntimeSettingsRoot } from "../config/runtime-settings-service.js"
 import { scheduleFallbackRestart, triggerDevelopmentRestart } from "../config/runtime-restart.js"
 import type { ServerConfig } from "../config/server-config.js"
@@ -149,6 +158,54 @@ function resolvePreflight(cwd: string, gitVersionResult: CommandResult, npmVersi
   }
 }
 
+function withPreflightIssue(
+  preflight: ReturnType<typeof resolvePreflight>,
+  issue: string
+) {
+  return {
+    ...preflight,
+    issues: preflight.issues.includes(issue) ? preflight.issues : [...preflight.issues, issue],
+  }
+}
+
+function resolveRuntimeGitTarget(cwd: string) {
+  const env = parseEnvFile(path.join(cwd, ".env"))
+
+  return resolveRuntimeGitSyncTarget(env.GIT_REPOSITORY_URL, env.GIT_BRANCH)
+}
+
+async function ensureRuntimeGitRemote(
+  cwd: string,
+  target: RuntimeGitSyncTarget,
+  commandRunner: CommandRunner
+) {
+  const currentRemoteResult = await commandRunner(
+    "git",
+    ["remote", "get-url", target.remoteName],
+    cwd,
+    true
+  )
+
+  if (!currentRemoteResult.ok) {
+    await commandRunner("git", ["remote", "add", target.remoteName, target.repositoryUrl], cwd)
+    return
+  }
+
+  if (trimTrailing(currentRemoteResult.stdout) !== target.repositoryUrl) {
+    await commandRunner(
+      "git",
+      ["remote", "set-url", target.remoteName, target.repositoryUrl],
+      cwd
+    )
+  }
+}
+
+async function checkRepositoryAvailability(cwd: string, commandRunner: CommandRunner) {
+  const result = await commandRunner("git", ["rev-parse", "--is-inside-work-tree"], cwd, true)
+
+  return result.ok && trimTrailing(result.stdout) === "true"
+}
+
 async function resolveGitStatus(
   cwd: string,
   commandRunner: CommandRunner
@@ -156,8 +213,17 @@ async function resolveGitStatus(
   const gitVersionResult = await commandRunner("git", ["--version"], cwd, true)
   const npmVersionResult = await commandRunner(npmCommand(), ["--version"], cwd, true)
   const preflight = resolvePreflight(cwd, gitVersionResult, npmVersionResult)
+  const repositoryAvailable =
+    preflight.gitAvailable && (await checkRepositoryAvailability(cwd, commandRunner))
 
-  if (!preflight.gitAvailable) {
+  if (!preflight.gitAvailable || !repositoryAvailable) {
+    const resolvedPreflight = !repositoryAvailable
+      ? withPreflightIssue(
+          preflight,
+          "Runtime git sync is not active for this deployment. Enable GIT_SYNC_ENABLED to use live update."
+        )
+      : preflight
+
     return systemUpdateStatusSchema.parse({
       rootPath: cwd,
       branch: "(unavailable)",
@@ -169,10 +235,11 @@ async function resolveGitStatus(
       canAutoUpdate: false,
       canForceReset: false,
       localChanges: [],
-      preflight,
+      preflight: resolvedPreflight,
     })
   }
 
+  const target = resolveRuntimeGitTarget(cwd)
   const branch = trimTrailing(
     (await commandRunner("git", ["rev-parse", "--abbrev-ref", "HEAD"], cwd)).stdout
   )
@@ -183,21 +250,16 @@ async function resolveGitStatus(
     await commandRunner("git", ["status", "--porcelain"], cwd, true)
   ).stdout
   const localChanges = parseChanges(statusRaw)
-  const upstreamResult = await commandRunner(
+  const upstream = target.remoteRef
+  const remoteCommitResult = await commandRunner(
     "git",
-    ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+    ["ls-remote", "--heads", target.repositoryUrl, `refs/heads/${target.branch}`],
     cwd,
     true
   )
-  const upstream = upstreamResult.ok ? trimTrailing(upstreamResult.stdout) : null
-
-  let remoteCommit: string | null = null
-
-  if (upstream) {
-    await commandRunner("git", ["fetch", "--prune", "--quiet"], cwd, true)
-    const remoteCommitResult = await commandRunner("git", ["rev-parse", upstream], cwd, true)
-    remoteCommit = remoteCommitResult.ok ? trimTrailing(remoteCommitResult.stdout) : null
-  }
+  const remoteCommit = remoteCommitResult.ok
+    ? parseRemoteHeadCommit(remoteCommitResult.stdout)
+    : null
 
   return systemUpdateStatusSchema.parse({
     rootPath: cwd,
@@ -208,11 +270,10 @@ async function resolveGitStatus(
     isClean: localChanges.length === 0,
     hasRemoteUpdate: Boolean(remoteCommit && remoteCommit !== currentCommit),
     canAutoUpdate:
-      localChanges.length === 0 &&
-      Boolean(upstream) &&
       preflight.gitAvailable &&
       preflight.npmAvailable &&
-      preflight.repoWritable,
+      preflight.repoWritable &&
+      Boolean(remoteCommit),
     canForceReset: preflight.gitAvailable && preflight.npmAvailable && preflight.repoWritable,
     localChanges,
     preflight,
@@ -224,6 +285,71 @@ export async function getSystemUpdateStatus(
   commandRunner: CommandRunner = runCommand
 ): Promise<SystemUpdateStatus> {
   return resolveGitStatus(resolveRuntimeSettingsRoot(config), commandRunner)
+}
+
+export async function getSystemUpdatePreview(
+  config: ServerConfig,
+  commandRunner: CommandRunner = runCommand
+): Promise<SystemUpdatePreview> {
+  const cwd = resolveRuntimeSettingsRoot(config)
+  const status = await resolveGitStatus(cwd, commandRunner)
+
+  if (!status.canAutoUpdate || !status.currentCommit || status.currentCommit === "(unavailable)") {
+    return systemUpdatePreviewSchema.parse({
+      status,
+      items: [],
+    })
+  }
+
+  const target = resolveRuntimeGitTarget(cwd)
+
+  await ensureRuntimeGitRemote(cwd, target, commandRunner)
+  await commandRunner("git", ["fetch", "--prune", target.remoteName], cwd)
+
+  if (!status.remoteCommit || status.remoteCommit === status.currentCommit) {
+    const refreshedStatus = await resolveGitStatus(cwd, commandRunner)
+
+    return systemUpdatePreviewSchema.parse({
+      status: refreshedStatus,
+      items: [],
+    })
+  }
+
+  const logResult = await commandRunner(
+    "git",
+    [
+      "log",
+      "--format=%H%x1f%s%x1f%an%x1f%cI",
+      `${status.currentCommit}..${target.remoteRef}`,
+    ],
+    cwd,
+    true
+  )
+
+  const items = logResult.ok
+    ? logResult.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const [commit = "", summary = "", authorName = "", committedAt = ""] = line.split("\u001f")
+
+          return {
+            commit,
+            summary,
+            authorName,
+            committedAt,
+          }
+        })
+        .filter((item) => item.commit && item.summary && item.authorName && item.committedAt)
+    : []
+
+  const refreshedStatus = await resolveGitStatus(cwd, commandRunner)
+
+  return systemUpdatePreviewSchema.parse({
+    status: refreshedStatus,
+    items,
+  })
 }
 
 export function listSystemUpdateHistory(config: ServerConfig): SystemUpdateHistory {
@@ -241,39 +367,26 @@ export async function runSystemUpdate(
 ): Promise<SystemUpdateRunResponse> {
   const cwd = resolveRuntimeSettingsRoot(config)
   const before = await resolveGitStatus(cwd, commandRunner)
+  const target = resolveRuntimeGitTarget(cwd)
+  const plan = buildRuntimeGitCommandPlan(target)
 
-  if (!before.isClean) {
+  if (!before.canAutoUpdate) {
     appendHistoryEntry(cwd, {
       timestamp: new Date().toISOString(),
       action: "update",
       result: "blocked",
       message:
-        "Automatic update was blocked because the server had local git changes.",
+        "System update was blocked because the runtime repository is not ready for one-way git sync.",
       previousCommit: before.currentCommit,
       currentCommit: before.currentCommit,
       actor,
     })
     throw new ApplicationError(
-      "Automatic update is blocked because the server has local git changes. Use manual git update instead.",
-      { localChanges: before.localChanges },
-      409
-    )
-  }
-
-  if (!before.upstream) {
-    appendHistoryEntry(cwd, {
-      timestamp: new Date().toISOString(),
-      action: "update",
-      result: "blocked",
-      message:
-        "Automatic update was blocked because the branch has no upstream tracking branch.",
-      previousCommit: before.currentCommit,
-      currentCommit: before.currentCommit,
-      actor,
-    })
-    throw new ApplicationError(
-      "Automatic update is blocked because this branch has no upstream tracking branch.",
-      {},
+      "System update requires git, npm, a writable repository, and a reachable configured runtime branch.",
+      {
+        localChanges: before.localChanges,
+        issues: before.preflight.issues,
+      },
       409
     )
   }
@@ -281,16 +394,21 @@ export async function runSystemUpdate(
   let rolledBack = false
 
   try {
-    await commandRunner("git", ["fetch", "--prune", "--quiet"], cwd)
-    await commandRunner("git", ["reset", "--hard", before.upstream], cwd)
-    await commandRunner("git", ["clean", "-fd"], cwd, true)
+    await ensureRuntimeGitRemote(cwd, target, commandRunner)
+    await commandRunner("git", plan.fetchArgs, cwd)
+    await commandRunner("git", plan.resetToHeadArgs, cwd)
+    await commandRunner("git", plan.cleanArgs, cwd, true)
+    await commandRunner("git", plan.checkoutArgs, cwd)
+    await commandRunner("git", plan.pullArgs, cwd)
+    await commandRunner("git", plan.resetToRemoteArgs, cwd)
+    await commandRunner("git", plan.cleanArgs, cwd, true)
     await installAndBuild(cwd, commandRunner)
   } catch (error) {
     rolledBack = true
 
     try {
       await commandRunner("git", ["reset", "--hard", before.currentCommit], cwd)
-      await commandRunner("git", ["clean", "-fd"], cwd, true)
+      await commandRunner("git", plan.cleanArgs, cwd, true)
       await installAndBuild(cwd, commandRunner)
     } catch {
       // Keep the original update error as the primary signal.
@@ -301,14 +419,14 @@ export async function runSystemUpdate(
       action: "update",
       result: "failure",
       message:
-        "System update failed and the repository was rolled back to the previous commit.",
+        "System update failed after the runtime repository was resynced. The previous commit was restored.",
       previousCommit: before.currentCommit,
       currentCommit: before.currentCommit,
       actor,
     })
 
     throw new ApplicationError(
-      "System update failed. The repository was rolled back to the previous commit.",
+      "System update failed. The previous commit was restored after the runtime sync attempt.",
       {
         reason: error instanceof Error ? error.message : "Unknown update error.",
         rolledBack: true,
@@ -331,8 +449,8 @@ export async function runSystemUpdate(
     result: "success",
     message:
       before.currentCommit === after.currentCommit
-        ? "Update checked latest tracked commit, rebuilt the app, and restarted without changing commit."
-        : "Repository updated to the latest tracked commit, rebuilt, and restarted.",
+        ? "One-way runtime sync verified the configured branch, rebuilt the app, and restarted without changing commit."
+        : "Runtime repository resynced from the configured branch, rebuilt, and restarted.",
     previousCommit: before.currentCommit,
     currentCommit: after.currentCommit,
     actor,
@@ -346,8 +464,8 @@ export async function runSystemUpdate(
     previousCommit: before.currentCommit,
     message:
       before.currentCommit === after.currentCommit
-        ? "Repository is already on the latest tracked commit. Build completed and restart was scheduled."
-        : "Repository updated to the latest tracked commit. Build completed and restart was scheduled.",
+        ? "Configured runtime branch is already current. Clean rebuild completed and restart was scheduled."
+        : "Runtime repository updated from the configured branch. Clean rebuild completed and restart was scheduled.",
     status: after,
   })
 }

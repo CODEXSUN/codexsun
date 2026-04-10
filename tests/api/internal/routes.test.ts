@@ -156,6 +156,7 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("POST /internal/v1/framework/media"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/system-update"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/system-update/history"))
+  assert.ok(routePaths.includes("GET /internal/v1/framework/system-update/preview"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/system-update"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/system-update/reset"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/activity-log"))

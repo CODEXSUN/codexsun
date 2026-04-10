@@ -276,6 +276,50 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
     ],
   },
   {
+    id: "github-update",
+    label: "GitHub Update",
+    summary: "Runtime Git sync source and branch controls used by the cloud live-update workflow.",
+    fields: [
+      {
+        key: "GIT_SYNC_ENABLED",
+        label: "Git Sync Enabled",
+        type: "boolean",
+        description:
+          "Run the application from the runtime Git repository so live update can pull, rebuild, and restart.",
+      },
+      {
+        key: "GIT_REPOSITORY_URL",
+        label: "Git Repository URL",
+        type: "string",
+        description: "GitHub repository URL used for runtime update sync.",
+        placeholder: "https://github.com/CODEXSUN/codexsun.git",
+        required: true,
+      },
+      {
+        key: "GIT_BRANCH",
+        label: "Git Branch",
+        type: "string",
+        description: "Tracked branch used for runtime update sync.",
+        placeholder: "main",
+        required: true,
+      },
+      {
+        key: "GIT_AUTO_UPDATE_ON_START",
+        label: "Auto Update On Start",
+        type: "boolean",
+        description:
+          "Automatically fast-forward the runtime repository on container start when the worktree is already clean.",
+      },
+      {
+        key: "GIT_FORCE_UPDATE_ON_START",
+        label: "Force Update On Start",
+        type: "boolean",
+        description:
+          "Force a hard reset to the configured remote branch on next start. Use only for one-time recovery.",
+      },
+    ],
+  },
+  {
     id: "database",
     label: "Database",
     summary: "Primary runtime storage including MariaDB, PostgreSQL, or SQLite fallback.",

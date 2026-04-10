@@ -19,6 +19,18 @@ export const systemUpdateStatusSchema = z.object({
   }),
 })
 
+export const systemUpdatePreviewItemSchema = z.object({
+  commit: z.string().min(1),
+  summary: z.string().min(1),
+  authorName: z.string().min(1),
+  committedAt: z.string().min(1),
+})
+
+export const systemUpdatePreviewSchema = z.object({
+  status: systemUpdateStatusSchema,
+  items: z.array(systemUpdatePreviewItemSchema),
+})
+
 export const systemUpdateRunResponseSchema = z.object({
   updated: z.boolean(),
   restartScheduled: z.boolean(),
@@ -48,6 +60,8 @@ export const systemUpdateHistorySchema = z.object({
 })
 
 export type SystemUpdateStatus = z.infer<typeof systemUpdateStatusSchema>
+export type SystemUpdatePreviewItem = z.infer<typeof systemUpdatePreviewItemSchema>
+export type SystemUpdatePreview = z.infer<typeof systemUpdatePreviewSchema>
 export type SystemUpdateRunResponse = z.infer<typeof systemUpdateRunResponseSchema>
 export type SystemUpdateResetPayload = z.infer<typeof systemUpdateResetPayloadSchema>
 export type SystemUpdateHistoryEntry = z.infer<typeof systemUpdateHistoryEntrySchema>
