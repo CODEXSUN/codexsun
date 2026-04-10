@@ -63,7 +63,7 @@ log "Cleaning Codexsun app stacks, runtime volumes, image, and unused Docker res
 
 stop_stack "codexsun" "$CODEXSUN_COMPOSE_FILE"
 stop_stack "tmnext.in" "$TMNEXT_COMPOSE_FILE"
-stop_stack "tirupurdirect.com" "$TIRUPUR_COMPOSE_FILE"
+stop_stack "tirupurdirect.in" "$TIRUPUR_COMPOSE_FILE"
 stop_stack "techmedia.in" "$TECHMEDIA_COMPOSE_FILE"
 
 remove_volume "$CODEXSUN_VOLUME"

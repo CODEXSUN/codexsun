@@ -1,4 +1,4 @@
-name: codexsun
+name: neot-in
 
 services:
   app:
@@ -9,18 +9,18 @@ services:
       dockerfile: .container/Dockerfile
       args:
         VITE_FRONTEND_TARGET: shop
-    container_name: codexsun-app
+    container_name: neot-in-app
     ports:
-      - "${APP_BIND_IP:-0.0.0.0}:${APP_HTTP_HOST_PORT:-4000}:4000"
-      - "${APP_BIND_IP:-0.0.0.0}:${APP_ALT_HTTP_HOST_PORT:-5000}:4000"
+      - "${APP_BIND_IP:-0.0.0.0}:${APP_HTTP_HOST_PORT:-4002}:4000"
+      - "${APP_BIND_IP:-0.0.0.0}:${APP_ALT_HTTP_HOST_PORT:-5002}:4000"
     restart: unless-stopped
     volumes:
-      - codexsun_runtime:/opt/codexsun/runtime
+      - neot_in_runtime:/opt/codexsun/runtime
     networks:
       - codexion-network
 
 volumes:
-  codexsun_runtime:
+  neot_in_runtime:
 
 networks:
   codexion-network:

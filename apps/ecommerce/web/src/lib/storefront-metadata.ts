@@ -156,7 +156,7 @@ export function resolveStorefrontRouteMetadata(
 
 export function formatStorefrontDocumentTitle(
   metadata: StorefrontRouteMetadata,
-  brandName = "Tirupur Direct"
+  brandName = "Codexsun"
 ) {
   return `${metadata.title} | ${brandName}`
 }

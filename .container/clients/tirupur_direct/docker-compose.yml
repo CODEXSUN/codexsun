@@ -11,8 +11,8 @@ services:
         VITE_FRONTEND_TARGET: shop
     container_name: tirupur-direct-app
     ports:
-      - "4005:4000"
-      - "5005:4000"
+      - "${APP_BIND_IP:-0.0.0.0}:${APP_HTTP_HOST_PORT:-4005}:4000"
+      - "${APP_BIND_IP:-0.0.0.0}:${APP_ALT_HTTP_HOST_PORT:-5005}:4000"
     restart: unless-stopped
     volumes:
       - tirupur_direct_runtime:/opt/codexsun/runtime

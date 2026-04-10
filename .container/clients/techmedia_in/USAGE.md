@@ -1,43 +1,78 @@
-# Techmedia Deploy
+# Techmedia Setup
 
 Run every command from the repo root.
 
-## 1. Create the Docker network once
+## Quick commands
+
+Local:
 
 ```bash
-docker network create codexion-network
+./.container/clients/techmedia_in/setup.sh
 ```
 
-## 2. Optional: prepare a runtime env template
+Cloud:
 
 ```bash
-cp .container/clients/techmedia_in/techmedia-in.env.example .container/clients/techmedia_in/techmedia-in.env
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@techmedia.in'
+export OPERATIONS_OWNER_EMAIL='ops@techmedia.in'
+export SUPER_ADMIN_EMAILS='admin@techmedia.in'
+TARGET_ENV=cloud TECHMEDIA_IN_DOMAIN=techmedia.in ./.container/clients/techmedia_in/setup.sh
 ```
 
-This file is a local reference template only. The active runtime `.env` is created inside the Docker volume at `/opt/codexsun/runtime/.env`.
+## Defaults
 
-## 3. Build the shared app image
+- Local URL: `http://127.0.0.1:4008`
+- Local DB: `techmedia_in_db`
+- Cloud URL: `https://techmedia.in`
+- Cloud app upstream: `127.0.0.1:4008`
+- Cloud secondary port: `127.0.0.1:5008`
+
+## Requirements
+
+- Docker and Docker Compose plugin
+- Shared network: `codexion-network`
+- MariaDB reachable from the app container
+- Real `JWT_SECRET` before `TARGET_ENV=cloud`
+- DNS for `techmedia.in`
+- nginx on the server for ports `80` and `443`
+
+## Local install
 
 ```bash
-docker build -t codexsun-app:v1 -f .container/Dockerfile .
+./.container/clients/techmedia_in/setup.sh
 ```
 
-## 4. Start Techmedia app container
+## Cloud install
 
 ```bash
-docker compose -f .container/clients/techmedia_in/docker-compose.yml up -d
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@techmedia.in'
+export OPERATIONS_OWNER_EMAIL='ops@techmedia.in'
+export SUPER_ADMIN_EMAILS='admin@techmedia.in'
+
+TARGET_ENV=cloud \
+TECHMEDIA_IN_DOMAIN=techmedia.in \
+CREATE_DATABASES=true \
+./.container/clients/techmedia_in/setup.sh
 ```
 
-## 5. Open a shell in the app container
+## Nginx
+
+Use:
+
+- [.container/clients/techmedia_in/nginx/techmedia.in.http.conf](/E:/Workspace/codexsun/.container/clients/techmedia_in/nginx/techmedia.in.http.conf)
+- [.container/clients/techmedia_in/nginx/techmedia.in.https.conf](/E:/Workspace/codexsun/.container/clients/techmedia_in/nginx/techmedia.in.https.conf)
+
+Install:
 
 ```bash
-docker exec -it techmedia-in-app bash
+sudo cp .container/clients/techmedia_in/nginx/techmedia.in.http.conf /etc/nginx/sites-available/techmedia.in
+sudo ln -s /etc/nginx/sites-available/techmedia.in /etc/nginx/sites-enabled/techmedia.in
+sudo nginx -t
+sudo systemctl reload nginx
+sudo certbot --nginx -d techmedia.in -d www.techmedia.in
+sudo cp .container/clients/techmedia_in/nginx/techmedia.in.https.conf /etc/nginx/sites-available/techmedia.in
+sudo nginx -t
+sudo systemctl reload nginx
 ```
-
-## Notes
-
-- App URLs: `http://YOUR_SERVER_IP:4008` and `http://YOUR_SERVER_IP:5008`
-- Runtime env file used by the container: `/opt/codexsun/runtime/.env`
-- Database name: `techmedia_in_db`
-- Compose file path from root: `.container/clients/techmedia_in/docker-compose.yml`
-- Shared app image: `codexsun-app:v1`

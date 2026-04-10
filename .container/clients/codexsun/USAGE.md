@@ -1,98 +1,229 @@
-# Codexsun Deploy
+# Codexsun Setup
 
-Run every command from the repo root: `E:\\Workspace\\websites\\codexsun`
+Run every command from the repo root:
 
-## Quick start
+```bash
+cd /home/codexsun
+```
 
-To install only the Codexsun client with the shared deploy flow:
+## Quick commands
+
+Local:
 
 ```bash
 ./.container/clients/codexsun/setup.sh
 ```
 
-## 1. Create the Docker network once
+Cloud:
+
+```bash
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@codexsun.com'
+export OPERATIONS_OWNER_EMAIL='ops@codexsun.com'
+export SUPER_ADMIN_EMAILS='admin@codexsun.com'
+TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setup.sh
+```
+
+## What the setup script does
+
+- Builds the image with `docker compose build`
+- Starts only the Codexsun client compose stack
+- Creates the target database when `CREATE_DATABASES=true`
+- Updates `/opt/codexsun/runtime/.env`
+- Restarts the container and waits for health before exiting
+
+Runtime Git sync is disabled by default in both local and cloud. The running container uses the image you build from the current workspace. Re-enable Git sync only if you explicitly want startup-time repository cloning:
+
+```bash
+GIT_SYNC_ENABLED=true GIT_FORCE_UPDATE_ON_START=true TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setup.sh
+```
+
+## Requirements
+
+- Docker and Docker Compose plugin installed
+- Shared Docker network exists: `codexion-network`
+- MariaDB available and reachable from the app container
+- DNS for `codexsun.com` points to the server before live HTTPS cutover
+- Ports `80` and `443` open on the server for nginx
+- A real `JWT_SECRET` exported before `TARGET_ENV=cloud`
+
+Create the Docker network once:
 
 ```bash
 docker network create codexion-network
 ```
 
-## 2. Install MariaDB separately if needed
+Start MariaDB if you host it in Docker on the same server:
 
 ```bash
 docker compose -f .container/mariadb.yml up -d
 ```
 
-## 3. Optional: prepare a runtime env template
+## Local mode
+
+Codexsun local mode uses:
+
+- Browser URL: `http://127.0.0.1:4000`
+- Database: `codexsun_local_db`
+- App port binding: `0.0.0.0:4000` and `0.0.0.0:5000`
+
+Run:
 
 ```bash
-cp .container/clients/codexsun/.env.example .container/clients/codexsun/.env
+./.container/clients/codexsun/setup.sh
 ```
 
-This file is now only a local reference template. The container keeps its active runtime `.env` inside the Docker volume at `/opt/codexsun/runtime/.env`.
+## Cloud mode
 
-If you leave `DB_ENABLED=false`, Codexsun starts in setup mode and you can finish database configuration from the UI.
+Codexsun cloud mode uses:
 
-## 4. Build the shared app image
+- Public URL: `https://codexsun.com`
+- Public runtime port: `443`
+- App upstream port: `127.0.0.1:4000`
+- App secondary port: `127.0.0.1:5000`
+- Database: `codexsun_com_db`
+
+Fresh cloud install:
 
 ```bash
-docker build -t codexsun-app:v1 -f .container/Dockerfile .
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@codexsun.com'
+export OPERATIONS_OWNER_EMAIL='ops@codexsun.com'
+export SUPER_ADMIN_EMAILS='admin@codexsun.com'
+
+TARGET_ENV=cloud \
+CODEXSUN_DOMAIN=codexsun.com \
+CREATE_DATABASES=true \
+./.container/clients/codexsun/setup.sh
 ```
 
-## 5. Start Codexsun
+The script will stop immediately if:
+
+- `TARGET_ENV=cloud` uses `localhost`, `127.0.0.1`, or another local-only domain
+- `JWT_SECRET` is missing or still a default placeholder
+- `RUNTIME_PUBLIC_SCHEME` is not `https`
+
+Useful cloud overrides:
 
 ```bash
-docker compose -f .container/clients/codexsun/docker-compose.yml up -d
+TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com CODEXSUN_DB_NAME=codexsun_prod_db ./.container/clients/codexsun/setup.sh
+TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com CODEXSUN_DB_HOST=10.0.0.15 CODEXSUN_DB_USER=codexsun CODEXSUN_DB_PASSWORD='strong-db-password' ./.container/clients/codexsun/setup.sh
 ```
 
-On first start, the container automatically creates `/opt/codexsun/runtime/.env` from the app template if it does not already exist.
+## Nginx
 
-## 6. Open a shell in the app container
+Use the committed nginx files in [.container/clients/codexsun/nginx/codexsun.com.http.conf](/E:/Workspace/codexsun/.container/clients/codexsun/nginx/codexsun.com.http.conf) and [.container/clients/codexsun/nginx/codexsun.com.https.conf](/E:/Workspace/codexsun/.container/clients/codexsun/nginx/codexsun.com.https.conf).
+
+1. Install the HTTP-only config first.
+
+```bash
+sudo cp .container/clients/codexsun/nginx/codexsun.com.http.conf /etc/nginx/sites-available/codexsun.com
+sudo ln -s /etc/nginx/sites-available/codexsun.com /etc/nginx/sites-enabled/codexsun.com
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+2. Issue the certificate.
+
+```bash
+sudo certbot --nginx -d codexsun.com -d www.codexsun.com
+```
+
+3. Replace the site file with the HTTPS config and reload nginx.
+
+```bash
+sudo cp .container/clients/codexsun/nginx/codexsun.com.https.conf /etc/nginx/sites-available/codexsun.com
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+The HTTPS nginx config proxies to `http://127.0.0.1:4000` and forwards `X-Forwarded-Proto https`, which the app needs in production mode.
+
+## Local cloud dry run
+
+This is the same production-style app mode, but tested locally behind HTTPS on a domain-style hostname:
+
+```bash
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@codexsun.localtest.me'
+export OPERATIONS_OWNER_EMAIL='ops@codexsun.localtest.me'
+
+TARGET_ENV=cloud \
+CODEXSUN_DOMAIN=codexsun.localtest.me \
+CODEXSUN_PUBLIC_PORT=8443 \
+./.container/clients/codexsun/setup.sh
+```
+
+That keeps the app itself on `127.0.0.1:4000` and lets nginx terminate HTTPS on `https://codexsun.localtest.me:8443`.
+
+Use the Playwright config for the HTTPS smoke test:
+
+```bash
+npx playwright test -c playwright.cloud-docker.config.ts tests/e2e/local-docker-setup.spec.ts
+```
+
+## Useful commands
+
+Logs:
+
+```bash
+docker logs --tail 200 codexsun-app
+```
+
+Open a shell:
 
 ```bash
 docker exec -it codexsun-app bash
 ```
 
-## 7. Inspect or edit the runtime env inside the container
+Inspect the active runtime env:
 
 ```bash
-docker exec -it codexsun-app bash
-cat /opt/codexsun/runtime/.env
+docker exec codexsun-app sh -lc 'cat /opt/codexsun/runtime/.env'
 ```
 
+Check health:
+
+```bash
+curl -I http://127.0.0.1:4000/health
+curl -k -I https://codexsun.com/health
 ```
-docker logs --tail 100 codexsun-app
-docker logs --tail 100 tirupur-direct-app
 
-```
 
-## Notes
-
-- App URLs: `http://YOUR_SERVER_IP:4000` and `http://YOUR_SERVER_IP:5000`
-- Runtime env file used by the container: `/opt/codexsun/runtime/.env`
-- Compose file path from root: `.container/clients/codexsun/docker-compose.yml`
-- Shared app image: `codexsun-app:v1`
+# Step 1: Install SSL with Certbot (Recommended for Nginx)
+Step 1: Install Certbot and Nginx plugin
 
 
 ```
-sudo nano codexsun.com
+sudo apt update
+sudo apt install certbot python3-certbot-nginx -y
 ```
+```
+sudo systemctl status nginx
+```
+```
+sudo ufw allow 'Nginx Full'
+sudo ufw reload
+```
+
 
 ```
 server {
     listen 80;
-    server_name codexsun.com;
+    server_name soft.aaran.org;
 
     location / {
-        proxy_pass http://127.0.0.1:4000;
+        proxy_pass http://127.0.0.1:8001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-
-sudo ln -s /etc/nginx/sites-available/codexsun.com /etc/nginx/sites-enabled/
 ```
+
+sudo ln -s /etc/nginx/sites-available/demo.codexsun.com /etc/nginx/sites-enabled/
+
 
 ```
 sudo certbot --nginx

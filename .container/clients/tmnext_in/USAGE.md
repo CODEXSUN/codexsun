@@ -1,86 +1,90 @@
-# TMNext Deploy
+# TMNext Setup
 
-Run every command from the repo root: `E:\\Workspace\\websites\\codexsun`
+Run every command from the repo root.
 
-## 1. Create the Docker network once
+## Quick commands
+
+Local:
+
+```bash
+./.container/clients/tmnext_in/setup.sh
+```
+
+Cloud:
+
+```bash
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@tmnext.in'
+export OPERATIONS_OWNER_EMAIL='ops@tmnext.in'
+export SUPER_ADMIN_EMAILS='admin@tmnext.in'
+TARGET_ENV=cloud TMNEXT_IN_DOMAIN=tmnext.in ./.container/clients/tmnext_in/setup.sh
+```
+
+## Defaults
+
+- Local URL: `http://127.0.0.1:4007`
+- Local DB: `tmnext_in_db`
+- Cloud URL: `https://tmnext.in`
+- Cloud app upstream: `127.0.0.1:4007`
+- Cloud secondary port: `127.0.0.1:5007`
+
+## Requirements
+
+- Docker and Docker Compose plugin
+- Shared network: `codexion-network`
+- MariaDB reachable from the app container
+- Real `JWT_SECRET` before `TARGET_ENV=cloud`
+- DNS for `tmnext.in`
+- nginx on the server for ports `80` and `443`
+
+Create the Docker network once:
 
 ```bash
 docker network create codexion-network
 ```
 
-## 2. Optional: prepare a runtime env template
+Start MariaDB if needed:
 
 ```bash
-cp .container/clients/tmnext_in/tmnext-in.env.example .container/clients/tmnext_in/tmnext-in.env
+docker compose -f .container/mariadb.yml up -d
 ```
 
-docker compose -f .container/clients/tmnext_in/docker-compose.yml down
-
-docker logs --tail 100 tmnext-in-app
-
-This file is a local reference template only. The active runtime `.env` is created inside the Docker volume at `/opt/codexsun/runtime/.env`.
-
-## 3. Build the shared app image
+## Local install
 
 ```bash
-docker build -t codexsun-app:v1 -f .container/Dockerfile .
+./.container/clients/tmnext_in/setup.sh
 ```
 
-## 4. Start TMNext app container
+## Cloud install
 
 ```bash
-docker compose -f .container/clients/tmnext_in/docker-compose.yml up -d
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@tmnext.in'
+export OPERATIONS_OWNER_EMAIL='ops@tmnext.in'
+export SUPER_ADMIN_EMAILS='admin@tmnext.in'
+
+TARGET_ENV=cloud \
+TMNEXT_IN_DOMAIN=tmnext.in \
+CREATE_DATABASES=true \
+./.container/clients/tmnext_in/setup.sh
 ```
 
-On first start, the container creates `/opt/codexsun/runtime/.env` automatically from the app template if it does not already exist.
+## Nginx
 
-MariaDB is not started by this compose file. Point `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` in `/opt/codexsun/runtime/.env` to your existing or separately installed database.
+Use:
 
-## 5. Open a shell in the app container
+- [.container/clients/tmnext_in/nginx/tmnext.in.http.conf](/E:/Workspace/codexsun/.container/clients/tmnext_in/nginx/tmnext.in.http.conf)
+- [.container/clients/tmnext_in/nginx/tmnext.in.https.conf](/E:/Workspace/codexsun/.container/clients/tmnext_in/nginx/tmnext.in.https.conf)
+
+Install:
 
 ```bash
-docker exec -it tmnext-in-app bash
+sudo cp .container/clients/tmnext_in/nginx/tmnext.in.http.conf /etc/nginx/sites-available/tmnext.in
+sudo ln -s /etc/nginx/sites-available/tmnext.in /etc/nginx/sites-enabled/tmnext.in
+sudo nginx -t
+sudo systemctl reload nginx
+sudo certbot --nginx -d tmnext.in -d www.tmnext.in
+sudo cp .container/clients/tmnext_in/nginx/tmnext.in.https.conf /etc/nginx/sites-available/tmnext.in
+sudo nginx -t
+sudo systemctl reload nginx
 ```
-
-
-docker logs --tail 100 tmnext-in-app
-
-
-
-## 6. Inspect or edit the runtime env inside the container
-
-```bash
-docker exec -it tmnext-in-app bash
-cat /opt/codexsun/runtime/.env
-```
-
-## Notes
-
-- App URLs: `http://YOUR_SERVER_IP:4002` and `http://YOUR_SERVER_IP:5002`
-- Runtime env file used by the container: `/opt/codexsun/runtime/.env`
-- Database name: `tmnext_in_db`
-- Database server: external or separately installed MariaDB
-- Compose file path from root: `.container/clients/tmnext_in/docker-compose.yml`
-- Shared app image: `codexsun-app:v1`
-
-
-```
-sudo nano tmnext.in
-```
-
-```
-server {
-    listen 80;
-    server_name tmnext.in;
-
-    location / {
-        proxy_pass http://127.0.0.1:4007;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-sudo ln -s /etc/nginx/sites-available/tmnext.in /etc/nginx/sites-enabled/

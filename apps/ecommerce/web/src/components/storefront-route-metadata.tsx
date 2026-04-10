@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react"
 import { useLocation } from "react-router-dom"
 
 import { normalizeStorefrontCanonicalPath } from "@ecommerce/shared"
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import {
   formatStorefrontDocumentTitle,
   resolveStorefrontRouteMetadata,
@@ -58,6 +59,7 @@ function clearManagedStorefrontTags() {
 
 export function StorefrontRouteMetadata() {
   const location = useLocation()
+  const { brand } = useRuntimeBrand()
   const initialTitleRef = useRef<string | null>(null)
   const initialDescriptionRef = useRef<string | null>(null)
   const initialRobotsRef = useRef<string | null>(null)
@@ -117,14 +119,16 @@ export function StorefrontRouteMetadata() {
     )
     const canonicalUrl = `${window.location.origin}${canonicalPath}`
     const openGraphImageUrl = `${window.location.origin}${metadata.openGraphImagePath}`
+    const brandName = brand?.brandName?.trim() || "Codexsun"
+    const documentTitle = formatStorefrontDocumentTitle(metadata, brandName)
 
-    document.title = formatStorefrontDocumentTitle(metadata)
+    document.title = documentTitle
     descriptionTag.setAttribute("content", metadata.description)
     ensureManagedMetaTag("name", "robots").setAttribute("content", metadata.robots)
     ensureManagedLinkTag("canonical").setAttribute("href", canonicalUrl)
     ensureManagedMetaTag("property", "og:title").setAttribute(
       "content",
-      formatStorefrontDocumentTitle(metadata)
+      documentTitle
     )
     ensureManagedMetaTag("property", "og:description").setAttribute(
       "content",
@@ -138,9 +142,9 @@ export function StorefrontRouteMetadata() {
     )
     ensureManagedMetaTag("property", "og:site_name").setAttribute(
       "content",
-      "Tirupur Direct"
+      brandName
     )
-  }, [location.pathname])
+  }, [brand?.brandName, location.pathname])
 
   return null
 }

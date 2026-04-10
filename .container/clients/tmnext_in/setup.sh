@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_SETUP_SCRIPT="$(cd "$SCRIPT_DIR/../.." && pwd)/setup.sh"
+ROOT_SETUP_SCRIPT="$(cd "$SCRIPT_DIR/../.." && pwd)/bash-sh/setup.sh"
 CONFIG_FILE="$SCRIPT_DIR/client.conf.sh"
 
 [ -f "$ROOT_SETUP_SCRIPT" ] || { printf '%s\n' "Missing root setup script: $ROOT_SETUP_SCRIPT"; exit 1; }

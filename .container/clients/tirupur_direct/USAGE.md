@@ -1,36 +1,78 @@
-# Tirupur Direct Deploy
+# Tirupur Direct Setup
 
-## 4. Start Tirupur Direct app container
+Run every command from the repo root.
 
-```bash
-docker compose -f .container/clients/tirupur_direct/docker-compose.yml up -d
-```
+## Quick commands
 
-```bash
-docker compose -f .container/clients/tirupur_direct/docker-compose.yml down
-```
+Local:
 
 ```bash
-docker logs --tail 100 tirupur-direct-app
+./.container/clients/tirupur_direct/setup.sh
 ```
 
-## 5. Open a shell in the app container
+Cloud:
 
 ```bash
-docker exec -it tirupur-direct-app bash
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@tirupurdirect.in'
+export OPERATIONS_OWNER_EMAIL='ops@tirupurdirect.in'
+export SUPER_ADMIN_EMAILS='admin@tirupurdirect.in'
+TARGET_ENV=cloud TIRUPUR_DIRECT_DOMAIN=tirupurdirect.in ./.container/clients/tirupur_direct/setup.sh
 ```
 
+## Defaults
 
-## Notes
+- Local URL: `http://127.0.0.1:4005`
+- Local DB: `tirupur_direct_db`
+- Cloud URL: `https://tirupurdirect.in`
+- Cloud app upstream: `127.0.0.1:4005`
+- Cloud secondary port: `127.0.0.1:5005`
 
-- App URLs: `http://YOUR_SERVER_IP:4001` and `http://YOUR_SERVER_IP:5001`
-- Runtime env file used by the container: `/opt/codexsun/runtime/.env`
-- Database name: `tirupur_direct_db`
-- Database server: external or separately installed MariaDB
-- Compose file path from root: `.container/clients/tirupur_direct/docker-compose.yml`
-- Shared app image: `codexsun-app:v1`
+## Requirements
 
+- Docker and Docker Compose plugin
+- Shared network: `codexion-network`
+- MariaDB reachable from the app container
+- Real `JWT_SECRET` before `TARGET_ENV=cloud`
+- DNS for `tirupurdirect.in`
+- nginx on the server for ports `80` and `443`
 
-docker volume rm tirupur-direct_tirupur_direct_runtime
-docker volume rm codexsun_codexsun_runtime
-docker volume rm tmnext-in_tmnext_in_runtime
+## Local install
+
+```bash
+./.container/clients/tirupur_direct/setup.sh
+```
+
+## Cloud install
+
+```bash
+export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
+export SECRET_OWNER_EMAIL='security@tirupurdirect.in'
+export OPERATIONS_OWNER_EMAIL='ops@tirupurdirect.in'
+export SUPER_ADMIN_EMAILS='admin@tirupurdirect.in'
+
+TARGET_ENV=cloud \
+TIRUPUR_DIRECT_DOMAIN=tirupurdirect.in \
+CREATE_DATABASES=true \
+./.container/clients/tirupur_direct/setup.sh
+```
+
+## Nginx
+
+Use:
+
+- [.container/clients/tirupur_direct/nginx/tirupurdirect.in.http.conf](/E:/Workspace/codexsun/.container/clients/tirupur_direct/nginx/tirupurdirect.in.http.conf)
+- [.container/clients/tirupur_direct/nginx/tirupurdirect.in.https.conf](/E:/Workspace/codexsun/.container/clients/tirupur_direct/nginx/tirupurdirect.in.https.conf)
+
+Install:
+
+```bash
+sudo cp .container/clients/tirupur_direct/nginx/tirupurdirect.in.http.conf /etc/nginx/sites-available/tirupurdirect.in
+sudo ln -s /etc/nginx/sites-available/tirupurdirect.in /etc/nginx/sites-enabled/tirupurdirect.in
+sudo nginx -t
+sudo systemctl reload nginx
+sudo certbot --nginx -d tirupurdirect.in -d www.tirupurdirect.in
+sudo cp .container/clients/tirupur_direct/nginx/tirupurdirect.in.https.conf /etc/nginx/sites-available/tirupurdirect.in
+sudo nginx -t
+sudo systemctl reload nginx
+```

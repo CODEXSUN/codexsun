@@ -3,8 +3,10 @@ set -euo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CLIENTS_DIR="$SCRIPT_DIR/clients"
+CONTAINER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CLIENTS_DIR="$CONTAINER_ROOT/clients"
+CLIENT_LIST_FILE="$CONTAINER_ROOT/client-list.md"
 
 log() {
   printf '%s\n' "$*"
@@ -52,6 +54,38 @@ SELECTED_CLIENTS=()
 discover_clients() {
   AVAILABLE_CLIENTS=()
 
+  if [ -f "$CLIENT_LIST_FILE" ]; then
+    local listed_clients=()
+    local listed_client
+
+    while IFS= read -r listed_client; do
+      [ -n "$listed_client" ] || continue
+      listed_clients+=("$listed_client")
+    done < <(
+      awk -F'|' '
+        /^\|/ {
+          client_id=$2
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", client_id)
+          if (client_id != "" && client_id != "client_id" && client_id != "---") {
+            print client_id
+          }
+        }
+      ' "$CLIENT_LIST_FILE"
+    )
+
+    if [ "${#listed_clients[@]}" -gt 0 ]; then
+      for listed_client in "${listed_clients[@]}"; do
+        [ -d "$CLIENTS_DIR/$listed_client" ] || die "Client '$listed_client' is listed in $CLIENT_LIST_FILE but missing under $CLIENTS_DIR"
+        [ -f "$CLIENTS_DIR/$listed_client/docker-compose.yml" ] || die "Client '$listed_client' is listed in $CLIENT_LIST_FILE but missing docker-compose.yml"
+        AVAILABLE_CLIENTS+=("$listed_client")
+      done
+    fi
+  fi
+
+  if [ "${#AVAILABLE_CLIENTS[@]}" -gt 0 ]; then
+    return
+  fi
+
   local client_dir
   for client_dir in "$CLIENTS_DIR"/*; do
     [ -d "$client_dir" ] || continue
@@ -69,10 +103,10 @@ show_help() {
 Dynamic client deploy setup
 
 Usage:
-  ./.container/setup.sh
-  CLIENTS=codexsun ./.container/setup.sh
-  CLIENTS=codexsun,tmnext_in TARGET_ENV=cloud ./.container/setup.sh
-  TARGET_ENV=local CLIENTS=codexsun ./.container/setup.sh
+  ./.container/bash-sh/setup.sh
+  CLIENTS=codexsun ./.container/bash-sh/setup.sh
+  CLIENTS=codexsun,tmnext_in TARGET_ENV=cloud ./.container/bash-sh/setup.sh
+  TARGET_ENV=local CLIENTS=codexsun ./.container/bash-sh/setup.sh
 
 Environment:
   TARGET_ENV=local|cloud      Default: cloud
@@ -100,8 +134,11 @@ parse_selected_clients() {
     return
   fi
 
+  local normalized_input
+  normalized_input="$(printf '%s' "$input" | tr ',' ' ')"
+
   local candidate found
-  while IFS= read -r candidate; do
+  for candidate in $normalized_input; do
     [ -n "$candidate" ] || continue
     found="false"
 
@@ -118,7 +155,7 @@ parse_selected_clients() {
     fi
 
     SELECTED_CLIENTS+=("$candidate")
-  done < <(printf '%s' "$input" | tr ', ' '\n')
+  done
 
   if [ "${#SELECTED_CLIENTS[@]}" -eq 0 ]; then
     die "No clients selected. Use CLIENTS=all or CLIENTS=codexsun,tmnext_in"
@@ -155,9 +192,13 @@ DROP_DATABASES="${DROP_DATABASES:-false}"
 CONFIRM_DROP_DATABASES="${CONFIRM_DROP_DATABASES:-}"
 ALLOW_MISSING_COMPOSE="${ALLOW_MISSING_COMPOSE:-false}"
 
-GIT_SYNC_ENABLED="${GIT_SYNC_ENABLED:-true}"
-GIT_AUTO_UPDATE_ON_START="${GIT_AUTO_UPDATE_ON_START:-false}"
-GIT_FORCE_UPDATE_ON_START="${GIT_FORCE_UPDATE_ON_START:-true}"
+DEFAULT_GIT_SYNC_ENABLED="false"
+DEFAULT_GIT_AUTO_UPDATE_ON_START="false"
+DEFAULT_GIT_FORCE_UPDATE_ON_START="false"
+
+GIT_SYNC_ENABLED="${GIT_SYNC_ENABLED:-$DEFAULT_GIT_SYNC_ENABLED}"
+GIT_AUTO_UPDATE_ON_START="${GIT_AUTO_UPDATE_ON_START:-$DEFAULT_GIT_AUTO_UPDATE_ON_START}"
+GIT_FORCE_UPDATE_ON_START="${GIT_FORCE_UPDATE_ON_START:-$DEFAULT_GIT_FORCE_UPDATE_ON_START}"
 GIT_REPOSITORY_URL="${GIT_REPOSITORY_URL:-https://github.com/CODEXSUN/codexsun.git}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 INSTALL_DEPS_ON_START="${INSTALL_DEPS_ON_START:-false}"
@@ -183,12 +224,16 @@ RUNTIME_APP_ENV="${RUNTIME_APP_ENV:-$DEFAULT_RUNTIME_APP_ENV}"
 RUNTIME_PUBLIC_SCHEME="${RUNTIME_PUBLIC_SCHEME:-$DEFAULT_RUNTIME_PUBLIC_SCHEME}"
 RUNTIME_CLOUDFLARE_ENABLED="${RUNTIME_CLOUDFLARE_ENABLED:-$DEFAULT_RUNTIME_CLOUDFLARE_ENABLED}"
 RUNTIME_DB_DRIVER="${RUNTIME_DB_DRIVER:-$DEFAULT_RUNTIME_DB_DRIVER}"
+RUNTIME_TLS_ENABLED="${RUNTIME_TLS_ENABLED:-false}"
 GLOBAL_RUNTIME_PUBLIC_PORT="${RUNTIME_PUBLIC_PORT:-}"
 
 DB_HOST_DEFAULT="${DB_HOST_DEFAULT:-mariadb}"
 DB_PORT_DEFAULT="${DB_PORT_DEFAULT:-3306}"
 DB_USER_DEFAULT="${DB_USER_DEFAULT:-root}"
 DB_PASSWORD_DEFAULT="${DB_PASSWORD_DEFAULT:-DbPass1@@}"
+GLOBAL_APP_BIND_IP="${APP_BIND_IP:-}"
+GLOBAL_APP_HTTP_HOST_PORT="${APP_HTTP_HOST_PORT:-}"
+GLOBAL_APP_ALT_HTTP_HOST_PORT="${APP_ALT_HTTP_HOST_PORT:-}"
 
 CURRENT_CLIENT_ID=""
 CURRENT_CLIENT_NAME=""
@@ -202,6 +247,9 @@ CURRENT_DB_USER=""
 CURRENT_DB_PASSWORD=""
 CURRENT_DB_NAME=""
 CURRENT_PUBLIC_PORT=""
+CURRENT_APP_BIND_IP=""
+CURRENT_APP_HTTP_HOST_PORT=""
+CURRENT_APP_ALT_HTTP_HOST_PORT=""
 
 load_client_config() {
   local client_id="$1"
@@ -216,7 +264,7 @@ load_client_config() {
   CLIENT_ENV_PREFIX="$(normalize_env_prefix "$client_id")"
   CLIENT_COMPOSE_FILE=".container/clients/$client_id/docker-compose.yml"
   CLIENT_CONTAINER="$(parse_compose_container_name "$compose_file")"
-  CLIENT_DOMAIN_LOCAL="localhost"
+  CLIENT_DOMAIN_LOCAL="127.0.0.1"
   CLIENT_DOMAIN_CLOUD="localhost"
   CLIENT_DB_HOST_LOCAL="$DB_HOST_DEFAULT"
   CLIENT_DB_HOST_CLOUD="$DB_HOST_DEFAULT"
@@ -230,6 +278,12 @@ load_client_config() {
   CLIENT_DB_NAME_CLOUD="${client_id}_db"
   CLIENT_PUBLIC_PORT_LOCAL="$(parse_compose_public_port "$compose_file")"
   CLIENT_PUBLIC_PORT_CLOUD="443"
+  CLIENT_APP_BIND_IP_LOCAL="0.0.0.0"
+  CLIENT_APP_BIND_IP_CLOUD="127.0.0.1"
+  CLIENT_APP_HTTP_HOST_PORT_LOCAL=""
+  CLIENT_APP_HTTP_HOST_PORT_CLOUD=""
+  CLIENT_APP_ALT_HTTP_HOST_PORT_LOCAL=""
+  CLIENT_APP_ALT_HTTP_HOST_PORT_CLOUD=""
 
   if [ -f "$config_file" ]; then
     # shellcheck disable=SC1090
@@ -245,14 +299,31 @@ load_client_config() {
   local target_suffix
   target_suffix="$(printf '%s' "$TARGET_ENV" | tr '[:lower:]' '[:upper:]')"
 
+  local domain_var db_host_var db_port_var db_user_var db_password_var db_name_var public_port_var
+  local app_bind_ip_var app_http_host_port_var app_alt_http_host_port_var
   local domain_default db_host_default db_port_default db_user_default db_password_default db_name_default public_port_default
-  domain_default="${!CLIENT_DOMAIN_${target_suffix}:-}"
-  db_host_default="${!CLIENT_DB_HOST_${target_suffix}:-}"
-  db_port_default="${!CLIENT_DB_PORT_${target_suffix}:-}"
-  db_user_default="${!CLIENT_DB_USER_${target_suffix}:-}"
-  db_password_default="${!CLIENT_DB_PASSWORD_${target_suffix}:-}"
-  db_name_default="${!CLIENT_DB_NAME_${target_suffix}:-}"
-  public_port_default="${!CLIENT_PUBLIC_PORT_${target_suffix}:-}"
+  local app_bind_ip_default app_http_host_port_default app_alt_http_host_port_default
+  domain_var="CLIENT_DOMAIN_${target_suffix}"
+  db_host_var="CLIENT_DB_HOST_${target_suffix}"
+  db_port_var="CLIENT_DB_PORT_${target_suffix}"
+  db_user_var="CLIENT_DB_USER_${target_suffix}"
+  db_password_var="CLIENT_DB_PASSWORD_${target_suffix}"
+  db_name_var="CLIENT_DB_NAME_${target_suffix}"
+  public_port_var="CLIENT_PUBLIC_PORT_${target_suffix}"
+  app_bind_ip_var="CLIENT_APP_BIND_IP_${target_suffix}"
+  app_http_host_port_var="CLIENT_APP_HTTP_HOST_PORT_${target_suffix}"
+  app_alt_http_host_port_var="CLIENT_APP_ALT_HTTP_HOST_PORT_${target_suffix}"
+
+  domain_default="${!domain_var:-}"
+  db_host_default="${!db_host_var:-}"
+  db_port_default="${!db_port_var:-}"
+  db_user_default="${!db_user_var:-}"
+  db_password_default="${!db_password_var:-}"
+  db_name_default="${!db_name_var:-}"
+  public_port_default="${!public_port_var:-}"
+  app_bind_ip_default="${!app_bind_ip_var:-}"
+  app_http_host_port_default="${!app_http_host_port_var:-}"
+  app_alt_http_host_port_default="${!app_alt_http_host_port_var:-}"
 
   local override_var value
 
@@ -283,6 +354,58 @@ load_client_config() {
   override_var="${CURRENT_CLIENT_ENV_PREFIX}_PUBLIC_PORT"
   value="${!override_var:-${GLOBAL_RUNTIME_PUBLIC_PORT:-$public_port_default}}"
   CURRENT_PUBLIC_PORT="$value"
+
+  override_var="${CURRENT_CLIENT_ENV_PREFIX}_APP_BIND_IP"
+  value="${!override_var:-${GLOBAL_APP_BIND_IP:-$app_bind_ip_default}}"
+  CURRENT_APP_BIND_IP="$value"
+
+  override_var="${CURRENT_CLIENT_ENV_PREFIX}_APP_HTTP_HOST_PORT"
+  value="${!override_var:-${GLOBAL_APP_HTTP_HOST_PORT:-$app_http_host_port_default}}"
+  CURRENT_APP_HTTP_HOST_PORT="$value"
+
+  override_var="${CURRENT_CLIENT_ENV_PREFIX}_APP_ALT_HTTP_HOST_PORT"
+  value="${!override_var:-${GLOBAL_APP_ALT_HTTP_HOST_PORT:-$app_alt_http_host_port_default}}"
+  CURRENT_APP_ALT_HTTP_HOST_PORT="$value"
+}
+
+set_compose_runtime_vars() {
+  export APP_BIND_IP="${CURRENT_APP_BIND_IP:-}"
+  export APP_HTTP_HOST_PORT="${CURRENT_APP_HTTP_HOST_PORT:-}"
+  export APP_ALT_HTTP_HOST_PORT="${CURRENT_APP_ALT_HTTP_HOST_PORT:-}"
+}
+
+validate_cloud_runtime() {
+  local client_name="$1"
+  local domain="$2"
+  local jwt_secret="${JWT_SECRET:-}"
+
+  case "$domain" in
+    ""|localhost|127.0.0.1|0.0.0.0|*.local|*.localhost)
+      die "Cloud target for ${client_name} requires a real domain. Current value: ${domain:-<empty>}"
+      ;;
+  esac
+
+  if [ "$RUNTIME_PUBLIC_SCHEME" != "https" ]; then
+    die "Cloud target for ${client_name} requires RUNTIME_PUBLIC_SCHEME=https."
+  fi
+
+  if [ "${#jwt_secret}" -lt 16 ] ||
+    [ "$jwt_secret" = "change-this-secret-to-at-least-16-characters" ] ||
+    [ "$jwt_secret" = "codexsun-development-jwt-secret" ]; then
+    die "Cloud target for ${client_name} requires JWT_SECRET with at least 16 non-default characters."
+  fi
+}
+
+validate_selected_clients() {
+  local client_id
+
+  for client_id in "${SELECTED_CLIENTS[@]}"; do
+    load_client_config "$client_id"
+
+    if [ "$TARGET_ENV" = "cloud" ]; then
+      validate_cloud_runtime "$CURRENT_CLIENT_NAME" "$CURRENT_DOMAIN"
+    fi
+  done
 }
 
 require_cmd docker
@@ -311,12 +434,19 @@ ensure_network() {
 
 start_mariadb() {
   log "Starting MariaDB..."
-  "${COMPOSE_CMD[@]}" -f "$SCRIPT_DIR/mariadb.yml" up -d
+  "${COMPOSE_CMD[@]}" -f "$CONTAINER_ROOT/database/mariadb.yml" up -d
 }
 
 build_image() {
-  log "Building image: $IMAGE_TAG"
-  docker build -t "$IMAGE_TAG" -f "$SCRIPT_DIR/Dockerfile" "$REPO_ROOT"
+  local client_id
+
+  for client_id in "${SELECTED_CLIENTS[@]}"; do
+    load_client_config "$client_id"
+    set_compose_runtime_vars
+    ensure_compose_file "$CURRENT_CLIENT_NAME" "$CURRENT_COMPOSE_FILE" || continue
+    log "Building image for ${CURRENT_CLIENT_NAME} via docker compose..."
+    "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$CURRENT_COMPOSE_FILE" build
+  done
 }
 
 wait_for_mariadb() {
@@ -483,48 +613,97 @@ wait_for_env_file() {
   return 1
 }
 
-update_env_value() {
+wait_for_app_ready() {
   local container="$1"
-  local key="$2"
-  local value="$3"
-  local key_b64 value_b64
-  local runtime_volume
+  local public_scheme="${2:-http}"
+  local attempts="${3:-120}"
+  local delay="${4:-2}"
+  local fetch_command
 
-  key_b64=$(printf '%s' "$key" | base64 | tr -d '\n')
-  value_b64=$(printf '%s' "$value" | base64 | tr -d '\n')
-
-  runtime_volume="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/opt/codexsun/runtime"}}{{.Name}}{{end}}{{end}}' "$container" 2>/dev/null)"
-  if [ -n "$runtime_volume" ]; then
-    if docker run --rm -v "${runtime_volume}:/runtime" --entrypoint sh "$IMAGE_TAG" -c "
-      envFile=/runtime/.env
-      [ -f \"\$envFile\" ] || exit 1
-      key=\$(printf '%s' '$key_b64' | base64 -d)
-      value=\$(printf '%s' '$value_b64' | base64 -d)
-      tmp=\$(mktemp)
-      awk -v key=\"\$key\" -v value=\"\$value\" 'BEGIN{found=0} {if (\$0 ~ \"^\"key\"=\") {print key\"=\"value; found=1} else print} END {if (!found) print key\"=\"value}' \"\$envFile\" > \"\$tmp\"
-      mv \"\$tmp\" \"\$envFile\"
-    " >/dev/null 2>&1; then
-      return 0
-    fi
+  if [ "$public_scheme" = "https" ]; then
+    fetch_command="fetch('http://127.0.0.1:4000/health', { headers: { 'x-forwarded-proto': 'https' } }).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+  else
+    fetch_command="fetch('http://127.0.0.1:4000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
   fi
 
-  for _ in $(seq 1 30); do
+  log "Waiting for application health in $container..."
+
+  for _ in $(seq 1 "$attempts"); do
     if docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null | grep -qx "true" &&
-      docker exec "$container" sh -c "
-        envFile=/opt/codexsun/runtime/.env
-        [ -f \"\$envFile\" ] || exit 1
-        key=\$(printf '%s' '$key_b64' | base64 -d)
-        value=\$(printf '%s' '$value_b64' | base64 -d)
-        tmp=\$(mktemp)
-        awk -v key=\"\$key\" -v value=\"\$value\" 'BEGIN{found=0} {if (\$0 ~ \"^\"key\"=\") {print key\"=\"value; found=1} else print} END {if (!found) print key\"=\"value}' \"\$envFile\" > \"\$tmp\"
-        mv \"\$tmp\" \"\$envFile\"
-      " >/dev/null 2>&1; then
+      docker exec "$container" node -e "$fetch_command" >/dev/null 2>&1; then
       return 0
     fi
-    sleep 1
+    sleep "$delay"
   done
 
-  die "Failed to update $key in $container runtime env."
+  die "Timed out waiting for application health in $container."
+}
+
+format_public_url() {
+  local domain="$1"
+  local public_port="$2"
+  local public_scheme="$3"
+  local public_port_suffix=""
+
+  if [ "$public_scheme" = "http" ] && [ "$public_port" != "80" ]; then
+    public_port_suffix=":$public_port"
+  fi
+  if [ "$public_scheme" = "https" ] && [ "$public_port" != "443" ]; then
+    public_port_suffix=":$public_port"
+  fi
+
+  printf '%s://%s%s' "$public_scheme" "$domain" "$public_port_suffix"
+}
+
+apply_env_updates() {
+  local container="$1"
+  local updates_file="$2"
+  local current_env_file merged_env_file
+  current_env_file="$(mktemp)"
+  merged_env_file="$(mktemp)"
+
+  if ! docker cp "${container}:/opt/codexsun/runtime/.env" "$current_env_file" >/dev/null 2>&1; then
+    rm -f "$current_env_file" "$merged_env_file"
+    die "Failed to read runtime env from $container."
+  fi
+
+  if ! awk -F= '
+    NR==FNR {
+      key=$1
+      value=substr($0, index($0, "=") + 1)
+      updates[key]=value
+      order[++count]=key
+      next
+    }
+    {
+      key=$0
+      sub(/=.*/, "", key)
+      if (key in updates) {
+        print key "=" updates[key]
+        seen[key]=1
+      } else {
+        print
+      }
+    }
+    END {
+      for (i = 1; i <= count; i++) {
+        key=order[i]
+        if (!(key in seen)) {
+          print key "=" updates[key]
+        }
+      }
+    }
+  ' "$updates_file" "$current_env_file" > "$merged_env_file"; then
+    rm -f "$current_env_file" "$merged_env_file"
+    die "Failed to merge runtime env updates for $container."
+  fi
+
+  if ! docker cp "$merged_env_file" "${container}:/opt/codexsun/runtime/.env" >/dev/null 2>&1; then
+    rm -f "$current_env_file" "$merged_env_file"
+    die "Failed to write runtime env back to $container."
+  fi
+
+  rm -f "$current_env_file" "$merged_env_file"
 }
 
 configure_runtime_env() {
@@ -539,8 +718,11 @@ configure_runtime_env() {
   local public_scheme="$9"
   local secret_owner_email="${SECRET_OWNER_EMAIL:-security@${domain}}"
   local operations_owner_email="${OPERATIONS_OWNER_EMAIL:-ops@${domain}}"
+  local jwt_secret="${JWT_SECRET:-}"
+  local super_admin_emails="${SUPER_ADMIN_EMAILS:-}"
   local public_base_url
   local public_port_suffix=""
+  local updates_file
 
   if [ -z "$domain" ]; then
     die "Missing domain for $container."
@@ -558,59 +740,87 @@ configure_runtime_env() {
   fi
   public_base_url="${public_scheme}://${domain}${public_port_suffix}"
 
-  update_env_value "$container" "APP_ENV" "$RUNTIME_APP_ENV"
-  update_env_value "$container" "APP_HOST" "0.0.0.0"
-  update_env_value "$container" "APP_DOMAIN" "$domain"
-  update_env_value "$container" "APP_HTTP_PORT" "4000"
-  update_env_value "$container" "FRONTEND_HOST" "0.0.0.0"
-  update_env_value "$container" "FRONTEND_DOMAIN" "$domain"
-  update_env_value "$container" "FRONTEND_HTTP_PORT" "$public_port"
-  update_env_value "$container" "VITE_FRONTEND_TARGET" "$RUNTIME_FRONTEND_TARGET"
-  update_env_value "$container" "CLOUDFLARE_ENABLED" "$RUNTIME_CLOUDFLARE_ENABLED"
-  update_env_value "$container" "DB_DRIVER" "$RUNTIME_DB_DRIVER"
-  update_env_value "$container" "SECRET_OWNER_EMAIL" "$secret_owner_email"
-  update_env_value "$container" "OPERATIONS_OWNER_EMAIL" "$operations_owner_email"
-  update_env_value "$container" "SECRETS_LAST_ROTATED_AT" "$RUNTIME_SECRETS_LAST_ROTATED_AT"
-  update_env_value "$container" "CODEXSUN_API_URL" "$public_base_url"
-  update_env_value "$container" "CODEXSUN_WEB_URL" "$public_base_url"
-  update_env_value "$container" "PORT" "4000"
-  update_env_value "$container" "SQLITE_FILE" "$RUNTIME_SQLITE_FILE"
+  updates_file="$(mktemp)"
+  trap 'rm -f "$updates_file"' RETURN
+
+  {
+    printf 'APP_ENV=%s\n' "$RUNTIME_APP_ENV"
+    printf 'APP_HOST=%s\n' "0.0.0.0"
+    printf 'APP_DOMAIN=%s\n' "$domain"
+    printf 'APP_HTTP_PORT=%s\n' "4000"
+    printf 'TLS_ENABLED=%s\n' "$RUNTIME_TLS_ENABLED"
+    printf 'FRONTEND_HOST=%s\n' "0.0.0.0"
+    printf 'FRONTEND_DOMAIN=%s\n' "$domain"
+    printf 'FRONTEND_HTTP_PORT=%s\n' "$public_port"
+    printf 'VITE_FRONTEND_TARGET=%s\n' "$RUNTIME_FRONTEND_TARGET"
+    printf 'CLOUDFLARE_ENABLED=%s\n' "$RUNTIME_CLOUDFLARE_ENABLED"
+    printf 'DB_DRIVER=%s\n' "$RUNTIME_DB_DRIVER"
+    printf 'SECRET_OWNER_EMAIL=%s\n' "$secret_owner_email"
+    printf 'OPERATIONS_OWNER_EMAIL=%s\n' "$operations_owner_email"
+    printf 'SECRETS_LAST_ROTATED_AT=%s\n' "$RUNTIME_SECRETS_LAST_ROTATED_AT"
+    printf 'CODEXSUN_API_URL=%s\n' "$public_base_url"
+    printf 'CODEXSUN_WEB_URL=%s\n' "$public_base_url"
+    printf 'PORT=%s\n' "4000"
+    printf 'SQLITE_FILE=%s\n' "$RUNTIME_SQLITE_FILE"
+  } > "$updates_file"
+
+  if [ -n "$jwt_secret" ]; then
+    printf 'JWT_SECRET=%s\n' "$jwt_secret" >> "$updates_file"
+  fi
+
+  if [ -n "$super_admin_emails" ]; then
+    printf 'SUPER_ADMIN_EMAILS=%s\n' "$super_admin_emails" >> "$updates_file"
+  fi
 
   if [ "$RUNTIME_DB_DRIVER" = "sqlite" ]; then
-    update_env_value "$container" "DB_HOST" ""
-    update_env_value "$container" "DB_PORT" ""
-    update_env_value "$container" "DB_USER" ""
-    update_env_value "$container" "DB_PASSWORD" ""
-    update_env_value "$container" "DB_NAME" ""
-    update_env_value "$container" "DB_SSL" "false"
+    {
+      printf 'DB_HOST=\n'
+      printf 'DB_PORT=\n'
+      printf 'DB_USER=\n'
+      printf 'DB_PASSWORD=\n'
+      printf 'DB_NAME=\n'
+      printf 'DB_SSL=%s\n' "false"
+    } >> "$updates_file"
   else
-    update_env_value "$container" "DB_HOST" "$db_host"
-    update_env_value "$container" "DB_PORT" "$db_port"
-    update_env_value "$container" "DB_USER" "$db_user"
-    update_env_value "$container" "DB_PASSWORD" "$db_password"
-    update_env_value "$container" "DB_NAME" "$db_name"
-    update_env_value "$container" "DB_SSL" "false"
+    {
+      printf 'DB_HOST=%s\n' "$db_host"
+      printf 'DB_PORT=%s\n' "$db_port"
+      printf 'DB_USER=%s\n' "$db_user"
+      printf 'DB_PASSWORD=%s\n' "$db_password"
+      printf 'DB_NAME=%s\n' "$db_name"
+      printf 'DB_SSL=%s\n' "false"
+    } >> "$updates_file"
   fi
-  update_env_value "$container" "DB_BACKUP_ENABLED" "$RUNTIME_DB_BACKUP_ENABLED"
-  update_env_value "$container" "AUTH_OTP_DEBUG" "false"
+  {
+    printf 'DB_BACKUP_ENABLED=%s\n' "$RUNTIME_DB_BACKUP_ENABLED"
+    printf 'AUTH_OTP_DEBUG=%s\n' "false"
+    printf 'GIT_SYNC_ENABLED=%s\n' "$GIT_SYNC_ENABLED"
+    printf 'GIT_AUTO_UPDATE_ON_START=%s\n' "$GIT_AUTO_UPDATE_ON_START"
+    printf 'GIT_FORCE_UPDATE_ON_START=%s\n' "$GIT_FORCE_UPDATE_ON_START"
+    printf 'GIT_REPOSITORY_URL=%s\n' "$GIT_REPOSITORY_URL"
+    printf 'GIT_BRANCH=%s\n' "$GIT_BRANCH"
+    printf 'INSTALL_DEPS_ON_START=%s\n' "$INSTALL_DEPS_ON_START"
+    printf 'BUILD_ON_START=%s\n' "$BUILD_ON_START"
+  } >> "$updates_file"
 
-  update_env_value "$container" "GIT_SYNC_ENABLED" "$GIT_SYNC_ENABLED"
-  update_env_value "$container" "GIT_AUTO_UPDATE_ON_START" "$GIT_AUTO_UPDATE_ON_START"
-  update_env_value "$container" "GIT_FORCE_UPDATE_ON_START" "$GIT_FORCE_UPDATE_ON_START"
-  update_env_value "$container" "GIT_REPOSITORY_URL" "$GIT_REPOSITORY_URL"
-  update_env_value "$container" "GIT_BRANCH" "$GIT_BRANCH"
-  update_env_value "$container" "INSTALL_DEPS_ON_START" "$INSTALL_DEPS_ON_START"
-  update_env_value "$container" "BUILD_ON_START" "$BUILD_ON_START"
+  apply_env_updates "$container" "$updates_file"
+  rm -f "$updates_file"
+  trap - RETURN
 }
 
 deploy_client() {
   local client_id="$1"
   load_client_config "$client_id"
+  set_compose_runtime_vars
 
   ensure_compose_file "$CURRENT_CLIENT_NAME" "$CURRENT_COMPOSE_FILE" || return 0
 
   log "Deploying ${CURRENT_CLIENT_NAME}..."
-  "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$CURRENT_COMPOSE_FILE" up -d
+  if [ "$BUILD_IMAGE" = "true" ]; then
+    "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$CURRENT_COMPOSE_FILE" up -d --no-build
+  else
+    "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$CURRENT_COMPOSE_FILE" up -d
+  fi
 
   wait_for_env_file "$CURRENT_CONTAINER"
   configure_runtime_env \
@@ -626,6 +836,8 @@ deploy_client() {
 
   log "Restarting ${CURRENT_CLIENT_NAME} container to apply runtime env..."
   docker restart "$CURRENT_CONTAINER" >/dev/null
+  wait_for_app_ready "$CURRENT_CONTAINER" "$RUNTIME_PUBLIC_SCHEME"
+  log "Live URL: $(format_public_url "$CURRENT_DOMAIN" "$CURRENT_PUBLIC_PORT" "$RUNTIME_PUBLIC_SCHEME")"
 }
 
 ensure_compose_file() {
@@ -646,6 +858,8 @@ ensure_compose_file() {
 
 log "Selected clients: $(printf '%s ' "${SELECTED_CLIENTS[@]}" | sed 's/[[:space:]]*$//')"
 log "Target environment: $TARGET_ENV"
+
+validate_selected_clients
 
 ensure_network
 

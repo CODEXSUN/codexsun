@@ -11,8 +11,8 @@ services:
         VITE_FRONTEND_TARGET: shop
     container_name: techmedia-in-app
     ports:
-      - "4008:4000"
-      - "5008:4000"
+      - "${APP_BIND_IP:-0.0.0.0}:${APP_HTTP_HOST_PORT:-4008}:4000"
+      - "${APP_BIND_IP:-0.0.0.0}:${APP_ALT_HTTP_HOST_PORT:-5008}:4000"
     restart: unless-stopped
     volumes:
       - techmedia_in_runtime:/opt/codexsun/runtime
