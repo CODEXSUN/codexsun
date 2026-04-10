@@ -35,6 +35,7 @@ import { StorefrontPickupSection } from "./features/storefront-admin/storefront-
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
+import { StorefrontHistorySection } from "./features/storefront-admin/storefront-history-section"
 import {
   StorefrontCustomerShowSection,
   StorefrontCustomersSection,
@@ -435,6 +436,10 @@ function StorefrontSection() {
 
 function HomeSliderDesignerSection() {
   return <HomeSliderSection />
+}
+
+function StorefrontHistoryDesignerSection() {
+  return <StorefrontHistorySection />
 }
 
 function CampaignDesignerSection() {
@@ -944,6 +949,8 @@ export function EcommerceWorkspaceSection({
   switch (sectionId ?? "overview") {
     case "storefront":
       return <StorefrontSection />
+    case "history":
+      return <StorefrontHistoryDesignerSection />
     case "home-slider":
       return <HomeSliderDesignerSection />
     case "campaign":

@@ -336,7 +336,8 @@ export async function saveRuntimeSettings(
   let restartScheduled = false
 
   if (parsedPayload.restart) {
-    restartScheduled = triggerDevelopmentRestart(cwd)
+    const config = getServerConfig(cwd)
+    restartScheduled = config.environment === "development" ? triggerDevelopmentRestart(cwd) : false
 
     if (!restartScheduled) {
       restartScheduled = true

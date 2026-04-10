@@ -2,6 +2,14 @@
 
 Run every command from the repo root: `E:\\Workspace\\websites\\codexsun`
 
+## Quick start
+
+To install only the Codexsun client with the shared deploy flow:
+
+```bash
+./.container/clients/codexsun/setup.sh
+```
+
 ## 1. Create the Docker network once
 
 ```bash

@@ -55,6 +55,9 @@ test("system update status reports remote update and clean worktree", async () =
         }),
         "git fetch --prune --quiet": () => ({ stdout: "" }),
         "git rev-parse origin/main": () => ({ stdout: "def456\n" }),
+        "git clean -fd": () => ({ stdout: "" }),
+        "npm.cmd ci": () => ({ stdout: "installed\n" }),
+        "npm.cmd run build": () => ({ stdout: "Build complete\n" }),
       },
       calls
     )
@@ -90,6 +93,9 @@ test("system update blocks automatic update when local git changes exist", async
         }),
         "git fetch --prune --quiet": () => ({ stdout: "" }),
         "git rev-parse origin/main": () => ({ stdout: "def456\n" }),
+        "git clean -fd": () => ({ stdout: "" }),
+        "npm.cmd ci": () => ({ stdout: "installed\n" }),
+        "npm.cmd run build": () => ({ stdout: "Build complete\n" }),
       },
       []
     )
@@ -137,10 +143,12 @@ test("system update rolls back to previous commit when build fails", async () =>
           head = "def456"
           return { stdout: "HEAD is now at def456\n" }
         },
+        "git clean -fd": () => ({ stdout: "Removing build cache\n" }),
         "git reset --hard abc123": () => {
           head = "abc123"
           return { stdout: "HEAD is now at abc123\n" }
         },
+        "npm.cmd ci": () => ({ stdout: "installed\n" }),
         "npm.cmd run build": () => {
           if (head === "def456") {
             return { ok: false, stderr: "Build failed." }
@@ -205,6 +213,7 @@ test("forced reset discards local changes, rebuilds, and returns clean status", 
           return { stdout: "HEAD is now at abc123\n" }
         },
         "git clean -fd": () => ({ stdout: "Removing temp.txt\n" }),
+        "npm.cmd ci": () => ({ stdout: "installed\n" }),
         "npm.cmd run build": () => ({ stdout: "Build complete\n" }),
       },
       calls

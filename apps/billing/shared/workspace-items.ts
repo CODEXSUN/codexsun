@@ -7,6 +7,12 @@ export interface BillingWorkspaceItem {
 
 export const billingWorkspaceItems: BillingWorkspaceItem[] = [
   {
+    id: "overview",
+    name: "Overview",
+    route: "/dashboard/billing",
+    summary: "Billing control-room overview for masters, vouchers, books, and reporting readiness.",
+  },
+  {
     id: "categories",
     name: "Category",
     route: "/dashboard/billing/categories",

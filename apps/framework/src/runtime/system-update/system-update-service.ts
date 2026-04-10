@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process"
-import { accessSync, appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { accessSync, appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { constants } from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -85,6 +85,21 @@ function parseChanges(raw: string) {
 
 function npmCommand() {
   return os.platform() === "win32" ? "npm.cmd" : "npm"
+}
+
+function clearBuildCaches(cwd: string) {
+  for (const relativePath of ["build", "dist", "dist-ssr", path.join("node_modules", ".vite")]) {
+    rmSync(path.join(cwd, relativePath), {
+      force: true,
+      recursive: true,
+    })
+  }
+}
+
+async function installAndBuild(cwd: string, commandRunner: CommandRunner) {
+  clearBuildCaches(cwd)
+  await commandRunner(npmCommand(), ["ci"], cwd)
+  await commandRunner(npmCommand(), ["run", "build"], cwd)
 }
 
 function historyFilePath(cwd: string) {
@@ -268,13 +283,15 @@ export async function runSystemUpdate(
   try {
     await commandRunner("git", ["fetch", "--prune", "--quiet"], cwd)
     await commandRunner("git", ["reset", "--hard", before.upstream], cwd)
-    await commandRunner(npmCommand(), ["run", "build"], cwd)
+    await commandRunner("git", ["clean", "-fd"], cwd, true)
+    await installAndBuild(cwd, commandRunner)
   } catch (error) {
     rolledBack = true
 
     try {
       await commandRunner("git", ["reset", "--hard", before.currentCommit], cwd)
-      await commandRunner(npmCommand(), ["run", "build"], cwd, true)
+      await commandRunner("git", ["clean", "-fd"], cwd, true)
+      await installAndBuild(cwd, commandRunner)
     } catch {
       // Keep the original update error as the primary signal.
     }
@@ -301,7 +318,7 @@ export async function runSystemUpdate(
   }
 
   const after = await resolveGitStatus(cwd, commandRunner)
-  let restartScheduled = triggerDevelopmentRestart(cwd)
+  let restartScheduled = config.environment === "development" ? triggerDevelopmentRestart(cwd) : false
 
   if (!restartScheduled) {
     restartScheduled = true
@@ -352,7 +369,7 @@ export async function resetSystemToLastCommit(
   try {
     await commandRunner("git", ["reset", "--hard", before.currentCommit], cwd)
     await commandRunner("git", ["clean", "-fd"], cwd)
-    await commandRunner(npmCommand(), ["run", "build"], cwd)
+    await installAndBuild(cwd, commandRunner)
   } catch (error) {
     appendHistoryEntry(cwd, {
       timestamp: new Date().toISOString(),
@@ -374,7 +391,7 @@ export async function resetSystemToLastCommit(
   }
 
   const after = await resolveGitStatus(cwd, commandRunner)
-  let restartScheduled = triggerDevelopmentRestart(cwd)
+  let restartScheduled = config.environment === "development" ? triggerDevelopmentRestart(cwd) : false
 
   if (!restartScheduled) {
     restartScheduled = true

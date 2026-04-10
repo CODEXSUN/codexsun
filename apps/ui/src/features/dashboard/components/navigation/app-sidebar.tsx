@@ -3,7 +3,6 @@ import {
   Building2,
   ChevronRight,
   Database,
-  Home,
   Images,
   KeyRound,
   Mail,
@@ -484,14 +483,14 @@ function UtilityNavigationMenu({
 }
 
 export function AppSidebar() {
-  const { apps, brand, currentApp, links, user } = useDashboardShell()
+  const { brand, currentApp, links, user } = useDashboardShell()
   const location = useLocation()
   const { open } = useSidebar()
-  const showDeskGroup = location.pathname === links.dashboard
+  const isDashboardRoot = location.pathname === links.dashboard
   const currentAppUtilityGroups = getUtilityGroupsForCurrentApp(currentApp)
   const demoMenuCounts = useDemoMenuCounts(currentApp?.id === "demo")
   const showFrameworkUtilityGroups =
-    showDeskGroup ||
+    isDashboardRoot ||
     isRouteActive(location.pathname, "/dashboard/mail-service") ||
     isRouteActive(location.pathname, links.mediaManager) ||
     isRouteActive(location.pathname, links.settings) ||
@@ -527,43 +526,6 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {showDeskGroup ? (
-          <>
-            <SidebarGroup>
-              <SidebarGroupLabel>Desk</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === links.dashboard}
-                    >
-                      <NavLink to={links.dashboard}>
-                        <Home className="size-4" />
-                        {open ? <span>Application Desk</span> : null}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {apps.map((app) => (
-                    <SidebarMenuItem key={app.id}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isRouteActive(location.pathname, app.route)}
-                      >
-                        <NavLink to={app.route}>
-                          <app.icon className="size-4" />
-                          {open ? <span>{app.name}</span> : null}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-          </>
-        ) : null}
-
         {showFrameworkUtilityGroups ? (
           <UtilityNavigationMenu
             open={open}

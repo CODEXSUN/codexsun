@@ -420,6 +420,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
 
   if (app.id === "billing") {
     const billingWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
       "chart-of-accounts": Building2,
       categories: Building2,
       "voucher-groups": Blocks,
@@ -551,6 +552,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
 
   if (app.id === "crm") {
     const crmWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
       leads: Users,
       "cold-calls": PhoneCall,
     }
@@ -931,12 +933,21 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
       : app.id === "crm"
         ? [
             {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                ].includes(item.route)
+              ),
+            },
+            {
               id: `${app.id}-sales`,
               label: "Sales",
               shared: false,
               items: modules.filter((item) =>
                 [
-                  `/dashboard/apps/${app.id}`,
                   `/dashboard/apps/${app.id}/leads`,
                   `/dashboard/apps/${app.id}/cold-calls`,
                 ].includes(item.route)
@@ -959,6 +970,16 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
           ]
       : app.id === "billing"
         ? [
+            {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/billing`,
+                ].includes(item.route)
+              ),
+            },
             {
               id: `${app.id}-system`,
               label: "System",

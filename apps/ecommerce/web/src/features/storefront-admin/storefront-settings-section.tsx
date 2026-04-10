@@ -5,7 +5,6 @@ import {
   storefrontSettingsSchema,
   type StorefrontProductCard,
   type StorefrontSettings,
-  type StorefrontSettingsVersionHistoryResponse,
   type StorefrontSettingsWorkflowStatus,
 } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
@@ -768,7 +767,6 @@ function SingleCategoryCardPreview({
 export function StorefrontSettingsSection() {
   const { canEditStorefrontDesigner, canApproveStorefrontDesigner } = useStorefrontDesignerAccess()
   const [draft, setDraft] = useState<StorefrontSettings | null>(null)
-  const [history, setHistory] = useState<StorefrontSettingsVersionHistoryResponse | null>(null)
   const [workflow, setWorkflow] = useState<StorefrontSettingsWorkflowStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -795,10 +793,8 @@ export function StorefrontSettingsSection() {
 
       try {
         const workflowState = await storefrontApi.getStorefrontSettingsWorkflow(accessToken)
-        const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
         if (!cancelled) {
           setWorkflow(workflowState)
-          setHistory(historyState)
           setDraft(workflowState.previewSettings)
           setError(null)
         }
@@ -2281,9 +2277,7 @@ export function StorefrontSettingsSection() {
             const saved = await storefrontApi.updateStorefrontSettings(accessToken, validatedDraft.data)
             setDraft(saved)
             const workflowState = await storefrontApi.getStorefrontSettingsWorkflow(accessToken)
-            const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
             setWorkflow(workflowState)
-            setHistory(historyState)
             setSaveMessage("Draft saved. Publish when ready to update the live storefront.")
             showRecordToast({
               entity: "Storefront Settings",
@@ -2325,9 +2319,7 @@ export function StorefrontSettingsSection() {
             setError(null)
             try {
               const workflowState = await storefrontApi.publishStorefrontSettings(accessToken)
-              const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
               setWorkflow(workflowState)
-              setHistory(historyState)
               setDraft(workflowState.previewSettings)
               invalidateStorefrontShellData()
               await refreshShellData().catch(() => null)
@@ -2374,9 +2366,7 @@ export function StorefrontSettingsSection() {
                 accessToken,
                 workflow?.revisions[0]?.id ?? null
               )
-              const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
               setWorkflow(workflowState)
-              setHistory(historyState)
               setDraft(workflowState.previewSettings)
               invalidateStorefrontShellData()
               await refreshShellData().catch(() => null)
@@ -2408,60 +2398,6 @@ export function StorefrontSettingsSection() {
         <Button asChild variant="outline" className="rounded-full"><a href={storefrontPaths.home()} target="_blank" rel="noreferrer">Open live storefront</a></Button>
         {saveMessage ? <p className="text-sm text-muted-foreground">{saveMessage}</p> : null}
       </div>
-      {workflow ? (
-        <Card className="rounded-[1.5rem] border-border/70 py-0 shadow-sm">
-          <CardContent className="grid gap-3 p-5 md:grid-cols-3">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Live updated
-              </p>
-              <p className="text-sm text-foreground">{workflow.liveSettings.updatedAt}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Draft updated
-              </p>
-              <p className="text-sm text-foreground">
-                {workflow.draftSettings?.updatedAt ?? "No active draft"}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Rollback snapshots
-              </p>
-              <p className="text-sm text-foreground">{workflow.revisions.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-      {history ? (
-        <Card className="rounded-[1.5rem] border-border/70 py-0 shadow-sm">
-          <CardContent className="space-y-3 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Settings version history
-              </p>
-              <span className="text-xs text-muted-foreground">{history.settings.length} entries</span>
-            </div>
-            <div className="space-y-2">
-              {history.settings.slice(0, 5).map((entry) => (
-                <div
-                  key={entry.id}
-                  className="rounded-[1rem] border border-border/70 bg-card/60 px-4 py-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-foreground">{entry.summary}</p>
-                    <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px]">
-                      {entry.source.replaceAll("_", " ")}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{entry.createdAt}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
       <StorefrontDesignerPermissionCard
         canEdit={canEditStorefrontDesigner}
         canApprove={canApproveStorefrontDesigner}

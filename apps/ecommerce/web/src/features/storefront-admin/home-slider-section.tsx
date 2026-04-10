@@ -6,7 +6,7 @@ import {
   type StorefrontHomeSlider,
   type StorefrontHomeSliderSlide,
   type StorefrontHomeSliderTheme,
-  type StorefrontSettingsVersionHistoryResponse,
+  type StorefrontSettingsWorkflowStatus,
 } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +25,7 @@ import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-pr
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
 
 import { storefrontApi } from "../../api/storefront-api"
+import { invalidateStorefrontShellData } from "../../hooks/use-storefront-shell-data"
 import {
   applyHomeSliderThemePreset,
   homeSliderThemeOptions,
@@ -262,16 +263,17 @@ export function HomeSliderSection() {
   const { canEditStorefrontDesigner, canApproveStorefrontDesigner } = useStorefrontDesignerAccess()
   const [draft, setDraft] = useState<StorefrontHomeSlider | null>(null)
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
-  const [history, setHistory] = useState<StorefrontSettingsVersionHistoryResponse | null>(null)
+  const [workflow, setWorkflow] = useState<StorefrontSettingsWorkflowStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const accessToken = getStoredAccessToken()
   const validationIssues = draft ? validateHomeSliderDesigner(draft) : []
   const hasValidationIssues = validationIssues.length > 0
 
-  useGlobalLoading(isLoading || isSaving)
+  useGlobalLoading(isLoading || isSaving || isPublishing)
 
   useEffect(() => {
     let cancelled = false
@@ -285,10 +287,10 @@ export function HomeSliderSection() {
 
       try {
         const settings = await storefrontApi.getHomeSlider(accessToken)
-        const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
+        const workflowState = await storefrontApi.getStorefrontSettingsWorkflow(accessToken)
         if (!cancelled) {
           setDraft(settings)
-          setHistory(historyState)
+          setWorkflow(workflowState)
           setSelectedSlideId(settings.slides[0]?.id ?? null)
           setError(null)
         }
@@ -792,6 +794,9 @@ export function HomeSliderSection() {
         <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
           {draft.slides.length} sliders
         </Badge>
+        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+          {workflow?.hasUnpublishedChanges ? "Draft ahead of live" : "Draft matches live"}
+        </Badge>
         <Button
           type="button"
           className="rounded-full"
@@ -817,15 +822,15 @@ export function HomeSliderSection() {
             try {
               const parsedDraft = storefrontHomeSliderSchema.parse(draft)
               const saved = await storefrontApi.updateHomeSlider(accessToken, parsedDraft)
-              const historyState = await storefrontApi.getStorefrontSettingsHistory(accessToken)
+              const workflowState = await storefrontApi.getStorefrontSettingsWorkflow(accessToken)
               setDraft(saved)
-              setHistory(historyState)
+              setWorkflow(workflowState)
               setSelectedSlideId(
                 saved.slides.find((slide) => slide.id === selectedSlideId)?.id ??
                   saved.slides[0]?.id ??
                   null
               )
-              setSaveMessage("Home slider saved.")
+              setSaveMessage("Home slider draft saved. Publish when ready to update the live storefront.")
               showRecordToast({
                 entity: "Home Slider",
                 action: "saved",
@@ -850,6 +855,66 @@ export function HomeSliderSection() {
         >
           {isSaving ? "Saving..." : "Save home slider"}
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-full"
+          disabled={
+            !canEditStorefrontDesigner ||
+            !canApproveStorefrontDesigner ||
+            isPublishing ||
+            hasValidationIssues ||
+            !workflow?.hasUnpublishedChanges
+          }
+          onClick={async () => {
+            if (!accessToken) {
+              setError("Admin session is required.")
+              return
+            }
+            if (!canApproveStorefrontDesigner) {
+              setError("This role cannot publish storefront designer changes.")
+              return
+            }
+
+            setIsPublishing(true)
+            setSaveMessage(null)
+            setError(null)
+
+            try {
+              const workflowState = await storefrontApi.publishStorefrontSettings(accessToken)
+              setWorkflow(workflowState)
+              setDraft(workflowState.previewSettings.homeSlider)
+              setSelectedSlideId((current) =>
+                workflowState.previewSettings.homeSlider.slides.find((slide) => slide.id === current)?.id ??
+                workflowState.previewSettings.homeSlider.slides[0]?.id ??
+                null
+              )
+              invalidateStorefrontShellData()
+              setSaveMessage("Home slider draft published to the live storefront.")
+              showRecordToast({
+                entity: "Home Slider",
+                action: "published",
+                recordName: selectedSlide.label,
+                recordId: selectedSlide.id,
+              })
+            } catch (publishError) {
+              const message =
+                publishError instanceof Error
+                  ? publishError.message
+                  : "Failed to publish home slider settings."
+              setError(message)
+              showAppToast({
+                variant: "error",
+                title: "Home slider publish failed.",
+                description: message,
+              })
+            } finally {
+              setIsPublishing(false)
+            }
+          }}
+        >
+          {isPublishing ? "Publishing..." : "Publish live"}
+        </Button>
         <Button asChild variant="outline" className="rounded-full">
           <a href={storefrontPaths.home()} target="_blank" rel="noreferrer">
             Open storefront
@@ -862,35 +927,6 @@ export function HomeSliderSection() {
         canEdit={canEditStorefrontDesigner}
         canApprove={canApproveStorefrontDesigner}
       />
-
-      {history ? (
-        <Card className="rounded-[1.5rem] border-border/70 py-0 shadow-sm">
-          <CardContent className="space-y-3 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Home slider version history
-              </p>
-              <span className="text-xs text-muted-foreground">{history.homeSlider.length} entries</span>
-            </div>
-            <div className="space-y-2">
-              {history.homeSlider.slice(0, 5).map((entry) => (
-                <div
-                  key={entry.id}
-                  className="rounded-[1rem] border border-border/70 bg-card/60 px-4 py-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-foreground">{entry.summary}</p>
-                    <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px]">
-                      {entry.source.replaceAll("_", " ")}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{entry.createdAt}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
 
       {error ? (
         <Card className="rounded-[1.5rem] border-destructive/20 bg-destructive/5 py-0 shadow-sm">

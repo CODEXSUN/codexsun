@@ -19,6 +19,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Landing page, catalog, PDP, cart, and track-order surface owned by the ecommerce app.",
   },
   {
+    id: "history",
+    name: "History",
+    route: "/dashboard/apps/ecommerce/history",
+    summary: "Live and draft storefront revision history across settings, home slider, footer, and campaign designer changes.",
+  },
+  {
     id: "home-slider",
     name: "Home Slider",
     route: "/dashboard/apps/ecommerce/home-slider",

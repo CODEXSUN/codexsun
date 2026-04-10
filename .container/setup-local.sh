@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+export START_MARIADB="${START_MARIADB:-false}"
+export BUILD_IMAGE="${BUILD_IMAGE:-true}"
+export CREATE_DATABASES="${CREATE_DATABASES:-false}"
+export CLEAN_INSTALL="${CLEAN_INSTALL:-false}"
+export REMOVE_IMAGE="${REMOVE_IMAGE:-false}"
+export PRUNE_DOCKER="${PRUNE_DOCKER:-false}"
+
+export TARGET_ENV="${TARGET_ENV:-local}"
+export CLIENTS="${CLIENTS:-codexsun}"
+
+export GIT_SYNC_ENABLED="${GIT_SYNC_ENABLED:-true}"
+export GIT_AUTO_UPDATE_ON_START="${GIT_AUTO_UPDATE_ON_START:-false}"
+export GIT_FORCE_UPDATE_ON_START="${GIT_FORCE_UPDATE_ON_START:-true}"
+export GIT_REPOSITORY_URL="${GIT_REPOSITORY_URL:-https://github.com/CODEXSUN/codexsun.git}"
+export GIT_BRANCH="${GIT_BRANCH:-main}"
+export INSTALL_DEPS_ON_START="${INSTALL_DEPS_ON_START:-false}"
+export BUILD_ON_START="${BUILD_ON_START:-false}"
+
+export RUNTIME_APP_ENV="${RUNTIME_APP_ENV:-development}"
+export RUNTIME_CLOUDFLARE_ENABLED="${RUNTIME_CLOUDFLARE_ENABLED:-false}"
+export RUNTIME_PUBLIC_SCHEME="${RUNTIME_PUBLIC_SCHEME:-http}"
+export RUNTIME_PUBLIC_PORT="${RUNTIME_PUBLIC_PORT:-4000}"
+export RUNTIME_FRONTEND_TARGET="${RUNTIME_FRONTEND_TARGET:-shop}"
+export RUNTIME_DB_DRIVER="${RUNTIME_DB_DRIVER:-sqlite}"
+export RUNTIME_SQLITE_FILE="${RUNTIME_SQLITE_FILE:-storage/local/codexsun-local.sqlite}"
+export RUNTIME_DB_BACKUP_ENABLED="${RUNTIME_DB_BACKUP_ENABLED:-false}"
+
+export CODEXSUN_DOMAIN="${CODEXSUN_DOMAIN:-localhost}"
+export CODEXSUN_DB_NAME="${CODEXSUN_DB_NAME:-codexsun_local_db}"
+
+exec "$SCRIPT_DIR/setup.sh"
