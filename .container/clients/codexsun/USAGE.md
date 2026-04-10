@@ -32,11 +32,13 @@ TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setu
 - Updates `/opt/codexsun/runtime/.env`
 - Restarts the container and waits for health before exiting
 
-Runtime Git sync is disabled by default in both local and cloud. The running container uses the image you build from the current workspace. Re-enable Git sync only if you explicitly want startup-time repository cloning:
+Runtime Git sync is disabled by default in local mode and enabled by default in cloud mode. Local installs run the image built from your current workspace. Cloud installs boot from the runtime repository so the live update flow can fetch, rebuild, and restart from Git.
 
 ```bash
 GIT_SYNC_ENABLED=true GIT_FORCE_UPDATE_ON_START=true TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setup.sh
 ```
+
+Use `GIT_FORCE_UPDATE_ON_START=true` only for a one-time forced resync. Normal cloud installs do not need it.
 
 ## Requirements
 
@@ -187,52 +189,4 @@ Check health:
 ```bash
 curl -I http://127.0.0.1:4000/health
 curl -k -I https://codexsun.com/health
-```
-
-
-# Step 1: Install SSL with Certbot (Recommended for Nginx)
-Step 1: Install Certbot and Nginx plugin
-
-
-```
-sudo apt update
-sudo apt install certbot python3-certbot-nginx -y
-```
-```
-sudo systemctl status nginx
-```
-```
-sudo ufw allow 'Nginx Full'
-sudo ufw reload
-```
-
-
-```
-server {
-    listen 80;
-    server_name soft.aaran.org;
-
-    location / {
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-sudo ln -s /etc/nginx/sites-available/demo.codexsun.com /etc/nginx/sites-enabled/
-
-
-```
-sudo certbot --nginx
-```
-
-```
-sudo nginx -t
-```
-
-```
-sudo systemctl reload nginx
 ```

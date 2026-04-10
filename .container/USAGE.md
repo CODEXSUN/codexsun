@@ -28,7 +28,7 @@ CLIENTS=codexsun,tmnext_in TARGET_ENV=cloud ./.container/bash-sh/setup.sh
 
 - `TARGET_ENV=cloud` at the root script
 - Build path uses `docker compose build`
-- Runtime Git sync is disabled by default
+- Runtime Git sync is disabled by default in local mode and enabled by default in cloud mode
 - Local clients bind their app ports publicly
 - Cloud clients bind their app ports to `127.0.0.1` for nginx reverse proxying
 
