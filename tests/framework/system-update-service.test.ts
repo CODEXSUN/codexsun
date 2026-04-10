@@ -122,6 +122,55 @@ test("system update preview returns pending commits from the configured branch",
   }
 })
 
+test("system update status uses runtime repository when git sync is active", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-system-update-runtime-repo-"))
+
+  try {
+    const appRoot = path.join(tempRoot, "app")
+    const runtimeRepoRoot = path.join(tempRoot, "runtime", "repository")
+    mkdirSync(path.join(appRoot, "build", "app", "cxapp", "web"), { recursive: true })
+    mkdirSync(path.join(runtimeRepoRoot, ".git"), { recursive: true })
+    writeFileSync(
+      path.join(appRoot, ".env"),
+      [
+        "APP_ENV=development",
+        "WEB_ROOT=build/app/cxapp/web",
+        "GIT_SYNC_ENABLED=true",
+        "GIT_REPOSITORY_URL=https://github.com/CODEXSUN/codexsun.git",
+        "GIT_BRANCH=main",
+      ].join("\n"),
+      "utf8"
+    )
+
+    const config = getServerConfig(appRoot)
+    const calls: string[] = []
+    const runner = createRunner(
+      {
+        "git --version": () => ({ stdout: "git version 2.49.0\n" }),
+        "npm.cmd --version": () => ({ stdout: "11.4.0\n" }),
+        "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
+        "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
+        "git rev-parse HEAD": () => ({ stdout: "abc123\n" }),
+        "git status --porcelain": () => ({ stdout: "" }),
+        "git ls-remote --heads https://github.com/CODEXSUN/codexsun.git refs/heads/main": () => ({
+          stdout: "abc123\trefs/heads/main\n",
+        }),
+      },
+      calls
+    )
+
+    const status = await getSystemUpdateStatus(config, runner)
+
+    assert.equal(status.currentCommit, "abc123")
+    assert.equal(
+      calls.every((entry) => entry.startsWith(`${runtimeRepoRoot} ::`)),
+      true
+    )
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("system update discards local changes, pulls configured branch, and rebuilds", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-system-update-dirty-"))
 

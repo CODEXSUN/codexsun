@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#111] 2026-04-10 - Local git-sync runtime update alignment
+
+- fixed development runtime settings so changing Git sync controls from Core Settings schedules a real container restart when the live runtime mode depends on entrypoint-only behavior
+- fixed framework system-update resolution so live update status, preview, reset, and update actions inspect the active runtime Git worktree instead of the embedded image path when Git sync is enabled
+- updated the container entrypoint so local Git-sync mode overlays the current image snapshot onto the runtime repository before rebuild, which keeps local browser testing aligned with the current workspace without requiring an immediate GitHub push
+- validated the batch with focused runtime-settings and system-update tests, `npm run typecheck`, and `npm run build`; `npm run lint` and `npm run test` still report unrelated pre-existing repo failures including existing auth-fixture logins, workspace-shape drift, app-suite expectations, database-process ordering expectations, and broad eslint debt outside this batch
+
 ### [#110] 2026-04-10 - Storefront shell isolation review and top-menu polish
 
 - kept the storefront shell split intact while adding an isolated shell-testing mode on the home route so top menu, category menu, and footer can be re-enabled one by one without deleting the underlying storefront sections or technical-name boundaries

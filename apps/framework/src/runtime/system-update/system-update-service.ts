@@ -174,6 +174,25 @@ function resolveRuntimeGitTarget(cwd: string) {
   return resolveRuntimeGitSyncTarget(env.GIT_REPOSITORY_URL, env.GIT_BRANCH)
 }
 
+function resolveSystemUpdateRoot(cwd: string) {
+  const env = parseEnvFile(path.join(cwd, ".env"))
+
+  if (env.GIT_SYNC_ENABLED === "true") {
+    const candidateRoots = [
+      path.resolve(cwd, "..", "runtime", "repository"),
+      path.join(cwd, "runtime", "repository"),
+    ]
+
+    for (const candidateRoot of candidateRoots) {
+      if (existsSync(path.join(candidateRoot, ".git"))) {
+        return candidateRoot
+      }
+    }
+  }
+
+  return cwd
+}
+
 async function ensureRuntimeGitRemote(
   cwd: string,
   target: RuntimeGitSyncTarget,
@@ -284,14 +303,14 @@ export async function getSystemUpdateStatus(
   config: ServerConfig,
   commandRunner: CommandRunner = runCommand
 ): Promise<SystemUpdateStatus> {
-  return resolveGitStatus(resolveRuntimeSettingsRoot(config), commandRunner)
+  return resolveGitStatus(resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config)), commandRunner)
 }
 
 export async function getSystemUpdatePreview(
   config: ServerConfig,
   commandRunner: CommandRunner = runCommand
 ): Promise<SystemUpdatePreview> {
-  const cwd = resolveRuntimeSettingsRoot(config)
+  const cwd = resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config))
   const status = await resolveGitStatus(cwd, commandRunner)
 
   if (!status.canAutoUpdate || !status.currentCommit || status.currentCommit === "(unavailable)") {
@@ -353,7 +372,7 @@ export async function getSystemUpdatePreview(
 }
 
 export function listSystemUpdateHistory(config: ServerConfig): SystemUpdateHistory {
-  const cwd = resolveRuntimeSettingsRoot(config)
+  const cwd = resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config))
 
   return systemUpdateHistorySchema.parse({
     items: readHistoryEntries(cwd).slice(-20).reverse(),
@@ -365,7 +384,7 @@ export async function runSystemUpdate(
   commandRunner: CommandRunner = runCommand,
   actor: string | null = null
 ): Promise<SystemUpdateRunResponse> {
-  const cwd = resolveRuntimeSettingsRoot(config)
+  const cwd = resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config))
   const before = await resolveGitStatus(cwd, commandRunner)
   const target = resolveRuntimeGitTarget(cwd)
   const plan = buildRuntimeGitCommandPlan(target)
@@ -477,7 +496,7 @@ export async function resetSystemToLastCommit(
   actor: string | null = null
 ): Promise<SystemUpdateRunResponse> {
   const parsedPayload = systemUpdateResetPayloadSchema.parse(payload) as SystemUpdateResetPayload
-  const cwd = resolveRuntimeSettingsRoot(config)
+  const cwd = resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config))
   const before = await resolveGitStatus(cwd, commandRunner)
 
   if (!parsedPayload.force) {

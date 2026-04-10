@@ -21,6 +21,13 @@ import { getServerConfig } from "./server-config.js"
 
 const defaultGitRepositoryUrl = "https://github.com/CODEXSUN/codexsun.git"
 const defaultGitBranch = "main"
+const containerRestartSettingKeys = new Set([
+  "GIT_SYNC_ENABLED",
+  "GIT_REPOSITORY_URL",
+  "GIT_BRANCH",
+  "GIT_AUTO_UPDATE_ON_START",
+  "GIT_FORCE_UPDATE_ON_START",
+])
 
 export function resolveRuntimeSettingsRoot(config: ServerConfig) {
   return path.resolve(config.webRoot, "..", "..", "..", "..")
@@ -301,6 +308,36 @@ function buildEnvFileContent(
   return `${sections.join("\n\n")}\n`
 }
 
+function resolveCurrentSettingValue(
+  field: RuntimeSettingField,
+  currentFileValues: Record<string, string>,
+  cwd: string
+) {
+  return normalizeFieldValue(
+    field,
+    currentFileValues[field.key] ?? valueFromResolvedConfig(field, cwd)
+  )
+}
+
+function requiresContainerRestartForSettingsChange(
+  currentFileValues: Record<string, string>,
+  normalizedValues: Record<string, string | boolean>,
+  cwd: string
+) {
+  return runtimeSettingGroups.some((group) =>
+    group.fields.some((field) => {
+      if (!containerRestartSettingKeys.has(field.key)) {
+        return false
+      }
+
+      const currentValue = resolveCurrentSettingValue(field, currentFileValues, cwd)
+      const nextValue = normalizedValues[field.key] ?? (field.type === "boolean" ? false : "")
+
+      return toEnvString(field, currentValue) !== toEnvString(field, nextValue)
+    })
+  )
+}
+
 export function getRuntimeSettingsSnapshot(cwd = process.cwd()): RuntimeSettingsSnapshot {
   const values = Object.fromEntries(
     runtimeSettingGroups.flatMap((group) =>
@@ -346,7 +383,16 @@ export async function saveRuntimeSettings(
 
   if (parsedPayload.restart) {
     const config = getServerConfig(cwd)
-    restartScheduled = config.environment === "development" ? triggerDevelopmentRestart(cwd) : false
+    const requiresContainerRestart = requiresContainerRestartForSettingsChange(
+      currentFileValues,
+      normalizedValues,
+      cwd
+    )
+
+    restartScheduled =
+      config.environment === "development" && !requiresContainerRestart
+        ? triggerDevelopmentRestart(cwd)
+        : false
 
     if (!restartScheduled) {
       restartScheduled = true

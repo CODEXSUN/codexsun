@@ -189,3 +189,61 @@ test("runtime settings save with restart updates the watched restart token in de
     rmSync(tempRoot, { recursive: true, force: true })
   }
 })
+
+test("runtime settings save forces container restart when git runtime settings change", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-runtime-container-restart-"))
+  const originalKill = process.kill
+  const killCalls: Array<{ pid: number; signal: NodeJS.Signals | number }> = []
+
+  try {
+    mkdirSync(path.join(tempRoot, "apps/cxapp/src/server"), { recursive: true })
+    writeFileSync(
+      path.join(tempRoot, "apps/cxapp/src/server/restart-token.ts"),
+      'export const runtimeRestartToken = "before"\n',
+      "utf8"
+    )
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      ["APP_ENV=development", "GIT_SYNC_ENABLED=false", "GIT_BRANCH=main"].join("\n"),
+      "utf8"
+    )
+
+    process.kill = ((pid: number, signal?: NodeJS.Signals | number) => {
+      killCalls.push({ pid, signal: signal ?? "SIGTERM" })
+      return true
+    }) as typeof process.kill
+
+    const snapshot = withClearedEnv(runtimeEnvKeys, () =>
+      getRuntimeSettingsSnapshot(tempRoot)
+    )
+
+    const saveResponse = await withClearedEnv(runtimeEnvKeys, () =>
+      saveRuntimeSettings(
+        {
+          restart: true,
+          values: {
+            ...snapshot.values,
+            GIT_SYNC_ENABLED: true,
+          },
+        },
+        tempRoot
+      )
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 350))
+
+    const tokenContents = readFileSync(
+      path.join(tempRoot, "apps/cxapp/src/server/restart-token.ts"),
+      "utf8"
+    )
+
+    assert.equal(saveResponse.restartScheduled, true)
+    assert.match(readFileSync(path.join(tempRoot, ".env"), "utf8"), /GIT_SYNC_ENABLED=true/)
+    assert.match(tokenContents, /"before"/)
+    assert.equal(killCalls.length > 0, true)
+    assert.equal(killCalls[0]?.pid, process.pid)
+  } finally {
+    process.kill = originalKill
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
