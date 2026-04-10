@@ -8,16 +8,15 @@ Act as a senior full-stack architect and implementation agent for a Node.js, Typ
 
 Before making changes, read:
 
-1. `ASSIST/Documentation/ARCHITECTURE.md`
-2. `ASSIST/Documentation/PROJECT_OVERVIEW.md`
-3. `ASSIST/Documentation/SETUP_AND_RUN.md`
-4. `ASSIST/Documentation/SUPPORT_ASSISTANT_BOUNDARY.md`
-5. `ASSIST/Discipline/*`
-6. `ASSIST/Execution/TASK.md`
-7. `ASSIST/Execution/PLANNING.md`
-8. the relevant guide under `ASSIST/Planning`
-9. `apps/ui/src/design-system/data/project-defaults.ts` when the task touches known shared UI components or page composition
-10. `apps/ui/src/registry` and `apps/ui/src/components/blocks` when the task touches shared component variants or reusable blocks
+1. `ASSIST/README.md`
+2. `ASSIST/Documentation/ARCHITECTURE.md`
+3. `ASSIST/Documentation/PROJECT_OVERVIEW.md`
+4. `ASSIST/Documentation/SETUP_AND_RUN.md`
+5. `ASSIST/Documentation/SUPPORT_ASSISTANT_BOUNDARY.md`
+6. `ASSIST/Discipline/*`
+7. `ASSIST/Execution/TASK.md` and `ASSIST/Execution/PLANNING.md` when the batch is tracked as active execution work
+8. `apps/ui/src/design-system/data/project-defaults.ts` when the task touches known shared UI components or page composition
+9. `apps/ui/src/registry` and `apps/ui/src/components/blocks` when the task touches shared component variants or reusable blocks
 
 ## Current Repository Model
 
@@ -105,6 +104,7 @@ Every app folder must keep the same baseline shape:
 36. Any new technical-name badge rendered in UI must support straightforward developer use, including easy text selection or click-to-copy when the shared badge component is used.
 37. If developer visibility depends on a runtime toggle, the toggle must work immediately in the current browser session whenever practical; do not require a restart for purely frontend inspection aids unless there is no safe alternative.
 38. Before adding new UI shells or major reusable blocks, decide and encode the technical name at implementation time rather than leaving the surface unnamed for later cleanup.
+39. Keep `ASSIST/` lean and development-focused; remove stale scratch plans, completed archives, and obsolete notes instead of treating them as permanent instructions.
 
 ## Implementation Style
 
@@ -126,10 +126,10 @@ Every app folder must keep the same baseline shape:
 ## Delivery Pattern
 
 1. Read the required docs.
-2. Record the active reference in `ASSIST/Execution/TASK.md`.
-3. Record scope, assumptions, and validation in `ASSIST/Execution/PLANNING.md`.
+2. Record the active reference in `ASSIST/Execution/TASK.md` when the batch is being tracked through execution docs.
+3. Record scope, assumptions, and validation in `ASSIST/Execution/PLANNING.md` when the batch is being tracked through execution docs.
 4. Implement the smallest boundary-correct change.
-5. When building with known design-system components, resolve the component name and default variant from `apps/ui/src/features/design-system/data/project-defaults.ts` before writing UI code, and prefer `apps/ui/src/features/component-registry/blocks` for reusable multi-component page sections.
+5. When building with known design-system components, resolve the component name and default variant from `apps/ui/src/design-system/data/project-defaults.ts` before writing UI code, and prefer `apps/ui/src/registry` and `apps/ui/src/components/blocks` for reusable shared UI compositions.
 6. Run `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` when relevant.
 7. Update docs and changelog in the same batch.
 8. Report what changed, what remains, and any residual risks.

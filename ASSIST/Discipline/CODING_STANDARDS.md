@@ -48,4 +48,4 @@ Architecture-relevant changes must update:
 
 1. `ASSIST/Documentation/ARCHITECTURE.md`
 2. `ASSIST/Documentation/PROJECT_OVERVIEW.md`
-3. `ASSIST/Documentation/CHANGELOG.md`
+3. `ASSIST/Documentation/CHANGELOG.md` when the change belongs in project history

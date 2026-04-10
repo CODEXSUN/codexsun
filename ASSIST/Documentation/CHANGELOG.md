@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#108] 2026-04-10 - ASSIST consolidation and startup workflow hardening
+
+- consolidated `ASSIST` into a smaller active guidance set by removing stale database docs, completed execution archives, scratch planning files, and legacy worklog material
+- added `ASSIST/README.md` as the future startup entrypoint and documented that agents must read the current `ASSIST` file set before starting development
+- hardened the local workflow rules so meaningful work is planned in `ASSIST/Execution/PLANNING.md`, tracked in phased checklists in `ASSIST/Execution/TASK.md`, routed through the changelog and git-helper flow, and cleaned out of execution docs after completion
+
 ### [#107] 2026-04-09 - Billing workspace split and legacy billing or Frappe payload compatibility
 
 - completed Phase `1.1` by splitting the billing workspace entry surface into app-owned section modules while preserving the public import path through `apps/billing/web/src/workspace-sections.tsx`

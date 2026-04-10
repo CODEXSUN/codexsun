@@ -4,22 +4,39 @@
 
 ### Reference
 
-`#107`
+`#108`
 
 ### Title
 
-`Repository-wide refactor task ordering from full project scan`
+`ASSIST consolidation and startup workflow hardening`
 
 ## Scope Rule
 
-This file is the ordered refactor queue created after scanning the current repository source.
+This batch consolidates `ASSIST` into a leaner, future-facing development guide.
 
-Planning only in this batch:
+## Phase 1. ASSIST Consolidation
 
-- [ ] no implementation started
-- [ ] no file moved yet
-- [ ] no behavior changed yet
-- [ ] no new concept introduced without approval
+- [x] audit current `ASSIST` files and remove stale archive, database, and scratch documents
+- [x] preserve only active guidance needed for development
+- [x] correct surviving references so the kept docs match the real repository structure
+
+## Phase 2. Startup Workflow
+
+- [x] add a single `ASSIST/README.md` entrypoint
+- [x] require future agents to read `README.md`, `AI_RULES.md`, and the current `ASSIST` file set before starting work
+- [x] document UI source-of-truth paths for shared design-system work
+
+## Phase 3. Execution And Git Helper Rules
+
+- [x] require proper planning in `ASSIST/Execution/PLANNING.md` before meaningful work
+- [x] require phased task tracking with checkboxes in `ASSIST/Execution/TASK.md`
+- [x] require git-helper use to collect completed work into `ASSIST/Documentation/CHANGELOG.md`
+- [x] require cleanup of finished task and planning details after changelog capture
+
+## Status
+
+- [x] documentation batch complete
+- [ ] helper commit and push pending
 
 ## Scan Notes
 

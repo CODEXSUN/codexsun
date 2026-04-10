@@ -4,6 +4,8 @@
 
 Reset ownership map for the current `apps/` suite. Keep this file short, boundary-focused, and aligned with `ASSIST/AI_RULES.md`.
 
+Use this as the quick ownership lookup. If this file conflicts with `ASSIST/Documentation/ARCHITECTURE.md`, architecture wins and this file must be updated.
+
 ## Current State
 
 - All 13 apps keep the standard `src`, `web`, `database`, `helper`, and `shared` shape.

@@ -14,11 +14,11 @@
 3. Mention affected ownership boundaries where useful: framework, core, ecommerce, billing, task, or site
 4. Start every commit subject with a reference such as `#10`
 5. Use the commit subject format `#<ref> <type>(<scope>): <summary>` or `#<ref> <type>: <summary>`
-6. Keep `TASK.md`, `PLANNING.md`, and `CHANGELOG.md` aligned to the same active reference number
+6. When a batch is tracked in `ASSIST/Execution`, keep `TASK.md`, `PLANNING.md`, and `CHANGELOG.md` aligned to the same active reference number
 
 ## Before Review
 
-1. Ensure the active task and plan files are current
+1. Ensure the active task and plan files are current when the batch is tracked there
 2. Ensure validation is run or the gap is documented
 3. Ensure `ARCHITECTURE.md` and `CHANGELOG.md` are updated when required
 4. Ensure the working tree does not contain unrelated accidental changes

@@ -2,14 +2,19 @@
 
 ## Required Workflow
 
-1. Read `ASSIST/AI_RULES.md`
-2. Read `ASSIST/Documentation/ARCHITECTURE.md`
-3. Read the relevant discipline files under `ASSIST/Discipline`
-4. Update `ASSIST/Execution/TASK.md` and `ASSIST/Execution/PLANNING.md` with the active reference before substantial work
-5. Implement the smallest safe increment
-6. Validate the affected areas with `typecheck`, `lint`, `test`, and `build` when they apply to the change
-7. Update docs and changelog in the same change set with the same reference
-8. Use the repository's actual scripts and standard git commands; the interactive GitHub workflow helper is available as `npm run github`
+1. Read `ASSIST/README.md`
+2. Read `ASSIST/AI_RULES.md`
+3. Read `ASSIST/Documentation/ARCHITECTURE.md`
+4. Read the relevant discipline files under `ASSIST/Discipline`
+5. Update `ASSIST/Execution/TASK.md` and `ASSIST/Execution/PLANNING.md` with the active reference before substantial work when the batch changes the tracked execution scope
+6. Implement the smallest safe increment
+7. Validate the affected areas with `typecheck`, `lint`, `test`, and `build` when they apply to the change
+8. Update docs and changelog in the same change set with the same reference
+9. Use the repository's actual scripts and standard git commands; the interactive GitHub workflow helper is available as `npm run github`
+
+Keep `ASSIST/` limited to current operating guidance. Do not add scratch notes, abandoned plans, or completed-history dumps unless the user explicitly asks for them.
+
+Treat `ASSIST/README.md` as the entrypoint and keep deeper docs focused on one concern each.
 
 ## Repository Rules
 

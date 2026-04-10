@@ -9,7 +9,7 @@
 ## Reference Policy
 
 1. Every meaningful batch uses a reference number such as `#10`
-2. The active batch reference in `TASK.md` must match the current batch reference in `PLANNING.md`
+2. When execution tracking is active, the batch reference in `TASK.md` must match the current batch reference in `PLANNING.md`
 3. Changelog entries must use the same reference number in the form `### [#10] YYYY-MM-DD - Title`
 4. Commit subjects must start with the same reference number
 
