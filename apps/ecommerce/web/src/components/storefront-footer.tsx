@@ -1,19 +1,14 @@
-import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
+import { useStorefrontIsMobileShell } from "../hooks/use-storefront-shell-mode"
 
-import { useStorefrontShellData } from "../hooks/use-storefront-shell-data"
-import { StorefrontFooterSurface } from "./storefront-footer-surface"
+import { StorefrontFooterDesktop } from "./storefront-footer-desktop"
+import { StorefrontFooterMobile } from "./storefront-footer-mobile"
 
 export function StorefrontFooter() {
-  const { brand } = useRuntimeBrand()
-  const { data } = useStorefrontShellData()
-  const settings = data?.settings
+  const isMobileShell = useStorefrontIsMobileShell()
 
-  return settings?.footer ? (
-    <StorefrontFooterSurface
-      brand={brand}
-      footer={settings.footer}
-      supportEmail={settings.supportEmail}
-      supportPhone={settings.supportPhone}
-    />
-  ) : null
+  if (isMobileShell) {
+    return <StorefrontFooterMobile />
+  }
+
+  return <StorefrontFooterDesktop />
 }

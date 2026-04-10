@@ -1,69 +1,18 @@
-import { useEffect, useState } from "react"
+import { useStorefrontIsMobileShell } from "../hooks/use-storefront-shell-mode"
 
-import type { StorefrontCategorySummary } from "@ecommerce/shared"
-
-import { StorefrontCategoryMenu } from "./storefront-category-menu"
-import { StorefrontTopMenu } from "./storefront-top-menu"
+import { StorefrontHeaderDesktop } from "./storefront-header-desktop"
+import { StorefrontHeaderMobile } from "./storefront-header-mobile"
+import type { StorefrontHeaderProps } from "./storefront-header-shared"
 
 export function StorefrontHeader({
   categories = [],
   showCategoryMenu = true,
-}: {
-  categories?: StorefrontCategorySummary[]
-  showCategoryMenu?: boolean
-}) {
-  const [isCategoryCompact, setIsCategoryCompact] = useState(false)
-  const compactScrollThreshold = 10
-  const topRevealThreshold = 6
+}: StorefrontHeaderProps) {
+  const isMobileShell = useStorefrontIsMobileShell()
 
-  useEffect(() => {
-    let frameId = 0
+  if (isMobileShell) {
+    return <StorefrontHeaderMobile categories={categories} showCategoryMenu={showCategoryMenu} />
+  }
 
-    function handleScroll() {
-      const currentScrollY = window.scrollY
-
-      if (currentScrollY <= topRevealThreshold) {
-        setIsCategoryCompact(false)
-        return
-      }
-
-      if (currentScrollY <= compactScrollThreshold) {
-        return
-      }
-
-      setIsCategoryCompact(true)
-    }
-
-    function handleScrollFrame() {
-      if (frameId) {
-        return
-      }
-
-      frameId = window.requestAnimationFrame(() => {
-        frameId = 0
-        handleScroll()
-      })
-    }
-
-    handleScroll()
-    window.addEventListener("scroll", handleScrollFrame, { passive: true })
-
-    return () => {
-      if (frameId) {
-        window.cancelAnimationFrame(frameId)
-      }
-      window.removeEventListener("scroll", handleScrollFrame)
-    }
-  }, [])
-
-  return (
-    <header className="fixed inset-x-0 top-0 z-50">
-      <StorefrontTopMenu isScrolled={isCategoryCompact} />
-      {showCategoryMenu ? (
-        <div className="hidden md:block">
-          <StorefrontCategoryMenu categories={categories} isScrolled={isCategoryCompact} />
-        </div>
-      ) : null}
-    </header>
-  )
+  return <StorefrontHeaderDesktop categories={categories} showCategoryMenu={showCategoryMenu} />
 }

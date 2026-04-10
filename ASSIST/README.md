@@ -71,6 +71,14 @@ When the user asks to call the git helper:
 4. commit all intended changes
 5. push all intended changes
 
+Git helper location and command:
+
+- source file: `apps/cli/src/github-helper.ts`
+- interactive command: `npm run github`
+- non-interactive command: `npm run github:now`
+
+The helper is implemented under `apps/cli`, even though the workflow rule here calls it the "git helper".
+
 Do not call the git helper with incomplete task tracking or missing changelog context.
 
 After the changelog entry is created for finished work:

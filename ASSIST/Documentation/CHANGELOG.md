@@ -8,6 +8,18 @@
 
 ## v-0.0.1
 
+### [#110] 2026-04-10 - Storefront shell isolation review and top-menu polish
+
+- kept the storefront shell split intact while adding an isolated shell-testing mode on the home route so top menu, category menu, and footer can be re-enabled one by one without deleting the underlying storefront sections or technical-name boundaries
+- refined the mobile storefront top menu by moving search to its own full-width second row and adding a desktop-style account or login dropdown button beside the brand for faster manual shell review
+- documented the concrete git-helper location in `ASSIST/README.md`, kept the underlying storefront section markers in place for later staged re-enable work, and validated the current shell pass with `npm.cmd run typecheck`
+
+### [#109] 2026-04-10 - Storefront shell split and landing refactor sequence
+
+- split the storefront-wide shell boundary into stable desktop and mobile switchers for layout, header, top menu, and footer while keeping public component entry names intact for callers
+- extracted the storefront homepage into ecommerce-owned feature modules under `apps/ecommerce/web/src/features/storefront-home`, including a thin route entry, shared landing model, shell or section boundaries, and explicit developer-facing `data-technical-name` markers
+- split the homepage hero into dedicated desktop and mobile implementations, centralized backend-designer-derived visibility decisions in the landing model, aligned storefront shell switching to tablet-safe breakpoints, and validated the batch with `npm.cmd run typecheck`, `npm.cmd run build`, `npx.cmd playwright test tests/e2e/storefront-mobile-matrix.spec.ts`, and `npm.cmd run test:e2e:storefront-smoke`; the smoke run still reports non-blocking SMTP authentication failures while order flows pass
+
 ### [#108] 2026-04-10 - ASSIST consolidation and startup workflow hardening
 
 - consolidated `ASSIST` into a smaller active guidance set by removing stale database docs, completed execution archives, scratch planning files, and legacy worklog material
