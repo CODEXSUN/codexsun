@@ -29,16 +29,38 @@ else
 fi
 
 IMAGE_TAG="${IMAGE_TAG:-codexsun-app:v1}"
+MARIADB_CONTAINER="${MARIADB_CONTAINER:-mariadb}"
 
 CODEXSUN_COMPOSE_FILE="${CODEXSUN_COMPOSE_FILE:-.container/clients/codexsun/docker-compose.yml}"
 TMNEXT_COMPOSE_FILE="${TMNEXT_COMPOSE_FILE:-.container/clients/tmnext_in/docker-compose.yml}"
 TIRUPUR_COMPOSE_FILE="${TIRUPUR_COMPOSE_FILE:-.container/clients/tirupur_direct/docker-compose.yml}"
 TECHMEDIA_COMPOSE_FILE="${TECHMEDIA_COMPOSE_FILE:-.container/clients/techmedia_in/docker-compose.yml}"
 
+CODEXSUN_CONTAINER="${CODEXSUN_CONTAINER:-codexsun-app}"
+TMNEXT_CONTAINER="${TMNEXT_CONTAINER:-tmnext-in-app}"
+TIRUPUR_CONTAINER="${TIRUPUR_CONTAINER:-tirupur-direct-app}"
+TECHMEDIA_CONTAINER="${TECHMEDIA_CONTAINER:-techmedia-in-app}"
+
 CODEXSUN_VOLUME="${CODEXSUN_VOLUME:-codexsun_codexsun_runtime}"
 TMNEXT_VOLUME="${TMNEXT_VOLUME:-tmnext-in_tmnext_in_runtime}"
 TIRUPUR_VOLUME="${TIRUPUR_VOLUME:-tirupur-direct_tirupur_direct_runtime}"
 TECHMEDIA_VOLUME="${TECHMEDIA_VOLUME:-techmedia-in_techmedia_in_runtime}"
+
+stop_container() {
+  local label="$1"
+  local container_name="$2"
+
+  if ! docker ps -a --format '{{.Names}}' | grep -Fxq "$container_name"; then
+    log "Skipping ${label} container: ${container_name} not found"
+    return
+  fi
+
+  log "Stopping ${label} container ${container_name}..."
+  docker stop "$container_name" >/dev/null 2>&1 || true
+
+  log "Removing ${label} container ${container_name}..."
+  docker rm -f "$container_name" >/dev/null 2>&1 || true
+}
 
 stop_stack() {
   local label="$1"
@@ -59,12 +81,23 @@ remove_volume() {
   docker volume rm "$volume_name" >/dev/null 2>&1 || true
 }
 
-log "Cleaning Codexsun app stacks, runtime volumes, image, and unused Docker resources..."
+log "Stopping Codexsun app containers, bringing stacks down, removing volumes, image, and unused Docker resources..."
+
+stop_container "codexsun" "$CODEXSUN_CONTAINER"
+stop_container "tmnext.in" "$TMNEXT_CONTAINER"
+stop_container "tirupurdirect.in" "$TIRUPUR_CONTAINER"
+stop_container "techmedia.in" "$TECHMEDIA_CONTAINER"
 
 stop_stack "codexsun" "$CODEXSUN_COMPOSE_FILE"
 stop_stack "tmnext.in" "$TMNEXT_COMPOSE_FILE"
 stop_stack "tirupurdirect.in" "$TIRUPUR_COMPOSE_FILE"
 stop_stack "techmedia.in" "$TECHMEDIA_COMPOSE_FILE"
+
+if docker ps -a --format '{{.Names}}' | grep -Fxq "$MARIADB_CONTAINER"; then
+  log "Stopping and removing MariaDB container ${MARIADB_CONTAINER}..."
+  docker stop "$MARIADB_CONTAINER" >/dev/null 2>&1 || true
+  docker rm -f "$MARIADB_CONTAINER" >/dev/null 2>&1 || true
+fi
 
 remove_volume "$CODEXSUN_VOLUME"
 remove_volume "$TMNEXT_VOLUME"

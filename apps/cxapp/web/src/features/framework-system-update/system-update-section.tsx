@@ -38,6 +38,7 @@ const runtimeGitSyncInactiveIssue =
   "Runtime git sync is not active for this deployment. Enable GIT_SYNC_ENABLED to use live update."
 const unavailableValue = "(unavailable)"
 const systemUpdateShellTechnicalName = "shell.framework.system-update"
+const runtimeReloadQueryKey = "runtimeReload"
 
 function TechnicalNameBadgeRow({ names }: { names: string[] }) {
   const uniqueNames = Array.from(new Set(names.filter((name) => name.trim().length > 0)))
@@ -118,8 +119,15 @@ function formatCardValue(value: string | null | undefined, fallback = "Not avail
   return value
 }
 
-function formatHistoryActionLabel(action: "update" | "reset") {
-  return action === "update" ? "Update" : "Force Reset"
+function formatHistoryActionLabel(action: "check" | "update" | "reset") {
+  switch (action) {
+    case "check":
+      return "Scheduled Check"
+    case "update":
+      return "Update"
+    default:
+      return "Force Reset"
+  }
 }
 
 function formatHistoryResultLabel(result: "success" | "failure" | "blocked") {
@@ -161,6 +169,12 @@ function formatCommitMetaLine(details: SystemUpdateCommitDetails) {
     `Tag: ${details.tag ?? "Not tagged"}`,
     `Version: ${details.version ?? "Unknown"}`,
   ].join(" | ")
+}
+
+function navigateToFreshRuntimeShell() {
+  const nextUrl = new URL(window.location.href)
+  nextUrl.searchParams.set(runtimeReloadQueryKey, Date.now().toString())
+  window.location.replace(nextUrl.toString())
 }
 
 function RevisionDetails({
@@ -304,7 +318,7 @@ export function FrameworkSystemUpdateSection() {
       window.localStorage.setItem(pendingRestartStorageKey, new Date().toISOString())
 
       window.setTimeout(() => {
-        window.location.reload()
+        navigateToFreshRuntimeShell()
       }, 2500)
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "System update failed.")
@@ -339,7 +353,7 @@ export function FrameworkSystemUpdateSection() {
       window.localStorage.setItem(pendingRestartStorageKey, new Date().toISOString())
 
       window.setTimeout(() => {
-        window.location.reload()
+        navigateToFreshRuntimeShell()
       }, 2500)
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Forced reset failed.")
@@ -664,7 +678,7 @@ export function FrameworkSystemUpdateSection() {
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription className="text-xs">
-            Latest update and reset actions recorded on this server.
+            Latest scheduled checks, updates, and reset actions recorded on this server.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

@@ -41,6 +41,9 @@ const runtimeEnvKeys = [
   "GIT_BRANCH",
   "GIT_AUTO_UPDATE_ON_START",
   "GIT_FORCE_UPDATE_ON_START",
+  "GIT_SCHEDULED_UPDATE_ENABLED",
+  "GIT_SCHEDULED_UPDATE_CADENCE_MINUTES",
+  "GIT_SCHEDULED_UPDATE_AUTO_APPLY",
   "DB_DRIVER",
   "SQLITE_FILE",
   "AUTH_MAX_LOGIN_ATTEMPTS",
@@ -84,6 +87,9 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
         "GIT_BRANCH=release",
         "GIT_AUTO_UPDATE_ON_START=true",
         "GIT_FORCE_UPDATE_ON_START=false",
+        "GIT_SCHEDULED_UPDATE_ENABLED=true",
+        "GIT_SCHEDULED_UPDATE_CADENCE_MINUTES=45",
+        "GIT_SCHEDULED_UPDATE_AUTO_APPLY=true",
         "DB_DRIVER=sqlite",
         "SQLITE_FILE=storage/local.sqlite",
         "UNMANAGED_KEY=keep-me",
@@ -103,6 +109,9 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
     assert.equal(snapshot.values.GIT_BRANCH, "release")
     assert.equal(snapshot.values.GIT_AUTO_UPDATE_ON_START, true)
     assert.equal(snapshot.values.GIT_FORCE_UPDATE_ON_START, false)
+    assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_ENABLED, true)
+    assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_CADENCE_MINUTES, "45")
+    assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_AUTO_APPLY, true)
     assert.equal(snapshot.values.DB_DRIVER, "sqlite")
     assert.equal(snapshot.values.SQLITE_FILE, "storage/local.sqlite")
 
@@ -119,6 +128,9 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
             GIT_BRANCH: "main",
             GIT_AUTO_UPDATE_ON_START: false,
             GIT_FORCE_UPDATE_ON_START: true,
+            GIT_SCHEDULED_UPDATE_ENABLED: true,
+            GIT_SCHEDULED_UPDATE_CADENCE_MINUTES: "15",
+            GIT_SCHEDULED_UPDATE_AUTO_APPLY: true,
             DB_DRIVER: "sqlite",
             SQLITE_FILE: "storage/runtime.sqlite",
             SMTP_HOST: "smtp.example.com",
@@ -141,6 +153,9 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
     assert.match(envContents, /GIT_REPOSITORY_URL=https:\/\/github\.com\/CODEXSUN\/codexsun\.git/)
     assert.match(envContents, /GIT_BRANCH=main/)
     assert.match(envContents, /GIT_FORCE_UPDATE_ON_START=true/)
+    assert.match(envContents, /GIT_SCHEDULED_UPDATE_ENABLED=true/)
+    assert.match(envContents, /GIT_SCHEDULED_UPDATE_CADENCE_MINUTES=15/)
+    assert.match(envContents, /GIT_SCHEDULED_UPDATE_AUTO_APPLY=true/)
     assert.match(envContents, /SQLITE_FILE=storage\/runtime\.sqlite/)
     assert.match(envContents, /SMTP_HOST=smtp\.example\.com/)
     assert.match(envContents, /UNMANAGED_KEY=keep-me/)
@@ -204,7 +219,12 @@ test("runtime settings save forces container restart when git runtime settings c
     )
     writeFileSync(
       path.join(tempRoot, ".env"),
-      ["APP_ENV=development", "GIT_SYNC_ENABLED=false", "GIT_BRANCH=main"].join("\n"),
+      [
+        "APP_ENV=development",
+        "GIT_SYNC_ENABLED=false",
+        "GIT_BRANCH=main",
+        "GIT_SCHEDULED_UPDATE_ENABLED=false",
+      ].join("\n"),
       "utf8"
     )
 
@@ -224,6 +244,7 @@ test("runtime settings save forces container restart when git runtime settings c
           values: {
             ...snapshot.values,
             GIT_SYNC_ENABLED: true,
+            GIT_SCHEDULED_UPDATE_ENABLED: true,
           },
         },
         tempRoot
@@ -239,6 +260,10 @@ test("runtime settings save forces container restart when git runtime settings c
 
     assert.equal(saveResponse.restartScheduled, true)
     assert.match(readFileSync(path.join(tempRoot, ".env"), "utf8"), /GIT_SYNC_ENABLED=true/)
+    assert.match(
+      readFileSync(path.join(tempRoot, ".env"), "utf8"),
+      /GIT_SCHEDULED_UPDATE_ENABLED=true/
+    )
     assert.match(tokenContents, /"before"/)
     assert.equal(killCalls.length > 0, true)
     assert.equal(killCalls[0]?.pid, process.pid)

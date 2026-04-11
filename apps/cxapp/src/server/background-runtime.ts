@@ -3,6 +3,7 @@ import type { ServerConfig } from "../../../framework/src/runtime/config/index.j
 import { startBackgroundJobRunner } from "../../../framework/src/runtime/jobs/background-job-runner.js"
 import { startIntervalTaskScheduler } from "../../../framework/src/runtime/jobs/interval-task-scheduler.js"
 import type { RuntimeJobHandler } from "../../../framework/src/runtime/jobs/runtime-job-service.js"
+import { getScheduledSystemUpdateTasks } from "../../../framework/src/runtime/system-update/system-update-service.js"
 import { sendQueuedStorefrontWelcomeMail } from "../../../ecommerce/src/services/customer-service.js"
 
 type RuntimeLogger = ReturnType<typeof import("../../../framework/src/runtime/observability/runtime-logger.js").createRuntimeLogger>
@@ -40,6 +41,7 @@ export function startCxappBackgroundRuntime(input: {
   const stopScheduler = startIntervalTaskScheduler({
     database: input.databases.primary,
     logger: input.logger,
+    tasks: getScheduledSystemUpdateTasks(input.config, input.logger),
   })
 
   return () => {

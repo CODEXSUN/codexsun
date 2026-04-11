@@ -317,6 +317,29 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         description:
           "Force a hard reset to the configured remote branch on next start. Use only for one-time recovery.",
       },
+      {
+        key: "GIT_SCHEDULED_UPDATE_ENABLED",
+        label: "Scheduled Update Check",
+        type: "boolean",
+        description:
+          "Periodically check the configured runtime branch for new commits and record the result in system update history.",
+      },
+      {
+        key: "GIT_SCHEDULED_UPDATE_CADENCE_MINUTES",
+        label: "Scheduled Check Minutes",
+        type: "number",
+        description:
+          "Interval in minutes between scheduled runtime branch checks.",
+        placeholder: "30",
+        required: true,
+      },
+      {
+        key: "GIT_SCHEDULED_UPDATE_AUTO_APPLY",
+        label: "Scheduled Auto Apply",
+        type: "boolean",
+        description:
+          "When scheduled checks find pending commits, automatically sync, rebuild, and restart from the configured branch.",
+      },
     ],
   },
   {

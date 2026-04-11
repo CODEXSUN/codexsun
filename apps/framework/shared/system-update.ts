@@ -55,7 +55,7 @@ export const systemUpdateResetPayloadSchema = z.object({
 
 export const systemUpdateHistoryEntrySchema = z.object({
   timestamp: z.string().min(1),
-  action: z.enum(["update", "reset"]),
+  action: z.enum(["check", "update", "reset"]),
   result: z.enum(["success", "failure", "blocked"]),
   message: z.string().min(1),
   failureReason: z.string().min(1).nullable().optional().default(null),

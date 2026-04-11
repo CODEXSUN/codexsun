@@ -63,12 +63,17 @@ function html(body: string, statusCode = 200) {
 async function serveFile(filePath: string) {
   const extension = path.extname(filePath)
   const body = await readFile(filePath)
+  const headers: Record<string, string> = {
+    "content-type": mimeTypes[extension] ?? "application/octet-stream",
+  }
+
+  if (extension === ".html") {
+    headers["cache-control"] = "no-store, max-age=0, must-revalidate"
+  }
 
   return {
     body,
-    headers: {
-      "content-type": mimeTypes[extension] ?? "application/octet-stream",
-    },
+    headers,
     statusCode: 200,
   }
 }

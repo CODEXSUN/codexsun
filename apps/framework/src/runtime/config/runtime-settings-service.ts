@@ -21,12 +21,16 @@ import { getServerConfig } from "./server-config.js"
 
 const defaultGitRepositoryUrl = "https://github.com/CODEXSUN/codexsun.git"
 const defaultGitBranch = "main"
+const defaultScheduledUpdateCadenceMinutes = "30"
 const containerRestartSettingKeys = new Set([
   "GIT_SYNC_ENABLED",
   "GIT_REPOSITORY_URL",
   "GIT_BRANCH",
   "GIT_AUTO_UPDATE_ON_START",
   "GIT_FORCE_UPDATE_ON_START",
+  "GIT_SCHEDULED_UPDATE_ENABLED",
+  "GIT_SCHEDULED_UPDATE_CADENCE_MINUTES",
+  "GIT_SCHEDULED_UPDATE_AUTO_APPLY",
 ])
 
 export function resolveRuntimeSettingsRoot(config: ServerConfig) {
@@ -81,6 +85,14 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     GIT_BRANCH: envValues.GIT_BRANCH ?? defaultGitBranch,
     GIT_AUTO_UPDATE_ON_START: toBooleanValue(envValues.GIT_AUTO_UPDATE_ON_START ?? "false"),
     GIT_FORCE_UPDATE_ON_START: toBooleanValue(envValues.GIT_FORCE_UPDATE_ON_START ?? "false"),
+    GIT_SCHEDULED_UPDATE_ENABLED: toBooleanValue(
+      envValues.GIT_SCHEDULED_UPDATE_ENABLED ?? "false"
+    ),
+    GIT_SCHEDULED_UPDATE_CADENCE_MINUTES:
+      envValues.GIT_SCHEDULED_UPDATE_CADENCE_MINUTES ?? defaultScheduledUpdateCadenceMinutes,
+    GIT_SCHEDULED_UPDATE_AUTO_APPLY: toBooleanValue(
+      envValues.GIT_SCHEDULED_UPDATE_AUTO_APPLY ?? "false"
+    ),
     DB_DRIVER: config.database.driver,
     DB_HOST: config.database.host ?? "",
     DB_PORT: config.database.port ? String(config.database.port) : "",

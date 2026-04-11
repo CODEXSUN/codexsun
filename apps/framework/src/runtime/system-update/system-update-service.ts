@@ -30,8 +30,11 @@ import { resolveRuntimeSettingsRoot } from "../config/runtime-settings-service.j
 import { scheduleFallbackRestart, triggerDevelopmentRestart } from "../config/runtime-restart.js"
 import type { ServerConfig } from "../config/server-config.js"
 import { ApplicationError } from "../errors/application-error.js"
+import type { RuntimeScheduledTask } from "../jobs/interval-task-scheduler.js"
 
 const execFileAsync = promisify(execFile)
+const schedulerActor = "system:scheduler"
+const defaultScheduledUpdateCadenceMinutes = 30
 
 type CommandResult = {
   ok: boolean
@@ -84,6 +87,28 @@ async function runCommand(
 
 function trimTrailing(value: string) {
   return value.trim().replace(/\r?\n$/, "")
+}
+
+function parseBooleanEnvValue(value: string | undefined, fallback = false) {
+  if (!value) {
+    return fallback
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase())
+}
+
+function parsePositiveIntegerEnvValue(value: string | undefined, fallback: number) {
+  if (!value) {
+    return fallback
+  }
+
+  const parsed = Number.parseInt(value.trim(), 10)
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback
+  }
+
+  return parsed
 }
 
 function parseFirstLine(value: string) {
@@ -182,6 +207,19 @@ function resolveRuntimeGitTarget(cwd: string) {
   const env = parseEnvFile(path.join(cwd, ".env"))
 
   return resolveRuntimeGitSyncTarget(env.GIT_REPOSITORY_URL, env.GIT_BRANCH)
+}
+
+function readScheduledUpdateSettings(cwd: string) {
+  const env = parseEnvFile(path.join(cwd, ".env"))
+
+  return {
+    enabled: parseBooleanEnvValue(env.GIT_SCHEDULED_UPDATE_ENABLED, false),
+    cadenceMinutes: parsePositiveIntegerEnvValue(
+      env.GIT_SCHEDULED_UPDATE_CADENCE_MINUTES,
+      defaultScheduledUpdateCadenceMinutes
+    ),
+    autoApply: parseBooleanEnvValue(env.GIT_SCHEDULED_UPDATE_AUTO_APPLY, false),
+  }
 }
 
 function resolveSystemUpdateRoot(cwd: string) {
@@ -450,6 +488,141 @@ export async function listSystemUpdateHistory(
   return systemUpdateHistorySchema.parse({
     items,
   })
+}
+
+export function getScheduledSystemUpdateTasks(
+  config: ServerConfig,
+  logger: ReturnType<typeof import("../observability/runtime-logger.js").createRuntimeLogger>,
+  commandRunner: CommandRunner = runCommand
+): RuntimeScheduledTask[] {
+  const settingsRoot = resolveRuntimeSettingsRoot(config)
+  const scheduledSettings = readScheduledUpdateSettings(settingsRoot)
+
+  if (!scheduledSettings.enabled) {
+    return []
+  }
+
+  return [
+    {
+      taskKey: "framework.system-update.scheduled-check",
+      cadenceMs: scheduledSettings.cadenceMinutes * 60 * 1000,
+      lockTtlMs: Math.max(scheduledSettings.cadenceMinutes * 60 * 1000, 60_000),
+      run: async () => {
+        await runScheduledSystemUpdateCheck(config, logger, commandRunner)
+      },
+    },
+  ]
+}
+
+export async function runScheduledSystemUpdateCheck(
+  config: ServerConfig,
+  logger: ReturnType<typeof import("../observability/runtime-logger.js").createRuntimeLogger>,
+  commandRunner: CommandRunner = runCommand
+) {
+  const cwd = resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config))
+  let autoApplyStarted = false
+  try {
+    const scheduledSettings = readScheduledUpdateSettings(resolveRuntimeSettingsRoot(config))
+    const status = await resolveGitStatus(cwd, commandRunner)
+
+    if (!status.canAutoUpdate) {
+      const failureReason = status.preflight.issues.join(" | ") || null
+      appendHistoryEntry(cwd, {
+        timestamp: new Date().toISOString(),
+        action: "check",
+        result: "blocked",
+        message:
+          "Scheduled update check was blocked because the runtime repository is not ready for one-way git sync.",
+        failureReason,
+        previousCommit: status.currentCommit,
+        previousRevision: null,
+        currentCommit: status.currentCommit,
+        currentRevision: null,
+        actor: schedulerActor,
+      })
+      logger.warn("system-update.scheduler.blocked", {
+        currentCommit: status.currentCommit,
+        issues: status.preflight.issues,
+      })
+      return
+    }
+
+    const preview = await getSystemUpdatePreview(config, commandRunner)
+    const pendingCommitCount = preview.items.length
+
+    if (pendingCommitCount === 0) {
+      appendHistoryEntry(cwd, {
+        timestamp: new Date().toISOString(),
+        action: "check",
+        result: "success",
+        message:
+          "Scheduled update check found no new commits on the configured runtime branch.",
+        failureReason: null,
+        previousCommit: preview.status.currentCommit,
+        previousRevision: null,
+        currentCommit: preview.status.currentCommit,
+        currentRevision: null,
+        actor: schedulerActor,
+      })
+      logger.info("system-update.scheduler.no-update", {
+        currentCommit: preview.status.currentCommit,
+      })
+      return
+    }
+
+    appendHistoryEntry(cwd, {
+      timestamp: new Date().toISOString(),
+      action: "check",
+      result: "success",
+      message: scheduledSettings.autoApply
+        ? `Scheduled update check found ${pendingCommitCount} pending commit${pendingCommitCount === 1 ? "" : "s"} and started automatic apply.`
+        : `Scheduled update check found ${pendingCommitCount} pending commit${pendingCommitCount === 1 ? "" : "s"}. Automatic apply is disabled.`,
+      failureReason: null,
+      previousCommit: preview.status.currentCommit,
+      previousRevision: null,
+      currentCommit: preview.status.remoteCommit ?? preview.status.currentCommit,
+      currentRevision: null,
+      actor: schedulerActor,
+    })
+
+    logger.info("system-update.scheduler.pending", {
+      currentCommit: preview.status.currentCommit,
+      remoteCommit: preview.status.remoteCommit,
+      pendingCommitCount,
+      autoApply: scheduledSettings.autoApply,
+    })
+
+    if (!scheduledSettings.autoApply) {
+      return
+    }
+
+    autoApplyStarted = true
+    await runSystemUpdate(config, commandRunner, schedulerActor)
+  } catch (error) {
+    if (autoApplyStarted) {
+      throw error
+    }
+
+    const failureReason =
+      error instanceof Error ? error.message : "Unknown scheduled update check error."
+    appendHistoryEntry(cwd, {
+      timestamp: new Date().toISOString(),
+      action: "check",
+      result: "failure",
+      message:
+        "Scheduled update check failed before the runtime repository could be evaluated cleanly.",
+      failureReason,
+      previousCommit: null,
+      previousRevision: null,
+      currentCommit: null,
+      currentRevision: null,
+      actor: schedulerActor,
+    })
+    logger.error("system-update.scheduler.failed", {
+      error: failureReason,
+    })
+    throw error
+  }
 }
 
 export async function runSystemUpdate(
