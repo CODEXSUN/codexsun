@@ -74,3 +74,10 @@ Client-specific cloud instructions and nginx files:
 ```
 chmod +x ./.container/bash-sh/clean.sh
 ```
+# setup
+```
+./.container/bash-sh/setup.sh
+```
+```
+chmod +x ./.container/bash-sh/setup.sh
+```

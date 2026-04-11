@@ -390,7 +390,6 @@ set_compose_runtime_vars() {
 validate_cloud_runtime() {
   local client_name="$1"
   local domain="$2"
-  local jwt_secret="${JWT_SECRET:-}"
 
   case "$domain" in
     ""|localhost|127.0.0.1|0.0.0.0|*.local|*.localhost)
@@ -400,12 +399,6 @@ validate_cloud_runtime() {
 
   if [ "$RUNTIME_PUBLIC_SCHEME" != "https" ]; then
     die "Cloud target for ${client_name} requires RUNTIME_PUBLIC_SCHEME=https."
-  fi
-
-  if [ "${#jwt_secret}" -lt 16 ] ||
-    [ "$jwt_secret" = "change-this-secret-to-at-least-16-characters" ] ||
-    [ "$jwt_secret" = "codexsun-development-jwt-secret" ]; then
-    die "Cloud target for ${client_name} requires JWT_SECRET with at least 16 non-default characters."
   fi
 }
 

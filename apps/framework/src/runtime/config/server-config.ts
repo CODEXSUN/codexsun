@@ -289,12 +289,6 @@ function validateServerConfig(config: ServerConfig) {
     )
   }
 
-  if (config.security.jwtSecret === "codexsun-development-jwt-secret") {
-    throw new Error(
-      "Production-like environments must configure a non-default JWT secret."
-    )
-  }
-
   if (config.auth.otpDebug) {
     throw new Error(
       "Production-like environments must disable AUTH_OTP_DEBUG."

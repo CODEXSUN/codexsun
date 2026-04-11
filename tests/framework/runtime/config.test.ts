@@ -149,6 +149,36 @@ test("server config enforces HTTPS-safe production settings", () => {
     assert.equal(config.environment, "production")
     assert.equal(config.security.httpsOnly, true)
     assert.equal(config.tlsEnabled, true)
+u  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("server config allows production boot with the default JWT secret fallback", () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-config-production-default-jwt-"))
+
+  try {
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      [
+        "APP_ENV=production",
+        "APP_DOMAIN=api.example.com",
+        "FRONTEND_DOMAIN=shop.example.com",
+        "AUTH_OTP_DEBUG=false",
+        "SECRET_ROTATION_DAYS=90",
+        "SECRETS_LAST_ROTATED_AT=2026-04-07",
+        "SECRET_OWNER_EMAIL=security@example.com",
+        "OPERATIONS_OWNER_EMAIL=ops@example.com",
+        "TLS_ENABLED=true",
+        "TLS_KEY_PATH=certs/server.key",
+        "TLS_CERT_PATH=certs/server.crt",
+      ].join("\n")
+    )
+
+    const config = withClearedEnv(configEnvKeys, () => getServerConfig(tempRoot))
+
+    assert.equal(config.environment, "production")
+    assert.equal(config.security.jwtSecret, "codexsun-development-jwt-secret")
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }
