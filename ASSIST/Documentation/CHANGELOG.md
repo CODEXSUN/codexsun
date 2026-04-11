@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#113] 2026-04-11 - Framework system update history shows both revision sides
+
+- extended framework system-update history entries to resolve readable metadata for both the previous and current commits in each activity item
+- updated the admin System Update recent-activity UI to render human-readable `From Commit` and `To Commit` blocks with commit message, date, tag, and version instead of only raw commit hashes
+- validated the batch with `npx.cmd tsx --test tests/framework/system-update-service.test.ts` and `npm.cmd run typecheck`
+
 ### [#112] 2026-04-11 - Framework system update revision metadata in admin UI
 
 - extended the framework system-update contract to expose current revision metadata, including applied commit summary, commit date, git tag, and package version for the active runtime commit

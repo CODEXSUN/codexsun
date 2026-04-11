@@ -127,6 +127,31 @@ function formatCommitMetaLine(details: SystemUpdateCommitDetails) {
   ].join(" | ")
 }
 
+function RevisionDetails({
+  label,
+  commit,
+  details,
+}: {
+  label: string
+  commit: string | null | undefined
+  details: SystemUpdateCommitDetails | null | undefined
+}) {
+  if (!commit || !details) {
+    return null
+  }
+
+  return (
+    <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 font-mono text-[11px] text-foreground">{commit}</p>
+      <p className="mt-2 text-xs text-foreground/90">{details.summary}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{formatCommitMetaLine(details)}</p>
+    </div>
+  )
+}
+
 export function FrameworkSystemUpdateSection() {
   const [status, setStatus] = useState<SystemUpdateStatus | null>(null)
   const [preview, setPreview] = useState<SystemUpdatePreview | null>(null)
@@ -594,14 +619,18 @@ export function FrameworkSystemUpdateSection() {
                     <p className="font-mono text-[11px] text-muted-foreground">
                       {entry.previousCommit ?? "-"} {"->"} {entry.currentCommit ?? "-"}
                     </p>
-                    {entry.currentRevision ? (
-                      <div className="space-y-1">
-                        <p className="text-xs text-foreground/90">{entry.currentRevision.summary}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {formatCommitMetaLine(entry.currentRevision)}
-                        </p>
-                      </div>
-                    ) : null}
+                    <div className="grid gap-2 pt-1 md:grid-cols-2">
+                      <RevisionDetails
+                        label="From Commit"
+                        commit={entry.previousCommit}
+                        details={entry.previousRevision}
+                      />
+                      <RevisionDetails
+                        label="To Commit"
+                        commit={entry.currentCommit}
+                        details={entry.currentRevision}
+                      />
+                    </div>
                   </div>
                   <div className="text-right text-[11px] text-muted-foreground">
                     <p>{new Date(entry.timestamp).toLocaleString()}</p>

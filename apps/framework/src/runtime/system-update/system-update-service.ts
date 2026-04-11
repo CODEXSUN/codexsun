@@ -442,6 +442,7 @@ export async function listSystemUpdateHistory(
       .reverse()
       .map(async (entry) => ({
         ...entry,
+        previousRevision: await resolveCommitDetails(cwd, entry.previousCommit, commandRunner),
         currentRevision: await resolveCommitDetails(cwd, entry.currentCommit, commandRunner),
       }))
   )
@@ -469,6 +470,7 @@ export async function runSystemUpdate(
       message:
         "System update was blocked because the runtime repository is not ready for one-way git sync.",
       previousCommit: before.currentCommit,
+      previousRevision: null,
       currentCommit: before.currentCommit,
       currentRevision: null,
       actor,
@@ -513,6 +515,7 @@ export async function runSystemUpdate(
       message:
         "System update failed after the runtime repository was resynced. The previous commit was restored.",
       previousCommit: before.currentCommit,
+      previousRevision: null,
       currentCommit: before.currentCommit,
       currentRevision: null,
       actor,
@@ -545,6 +548,7 @@ export async function runSystemUpdate(
         ? "One-way runtime sync verified the configured branch, rebuilt the app, and restarted without changing commit."
         : "Runtime repository resynced from the configured branch, rebuilt, and restarted.",
     previousCommit: before.currentCommit,
+    previousRevision: null,
     currentCommit: after.currentCommit,
     currentRevision: null,
     actor,
@@ -590,6 +594,7 @@ export async function resetSystemToLastCommit(
       message:
         "Forced reset failed before the application could be rebuilt cleanly.",
       previousCommit: before.currentCommit,
+      previousRevision: null,
       currentCommit: before.currentCommit,
       currentRevision: null,
       actor,
@@ -618,6 +623,7 @@ export async function resetSystemToLastCommit(
     message:
       "Local changes were discarded, the repository was reset to the current commit, rebuilt, and restarted.",
     previousCommit: before.currentCommit,
+    previousRevision: null,
     currentCommit: after.currentCommit,
     currentRevision: null,
     actor,
