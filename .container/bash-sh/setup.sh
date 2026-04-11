@@ -450,9 +450,12 @@ build_image() {
     load_client_config "$client_id"
     set_compose_runtime_vars
     ensure_compose_file "$CURRENT_CLIENT_NAME" "$CURRENT_COMPOSE_FILE" || continue
-    log "Building image for ${CURRENT_CLIENT_NAME} via docker compose..."
+    log "Building shared image ${IMAGE_TAG} via ${CURRENT_CLIENT_NAME} compose..."
     "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$CURRENT_COMPOSE_FILE" build
+    return 0
   done
+
+  die "Could not find a compose file to build ${IMAGE_TAG}."
 }
 
 wait_for_mariadb() {
@@ -642,7 +645,16 @@ wait_for_app_ready() {
     sleep "$delay"
   done
 
-  die "Timed out waiting for application health in $container."
+  log "Timed out waiting for application health in $container"
+  return 1
+}
+
+dump_container_diagnostics() {
+  local container="$1"
+
+  log "Container diagnostics for ${container}:"
+  docker ps -a --filter "name=^${container}$" --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' || true
+  docker logs "$container" --tail 200 || true
 }
 
 format_public_url() {
@@ -831,7 +843,11 @@ deploy_client() {
     "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$CURRENT_COMPOSE_FILE" up -d
   fi
 
-  wait_for_env_file "$CURRENT_CONTAINER"
+  if ! wait_for_env_file "$CURRENT_CONTAINER"; then
+    log "Failed to find runtime env file for ${CURRENT_CLIENT_NAME} in ${CURRENT_CONTAINER}."
+    return 1
+  fi
+
   configure_runtime_env \
     "$CURRENT_CONTAINER" \
     "$CURRENT_DOMAIN" \
@@ -845,7 +861,12 @@ deploy_client() {
 
   log "Restarting ${CURRENT_CLIENT_NAME} container to apply runtime env..."
   docker restart "$CURRENT_CONTAINER" >/dev/null
-  wait_for_app_ready "$CURRENT_CONTAINER" "$RUNTIME_PUBLIC_SCHEME"
+  if ! wait_for_app_ready "$CURRENT_CONTAINER" "$RUNTIME_PUBLIC_SCHEME"; then
+    dump_container_diagnostics "$CURRENT_CONTAINER"
+    log "Deploy failed for ${CURRENT_CLIENT_NAME}. Inspect with: docker logs ${CURRENT_CONTAINER} --tail 200"
+    return 1
+  fi
+
   log "Live URL: $(format_public_url "$CURRENT_DOMAIN" "$CURRENT_PUBLIC_PORT" "$RUNTIME_PUBLIC_SCHEME")"
 }
 
@@ -891,8 +912,17 @@ fi
 
 ensure_databases
 
+FAILED_CLIENTS=()
+
 for client_id in "${SELECTED_CLIENTS[@]}"; do
-  deploy_client "$client_id"
+  if ! deploy_client "$client_id"; then
+    FAILED_CLIENTS+=("$client_id")
+  fi
 done
+
+if [ "${#FAILED_CLIENTS[@]}" -gt 0 ]; then
+  log "Deployment completed with failures for: $(printf '%s ' "${FAILED_CLIENTS[@]}" | sed 's/[[:space:]]*$//')"
+  exit 1
+fi
 
 log "Selected client deployment complete."
