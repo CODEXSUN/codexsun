@@ -30,12 +30,30 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 const pendingRestartStorageKey = "codexsun-system-update-pending"
 const runtimeGitSyncInactiveIssue =
   "Runtime git sync is not active for this deployment. Enable GIT_SYNC_ENABLED to use live update."
 const unavailableValue = "(unavailable)"
+const systemUpdateShellTechnicalName = "shell.framework.system-update"
+
+function TechnicalNameBadgeRow({ names }: { names: string[] }) {
+  const uniqueNames = Array.from(new Set(names.filter((name) => name.trim().length > 0)))
+
+  if (uniqueNames.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="absolute right-0 top-0 z-[70] flex max-w-[calc(100%-1rem)] flex-wrap justify-end gap-2">
+      {uniqueNames.map((name) => (
+        <TechnicalNameBadge key={name} name={name} />
+      ))}
+    </div>
+  )
+}
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const accessToken = getStoredAccessToken()
@@ -117,6 +135,24 @@ function formatHistoryResultLabel(result: "success" | "failure" | "blocked") {
 
 function formatCommitDate(value: string) {
   return new Date(value).toLocaleString()
+}
+
+function formatCommitDateWithOffset(value: string) {
+  const isoMatch = value.match(
+    /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?(?:([+-]\d{2}):?(\d{2})|Z)$/
+  )
+
+  if (!isoMatch) {
+    return value
+  }
+
+  const [, datePart, timePart, offsetHours, offsetMinutes] = isoMatch
+
+  if (!offsetHours || !offsetMinutes) {
+    return `${datePart} ${timePart} +0000`
+  }
+
+  return `${datePart} ${timePart} ${offsetHours}${offsetMinutes}`
 }
 
 function formatCommitMetaLine(details: SystemUpdateCommitDetails) {
@@ -336,8 +372,20 @@ export function FrameworkSystemUpdateSection() {
     (status?.preflight.issues.includes(runtimeGitSyncInactiveIssue) ?? false)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div
+      className="relative space-y-6"
+      data-technical-name={systemUpdateShellTechnicalName}
+    >
+      <TechnicalNameBadgeRow
+        names={[
+          systemUpdateShellTechnicalName,
+          `${systemUpdateShellTechnicalName}.header`,
+        ]}
+      />
+      <div
+        className="flex flex-col gap-4 pt-8 lg:flex-row lg:items-center lg:justify-between"
+        data-technical-name={`${systemUpdateShellTechnicalName}.header`}
+      >
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">System Update</h1>
           <p className="text-sm text-muted-foreground">
@@ -430,7 +478,11 @@ export function FrameworkSystemUpdateSection() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div
+        className="relative grid gap-4 md:grid-cols-2 xl:grid-cols-5"
+        data-technical-name="block.framework.system-update.status-summary"
+      >
+        <TechnicalNameBadgeRow names={["block.framework.system-update.status-summary"]} />
         <CommitCard
           icon={GitBranchIcon}
           label="Branch"
@@ -472,7 +524,11 @@ export function FrameworkSystemUpdateSection() {
       </div>
 
       {isGitSyncInactive ? (
-        <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+        <Card
+          className="relative rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm"
+          data-technical-name="block.framework.system-update.live-mode"
+        >
+          <TechnicalNameBadgeRow names={["block.framework.system-update.live-mode"]} />
           <CardHeader>
             <CardTitle>Live Update Mode</CardTitle>
             <CardDescription className="text-xs">
@@ -487,7 +543,11 @@ export function FrameworkSystemUpdateSection() {
       ) : null}
 
       {preview ? (
-        <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+        <Card
+          className="relative rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm"
+          data-technical-name="block.framework.system-update.preview"
+        >
+          <TechnicalNameBadgeRow names={["block.framework.system-update.preview"]} />
           <CardHeader>
             <CardTitle>Update Preview</CardTitle>
             <CardDescription className="text-xs">
@@ -522,7 +582,11 @@ export function FrameworkSystemUpdateSection() {
         </Card>
       ) : null}
 
-      <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+      <Card
+        className="relative rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm"
+        data-technical-name="block.framework.system-update.guard"
+      >
+        <TechnicalNameBadgeRow names={["block.framework.system-update.guard"]} />
         <CardHeader>
           <CardTitle>Update Guard</CardTitle>
           <CardDescription className="text-xs">
@@ -592,7 +656,11 @@ export function FrameworkSystemUpdateSection() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
+      <Card
+        className="relative rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm"
+        data-technical-name="block.framework.system-update.activity"
+      >
+        <TechnicalNameBadgeRow names={["block.framework.system-update.activity"]} />
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription className="text-xs">
@@ -624,6 +692,19 @@ export function FrameworkSystemUpdateSection() {
                     <p className="font-mono text-[11px] text-muted-foreground">
                       {entry.previousCommit ?? "-"} {"->"} {entry.currentCommit ?? "-"}
                     </p>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>
+                        Message: {entry.currentRevision?.summary ?? entry.previousRevision?.summary ?? "-"}
+                      </p>
+                      <p>
+                        Date:{" "}
+                        {entry.currentRevision?.committedAt
+                          ? formatCommitDateWithOffset(entry.currentRevision.committedAt)
+                          : entry.previousRevision?.committedAt
+                            ? formatCommitDateWithOffset(entry.previousRevision.committedAt)
+                            : "-"}
+                      </p>
+                    </div>
                     <div className="grid gap-2 pt-1 md:grid-cols-2">
                       <RevisionDetails
                         label="From Commit"
