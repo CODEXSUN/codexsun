@@ -469,6 +469,7 @@ export async function runSystemUpdate(
       result: "blocked",
       message:
         "System update was blocked because the runtime repository is not ready for one-way git sync.",
+      failureReason: before.preflight.issues.join(" | ") || null,
       previousCommit: before.currentCommit,
       previousRevision: null,
       currentCommit: before.currentCommit,
@@ -499,6 +500,7 @@ export async function runSystemUpdate(
     await installAndBuild(cwd, commandRunner)
   } catch (error) {
     rolledBack = true
+    const failureReason = error instanceof Error ? error.message : "Unknown update error."
 
     try {
       await commandRunner("git", ["reset", "--hard", before.currentCommit], cwd)
@@ -514,6 +516,7 @@ export async function runSystemUpdate(
       result: "failure",
       message:
         "System update failed after the runtime repository was resynced. The previous commit was restored.",
+      failureReason,
       previousCommit: before.currentCommit,
       previousRevision: null,
       currentCommit: before.currentCommit,
@@ -524,7 +527,7 @@ export async function runSystemUpdate(
     throw new ApplicationError(
       "System update failed. The previous commit was restored after the runtime sync attempt.",
       {
-        reason: error instanceof Error ? error.message : "Unknown update error.",
+        reason: failureReason,
         rolledBack: true,
       },
       500
@@ -547,6 +550,7 @@ export async function runSystemUpdate(
       before.currentCommit === after.currentCommit
         ? "One-way runtime sync verified the configured branch, rebuilt the app, and restarted without changing commit."
         : "Runtime repository resynced from the configured branch, rebuilt, and restarted.",
+    failureReason: null,
     previousCommit: before.currentCommit,
     previousRevision: null,
     currentCommit: after.currentCommit,
@@ -587,12 +591,14 @@ export async function resetSystemToLastCommit(
     await commandRunner("git", ["clean", "-fd"], cwd)
     await installAndBuild(cwd, commandRunner)
   } catch (error) {
+    const failureReason = error instanceof Error ? error.message : "Unknown reset error."
     appendHistoryEntry(cwd, {
       timestamp: new Date().toISOString(),
       action: "reset",
       result: "failure",
       message:
         "Forced reset failed before the application could be rebuilt cleanly.",
+      failureReason,
       previousCommit: before.currentCommit,
       previousRevision: null,
       currentCommit: before.currentCommit,
@@ -602,7 +608,7 @@ export async function resetSystemToLastCommit(
     throw new ApplicationError(
       "Forced reset failed. Review the server repository manually before retrying.",
       {
-        reason: error instanceof Error ? error.message : "Unknown reset error.",
+        reason: failureReason,
       },
       500
     )
@@ -622,6 +628,7 @@ export async function resetSystemToLastCommit(
     result: "success",
     message:
       "Local changes were discarded, the repository was reset to the current commit, rebuilt, and restarted.",
+    failureReason: null,
     previousCommit: before.currentCommit,
     previousRevision: null,
     currentCommit: after.currentCommit,

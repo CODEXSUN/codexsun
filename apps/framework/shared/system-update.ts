@@ -58,6 +58,7 @@ export const systemUpdateHistoryEntrySchema = z.object({
   action: z.enum(["update", "reset"]),
   result: z.enum(["success", "failure", "blocked"]),
   message: z.string().min(1),
+  failureReason: z.string().min(1).nullable().optional().default(null),
   previousCommit: z.string().min(1).nullable(),
   previousRevision: systemUpdateCommitDetailsSchema.nullable().optional().default(null),
   currentCommit: z.string().min(1).nullable(),

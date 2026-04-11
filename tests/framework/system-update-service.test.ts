@@ -344,8 +344,13 @@ test("system update rolls back to previous commit when build fails", async () =>
         return true
       }
     )
+    const history = await listSystemUpdateHistory(config, runner)
 
     assert.equal(head, "abc123")
+    assert.equal(history.items[0]?.result, "failure")
+    assert.equal(history.items[0]?.failureReason, "Build failed.")
+    assert.equal(history.items[0]?.previousRevision?.summary, "before update")
+    assert.equal(history.items[0]?.currentRevision?.summary, "before update")
     assert.equal(calls.some((entry) => entry.includes("git reset --hard abc123")), true)
     assert.match(
       readFileSync(path.join(tempRoot, "apps/cxapp/src/server/restart-token.ts"), "utf8"),
@@ -408,6 +413,7 @@ test("forced reset discards local changes, rebuilds, and returns clean status", 
     assert.equal(calls.some((entry) => entry.includes("git clean -fd")), true)
     assert.equal(history.items[0]?.action, "reset")
     assert.equal(history.items[0]?.result, "success")
+    assert.equal(history.items[0]?.failureReason, null)
     assert.equal(history.items[0]?.previousRevision?.summary, "#111 - fix(runtime): align local git sync update flow")
     assert.equal(history.items[0]?.currentRevision?.summary, "#111 - fix(runtime): align local git sync update flow")
     assert.doesNotMatch(

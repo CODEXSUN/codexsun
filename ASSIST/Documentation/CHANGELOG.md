@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#114] 2026-04-11 - Framework system update history stores failure reasons
+
+- extended framework system-update history entries to persist the underlying failure reason for blocked, failed update, and failed reset runs instead of only the generic rollback message
+- updated the admin System Update recent-activity UI to render the stored failure reason inline when present so operators can see the actual git, npm, or build error without checking server logs first
+- validated the batch with `npx.cmd tsx --test tests/framework/system-update-service.test.ts`, `npm.cmd run typecheck`, and a live Docker runtime update check against the local `codexsun-app` container
+
 ### [#113] 2026-04-11 - Framework system update history shows both revision sides
 
 - extended framework system-update history entries to resolve readable metadata for both the previous and current commits in each activity item

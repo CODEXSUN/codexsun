@@ -616,6 +616,11 @@ export function FrameworkSystemUpdateSection() {
                       {formatHistoryActionLabel(entry.action)} | {formatHistoryResultLabel(entry.result)}
                     </p>
                     <p className="text-xs text-muted-foreground">{entry.message}</p>
+                    {entry.failureReason ? (
+                      <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                        {entry.failureReason}
+                      </div>
+                    ) : null}
                     <p className="font-mono text-[11px] text-muted-foreground">
                       {entry.previousCommit ?? "-"} {"->"} {entry.currentCommit ?? "-"}
                     </p>
