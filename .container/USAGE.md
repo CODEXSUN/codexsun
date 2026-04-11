@@ -88,3 +88,9 @@ git pull origin main
 
 rm -f ~/.bash_history
 history -c
+
+
+cd /home/codexsun
+docker rm -f tirupur-direct-app
+docker volume rm tirupur-direct_tirupur_direct_runtime
+CLIENTS=tirupur_direct ./.container/bash-sh/setup.sh
