@@ -66,8 +66,6 @@ export function StorefrontHomePageShell() {
   return (
     <StorefrontLayout
       showCategoryMenu
-      showFooter={false}
-      showFloatingContact={false}
       className="pb-0"
     >
       <div

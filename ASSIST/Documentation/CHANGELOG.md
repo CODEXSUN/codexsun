@@ -8,6 +8,15 @@
 
 ## v-0.0.1
 
+### [#118] 2026-04-11 - Storefront hero fit and footer-shell lock
+
+- tightened the desktop storefront hero into a shorter, more screen-fitting composition, then rebalanced the content spacing and fixed the media frame to a vertically centered `610x560` image holder without changing the accepted mobile hero behavior
+- restored the homepage footer and floating contact surfaces to the live storefront shell, then compacted the mobile footer into a grouped disclosure layout that saves space while keeping social icons and the copyright line in the final row
+- aligned the mobile footer brand block closer to the desktop tone, added the rendered footer section marker as `section.storefront.footer`, and surfaced visible technical-name badges for the layout, header, and footer shells so footer shell and section names are both visible in review mode
+- updated the shared floating contact launcher so the circular scroll-to-top action now lives inside the launcher stack and appears only when the contact launcher is open
+- locked this storefront UX and UI version as the accepted baseline because the current layout fit is considered correct; future card additions should preserve this layout unless a change is explicitly required
+- validated the batch with repeated `npm.cmd run typecheck` runs and `npx.cmd playwright test tests/e2e/storefront-mobile-matrix.spec.ts`
+
 ### [#117] 2026-04-11 - Storefront staged section reveal continuation
 
 - re-enabled the next hidden homepage block in sequence for staged storefront review by bringing `section.storefront.home.coupon-banner` back into the review surface while keeping later homepage sections hidden

@@ -67,6 +67,7 @@ export function StorefrontFooterSurface({
   return (
     <footer
       className={`w-full border-t pb-3 pt-12 ${previewMode ? "" : "lg:h-[400px] lg:overflow-hidden"}`}
+      data-technical-name="section.storefront.footer"
       style={{
         backgroundColor: design.backgroundColor,
         borderColor: design.borderColor,

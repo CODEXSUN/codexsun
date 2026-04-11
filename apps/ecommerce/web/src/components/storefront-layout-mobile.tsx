@@ -5,6 +5,7 @@ import type { StorefrontLayoutProps } from "./storefront-layout-shared"
 import { useStorefrontLayoutData } from "./storefront-layout-shared"
 import { StorefrontFooter } from "./storefront-footer"
 import { StorefrontHeader } from "./storefront-header"
+import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
 
 export function StorefrontLayoutMobile({
   children,
@@ -27,6 +28,10 @@ export function StorefrontLayoutMobile({
       >
         Skip to main content
       </a>
+      <StorefrontTechnicalNameBadge
+        name="shell.storefront.layout"
+        className="left-4 right-auto top-[6.15rem] z-[55]"
+      />
       <StorefrontHeader categories={categories} showCategoryMenu={showCategoryMenu} />
       <main
         id="storefront-main-content"

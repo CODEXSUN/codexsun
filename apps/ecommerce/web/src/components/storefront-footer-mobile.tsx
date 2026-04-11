@@ -1,5 +1,6 @@
-import { StorefrontFooterSurface } from "./storefront-footer-surface"
+import { StorefrontFooterMobileSurface } from "./storefront-footer-mobile-surface"
 import { useStorefrontFooterData } from "./storefront-footer-shared"
+import { StorefrontTechnicalNameBadgeRow } from "./storefront-technical-name-badge"
 
 export function StorefrontFooterMobile() {
   const { brand, footer, supportEmail, supportPhone } = useStorefrontFooterData()
@@ -10,7 +11,10 @@ export function StorefrontFooterMobile() {
 
   return (
     <div className="relative" data-technical-name="shell.storefront.footer" data-shell-mode="mobile">
-      <StorefrontFooterSurface
+      <StorefrontTechnicalNameBadgeRow
+        names={["shell.storefront.footer", "section.storefront.footer"]}
+      />
+      <StorefrontFooterMobileSurface
         brand={brand}
         footer={footer}
         supportEmail={supportEmail}

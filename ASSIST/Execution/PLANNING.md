@@ -1,5 +1,5 @@
 # Planning
 
-## No Active Batch
+## Active Batch
 
-- Planning is clear. Start a new batch here when the next meaningful task begins.
+No Active Batch

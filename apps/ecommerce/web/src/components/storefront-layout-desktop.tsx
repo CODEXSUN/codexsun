@@ -5,6 +5,7 @@ import type { StorefrontLayoutProps } from "./storefront-layout-shared"
 import { useStorefrontLayoutData } from "./storefront-layout-shared"
 import { StorefrontFooter } from "./storefront-footer"
 import { StorefrontHeader } from "./storefront-header"
+import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
 
 export function StorefrontLayoutDesktop({
   children,
@@ -27,6 +28,13 @@ export function StorefrontLayoutDesktop({
       >
         Skip to main content
       </a>
+      <StorefrontTechnicalNameBadge
+        name="shell.storefront.layout"
+        className={cn(
+          "left-4 right-auto z-[55]",
+          showCategoryMenu ? "top-[10.5rem]" : "top-[5.5rem]"
+        )}
+      />
       <StorefrontHeader categories={categories} showCategoryMenu={showCategoryMenu} />
       <main
         id="storefront-main-content"

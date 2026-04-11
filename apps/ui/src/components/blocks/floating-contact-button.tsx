@@ -1,4 +1,4 @@
-import { Contact, Mail, MessageCircle, Phone } from "lucide-react"
+import { ArrowUp, Contact, Mail, MessageCircle, Phone } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
@@ -85,6 +85,30 @@ export function FloatingContactButton({
     >
       {isOpen ? (
         <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" })
+            }}
+            className="group relative flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+            aria-label="Go to top"
+            title="Go to top"
+            style={{
+              background: config?.actionBackgroundColor ?? "#ffffff",
+              color: config?.actionTextColor ?? "#0f172a",
+              borderColor: config?.actionBorderColor ?? "#bfdbfe",
+            }}
+          >
+            <span
+              className="pointer-events-none absolute inset-1 rounded-full border"
+              style={{ borderColor: config?.actionBorderColor ?? "#dbeafe" }}
+            />
+            <ArrowUp
+              className="relative z-10 h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5"
+              style={{ color: config?.actionIconColor ?? "#2563eb" }}
+            />
+          </button>
+
           {showWhatsApp ? (
             <a
               href={`https://wa.me/${resolvedPhoneDigits}?text=${encodeURIComponent(config?.whatsappMessage?.trim() || "Hello")}`}

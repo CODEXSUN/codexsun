@@ -1,5 +1,6 @@
 import type { StorefrontHeaderProps } from "./storefront-header-shared"
 import { useStorefrontHeaderScrollState } from "./storefront-header-shared"
+import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
 import { StorefrontTopMenu } from "./storefront-top-menu"
 
 export function StorefrontHeaderMobile({
@@ -14,6 +15,10 @@ export function StorefrontHeaderMobile({
       data-technical-name="shell.storefront.header"
       data-shell-mode="mobile"
     >
+      <StorefrontTechnicalNameBadge
+        name="shell.storefront.header"
+        className="left-4 right-auto top-3"
+      />
       <StorefrontTopMenu isScrolled={isCategoryCompact} />
     </header>
   )
