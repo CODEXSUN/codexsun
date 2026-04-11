@@ -81,3 +81,10 @@ chmod +x ./.container/bash-sh/clean.sh
 ```
 chmod +x ./.container/bash-sh/setup.sh
 ```
+
+
+git reset --hard HEAD
+git pull origin main
+
+rm -f ~/.bash_history
+history -c

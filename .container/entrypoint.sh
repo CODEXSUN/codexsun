@@ -129,7 +129,14 @@ checkout_runtime_branch() {
 
   log "Checking out runtime branch $branch..."
 
-  if ! git -C "$repo_root" checkout -B "$branch" "origin/$branch"; then
+  if ! git -C "$repo_root" rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+    log "Runtime remote tracking branch origin/$branch is missing in $repo_root"
+    log "Available runtime branches:"
+    git -C "$repo_root" branch -a || true
+    exit 1
+  fi
+
+  if ! git -C "$repo_root" checkout -B "$branch" "refs/remotes/origin/$branch"; then
     log "Failed to checkout origin/$branch in $repo_root"
     log "Available runtime branches:"
     git -C "$repo_root" branch -a || true
@@ -172,7 +179,7 @@ sync_runtime_repository() {
     fi
 
     log "Fetching runtime repository branch $branch from origin..."
-    git -C "$RUNTIME_REPO_ROOT" fetch --prune origin "$branch"
+    git -C "$RUNTIME_REPO_ROOT" fetch --prune origin "+refs/heads/$branch:refs/remotes/origin/$branch"
     checkout_runtime_branch "$RUNTIME_REPO_ROOT" "$branch"
 
     if is_truthy "$force_update"; then
