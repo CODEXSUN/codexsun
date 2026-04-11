@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
+import { formatDashboardDocumentTitle } from "./dashboard-metadata"
 import type {
   DashboardAppDefinition,
   DashboardLocationMeta,
@@ -123,6 +124,17 @@ export function DashboardShellProvider({
     name: brand?.name ?? "Codexsun",
     tagline: brand?.tagline ?? "Enterprise suite shell",
   }
+
+  React.useEffect(() => {
+    if (typeof document === "undefined") {
+      return
+    }
+
+    document.title = formatDashboardDocumentTitle({
+      brandName: resolvedBrand.name,
+      pageTitle: locationMeta.title,
+    })
+  }, [locationMeta.title, resolvedBrand.name])
 
   return (
     <DashboardShellContext.Provider

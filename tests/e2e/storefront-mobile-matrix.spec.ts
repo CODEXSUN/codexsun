@@ -48,7 +48,13 @@ for (const device of devices) {
       page,
     }) => {
       await page.goto("/")
-      await expect(page.getByRole("heading", { name: /Aster Linen Shirt|Premium-knit essentials|Factory direct storefront/i }).first()).toBeVisible()
+      await expect(
+        page
+          .getByRole("heading", {
+            name: /Curated product stories|Category-led browsing|Fresh into the catalog/i,
+          })
+          .first()
+      ).toBeVisible()
       await expectNoHorizontalOverflow(page)
 
       await page.goto("/catalog")

@@ -13,6 +13,8 @@
 - restored the public storefront homepage route by reconnecting the split `storefront-home` shell, model, and section view modules instead of leaving the route in hidden shell-review mode
 - brought back the original homepage content rhythm with the standard `max-w-[96rem]` landing container and explicit skeleton loading sections so the route no longer renders as an empty shell while storefront data is loading
 - removed the hardcoded storefront browser title by deriving document titles from the runtime company brand, with the `/` storefront route now resolving to the company name only
+- started a staged storefront section-review mode by hiding the homepage hero slider in the home shell override while keeping the remaining sections and loading states visible for mobile-by-mobile layout fixes
+- removed the remaining hardcoded main-shell browser title fallback by adding dashboard title formatting from the active shell location plus runtime company brand, and by changing the root HTML title to a neutral application fallback
 - added visible homepage error handling for failed landing fetches while preserving the live shell split and validated the path with `npm.cmd run typecheck`, `npx.cmd playwright test tests/e2e/storefront-mobile-matrix.spec.ts`, and `npx.cmd tsx --test tests/ecommerce/storefront-metadata.test.ts`
 
 ### [#115] 2026-04-11 - ASSIST repo-state synchronization

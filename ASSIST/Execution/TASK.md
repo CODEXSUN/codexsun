@@ -20,3 +20,15 @@
 - [x] Remove the hardcoded storefront browser title and derive it from the runtime company brand.
 - [x] Make the `/` storefront route title resolve to the company name only.
 - [x] Run focused metadata validation and update the changelog entry.
+
+### Phase 4 - Staged section review
+
+- [x] Hide the homepage hero slider so the remaining storefront sections can be reviewed one by one.
+- [x] Keep non-hero homepage sections and loading states visible for mobile responsiveness review.
+- [x] Re-run focused storefront validation and update the batch notes for the staged review mode.
+
+### Phase 5 - Shell title branding
+
+- [x] Remove the remaining hardcoded `Codexsun` browser title fallback from the main app shell.
+- [x] Derive dashboard page titles from the runtime company brand plus the active shell location title.
+- [x] Add focused validation for the dashboard title formatter and update the batch notes.
