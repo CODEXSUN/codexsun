@@ -11,7 +11,7 @@
 ## Framework Rules
 
 1. Platform runtime concerns belong in `apps/framework`.
-2. Authentication belongs at framework level.
+2. Authentication primitives may live in `apps/framework`, but auth domain ownership belongs in `apps/cxapp`.
 3. Database, config, migrations, storage, notifications, payments, HTTP helpers, and future cache/jobs/realtime/CLI blocks should stay explicit.
 4. Do not move ecommerce or billing business logic into framework for convenience.
 
@@ -27,7 +27,8 @@
 8. `apps/cli` owns operational control commands.
 9. `apps/task` owns enterprise task workflows.
 10. `apps/frappe` owns Frappe integration boundaries.
-11. `apps/tally` owns Tally integration boundaries.
+11. `apps/crm` owns CRM workflows.
+12. `apps/tally` owns Tally integration boundaries.
 
 ## Backend Rules
 

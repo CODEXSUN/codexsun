@@ -117,6 +117,7 @@ When shared UI work is involved, use:
 
 1. `apps/ui/src/design-system/data/project-defaults.ts`
 2. `apps/ui/src/registry`
-3. `apps/ui/src/components/blocks`
+3. `apps/ui/src/registry/blocks`
+4. `apps/ui/src/components/blocks`
 
 Do not invent parallel component naming or default variants outside those sources.

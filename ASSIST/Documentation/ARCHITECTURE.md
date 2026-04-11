@@ -30,13 +30,15 @@ Current app roots under `apps/`:
 8. `ecommerce`
 9. `demo`
 10. `task`
-11. `frappe`
-12. `tally`
-13. `cli`
+11. `crm`
+12. `frappe`
+13. `tally`
+14. `cli`
+15. `mobile`
 
 ## Standard App Shape
 
-Every app must keep the same baseline shape:
+Every framework-composed app except `apps/mobile` must keep the same baseline shape:
 
 ```text
 apps/<app>/
@@ -57,6 +59,7 @@ Rules:
 4. `database/seeder` is for app-owned seeders or tracked placeholders
 5. `helper` is for app-local helper exports
 6. `shared` is for app-local shared contracts and workspace metadata
+7. `apps/mobile` is the current exception and follows an Expo-native layout because it is a companion client package rather than a framework-composed suite app
 
 ## Ownership Model
 
@@ -262,6 +265,10 @@ Ecommerce owns:
 
 `apps/demo` owns demo-data installation, sample business data generation, demo workspace summaries, and preview administration for sales/demo environments.
 
+### CRM
+
+`apps/crm` owns lead, interaction, follow-up, and sales-orchestration workflows inside the suite shell.
+
 ### Frappe
 
 `apps/frappe` owns ERPNext-specific settings, snapshot storage, connector contracts, and sync orchestration.
@@ -306,10 +313,12 @@ ERPNext stock integration rule:
 Current helper surface:
 
 1. interactive GitHub commit and push helper: `npm run github`
-2. built server-side GitHub helper: `npm run github:server`
-3. database prepare command: `npm run db:prepare`
-4. database migrate command: `npm run db:migrate`
-5. database seed command: `npm run db:seed`
+2. non-interactive GitHub commit and push helper: `npm run github:now`
+3. built server-side GitHub helper: `npm run github:server`
+4. built non-interactive GitHub helper: `npm run github:server:now`
+5. database prepare command: `npm run db:prepare`
+6. database migrate command: `npm run db:migrate`
+7. database seed command: `npm run db:seed`
 
 ## Runtime Model
 
@@ -352,9 +361,12 @@ Current registered suite surfaces:
 8. ecommerce
 9. task
 10. demo
-11. frappe
-12. tally
-13. cli
+11. crm
+12. frappe
+13. tally
+14. cli
+
+`apps/mobile` lives under the repository `apps/` root but is not part of the framework-composed app suite today.
 
 Every manifest carries workspace metadata so framework and CxApp can inspect app roots without filesystem guessing.
 
@@ -403,6 +415,7 @@ Active coverage today includes:
 8. Frappe connector flows such as settings save, item sync, purchase receipt sync, and route registration
 9. ecommerce storefront flows such as catalog reads from `core`, customer registration, checkout, payment verification, portal orders, order tracking, and role-based auth landing
 10. demo-data install routes, installers, and workspace summary flows
+11. CRM route wiring and workspace integration through the composed suite shell
 
 ## Current State
 
@@ -410,7 +423,7 @@ Implemented now:
 
 1. framework-first DI and runtime composition
 2. active CxApp frontend and server wrappers
-3. normalized app folder shape across all apps
+3. normalized app folder shape across all framework-composed suite apps
 4. manifest-level suite registration with workspace metadata
 5. internal and external API route split
 6. MariaDB / SQLite / PostgreSQL runtime switching
@@ -425,9 +438,11 @@ Implemented now:
 15. one `cxapp` login session that routes admins to `/admin/dashboard`, desk users to `/dashboard`, and customers to `/profile`
 16. app-owned `ecommerce` storefront settings, dedicated home-slider designer, storefront admin editing, catalog reads from `core` products and shared product masters, customer registration linked to `core` contacts, customer accounts linked to `cxapp` auth users, orders, checkout, Razorpay-ready payments, public tracking, and customer portal pages
 17. app-owned `demo` install profiles, module-specific demo data installers, progress tracking, and demo workspace counts for customer, supplier, product, category, and order data seeding
-18. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
-19. shared storefront editor and docs surfaces in `apps/ui` such as reusable search, featured-card, category-card, rich-text editor, and toast blocks that are consumed by both the storefront and design-system docs
-20. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, demo installer flows, and Frappe connector behavior
+18. app-owned `crm` lead and interaction flows registered into the suite manifest, internal API surface, and shared desk workspace
+19. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
+20. shared storefront editor and docs surfaces in `apps/ui` such as reusable search, featured-card, category-card, rich-text editor, and toast blocks that are consumed by both the storefront and design-system docs
+21. an Expo-based `apps/mobile` companion client package for device-native workflows outside the current framework-composed web suite
+22. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, demo installer flows, and Frappe connector behavior
 
 Still future work:
 
@@ -435,8 +450,9 @@ Still future work:
 2. richer relational schemas and write flows beyond the current module-payload baseline
 3. richer connector execution flows such as webhooks, job queues, and deeper bidirectional reconciliation
 4. auth hardening such as refresh-token rotation, MFA, rate limiting, richer admin UX, and deeper audit flows
-5. promotions, segmented pricing, recommendations, lifecycle marketing, inventory reservation, shipment carriers, and post-order commerce workflows inside `apps/ecommerce`
-6. Electron desktop runtime
+5. broader CRM coverage beyond the current lead and interaction baseline
+6. deeper mobile product flows and shared contract integration for the Expo client
+7. Electron desktop runtime
 
 ## Boundary Rules
 
@@ -448,9 +464,6 @@ Still future work:
 6. CxApp may orchestrate apps, but it must not erase app ownership boundaries
 7. framework may host reusable auth primitives, but auth domain rules, tables, mailbox records, bootstrap state, and company records stay app-owned in `cxapp`
 8. `ecommerce` must not create a second browser auth store or JWT/session system; customer portal access must resolve through the shared `cxapp` auth session
-- Final release governance now uses two explicit ecommerce e2e gates before broader signoff:
-- Final release governance now uses three explicit repo-level gates before environment signoff:
-  - `npm.cmd run test:e2e:storefront-smoke` for the public homepage-to-paid-order-to-tracking journey
-  - `npm.cmd run test:e2e:ecommerce-admin-ops` for storefront content, orders, payments, and support operator surfaces
-  - `npm.cmd run test:release:security-ops` for monitoring, backup, restore-drill, and security-review checks
-9. final ERP release signoff must choose explicitly between `deferred`, `master-sync only`, or `transactional bridge enabled`; the current repo state is the third option, with fail-closed connector writes and manual replay after transactional failure
+9. final release governance now uses three explicit repo-level gates before environment signoff: `npm.cmd run test:e2e:storefront-smoke`, `npm.cmd run test:e2e:ecommerce-admin-ops`, and `npm.cmd run test:release:security-ops`
+10. the storefront smoke gate covers the public homepage-to-paid-order-to-tracking journey, while the ecommerce admin operations gate covers storefront content, orders, payments, and support operator surfaces
+11. final ERP release signoff must choose explicitly between `deferred`, `master-sync only`, or `transactional bridge enabled`; the current repo state is the third option, with fail-closed connector writes and manual replay after transactional failure

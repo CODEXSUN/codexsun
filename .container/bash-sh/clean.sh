@@ -34,16 +34,19 @@ CODEXSUN_COMPOSE_FILE="${CODEXSUN_COMPOSE_FILE:-.container/clients/codexsun/dock
 TMNEXT_COMPOSE_FILE="${TMNEXT_COMPOSE_FILE:-.container/clients/tmnext_in/docker-compose.yml}"
 TIRUPUR_COMPOSE_FILE="${TIRUPUR_COMPOSE_FILE:-.container/clients/tirupur_direct/docker-compose.yml}"
 TECHMEDIA_COMPOSE_FILE="${TECHMEDIA_COMPOSE_FILE:-.container/clients/techmedia_in/docker-compose.yml}"
+NEOT_COMPOSE_FILE="${NEOT_COMPOSE_FILE:-.container/clients/neot_in/docker-compose.yml}"
 
 CODEXSUN_CONTAINER="${CODEXSUN_CONTAINER:-codexsun-app}"
 TMNEXT_CONTAINER="${TMNEXT_CONTAINER:-tmnext-in-app}"
 TIRUPUR_CONTAINER="${TIRUPUR_CONTAINER:-tirupur-direct-app}"
 TECHMEDIA_CONTAINER="${TECHMEDIA_CONTAINER:-techmedia-in-app}"
+NEOT_CONTAINER="${NEOT_CONTAINER:-neot-in-app}"
 
 CODEXSUN_VOLUME="${CODEXSUN_VOLUME:-codexsun_codexsun_runtime}"
 TMNEXT_VOLUME="${TMNEXT_VOLUME:-tmnext-in_tmnext_in_runtime}"
 TIRUPUR_VOLUME="${TIRUPUR_VOLUME:-tirupur-direct_tirupur_direct_runtime}"
 TECHMEDIA_VOLUME="${TECHMEDIA_VOLUME:-techmedia-in_techmedia_in_runtime}"
+NEOT_VOLUME="${NEOT_VOLUME:-neot-in_neot_in_runtime}"
 
 stop_container() {
   local label="$1"
@@ -86,16 +89,19 @@ stop_container "codexsun" "$CODEXSUN_CONTAINER"
 stop_container "tmnext.in" "$TMNEXT_CONTAINER"
 stop_container "tirupurdirect.in" "$TIRUPUR_CONTAINER"
 stop_container "techmedia.in" "$TECHMEDIA_CONTAINER"
+stop_container "neot.in" "$NEOT_CONTAINER"
 
 stop_stack "codexsun" "$CODEXSUN_COMPOSE_FILE"
 stop_stack "tmnext.in" "$TMNEXT_COMPOSE_FILE"
 stop_stack "tirupurdirect.in" "$TIRUPUR_COMPOSE_FILE"
 stop_stack "techmedia.in" "$TECHMEDIA_COMPOSE_FILE"
+stop_stack "neot.in" "$NEOT_COMPOSE_FILE"
 
 remove_volume "$CODEXSUN_VOLUME"
 remove_volume "$TMNEXT_VOLUME"
 remove_volume "$TIRUPUR_VOLUME"
 remove_volume "$TECHMEDIA_VOLUME"
+remove_volume "$NEOT_VOLUME"
 
 log "Removing image ${IMAGE_TAG}..."
 docker image rm "$IMAGE_TAG" >/dev/null 2>&1 || true

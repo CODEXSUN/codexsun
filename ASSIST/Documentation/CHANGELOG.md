@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#115] 2026-04-11 - ASSIST repo-state synchronization
+
+- reconciled `ASSIST` guidance with the live repository by adding the current `crm` suite app and the `mobile` companion client where the docs previously still described the older app inventory
+- corrected stale ASSIST references for shared UI source-of-truth paths, current `cxapp` auth or mailbox endpoints, available helper commands, and the testing stack now that Playwright, e2e flows, and broader service coverage exist in the repo
+- confirmed the execution trackers return to `No active batch` after this docs-only sync so there is no incomplete tracked work left in `ASSIST/Execution`
+
 ### [#114] 2026-04-11 - Framework system update history stores failure reasons
 
 - extended framework system-update history entries to persist the underlying failure reason for blocked, failed update, and failed reset runs instead of only the generic rollback message

@@ -20,7 +20,7 @@ Before making changes, read:
 
 ## Current Repository Model
 
-All product code lives under one `apps/` root:
+All product and companion client code lives under one `apps/` root:
 
 1. `apps/framework`
 2. `apps/cxapp`
@@ -32,13 +32,15 @@ All product code lives under one `apps/` root:
 8. `apps/ecommerce`
 9. `apps/demo`
 10. `apps/task`
-11. `apps/frappe`
-12. `apps/tally`
-13. `apps/cli`
+11. `apps/crm`
+12. `apps/frappe`
+13. `apps/tally`
+14. `apps/cli`
+15. `apps/mobile`
 
 ## Standard App Shape
 
-Every app folder must keep the same baseline shape:
+Every framework-composed app folder except `apps/mobile` must keep the same baseline shape:
 
 1. `src` for backend, manifests, and server-side composition
 2. `web` for frontend shells and pages
@@ -47,6 +49,7 @@ Every app folder must keep the same baseline shape:
 5. `helper` for app-local helper exports
 6. `shared` for app-local shared contracts and workspace metadata
 7. when an app owns persistent data, keep individual migration files in `apps/<app>/database/migration`, individual seeder files in `apps/<app>/database/seeder`, and register them through a server-side entry such as `apps/<app>/src/database-module.ts`
+8. `apps/mobile` is the current exception and follows its Expo-native package layout instead of the suite `src/web/database/helper/shared` shape
 
 ## Ownership Rules
 
@@ -60,9 +63,11 @@ Every app folder must keep the same baseline shape:
 8. `ecommerce` owns storefront, catalog presentation, cart, checkout, payments, order tracking, and customer commerce flows.
 9. `demo` owns demo-data installation, sample business data generation, and demo showcase administration.
 10. `task` owns task, workspace, and team workflow behavior.
-11. `frappe` owns ERPNext-specific settings, snapshot storage, and connector sync orchestration.
-12. `tally` owns Tally-specific integration boundaries.
-13. `cli` owns operational commands, diagnostics, and release helpers.
+11. `crm` owns lead, interaction, and sales-orchestration workflows.
+12. `frappe` owns ERPNext-specific settings, snapshot storage, and connector sync orchestration.
+13. `tally` owns Tally-specific integration boundaries.
+14. `cli` owns operational commands, diagnostics, and release helpers.
+15. `mobile` owns the companion Expo client and device-native workflows that do not belong in the framework-composed web suite.
 
 ## Mandatory Rules
 
@@ -129,7 +134,7 @@ Every app folder must keep the same baseline shape:
 2. Record the active reference in `ASSIST/Execution/TASK.md` when the batch is being tracked through execution docs.
 3. Record scope, assumptions, and validation in `ASSIST/Execution/PLANNING.md` when the batch is being tracked through execution docs.
 4. Implement the smallest boundary-correct change.
-5. When building with known design-system components, resolve the component name and default variant from `apps/ui/src/design-system/data/project-defaults.ts` before writing UI code, and prefer `apps/ui/src/registry` and `apps/ui/src/components/blocks` for reusable shared UI compositions.
+5. When building with known design-system components, resolve the component name and default variant from `apps/ui/src/design-system/data/project-defaults.ts` before writing UI code, and prefer `apps/ui/src/registry`, `apps/ui/src/registry/blocks`, and `apps/ui/src/components/blocks` for reusable shared UI compositions.
 6. Run `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` when relevant.
 7. Update docs and changelog in the same batch.
 8. Report what changed, what remains, and any residual risks.
