@@ -1,5 +1,5 @@
 export type StorefrontRouteMetadata = {
-  title: string
+  title: string | null
   description: string
   robots: "index,follow" | "noindex,nofollow"
   openGraphImagePath: string
@@ -12,7 +12,7 @@ const storefrontMetadataEntries: Array<{
   {
     pattern: /^\/$/,
     metadata: {
-      title: "Tirupur Direct Storefront",
+      title: null,
       description:
         "Browse the Tirupur Direct storefront with curated product stories, category discovery, and direct checkout.",
       robots: "index,follow",
@@ -158,5 +158,11 @@ export function formatStorefrontDocumentTitle(
   metadata: StorefrontRouteMetadata,
   brandName = "Codexsun"
 ) {
+  const routeTitle = metadata.title?.trim()
+
+  if (!routeTitle) {
+    return brandName
+  }
+
   return `${metadata.title} | ${brandName}`
 }

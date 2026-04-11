@@ -20,7 +20,7 @@ export function StorefrontHomeModelProviderView({
   model: ReturnType<typeof import("../hooks/use-storefront-home-model").useStorefrontHomeModel>
 }) {
   if (!model.data || !model.settings || !model.visibility) {
-    return model.visibilityMap.hero && model.isLoading ? (
+    return model.isLoading ? (
       <div className="relative" data-technical-name="section.storefront.home.hero">
         <StorefrontTechnicalNameBadgeRow
           names={["page.storefront.home", "section.storefront.home.hero"]}

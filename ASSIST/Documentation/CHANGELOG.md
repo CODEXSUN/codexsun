@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#116] 2026-04-11 - Storefront homepage UX restoration
+
+- restored the public storefront homepage route by reconnecting the split `storefront-home` shell, model, and section view modules instead of leaving the route in hidden shell-review mode
+- brought back the original homepage content rhythm with the standard `max-w-[96rem]` landing container and explicit skeleton loading sections so the route no longer renders as an empty shell while storefront data is loading
+- removed the hardcoded storefront browser title by deriving document titles from the runtime company brand, with the `/` storefront route now resolving to the company name only
+- added visible homepage error handling for failed landing fetches while preserving the live shell split and validated the path with `npm.cmd run typecheck`, `npx.cmd playwright test tests/e2e/storefront-mobile-matrix.spec.ts`, and `npx.cmd tsx --test tests/ecommerce/storefront-metadata.test.ts`
+
 ### [#115] 2026-04-11 - ASSIST repo-state synchronization
 
 - reconciled `ASSIST` guidance with the live repository by adding the current `crm` suite app and the `mobile` companion client where the docs previously still described the older app inventory

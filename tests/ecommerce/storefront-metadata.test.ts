@@ -8,7 +8,7 @@ import {
 
 test("storefront route metadata resolves public and shop-prefixed routes", () => {
   assert.deepEqual(resolveStorefrontRouteMetadata("/"), {
-    title: "Tirupur Direct Storefront",
+    title: null,
     description:
       "Browse the Tirupur Direct storefront with curated product stories, category discovery, and direct checkout.",
     robots: "index,follow",
@@ -57,5 +57,13 @@ test("storefront route metadata formats document titles with brand suffix", () =
       "Tirupur Direct"
     ),
     "Catalog | Tirupur Direct"
+  )
+
+  assert.equal(
+    formatStorefrontDocumentTitle(
+      { title: null, description: "Homepage" },
+      "Tirupur Direct"
+    ),
+    "Tirupur Direct"
   )
 })
