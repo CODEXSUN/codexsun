@@ -51,6 +51,11 @@ test("system update status reports remote update and clean worktree", async () =
         "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
         "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
         "git rev-parse HEAD": () => ({ stdout: "abc123\n" }),
+        "git show -s --format=%s%x1f%cI abc123": () => ({
+          stdout: "#111 - fix(runtime): align local git sync update flow\u001f2026-04-10T13:00:40.000Z\n",
+        }),
+        "git tag --points-at abc123": () => ({ stdout: "v-0.0.1\n" }),
+        "git show abc123:package.json": () => ({ stdout: '{ "version": "0.0.1" }\n' }),
         "git status --porcelain": () => ({ stdout: "" }),
         "git ls-remote --heads https://github.com/CODEXSUN/codexsun.git refs/heads/main": () => ({
           stdout: "def456\trefs/heads/main\n",
@@ -66,6 +71,9 @@ test("system update status reports remote update and clean worktree", async () =
 
     assert.equal(status.branch, "main")
     assert.equal(status.currentCommit, "abc123")
+    assert.equal(status.currentRevision?.summary, "#111 - fix(runtime): align local git sync update flow")
+    assert.equal(status.currentRevision?.tag, "v-0.0.1")
+    assert.equal(status.currentRevision?.version, "0.0.1")
     assert.equal(status.remoteCommit, "def456")
     assert.equal(status.isClean, true)
     assert.equal(status.hasRemoteUpdate, true)
@@ -93,6 +101,11 @@ test("system update preview returns pending commits from the configured branch",
         "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
         "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
         "git rev-parse HEAD": () => ({ stdout: "abc123\n" }),
+        "git show -s --format=%s%x1f%cI abc123": () => ({
+          stdout: "#111 - fix(runtime): align local git sync update flow\u001f2026-04-10T13:00:40.000Z\n",
+        }),
+        "git tag --points-at abc123": () => ({ stdout: "v-0.0.1\n" }),
+        "git show abc123:package.json": () => ({ stdout: '{ "version": "0.0.1" }\n' }),
         "git status --porcelain": () => ({ stdout: "" }),
         "git ls-remote --heads https://github.com/CODEXSUN/codexsun.git refs/heads/main": () => ({
           stdout: "def456\trefs/heads/main\n",
@@ -114,6 +127,7 @@ test("system update preview returns pending commits from the configured branch",
     const preview = await getSystemUpdatePreview(config, runner)
 
     assert.equal(preview.status.currentCommit, "abc123")
+    assert.equal(preview.status.currentRevision?.version, "0.0.1")
     assert.equal(preview.items.length, 2)
     assert.equal(preview.items[0]?.commit, "def456")
     assert.equal(preview.items[0]?.summary, "feat: add update preview")
@@ -151,6 +165,11 @@ test("system update status uses runtime repository when git sync is active", asy
         "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
         "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
         "git rev-parse HEAD": () => ({ stdout: "abc123\n" }),
+        "git show -s --format=%s%x1f%cI abc123": () => ({
+          stdout: "#111 - fix(runtime): align local git sync update flow\u001f2026-04-10T13:00:40.000Z\n",
+        }),
+        "git tag --points-at abc123": () => ({ stdout: "" }),
+        "git show abc123:package.json": () => ({ stdout: '{ "version": "0.0.1" }\n' }),
         "git status --porcelain": () => ({ stdout: "" }),
         "git ls-remote --heads https://github.com/CODEXSUN/codexsun.git refs/heads/main": () => ({
           stdout: "abc123\trefs/heads/main\n",
@@ -193,6 +212,16 @@ test("system update discards local changes, pulls configured branch, and rebuild
         "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
         "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
         "git rev-parse HEAD": () => ({ stdout: `${head}\n` }),
+        "git show -s --format=%s%x1f%cI abc123": () => ({
+          stdout: "before update\u001f2026-04-10T06:00:00.000Z\n",
+        }),
+        "git show -s --format=%s%x1f%cI def456": () => ({
+          stdout: "after update\u001f2026-04-10T07:00:00.000Z\n",
+        }),
+        "git tag --points-at abc123": () => ({ stdout: "" }),
+        "git tag --points-at def456": () => ({ stdout: "v-0.0.2\n" }),
+        "git show abc123:package.json": () => ({ stdout: '{ "version": "0.0.1" }\n' }),
+        "git show def456:package.json": () => ({ stdout: '{ "version": "0.0.2" }\n' }),
         "git status --porcelain": () => ({
           stdout: dirty ? " M apps/core/file.ts\n?? scratch.txt\n" : "",
         }),
@@ -228,6 +257,8 @@ test("system update discards local changes, pulls configured branch, and rebuild
     assert.equal(response.updated, true)
     assert.equal(response.status.isClean, true)
     assert.equal(response.currentCommit, "def456")
+    assert.equal(response.status.currentRevision?.summary, "after update")
+    assert.equal(response.status.currentRevision?.version, "0.0.2")
     assert.equal(calls.some((entry) => entry.includes("git pull --ff-only origin main")), true)
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
@@ -255,6 +286,16 @@ test("system update rolls back to previous commit when build fails", async () =>
         "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
         "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
         "git rev-parse HEAD": () => ({ stdout: `${head}\n` }),
+        "git show -s --format=%s%x1f%cI abc123": () => ({
+          stdout: "before update\u001f2026-04-10T06:00:00.000Z\n",
+        }),
+        "git show -s --format=%s%x1f%cI def456": () => ({
+          stdout: "after update\u001f2026-04-10T07:00:00.000Z\n",
+        }),
+        "git tag --points-at abc123": () => ({ stdout: "" }),
+        "git tag --points-at def456": () => ({ stdout: "v-0.0.2\n" }),
+        "git show abc123:package.json": () => ({ stdout: '{ "version": "0.0.1" }\n' }),
+        "git show def456:package.json": () => ({ stdout: '{ "version": "0.0.2" }\n' }),
         "git status --porcelain": () => ({ stdout: "" }),
         "git ls-remote --heads https://github.com/CODEXSUN/codexsun.git refs/heads/main": () => ({
           stdout: "def456\trefs/heads/main\n",
@@ -331,6 +372,11 @@ test("forced reset discards local changes, rebuilds, and returns clean status", 
         "git rev-parse --is-inside-work-tree": () => ({ stdout: "true\n" }),
         "git rev-parse --abbrev-ref HEAD": () => ({ stdout: "main\n" }),
         "git rev-parse HEAD": () => ({ stdout: "abc123\n" }),
+        "git show -s --format=%s%x1f%cI abc123": () => ({
+          stdout: "#111 - fix(runtime): align local git sync update flow\u001f2026-04-10T13:00:40.000Z\n",
+        }),
+        "git tag --points-at abc123": () => ({ stdout: "v-0.0.1\n" }),
+        "git show abc123:package.json": () => ({ stdout: '{ "version": "0.0.1" }\n' }),
         "git status --porcelain": () => ({
           stdout: dirty ? " M apps/core/file.ts\n?? temp.txt\n" : "",
         }),
@@ -349,7 +395,7 @@ test("forced reset discards local changes, rebuilds, and returns clean status", 
     )
 
     const response = await resetSystemToLastCommit(config, { force: true }, runner)
-    const history = listSystemUpdateHistory(config)
+    const history = await listSystemUpdateHistory(config, runner)
 
     assert.equal(response.restartScheduled, true)
     assert.equal(response.status.isClean, true)
@@ -357,6 +403,7 @@ test("forced reset discards local changes, rebuilds, and returns clean status", 
     assert.equal(calls.some((entry) => entry.includes("git clean -fd")), true)
     assert.equal(history.items[0]?.action, "reset")
     assert.equal(history.items[0]?.result, "success")
+    assert.equal(history.items[0]?.currentRevision?.summary, "#111 - fix(runtime): align local git sync update flow")
     assert.doesNotMatch(
       readFileSync(path.join(tempRoot, "apps/cxapp/src/server/restart-token.ts"), "utf8"),
       /"before"/

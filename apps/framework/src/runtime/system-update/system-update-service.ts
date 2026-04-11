@@ -13,6 +13,7 @@ import {
 } from "../../../../cli/src/system-update-helper.js"
 import {
   systemUpdateHistorySchema,
+  type SystemUpdateCommitDetails,
   systemUpdatePreviewSchema,
   systemUpdateResetPayloadSchema,
   systemUpdateRunResponseSchema,
@@ -83,6 +84,15 @@ async function runCommand(
 
 function trimTrailing(value: string) {
   return value.trim().replace(/\r?\n$/, "")
+}
+
+function parseFirstLine(value: string) {
+  const line = value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .find(Boolean)
+
+  return line ?? null
 }
 
 function parseChanges(raw: string) {
@@ -193,6 +203,53 @@ function resolveSystemUpdateRoot(cwd: string) {
   return cwd
 }
 
+function readPackageVersionFromContent(content: string) {
+  try {
+    const parsed = JSON.parse(content) as { version?: unknown }
+
+    return typeof parsed.version === "string" && parsed.version.trim() ? parsed.version.trim() : null
+  } catch {
+    return null
+  }
+}
+
+async function resolveCommitDetails(
+  cwd: string,
+  commit: string | null,
+  commandRunner: CommandRunner
+): Promise<SystemUpdateCommitDetails | null> {
+  if (!commit || commit === "(unavailable)") {
+    return null
+  }
+
+  const summaryResult = await commandRunner(
+    "git",
+    ["show", "-s", "--format=%s%x1f%cI", commit],
+    cwd,
+    true
+  )
+
+  if (!summaryResult.ok) {
+    return null
+  }
+
+  const [summary = "", committedAt = ""] = trimTrailing(summaryResult.stdout).split("\u001f")
+
+  if (!summary || !committedAt) {
+    return null
+  }
+
+  const tagResult = await commandRunner("git", ["tag", "--points-at", commit], cwd, true)
+  const packageResult = await commandRunner("git", ["show", `${commit}:package.json`], cwd, true)
+
+  return {
+    summary,
+    committedAt,
+    tag: tagResult.ok ? parseFirstLine(tagResult.stdout) : null,
+    version: packageResult.ok ? readPackageVersionFromContent(packageResult.stdout) : null,
+  }
+}
+
 async function ensureRuntimeGitRemote(
   cwd: string,
   target: RuntimeGitSyncTarget,
@@ -248,6 +305,7 @@ async function resolveGitStatus(
       branch: "(unavailable)",
       upstream: null,
       currentCommit: "(unavailable)",
+      currentRevision: null,
       remoteCommit: null,
       isClean: false,
       hasRemoteUpdate: false,
@@ -265,6 +323,7 @@ async function resolveGitStatus(
   const currentCommit = trimTrailing(
     (await commandRunner("git", ["rev-parse", "HEAD"], cwd)).stdout
   )
+  const currentRevision = await resolveCommitDetails(cwd, currentCommit, commandRunner)
   const statusRaw = (
     await commandRunner("git", ["status", "--porcelain"], cwd, true)
   ).stdout
@@ -285,6 +344,7 @@ async function resolveGitStatus(
     branch,
     upstream,
     currentCommit,
+    currentRevision,
     remoteCommit,
     isClean: localChanges.length === 0,
     hasRemoteUpdate: Boolean(remoteCommit && remoteCommit !== currentCommit),
@@ -371,11 +431,23 @@ export async function getSystemUpdatePreview(
   })
 }
 
-export function listSystemUpdateHistory(config: ServerConfig): SystemUpdateHistory {
+export async function listSystemUpdateHistory(
+  config: ServerConfig,
+  commandRunner: CommandRunner = runCommand
+): Promise<SystemUpdateHistory> {
   const cwd = resolveSystemUpdateRoot(resolveRuntimeSettingsRoot(config))
+  const items = await Promise.all(
+    readHistoryEntries(cwd)
+      .slice(-20)
+      .reverse()
+      .map(async (entry) => ({
+        ...entry,
+        currentRevision: await resolveCommitDetails(cwd, entry.currentCommit, commandRunner),
+      }))
+  )
 
   return systemUpdateHistorySchema.parse({
-    items: readHistoryEntries(cwd).slice(-20).reverse(),
+    items,
   })
 }
 
@@ -398,6 +470,7 @@ export async function runSystemUpdate(
         "System update was blocked because the runtime repository is not ready for one-way git sync.",
       previousCommit: before.currentCommit,
       currentCommit: before.currentCommit,
+      currentRevision: null,
       actor,
     })
     throw new ApplicationError(
@@ -441,6 +514,7 @@ export async function runSystemUpdate(
         "System update failed after the runtime repository was resynced. The previous commit was restored.",
       previousCommit: before.currentCommit,
       currentCommit: before.currentCommit,
+      currentRevision: null,
       actor,
     })
 
@@ -472,6 +546,7 @@ export async function runSystemUpdate(
         : "Runtime repository resynced from the configured branch, rebuilt, and restarted.",
     previousCommit: before.currentCommit,
     currentCommit: after.currentCommit,
+    currentRevision: null,
     actor,
   })
 
@@ -516,6 +591,7 @@ export async function resetSystemToLastCommit(
         "Forced reset failed before the application could be rebuilt cleanly.",
       previousCommit: before.currentCommit,
       currentCommit: before.currentCommit,
+      currentRevision: null,
       actor,
     })
     throw new ApplicationError(
@@ -543,6 +619,7 @@ export async function resetSystemToLastCommit(
       "Local changes were discarded, the repository was reset to the current commit, rebuilt, and restarted.",
     previousCommit: before.currentCommit,
     currentCommit: after.currentCommit,
+    currentRevision: null,
     actor,
   })
 

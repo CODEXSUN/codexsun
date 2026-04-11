@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#112] 2026-04-11 - Framework system update revision metadata in admin UI
+
+- extended the framework system-update contract to expose current revision metadata, including applied commit summary, commit date, git tag, and package version for the active runtime commit
+- enriched system-update history reads so recent update and reset activity can resolve commit metadata from stored commit hashes without changing the persisted log format
+- updated the admin System Update screen to show the applied commit message, date, and tag or version under the current commit card and recent activity entries, with safe fallback text when a commit is not tagged
+- validated the batch with `npx.cmd tsx --test tests/framework/system-update-service.test.ts` and `npm.cmd run typecheck`
+
 ### [#111] 2026-04-10 - Local git-sync runtime update alignment
 
 - fixed development runtime settings so changing Git sync controls from Core Settings schedules a real container restart when the live runtime mode depends on entrypoint-only behavior

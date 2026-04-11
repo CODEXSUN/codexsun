@@ -60,7 +60,7 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
           allowedActorTypes: ["admin"],
         })
 
-        return jsonResponse(listSystemUpdateHistory(context.config))
+        return jsonResponse(await listSystemUpdateHistory(context.config))
       },
     }),
     defineInternalRoute("/framework/system-update/preview", {

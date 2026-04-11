@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import {
   AlertTriangleIcon,
   GitBranchIcon,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 
 import type {
+  SystemUpdateCommitDetails,
   SystemUpdateHistory,
   SystemUpdatePreview,
   SystemUpdateRunResponse,
@@ -72,10 +73,12 @@ function CommitCard({
   icon: Icon,
   label,
   value,
+  children,
 }: {
   icon: typeof GitBranchIcon
   label: string
   value: string
+  children?: ReactNode
 }) {
   return (
     <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
@@ -84,6 +87,7 @@ function CommitCard({
         <span>{label}</span>
       </div>
       <p className="mt-2 font-mono text-xs text-foreground">{value}</p>
+      {children}
     </div>
   )
 }
@@ -109,6 +113,18 @@ function formatHistoryResultLabel(result: "success" | "failure" | "blocked") {
     default:
       return "blocked"
   }
+}
+
+function formatCommitDate(value: string) {
+  return new Date(value).toLocaleString()
+}
+
+function formatCommitMetaLine(details: SystemUpdateCommitDetails) {
+  return [
+    formatCommitDate(details.committedAt),
+    `Tag: ${details.tag ?? "Not tagged"}`,
+    `Version: ${details.version ?? "Unknown"}`,
+  ].join(" | ")
 }
 
 export function FrameworkSystemUpdateSection() {
@@ -390,10 +406,33 @@ export function FrameworkSystemUpdateSection() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <CommitCard icon={GitBranchIcon} label="Branch" value={formatCardValue(status?.branch, "Not active")} />
-        <CommitCard icon={GitBranchIcon} label="Upstream" value={formatCardValue(status?.upstream, "Not active")} />
-        <CommitCard icon={GitBranchIcon} label="Current Commit" value={formatCardValue(status?.currentCommit)} />
-        <CommitCard icon={GitBranchIcon} label="Remote Commit" value={formatCardValue(status?.remoteCommit)} />
+        <CommitCard
+          icon={GitBranchIcon}
+          label="Branch"
+          value={formatCardValue(status?.branch, "Not active")}
+        />
+        <CommitCard
+          icon={GitBranchIcon}
+          label="Upstream"
+          value={formatCardValue(status?.upstream, "Not active")}
+        />
+        <CommitCard
+          icon={GitBranchIcon}
+          label="Current Commit"
+          value={formatCardValue(status?.currentCommit)}
+        >
+          {status?.currentRevision ? (
+            <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+              <p className="line-clamp-2 text-foreground/90">{status.currentRevision.summary}</p>
+              <p>{formatCommitMetaLine(status.currentRevision)}</p>
+            </div>
+          ) : null}
+        </CommitCard>
+        <CommitCard
+          icon={GitBranchIcon}
+          label="Remote Commit"
+          value={formatCardValue(status?.remoteCommit)}
+        />
         <CommitCard
           icon={status?.canAutoUpdate ? RefreshCcwIcon : ShieldAlertIcon}
           label="Mode"
@@ -549,12 +588,20 @@ export function FrameworkSystemUpdateSection() {
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
-                      {formatHistoryActionLabel(entry.action)} · {formatHistoryResultLabel(entry.result)}
+                      {formatHistoryActionLabel(entry.action)} | {formatHistoryResultLabel(entry.result)}
                     </p>
                     <p className="text-xs text-muted-foreground">{entry.message}</p>
                     <p className="font-mono text-[11px] text-muted-foreground">
                       {entry.previousCommit ?? "-"} {"->"} {entry.currentCommit ?? "-"}
                     </p>
+                    {entry.currentRevision ? (
+                      <div className="space-y-1">
+                        <p className="text-xs text-foreground/90">{entry.currentRevision.summary}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatCommitMetaLine(entry.currentRevision)}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="text-right text-[11px] text-muted-foreground">
                     <p>{new Date(entry.timestamp).toLocaleString()}</p>

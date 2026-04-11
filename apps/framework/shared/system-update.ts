@@ -1,10 +1,18 @@
 import { z } from "zod"
 
+export const systemUpdateCommitDetailsSchema = z.object({
+  summary: z.string().min(1),
+  committedAt: z.string().min(1),
+  tag: z.string().min(1).nullable(),
+  version: z.string().min(1).nullable(),
+})
+
 export const systemUpdateStatusSchema = z.object({
   rootPath: z.string().min(1),
   branch: z.string().min(1),
   upstream: z.string().nullable(),
   currentCommit: z.string().min(1),
+  currentRevision: systemUpdateCommitDetailsSchema.nullable(),
   remoteCommit: z.string().nullable(),
   isClean: z.boolean(),
   hasRemoteUpdate: z.boolean(),
@@ -52,6 +60,7 @@ export const systemUpdateHistoryEntrySchema = z.object({
   message: z.string().min(1),
   previousCommit: z.string().min(1).nullable(),
   currentCommit: z.string().min(1).nullable(),
+  currentRevision: systemUpdateCommitDetailsSchema.nullable().optional().default(null),
   actor: z.string().nullable(),
 })
 
@@ -60,6 +69,7 @@ export const systemUpdateHistorySchema = z.object({
 })
 
 export type SystemUpdateStatus = z.infer<typeof systemUpdateStatusSchema>
+export type SystemUpdateCommitDetails = z.infer<typeof systemUpdateCommitDetailsSchema>
 export type SystemUpdatePreviewItem = z.infer<typeof systemUpdatePreviewItemSchema>
 export type SystemUpdatePreview = z.infer<typeof systemUpdatePreviewSchema>
 export type SystemUpdateRunResponse = z.infer<typeof systemUpdateRunResponseSchema>
