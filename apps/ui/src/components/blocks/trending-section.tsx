@@ -102,6 +102,7 @@ function TrendCard({
 export function TrendingSection({ className, config }: TrendingSectionProps) {
   const { scrollRef, showLeftChevron, showRightChevron, scrollLeft, scrollRight } =
     useHorizontalRailControls(config.cards.length + 1)
+  const hasHorizontalOverflow = showLeftChevron || showRightChevron
 
   if (
     config.enabled === false ||
@@ -176,26 +177,38 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
           </div>
         </div>
 
-        {showLeftChevron ? (
-          <button
-            type="button"
-            aria-label="Scroll trending cards left"
-            className="absolute left-0 top-[11rem] z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-[#dfc9b3] bg-[#fcf8f3]/92 p-2 text-[#705440] shadow-[0_14px_28px_-18px_rgba(43,26,12,0.38)] opacity-0 transition-all duration-300 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white group-hover:opacity-100"
-            onClick={scrollLeft}
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-        ) : null}
+        {hasHorizontalOverflow ? (
+          <>
+            <button
+              type="button"
+              aria-label="Scroll trending cards left"
+              disabled={!showLeftChevron}
+              className={cn(
+                "absolute left-0 top-[11rem] z-10 flex -translate-y-1/2 items-center justify-center rounded-full border p-2 shadow-[0_14px_28px_-18px_rgba(43,26,12,0.38)] transition-all duration-300",
+                showLeftChevron
+                  ? "border-[#dfc9b3] bg-[#fcf8f3]/92 text-[#705440] opacity-100 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white"
+                  : "cursor-default border-[#eadbca] bg-white/72 text-[#c4ae96] opacity-100"
+              )}
+              onClick={scrollLeft}
+            >
+              <ChevronLeft className="size-4" />
+            </button>
 
-        {showRightChevron ? (
-          <button
-            type="button"
-            aria-label="Scroll trending cards right"
-            className="absolute right-0 top-[11rem] z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-[#dfc9b3] bg-[#fcf8f3]/92 p-2 text-[#705440] shadow-[0_14px_28px_-18px_rgba(43,26,12,0.38)] opacity-0 transition-all duration-300 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white group-hover:opacity-100"
-            onClick={scrollRight}
-          >
-            <ChevronRight className="size-4" />
-          </button>
+            <button
+              type="button"
+              aria-label="Scroll trending cards right"
+              disabled={!showRightChevron}
+              className={cn(
+                "absolute right-0 top-[11rem] z-10 flex -translate-y-1/2 items-center justify-center rounded-full border p-2 shadow-[0_14px_28px_-18px_rgba(43,26,12,0.38)] transition-all duration-300",
+                showRightChevron
+                  ? "border-[#dfc9b3] bg-[#fcf8f3]/92 text-[#705440] opacity-100 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white"
+                  : "cursor-default border-[#eadbca] bg-white/72 text-[#c4ae96] opacity-100"
+              )}
+              onClick={scrollRight}
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </>
         ) : null}
       </div>
     </section>

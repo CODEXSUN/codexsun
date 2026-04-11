@@ -10,16 +10,16 @@ import { StorefrontHomeModelProviderView } from "../views/storefront-home-page-v
 
 const storefrontHomeSectionReviewVisibility = {
   announcement: true,
-  bestSellers: false,
-  brandStories: false,
-  campaignTrust: false,
+  bestSellers: true,
+  brandStories: true,
+  campaignTrust: true,
   categories: true,
-  couponBanner: false,
+  couponBanner: true,
   featured: true,
-  giftCorner: false,
+  giftCorner: true,
   hero: true,
-  newArrivals: false,
-  trending: false,
+  newArrivals: true,
+  trending: true,
 } as const
 
 function StorefrontHomePageLoadingState({
@@ -71,7 +71,7 @@ export function StorefrontHomePageShell() {
       className="pb-0"
     >
       <div
-        className="mx-auto grid w-full max-w-[96rem] gap-10 px-4 pt-6 pb-14 sm:px-5 lg:gap-12 lg:px-8 lg:pt-10 lg:pb-16 2xl:px-10"
+        className="mx-auto grid w-full max-w-[96rem] gap-10 px-4 pt-6 pb-14 sm:px-5 lg:gap-14 lg:px-8 lg:pt-10 lg:pb-18 xl:gap-16 2xl:px-10"
         data-technical-name="page.storefront.home"
       >
         {isInitialLoading ? (

@@ -8,6 +8,21 @@
 
 ## v-0.0.1
 
+### [#117] 2026-04-11 - Storefront staged section reveal continuation
+
+- re-enabled the next hidden homepage block in sequence for staged storefront review by bringing `section.storefront.home.coupon-banner` back into the review surface while keeping later homepage sections hidden
+- continued the staged reveal by bringing `section.storefront.home.new-arrivals` back into the review surface while still leaving the later homepage blocks hidden
+- continued the staged reveal further by bringing `section.storefront.home.best-sellers` back into the review surface while still leaving the later homepage blocks hidden
+- continued the staged reveal further by bringing `section.storefront.home.gift-corner` back into the review surface while still leaving the later homepage blocks hidden
+- continued the staged reveal further by bringing `section.storefront.home.trending` back into the review surface while still leaving the later homepage blocks hidden
+- split the storefront trending section into dedicated desktop and mobile implementations, with mobile now using a contained horizontal swipe rail so the section stays inside the viewport and reveals remaining cards by scroll or touch gesture
+- softened the mobile trending edge fades and changed the desktop trending rail to show paired chevrons with disabled states when overflow exists, so narrow desktop widths now keep left and right rail controls discoverable
+- continued the staged reveal further by bringing `section.storefront.home.brand-stories` back into the review surface while still leaving the final later homepage block hidden
+- split the storefront brand-stories section into dedicated desktop and mobile implementations, with mobile now using a contained horizontal rail so scrolling into the section no longer expands the page width
+- re-enabled the final hidden homepage block by bringing `section.storefront.home.campaign-trust` back into the review surface and gave it a dedicated mobile storefront wrapper instead of reusing the deferred desktop path
+- widened the desktop homepage section gaps and locked the current fully visible storefront homepage composition as the accepted baseline for the next design-polish passes
+- validated the reveal with `npm.cmd run typecheck` and `npx.cmd playwright test tests/e2e/storefront-mobile-matrix.spec.ts`
+
 ### [#116] 2026-04-11 - Storefront homepage UX restoration
 
 - restored the public storefront homepage route by reconnecting the split `storefront-home` shell, model, and section view modules instead of leaving the route in hidden shell-review mode

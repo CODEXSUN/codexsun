@@ -2,14 +2,14 @@ import { StorefrontHeroSlider } from "../../../components/storefront-hero-slider
 import { StorefrontTechnicalNameBadgeRow } from "../../../components/storefront-technical-name-badge"
 import { StorefrontHomeAnnouncementSection } from "../sections/storefront-home-announcement-section"
 import { StorefrontHomeCampaignTrustSection } from "../sections/storefront-home-campaign-trust-section"
+import { StorefrontHomeBrandStoriesSection } from "../sections/storefront-home-brand-stories-section"
 import { StorefrontHomeCategoriesSection } from "../sections/storefront-home-categories-section"
 import { StorefrontHomeFeaturedSection } from "../sections/storefront-home-featured-section"
 import { StorefrontHomeProductLaneSection } from "../sections/storefront-home-product-lane-section"
+import { StorefrontHomeTrendingSection } from "../sections/storefront-home-trending-section"
 import {
-  StorefrontHomeBrandStoriesSection,
   StorefrontHomeCouponBannerSection,
   StorefrontHomeGiftCornerSection,
-  StorefrontHomeTrendingSection,
 } from "../sections/storefront-home-simple-block-sections"
 
 export function StorefrontHomeModelProviderView({
