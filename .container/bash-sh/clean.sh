@@ -29,7 +29,6 @@ else
 fi
 
 IMAGE_TAG="${IMAGE_TAG:-codexsun-app:v1}"
-MARIADB_CONTAINER="${MARIADB_CONTAINER:-mariadb}"
 
 CODEXSUN_COMPOSE_FILE="${CODEXSUN_COMPOSE_FILE:-.container/clients/codexsun/docker-compose.yml}"
 TMNEXT_COMPOSE_FILE="${TMNEXT_COMPOSE_FILE:-.container/clients/tmnext_in/docker-compose.yml}"
@@ -92,12 +91,6 @@ stop_stack "codexsun" "$CODEXSUN_COMPOSE_FILE"
 stop_stack "tmnext.in" "$TMNEXT_COMPOSE_FILE"
 stop_stack "tirupurdirect.in" "$TIRUPUR_COMPOSE_FILE"
 stop_stack "techmedia.in" "$TECHMEDIA_COMPOSE_FILE"
-
-if docker ps -a --format '{{.Names}}' | grep -Fxq "$MARIADB_CONTAINER"; then
-  log "Stopping and removing MariaDB container ${MARIADB_CONTAINER}..."
-  docker stop "$MARIADB_CONTAINER" >/dev/null 2>&1 || true
-  docker rm -f "$MARIADB_CONTAINER" >/dev/null 2>&1 || true
-fi
 
 remove_volume "$CODEXSUN_VOLUME"
 remove_volume "$TMNEXT_VOLUME"
