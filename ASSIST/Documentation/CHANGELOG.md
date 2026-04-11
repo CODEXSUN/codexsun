@@ -15,6 +15,21 @@
 - removed the hardcoded storefront browser title by deriving document titles from the runtime company brand, with the `/` storefront route now resolving to the company name only
 - started a staged storefront section-review mode by hiding the homepage hero slider in the home shell override while keeping the remaining sections and loading states visible for mobile-by-mobile layout fixes
 - removed the remaining hardcoded main-shell browser title fallback by adding dashboard title formatting from the active shell location plus runtime company brand, and by changing the root HTML title to a neutral application fallback
+- continued the staged storefront mobile review by suppressing `section.storefront.home.announcement` on the mobile shell only while leaving the desktop announcement section unchanged
+- tightened the storefront homepage review mode so only `section.storefront.home.featured` and `section.storefront.home.announcement` remain visible, while the homepage shell is reduced to the top menu and category menu with the footer hidden
+- added a developer-facing technical name marker for the storefront category rail as `shell.storefront.category-menu`
+- stabilized the mobile announcement strip by switching it to a bounded two-line layout with fixed minimum height, so changing announcement copy length no longer reflows the surrounding homepage shell
+- re-enabled the homepage hero slider inside the staged review shell while keeping the tighter visibility rules for the remaining homepage sections unchanged
+- fixed the hero no-image path by rendering a dedicated full-width placeholder media surface, so slider items without images keep the same mobile frame width as image-backed items
+- fixed the hero failed-image path by bypassing the generic storefront image fallback inside hero media, so broken remote image URLs now use the same fixed-width hero placeholder instead of a narrower generic SVG
+- simplified the mobile hero further by removing the image entirely on mobile and replacing it with one centered fixed `400x320` holder shared by all slides, while also removing mobile slide animation for the holder and content
+- removed the leaking desktop hero divider and media-frame border chrome that stayed visible between slide transitions, so the slider no longer shows stray vertical or rounded border lines beside the media area
+- tightened `section.storefront.home.hero` to a viewport-capped height on both mobile and desktop by scaling the internal media and content blocks from available screen height instead of leaving the hero at its previous taller fixed dimensions
+- restored mobile hero images and slide transitions inside the existing fixed holder, while keeping the frame overflow-hidden so image dimensions no longer stretch the mobile slider layout
+- re-enabled the next homepage section in sequence for staged review by bringing `section.storefront.home.categories` back into the review surface while keeping the later homepage blocks hidden
+- fixed the categories cards for mobile by letting the grid and card body shrink properly, clamping long text, and stacking the action button on narrow widths so `section.storefront.home.categories` no longer pushes the page horizontally
+- removed the categories first-load mobile layout glitch by giving the block a dedicated mobile section implementation instead of reusing the deferred desktop path that only settled after the user scrolled to the section
+- tightened the mobile featured cards by moving `section.storefront.home.featured` to a dedicated mobile section path that uses the denser card variant without changing the desktop featured layout
 - added visible homepage error handling for failed landing fetches while preserving the live shell split and validated the path with `npm.cmd run typecheck`, `npx.cmd playwright test tests/e2e/storefront-mobile-matrix.spec.ts`, and `npx.cmd tsx --test tests/ecommerce/storefront-metadata.test.ts`
 
 ### [#115] 2026-04-11 - ASSIST repo-state synchronization

@@ -1,6 +1,5 @@
 import { StorefrontLayout } from "../../../components/storefront-layout"
 import {
-  StorefrontCategoryCardSkeleton,
   StorefrontHeroSkeleton,
   StorefrontProductCardSkeleton,
   StorefrontSectionHeadingSkeleton,
@@ -10,30 +9,40 @@ import { StorefrontHomeErrorSection } from "../sections/storefront-home-error-se
 import { StorefrontHomeModelProviderView } from "../views/storefront-home-page-view"
 
 const storefrontHomeSectionReviewVisibility = {
-  hero: false,
+  announcement: true,
+  bestSellers: false,
+  brandStories: false,
+  campaignTrust: false,
+  categories: true,
+  couponBanner: false,
+  featured: true,
+  giftCorner: false,
+  hero: true,
+  newArrivals: false,
+  trending: false,
 } as const
 
 function StorefrontHomePageLoadingState({
+  showAnnouncement = false,
   showHero = true,
 }: {
+  showAnnouncement?: boolean
   showHero?: boolean
 }) {
   return (
     <>
+      {showAnnouncement ? (
+        <section
+          className="min-h-16 rounded-[1.75rem] border border-[#eadbca] bg-[#221812]/5"
+          data-technical-name="section.storefront.home.announcement"
+        />
+      ) : null}
       {showHero ? <StorefrontHeroSkeleton /> : null}
       <section className="space-y-5">
         <StorefrontSectionHeadingSkeleton />
         <div className="grid gap-5 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <StorefrontProductCardSkeleton key={`featured-skeleton:${index}`} />
-          ))}
-        </div>
-      </section>
-      <section className="space-y-5">
-        <StorefrontSectionHeadingSkeleton />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <StorefrontCategoryCardSkeleton key={`category-skeleton:${index}`} />
           ))}
         </div>
       </section>
@@ -57,7 +66,7 @@ export function StorefrontHomePageShell() {
   return (
     <StorefrontLayout
       showCategoryMenu
-      showFooter
+      showFooter={false}
       showFloatingContact={false}
       className="pb-0"
     >
@@ -66,7 +75,10 @@ export function StorefrontHomePageShell() {
         data-technical-name="page.storefront.home"
       >
         {isInitialLoading ? (
-          <StorefrontHomePageLoadingState showHero={reviewModel.visibilityMap.hero} />
+          <StorefrontHomePageLoadingState
+            showAnnouncement={reviewModel.visibilityMap.announcement}
+            showHero={reviewModel.visibilityMap.hero}
+          />
         ) : null}
         {model.error ? <StorefrontHomeErrorSection error={model.error} /> : null}
         {!isInitialLoading && !hasBlockingError ? (

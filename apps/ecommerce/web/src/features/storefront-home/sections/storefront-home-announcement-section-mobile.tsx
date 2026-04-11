@@ -9,12 +9,16 @@ export function StorefrontHomeAnnouncementSectionMobile({
   landing: StorefrontLandingResponse | null
 }) {
   return (
-    <div className="relative" data-technical-name="section.storefront.home.announcement" data-shell-mode="mobile">
+    <div
+      className="relative"
+      data-technical-name="section.storefront.home.announcement"
+      data-shell-mode="mobile"
+    >
       <StorefrontTechnicalNameBadge
         name="section.storefront.home.announcement"
         className="right-4 top-4"
       />
-      <StorefrontAnnouncementBar landing={landing} />
+      <StorefrontAnnouncementBar landing={landing} shellMode="mobile" />
     </div>
   )
 }

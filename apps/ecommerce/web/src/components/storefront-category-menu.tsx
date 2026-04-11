@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 
 import { normalizeStorefrontHref, storefrontPaths } from "../lib/storefront-routes"
 import { StorefrontImage } from "./storefront-image"
+import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
 
 function CategoryPill({
   compact = false,
@@ -164,14 +165,19 @@ export function StorefrontCategoryMenu({
   return (
     <div
       className={cn(
-        "border-b border-[#eadbca] transform-gpu transition-[background-color,box-shadow,padding] ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "relative border-b border-[#eadbca] transform-gpu transition-[background-color,box-shadow,padding] ease-[cubic-bezier(0.22,1,0.36,1)]",
         isScrolled ? "duration-[420ms]" : "duration-[620ms]",
         isScrolled
           ? "bg-[#fcf8f3]/88 backdrop-blur-xl shadow-[0_16px_36px_-28px_rgba(43,26,12,0.36)]"
           : "bg-[#fcf8f3]/94",
         className
       )}
+      data-technical-name="shell.storefront.category-menu"
     >
+      <StorefrontTechnicalNameBadge
+        name="shell.storefront.category-menu"
+        className="right-4 top-3"
+      />
       <div className="group relative mx-auto w-full max-w-[96rem] px-3 sm:px-4 lg:px-6 2xl:px-8">
         <div
           ref={scrollRef}

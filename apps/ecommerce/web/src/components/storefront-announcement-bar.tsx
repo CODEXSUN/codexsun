@@ -9,6 +9,7 @@ import { normalizeStorefrontHref } from "../lib/storefront-routes"
 
 type StorefrontAnnouncementBarProps = {
   landing: StorefrontLandingResponse | null
+  shellMode?: "desktop" | "mobile"
 }
 
 type AnnouncementItem = {
@@ -28,6 +29,7 @@ function clampAnnouncementText(value: string, maxLength: number) {
 
 export function StorefrontAnnouncementBar({
   landing,
+  shellMode = "desktop",
 }: StorefrontAnnouncementBarProps) {
   const settings = landing?.settings
   const visibility = settings?.visibility
@@ -93,6 +95,8 @@ export function StorefrontAnnouncementBar({
     return null
   }
 
+  const isMobileShell = shellMode === "mobile"
+
   const content = (
     <AnimatePresence mode="wait" initial={false}>
       <motion.span
@@ -101,21 +105,33 @@ export function StorefrontAnnouncementBar({
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-        className="flex w-full min-w-0 items-center gap-2.5"
+        className={`flex w-full min-w-0 gap-2.5 ${isMobileShell ? "items-start" : "items-center"}`}
         title={activeItem.fullText}
       >
         <Icon
-          className="size-4 shrink-0"
+          className={`shrink-0 ${isMobileShell ? "mt-0.5 size-4" : "size-4"}`}
           style={{ color: design?.iconColor ?? "#f6c453" }}
         />
-        <span className="min-w-0 flex-1 truncate">{activeItem.text}</span>
+        <span
+          className={`min-w-0 flex-1 ${
+            isMobileShell
+              ? "line-clamp-2 whitespace-normal break-words leading-5"
+              : "truncate"
+          }`}
+        >
+          {activeItem.text}
+        </span>
       </motion.span>
     </AnimatePresence>
   )
 
   return (
     <section
-      className={`${roundedClass} w-full overflow-hidden border px-4 py-3 text-[13px] shadow-lg sm:px-5 sm:text-sm`}
+      className={`${roundedClass} w-full max-w-full overflow-hidden border px-4 text-[13px] shadow-lg sm:px-5 sm:text-sm ${
+        isMobileShell
+          ? "min-h-[4.75rem] py-3.5"
+          : "py-3"
+      }`}
       style={{
         borderColor: "rgba(214, 200, 182, 0.8)",
         backgroundColor: design?.backgroundColor ?? "#221812",
@@ -125,13 +141,23 @@ export function StorefrontAnnouncementBar({
       {activeItem.href ? (
         <Link
           to={normalizeStorefrontHref(activeItem.href) ?? activeItem.href}
-          className="flex w-full min-w-0 items-center overflow-hidden whitespace-nowrap"
+          className={`flex w-full min-w-0 max-w-full overflow-hidden ${
+            isMobileShell
+              ? "items-start"
+              : "items-center whitespace-nowrap"
+          }`}
           title={activeItem.fullText}
         >
           {content}
         </Link>
       ) : (
-        <div className="flex w-full min-w-0 items-center overflow-hidden whitespace-nowrap">
+        <div
+          className={`flex w-full min-w-0 max-w-full overflow-hidden ${
+            isMobileShell
+              ? "items-start"
+              : "items-center whitespace-nowrap"
+          }`}
+        >
           {content}
         </div>
       )}

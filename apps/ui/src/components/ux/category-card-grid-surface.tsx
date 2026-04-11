@@ -25,7 +25,7 @@ export function CategoryCardGridSurface({
           : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
 
   return (
-    <div className={`grid gap-4 ${gridClassName}`}>
+    <div className={`grid min-w-0 gap-4 ${gridClassName}`}>
       {items.slice(0, cardsPerRow * rowsToShow).map((item) => (
         <CategoryCardSurface key={item.id} item={item} design={cardDesign} />
       ))}

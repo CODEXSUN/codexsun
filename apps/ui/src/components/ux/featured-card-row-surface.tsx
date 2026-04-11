@@ -24,14 +24,17 @@ export function FeaturedCardRowSurface({
   items,
   cardsPerRow,
   cardDesign,
+  densityOverride,
   previewLayout = false,
 }: {
   items: FeaturedCardRowItem[]
   cardsPerRow: FeaturedCardRowVariant
   cardDesign?: CommerceProductCardDesign
+  densityOverride?: "default" | "compact" | "dense"
   previewLayout?: boolean
 }) {
   const density =
+    densityOverride ??
     cardsPerRow >= 5 ? "dense" : cardsPerRow === 4 ? "compact" : "default"
   const gridClassName =
     previewLayout
@@ -52,7 +55,7 @@ export function FeaturedCardRowSurface({
 
   return (
     <div className="pb-1.5">
-      <div className={`grid gap-3 ${gridClassName}`}>
+      <div className={`grid min-w-0 gap-3 ${gridClassName}`}>
         {items.map((item) => (
           <CommerceProductCard
             key={item.id}
