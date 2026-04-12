@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.1.3`
+Current baseline: `1.1.4`
 
-Next target: `1.1.4`
+Next target: `1.2.0`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -236,6 +236,8 @@ Manual routes:
 
 ## 1.1.4 Terminal Persistence Integration
 
+Status: complete.
+
 Goal:
 
 Make the terminal read persisted playbooks and runs when the database is available.
@@ -263,6 +265,14 @@ npm.cmd run zetro -- playbooks
 npm.cmd run zetro -- doctor
 npm.cmd run typecheck
 ```
+
+Completion notes:
+
+1. Terminal data loader exists in `apps/zetro/src/terminal-data.ts`.
+2. Terminal commands read persisted Zetro playbooks, phases, runs, findings, guardrails, settings, and summary when the database is available.
+3. Terminal commands fall back to static catalog data if database access fails.
+4. Terminal output reports whether it used `database` or `static` data.
+5. Terminal remains side-effect free except for preparing migrations/seeders before reads.
 
 ## 1.2.0 Manual Run Console
 
