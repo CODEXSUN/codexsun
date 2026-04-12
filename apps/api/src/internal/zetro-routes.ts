@@ -53,6 +53,12 @@ import {
   deleteMemoryVector,
   clearMemoryVectors,
   DEFAULT_MEMORY_CONFIG,
+  createTaskRouter,
+  classifyTask,
+  routeToModel,
+  getFallbackModel,
+  DEFAULT_TASK_ROUTING_CONFIG,
+  ZETRO_TASK_TYPE_SUMMARY,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
@@ -70,6 +76,8 @@ import {
   type ZetroCreateMemoryVectorInput,
   type ZetroMemoryVector,
   type ZetroMemorySearchResult,
+  type ZetroTaskType,
+  type ZetroTaskRoutingConfig,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -948,6 +956,72 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
         });
 
         return jsonResponse({ cleared: count });
+      },
+    }),
+    defineInternalRoute("/zetro/router/info", {
+      summary: "Get task router configuration.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const router = createTaskRouter();
+
+        return jsonResponse({
+          config: router.getConfig(),
+          taskTypeSummaries: ZETRO_TASK_TYPE_SUMMARY,
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/router/classify", {
+      summary: "Classify a task input to determine routing.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as { input: string };
+        const input = body.input?.trim();
+
+        if (!input) {
+          throw new ApplicationError("Task input is required.", {}, 400);
+        }
+
+        const router = createTaskRouter();
+        const classification = router.classify(input);
+        const decision = router.route(input);
+
+        return jsonResponse({
+          classification,
+          routingDecision: decision,
+          fallback: router.getFallback(classification.taskType),
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/router/route", {
+      summary: "Get routing decision for a task type.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          taskType: ZetroTaskType;
+          forceFallback?: boolean;
+        };
+        const taskType = body.taskType;
+        const forceFallback = body.forceFallback ?? false;
+
+        const router = createTaskRouter();
+        const decision = router.routeByType(taskType, forceFallback);
+        const fallback = forceFallback ? null : router.getFallback(taskType);
+
+        return jsonResponse({
+          decision,
+          fallback,
+        });
       },
     }),
   ];

@@ -25,8 +25,9 @@ Build Zetro into a terminal-first, dashboard-backed agent workspace for planning
 17. **Phase 2.1**: Semantic memory layer with vector embeddings (Ollama/TF-IDF fallback).
 18. Memory commands and dashboard page.
 19. **Phase 2.2**: Smart playbooks with conditional logic (skipIf, requireIf, gotoIf, retry).
-20. Terminal command: `npm.cmd run zetro -- ...`.
-21. Interactive shell: `npm.cmd run zetro -- chat`.
+20. **Phase 2.3**: Multi-model task router with task classification and routing map.
+21. Terminal command: `npm.cmd run zetro -- ...`.
+22. Interactive shell: `npm.cmd run zetro -- chat`.
 
 ## Phase Order
 

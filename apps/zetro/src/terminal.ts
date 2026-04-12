@@ -43,6 +43,11 @@ import {
   validatePlaybookConditions,
   evaluatePhaseConditions,
   buildSmartPhaseContext,
+  createTaskRouter,
+  classifyTask,
+  routeToModel,
+  getFallbackModel,
+  ZETRO_TASK_TYPE_SUMMARY,
   type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
@@ -98,6 +103,8 @@ type ZetroTerminalCommand =
   | "memory-store"
   | "memory-list"
   | "memory-stats"
+  | "router-info"
+  | "router-test"
   | "plan"
   | "assist"
   | "doctor"
@@ -172,6 +179,8 @@ function printUsage() {
   );
   console.info("  memory-list [--type <type>]   List memory vectors.");
   console.info("  memory-stats                 Show memory statistics.");
+  console.info("  router-info                  Show routing configuration.");
+  console.info("  router-test <task>           Test routing for a task input.");
   console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
   );
@@ -235,6 +244,8 @@ function resolveCommand(
     case "memory-store":
     case "memory-list":
     case "memory-stats":
+    case "router-info":
+    case "router-test":
     case "plan":
     case "assist":
     case "doctor":
@@ -1311,6 +1322,86 @@ async function printMemoryStats() {
   }
 }
 
+function printRouterInfo() {
+  const router = createTaskRouter();
+
+  printHeader("Task Router Configuration");
+  console.info(`Enabled: ${router.getConfig().enabled}`);
+  console.info(`Default task type: ${router.getConfig().defaultTaskType}`);
+  console.info("");
+  console.info("Routing Rules:");
+  console.info("");
+
+  for (const rule of router.getConfig().rules) {
+    console.info(`  ${rule.taskType}:`);
+    console.info(
+      `    Primary: ${rule.primaryProvider}${rule.primaryModel ? ` (${rule.primaryModel})` : ""}`,
+    );
+    console.info(
+      `    Fallback: ${rule.fallbackProvider}${rule.fallbackModel ? ` (${rule.fallbackModel})` : ""}`,
+    );
+    if (rule.maxCostPer1kTokens !== undefined) {
+      console.info(`    Est. cost: $${rule.maxCostPer1kTokens}/1k tokens`);
+    }
+    console.info(
+      `    Keywords: ${rule.keywords.slice(0, 5).join(", ")}${rule.keywords.length > 5 ? "..." : ""}`,
+    );
+    console.info("");
+  }
+
+  console.info("Task Type Summary:");
+  for (const [type, summary] of Object.entries(ZETRO_TASK_TYPE_SUMMARY)) {
+    console.info(`  ${type}: ${summary}`);
+  }
+}
+
+function testRouterFromArgs(args: string[]) {
+  const task = args.join(" ").trim();
+
+  if (!task) {
+    console.info(
+      'Missing task description. Try: npm run zetro -- router-test "write a React component"',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const router = createTaskRouter();
+  const classification = router.classify(task);
+  const decision = router.route(task);
+
+  printHeader("Task Routing Test");
+  console.info(`Input: "${task}"`);
+  console.info("");
+  console.info("Classification:");
+  console.info(`  Task type: ${classification.taskType}`);
+  console.info(
+    `  Confidence: ${(classification.confidence * 100).toFixed(0)}%`,
+  );
+  console.info(`  Reasoning: ${classification.reasoning}`);
+  if (classification.matchedKeywords.length > 0) {
+    console.info(
+      `  Matched keywords: ${classification.matchedKeywords.join(", ")}`,
+    );
+  }
+  console.info("");
+  console.info("Routing Decision:");
+  console.info(`  Provider: ${decision.provider}`);
+  console.info(`  Model: ${decision.model ?? "default"}`);
+  console.info(`  Is fallback: ${decision.isFallback}`);
+  if (decision.estimatedCostPer1kTokens !== undefined) {
+    console.info(
+      `  Est. cost: $${decision.estimatedCostPer1kTokens}/1k tokens`,
+    );
+  }
+
+  const fallback = router.getFallback(classification.taskType);
+  console.info("");
+  console.info("Fallback Model:");
+  console.info(`  Provider: ${fallback.provider}`);
+  console.info(`  Model: ${fallback.model ?? "default"}`);
+}
+
 function buildPlanScaffold(request: string) {
   return [
     "Intent",
@@ -1614,6 +1705,12 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "memory-stats":
       await printMemoryStats();
+      return;
+    case "router-info":
+      printRouterInfo();
+      return;
+    case "router-test":
+      testRouterFromArgs(rest);
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

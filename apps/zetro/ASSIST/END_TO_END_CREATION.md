@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `2.2.0`
+Current baseline: `2.3.0`
 
-Next target: `2.3.0`
+Next target: `2.4.0`
 
 ## Phase 1: Foundation
 
@@ -75,7 +75,7 @@ Completion notes:
 
 ## 2.3.0 Multi-Model Task Router
 
-Status: not started.
+Status: complete.
 
 Goal:
 
@@ -87,6 +87,16 @@ Deliverables:
 2. Router service with classification and routing
 3. Configurable routing map
 4. Cost tracking per task type
+
+Completion notes:
+
+1. Created `task-router-types.ts` with `ZetroTaskType`, `ZetroRoutingRule`, `ZetroTaskRoutingConfig`, `ZetroTaskClassification`, `ZetroRoutingDecision`.
+2. Created `task-router-service.ts` with `classifyTask()`, `routeToModel()`, `getFallbackModel()`, `ZetroTaskRouter` class with cost tracking.
+3. Task type taxonomy: reasoning, coding, review, creative, fast, local.
+4. Default routing map: reasoning→anthropic, coding→openai, review→anthropic, creative→openai, fast/local→ollama-local.
+5. Terminal commands added: `router-info`, `router-test <task>`.
+6. API routes added: `/zetro/router/info`, `/zetro/router/classify`, `/zetro/router/route`.
+7. Typecheck and doctor pass.
 
 ## 2.4.0 Agent Role Specialization
 

@@ -17,4 +17,6 @@ export * from "./run-service.js";
 export * from "./runner-service.js";
 export * from "./settings-service.js";
 export * from "./smart-playbook-executor.js";
+export * from "./task-router-types.js";
+export * from "./task-router-service.js";
 export * from "./zetro-summary-service.js";

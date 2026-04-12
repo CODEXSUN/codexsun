@@ -61,6 +61,8 @@ npm.cmd run zetro -- memory-similar --title "XSS" --summary "Cross-site scriptin
 npm.cmd run zetro -- memory-store --finding <id> --content "Security finding text"
 npm.cmd run zetro -- memory-list
 npm.cmd run zetro -- memory-stats
+npm.cmd run zetro -- router-info
+npm.cmd run zetro -- router-test "write a React component"
 npm.cmd run zetro -- plan "build persisted playbooks"
 npm.cmd run zetro -- chat
 ```
