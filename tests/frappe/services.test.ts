@@ -189,7 +189,6 @@ test("frappe item pull imports live ERPNext items into local frappe products", a
                   stock_uom: "Nos",
                   brand: "ERP Loom",
                   gst_hsn_code: "6204",
-                  default_warehouse: "Main Warehouse - CS",
                   disabled: 0,
                   is_stock_item: 1,
                   has_variants: 1,

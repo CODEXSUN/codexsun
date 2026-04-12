@@ -625,27 +625,36 @@ wait_for_env_file() {
 wait_for_app_ready() {
   local container="$1"
   local public_scheme="${2:-http}"
-  local attempts="${3:-120}"
-  local delay="${4:-2}"
+  local attempts="${3:-${APP_HEALTH_WAIT_ATTEMPTS:-300}}"
+  local delay="${4:-${APP_HEALTH_WAIT_DELAY_SECONDS:-2}}"
   local fetch_command
 
   if [ "$public_scheme" = "https" ]; then
-    fetch_command="fetch('http://127.0.0.1:4000/health', { headers: { 'x-forwarded-proto': 'https' } }).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+    fetch_command="fetch('http://127.0.0.1:4000/health', { headers: { 'x-forwarded-proto': 'https' } }).then(async (response) => { const payload = await response.json().catch(() => ({})); if (response.ok) { process.exit(0); return; } if (payload && payload.status === 'startup_failed') { console.error(payload.detail || 'Server startup failed.'); process.exit(2); return; } process.exit(1); }).catch(() => process.exit(1))"
   else
-    fetch_command="fetch('http://127.0.0.1:4000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+    fetch_command="fetch('http://127.0.0.1:4000/health').then(async (response) => { const payload = await response.json().catch(() => ({})); if (response.ok) { process.exit(0); return; } if (payload && payload.status === 'startup_failed') { console.error(payload.detail || 'Server startup failed.'); process.exit(2); return; } process.exit(1); }).catch(() => process.exit(1))"
   fi
 
   log "Waiting for application health in $container..."
 
   for _ in $(seq 1 "$attempts"); do
-    if docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null | grep -qx "true" &&
-      docker exec "$container" node -e "$fetch_command" >/dev/null 2>&1; then
-      return 0
+    if docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null | grep -qx "true"; then
+      docker exec "$container" node -e "$fetch_command" >/dev/null 2>&1
+      local health_exit_code=$?
+
+      if [ "$health_exit_code" -eq 0 ]; then
+        return 0
+      fi
+
+      if [ "$health_exit_code" -eq 2 ]; then
+        log "Application startup failed in $container."
+        return 1
+      fi
     fi
     sleep "$delay"
   done
 
-  log "Timed out waiting for application health in $container"
+  log "Timed out waiting for application health in $container after $((attempts * delay)) seconds"
   return 1
 }
 

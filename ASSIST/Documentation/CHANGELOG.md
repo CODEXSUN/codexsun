@@ -8,6 +8,24 @@
 
 ## v-0.0.1
 
+### [#150] 2026-04-12 - Docker startup health-wait extension for heavier clients
+
+- extended the shared Docker setup health wait from the previous fixed `120 x 2s` loop to a configurable default of `300 x 2s`, giving slower clients such as `codexsun` and `techmedia_in` more time to finish startup migrations and seeders before the setup script declares failure
+- updated the readiness probe to detect runtime `startup_failed` health responses and stop early on real startup errors instead of only timing out
+- validated the change with `bash -n .container/bash-sh/setup.sh`
+
+### [#149] 2026-04-12 - Local Docker setup script portability fix
+
+- added a repository `.gitattributes` rule to keep shell scripts and the container entrypoint checked out with LF line endings instead of CRLF
+- normalized `.container/bash-sh/setup.sh`, `.container/bash-sh/setup-local.sh`, and `.container/entrypoint.sh` so Bash-based local Docker installs no longer fail on syntax errors caused by Windows line endings
+- validated the fix with `bash -n` on the shared setup scripts plus `docker compose ... config` for both `.container/clients/codexsun/docker-compose.yml` and `.container/clients/techmedia_in/docker-compose.yml`
+
+### [#148] 2026-04-12 - ERPNext Item pull field-permission fix
+
+- fixed the live Frappe item pull query to stop requesting `default_warehouse` from ERPNext `Item`, because the current production ERPNext site rejects that field as not permitted in `/api/resource/Item`
+- preserved local `defaultWarehouse` values by continuing to reuse the existing snapshot value or the saved Frappe env default when ERPNext does not return a warehouse field
+- validated the fix with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, and a live read-only ERPNext `Item` request using the current `.env` connector contract
+
 ### [#147] 2026-04-12 - Cloud runtime git-root detection fix
 
 - fixed framework runtime system-update git-root resolution so git-sync deployments search the current working directory, ancestor directories, and runtime repository candidates for the real `.git` root instead of assuming one fixed layout

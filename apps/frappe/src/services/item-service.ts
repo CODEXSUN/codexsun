@@ -196,7 +196,6 @@ async function readRemoteItems(
       "stock_uom",
       "brand",
       "gst_hsn_code",
-      "default_warehouse",
       "disabled",
       "is_stock_item",
       "has_variants",
