@@ -18,6 +18,13 @@ import {
   listZetroCommandProposals,
   updateZetroFindingStatus,
   updateZetroCommandProposalStatus,
+  buildZetroModelSettings,
+  checkProviderHealth,
+  completeModelRequest,
+  buildPromptFromMessages,
+  createZetroChatSession,
+  createZetroChatMessage,
+  listZetroChatMessages,
 } from "./services/index.js";
 import type {
   ZetroFindingStatus,
@@ -26,8 +33,9 @@ import type {
   ZetroCreateRunInput,
   ZetroCreateCommandProposalInput,
   ZetroRunEventKind,
+  ZetroModelMessage,
 } from "./services/index.js";
-import type { ZetroPlaybookPhase } from "../shared/index.js";
+import type { ZetroOutputModeId, ZetroPlaybookPhase } from "../shared/index.js";
 import {
   loadZetroTerminalData,
   type ZetroTerminalData,
@@ -109,11 +117,17 @@ function printUsage() {
     "  doctor                       Validate terminal catalog and Assist files.",
   );
   console.info(
-    "  chat                         Start an interactive Zetro shell.",
+    "  chat [--provider=<id>] [--mode=<mode>]  Start an interactive shell.",
+  );
+  console.info(
+    "                               Providers: none, ollama-local, openai, anthropic.",
+  );
+  console.info(
+    "                               Modes: brief, normal, detailed, maximum, audit.",
   );
   console.info("");
   console.info(
-    "Current runner mode: manual. No shell commands, writes, LLM calls, or network calls are executed.",
+    "Current runner mode: manual. Set ZETRO_PROVIDER to enable model chat.",
   );
 }
 
@@ -777,15 +791,62 @@ function printPlan(args: string[]) {
   console.info(buildPlanScaffold(request));
 }
 
-async function runChat() {
+async function runChat(args: string[] = []) {
+  const settings = buildZetroModelSettings();
+  const providerId = (args
+    .find((a) => a.startsWith("--provider="))
+    ?.split("=")[1] ?? settings.providerId) as string;
+  const outputMode = (args
+    .find((a) => a.startsWith("--mode="))
+    ?.split("=")[1] ?? "normal") as ZetroOutputModeId;
+  const modelConfig =
+    settings.providerConfigs[
+      providerId as keyof typeof settings.providerConfigs
+    ];
+
   printHeader("Zetro shell");
+  console.info(`Provider: ${providerId}`);
+  console.info(`Output mode: ${outputMode}`);
+
+  if (providerId === "none") {
+    console.info("No model configured. Running in manual mode.");
+    console.info(
+      "To enable model chat, set ZETRO_PROVIDER=ollama-local and ensure Ollama is running.",
+    );
+  } else {
+    const health = await checkProviderHealth(
+      providerId as any,
+      modelConfig ?? { providerId: providerId as any, enabled: false },
+    );
+    if (!health.healthy) {
+      console.info(
+        `Warning: Provider ${providerId} health check failed: ${health.error}`,
+      );
+    } else {
+      console.info(`Provider health: OK (${health.latencyMs}ms)`);
+    }
+  }
+
   console.info(
-    "Manual mode. Type help, status, doctor, playbooks, modes, guardrails, runs, findings, plan <request>, or exit.",
+    "Type exit to quit. Commands: help, status, doctor, playbooks, modes, guardrails, runs, findings.",
   );
+  console.info("");
 
   const readline = createInterface({ input, output });
+  const chatHistory: Array<{ role: "user" | "assistant"; content: string }> =
+    [];
 
   try {
+    let session =
+      providerId !== "none"
+        ? await withZetroDatabase((db) =>
+            createZetroChatSession(db, {
+              providerId: providerId as any,
+              outputMode,
+            }),
+          )
+        : null;
+
     while (true) {
       const raw = (await readline.question("zetro> ")).trim();
 
@@ -798,7 +859,79 @@ async function runChat() {
         return;
       }
 
-      await runZetroTerminal(raw.split(/\s+/));
+      if (raw === "clear") {
+        chatHistory.length = 0;
+        console.info("Chat history cleared.");
+        continue;
+      }
+
+      if (raw.startsWith("/")) {
+        await runZetroTerminal(raw.slice(1).split(/\s+/));
+        continue;
+      }
+
+      chatHistory.push({ role: "user", content: raw });
+
+      if (providerId === "none") {
+        console.info(
+          "[No model configured. Provide a model provider to enable AI responses.]",
+        );
+        chatHistory.push({
+          role: "assistant",
+          content: "No model configured.",
+        });
+        continue;
+      }
+
+      try {
+        console.info("[Thinking...]");
+        const messages = buildPromptFromMessages(
+          chatHistory.slice(0, -1),
+          outputMode,
+        );
+        messages.push({ role: "user", content: raw });
+
+        const response = await completeModelRequest(
+          providerId as any,
+          modelConfig ?? { providerId: providerId as any, enabled: true },
+          messages,
+          { temperature: 0.7, maxTokens: 4096 },
+        );
+
+        const assistantContent = response.content;
+        chatHistory.push({ role: "assistant", content: assistantContent });
+
+        if (session) {
+          await withZetroDatabase((db) =>
+            Promise.all([
+              createZetroChatMessage(db, {
+                sessionId: session!.id,
+                role: "user",
+                content: raw,
+                tokens: response.usage?.promptTokens,
+                modelId: response.model,
+              }),
+              createZetroChatMessage(db, {
+                sessionId: session!.id,
+                role: "assistant",
+                content: assistantContent,
+                tokens: response.usage?.completionTokens,
+                modelId: response.model,
+                finishReason: response.finishReason,
+              }),
+            ]),
+          );
+        }
+
+        console.info("");
+        console.info(assistantContent);
+        console.info("");
+      } catch (error) {
+        console.info(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        chatHistory.pop();
+      }
     }
   } finally {
     readline.close();
@@ -882,7 +1015,7 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       runDoctor(await loadZetroTerminalData());
       return;
     case "chat":
-      await runChat();
+      await runChat(rest);
       return;
   }
 }

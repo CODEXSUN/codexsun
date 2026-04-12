@@ -1,4 +1,5 @@
 export * from "./allowlist-service.js";
+export * from "./chat-service.js";
 export * from "./command-proposal-service.js";
 export * from "./finding-service.js";
 export * from "./guardrail-service.js";
@@ -7,6 +8,7 @@ export * from "./model-provider-adapters.js";
 export * from "./model-provider-service.js";
 export * from "./output-section-service.js";
 export * from "./playbook-service.js";
+export * from "./prompt-builder.js";
 export * from "./run-service.js";
 export * from "./runner-service.js";
 export * from "./settings-service.js";

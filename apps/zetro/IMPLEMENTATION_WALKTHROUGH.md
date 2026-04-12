@@ -7,6 +7,7 @@ Quick terminal start:
 ```powershell
 npm.cmd run zetro -- help
 npm.cmd run zetro -- chat
+npm.cmd run zetro -- chat --provider=ollama-local --mode=normal
 npm.cmd run zetro -- doctor
 npm.cmd run zetro -- run run-static-catalog
 npm.cmd run zetro -- output run-static-catalog
@@ -29,6 +30,7 @@ Current mode:
 5. Command allowlist with blocked/sensitive commands.
 6. Command execution with stdout/stderr capture.
 7. Model provider adapters (none, ollama, openai, anthropic).
-8. No background loop.
+8. Terminal agent mode with chat persistence.
+9. No autonomous loop.
 
-Phase: 1.5.0 complete (Model Provider Adapter)
+Phase: 1.5.1 complete (Terminal Agent Mode)

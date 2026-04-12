@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.5.0`
+Current baseline: `1.5.1`
 
-Next target: `1.5.1`
+Next target: `1.5.2`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -520,6 +520,8 @@ Completion notes:
 
 ## 1.5.1 Terminal Agent Mode
 
+Status: complete.
+
 Goal:
 
 Make `npm.cmd run zetro -- chat` model-backed when enabled.
@@ -540,6 +542,17 @@ Exit criteria:
 1. Chat works without command execution.
 2. Chat stores the response.
 3. Chat can be disabled by provider settings.
+
+Completion notes:
+
+1. `zetro_chat_sessions` and `zetro_chat_messages` tables exist with migration `10-zetro-chat`.
+2. Chat service with session and message persistence.
+3. Prompt builder with output mode templates (brief, normal, detailed, maximum, audit).
+4. Safety guardrail in system prompt blocks direct file writes and command execution.
+5. Terminal chat supports `--provider` and `--mode` flags.
+6. Chat history is built from user messages.
+7. Provider health check runs on chat start.
+8. No command execution from model output.
 
 ## 1.5.2 Maximum Output Engine
 

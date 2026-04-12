@@ -7,6 +7,7 @@ import { zetroRunOutputSectionsMigration } from "./06-zetro-run-output-sections.
 import { zetroCommandProposalsMigration } from "./07-zetro-command-proposals.js";
 import { zetroCommandAllowlistMigration } from "./08-zetro-command-allowlist.js";
 import { zetroExecutedCommandsMigration } from "./09-zetro-executed-commands.js";
+import { zetroChatMigrations } from "./10-zetro-chat.js";
 
 export const zetroDatabaseMigrations = [
   zetroPlaybooksMigration,
@@ -18,4 +19,5 @@ export const zetroDatabaseMigrations = [
   zetroCommandProposalsMigration,
   zetroCommandAllowlistMigration,
   zetroExecutedCommandsMigration,
+  zetroChatMigrations,
 ];

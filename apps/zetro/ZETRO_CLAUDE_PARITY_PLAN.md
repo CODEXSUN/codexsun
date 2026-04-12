@@ -24,8 +24,9 @@ Current lock:
 4. Command allowlist with blocked/sensitive commands.
 5. Command execution with stdout/stderr capture and timeout.
 6. Model provider adapters ready (none, ollama, openai, anthropic).
-7. No autonomous loop yet.
+7. Terminal agent mode with chat persistence.
+8. No autonomous loop yet.
 
 Next build target:
 
-Terminal agent mode (1.5.1).
+Maximum output engine (1.5.2).

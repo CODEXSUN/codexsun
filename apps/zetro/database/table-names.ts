@@ -7,6 +7,8 @@ export const zetroTableNames = {
   commandProposals: "zetro_command_proposals",
   commandAllowlist: "zetro_command_allowlist",
   executedCommands: "zetro_executed_commands",
+  chatSessions: "zetro_chat_sessions",
+  chatMessages: "zetro_chat_messages",
   findings: "zetro_findings",
   guardrails: "zetro_guardrails",
   settings: "zetro_settings",
