@@ -3,6 +3,7 @@ import {
   Blocks,
   BadgePercent,
   Gift,
+  Bot,
   Boxes,
   Building2,
   Cable,
@@ -49,6 +50,7 @@ import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
 import { taskWorkspaceItems } from "@task/shared"
 import { crmWorkspaceItems } from "@crm/shared"
+import { zetroWorkspaceItems } from "@zetro/shared"
 import { docsCategories } from "@/registry/data/catalog"
 import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
@@ -77,6 +79,7 @@ const appIconMap: Record<string, LucideIcon> = {
   tally: Database,
   task: Workflow,
   crm: Users,
+  zetro: Bot,
   ui: Blocks,
 }
 
@@ -92,6 +95,7 @@ const appAccentClassMap: Record<string, string> = {
   site: "from-violet-500/18 via-indigo-500/10 to-transparent",
   tally: "from-lime-500/18 via-emerald-500/10 to-transparent",
   task: "from-fuchsia-500/18 via-pink-500/10 to-transparent",
+  zetro: "from-teal-500/18 via-amber-500/10 to-transparent",
   ui: "from-stone-500/18 via-zinc-500/10 to-transparent",
 }
 
@@ -125,6 +129,7 @@ const appPriorityOrder = [
   "frappe",
   "site",
   "demo",
+  "zetro",
   "task",
   "tally",
   "core",
@@ -569,6 +574,30 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "zetro") {
+    const zetroWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      "claude-analysis": Bot,
+      playbooks: ClipboardList,
+      "rollout-plan": Workflow,
+      runs: Workflow,
+      findings: LineChart,
+      guardrails: ShieldCheck,
+      settings: Settings2,
+    }
+
+    return [
+      ...zetroWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: zetroWorkspaceIconMap[item.id] ?? Blocks,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -950,6 +979,58 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/leads`,
                   `/dashboard/apps/${app.id}/cold-calls`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
+      : app.id === "zetro"
+        ? [
+            {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-adaption`,
+              label: "Build",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/claude-analysis`,
+                  `/dashboard/apps/${app.id}/playbooks`,
+                  `/dashboard/apps/${app.id}/rollout-plan`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-operations`,
+              label: "Operations",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/runs`,
+                  `/dashboard/apps/${app.id}/findings`,
+                  `/dashboard/apps/${app.id}/guardrails`,
+                  `/dashboard/apps/${app.id}/settings`,
                 ].includes(item.route)
               ),
             },

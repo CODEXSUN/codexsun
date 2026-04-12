@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
         '@ecommerce': path.resolve(__dirname, './apps/ecommerce'),
         '@task': path.resolve(__dirname, './apps/task'),
         '@crm': path.resolve(__dirname, './apps/crm'),
+        '@zetro': path.resolve(__dirname, './apps/zetro'),
         '@frappe': path.resolve(__dirname, './apps/frappe'),
         '@tally': path.resolve(__dirname, './apps/tally'),
         '@cli': path.resolve(__dirname, './apps/cli'),

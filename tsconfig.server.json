@@ -22,6 +22,7 @@
       "@ecommerce/*": ["./apps/ecommerce/*"],
       "@task/*": ["./apps/task/*"],
       "@crm/*": ["./apps/crm/*"],
+      "@zetro/*": ["./apps/zetro/*"],
       "@frappe/*": ["./apps/frappe/*"],
       "@tally/*": ["./apps/tally/*"],
       "@cli/*": ["./apps/cli/*"]
