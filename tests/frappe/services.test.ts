@@ -365,7 +365,7 @@ test("frappe ToDo live sync pushes local snapshots and pulls remote ERPNext ToDo
         },
         {
           name: "remote-follow-up",
-          description: "Remote ERP follow-up from live sync.",
+          description: '<div class="ql-editor read-mode"><p>Remote ERP follow-up from live sync.</p></div>',
           status: "Open",
           priority: "Medium",
           color: "",
@@ -513,6 +513,11 @@ test("frappe ToDo live sync pushes local snapshots and pulls remote ERPNext ToDo
       assert.equal(updatedCount, 0)
       assert.ok(
         sync.sync.items.some((item) => item.id === "frappe-todo:remote-follow-up")
+      )
+      assert.equal(
+        sync.sync.items.find((item) => item.id === "frappe-todo:remote-follow-up")
+          ?.description,
+        "Remote ERP follow-up from live sync."
       )
       assert.ok(
         sync.sync.items.some((item) => item.id === "frappe-todo:created-local-1")

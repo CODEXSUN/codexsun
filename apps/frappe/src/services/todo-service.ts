@@ -80,6 +80,21 @@ function todoLogicalKey(todo: FrappeTodo) {
   ].map(normalizeTodoKeyPart).join("|")
 }
 
+function sanitizeTodoDescription(value: string) {
+  return value
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 function toLocalTodo(remoteTodo: Record<string, unknown>) {
   const name = typeof remoteTodo.name === "string" ? remoteTodo.name.trim() : ""
 
@@ -97,7 +112,9 @@ function toLocalTodo(remoteTodo: Record<string, unknown>) {
       typeof remoteTodo.allocated_to === "string" ? remoteTodo.allocated_to : "",
     allocatedToFullName: "",
     description:
-      typeof remoteTodo.description === "string" ? remoteTodo.description : "",
+      typeof remoteTodo.description === "string"
+        ? sanitizeTodoDescription(remoteTodo.description)
+        : "",
     referenceType:
       typeof remoteTodo.reference_type === "string" ? remoteTodo.reference_type : "",
     referenceName:
@@ -429,7 +446,7 @@ export async function createFrappeTodo(
   const parsedPayload = frappeTodoUpsertPayloadSchema.parse(payload)
   const timestamp = new Date().toISOString()
   const items = await readTodos(database)
-  const description = parsedPayload.description.trim()
+  const description = sanitizeTodoDescription(parsedPayload.description)
   const createdItem = frappeTodoSchema.parse({
     id: `frappe-todo:${randomUUID()}`,
     description,
@@ -485,7 +502,7 @@ export async function updateFrappeTodo(
   const updatedItem = frappeTodoSchema.parse({
     ...existingItem,
     ...parsedPayload,
-    description: parsedPayload.description.trim(),
+    description: sanitizeTodoDescription(parsedPayload.description),
     modifiedAt: new Date().toISOString(),
   })
   const nextItems = items.map((item) =>

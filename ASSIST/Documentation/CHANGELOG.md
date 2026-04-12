@@ -8,6 +8,12 @@
 
 ## v-0.0.1
 
+### [#145] 2026-04-12 - Remove inactive Zetro wiring and sanitize ERPNext ToDo HTML
+
+- removed the inactive `zetro` app from active app-suite registration, internal route aggregation, desk navigation, workspace routing, database-module registration, the package script, and the dedicated route test so production builds no longer import files that are not present in this workspace
+- sanitized ERPNext ToDo descriptions at the Frappe connector boundary so Quill HTML such as `<div class="ql-editor read-mode"><p>...</p></div>` is stored and displayed as plain text in local snapshots
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/framework/runtime/database-process.test.ts`, and `npm run build`
+
 ### [#144] 2026-04-12 - Frappe product manager alignment
 
 - added a dedicated `frappe_products` app-owned snapshot table and seeder for Frappe product records while preserving `frappe_items` as a legacy read fallback

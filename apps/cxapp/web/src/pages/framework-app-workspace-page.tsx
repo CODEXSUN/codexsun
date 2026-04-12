@@ -25,7 +25,6 @@ import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
 import { TaskWorkspaceSection } from "@task/web/src/workspace-sections"
 import { CrmWorkspaceSection } from "@crm/web/src/workspace-sections"
-import { ZetroWorkspaceSection } from "@zetro/web/src/workspace-sections"
 import { getCoreCommonModuleMenuItem } from "@core/shared"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
@@ -263,8 +262,6 @@ export function FrameworkAppWorkspacePage({
     app.id === "task" ? <TaskWorkspaceSection sectionId={sectionId} /> : null
   const crmWorkspaceContent =
     app.id === "crm" ? <CrmWorkspaceSection sectionId={sectionId} /> : null
-  const zetroWorkspaceContent =
-    app.id === "zetro" ? <ZetroWorkspaceSection sectionId={sectionId} /> : null
   const customWorkspaceContent =
     coreWorkspaceContent ??
     billingWorkspaceContent ??
@@ -272,8 +269,7 @@ export function FrameworkAppWorkspacePage({
     ecommerceWorkspaceContent ??
     frappeWorkspaceContent ??
     taskWorkspaceContent ??
-    crmWorkspaceContent ??
-    zetroWorkspaceContent
+    crmWorkspaceContent
   const hideWorkspaceHero =
     app.id === "frappe" ||
     app.id === "ecommerce" ||
@@ -309,19 +305,6 @@ export function FrameworkAppWorkspacePage({
         "leads",
         "cold-calls",
       ].includes(sectionId ?? "leads")
-    ) ||
-    (
-      app.id === "zetro" &&
-      [
-        "overview",
-        "claude-analysis",
-        "playbooks",
-        "rollout-plan",
-        "runs",
-        "findings",
-        "guardrails",
-        "settings",
-      ].includes(sectionId ?? "overview")
     ) ||
     (
       app.id === "billing" &&

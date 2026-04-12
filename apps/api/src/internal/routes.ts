@@ -13,7 +13,6 @@ import { createFrappeInternalRoutes } from "./frappe-routes.js"
 import { createFrameworkInternalRoutes } from "./framework-routes.js"
 import { createTaskInternalRoutes } from "./task-routes.js"
 import { createCrmInternalRoutes } from "./crm-routes.js"
-import { createZetroInternalRoutes } from "./zetro-routes.js"
 
 export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
@@ -52,6 +51,5 @@ export function createInternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
     ...createFrappeInternalRoutes(),
     ...createTaskInternalRoutes(),
     ...createCrmInternalRoutes(),
-    ...createZetroInternalRoutes(),
   ]
 }

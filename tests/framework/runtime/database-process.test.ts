@@ -117,18 +117,6 @@ test("registered database processes stay ordered by app and module", () => {
       "frappe:purchase-receipts:04-purchase-receipts",
       "frappe:item-sync-logs:05-item-product-sync-logs",
       "frappe:products:06-products",
-      "zetro:playbooks:01-zetro-playbooks",
-      "zetro:runs:02-zetro-runs",
-      "zetro:findings:03-zetro-findings",
-      "zetro:guardrails:04-zetro-guardrails",
-      "zetro:settings:05-zetro-settings",
-      "zetro:run-output-sections:06-zetro-run-output-sections",
-      "zetro:command-proposals:07-zetro-command-proposals",
-      "zetro:command-allowlist:08-zetro-command-allowlist",
-      "zetro:executed-commands:09-zetro-executed-commands",
-      "zetro:chat:10-zetro-chat",
-      "zetro:loop:11-zetro-loop",
-      "zetro:memory:12-zetro-memory",
     ]
   )
 
@@ -157,7 +145,6 @@ test("registered database processes stay ordered by app and module", () => {
       "frappe:purchase-receipts:04-purchase-receipts",
       "frappe:item-sync-logs:05-item-product-sync-logs",
       "frappe:products:06-products",
-      "zetro:defaults:01-zetro-defaults",
     ]
   )
 })
