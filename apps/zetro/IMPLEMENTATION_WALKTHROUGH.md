@@ -31,6 +31,7 @@ Current mode:
 6. Command execution with stdout/stderr capture.
 7. Model provider adapters (none, ollama, openai, anthropic).
 8. Terminal agent mode with chat persistence.
-9. No autonomous loop.
+9. Maximum output engine with finding/command parsers.
+10. No autonomous loop.
 
-Phase: 1.5.1 complete (Terminal Agent Mode)
+Phase: 1.5.2 complete (Maximum Output Engine)

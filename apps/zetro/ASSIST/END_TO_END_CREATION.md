@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.5.1`
+Current baseline: `1.5.2`
 
-Next target: `1.5.2`
+Next target: `1.6.0`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -556,6 +556,8 @@ Completion notes:
 
 ## 1.5.2 Maximum Output Engine
 
+Status: complete.
+
 Goal:
 
 Use Zetro playbooks and output modes to make model output structured, auditable, and useful for implementation.
@@ -576,6 +578,17 @@ Exit criteria:
 1. Model output follows the selected Zetro output mode.
 2. Findings can be parsed into structured finding drafts.
 3. Command proposals remain proposals until a later approval-gated runner milestone.
+
+Completion notes:
+
+1. Enhanced prompt builder with `ZetroRepoContext` for repository context packing.
+2. Added `parseCommandProposals()` function to extract commands from model output.
+3. Added `parseFindings()` function to extract structured findings from model output.
+4. Added `logTokenUsage()` function for cost/token logging.
+5. Chat sessions and messages now support optional `runId` linking.
+6. Added `logModelResponse()` function to persist model response metadata.
+7. Output mode templates include markdown formatting guidance.
+8. Finding parser extracts FIXME, TODO, BUG, HACK, and severity markers.
 
 ## 1.6.0 Review Automation
 

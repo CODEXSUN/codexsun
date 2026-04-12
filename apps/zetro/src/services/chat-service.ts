@@ -19,6 +19,7 @@ export type ZetroChatSession = {
   title: string;
   providerId: ZetroModelProviderId;
   outputMode: ZetroOutputModeId;
+  runId?: string;
   messageCount: number;
   status: ZetroChatSessionStatus;
   createdAt: string;
@@ -28,6 +29,7 @@ export type ZetroChatSession = {
 export type ZetroChatMessage = {
   id: string;
   sessionId: string;
+  runId?: string;
   role: "user" | "assistant" | "system";
   content: string;
   tokens?: number;
@@ -40,6 +42,7 @@ export type ZetroCreateChatSessionInput = {
   providerId?: ZetroModelProviderId;
   outputMode?: ZetroOutputModeId;
   title?: string;
+  runId?: string;
 };
 
 export type ZetroCreateChatMessageInput = {
@@ -48,6 +51,7 @@ export type ZetroCreateChatMessageInput = {
   content: string;
   tokens?: number;
   modelId?: string;
+  runId?: string;
   finishReason?: string;
 };
 
@@ -91,6 +95,7 @@ export async function createZetroChatSession(
     title: input?.title ?? `Chat ${new Date().toLocaleDateString()}`,
     providerId: input?.providerId ?? "none",
     outputMode: input?.outputMode ?? "normal",
+    runId: input?.runId,
     messageCount: 0,
     status: "active",
     createdAt: now,
@@ -150,6 +155,7 @@ export async function createZetroChatMessage(
   const message: ZetroChatMessage = {
     id: `zetro-message-${randomUUID()}`,
     sessionId: input.sessionId,
+    runId: input.runId ?? session.runId,
     role: input.role,
     content: input.content,
     tokens: input.tokens,
@@ -238,4 +244,63 @@ export async function archiveZetroChatSession(
   sessionId: string,
 ) {
   return updateZetroChatSession(database, sessionId, { status: "archived" });
+}
+
+export type ZetroModelResponseLog = {
+  id: string;
+  sessionId: string;
+  runId?: string;
+  providerId: ZetroModelProviderId;
+  model: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  finishReason?: string;
+  createdAt: string;
+};
+
+export async function logModelResponse(
+  database: Kysely<unknown>,
+  data: {
+    sessionId: string;
+    runId?: string;
+    providerId: ZetroModelProviderId;
+    model: string;
+    usage?: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+    };
+    finishReason?: string;
+  },
+) {
+  const records = await listStoreRecords<ZetroModelResponseLog>(
+    database,
+    zetroTableNames.chatSessions,
+  );
+
+  const log: ZetroModelResponseLog = {
+    id: `zetro-model-log-${randomUUID()}`,
+    sessionId: data.sessionId,
+    runId: data.runId,
+    providerId: data.providerId,
+    model: data.model,
+    promptTokens: data.usage?.promptTokens,
+    completionTokens: data.usage?.completionTokens,
+    totalTokens: data.usage?.totalTokens,
+    finishReason: data.finishReason,
+    createdAt: new Date().toISOString(),
+  };
+
+  await replaceStoreRecords(database, zetroTableNames.chatSessions, [
+    ...records,
+    {
+      id: log.id,
+      moduleKey: data.sessionId,
+      sortOrder: (records.at(-1)?.sortOrder ?? 0) + 10,
+      payload: log,
+    },
+  ]);
+
+  return log;
 }
