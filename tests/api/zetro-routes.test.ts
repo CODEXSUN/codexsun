@@ -25,6 +25,7 @@ test("internal route registry includes the Zetro endpoints", () => {
   assert.ok(routePaths.includes("POST /internal/v1/zetro/runs"))
   assert.ok(routePaths.includes("POST /internal/v1/zetro/run/events"))
   assert.ok(routePaths.includes("GET /internal/v1/zetro/findings"))
+  assert.ok(routePaths.includes("POST /internal/v1/zetro/findings"))
   assert.ok(routePaths.includes("PATCH /internal/v1/zetro/finding"))
   assert.ok(routePaths.includes("GET /internal/v1/zetro/guardrails"))
   assert.ok(routePaths.includes("GET /internal/v1/zetro/settings"))

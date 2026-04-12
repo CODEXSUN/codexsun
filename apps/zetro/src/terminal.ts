@@ -4,6 +4,27 @@ import { resolve } from "node:path"
 import { createInterface } from "node:readline/promises"
 import { pathToFileURL } from "node:url"
 
+import {
+  getServerConfig,
+} from "../../framework/src/runtime/config/index.js"
+import {
+  createRuntimeDatabases,
+  prepareApplicationDatabase,
+} from "../../framework/src/runtime/database/index.js"
+import {
+  appendZetroRunEvent,
+  createZetroFinding,
+  createZetroRun,
+  getZetroRunWithDetails,
+  updateZetroFindingStatus,
+} from "./services/index.js"
+import type {
+  ZetroFindingStatus,
+  ZetroCreateFindingInput,
+  ZetroCreateRunEventInput,
+  ZetroCreateRunInput,
+  ZetroRunEventKind,
+} from "./services/index.js"
 import type { ZetroPlaybookPhase } from "../shared/index.js"
 import { loadZetroTerminalData, type ZetroTerminalData } from "./terminal-data.js"
 
@@ -16,7 +37,12 @@ type ZetroTerminalCommand =
   | "modes"
   | "guardrails"
   | "runs"
+  | "run"
+  | "create-run"
+  | "add-event"
   | "findings"
+  | "create-finding"
+  | "finding-status"
   | "plan"
   | "assist"
   | "doctor"
@@ -40,7 +66,12 @@ function printUsage() {
   console.info("  modes                        List output modes.")
   console.info("  guardrails                   List guardrail templates.")
   console.info("  runs                         List runs.")
+  console.info("  run <id>                     Show one run with timeline and findings.")
+  console.info("  create-run --title <v> --playbook <id> --summary <v> [--id <id>]")
+  console.info("  add-event --run <id> --summary <v> [--kind note]")
   console.info("  findings                     List findings.")
+  console.info("  create-finding --title <v> --summary <v> [--run <id>] [--id <id>]")
+  console.info("  finding-status --finding <id> --status <status>")
   console.info("  plan <request>               Print a maximum-output plan scaffold.")
   console.info("  assist                       Show the Zetro Assist read order and runtime lock.")
   console.info("  doctor                       Validate terminal catalog and Assist files.")
@@ -61,7 +92,12 @@ function resolveCommand(value: string | undefined): ZetroTerminalCommand | null 
     case "modes":
     case "guardrails":
     case "runs":
+    case "run":
+    case "create-run":
+    case "add-event":
     case "findings":
+    case "create-finding":
+    case "finding-status":
     case "plan":
     case "assist":
     case "doctor":
@@ -70,6 +106,42 @@ function resolveCommand(value: string | undefined): ZetroTerminalCommand | null 
     default:
       return null
   }
+}
+
+function readOption(args: string[], name: string) {
+  const index = args.indexOf(name)
+
+  if (index === -1) {
+    return undefined
+  }
+
+  return args[index + 1]
+}
+
+function requireOption(args: string[], name: string) {
+  const value = readOption(args, name)?.trim()
+
+  if (!value) {
+    throw new Error(`Missing ${name}.`)
+  }
+
+  return value
+}
+
+async function withZetroDatabase<T>(operation: (database: Parameters<typeof createZetroRun>[0]) => Promise<T>) {
+  const databases = createRuntimeDatabases(getServerConfig(process.cwd()))
+
+  try {
+    await prepareApplicationDatabase(databases)
+    return await operation(databases.primary)
+  } finally {
+    await databases.destroy()
+  }
+}
+
+function printWriteError(error: unknown) {
+  console.info(error instanceof Error ? error.message : "Zetro write failed.")
+  process.exitCode = 1
 }
 
 function printDataSource(data: ZetroTerminalData) {
@@ -267,6 +339,62 @@ function printRuns(data: ZetroTerminalData) {
   }
 }
 
+async function printRun(runId: string | undefined) {
+  if (!runId) {
+    console.info("Missing run id. Try: npm run zetro -- run run-static-catalog")
+    process.exitCode = 1
+    return
+  }
+
+  try {
+    const run = await withZetroDatabase((database) =>
+      getZetroRunWithDetails(database, runId)
+    )
+
+    if (!run) {
+      console.info(`Unknown run: ${runId}`)
+      process.exitCode = 1
+      return
+    }
+
+    printHeader(run.title)
+    console.info("Data source: database")
+    console.info(`ID: ${run.id}`)
+    console.info(`Playbook: ${run.playbookId}`)
+    console.info(`Status: ${run.status}`)
+    console.info(`Output mode: ${run.outputMode}`)
+    console.info(`Summary: ${run.summary}`)
+    console.info("")
+    console.info("Events:")
+
+    if (run.events.length === 0) {
+      console.info("No events yet.")
+    } else {
+      for (const event of run.events) {
+        console.info(`${event.sequence}. ${event.kind} | ${event.createdAt}`)
+        console.info(`   ${event.summary}`)
+        if (event.detail) {
+          console.info(`   ${event.detail}`)
+        }
+      }
+    }
+
+    console.info("")
+    console.info("Findings:")
+
+    if (run.findings.length === 0) {
+      console.info("No findings linked to this run.")
+    } else {
+      for (const finding of run.findings) {
+        console.info(`${finding.id} | ${finding.severity} | ${finding.status}`)
+        console.info(`   ${finding.title}`)
+      }
+    }
+  } catch (error) {
+    printWriteError(error)
+  }
+}
+
 function printFindings(data: ZetroTerminalData) {
   printHeader("Findings")
   printDataSource(data)
@@ -274,6 +402,87 @@ function printFindings(data: ZetroTerminalData) {
     console.info(`${finding.id} | ${finding.severity} | ${finding.category} | ${finding.confidence}% | ${finding.status}`)
     console.info(`  ${finding.title}`)
     console.info(`  ${finding.summary}`)
+  }
+}
+
+async function createRunFromArgs(args: string[]) {
+  try {
+    const payload = {
+      id: readOption(args, "--id"),
+      title: requireOption(args, "--title"),
+      playbookId: requireOption(args, "--playbook"),
+      summary: requireOption(args, "--summary"),
+      status: readOption(args, "--status") as ZetroCreateRunInput["status"] | undefined,
+      outputMode: readOption(args, "--output") as ZetroCreateRunInput["outputMode"] | undefined,
+    } satisfies ZetroCreateRunInput
+    const run = await withZetroDatabase((database) => createZetroRun(database, payload))
+
+    printHeader("Run created")
+    console.info(`${run.id} | ${run.status} | ${run.outputMode}`)
+    console.info(run.title)
+  } catch (error) {
+    printWriteError(error)
+  }
+}
+
+async function addEventFromArgs(args: string[]) {
+  try {
+    const runId = requireOption(args, "--run")
+    const payload = {
+      id: readOption(args, "--id"),
+      kind: readOption(args, "--kind") as ZetroRunEventKind | undefined,
+      summary: requireOption(args, "--summary"),
+      detail: readOption(args, "--detail"),
+    } satisfies ZetroCreateRunEventInput
+    const event = await withZetroDatabase((database) =>
+      appendZetroRunEvent(database, runId, payload)
+    )
+
+    printHeader("Run event added")
+    console.info(`${event.runId} | ${event.sequence} | ${event.kind}`)
+    console.info(event.summary)
+  } catch (error) {
+    printWriteError(error)
+  }
+}
+
+async function createFindingFromArgs(args: string[]) {
+  try {
+    const payload = {
+      id: readOption(args, "--id"),
+      title: requireOption(args, "--title"),
+      category: (readOption(args, "--category") ?? "architecture") as ZetroCreateFindingInput["category"],
+      severity: (readOption(args, "--severity") ?? "medium") as ZetroCreateFindingInput["severity"],
+      confidence: Number(readOption(args, "--confidence") ?? "90"),
+      status: (readOption(args, "--status") ?? "open") as ZetroFindingStatus,
+      summary: requireOption(args, "--summary"),
+      runId: readOption(args, "--run"),
+    } satisfies ZetroCreateFindingInput
+    const finding = await withZetroDatabase((database) =>
+      createZetroFinding(database, payload)
+    )
+
+    printHeader("Finding created")
+    console.info(`${finding.id} | ${finding.severity} | ${finding.status}`)
+    console.info(finding.title)
+  } catch (error) {
+    printWriteError(error)
+  }
+}
+
+async function updateFindingStatusFromArgs(args: string[]) {
+  try {
+    const findingId = requireOption(args, "--finding")
+    const status = requireOption(args, "--status") as ZetroFindingStatus
+    const finding = await withZetroDatabase((database) =>
+      updateZetroFindingStatus(database, findingId, status)
+    )
+
+    printHeader("Finding status updated")
+    console.info(`${finding.id} | ${finding.status}`)
+    console.info(finding.title)
+  } catch (error) {
+    printWriteError(error)
   }
 }
 
@@ -383,8 +592,23 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
     case "runs":
       printRuns(await loadZetroTerminalData())
       return
+    case "run":
+      await printRun(rest[0])
+      return
+    case "create-run":
+      await createRunFromArgs(rest)
+      return
+    case "add-event":
+      await addEventFromArgs(rest)
+      return
     case "findings":
       printFindings(await loadZetroTerminalData())
+      return
+    case "create-finding":
+      await createFindingFromArgs(rest)
+      return
+    case "finding-status":
+      await updateFindingStatusFromArgs(rest)
       return
     case "assist":
       printAssist(await loadZetroTerminalData())

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import type {
@@ -53,6 +53,30 @@ export type ZetroRunWithDetails = ZetroSampleRun & {
   findings: ZetroFinding[]
 }
 
+export type ZetroCreateRunPayload = {
+  title: string
+  playbookId: string
+  status?: ZetroSampleRun["status"]
+  outputMode?: ZetroOutputModeId
+  summary: string
+}
+
+export type ZetroCreateRunEventPayload = {
+  kind?: ZetroRunEvent["kind"]
+  summary: string
+  detail?: string
+}
+
+export type ZetroCreateFindingPayload = {
+  runId?: string
+  title: string
+  category: ZetroFinding["category"]
+  severity: ZetroFinding["severity"]
+  confidence: number
+  status?: ZetroFinding["status"]
+  summary: string
+}
+
 export type ZetroSettingsSnapshot = {
   runtimeLock: {
     runnerMode: "manual"
@@ -75,6 +99,7 @@ const zetroQueryKeys = {
   summary: ["zetro", "summary"] as const,
   playbooks: ["zetro", "playbooks"] as const,
   runs: ["zetro", "runs"] as const,
+  run: (runId: string | null) => ["zetro", "run", runId] as const,
   findings: ["zetro", "findings"] as const,
   guardrails: ["zetro", "guardrails"] as const,
   settings: ["zetro", "settings"] as const,
@@ -123,8 +148,51 @@ export function listZetroRuns() {
   return requestJson<ListResponse<ZetroSampleRun>>("/internal/v1/zetro/runs")
 }
 
+export function getZetroRun(runId: string) {
+  return requestJson<ZetroRunWithDetails>(
+    `/internal/v1/zetro/run?id=${encodeURIComponent(runId)}`
+  )
+}
+
+export function createZetroRun(payload: ZetroCreateRunPayload) {
+  return requestJson<ZetroSampleRun>("/internal/v1/zetro/runs", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function appendZetroRunEvent(runId: string, payload: ZetroCreateRunEventPayload) {
+  return requestJson<ZetroRunEvent>(
+    `/internal/v1/zetro/run/events?id=${encodeURIComponent(runId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  )
+}
+
 export function listZetroFindings() {
   return requestJson<ListResponse<ZetroFinding>>("/internal/v1/zetro/findings")
+}
+
+export function createZetroFinding(payload: ZetroCreateFindingPayload) {
+  return requestJson<ZetroFinding>("/internal/v1/zetro/findings", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateZetroFindingStatus(
+  findingId: string,
+  status: ZetroFinding["status"]
+) {
+  return requestJson<ZetroFinding>(
+    `/internal/v1/zetro/finding?id=${encodeURIComponent(findingId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }
+  )
 }
 
 export function listZetroGuardrails() {
@@ -160,11 +228,82 @@ export function useZetroRunsQuery() {
   })
 }
 
+export function useZetroRunQuery(runId: string | null) {
+  return useQuery({
+    queryKey: zetroQueryKeys.run(runId),
+    queryFn: () => getZetroRun(runId ?? ""),
+    enabled: Boolean(runId),
+  })
+}
+
+export function useCreateZetroRunMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createZetroRun,
+    onSuccess: (run) => {
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.summary })
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.runs })
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.run(run.id) })
+    },
+  })
+}
+
+export function useAppendZetroRunEventMutation(runId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: ZetroCreateRunEventPayload) => {
+      if (!runId) {
+        throw new Error("Select a Zetro run before adding an event.")
+      }
+
+      return appendZetroRunEvent(runId, payload)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.run(runId) })
+    },
+  })
+}
+
 export function useZetroFindingsQuery() {
   return useQuery({
     queryKey: zetroQueryKeys.findings,
     queryFn: listZetroFindings,
     select: (payload) => payload.items,
+  })
+}
+
+export function useCreateZetroFindingMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createZetroFinding,
+    onSuccess: (finding) => {
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.summary })
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.findings })
+
+      if (finding.runId) {
+        void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.run(finding.runId) })
+      }
+    },
+  })
+}
+
+export function useUpdateZetroFindingStatusMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ findingId, status }: { findingId: string; status: ZetroFinding["status"] }) =>
+      updateZetroFindingStatus(findingId, status),
+    onSuccess: (finding) => {
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.summary })
+      void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.findings })
+
+      if (finding.runId) {
+        void queryClient.invalidateQueries({ queryKey: zetroQueryKeys.run(finding.runId) })
+      }
+    },
   })
 }
 

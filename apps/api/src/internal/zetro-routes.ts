@@ -3,6 +3,7 @@ import { defineInternalRoute } from "../../../framework/src/runtime/http/index.j
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import {
   appendZetroRunEvent,
+  createZetroFinding,
   createZetroRun,
   getZetroDashboardSummary,
   getZetroPlaybook,
@@ -14,6 +15,7 @@ import {
   readZetroSettings,
   updateZetroFindingStatus,
   type ZetroCreateRunEventInput,
+  type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
   type ZetroFindingStatus,
 } from "../../../zetro/src/services/index.js"
@@ -170,6 +172,23 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
             status,
           }),
         })
+      },
+    }),
+    defineInternalRoute("/zetro/findings", {
+      method: "POST",
+      summary: "Create a manual Zetro finding without executing commands.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await createZetroFinding(
+            context.databases.primary,
+            requireJsonObject(context) as ZetroCreateFindingInput
+          ),
+          201
+        )
       },
     }),
     defineInternalRoute("/zetro/finding", {

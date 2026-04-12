@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.1.4`
+Current baseline: `1.2.0`
 
-Next target: `1.2.0`
+Next target: `1.2.1`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -276,6 +276,8 @@ Completion notes:
 
 ## 1.2.0 Manual Run Console
 
+Status: complete.
+
 Goal:
 
 Create real manual Zetro runs with event logs and findings.
@@ -306,6 +308,17 @@ Verification:
 npm.cmd run typecheck
 npm.cmd run zetro -- runs
 ```
+
+Completion notes:
+
+1. Runs page can create a manual run.
+2. Runs page can open a run detail panel.
+3. Runs page can append manual run events.
+4. Runs page renders the event timeline and linked findings.
+5. Findings page can create a manual finding.
+6. Findings page can update finding status.
+7. Terminal can create runs, append events, create findings, update finding status, and read run details.
+8. No command execution was added.
 
 ## 1.2.1 Run Output Sections
 
