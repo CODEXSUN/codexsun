@@ -43,6 +43,8 @@ Useful commands:
 npm.cmd run zetro -- summary
 npm.cmd run zetro -- playbooks
 npm.cmd run zetro -- playbook feature-dev
+npm.cmd run zetro -- playbook-validate smart-security-review
+npm.cmd run zetro -- playbook-evaluate smart-security-review --run <runId>
 npm.cmd run zetro -- modes
 npm.cmd run zetro -- guardrails
 npm.cmd run zetro -- runs

@@ -44,16 +44,16 @@ Current runner: manual only.
 
 Current execution policy: no shell execution from Zetro, no LLM calls, no network calls, no background loop.
 
-Current phase: **1.8.0 Complete**
+Current phase: **2.2.0 Complete**
 
 ## Phase 2 Evolution
 
 See [ZETRO_PHASE2_EVOLUTION.md](./ZETRO_PHASE2_EVOLUTION.md) for the Phase 2 roadmap covering:
 
-- Semantic Memory Layer
-- Smart Playbooks
-- Multi-Model Task Router
-- Agent Role Specialization
-- Tiered Autonomy System
-- Task Integration Layer
-- External Integration Layer
+- Semantic Memory Layer ✅ (2.1.0)
+- Smart Playbooks ✅ (2.2.0)
+- Multi-Model Task Router (2.3.0)
+- Agent Role Specialization (2.4.0)
+- Tiered Autonomy System (2.5.0)
+- Task Integration Layer (2.6.0)
+- External Integration Layer (2.7.0)

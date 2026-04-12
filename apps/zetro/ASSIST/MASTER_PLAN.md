@@ -22,10 +22,11 @@ Build Zetro into a terminal-first, dashboard-backed agent workspace for planning
 14. Controlled loop service with max iterations, timeout, stop conditions, and iteration events.
 15. Loop terminal commands (loop, loop-start, loop-stop, loop-cancel, loop-events).
 16. Loop control panel in dashboard runs page.
-17. **Phase 2**: Semantic memory layer with vector embeddings.
+17. **Phase 2.1**: Semantic memory layer with vector embeddings (Ollama/TF-IDF fallback).
 18. Memory commands and dashboard page.
-19. Terminal command: `npm.cmd run zetro -- ...`.
-20. Interactive shell: `npm.cmd run zetro -- chat`.
+19. **Phase 2.2**: Smart playbooks with conditional logic (skipIf, requireIf, gotoIf, retry).
+20. Terminal command: `npm.cmd run zetro -- ...`.
+21. Interactive shell: `npm.cmd run zetro -- chat`.
 
 ## Phase Order
 

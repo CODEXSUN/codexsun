@@ -3,7 +3,7 @@ import type {
   ZetroPlaybook,
   ZetroSampleFinding,
   ZetroSampleRun,
-} from "./playbook-contracts.js"
+} from "./playbook-contracts.js";
 
 export const zetroStaticPlaybooks: ZetroPlaybook[] = [
   {
@@ -12,7 +12,8 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
     kind: "workflow",
     family: "feature-dev",
     summary: "Seven-phase implementation workflow for complex feature work.",
-    description: "Moves from discovery through repo exploration, architecture, implementation, review, and final summary.",
+    description:
+      "Moves from discovery through repo exploration, architecture, implementation, review, and final summary.",
     defaultOutputMode: "maximum",
     riskLevel: "medium",
     requiresApproval: false,
@@ -22,14 +23,17 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
       {
         id: "discovery",
         name: "Discovery",
-        objective: "Clarify the request, product goal, constraints, and done criteria.",
-        expectedOutput: "Intent, assumptions, unresolved questions, and success criteria.",
+        objective:
+          "Clarify the request, product goal, constraints, and done criteria.",
+        expectedOutput:
+          "Intent, assumptions, unresolved questions, and success criteria.",
         approvalGate: false,
       },
       {
         id: "exploration",
         name: "Codebase Exploration",
-        objective: "Find existing patterns, owners, routes, APIs, and data flows.",
+        objective:
+          "Find existing patterns, owners, routes, APIs, and data flows.",
         expectedOutput: "Repo context, file map, and relevant precedents.",
         approvalGate: false,
       },
@@ -37,20 +41,23 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
         id: "architecture",
         name: "Architecture Design",
         objective: "Choose the app-owned design that fits current boundaries.",
-        expectedOutput: "Architecture decision, tradeoffs, and implementation phases.",
+        expectedOutput:
+          "Architecture decision, tradeoffs, and implementation phases.",
         approvalGate: true,
       },
       {
         id: "implementation",
         name: "Implementation",
         objective: "Apply scoped changes and keep the worktree understandable.",
-        expectedOutput: "Changed files, behavior notes, and local verification.",
+        expectedOutput:
+          "Changed files, behavior notes, and local verification.",
         approvalGate: true,
       },
       {
         id: "review",
         name: "Quality Review",
-        objective: "Check bugs, tests, type design, conventions, and simplification.",
+        objective:
+          "Check bugs, tests, type design, conventions, and simplification.",
         expectedOutput: "Structured findings and fix recommendations.",
         approvalGate: false,
       },
@@ -61,8 +68,10 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
     name: "Code Review",
     kind: "review",
     family: "code-review",
-    summary: "Focused review workflow for bugs, regressions, and repo-rule violations.",
-    description: "Produces finding-first review output with severity, confidence, and file references.",
+    summary:
+      "Focused review workflow for bugs, regressions, and repo-rule violations.",
+    description:
+      "Produces finding-first review output with severity, confidence, and file references.",
     defaultOutputMode: "audit",
     riskLevel: "low",
     requiresApproval: false,
@@ -79,7 +88,8 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
       {
         id: "findings",
         name: "Findings",
-        objective: "Prioritize correctness, security, regressions, and missing tests.",
+        objective:
+          "Prioritize correctness, security, regressions, and missing tests.",
         expectedOutput: "Ordered findings with file references.",
         approvalGate: false,
       },
@@ -90,8 +100,10 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
     name: "Review Toolkit",
     kind: "review",
     family: "pr-review-toolkit",
-    summary: "Multi-lane review for comments, tests, errors, types, code, and simplification.",
-    description: "Splits a review into independent lanes and consolidates high-confidence findings.",
+    summary:
+      "Multi-lane review for comments, tests, errors, types, code, and simplification.",
+    description:
+      "Splits a review into independent lanes and consolidates high-confidence findings.",
     defaultOutputMode: "audit",
     riskLevel: "medium",
     requiresApproval: false,
@@ -119,8 +131,10 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
     name: "Security Guidance",
     kind: "guardrail",
     family: "security-guidance",
-    summary: "Advisory guardrails for risky files, commands, and unsafe code patterns.",
-    description: "Starts as visible guidance before any blocking behavior is enabled.",
+    summary:
+      "Advisory guardrails for risky files, commands, and unsafe code patterns.",
+    description:
+      "Starts as visible guidance before any blocking behavior is enabled.",
     defaultOutputMode: "normal",
     riskLevel: "high",
     requiresApproval: true,
@@ -141,8 +155,10 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
     name: "Playbook Development",
     kind: "workflow",
     family: "plugin-dev",
-    summary: "Create new Zetro playbooks using a guided design and validation workflow.",
-    description: "Adapts plugin creation ideas into Codexsun-owned playbook authoring.",
+    summary:
+      "Create new Zetro playbooks using a guided design and validation workflow.",
+    description:
+      "Adapts plugin creation ideas into Codexsun-owned playbook authoring.",
     defaultOutputMode: "maximum",
     riskLevel: "medium",
     requiresApproval: false,
@@ -152,7 +168,8 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
       {
         id: "define",
         name: "Define",
-        objective: "Define playbook purpose, inputs, phases, output mode, and risk.",
+        objective:
+          "Define playbook purpose, inputs, phases, output mode, and risk.",
         expectedOutput: "Typed playbook draft.",
         approvalGate: false,
       },
@@ -170,8 +187,10 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
     name: "Approved Git Workflow",
     kind: "command",
     family: "commit-commands",
-    summary: "Future approval-gated git helper flow for commit, push, and PR actions.",
-    description: "Deferred until Zetro has persistent approvals and command output capture.",
+    summary:
+      "Future approval-gated git helper flow for commit, push, and PR actions.",
+    description:
+      "Deferred until Zetro has persistent approvals and command output capture.",
     defaultOutputMode: "audit",
     riskLevel: "critical",
     requiresApproval: true,
@@ -187,7 +206,115 @@ export const zetroStaticPlaybooks: ZetroPlaybook[] = [
       },
     ],
   },
-]
+  {
+    id: "smart-security-review",
+    name: "Smart Security Review",
+    kind: "smart",
+    family: "security-review",
+    summary:
+      "Adaptive security review that adjusts phases based on findings severity.",
+    description:
+      "A smart playbook that skips detailed phases when no issues are found, loops on critical findings until resolved, and escalates to architecture review when complexity threshold is exceeded.",
+    defaultOutputMode: "audit",
+    riskLevel: "high",
+    requiresApproval: true,
+    status: "active",
+    reviewLanes: ["security", "bug", "architecture"],
+    isSmart: true,
+    smartConfig: {
+      enableDynamicSteps: true,
+      maxDynamicSteps: 10,
+      adaptiveBranching: true,
+    },
+    phases: [
+      {
+        id: "quick-scan",
+        name: "Quick Scan",
+        objective: "Fast scan for obvious security issues.",
+        expectedOutput: "Initial security findings.",
+        approvalGate: false,
+        isConditional: true,
+        conditionConfig: {
+          skipIf: {
+            id: "skip-quick-scan-group",
+            logic: "AND",
+            conditions: [
+              {
+                id: "skip-quick-scan",
+                field: "severity",
+                operator: "eq",
+                value: "none",
+              },
+            ],
+          },
+        },
+      },
+      {
+        id: "deep-scan",
+        name: "Deep Security Scan",
+        objective: "Thorough analysis of security surface.",
+        expectedOutput: "Detailed security findings with severity.",
+        approvalGate: false,
+        isConditional: true,
+        conditionConfig: {
+          requireIf: {
+            id: "need-deep-scan-group",
+            logic: "OR",
+            conditions: [
+              {
+                id: "need-deep-scan-critical",
+                field: "severity",
+                operator: "eq",
+                value: "critical",
+              },
+              {
+                id: "need-deep-scan-high",
+                field: "severity",
+                operator: "eq",
+                value: "high",
+              },
+            ],
+          },
+        },
+        onFailure: "retry",
+        retryConfig: {
+          maxRetries: 3,
+          delayMs: 2000,
+          backoffMultiplier: 2,
+        },
+      },
+      {
+        id: "architecture-review",
+        name: "Architecture Security Review",
+        objective: "Review architectural patterns for security concerns.",
+        expectedOutput: "Architecture-level security recommendations.",
+        approvalGate: true,
+        isConditional: true,
+        conditionConfig: {
+          requireIf: {
+            id: "need-arch-review-group",
+            logic: "AND",
+            conditions: [
+              {
+                id: "need-arch-review",
+                field: "findingCount",
+                operator: "gte",
+                value: 10,
+              },
+            ],
+          },
+        },
+      },
+      {
+        id: "finalize",
+        name: "Finalize Review",
+        objective: "Consolidate findings and prepare report.",
+        expectedOutput: "Final security review report.",
+        approvalGate: false,
+      },
+    ],
+  },
+];
 
 export const zetroGuardrailTemplates: ZetroGuardrailTemplate[] = [
   {
@@ -209,16 +336,18 @@ export const zetroGuardrailTemplates: ZetroGuardrailTemplate[] = [
     name: "Sensitive Write Warning",
     event: "before-write",
     severity: "warning",
-    summary: "Warn before editing auth, environment, migration, or runner code.",
+    summary:
+      "Warn before editing auth, environment, migration, or runner code.",
   },
   {
     id: "review-before-complete",
     name: "Review Before Complete",
     event: "before-complete",
     severity: "info",
-    summary: "Run a focused review and record findings before marking a run complete.",
+    summary:
+      "Run a focused review and record findings before marking a run complete.",
   },
-]
+];
 
 export const zetroSampleRuns: ZetroSampleRun[] = [
   {
@@ -227,7 +356,8 @@ export const zetroSampleRuns: ZetroSampleRun[] = [
     playbookId: "feature-dev",
     status: "running",
     outputMode: "maximum",
-    summary: "Phase 1 app surface with static playbooks, guardrails, findings, and settings.",
+    summary:
+      "Phase 1 app surface with static playbooks, guardrails, findings, and settings.",
   },
   {
     id: "run-review-plan",
@@ -235,9 +365,10 @@ export const zetroSampleRuns: ZetroSampleRun[] = [
     playbookId: "code-review",
     status: "awaiting-approval",
     outputMode: "audit",
-    summary: "Finding-first review of the initial Zetro app scaffold and navigation wiring.",
+    summary:
+      "Finding-first review of the initial Zetro app scaffold and navigation wiring.",
   },
-]
+];
 
 export const zetroSampleFindings: ZetroSampleFinding[] = [
   {
@@ -248,7 +379,8 @@ export const zetroSampleFindings: ZetroSampleFinding[] = [
     severity: "high",
     confidence: 95,
     status: "open",
-    summary: "Approved CLI runner should stay deferred until allowlists, approvals, and output capture exist.",
+    summary:
+      "Approved CLI runner should stay deferred until allowlists, approvals, and output capture exist.",
   },
   {
     id: "finding-persistence",
@@ -258,6 +390,7 @@ export const zetroSampleFindings: ZetroSampleFinding[] = [
     severity: "medium",
     confidence: 90,
     status: "accepted",
-    summary: "Manual runs should persist first so every later runner mode has the same audit path.",
+    summary:
+      "Manual runs should persist first so every later runner mode has the same audit path.",
   },
-]
+];

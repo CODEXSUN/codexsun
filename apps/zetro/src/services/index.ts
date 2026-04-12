@@ -16,4 +16,5 @@ export * from "./review-service.js";
 export * from "./run-service.js";
 export * from "./runner-service.js";
 export * from "./settings-service.js";
+export * from "./smart-playbook-executor.js";
 export * from "./zetro-summary-service.js";

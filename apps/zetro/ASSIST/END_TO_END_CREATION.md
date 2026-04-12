@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `2.1.0`
+Current baseline: `2.2.0`
 
-Next target: `2.2.0`
+Next target: `2.3.0`
 
 ## Phase 1: Foundation
 
@@ -50,7 +50,7 @@ Completion notes:
 
 ## 2.2.0 Smart Playbooks
 
-Status: not started.
+Status: complete.
 
 Goal:
 
@@ -62,6 +62,16 @@ Deliverables:
 2. New playbook kind: "smart"
 3. Execution engine for smart phases
 4. Dashboard smart playbook editor
+
+Completion notes:
+
+1. Extended `playbook-contracts.ts` with smart playbook types: `ZetroPhaseCondition`, `ZetroConditionGroup`, `ZetroConditionLogic`, `ZetroConditionOperator`, `ZetroConditionField`, `ZetroPhaseConditionConfig`, `ZetroDynamicCommandTemplate`, `ZetroPhaseFailureAction`, `ZetroPhaseRetryConfig`, `ZetroSmartPhaseContext`, `ZetroPhaseEvaluationResult`.
+2. Added `isConditional`, `conditionConfig`, `dynamicCommands`, `onFailure`, `retryConfig` to `ZetroPlaybookPhase`.
+3. Added `isSmart` and `smartConfig` to `ZetroPlaybook` with `enableDynamicSteps`, `maxDynamicSteps`, `adaptiveBranching`.
+4. Created `smart-playbook-executor.ts` with condition evaluation, context building, retry logic, and playbook validation.
+5. Terminal commands added: `playbook-validate <id>`, `playbook-evaluate <id> --run <runId>`.
+6. Example smart playbook `smart-security-review` added to static-playbooks.ts.
+7. Typecheck and doctor pass.
 
 ## 2.3.0 Multi-Model Task Router
 

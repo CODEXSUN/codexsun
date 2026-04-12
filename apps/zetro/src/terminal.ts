@@ -40,6 +40,9 @@ import {
   findSimilarFindings,
   listMemoryVectors,
   getMemoryStats,
+  validatePlaybookConditions,
+  evaluatePhaseConditions,
+  buildSmartPhaseContext,
   type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
@@ -51,7 +54,11 @@ import type {
   ZetroRunEventKind,
   ZetroModelMessage,
 } from "./services/index.js";
-import type { ZetroOutputModeId, ZetroPlaybookPhase } from "../shared/index.js";
+import type {
+  ZetroOutputModeId,
+  ZetroPlaybookPhase,
+  ZetroSmartPhaseContext,
+} from "../shared/index.js";
 import {
   loadZetroTerminalData,
   type ZetroTerminalData,
@@ -63,6 +70,8 @@ type ZetroTerminalCommand =
   | "summary"
   | "playbooks"
   | "playbook"
+  | "playbook-validate"
+  | "playbook-evaluate"
   | "modes"
   | "guardrails"
   | "runs"
@@ -113,6 +122,10 @@ function printUsage() {
   );
   console.info("  playbooks                    List playbooks.");
   console.info("  playbook <id>                Show one playbook with phases.");
+  console.info("  playbook-validate <id>       Validate playbook conditions.");
+  console.info(
+    "  playbook-evaluate <id> --run <id>  Evaluate phase conditions for a run.",
+  );
   console.info("  modes                        List output modes.");
   console.info("  guardrails                   List guardrail templates.");
   console.info("  runs                         List runs.");
@@ -194,6 +207,8 @@ function resolveCommand(
     case "summary":
     case "playbooks":
     case "playbook":
+    case "playbook-validate":
+    case "playbook-evaluate":
     case "modes":
     case "guardrails":
     case "runs":
@@ -454,6 +469,126 @@ function printPlaybook(
   console.info("Phases:");
   for (const [index, phase] of playbook.phases.entries()) {
     printPhase(index, phase);
+  }
+}
+
+function validatePlaybookFromArgs(
+  data: ZetroTerminalData,
+  playbookId: string | undefined,
+) {
+  if (!playbookId) {
+    console.info(
+      "Missing playbook id. Try: npm run zetro -- playbook-validate feature-dev",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const playbook = data.playbooks.find((item) => item.id === playbookId);
+
+  if (!playbook) {
+    console.info(`Unknown playbook: ${playbookId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  printHeader("Playbook validation");
+  console.info(`Playbook: ${playbook.name}`);
+  console.info(`Kind: ${playbook.kind}`);
+
+  if (playbook.kind !== "smart") {
+    console.info("Not a smart playbook. Validation not applicable.");
+    return;
+  }
+
+  const result = validatePlaybookConditions(playbook.phases);
+
+  if (result.valid) {
+    console.info("Status: VALID");
+    console.info("All conditions are correctly configured.");
+  } else {
+    console.info("Status: INVALID");
+    console.info("");
+    for (const error of result.errors) {
+      console.info(`  - ${error}`);
+    }
+    process.exitCode = 1;
+  }
+}
+
+async function evaluatePlaybookFromArgs(args: string[]) {
+  const playbookId = args[0];
+  const runId = readOption(args, "--run");
+
+  if (!playbookId) {
+    console.info(
+      "Missing playbook id. Try: npm run zetro -- playbook-evaluate feature-dev --run <runId>",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!runId) {
+    console.info(
+      "Missing --run. Try: npm run zetro -- playbook-evaluate feature-dev --run <runId>",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    const data = await loadZetroTerminalData();
+    const playbook = data.playbooks.find((item) => item.id === playbookId);
+
+    if (!playbook) {
+      console.info(`Unknown playbook: ${playbookId}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    printHeader("Playbook evaluation");
+    console.info(`Playbook: ${playbook.name}`);
+    console.info(`Run: ${runId}`);
+    console.info("");
+
+    const context: ZetroSmartPhaseContext = await withZetroDatabase(
+      (database) => buildSmartPhaseContext(database, runId, 1),
+    );
+
+    console.info("Context:");
+    console.info(`  Findings: ${context.findings?.length ?? 0}`);
+    console.info(`  Iteration: ${context.iteration}`);
+    if (context.severityCounts) {
+      console.info("  Severity counts:");
+      for (const [severity, count] of Object.entries(context.severityCounts)) {
+        console.info(`    ${severity}: ${count}`);
+      }
+    }
+    console.info("");
+
+    const evaluation = evaluatePhaseConditions(playbook.phases[0]!, context);
+
+    console.info("Phase evaluation (first phase):");
+    console.info(`  Phase: ${playbook.phases[0]!.name}`);
+    console.info(`  Should execute: ${evaluation.shouldExecute}`);
+    console.info(`  Should skip: ${evaluation.shouldSkip}`);
+    console.info(`  Reason: ${evaluation.reason}`);
+
+    if (evaluation.shouldGoto) {
+      console.info(`  Goto: ${evaluation.shouldGoto}`);
+    }
+
+    if (evaluation.evaluatedConditions.length > 0) {
+      console.info("");
+      console.info("Evaluated conditions:");
+      for (const cond of evaluation.evaluatedConditions) {
+        console.info(
+          `  ${cond.conditionId}: passed=${cond.passed}, actual=${cond.actual}, expected=${cond.expected}`,
+        );
+      }
+    }
+  } catch (error) {
+    printWriteError(error);
   }
 }
 
@@ -1395,6 +1530,12 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "playbook":
       printPlaybook(await loadZetroTerminalData(), rest[0]);
+      return;
+    case "playbook-validate":
+      validatePlaybookFromArgs(await loadZetroTerminalData(), rest[0]);
+      return;
+    case "playbook-evaluate":
+      await evaluatePlaybookFromArgs(rest);
       return;
     case "modes":
       printModes(await loadZetroTerminalData());
