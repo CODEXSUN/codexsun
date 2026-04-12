@@ -2,6 +2,7 @@ import type {
   FrappeConnectionVerificationResponse,
   FrappeItemManagerResponse,
   FrappeItemProductSyncLogManagerResponse,
+  FrappeItemPullLiveResponse,
   FrappeItemProductSyncPayload,
   FrappeItemProductSyncResponse,
   FrappeItemResponse,
@@ -192,6 +193,12 @@ export function syncFrappeItemsToProducts(payload: FrappeItemProductSyncPayload)
       body: JSON.stringify(payload),
     }
   )
+}
+
+export function pullFrappeItemsLive() {
+  return request<FrappeItemPullLiveResponse>("/internal/v1/frappe/items/pull-live", {
+    method: "POST",
+  })
 }
 
 export function listFrappePurchaseReceipts() {

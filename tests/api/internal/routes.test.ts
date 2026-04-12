@@ -73,6 +73,7 @@ test("internal route registry includes the frappe connector endpoints", () => {
   assert.ok(routePaths.includes("POST /internal/v1/frappe/todos/sync-live"))
   assert.ok(routePaths.includes("POST /internal/v1/frappe/todos/verify-sync"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/items"))
+  assert.ok(routePaths.includes("POST /internal/v1/frappe/items/pull-live"))
   assert.ok(routePaths.includes("POST /internal/v1/frappe/items/sync-products"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/purchase-receipts"))
 })

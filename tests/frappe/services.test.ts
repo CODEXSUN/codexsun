@@ -7,6 +7,7 @@ import test from "node:test"
 import {
   listFrappeItems,
   listFrappeItemProductSyncLogs,
+  pullFrappeItemsLive,
   syncFrappeItemsToProducts,
 } from "../../apps/frappe/src/services/item-service.js"
 import { listProducts } from "../../apps/core/src/services/product-service.js"
@@ -140,6 +141,94 @@ test("frappe item sync projects unsynced item snapshots into core products", asy
       assert.equal(syncedProduct?.isActive, true)
       assert.equal(syncLog?.successCount, 1)
       assert.match(syncLog?.summary ?? "", /1 synced, 0 skipped, 0 failed/i)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("frappe item pull imports live ERPNext items into local frappe products", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-item-pull-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const adminUser = createAdminUser()
+      const frappeConfig = createFrappeConfig()
+      const originalFetch = globalThis.fetch
+
+      globalThis.fetch = async (input) => {
+        const url = String(input)
+
+        if (url.endsWith("/api/method/frappe.auth.get_logged_user")) {
+          return new Response(JSON.stringify({ message: "connector@example.test" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        if (url.includes("/api/resource/Item?")) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  item_code: "ERP-KURTA-01",
+                  item_name: "ERP Cotton Kurta",
+                  description: "Pulled from ERPNext",
+                  item_group: "Ethnic Wear",
+                  stock_uom: "Nos",
+                  brand: "ERP Loom",
+                  gst_hsn_code: "6204",
+                  default_warehouse: "Main Warehouse - CS",
+                  disabled: 0,
+                  is_stock_item: 1,
+                  has_variants: 1,
+                  modified: "2026-04-12T10:00:00.000Z",
+                },
+              ],
+            }),
+            {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }
+          )
+        }
+
+        throw new Error(`Unexpected Frappe item request: ${url}`)
+      }
+
+      try {
+        await verifyFrappeSettings(runtime.primary, adminUser, undefined, {
+          config: frappeConfig,
+        })
+
+        const pull = await pullFrappeItemsLive(runtime.primary, adminUser, {
+          config: frappeConfig,
+        })
+        const items = await listFrappeItems(runtime.primary, adminUser, {
+          config: frappeConfig,
+        })
+
+        assert.equal(pull.sync.pulledCount, 1)
+        assert.equal(pull.sync.updatedCount, 0)
+        assert.equal(pull.sync.skippedCount, 0)
+        assert.equal(pull.sync.appRecordCount, 1)
+        assert.equal(items.manager.items.length, 1)
+        assert.equal(items.manager.items[0]?.itemCode, "ERP-KURTA-01")
+        assert.equal(items.manager.items[0]?.defaultWarehouse, "Main Warehouse - CS")
+      } finally {
+        globalThis.fetch = originalFetch
+      }
     } finally {
       await runtime.destroy()
     }

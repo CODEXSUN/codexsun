@@ -225,15 +225,39 @@ function readScheduledUpdateSettings(cwd: string) {
 function resolveSystemUpdateRoot(cwd: string) {
   const env = parseEnvFile(path.join(cwd, ".env"))
 
+  function findGitRoot(startPath: string) {
+    let currentPath = path.resolve(startPath)
+    const rootPath = path.parse(currentPath).root
+
+    while (true) {
+      if (existsSync(path.join(currentPath, ".git"))) {
+        return currentPath
+      }
+
+      if (currentPath === rootPath) {
+        return null
+      }
+
+      currentPath = path.dirname(currentPath)
+    }
+  }
+
   if (env.GIT_SYNC_ENABLED === "true") {
     const candidateRoots = [
+      cwd,
+      path.resolve(cwd, ".."),
+      path.resolve(cwd, "..", ".."),
+      path.join(cwd, "repository"),
       path.resolve(cwd, "..", "runtime", "repository"),
+      path.resolve(cwd, "..", "repository"),
       path.join(cwd, "runtime", "repository"),
     ]
 
     for (const candidateRoot of candidateRoots) {
-      if (existsSync(path.join(candidateRoot, ".git"))) {
-        return candidateRoot
+      const gitRoot = findGitRoot(candidateRoot)
+
+      if (gitRoot) {
+        return gitRoot
       }
     }
   }

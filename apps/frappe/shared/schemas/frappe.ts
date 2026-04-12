@@ -642,6 +642,17 @@ export const frappeItemProductSyncResponseSchema = z.object({
   }),
 })
 
+export const frappeItemPullLiveResponseSchema = z.object({
+  sync: z.object({
+    pulledCount: z.number().int().nonnegative(),
+    updatedCount: z.number().int().nonnegative(),
+    skippedCount: z.number().int().nonnegative(),
+    appRecordCount: z.number().int().nonnegative(),
+    syncedAt: z.string().trim().min(1),
+    items: z.array(frappeItemSchema),
+  }),
+})
+
 export const frappePurchaseReceiptItemSchema = z.object({
   id: z.string().trim().min(1),
   itemCode: z.string().trim().min(1),
@@ -856,6 +867,7 @@ export type FrappeItemProductSyncLog = z.infer<typeof frappeItemProductSyncLogSc
 export type FrappeItemProductSyncLogManager = z.infer<typeof frappeItemProductSyncLogManagerSchema>
 export type FrappeItemProductSyncLogManagerResponse = z.infer<typeof frappeItemProductSyncLogManagerResponseSchema>
 export type FrappeItemProductSyncResponse = z.infer<typeof frappeItemProductSyncResponseSchema>
+export type FrappeItemPullLiveResponse = z.infer<typeof frappeItemPullLiveResponseSchema>
 export type FrappePurchaseReceiptItem = z.infer<typeof frappePurchaseReceiptItemSchema>
 export type FrappePurchaseReceipt = z.infer<typeof frappePurchaseReceiptSchema>
 export type FrappePurchaseReceiptReferences = z.infer<typeof frappePurchaseReceiptReferencesSchema>

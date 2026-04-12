@@ -11,6 +11,7 @@ import {
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   frappeItemManagerResponseSchema,
+  frappeItemPullLiveResponseSchema,
   frappeItemProductSyncLogManagerResponseSchema,
   frappeItemProductSyncLogSchema,
   frappeItemProductSyncPayloadSchema,
@@ -25,8 +26,12 @@ import {
 } from "../../shared/index.js"
 
 import { frappeTableNames } from "../../database/table-names.js"
-import type { FrappeEnvConfig } from "../config/frappe.js"
+import { readFrappeEnvConfig, type FrappeEnvConfig } from "../config/frappe.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
+import {
+  createFrappeConnection,
+  readFrappeErrorText,
+} from "./connection.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
 import { readStoredFrappeSettings } from "./settings-service.js"
@@ -102,6 +107,137 @@ async function readStoredDefaults(
   options?: FrappeItemServiceOptions
 ) {
   return readStoredFrappeSettings(database, options)
+}
+
+async function createVerifiedItemConnection(
+  database: Kysely<unknown>,
+  options?: FrappeItemServiceOptions
+) {
+  const settings = await readStoredDefaults(database, options)
+  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
+
+  if (!settings.enabled || !settings.isConfigured) {
+    throw new ApplicationError("ERPNext connector must be enabled and configured before item pull.", {}, 409)
+  }
+
+  if (settings.lastVerificationStatus !== "passed") {
+    throw new ApplicationError("ERPNext connector must be verified successfully before item pull.", {}, 409)
+  }
+
+  return createFrappeConnection(config)
+}
+
+function toLocalItem(
+  remoteItem: Record<string, unknown>,
+  defaults: Awaited<ReturnType<typeof readStoredDefaults>>,
+  existingItem?: FrappeItem | null
+) {
+  const itemCode =
+    typeof remoteItem.item_code === "string" ? remoteItem.item_code.trim() : ""
+  const itemName =
+    typeof remoteItem.item_name === "string" ? remoteItem.item_name.trim() : ""
+
+  if (!itemCode || !itemName) {
+    throw new ApplicationError("ERPNext Item response is missing item_code or item_name.", {}, 502)
+  }
+
+  return frappeItemSchema.parse({
+    id: existingItem?.id || `frappe-item:${slugify(itemCode) || randomUUID()}`,
+    itemCode,
+    itemName,
+    description:
+      typeof remoteItem.description === "string" ? remoteItem.description.trim() : "",
+    itemGroup:
+      typeof remoteItem.item_group === "string" ? remoteItem.item_group.trim() : "",
+    stockUom:
+      typeof remoteItem.stock_uom === "string" ? remoteItem.stock_uom.trim() : "",
+    brand: typeof remoteItem.brand === "string" ? remoteItem.brand.trim() : "",
+    gstHsnCode:
+      typeof remoteItem.gst_hsn_code === "string" ? remoteItem.gst_hsn_code.trim() : "",
+    defaultCompany: existingItem?.defaultCompany || defaults.defaultCompany,
+    defaultWarehouse:
+      typeof remoteItem.default_warehouse === "string" && remoteItem.default_warehouse.trim()
+        ? remoteItem.default_warehouse.trim()
+        : existingItem?.defaultWarehouse || defaults.defaultWarehouse,
+    disabled:
+      typeof remoteItem.disabled === "boolean"
+        ? remoteItem.disabled
+        : Number(remoteItem.disabled ?? 0) !== 0,
+    isStockItem:
+      typeof remoteItem.is_stock_item === "boolean"
+        ? remoteItem.is_stock_item
+        : Number(remoteItem.is_stock_item ?? 1) !== 0,
+    hasVariants:
+      typeof remoteItem.has_variants === "boolean"
+        ? remoteItem.has_variants
+        : Number(remoteItem.has_variants ?? 0) !== 0,
+    modifiedAt:
+      typeof remoteItem.modified === "string"
+        ? remoteItem.modified
+        : new Date().toISOString(),
+    syncedProductId: existingItem?.syncedProductId || "",
+    syncedProductName: existingItem?.syncedProductName || "",
+    syncedProductSlug: existingItem?.syncedProductSlug || "",
+    isSyncedToProduct: existingItem?.isSyncedToProduct || false,
+  })
+}
+
+async function readRemoteItems(
+  connection: ReturnType<typeof createFrappeConnection>,
+  defaults: Awaited<ReturnType<typeof readStoredDefaults>>,
+  existingItems: FrappeItem[]
+) {
+  const fields = encodeURIComponent(
+    JSON.stringify([
+      "item_code",
+      "item_name",
+      "description",
+      "item_group",
+      "stock_uom",
+      "brand",
+      "gst_hsn_code",
+      "default_warehouse",
+      "disabled",
+      "is_stock_item",
+      "has_variants",
+      "modified",
+    ])
+  )
+  const { response } = await connection.request({
+    path: `/api/resource/Item?fields=${fields}&limit_page_length=5000`,
+  })
+
+  if (!response.ok) {
+    throw new ApplicationError(
+      "ERPNext rejected the item pull request.",
+      { detail: await readFrappeErrorText(response) },
+      response.status
+    )
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | { data?: unknown }
+    | null
+
+  if (!Array.isArray(payload?.data)) {
+    throw new ApplicationError("ERPNext item pull returned an invalid payload.", {}, 502)
+  }
+
+  const existingItemsByCode = new Map(
+    existingItems.map((item) => [item.itemCode.trim().toLowerCase(), item])
+  )
+
+  return payload.data.map((item) =>
+    toLocalItem(
+      item && typeof item === "object" ? item as Record<string, unknown> : {},
+      defaults,
+      existingItemsByCode.get(
+        typeof (item as Record<string, unknown>)?.item_code === "string"
+          ? ((item as Record<string, unknown>).item_code as string).trim().toLowerCase()
+          : ""
+      ) ?? null
+    )
+  )
 }
 
 function toProjectedProductPayload(item: FrappeItem) {
@@ -516,6 +652,67 @@ export async function syncFrappeItemsToProducts(
         failureCount,
       },
       syncedAt: finishedAt,
+    },
+  })
+}
+
+export async function pullFrappeItemsLive(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  options?: FrappeItemServiceOptions
+) {
+  assertSuperAdmin(user)
+
+  const existingItems = await readItems(database)
+  const defaults = await readStoredDefaults(database, options)
+  const connection = await createVerifiedItemConnection(database, options)
+  const remoteItems = await readRemoteItems(connection, defaults, existingItems)
+  const existingItemsByCode = new Map(
+    existingItems.map((item) => [item.itemCode.trim().toLowerCase(), item])
+  )
+  const syncedAt = new Date().toISOString()
+  let pulledCount = 0
+  let updatedCount = 0
+  let skippedCount = 0
+
+  for (const item of remoteItems) {
+    const existingItem = existingItemsByCode.get(item.itemCode.trim().toLowerCase())
+
+    if (!existingItem) {
+      pulledCount += 1
+      continue
+    }
+
+    if (JSON.stringify(existingItem) === JSON.stringify(item)) {
+      skippedCount += 1
+      continue
+    }
+
+    updatedCount += 1
+  }
+
+  await writeItems(database, remoteItems)
+  await recordFrappeConnectorEvent(database, user, {
+    action: "items.pull_live",
+    status: "success",
+    message: `Frappe item pull completed: ${pulledCount} new, ${updatedCount} updated, ${skippedCount} unchanged.`,
+    referenceId: "frappe-products:pull-live",
+    details: {
+      pulledCount,
+      updatedCount,
+      skippedCount,
+      appRecordCount: remoteItems.length,
+    },
+  })
+
+  return frappeItemPullLiveResponseSchema.parse({
+    sync: {
+      pulledCount,
+      updatedCount,
+      skippedCount,
+      appRecordCount: remoteItems.length,
+      syncedAt,
+      items: remoteItems,
     },
   })
 }

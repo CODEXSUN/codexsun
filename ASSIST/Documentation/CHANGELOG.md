@@ -8,6 +8,20 @@
 
 ## v-0.0.1
 
+### [#147] 2026-04-12 - Cloud runtime git-root detection fix
+
+- fixed framework runtime system-update git-root resolution so git-sync deployments search the current working directory, ancestor directories, and runtime repository candidates for the real `.git` root instead of assuming one fixed layout
+- removed the cloud deploy failure mode where the running app could repeatedly invoke `git` from `/opt/codexsun` or another non-repository directory after the entrypoint cloned the runtime repository into `/opt/codexsun/runtime/repository`
+- confirmed the Docker build and entrypoint clone path were already healthy, so no Dockerfile change was needed for this fix
+- validated the batch with `npm run typecheck` and `npm run build`
+
+### [#146] 2026-04-12 - Live ERPNext item pull into Frappe products
+
+- added a Frappe-owned live pull service that reads ERPNext `Item` records through the verified env-backed connector and stores them in the app-owned `frappe_products` snapshot table
+- exposed `POST /internal/v1/frappe/items/pull-live` and wired a `Pull ERP` action into the Frappe product manager so all ERP items can be imported into the local system without browser-side Frappe access
+- preserved existing core-product linkage metadata when pulled ERP items match local snapshots by `itemCode`
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, `npx tsx --test tests/framework/runtime/database-process.test.ts`, and a focused route-registry assertion for `POST /internal/v1/frappe/items/pull-live`
+
 ### [#145] 2026-04-12 - Remove inactive Zetro wiring and sanitize ERPNext ToDo HTML
 
 - removed the inactive `zetro` app from active app-suite registration, internal route aggregation, desk navigation, workspace routing, database-module registration, the package script, and the dedicated route test so production builds no longer import files that are not present in this workspace
@@ -20,6 +34,7 @@
 - changed Frappe item/product snapshot writes to persist through `frappe_products`, keeping product sync orchestration inside `apps/frappe`
 - refactored the Frappe Item Manager into the same compact `MasterList` table, same-height toolbar actions, inline sync status text, ERP status dot, row selection, pagination, and popup create/edit flow used by the ToDo workspace
 - added selected product sync and all-filtered product sync actions for projecting Frappe product snapshots into core products
+- validated the batch with `npx tsx --test tests/frappe/services.test.ts` and `npx tsx --test tests/framework/runtime/database-process.test.ts`
 
 ### [#143] 2026-04-12 - Frappe ToDo ERP status header
 

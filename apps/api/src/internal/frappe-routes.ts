@@ -8,6 +8,7 @@ import {
   getFrappeItem,
   listFrappeItemProductSyncLogs,
   listFrappeItems,
+  pullFrappeItemsLive,
   syncFrappeItemsToProducts,
   updateFrappeItem,
 } from "../../../frappe/src/services/item-service.js"
@@ -479,6 +480,25 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
             context.databases.primary,
             user,
             context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/items/pull-live", {
+      method: "POST",
+      summary: "Pull live ERPNext items into app-owned Frappe product snapshots.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await pullFrappeItemsLive(
+            context.databases.primary,
+            user,
+            {
+              cwd: resolveRuntimeSettingsRoot(context.config),
+            }
           )
         )
       },

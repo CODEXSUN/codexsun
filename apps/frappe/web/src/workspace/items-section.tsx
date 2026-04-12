@@ -27,6 +27,7 @@ import {
   createFrappeItem,
   listFrappeItems,
   listFrappeItemSyncLogs,
+  pullFrappeItemsLive,
   syncFrappeItemsToProducts,
   updateFrappeItem,
 } from "../api/frappe-api"
@@ -222,6 +223,28 @@ export function FrappeItemsSection() {
     }
   }
 
+  async function handlePullLive() {
+    setIsSyncing(true)
+    setError(null)
+    setSyncMessage(null)
+
+    try {
+      const response = await pullFrappeItemsLive()
+      setItems(response.sync.items)
+      setSelectedIds([])
+      setConnectionState("connected")
+      setLastSyncedAt(response.sync.syncedAt)
+      setSyncMessage(
+        `ERP pull completed: ${response.sync.pulledCount} new, ${response.sync.updatedCount} updated, ${response.sync.skippedCount} unchanged. App records: ${response.sync.appRecordCount}.`
+      )
+      await loadItems()
+    } catch (nextError) {
+      setError(toErrorMessage(nextError))
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   if (isLoading) {
     return null
   }
@@ -290,6 +313,15 @@ export function FrappeItemsSection() {
                     <Button
                       variant="outline"
                       className="h-9 gap-2 border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                      onClick={() => void handlePullLive()}
+                      disabled={isSyncing}
+                    >
+                      <RefreshCwIcon className="size-4" />
+                      {isSyncing ? "Pulling..." : "Pull ERP"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-9 gap-2 border-cyan-200 bg-cyan-50 text-cyan-900 hover:bg-cyan-100"
                       onClick={() => void handleSyncProducts(selectedIds.map(String))}
                       disabled={isSyncing || selectedCount === 0}
                     >
