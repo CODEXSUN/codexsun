@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.2.0`
+Current baseline: `1.3.0`
 
-Next target: `1.2.1`
+Next target: `1.3.1`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -322,6 +322,8 @@ Completion notes:
 
 ## 1.2.1 Run Output Sections
 
+Status: complete.
+
 Goal:
 
 Store and render maximum-output sections for a run.
@@ -341,7 +343,18 @@ Exit criteria:
 2. Terminal can print structured output.
 3. Dashboard can render structured output.
 
+Completion notes:
+
+1. `zetro_run_output_sections` table exists with migration `06-zetro-run-output-sections`.
+2. Output section service exists with create and replace operations.
+3. Runs page shows output sections with section selector and content textarea.
+4. Terminal `output <runId>` command prints structured output sections.
+5. Dashboard renders output sections with sequence, section name, content, and timestamp.
+6. No command execution was added.
+
 ## 1.3.0 Advisory Command Proposals
+
+Status: complete.
 
 Goal:
 
@@ -361,6 +374,15 @@ Exit criteria:
 1. Zetro proposes commands.
 2. Operator can approve or reject.
 3. No command is executed.
+
+Completion notes:
+
+1. `zetro_command_proposals` table exists with migration `07-zetro-command-proposals`.
+2. Command proposal service exists with create, list, and status update operations.
+3. Proposals are linked to runs and track command, args, summary, rationale, status, reviewedAt, reviewedBy.
+4. Dashboard runs page shows command proposals with approve/reject buttons for pending proposals.
+5. Terminal commands: `proposals [--run <id>]`, `propose --run <id> --cmd <v> --summary <v>`, `approve <proposalId>`, `reject <proposalId>`.
+6. No command execution was added. Proposals stay pending until explicitly approved.
 
 ## 1.3.1 Runner Policy And Allowlist
 

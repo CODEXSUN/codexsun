@@ -1,10 +1,12 @@
-import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
-import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
-import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
+import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js";
+import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js";
+import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js";
 import {
   appendZetroRunEvent,
   createZetroFinding,
   createZetroRun,
+  createZetroRunOutputSection,
+  createZetroCommandProposal,
   getZetroDashboardSummary,
   getZetroPlaybook,
   getZetroRunWithDetails,
@@ -13,34 +15,48 @@ import {
   listZetroPlaybooks,
   listZetroRuns,
   readZetroSettings,
+  replaceZetroRunOutputSections,
   updateZetroFindingStatus,
+  updateZetroCommandProposalStatus,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
+  type ZetroCreateOutputSectionInput,
+  type ZetroCreateCommandProposalInput,
+  type ZetroUpdateCommandProposalStatusInput,
   type ZetroFindingStatus,
-} from "../../../zetro/src/services/index.js"
+} from "../../../zetro/src/services/index.js";
 
-import { jsonResponse } from "../shared/http-responses.js"
-import { requireAuthenticatedUser } from "../shared/session.js"
+import { jsonResponse } from "../shared/http-responses.js";
+import { requireAuthenticatedUser } from "../shared/session.js";
 
-function requireQueryId(context: Parameters<HttpRouteDefinition["handler"]>[0], label: string) {
-  const id = context.request.url.searchParams.get("id")?.trim()
+function requireQueryId(
+  context: Parameters<HttpRouteDefinition["handler"]>[0],
+  label: string,
+) {
+  const id = context.request.url.searchParams.get("id")?.trim();
 
   if (!id) {
-    throw new ApplicationError(`${label} id is required.`, {}, 400)
+    throw new ApplicationError(`${label} id is required.`, {}, 400);
   }
 
-  return id
+  return id;
 }
 
-function requireJsonObject(context: Parameters<HttpRouteDefinition["handler"]>[0]) {
-  const body = context.request.jsonBody
+function requireJsonObject(
+  context: Parameters<HttpRouteDefinition["handler"]>[0],
+) {
+  const body = context.request.jsonBody;
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new ApplicationError("JSON object request body is required.", {}, 400)
+    throw new ApplicationError(
+      "JSON object request body is required.",
+      {},
+      400,
+    );
   }
 
-  return body as Record<string, unknown>
+  return body as Record<string, unknown>;
 }
 
 export function createZetroInternalRoutes(): HttpRouteDefinition[] {
@@ -50,9 +66,11 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        return jsonResponse(await getZetroDashboardSummary(context.databases.primary))
+        return jsonResponse(
+          await getZetroDashboardSummary(context.databases.primary),
+        );
       },
     }),
     defineInternalRoute("/zetro/playbooks", {
@@ -60,11 +78,11 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
         return jsonResponse({
           items: await listZetroPlaybooks(context.databases.primary),
-        })
+        });
       },
     }),
     defineInternalRoute("/zetro/playbook", {
@@ -72,20 +90,23 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        const playbookId = requireQueryId(context, "Zetro playbook")
-        const playbook = await getZetroPlaybook(context.databases.primary, playbookId)
+        const playbookId = requireQueryId(context, "Zetro playbook");
+        const playbook = await getZetroPlaybook(
+          context.databases.primary,
+          playbookId,
+        );
 
         if (!playbook) {
           throw new ApplicationError(
             "Zetro playbook could not be found.",
             { playbookId },
-            404
-          )
+            404,
+          );
         }
 
-        return jsonResponse(playbook)
+        return jsonResponse(playbook);
       },
     }),
     defineInternalRoute("/zetro/runs", {
@@ -93,11 +114,11 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
         return jsonResponse({
           items: await listZetroRuns(context.databases.primary),
-        })
+        });
       },
     }),
     defineInternalRoute("/zetro/run", {
@@ -105,16 +126,23 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        const runId = requireQueryId(context, "Zetro run")
-        const run = await getZetroRunWithDetails(context.databases.primary, runId)
+        const runId = requireQueryId(context, "Zetro run");
+        const run = await getZetroRunWithDetails(
+          context.databases.primary,
+          runId,
+        );
 
         if (!run) {
-          throw new ApplicationError("Zetro run could not be found.", { runId }, 404)
+          throw new ApplicationError(
+            "Zetro run could not be found.",
+            { runId },
+            404,
+          );
         }
 
-        return jsonResponse(run)
+        return jsonResponse(run);
       },
     }),
     defineInternalRoute("/zetro/runs", {
@@ -123,35 +151,36 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
         return jsonResponse(
           await createZetroRun(
             context.databases.primary,
-            requireJsonObject(context) as ZetroCreateRunInput
+            requireJsonObject(context) as ZetroCreateRunInput,
           ),
-          201
-        )
+          201,
+        );
       },
     }),
     defineInternalRoute("/zetro/run/events", {
       method: "POST",
-      summary: "Append a manual event to a Zetro run without executing commands.",
+      summary:
+        "Append a manual event to a Zetro run without executing commands.",
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        const runId = requireQueryId(context, "Zetro run")
+        const runId = requireQueryId(context, "Zetro run");
 
         return jsonResponse(
           await appendZetroRunEvent(
             context.databases.primary,
             runId,
-            requireJsonObject(context) as ZetroCreateRunEventInput
+            requireJsonObject(context) as ZetroCreateRunEventInput,
           ),
-          201
-        )
+          201,
+        );
       },
     }),
     defineInternalRoute("/zetro/findings", {
@@ -159,19 +188,21 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        const runId = context.request.url.searchParams.get("runId") ?? undefined
+        const runId =
+          context.request.url.searchParams.get("runId") ?? undefined;
         const status =
-          (context.request.url.searchParams.get("status") as ZetroFindingStatus | null) ??
-          undefined
+          (context.request.url.searchParams.get(
+            "status",
+          ) as ZetroFindingStatus | null) ?? undefined;
 
         return jsonResponse({
           items: await listZetroFindings(context.databases.primary, {
             runId,
             status,
           }),
-        })
+        });
       },
     }),
     defineInternalRoute("/zetro/findings", {
@@ -180,15 +211,15 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
         return jsonResponse(
           await createZetroFinding(
             context.databases.primary,
-            requireJsonObject(context) as ZetroCreateFindingInput
+            requireJsonObject(context) as ZetroCreateFindingInput,
           ),
-          201
-        )
+          201,
+        );
       },
     }),
     defineInternalRoute("/zetro/finding", {
@@ -197,24 +228,28 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        const findingId = requireQueryId(context, "Zetro finding")
+        const findingId = requireQueryId(context, "Zetro finding");
         const status = requireJsonObject(context).status as
           | ZetroFindingStatus
-          | undefined
+          | undefined;
 
         if (!status) {
-          throw new ApplicationError("Zetro finding status is required.", {}, 400)
+          throw new ApplicationError(
+            "Zetro finding status is required.",
+            {},
+            400,
+          );
         }
 
         return jsonResponse(
           await updateZetroFindingStatus(
             context.databases.primary,
             findingId,
-            status
-          )
-        )
+            status,
+          ),
+        );
       },
     }),
     defineInternalRoute("/zetro/guardrails", {
@@ -222,11 +257,11 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
         return jsonResponse({
           items: await listZetroGuardrails(context.databases.primary),
-        })
+        });
       },
     }),
     defineInternalRoute("/zetro/settings", {
@@ -234,10 +269,90 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
-        })
+        });
 
-        return jsonResponse(await readZetroSettings(context.databases.primary))
+        return jsonResponse(await readZetroSettings(context.databases.primary));
       },
     }),
-  ]
+    defineInternalRoute("/zetro/run/output-sections", {
+      summary: "Create a manual output section for a Zetro run.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(
+          context,
+        ) as ZetroCreateOutputSectionInput;
+
+        return jsonResponse(
+          await createZetroRunOutputSection(context.databases.primary, body),
+          201,
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/run/output-sections", {
+      summary: "Replace all output sections for a Zetro run.",
+      method: "PUT",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          runId: string;
+          sections: Array<{ section: string; content: string }>;
+        };
+
+        return jsonResponse(
+          await replaceZetroRunOutputSections(
+            context.databases.primary,
+            body.runId,
+            body.sections,
+          ),
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/run/command-proposals", {
+      summary: "Create a command proposal for a Zetro run.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(
+          context,
+        ) as ZetroCreateCommandProposalInput;
+
+        return jsonResponse(
+          await createZetroCommandProposal(context.databases.primary, body),
+          201,
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/command-proposal", {
+      summary: "Update command proposal status (approve or reject).",
+      method: "PATCH",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const proposalId = requireQueryId(context, "Zetro command proposal");
+        const body = requireJsonObject(
+          context,
+        ) as ZetroUpdateCommandProposalStatusInput;
+
+        return jsonResponse(
+          await updateZetroCommandProposalStatus(
+            context.databases.primary,
+            proposalId,
+            body,
+          ),
+        );
+      },
+    }),
+  ];
 }

@@ -1,25 +1,30 @@
-import { randomUUID } from "node:crypto"
+import { randomUUID } from "node:crypto";
 
-import type { Kysely } from "kysely"
+import type { Kysely } from "kysely";
 
-import { zetroTableNames } from "../../database/table-names.js"
-import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import { zetroTableNames } from "../../database/table-names.js";
+import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js";
 import {
   zetroOutputModes,
   type ZetroOutputModeId,
   type ZetroSampleRun,
-} from "../../shared/index.js"
+} from "../../shared/index.js";
 import {
   listStorePayloads,
   listStoreRecords,
   replaceStoreRecords,
-} from "../data/query-database.js"
-import { listZetroFindings, type ZetroFinding } from "./finding-service.js"
-import { getZetroPlaybook } from "./playbook-service.js"
+} from "../data/query-database.js";
+import { listZetroFindings, type ZetroFinding } from "./finding-service.js";
+import { listZetroRunOutputSections } from "./output-section-service.js";
+import { getZetroPlaybook } from "./playbook-service.js";
+import type {
+  ZetroCommandProposal,
+  ZetroCommandProposalStatus,
+} from "./command-proposal-service.js";
 
-export type ZetroRun = ZetroSampleRun
+export type ZetroRun = ZetroSampleRun;
 
-export type ZetroRunStatus = ZetroRun["status"]
+export type ZetroRunStatus = ZetroRun["status"];
 
 export type ZetroRunEventKind =
   | "note"
@@ -27,38 +32,49 @@ export type ZetroRunEventKind =
   | "approval"
   | "finding"
   | "command-proposal"
-  | "output"
+  | "output";
 
 export type ZetroRunEvent = {
-  id: string
-  runId: string
-  sequence: number
-  kind: ZetroRunEventKind
-  summary: string
-  detail?: string
-  createdAt: string
-}
+  id: string;
+  runId: string;
+  sequence: number;
+  kind: ZetroRunEventKind;
+  summary: string;
+  detail?: string;
+  createdAt: string;
+};
+
+export type ZetroRunOutputSection = {
+  id: string;
+  runId: string;
+  sequence: number;
+  section: string;
+  content: string;
+  createdAt: string;
+};
 
 export type ZetroRunWithDetails = ZetroRun & {
-  events: ZetroRunEvent[]
-  findings: ZetroFinding[]
-}
+  events: ZetroRunEvent[];
+  findings: ZetroFinding[];
+  outputSections: ZetroRunOutputSection[];
+  commandProposals: ZetroCommandProposal[];
+};
 
 export type ZetroCreateRunInput = {
-  id?: string
-  title: string
-  playbookId: string
-  status?: ZetroRunStatus
-  outputMode?: ZetroOutputModeId
-  summary: string
-}
+  id?: string;
+  title: string;
+  playbookId: string;
+  status?: ZetroRunStatus;
+  outputMode?: ZetroOutputModeId;
+  summary: string;
+};
 
 export type ZetroCreateRunEventInput = {
-  id?: string
-  kind?: ZetroRunEventKind
-  summary: string
-  detail?: string
-}
+  id?: string;
+  kind?: ZetroRunEventKind;
+  summary: string;
+  detail?: string;
+};
 
 const zetroRunStatuses = new Set<ZetroRunStatus>([
   "draft",
@@ -69,7 +85,7 @@ const zetroRunStatuses = new Set<ZetroRunStatus>([
   "completed",
   "failed",
   "cancelled",
-])
+]);
 
 const zetroRunEventKinds = new Set<ZetroRunEventKind>([
   "note",
@@ -78,49 +94,57 @@ const zetroRunEventKinds = new Set<ZetroRunEventKind>([
   "finding",
   "command-proposal",
   "output",
-])
+]);
 const zetroRunOutputModes = new Set<ZetroOutputModeId>(
-  zetroOutputModes.map((mode) => mode.id)
-)
+  zetroOutputModes.map((mode) => mode.id),
+);
 
 function byEventSequence(left: ZetroRunEvent, right: ZetroRunEvent) {
-  return left.sequence - right.sequence || left.id.localeCompare(right.id)
+  return left.sequence - right.sequence || left.id.localeCompare(right.id);
 }
 
 function assertRunStatus(status: ZetroRunStatus) {
   if (!zetroRunStatuses.has(status)) {
-    throw new ApplicationError("Unsupported Zetro run status.", { status }, 400)
+    throw new ApplicationError(
+      "Unsupported Zetro run status.",
+      { status },
+      400,
+    );
   }
 }
 
 function assertRunEventKind(kind: ZetroRunEventKind) {
   if (!zetroRunEventKinds.has(kind)) {
-    throw new ApplicationError("Unsupported Zetro run event kind.", { kind }, 400)
+    throw new ApplicationError(
+      "Unsupported Zetro run event kind.",
+      { kind },
+      400,
+    );
   }
 }
 
 function normalizeRunInput(input: ZetroCreateRunInput) {
-  const title = input.title?.trim()
-  const playbookId = input.playbookId?.trim()
-  const summary = input.summary?.trim()
-  const status = input.status ?? "draft"
+  const title = input.title?.trim();
+  const playbookId = input.playbookId?.trim();
+  const summary = input.summary?.trim();
+  const status = input.status ?? "draft";
 
   if (!title || !playbookId || !summary) {
     throw new ApplicationError(
       "Zetro run title, playbookId, and summary are required.",
       {},
-      400
-    )
+      400,
+    );
   }
 
-  assertRunStatus(status)
+  assertRunStatus(status);
 
   if (input.outputMode && !zetroRunOutputModes.has(input.outputMode)) {
     throw new ApplicationError(
       "Unsupported Zetro output mode.",
       { outputMode: input.outputMode },
-      400
-    )
+      400,
+    );
   }
 
   return {
@@ -130,95 +154,106 @@ function normalizeRunInput(input: ZetroCreateRunInput) {
     status,
     outputMode: input.outputMode,
     summary,
-  }
+  };
 }
 
 function normalizeRunEventInput(input: ZetroCreateRunEventInput) {
-  const summary = input.summary?.trim()
-  const kind = input.kind ?? "note"
+  const summary = input.summary?.trim();
+  const kind = input.kind ?? "note";
 
   if (!summary) {
-    throw new ApplicationError("Zetro run event summary is required.", {}, 400)
+    throw new ApplicationError("Zetro run event summary is required.", {}, 400);
   }
 
-  assertRunEventKind(kind)
+  assertRunEventKind(kind);
 
   return {
     id: input.id?.trim() || `zetro-event-${randomUUID()}`,
     kind,
     summary,
     detail: input.detail?.trim() || undefined,
-  }
+  };
 }
 
 export async function listZetroRuns(database: Kysely<unknown>) {
-  return listStorePayloads<ZetroRun>(database, zetroTableNames.runs)
+  return listStorePayloads<ZetroRun>(database, zetroTableNames.runs);
 }
 
 export async function listZetroRunEvents(
   database: Kysely<unknown>,
-  runId?: string
+  runId?: string,
 ) {
   const events = await listStorePayloads<ZetroRunEvent>(
     database,
-    zetroTableNames.runEvents
-  )
+    zetroTableNames.runEvents,
+  );
 
   return events
     .filter((event) => !runId || event.runId === runId)
-    .sort(byEventSequence)
+    .sort(byEventSequence);
 }
 
 export async function getZetroRun(database: Kysely<unknown>, runId: string) {
-  const runs = await listZetroRuns(database)
+  const runs = await listZetroRuns(database);
 
-  return runs.find((run) => run.id === runId) ?? null
+  return runs.find((run) => run.id === runId) ?? null;
 }
 
 export async function getZetroRunWithDetails(
   database: Kysely<unknown>,
-  runId: string
+  runId: string,
 ) {
-  const [run, events, findings] = await Promise.all([
-    getZetroRun(database, runId),
-    listZetroRunEvents(database, runId),
-    listZetroFindings(database, { runId }),
-  ])
+  const { listZetroCommandProposals } =
+    await import("./command-proposal-service.js");
+
+  const [run, events, findings, outputSections, commandProposals] =
+    await Promise.all([
+      getZetroRun(database, runId),
+      listZetroRunEvents(database, runId),
+      listZetroFindings(database, { runId }),
+      listZetroRunOutputSections(database, runId),
+      listZetroCommandProposals(database, { runId }),
+    ]);
 
   if (!run) {
-    return null
+    return null;
   }
 
   return {
     ...run,
     events,
     findings,
-  } satisfies ZetroRunWithDetails
+    outputSections,
+    commandProposals,
+  } satisfies ZetroRunWithDetails;
 }
 
 export async function createZetroRun(
   database: Kysely<unknown>,
-  input: ZetroCreateRunInput
+  input: ZetroCreateRunInput,
 ) {
-  const normalizedInput = normalizeRunInput(input)
-  const playbook = await getZetroPlaybook(database, normalizedInput.playbookId)
+  const normalizedInput = normalizeRunInput(input);
+  const playbook = await getZetroPlaybook(database, normalizedInput.playbookId);
 
   if (!playbook) {
     throw new ApplicationError(
       "Zetro playbook could not be found.",
       { playbookId: normalizedInput.playbookId },
-      404
-    )
+      404,
+    );
   }
 
-  const records = await listStoreRecords<ZetroRun>(database, zetroTableNames.runs)
+  const records = await listStoreRecords<ZetroRun>(
+    database,
+    zetroTableNames.runs,
+  );
 
   if (records.some((record) => record.id === normalizedInput.id)) {
     throw new ApplicationError(
       "Zetro run id already exists.",
       { runId: normalizedInput.id },
-      409
-    )
+      409,
+    );
   }
 
   const run = {
@@ -228,7 +263,7 @@ export async function createZetroRun(
     status: normalizedInput.status,
     outputMode: normalizedInput.outputMode ?? playbook.defaultOutputMode,
     summary: normalizedInput.summary,
-  } satisfies ZetroRun
+  } satisfies ZetroRun;
 
   await replaceStoreRecords(database, zetroTableNames.runs, [
     ...records,
@@ -238,40 +273,40 @@ export async function createZetroRun(
       sortOrder: (records.at(-1)?.sortOrder ?? 0) + 10,
       payload: run,
     },
-  ])
+  ]);
 
-  return run
+  return run;
 }
 
 export async function appendZetroRunEvent(
   database: Kysely<unknown>,
   runId: string,
-  input: ZetroCreateRunEventInput
+  input: ZetroCreateRunEventInput,
 ) {
-  const run = await getZetroRun(database, runId)
+  const run = await getZetroRun(database, runId);
 
   if (!run) {
-    throw new ApplicationError("Zetro run could not be found.", { runId }, 404)
+    throw new ApplicationError("Zetro run could not be found.", { runId }, 404);
   }
 
-  const normalizedInput = normalizeRunEventInput(input)
+  const normalizedInput = normalizeRunEventInput(input);
   const records = await listStoreRecords<ZetroRunEvent>(
     database,
-    zetroTableNames.runEvents
-  )
+    zetroTableNames.runEvents,
+  );
 
   if (records.some((record) => record.id === normalizedInput.id)) {
     throw new ApplicationError(
       "Zetro run event id already exists.",
       { eventId: normalizedInput.id },
-      409
-    )
+      409,
+    );
   }
 
   const runEvents = records
     .map((record) => record.payload)
-    .filter((event) => event.runId === runId)
-  const lastSequence = Math.max(0, ...runEvents.map((event) => event.sequence))
+    .filter((event) => event.runId === runId);
+  const lastSequence = Math.max(0, ...runEvents.map((event) => event.sequence));
   const event = {
     id: normalizedInput.id,
     runId,
@@ -280,7 +315,7 @@ export async function appendZetroRunEvent(
     summary: normalizedInput.summary,
     detail: normalizedInput.detail,
     createdAt: new Date().toISOString(),
-  } satisfies ZetroRunEvent
+  } satisfies ZetroRunEvent;
 
   await replaceStoreRecords(database, zetroTableNames.runEvents, [
     ...records,
@@ -290,7 +325,7 @@ export async function appendZetroRunEvent(
       sortOrder: (records.at(-1)?.sortOrder ?? 0) + 10,
       payload: event,
     },
-  ])
+  ]);
 
-  return event
+  return event;
 }

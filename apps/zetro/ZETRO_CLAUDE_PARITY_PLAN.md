@@ -20,10 +20,11 @@ Current lock:
 
 1. Zetro is terminal-first plus dashboard catalog.
 2. Runner mode is manual.
-3. No command execution from Zetro yet.
-4. No LLM provider call yet.
-5. No autonomous loop yet.
+3. Command proposals exist (approve/reject workflow, no execution).
+4. Run output sections persist.
+5. No LLM provider call yet.
+6. No autonomous loop yet.
 
 Next build target:
 
-Persisted playbooks and runs.
+Runner policy and allowlist (1.3.1).
