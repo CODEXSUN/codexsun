@@ -265,7 +265,14 @@ async function resolveResponse(
     .normalize(urlPath)
     .replace(/^(\.\.[/\\])+/, "")
     .replace(/^[/\\]+/, "")
+  const repositoryPublicAssetPath = path.join(webRoot, "..", "..", "..", "..", "public", sanitizedPath)
   const assetPath = path.join(webRoot, sanitizedPath)
+
+  try {
+    return await serveFile(repositoryPublicAssetPath)
+  } catch {
+    // Fall through to built assets when the root public file is not present.
+  }
 
   try {
     return await serveFile(assetPath)

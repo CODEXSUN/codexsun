@@ -32,7 +32,7 @@ TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setu
 - Updates `/opt/codexsun/runtime/.env`
 - Restarts the container and waits for health before exiting
 
-Runtime Git sync is disabled by default in local mode and enabled by default in cloud mode. Local installs without git sync run the image built from your current workspace. If you enable git sync in local mode, the setup now forces `APP_ENV=production` so the runtime repository stays authoritative instead of being overwritten by the development image overlay path. Cloud installs boot from the runtime repository so the live update flow can fetch, rebuild, and restart from Git.
+Runtime Git sync is disabled by default in local mode and enabled by default in cloud mode. Local installs without git sync run the image built from your current workspace. If you enable git sync in local mode, the runtime repository remains authoritative and local installs keep `APP_ENV=development` without reapplying stale baked image code over the synced checkout. Cloud installs boot from the runtime repository so the live update flow can fetch, rebuild, and restart from Git.
 
 Local git-sync example:
 
@@ -43,7 +43,7 @@ GIT_SYNC_ENABLED=true ./.container/clients/codexsun/setup.sh
 That local mode keeps:
 
 - `GIT_SYNC_ENABLED=true`
-- `APP_ENV=production`
+- `APP_ENV=development`
 - `http://127.0.0.1:4000` as the local URL
 
 ```bash

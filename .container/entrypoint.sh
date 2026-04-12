@@ -147,7 +147,6 @@ checkout_runtime_branch() {
 sync_runtime_repository() {
   repo_url="$(resolve_startup_value "GIT_REPOSITORY_URL" "https://github.com/CODEXSUN/codexsun.git")"
   branch="$(resolve_startup_value "GIT_BRANCH" "main")"
-  app_env="$(resolve_startup_value "APP_ENV" "development")"
   auto_update="$(resolve_startup_value "GIT_AUTO_UPDATE_ON_START" "false")"
   force_update="$(resolve_startup_value "GIT_FORCE_UPDATE_ON_START" "false")"
   install_deps="$(resolve_startup_value "INSTALL_DEPS_ON_START" "false")"
@@ -155,7 +154,6 @@ sync_runtime_repository() {
   repo_bootstrapped="false"
   repo_updated="false"
   force_requested="false"
-  local_snapshot_applied="false"
   current_commit=""
 
   if ! command -v git >/dev/null 2>&1; then
@@ -201,20 +199,14 @@ sync_runtime_repository() {
     fi
   fi
 
-  if [ "$app_env" = "development" ]; then
-    overlay_image_snapshot_into_runtime_repo
-    local_snapshot_applied="true"
-    repo_updated="true"
-  fi
-
   ensure_runtime_git_excludes "$RUNTIME_REPO_ROOT"
 
-  if [ ! -d "$RUNTIME_REPO_ROOT/node_modules" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || [ "$local_snapshot_applied" = "true" ] || is_truthy "$install_deps"; then
+  if [ ! -d "$RUNTIME_REPO_ROOT/node_modules" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || is_truthy "$install_deps"; then
     log "Installing runtime dependencies..."
     (cd "$RUNTIME_REPO_ROOT" && npm ci)
   fi
 
-  if [ ! -f "$RUNTIME_REPO_ROOT/build/app/cxapp/server/cxapp/src/server/index.js" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || [ "$local_snapshot_applied" = "true" ] || is_truthy "$build_on_start"; then
+  if [ ! -f "$RUNTIME_REPO_ROOT/build/app/cxapp/server/cxapp/src/server/index.js" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || is_truthy "$build_on_start"; then
     log "Clearing build cache and rebuilding runtime repository..."
     clear_build_artifacts "$RUNTIME_REPO_ROOT"
     (cd "$RUNTIME_REPO_ROOT" && npm run build)

@@ -74,11 +74,11 @@ const legacyBrandAssetPaths: Record<BrandAssetVariant, { fileName: string; mimeT
 }
 
 function brandStorageRoot(config: ServerConfig) {
-  return path.resolve(path.dirname(config.database.sqliteFile), "..", "branding")
+  return path.join(repositoryRoot(config), "storage", "branding")
 }
 
 function brandBackupRoot(config: ServerConfig) {
-  return path.resolve(path.dirname(config.database.sqliteFile), "..", "backups", "branding")
+  return path.join(repositoryRoot(config), "storage", "backups", "branding")
 }
 
 function brandManifestPath(config: ServerConfig) {
@@ -86,7 +86,15 @@ function brandManifestPath(config: ServerConfig) {
 }
 
 function publicBrandDirectory(config: ServerConfig) {
-  return path.join(config.webRoot, "public")
+  return path.join(repositoryRoot(config), "public")
+}
+
+function repositoryRoot(config: ServerConfig) {
+  return path.resolve(config.webRoot, "..", "..", "..", "..")
+}
+
+function activeBrandDirectory(config: ServerConfig) {
+  return path.join(brandStorageRoot(config), "active")
 }
 
 function buildManagedBrandAssetPublicUrl(variant: BrandAssetVariant, version?: string) {
@@ -131,8 +139,8 @@ function extractPathname(sourceUrl: string) {
 }
 
 function resolvePublicPath(config: ServerConfig, relativeUrlPath: string) {
-  const targetPath = path.resolve(config.webRoot, "public", relativeUrlPath.replace(/^\/+/, ""))
-  const allowedRoot = path.resolve(config.webRoot, "public")
+  const targetPath = path.resolve(publicBrandDirectory(config), relativeUrlPath.replace(/^\/+/, ""))
+  const allowedRoot = path.resolve(publicBrandDirectory(config))
 
   if (!targetPath.startsWith(allowedRoot)) {
     throw new ApplicationError("Brand asset path escapes the public directory.", { relativeUrlPath }, 400)
@@ -142,11 +150,22 @@ function resolvePublicPath(config: ServerConfig, relativeUrlPath: string) {
 }
 
 function resolveStoragePath(config: ServerConfig, relativeUrlPath: string) {
+  const targetPath = path.resolve(repositoryRoot(config), relativeUrlPath.replace(/^\/+/, ""))
+  const allowedRoot = path.resolve(repositoryRoot(config), "storage")
+
+  if (!targetPath.startsWith(allowedRoot)) {
+    throw new ApplicationError("Brand asset path escapes the storage directory.", { relativeUrlPath }, 400)
+  }
+
+  return targetPath
+}
+
+function resolveLegacyStoragePath(config: ServerConfig, relativeUrlPath: string) {
   const targetPath = path.resolve(config.webRoot, relativeUrlPath.replace(/^\/+/, ""))
   const allowedRoot = path.resolve(config.webRoot, "storage")
 
   if (!targetPath.startsWith(allowedRoot)) {
-    throw new ApplicationError("Brand asset path escapes the storage directory.", { relativeUrlPath }, 400)
+    throw new ApplicationError("Brand asset path escapes the legacy storage directory.", { relativeUrlPath }, 400)
   }
 
   return targetPath
@@ -179,9 +198,17 @@ async function resolveBrandAssetSource(
     }
   }
 
-  const absolutePath = pathname.startsWith("/storage/")
-    ? resolveStoragePath(config, pathname)
-    : resolvePublicPath(config, pathname)
+  let absolutePath: string
+
+  if (pathname.startsWith("/storage/")) {
+    const nextStoragePath = resolveStoragePath(config, pathname)
+    absolutePath =
+      (await pathExists(nextStoragePath))
+        ? nextStoragePath
+        : resolveLegacyStoragePath(config, pathname)
+  } else {
+    absolutePath = resolvePublicPath(config, pathname)
+  }
 
   return {
     extension: path.extname(pathname).replace(/^\./, "").toLowerCase(),
@@ -331,22 +358,9 @@ async function backupCurrentBrandAsset(
   version: string
 ) {
   const fileName = legacyBrandAssetPaths[variant].fileName
-  const currentCandidates = Array.from(
-    new Set([
-      path.join(publicBrandDirectory(config), fileName),
-      path.join(config.webRoot, "public", "brand", fileName),
-    ])
-  )
-  const primaryCandidate = currentCandidates[0] ?? path.join(publicBrandDirectory(config), fileName)
-  const secondaryCandidate =
-    currentCandidates[1] ?? path.join(config.webRoot, "public", "brand", fileName)
+  const currentLogoPath = path.join(publicBrandDirectory(config), fileName)
 
-  const currentLogoPath =
-    (await pathExists(primaryCandidate)) ? primaryCandidate
-    : (await pathExists(secondaryCandidate)) ? secondaryCandidate
-    : null
-
-  if (!currentLogoPath) {
+  if (!(await pathExists(currentLogoPath))) {
     return null
   }
 
@@ -390,7 +404,7 @@ export async function readPublishedBrandAsset(
   }
 
   const fallback = legacyBrandAssetPaths[variant] ?? legacyBrandAssetPaths.primary
-  const fallbackPath = path.join(config.webRoot, "public", fallback.fileName)
+  const fallbackPath = path.join(publicBrandDirectory(config), fallback.fileName)
 
   if (!(await pathExists(fallbackPath))) {
     throw new ApplicationError("Brand asset is not available.", { variant }, 404)
@@ -418,7 +432,7 @@ export async function getPublishedBrandAssetPublicUrl(
   }
 
   const fallback = legacyBrandAssetPaths[variant] ?? legacyBrandAssetPaths.primary
-  const fallbackPath = path.join(config.webRoot, "public", fallback.fileName)
+  const fallbackPath = path.join(publicBrandDirectory(config), fallback.fileName)
 
   if (await pathExists(fallbackPath)) {
     return buildLegacyBrandAssetPublicUrl(variant)
@@ -463,30 +477,29 @@ export async function publishCompanyBrandAssets(
     favicon: await backupCurrentBrandAsset(config, "favicon", version),
   }
   const managedDirectory = publicBrandDirectory(config)
+  const storageDirectory = activeBrandDirectory(config)
   const publicUrls = {
     primary: buildManagedBrandAssetPublicUrl("primary", version),
     dark: buildManagedBrandAssetPublicUrl("dark", version),
     favicon: buildManagedBrandAssetPublicUrl("favicon", version),
   }
 
+  const primarySvg = buildDesignedSvg(decodeSvgTextBuffer(primarySourceAsset.content), parsedPayload.primary)
+  const darkSvg = buildDesignedSvg(decodeSvgTextBuffer(darkSourceAsset.content), parsedPayload.dark)
+  const faviconSvg = buildDesignedSvg(decodeSvgTextBuffer(faviconSourceAsset.content), parsedPayload.favicon)
+
   await mkdir(managedDirectory, { recursive: true })
+  await mkdir(storageDirectory, { recursive: true })
   await mkdir(path.dirname(brandManifestPath(config)), { recursive: true })
-  await rm(path.join(config.webRoot, "public", "brand"), { recursive: true, force: true })
-  await writeFile(
-    path.join(managedDirectory, legacyBrandAssetPaths.primary.fileName),
-    buildDesignedSvg(decodeSvgTextBuffer(primarySourceAsset.content), parsedPayload.primary),
-    "utf8"
-  )
-  await writeFile(
-    path.join(managedDirectory, legacyBrandAssetPaths.dark.fileName),
-    buildDesignedSvg(decodeSvgTextBuffer(darkSourceAsset.content), parsedPayload.dark),
-    "utf8"
-  )
-  await writeFile(
-    path.join(managedDirectory, legacyBrandAssetPaths.favicon.fileName),
-    buildDesignedSvg(decodeSvgTextBuffer(faviconSourceAsset.content), parsedPayload.favicon),
-    "utf8"
-  )
+  await rm(path.join(managedDirectory, "brand"), { recursive: true, force: true })
+
+  await writeFile(path.join(storageDirectory, legacyBrandAssetPaths.primary.fileName), primarySvg, "utf8")
+  await writeFile(path.join(storageDirectory, legacyBrandAssetPaths.dark.fileName), darkSvg, "utf8")
+  await writeFile(path.join(storageDirectory, legacyBrandAssetPaths.favicon.fileName), faviconSvg, "utf8")
+
+  await writeFile(path.join(managedDirectory, legacyBrandAssetPaths.primary.fileName), primarySvg, "utf8")
+  await writeFile(path.join(managedDirectory, legacyBrandAssetPaths.dark.fileName), darkSvg, "utf8")
+  await writeFile(path.join(managedDirectory, legacyBrandAssetPaths.favicon.fileName), faviconSvg, "utf8")
 
   const manifest: PublishedBrandAssetManifest = {
     format: "svg",

@@ -108,11 +108,6 @@ const frameworkUtilityGroups = [
         name: "Core Settings",
         route: "/dashboard/settings/core-settings",
       },
-      {
-        icon: Building2,
-        name: "Companies",
-        route: "/dashboard/settings/companies",
-      },
     ],
   },
   {
@@ -507,9 +502,9 @@ export function AppSidebar() {
           className={`block ${open ? "px-1 py-1" : "px-0 py-1"}`}
         >
           <div className={`flex items-center ${open ? "gap-3" : "justify-center"}`}>
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background shadow-sm">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-sidebar-border bg-background shadow-sm">
               <img
-                src={resolveRuntimeBrandLogoUrl(runtimeBrand)}
+                src={resolveRuntimeBrandLogoUrl(runtimeBrand, "primary")}
                 alt={brand.name}
                 className="size-6 object-contain"
               />

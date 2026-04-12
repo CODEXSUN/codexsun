@@ -8,6 +8,15 @@
 
 ## v-0.0.1
 
+### [#125] 2026-04-12 - Company logo upload path verification
+
+- refactored the company branding publish path to the requested root-public model where generated brand files are kept under `storage/branding/active`, publish backs up the previous live files into `storage/backups/branding`, and the live storefront-facing files are overwritten only in the repository root `public/` folder as `logo.svg`, `logo-dark.svg`, and `favicon.svg`
+- restored runtime brand URLs to `/logo.svg`, `/logo-dark.svg`, and `/favicon.svg` with version query strings, and updated the framework static host to prefer repository-root `public/` files before built assets so storefront top menu, footer, and favicon all resolve the same live public branding source in the current runtime
+- updated the app sidebar brand mark to always use the light logo variant and changed the logo chip styling to a light-mode surface so the app menu branding matches the requested light treatment
+- kept compatibility for existing logo drafts and media references that still point at legacy `/storage/...` files under the previous web-root storage path, so publish continues to work while the live public output moves to the new canonical public-folder source
+- added a dedicated Playwright spec for the real upload path and updated the publish-flow assertions so coverage now verifies storefront runtime uses the root public brand files after publish
+- validated the batch with `npx.cmd tsx --test tests/cxapp/company-brand-assets-service.test.ts`, `npx.cmd playwright test tests/e2e/storefront-brand-publish.spec.ts`, `npx.cmd playwright test tests/e2e/company-logo-upload.spec.ts`, and `npm.cmd run typecheck`
+
 ### [#123] 2026-04-12 - Local container git-sync runtime mode defaults
 
 - fixed the local container setup defaults so `GIT_SYNC_ENABLED=true` no longer boots the runtime in development mode where the entrypoint overlays stale image code onto the synced repository
