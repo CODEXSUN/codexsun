@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `2.5.0`
+Current baseline: `2.6.0`
 
-Next target: `2.6.0`
+Next target: `2.7.0`
 
 ## Phase 1: Foundation
 
@@ -149,7 +149,7 @@ Completion notes:
 
 ## 2.6.0 Task Integration Layer
 
-Status: not started.
+Status: complete.
 
 Goal:
 
@@ -161,6 +161,15 @@ Deliverables:
 2. Auto-task creation rules
 3. Task templates for findings
 4. "Create Task" button on findings
+
+Completion notes:
+
+1. Created `task-integration-types.ts` with `ZetroTaskTemplate`, `ZetroTaskSyncRule`, `ZetroFindingToTaskMapping`.
+2. Created `task-integration-service.ts` with `createTaskFromFinding()`, `linkFindingToTask()`, `suggestTaskForFinding()`, `getTaskLinksForFinding()`.
+3. 7 task templates: security-fix, performance-fix, test-coverage, documentation-update, bug-fix, refactor, general.
+4. 7 sync rules with auto-create, suggest, and manual-only actions.
+5. Terminal commands added: `task-templates`, `task-suggest --finding <id>`, `task-create --finding <id> [--template <id>]`, `task-links [--finding <id>]`.
+6. Typecheck and doctor pass.
 
 ## 2.7.0 External Integration Layer
 

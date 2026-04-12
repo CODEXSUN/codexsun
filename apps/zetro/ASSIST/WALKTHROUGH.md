@@ -68,6 +68,8 @@ npm.cmd run zetro -- agent planner-default
 npm.cmd run zetro -- agent-run planner-default --task "build a feature"
 npm.cmd run zetro -- autonomy
 npm.cmd run zetro -- autonomy-check "git status"
+npm.cmd run zetro -- task-templates
+npm.cmd run zetro -- task-suggest --finding <id>
 npm.cmd run zetro -- plan "build persisted playbooks"
 npm.cmd run zetro -- chat
 ```

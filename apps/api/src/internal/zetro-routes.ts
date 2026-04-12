@@ -59,6 +59,20 @@ import {
   getFallbackModel,
   DEFAULT_TASK_ROUTING_CONFIG,
   ZETRO_TASK_TYPE_SUMMARY,
+  createWebhook,
+  updateWebhook,
+  deleteWebhook,
+  getWebhook,
+  listWebhooks,
+  triggerWebhook,
+  listWebhookDeliveries,
+  retryWebhookDelivery,
+  exportRun,
+  dispatchEventToWebhooks,
+  createGitHubIssue,
+  linkRunToPR,
+  postRunSummaryToPR,
+  sendSlackAlert,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
@@ -78,6 +92,14 @@ import {
   type ZetroMemorySearchResult,
   type ZetroTaskType,
   type ZetroTaskRoutingConfig,
+  type ZetroCreateWebhookInput,
+  type ZetroUpdateWebhookInput,
+  type ZetroWebhookEvent,
+  type ZetroWebhookProvider,
+  type ZetroWebhookPayload,
+  type ZetroGitHubConfig,
+  type ZetroGitHubIssue,
+  type ZetroSlackConfig,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -1022,6 +1044,296 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
           decision,
           fallback,
         });
+      },
+    }),
+    defineInternalRoute("/zetro/webhooks", {
+      summary: "List configured webhooks.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const provider = context.request.url.searchParams.get(
+          "provider",
+        ) as ZetroWebhookProvider | null;
+        const enabled = context.request.url.searchParams.get("enabled");
+        const event = context.request.url.searchParams.get(
+          "event",
+        ) as ZetroWebhookEvent | null;
+
+        const webhooks = await listWebhooks(context.databases.primary, {
+          provider: provider ?? undefined,
+          enabled:
+            enabled === "true" ? true : enabled === "false" ? false : undefined,
+          event: event ?? undefined,
+        });
+
+        return jsonResponse({ items: webhooks });
+      },
+    }),
+    defineInternalRoute("/zetro/webhook", {
+      summary: "Create a new webhook.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as ZetroCreateWebhookInput;
+
+        const webhook = await createWebhook(context.databases.primary, body);
+
+        return jsonResponse(webhook, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/webhook", {
+      summary: "Update a webhook.",
+      method: "PATCH",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const webhookId = requireQueryId(context, "Webhook");
+        const body = requireJsonObject(context) as ZetroUpdateWebhookInput;
+
+        const webhook = await updateWebhook(
+          context.databases.primary,
+          webhookId,
+          body,
+        );
+
+        return jsonResponse(webhook);
+      },
+    }),
+    defineInternalRoute("/zetro/webhook", {
+      summary: "Delete a webhook.",
+      method: "DELETE",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const webhookId = requireQueryId(context, "Webhook");
+
+        await deleteWebhook(context.databases.primary, webhookId);
+
+        return jsonResponse({ deleted: true, id: webhookId });
+      },
+    }),
+    defineInternalRoute("/zetro/webhook/trigger", {
+      summary: "Trigger a webhook delivery.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          webhookId: string;
+          event: ZetroWebhookEvent;
+          payload: ZetroWebhookPayload;
+        };
+
+        if (!body.webhookId || !body.event || !body.payload) {
+          throw new ApplicationError(
+            "webhookId, event, and payload are required.",
+            {},
+            400,
+          );
+        }
+
+        const delivery = await triggerWebhook(context.databases.primary, body);
+
+        return jsonResponse(delivery, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/webhook/deliveries", {
+      summary: "List webhook delivery history.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const webhookId =
+          context.request.url.searchParams.get("webhookId") ?? undefined;
+        const status =
+          context.request.url.searchParams.get("status") ?? undefined;
+        const limit = context.request.url.searchParams.get("limit");
+
+        const deliveries = await listWebhookDeliveries(
+          context.databases.primary,
+          {
+            webhookId,
+            status: status as "pending" | "delivered" | "failed" | undefined,
+            limit: limit ? Number(limit) : undefined,
+          },
+        );
+
+        return jsonResponse({ items: deliveries });
+      },
+    }),
+    defineInternalRoute("/zetro/webhook/delivery/retry", {
+      summary: "Retry a failed webhook delivery.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as { deliveryId: string };
+        const deliveryId = body.deliveryId?.trim();
+
+        if (!deliveryId) {
+          throw new ApplicationError("deliveryId is required.", {}, 400);
+        }
+
+        const delivery = await retryWebhookDelivery(
+          context.databases.primary,
+          deliveryId,
+        );
+
+        return jsonResponse(delivery);
+      },
+    }),
+    defineInternalRoute("/zetro/run/:id/export", {
+      summary: "Export a run with all details as JSON.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = context.request.url.pathname.split("/").pop();
+
+        if (!runId) {
+          throw new ApplicationError("Run id is required.", {}, 400);
+        }
+
+        const exportData = await exportRun(context.databases.primary, runId);
+
+        return jsonResponse(exportData);
+      },
+    }),
+    defineInternalRoute("/zetro/github/issue", {
+      summary: "Create a GitHub issue from a run.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          config: ZetroGitHubConfig;
+          issue: ZetroGitHubIssue;
+        };
+
+        if (!body.config || !body.issue) {
+          throw new ApplicationError(
+            "GitHub config and issue are required.",
+            {},
+            400,
+          );
+        }
+
+        const result = await createGitHubIssue(body.config, body.issue);
+
+        return jsonResponse(result, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/github/link-pr", {
+      summary: "Link a run to a GitHub PR with a comment.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          config: ZetroGitHubConfig;
+          runId: string;
+          prNumber: number;
+          comment: string;
+        };
+
+        if (!body.config || !body.runId || !body.prNumber) {
+          throw new ApplicationError(
+            "GitHub config, runId, and prNumber are required.",
+            {},
+            400,
+          );
+        }
+
+        const result = await linkRunToPR(
+          body.config,
+          body.runId,
+          body.prNumber,
+          body.comment ?? "",
+        );
+
+        return jsonResponse(result, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/github/post-summary", {
+      summary: "Post a run summary as a comment on a GitHub PR.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          config: ZetroGitHubConfig;
+          runId: string;
+          prNumber: number;
+        };
+
+        if (!body.config || !body.runId || !body.prNumber) {
+          throw new ApplicationError(
+            "GitHub config, runId, and prNumber are required.",
+            {},
+            400,
+          );
+        }
+
+        const result = await postRunSummaryToPR(
+          body.config,
+          context.databases.primary,
+          body.runId,
+          body.prNumber,
+        );
+
+        return jsonResponse(result, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/slack/alert", {
+      summary: "Send a Slack alert notification.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          config: ZetroSlackConfig;
+          alert: {
+            title: string;
+            message: string;
+            severity: "info" | "warning" | "error" | "critical";
+            fields?: Array<{ title: string; value: string; short?: boolean }>;
+          };
+        };
+
+        if (!body.config || !body.alert) {
+          throw new ApplicationError(
+            "Slack config and alert are required.",
+            {},
+            400,
+          );
+        }
+
+        const result = await sendSlackAlert(body.config, body.alert);
+
+        return jsonResponse(result, 201);
       },
     }),
   ];

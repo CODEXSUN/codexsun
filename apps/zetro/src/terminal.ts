@@ -65,6 +65,15 @@ import {
   getAutonomyStats,
   ZETRO_AUTONOMY_LEVEL_SUMMARY,
   ZETRO_RISK_LEVEL_SUMMARY,
+  getAvailableTemplates,
+  getAvailableSyncRules,
+  suggestTaskForFinding,
+  createTaskFromFinding,
+  linkFindingToTask,
+  getTaskLinksForFinding,
+  getAllTaskLinks,
+  getTaskIntegrationStats,
+  ZETRO_TASK_TEMPLATES,
   type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
@@ -131,6 +140,10 @@ type ZetroTerminalCommand =
   | "autonomy"
   | "autonomy-check"
   | "autonomy-logs"
+  | "task-templates"
+  | "task-suggest"
+  | "task-create"
+  | "task-links"
   | "plan"
   | "assist"
   | "doctor"
@@ -217,6 +230,12 @@ function printUsage() {
     "  autonomy-check <command>     Check if command auto-approves.",
   );
   console.info("  autonomy-logs [--run <id>]   Show autonomy decision logs.");
+  console.info("  task-templates              List available task templates.");
+  console.info("  task-suggest --finding <id>  Suggest task for a finding.");
+  console.info(
+    "  task-create --finding <id> [--template <id>]  Create task from finding.",
+  );
+  console.info("  task-links [--finding <id>]  Show finding-task links.");
   console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
   );
@@ -290,6 +309,10 @@ function resolveCommand(
     case "autonomy":
     case "autonomy-check":
     case "autonomy-logs":
+    case "task-templates":
+    case "task-suggest":
+    case "task-create":
+    case "task-links":
     case "plan":
     case "assist":
     case "doctor":
@@ -1782,6 +1805,167 @@ function printAutonomyLogsFromArgs(args: string[]) {
   }
 }
 
+function printTaskTemplates() {
+  const templates = getAvailableTemplates();
+  const rules = getAvailableSyncRules();
+
+  printHeader("Task Templates");
+  console.info(`Available templates: ${templates.length}`);
+  console.info("");
+
+  for (const template of templates) {
+    console.info(`${template.id}`);
+    console.info(`  Name: ${template.name}`);
+    console.info(`  Description: ${template.description}`);
+    console.info(`  Default Priority: ${template.defaultPriority}`);
+    if (template.autoCreateOnSeverity) {
+      console.info(`  Auto-create on: ${template.autoCreateOnSeverity}`);
+    }
+    if (template.suggestOnSeverity) {
+      console.info(`  Suggest on: ${template.suggestOnSeverity}`);
+    }
+    console.info(`  Fields: ${template.fields.map((f) => f.label).join(", ")}`);
+    console.info("");
+  }
+
+  console.info("Sync Rules:");
+  for (const rule of rules) {
+    console.info(
+      `  ${rule.id}: ${rule.findingSeverity} ${rule.findingCategory ?? "*"} → ${rule.action} (${rule.templateId})`,
+    );
+  }
+}
+
+async function suggestTaskForFindingFromArgs(args: string[]) {
+  const findingId = readOption(args, "--finding");
+
+  if (!findingId) {
+    console.info(
+      "Missing --finding. Try: npm run zetro -- task-suggest --finding <findingId>",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const data = await loadZetroTerminalData();
+  const finding = data.findings.find((f) => f.id === findingId);
+
+  if (!finding) {
+    console.info(`Unknown finding: ${findingId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const suggestion = suggestTaskForFinding(finding);
+
+  printHeader("Task Suggestion");
+  console.info(`Finding: ${finding.title}`);
+  console.info(`Severity: ${finding.severity}`);
+  console.info(`Category: ${finding.category}`);
+  console.info("");
+  console.info(`Should suggest: ${suggestion.shouldSuggest ? "YES" : "NO"}`);
+  console.info(`Template: ${suggestion.templateId}`);
+  console.info(`Priority: ${suggestion.priority}`);
+  console.info(`Reason: ${suggestion.reason}`);
+}
+
+async function createTaskFromFindingFromArgs(args: string[]) {
+  const findingId = readOption(args, "--finding");
+  const templateId = readOption(args, "--template") as
+    | "security-fix"
+    | "performance-fix"
+    | "test-coverage"
+    | "documentation-update"
+    | "bug-fix"
+    | "refactor"
+    | "general"
+    | undefined;
+
+  if (!findingId) {
+    console.info(
+      "Missing --finding. Try: npm run zetro -- task-create --finding <findingId>",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const data = await loadZetroTerminalData();
+  const finding = data.findings.find((f) => f.id === findingId);
+
+  if (!finding) {
+    console.info(`Unknown finding: ${findingId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const existingLinks = getTaskLinksForFinding(findingId);
+  if (existingLinks.length > 0) {
+    printHeader("Task Already Exists");
+    console.info(`Finding: ${finding.title}`);
+    console.info(`Already linked to: ${existingLinks[0]!.taskId}`);
+    return;
+  }
+
+  const result = await withZetroDatabase((database) =>
+    createTaskFromFinding(database, finding, templateId),
+  );
+
+  printHeader("Task Created");
+  console.info(`Finding: ${finding.title}`);
+  console.info(`Task ID: ${result.taskId}`);
+  console.info(`Template: ${result.templateId}`);
+  console.info(`Action: ${result.action}`);
+  console.info(`Link ID: ${result.linkId}`);
+
+  if (result.message) {
+    console.info(`Message: ${result.message}`);
+  }
+
+  if (!result.success && result.error) {
+    console.info(`Error: ${result.error}`);
+    process.exitCode = 1;
+  }
+}
+
+function printTaskLinksFromArgs(args: string[]) {
+  const findingId = readOption(args, "--finding");
+
+  printHeader("Finding-Task Links");
+
+  if (findingId) {
+    const links = getTaskLinksForFinding(findingId);
+    console.info(`Finding: ${findingId}`);
+    console.info(`Links: ${links.length}`);
+
+    for (const link of links) {
+      console.info(`  Task: ${link.taskId}`);
+      console.info(`  Template: ${link.templateId}`);
+      console.info(`  Created: ${new Date(link.createdAt).toLocaleString()}`);
+      console.info(`  Sync status: ${link.syncStatus}`);
+    }
+  } else {
+    const links = getAllTaskLinks();
+    const stats = getTaskIntegrationStats();
+
+    console.info(`Total links: ${links.length}`);
+    console.info("");
+    console.info("By template:");
+    for (const [template, count] of Object.entries(stats.byTemplate)) {
+      console.info(`  ${template}: ${count}`);
+    }
+    console.info("");
+
+    if (links.length > 0) {
+      console.info("Recent links:");
+      for (const link of links.slice(-10).reverse()) {
+        console.info(
+          `  Finding: ${link.findingId} → Task: ${link.taskId} (${link.templateId})`,
+        );
+      }
+    }
+  }
+}
+
 function buildPlanScaffold(request: string) {
   return [
     "Intent",
@@ -2115,6 +2299,18 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "autonomy-logs":
       printAutonomyLogsFromArgs(rest);
+      return;
+    case "task-templates":
+      printTaskTemplates();
+      return;
+    case "task-suggest":
+      suggestTaskForFindingFromArgs(rest);
+      return;
+    case "task-create":
+      await createTaskFromFindingFromArgs(rest);
+      return;
+    case "task-links":
+      printTaskLinksFromArgs(rest);
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

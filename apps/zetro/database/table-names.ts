@@ -14,4 +14,6 @@ export const zetroTableNames = {
   settings: "zetro_settings",
   loopStates: "zetro_loop_states",
   memoryVectors: "zetro_memory_vectors",
+  webhooks: "zetro_webhooks",
+  webhookDeliveries: "zetro_webhook_deliveries",
 } as const;
