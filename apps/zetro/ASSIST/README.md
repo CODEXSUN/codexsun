@@ -44,7 +44,7 @@ Current runner: manual only.
 
 Current execution policy: no shell execution from Zetro, no LLM calls, no network calls, no background loop.
 
-Current phase: **2.6.0 Complete**
+Current phase: **2.7.0 Complete - Phase 2 Complete**
 
 ## Phase 2 Evolution
 
@@ -56,4 +56,46 @@ See [ZETRO_PHASE2_EVOLUTION.md](./ZETRO_PHASE2_EVOLUTION.md) for the Phase 2 roa
 - Agent Role Specialization ✅ (2.4.0)
 - Tiered Autonomy System ✅ (2.5.0)
 - Task Integration Layer ✅ (2.6.0)
-- External Integration Layer (2.7.0)
+- External Integration Layer ✅ (2.7.0)
+
+## Phase 2.7 Services
+
+**External Integration Layer** provides:
+
+### Webhook System
+
+- Generic, GitHub, and Slack webhook providers
+- HMAC signature support for security
+- Event filtering by playbook, severity, or run status
+- Delivery tracking with status codes and retry support
+
+### GitHub Integration
+
+- Create issues from runs
+- Link runs to PRs with comments
+- Post run summaries to PRs as formatted comments
+
+### Slack Integration
+
+- Send alerts with severity-colored attachments
+- Configurable digest mode
+- Channel-specific messaging
+
+### Run Export
+
+- Export complete run data as JSON
+- Includes events, findings, command proposals
+- Summary statistics and duration tracking
+
+### API Routes Added
+
+- `GET/POST /zetro/webhooks` - List/create webhooks
+- `PATCH/DELETE /zetro/webhook` - Update/delete webhook
+- `POST /zetro/webhook/trigger` - Trigger webhook delivery
+- `GET /zetro/webhook/deliveries` - List delivery history
+- `POST /zetro/webhook/delivery/retry` - Retry failed delivery
+- `GET /zetro/run/:id/export` - Export run as JSON
+- `POST /zetro/github/issue` - Create GitHub issue
+- `POST /zetro/github/link-pr` - Link run to PR
+- `POST /zetro/github/post-summary` - Post summary to PR
+- `POST /zetro/slack/alert` - Send Slack alert
