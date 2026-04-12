@@ -6,6 +6,7 @@ import type { AuthUser } from "../../shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import {
+  companyBrandAssetDesignerSchema,
   companyBrandProfileResponseSchema,
   companyResponseSchema,
   companySchema,
@@ -25,6 +26,112 @@ import {
   listJsonStorePayloads,
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
+
+const colorHexPattern = /^#[0-9a-fA-F]{6}$/
+
+function toRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function toClampedInteger(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number
+) {
+  const candidate =
+    typeof value === "number" ? value
+    : typeof value === "string" && value.trim().length > 0 ? Number(value)
+    : Number.NaN
+
+  if (!Number.isFinite(candidate)) {
+    return fallback
+  }
+
+  return Math.min(maximum, Math.max(minimum, Math.round(candidate)))
+}
+
+function toHexColor(value: unknown, fallback: string) {
+  return typeof value === "string" && colorHexPattern.test(value.trim())
+    ? value.trim()
+    : fallback
+}
+
+function sanitizeBrandAssetDesignerVariant(
+  value: unknown,
+  fallback: (typeof defaultCompanyBrandAssetDesigner)[keyof typeof defaultCompanyBrandAssetDesigner]
+) {
+  const parsed = companyBrandAssetDesignerSchema.shape.primary.safeParse(value)
+
+  if (parsed.success) {
+    return parsed.data
+  }
+
+  const record = toRecord(value)
+
+  if (!record) {
+    return { ...fallback }
+  }
+
+  const colorOverrides = Array.isArray(record.colorOverrides)
+    ? record.colorOverrides.flatMap((entry) => {
+        const item = toRecord(entry)
+
+        if (!item) {
+          return []
+        }
+
+        const source = toHexColor(item.source, "")
+        const target = toHexColor(item.target, "")
+
+        return source.length > 0 && target.length > 0 ? [{ source, target }] : []
+      })
+    : fallback.colorOverrides.map((entry) => ({ ...entry }))
+
+  return {
+    sourceUrl: typeof record.sourceUrl === "string" ? record.sourceUrl.trim() : fallback.sourceUrl,
+    canvasWidth: toClampedInteger(record.canvasWidth, fallback.canvasWidth, 32, 4096),
+    canvasHeight: toClampedInteger(record.canvasHeight, fallback.canvasHeight, 32, 4096),
+    offsetX: toClampedInteger(record.offsetX, fallback.offsetX, -4096, 4096),
+    offsetY: toClampedInteger(record.offsetY, fallback.offsetY, -4096, 4096),
+    scale: toClampedInteger(record.scale, fallback.scale, 10, 300),
+    fillColor: toHexColor(record.fillColor, fallback.fillColor),
+    hoverFillColor: toHexColor(record.hoverFillColor, fallback.hoverFillColor),
+    colorMode:
+      record.colorMode === "token" || record.colorMode === "uniform"
+        ? record.colorMode
+        : fallback.colorMode,
+    colorOverrides,
+  }
+}
+
+function sanitizeBrandAssetDesigner(value: unknown) {
+  const parsed = companyBrandAssetDesignerSchema.safeParse(value)
+
+  if (parsed.success) {
+    return parsed.data
+  }
+
+  const record = toRecord(value)
+
+  if (!record) {
+    return {
+      primary: { ...defaultCompanyBrandAssetDesigner.primary },
+      dark: { ...defaultCompanyBrandAssetDesigner.dark },
+      favicon: { ...defaultCompanyBrandAssetDesigner.favicon },
+      print: { ...defaultCompanyBrandAssetDesigner.print },
+    }
+  }
+
+  return {
+    primary: sanitizeBrandAssetDesignerVariant(record.primary, defaultCompanyBrandAssetDesigner.primary),
+    dark: sanitizeBrandAssetDesignerVariant(record.dark, defaultCompanyBrandAssetDesigner.dark),
+    favicon: sanitizeBrandAssetDesignerVariant(record.favicon, defaultCompanyBrandAssetDesigner.favicon),
+    print: sanitizeBrandAssetDesignerVariant(record.print, defaultCompanyBrandAssetDesigner.print),
+  }
+}
 
 function normalizeLegacyAddressTypeId(value: unknown) {
   if (typeof value !== "string") {
@@ -63,26 +170,7 @@ async function readCompanies(database: Kysely<unknown>) {
         shortAbout: company.shortAbout ?? null,
         longAbout: company.longAbout ?? null,
         isPrimary: company.isPrimary ?? false,
-        brandAssetDesigner: {
-          ...defaultCompanyBrandAssetDesigner,
-          ...(company.brandAssetDesigner ?? {}),
-          primary: {
-            ...defaultCompanyBrandAssetDesigner.primary,
-            ...(company.brandAssetDesigner?.primary ?? {}),
-          },
-          dark: {
-            ...defaultCompanyBrandAssetDesigner.dark,
-            ...(company.brandAssetDesigner?.dark ?? {}),
-          },
-          favicon: {
-            ...defaultCompanyBrandAssetDesigner.favicon,
-            ...(company.brandAssetDesigner?.favicon ?? {}),
-          },
-          print: {
-            ...defaultCompanyBrandAssetDesigner.print,
-            ...(company.brandAssetDesigner?.print ?? {}),
-          },
-        },
+        brandAssetDesigner: sanitizeBrandAssetDesigner(company.brandAssetDesigner),
         addresses: (company.addresses ?? []).map((address) => ({
           ...address,
           addressTypeId:
