@@ -37,6 +37,36 @@ type ResolvedBrandAssetSource = {
   content: Buffer
 }
 
+function decodeSvgTextBuffer(content: Uint8Array) {
+  const bytes = content instanceof Buffer ? content : Buffer.from(content)
+
+  if (bytes.length >= 2) {
+    if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+      return new TextDecoder("utf-16le").decode(bytes.subarray(2)).replace(/^\uFEFF/, "")
+    }
+
+    if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+      return new TextDecoder("utf-16be").decode(bytes.subarray(2)).replace(/^\uFEFF/, "")
+    }
+  }
+
+  const sample = bytes.subarray(0, Math.min(bytes.length, 64))
+  const evenZeros = sample.filter((_, index) => index % 2 === 0 && sample[index] === 0).length
+  const oddZeros = sample.filter((_, index) => index % 2 === 1 && sample[index] === 0).length
+  const utf16LeLikely = oddZeros >= Math.max(4, Math.floor(sample.length / 4))
+  const utf16BeLikely = evenZeros >= Math.max(4, Math.floor(sample.length / 4))
+
+  if (utf16LeLikely) {
+    return new TextDecoder("utf-16le").decode(bytes).replace(/^\uFEFF/, "")
+  }
+
+  if (utf16BeLikely) {
+    return new TextDecoder("utf-16be").decode(bytes).replace(/^\uFEFF/, "")
+  }
+
+  return new TextDecoder("utf-8").decode(bytes).replace(/^\uFEFF/, "")
+}
+
 const legacyBrandAssetPaths: Record<BrandAssetVariant, { fileName: string; mimeType: "image/svg+xml" }> = {
   primary: { fileName: "logo.svg", mimeType: "image/svg+xml" },
   dark: { fileName: "logo-dark.svg", mimeType: "image/svg+xml" },
@@ -179,9 +209,39 @@ function extractSvgAttribute(attributes: string, name: string) {
   return attributes.match(pattern)?.[1] ?? null
 }
 
+function normalizeHexColor(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const normalized = value.trim()
+
+  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+    return normalized.toLowerCase()
+  }
+
+  if (/^#[0-9a-fA-F]{3}$/.test(normalized)) {
+    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase()
+  }
+
+  return null
+}
+
+function sanitizeSvgSource(svgSource: string) {
+  return svgSource
+    .replace(/^\uFEFF/, "")
+    .replace(/<\?xml[\s\S]*?\?>/gi, "")
+    .replace(/<!DOCTYPE[\s\S]*?>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<metadata\b[^>]*>[\s\S]*?<\/metadata>/gi, "")
+    .replace(/<metadata\b[^>]*\/>/gi, "")
+    .trim()
+}
+
 function parseSourceSvg(svgSource: string) {
-  const rootMatch = svgSource.match(/<svg\b([^>]*)>([\s\S]*)<\/svg>/i)
-  const selfClosingMatch = svgSource.match(/<svg\b([^>]*)\/>/i)
+  const sanitizedSource = sanitizeSvgSource(svgSource)
+  const rootMatch = sanitizedSource.match(/<svg\b([^>]*)>([\s\S]*)<\/svg>/i)
+  const selfClosingMatch = sanitizedSource.match(/<svg\b([^>]*)\/>/i)
 
   if (!rootMatch && !selfClosingMatch) {
     throw new ApplicationError("The selected source does not contain a valid SVG document.", {}, 400)
@@ -208,17 +268,52 @@ function parseSourceSvg(svgSource: string) {
   }
 }
 
-function replaceSvgFillColors(svgMarkup: string, fillColor: string) {
+function rewriteSvgHexColors(
+  svgMarkup: string,
+  resolveReplacement: (normalizedColor: string) => string | null
+) {
   return svgMarkup
-    .replace(/fill\s*=\s*["'](#[0-9a-fA-F]{3,8})["']/gi, `fill="${fillColor}"`)
-    .replace(/fill:\s*(#[0-9a-fA-F]{3,8})/gi, `fill:${fillColor}`)
+    .replace(
+      /(fill|stroke)\s*=\s*(["'])(#[0-9a-fA-F]{3,8})\2/gi,
+      (match, attributeName: string, quote: string, colorValue: string) => {
+        const normalizedColor = normalizeHexColor(colorValue)
+        const replacement = normalizedColor ? resolveReplacement(normalizedColor) : null
+
+        return replacement ? `${attributeName}=${quote}${replacement}${quote}` : match
+      }
+    )
+    .replace(/(fill|stroke)\s*:\s*(#[0-9a-fA-F]{3,8})/gi, (match, propertyName: string, colorValue: string) => {
+      const normalizedColor = normalizeHexColor(colorValue)
+      const replacement = normalizedColor ? resolveReplacement(normalizedColor) : null
+
+      return replacement ? `${propertyName}:${replacement}` : match
+    })
+}
+
+function applySvgDesignerColors(
+  svgMarkup: string,
+  designer: CompanyBrandAssetDesignerVariant
+) {
+  const overrideMap = new Map(
+    (designer.colorOverrides ?? []).map((entry) => [entry.source.toLowerCase(), entry.target.toLowerCase()])
+  )
+
+  if (designer.colorMode === "token") {
+    if (overrideMap.size === 0) {
+      return svgMarkup
+    }
+
+    return rewriteSvgHexColors(svgMarkup, (normalizedColor) => overrideMap.get(normalizedColor) ?? null)
+  }
+
+  return rewriteSvgHexColors(svgMarkup, () => designer.fillColor)
 }
 
 function buildDesignedSvg(sourceSvg: string, designer: CompanyBrandAssetDesignerVariant) {
   const parsed = parseSourceSvg(sourceSvg)
   const scaledWidth = Math.max(1, Number((parsed.width * designer.scale) / 100))
   const scaledHeight = Math.max(1, Number((parsed.height * designer.scale) / 100))
-  const recoloredMarkup = replaceSvgFillColors(parsed.innerMarkup, designer.fillColor)
+  const recoloredMarkup = applySvgDesignerColors(parsed.innerMarkup, designer)
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${designer.canvasWidth}" height="${designer.canvasHeight}" viewBox="0 0 ${designer.canvasWidth} ${designer.canvasHeight}" fill="none">`,
@@ -379,17 +474,17 @@ export async function publishCompanyBrandAssets(
   await rm(path.join(config.webRoot, "public", "brand"), { recursive: true, force: true })
   await writeFile(
     path.join(managedDirectory, legacyBrandAssetPaths.primary.fileName),
-    buildDesignedSvg(primarySourceAsset.content.toString("utf8"), parsedPayload.primary),
+    buildDesignedSvg(decodeSvgTextBuffer(primarySourceAsset.content), parsedPayload.primary),
     "utf8"
   )
   await writeFile(
     path.join(managedDirectory, legacyBrandAssetPaths.dark.fileName),
-    buildDesignedSvg(darkSourceAsset.content.toString("utf8"), parsedPayload.dark),
+    buildDesignedSvg(decodeSvgTextBuffer(darkSourceAsset.content), parsedPayload.dark),
     "utf8"
   )
   await writeFile(
     path.join(managedDirectory, legacyBrandAssetPaths.favicon.fileName),
-    buildDesignedSvg(faviconSourceAsset.content.toString("utf8"), parsedPayload.favicon),
+    buildDesignedSvg(decodeSvgTextBuffer(faviconSourceAsset.content), parsedPayload.favicon),
     "utf8"
   )
 

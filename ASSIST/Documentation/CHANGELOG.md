@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#121] 2026-04-12 - Storefront branding publish validation and SVG designer hardening
+
+- hardened the company logo designer and publish path for real SVG workflows by adding UTF-16-safe SVG decoding, XML or metadata sanitization, extracted color-token editing, and token-vs-uniform color handling across the editor schema, UI, and publish service
+- expanded focused company brand asset service coverage for UTF-16 SVG sources, sanitized wrapper-heavy SVG files, and token-mode color override publishing so the runtime file writer is exercised against more realistic branding assets
+- added a targeted Playwright publish-flow spec that logs in through the company upsert logo designer, publishes storefront branding, and verifies the runtime brand-profile plus storefront top-menu, footer, and favicon asset paths consume the published public files
+- validated the batch with `npx.cmd playwright test tests/e2e/storefront-brand-publish.spec.ts`
+
 ### [#120] 2026-04-12 - Logo designer draft usability
 
 - moved the company logo designer onto its own temporary draft table and internal read or save routes so draft editing is no longer coupled to the company form save cycle

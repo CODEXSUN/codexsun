@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { Buffer } from "node:buffer"
 import {
   existsSync,
   mkdtempSync,
@@ -201,6 +202,228 @@ test("company brand asset publishing backs up and replaces direct public brand f
     assert.equal(favicon.mimeType, "image/svg+xml")
     assert.match(favicon.content.toString("utf8"), /fill="#9b5f2d"/)
     assert.match(dark.content.toString("utf8"), /fill="#f2d7aa"/)
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("company brand asset publishing accepts utf16 svg source files", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-utf16-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+
+    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
+    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+
+    const utf16Svg =
+      '<?xml version="1.0" encoding="UTF-16"?><svg viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="40" fill="#662c90"/></svg>'
+    const utf16Bytes = Buffer.concat([
+      Buffer.from([0xff, 0xfe]),
+      Buffer.from(utf16Svg, "utf16le"),
+    ])
+
+    writeFileSync(path.join(config.webRoot, "public", "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "utf16-primary.svg"),
+      utf16Bytes
+    )
+
+    const response = await publishCompanyBrandAssets(
+      {} as never,
+      config,
+      {
+        primary: {
+          sourceUrl: "/storage/source/utf16-primary.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 6,
+          offsetY: 4,
+          scale: 100,
+          fillColor: "#224466",
+          hoverFillColor: "#8b5e34",
+        },
+        dark: {
+          sourceUrl: "/storage/source/utf16-primary.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#ffffff",
+          hoverFillColor: "#f0c48a",
+        },
+        favicon: {
+          sourceUrl: "/storage/source/utf16-primary.svg",
+          canvasWidth: 64,
+          canvasHeight: 64,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#8b5e34",
+          hoverFillColor: "#5a3a1b",
+        },
+      }
+    )
+
+    assert.equal(response.item.format, "svg")
+    assert.match(
+      readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8"),
+      /fill="#224466"/
+    )
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("company brand asset publishing strips xml wrapper tags and metadata before parsing", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-sanitize-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+
+    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
+    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "wrapped.svg"),
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
+        "<!-- exported by editor -->",
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40" viewBox="0 0 100 40">',
+        '  <metadata id="editor-meta">ignore me</metadata>',
+        '  <rect width="100" height="40" fill="#662c90"/>',
+        "</svg>",
+      ].join("\n"),
+      "utf8"
+    )
+
+    const response = await publishCompanyBrandAssets(
+      {} as never,
+      config,
+      {
+        primary: {
+          sourceUrl: "/storage/source/wrapped.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#224466",
+          hoverFillColor: "#8b5e34",
+        },
+        dark: {
+          sourceUrl: "/storage/source/wrapped.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#ffffff",
+          hoverFillColor: "#f0c48a",
+        },
+        favicon: {
+          sourceUrl: "/storage/source/wrapped.svg",
+          canvasWidth: 64,
+          canvasHeight: 64,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#8b5e34",
+          hoverFillColor: "#5a3a1b",
+        },
+      }
+    )
+
+    const publishedLogo = readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8")
+
+    assert.equal(response.item.format, "svg")
+    assert.match(publishedLogo, /fill="#224466"/)
+    assert.doesNotMatch(publishedLogo, /<\?xml/i)
+    assert.doesNotMatch(publishedLogo, /<!DOCTYPE/i)
+    assert.doesNotMatch(publishedLogo, /<metadata/i)
+    assert.doesNotMatch(publishedLogo, /exported by editor/i)
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("company brand asset publishing applies token color overrides without flattening all svg colors", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-token-mode-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+
+    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
+    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "token.svg"),
+      '<svg viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="40" fill="#111111" stroke="#662c90" stroke-width="4"/><circle cx="30" cy="20" r="10" fill="#f2d7aa"/></svg>',
+      "utf8"
+    )
+
+    await publishCompanyBrandAssets(
+      {} as never,
+      config,
+      {
+        primary: {
+          sourceUrl: "/storage/source/token.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#000000",
+          hoverFillColor: "#8b5e34",
+          colorMode: "token",
+          colorOverrides: [
+            {
+              source: "#111111",
+              target: "#224466",
+            },
+            {
+              source: "#662c90",
+              target: "#335577",
+            },
+          ],
+        },
+        dark: {
+          sourceUrl: "/storage/source/token.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#ffffff",
+          hoverFillColor: "#f0c48a",
+          colorMode: "token",
+          colorOverrides: [],
+        },
+        favicon: {
+          sourceUrl: "/storage/source/token.svg",
+          canvasWidth: 64,
+          canvasHeight: 64,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#8b5e34",
+          hoverFillColor: "#5a3a1b",
+          colorMode: "token",
+          colorOverrides: [],
+        },
+      }
+    )
+
+    const publishedLogo = readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8")
+    const publishedDarkLogo = readFileSync(path.join(config.webRoot, "public", "logo-dark.svg"), "utf8")
+
+    assert.match(publishedLogo, /fill="#224466"/)
+    assert.match(publishedLogo, /stroke="#335577"/)
+    assert.match(publishedLogo, /fill="#f2d7aa"/)
+    assert.match(publishedDarkLogo, /fill="#111111"/)
+    assert.match(publishedDarkLogo, /stroke="#662c90"/)
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }

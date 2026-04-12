@@ -6,8 +6,63 @@ import {
 } from "../../../core/shared/schemas/address-book.js"
 
 const colorHexField = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/)
+const companyBrandAssetColorModeSchema = z.enum(["uniform", "token"])
 
-export const defaultCompanyBrandAssetDesigner = {
+export const companyBrandAssetColorOverrideSchema = z.object({
+  source: colorHexField,
+  target: colorHexField,
+})
+
+export const defaultCompanyBrandAssetDesigner: {
+  primary: {
+    sourceUrl: string
+    canvasWidth: number
+    canvasHeight: number
+    offsetX: number
+    offsetY: number
+    scale: number
+    fillColor: string
+    hoverFillColor: string
+    colorMode: "uniform" | "token"
+    colorOverrides: Array<{ source: string; target: string }>
+  }
+  dark: {
+    sourceUrl: string
+    canvasWidth: number
+    canvasHeight: number
+    offsetX: number
+    offsetY: number
+    scale: number
+    fillColor: string
+    hoverFillColor: string
+    colorMode: "uniform" | "token"
+    colorOverrides: Array<{ source: string; target: string }>
+  }
+  favicon: {
+    sourceUrl: string
+    canvasWidth: number
+    canvasHeight: number
+    offsetX: number
+    offsetY: number
+    scale: number
+    fillColor: string
+    hoverFillColor: string
+    colorMode: "uniform" | "token"
+    colorOverrides: Array<{ source: string; target: string }>
+  }
+  print: {
+    sourceUrl: string
+    canvasWidth: number
+    canvasHeight: number
+    offsetX: number
+    offsetY: number
+    scale: number
+    fillColor: string
+    hoverFillColor: string
+    colorMode: "uniform" | "token"
+    colorOverrides: Array<{ source: string; target: string }>
+  }
+} = {
   primary: {
     sourceUrl: "",
     canvasWidth: 320,
@@ -17,6 +72,8 @@ export const defaultCompanyBrandAssetDesigner = {
     scale: 100,
     fillColor: "#111111",
     hoverFillColor: "#8b5e34",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
   dark: {
     sourceUrl: "",
@@ -27,6 +84,8 @@ export const defaultCompanyBrandAssetDesigner = {
     scale: 100,
     fillColor: "#f5efe8",
     hoverFillColor: "#f0c48a",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
   favicon: {
     sourceUrl: "",
@@ -37,6 +96,8 @@ export const defaultCompanyBrandAssetDesigner = {
     scale: 100,
     fillColor: "#8b5e34",
     hoverFillColor: "#5a3a1b",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
   print: {
     sourceUrl: "",
@@ -47,8 +108,10 @@ export const defaultCompanyBrandAssetDesigner = {
     scale: 100,
     fillColor: "#111111",
     hoverFillColor: "#3b3b3b",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
-} as const
+}
 
 export const companyBrandAssetDesignerVariantSchema = z.object({
   sourceUrl: z.string().trim(),
@@ -59,6 +122,8 @@ export const companyBrandAssetDesignerVariantSchema = z.object({
   scale: z.number().int().min(10).max(300),
   fillColor: colorHexField,
   hoverFillColor: colorHexField,
+  colorMode: companyBrandAssetColorModeSchema.default("uniform"),
+  colorOverrides: z.array(companyBrandAssetColorOverrideSchema).default([]),
 })
 
 export const companyBrandAssetDesignerSchema = z.object({
@@ -318,6 +383,7 @@ export type CompanyBrandProfile = z.infer<typeof companyBrandProfileSchema>
 export type CompanyBrandProfileResponse = z.infer<typeof companyBrandProfileResponseSchema>
 export type CompanyBrandAssetDesignerVariant = z.infer<typeof companyBrandAssetDesignerVariantSchema>
 export type CompanyBrandAssetDesigner = z.infer<typeof companyBrandAssetDesignerSchema>
+export type CompanyBrandAssetColorOverride = z.infer<typeof companyBrandAssetColorOverrideSchema>
 export type CompanyBrandAssetPublishPayload = z.infer<typeof companyBrandAssetPublishPayloadSchema>
 export type CompanyBrandAssetPublishResponse = z.infer<typeof companyBrandAssetPublishResponseSchema>
 export type CompanyBrandAssetDraft = z.infer<typeof companyBrandAssetDraftSchema>
