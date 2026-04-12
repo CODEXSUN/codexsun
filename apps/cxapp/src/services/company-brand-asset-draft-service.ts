@@ -60,26 +60,33 @@ export async function saveCompanyBrandAssetDraft(
     createdAt: existing.item?.createdAt ?? timestamp,
     updatedAt: timestamp,
   })
+  const queryDatabase = asQueryDatabase(database)
+  const values = {
+    id: companyId,
+    module_key: "company-brand-assets",
+    sort_order: 1,
+    payload: JSON.stringify(record),
+    created_at: record.createdAt,
+    updated_at: record.updatedAt,
+  }
 
-  await asQueryDatabase(database)
-    .insertInto(cxappTableNames.companyBrandAssetDrafts)
-    .values({
-      id: companyId,
-      module_key: "company-brand-assets",
-      sort_order: 1,
-      payload: JSON.stringify(record),
-      created_at: record.createdAt,
-      updated_at: record.updatedAt,
+  const updateResult = await queryDatabase
+    .updateTable(cxappTableNames.companyBrandAssetDrafts)
+    .set({
+      module_key: values.module_key,
+      sort_order: values.sort_order,
+      payload: values.payload,
+      updated_at: values.updated_at,
     })
-    .onConflict((conflict) =>
-      conflict.column("id").doUpdateSet({
-        module_key: "company-brand-assets",
-        sort_order: 1,
-        payload: JSON.stringify(record),
-        updated_at: record.updatedAt,
-      })
-    )
-    .execute()
+    .where("id", "=", companyId)
+    .executeTakeFirst()
+
+  if (Number(updateResult.numUpdatedRows) === 0) {
+    await queryDatabase
+      .insertInto(cxappTableNames.companyBrandAssetDrafts)
+      .values(values)
+      .execute()
+  }
 
   return companyBrandAssetDraftResponseSchema.parse({
     item: record,
