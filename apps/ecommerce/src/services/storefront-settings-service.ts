@@ -201,6 +201,11 @@ function buildMergedStorefrontSettings(
   const visibilityRecord = asRecord(payloadRecord.visibility)
   const sectionsRecord = asRecord(payloadRecord.sections)
   const footerRecord = asRecord(payloadRecord.footer)
+  const menuDesignerRecord = asRecord(payloadRecord.menuDesigner)
+  const topMenuRecord = asRecord(menuDesignerRecord?.topMenu)
+  const footerMenuRecord = asRecord(menuDesignerRecord?.footerMenu)
+  const appMenuRecord = asRecord(menuDesignerRecord?.appMenu)
+  const globalLoaderRecord = asRecord(menuDesignerRecord?.globalLoader)
   const floatingContactRecord = asRecord(payloadRecord.floatingContact)
   const shippingMethodsRecord = Array.isArray(payloadRecord.shippingMethods)
     ? payloadRecord.shippingMethods
@@ -356,6 +361,34 @@ function buildMergedStorefrontSettings(
             : base.footer.socialLinks,
         }
       : base.footer,
+    menuDesigner: menuDesignerRecord
+      ? {
+          topMenu: topMenuRecord
+            ? {
+                ...base.menuDesigner.topMenu,
+                ...topMenuRecord,
+              }
+            : base.menuDesigner.topMenu,
+          footerMenu: footerMenuRecord
+            ? {
+                ...base.menuDesigner.footerMenu,
+                ...footerMenuRecord,
+              }
+            : base.menuDesigner.footerMenu,
+          appMenu: appMenuRecord
+            ? {
+                ...base.menuDesigner.appMenu,
+                ...appMenuRecord,
+              }
+            : base.menuDesigner.appMenu,
+          globalLoader: globalLoaderRecord
+            ? {
+                ...base.menuDesigner.globalLoader,
+                ...globalLoaderRecord,
+              }
+            : base.menuDesigner.globalLoader,
+        }
+      : base.menuDesigner,
     floatingContact: floatingContactRecord
       ? {
           ...base.floatingContact,
@@ -482,9 +515,16 @@ async function getDraftStorefrontSettings(
 async function getStorefrontSettingsRevisions(
   database: Kysely<unknown>
 ): Promise<StorefrontSettingsRevision[]> {
-  return listJsonStorePayloads<StorefrontSettingsRevision>(
+  const storedRevisions = await listJsonStorePayloads<StorefrontSettingsRevision>(
     database,
     ecommerceTableNames.storefrontSettingsRevisions
+  )
+
+  return storedRevisions.map((revision) =>
+    storefrontSettingsRevisionSchema.parse({
+      ...revision,
+      snapshot: buildMergedStorefrontSettings(defaultStorefrontSettings, revision.snapshot),
+    })
   )
 }
 

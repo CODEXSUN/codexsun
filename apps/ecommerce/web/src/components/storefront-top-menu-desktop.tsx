@@ -7,6 +7,7 @@ import {
   ShoppingCart,
   UserRound,
 } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +22,7 @@ import {
 import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { cn } from "@ui/lib/utils"
 
+import { getMenuLogoFrameStyle, getMenuLogoImageStyle } from "../lib/storefront-menu-designer"
 import { StorefrontSearchBar } from "./storefront-search-bar"
 import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
 import { StorefrontThemeMenu } from "./storefront-theme-menu"
@@ -43,7 +45,20 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
     showSearch,
     wishlistCount,
   } = useStorefrontTopMenuModel()
-  const logoUrl = resolveRuntimeBrandLogoUrl(brand)
+  const menuDesign = settings?.menuDesigner.topMenu
+  const effectiveMenuDesign = menuDesign ?? {
+    logoVariant: "primary",
+    frameWidth: 92,
+    frameHeight: 52,
+    logoWidth: 92,
+    logoHeight: 52,
+    offsetX: 0,
+    offsetY: 0,
+    logoHoverColor: "#8b5e34",
+    areaBackgroundColor: "#00000000",
+    logoBackgroundColor: "#00000000",
+  }
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand, effectiveMenuDesign.logoVariant)
 
   return (
     <div
@@ -64,18 +79,32 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
           isScrolled ? "py-2.5" : "py-3.5"
         }`}
       >
-        <Link to="/" className="min-w-0 shrink-0">
-          <div className="flex items-center gap-3 rounded-full px-1 py-1">
-            <img
-              src={logoUrl}
-              alt={brand?.brandName ?? "Codexsun Store"}
-              className="h-11 w-auto shrink-0 xl:h-12"
-            />
+        <Link
+          to="/"
+          className="group flex min-w-0 shrink-0"
+          style={
+            {
+              "--storefront-logo-hover-color": effectiveMenuDesign.logoHoverColor,
+            } as CSSProperties
+          }
+        >
+          <div className="flex items-center gap-3 rounded-[1.35rem] px-1 py-1">
+            <div
+              className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[1.15rem]"
+              style={getMenuLogoFrameStyle(effectiveMenuDesign)}
+            >
+              <img
+                src={logoUrl}
+                alt={brand?.brandName ?? "Codexsun Store"}
+                className="absolute object-contain transition-transform duration-200"
+                style={getMenuLogoImageStyle(effectiveMenuDesign)}
+              />
+            </div>
             <div className="flex min-w-0 flex-col justify-center leading-none">
-              <p className="truncate text-[1.15rem] font-semibold uppercase tracking-[0.2em] text-[#181818] xl:text-[1.4rem]">
+              <p className="truncate text-[1.15rem] font-semibold uppercase tracking-[0.2em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] xl:text-[1.4rem]">
                 {brand?.brandName ?? "Codexsun Store"}
               </p>
-              <p className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-[0.18em] text-[#a39689]">
+              <p className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-[0.18em] text-[#a39689] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
                 {brand?.tagline ?? "Smart IT. Trusted value."}
               </p>
             </div>

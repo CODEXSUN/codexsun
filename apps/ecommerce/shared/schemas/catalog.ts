@@ -310,6 +310,26 @@ export const storefrontFooterDesignSchema = z.object({
   socialButtonHoverIconColor: hexColorSchema,
 })
 
+export const storefrontMenuSurfaceDesignSchema = z.object({
+  logoVariant: z.enum(["primary", "dark"]).default("primary"),
+  frameWidth: z.number().int().min(48).max(640).default(180),
+  frameHeight: z.number().int().min(40).max(240).default(72),
+  logoWidth: z.number().int().min(16).max(480).default(84),
+  logoHeight: z.number().int().min(16).max(240).default(48),
+  offsetX: z.number().int().min(-320).max(320).default(0),
+  offsetY: z.number().int().min(-160).max(160).default(0),
+  logoHoverColor: hexColorSchema,
+  areaBackgroundColor: hexColorSchema,
+  logoBackgroundColor: hexColorSchema,
+})
+
+export const storefrontMenuDesignerSchema = z.object({
+  topMenu: storefrontMenuSurfaceDesignSchema,
+  footerMenu: storefrontMenuSurfaceDesignSchema,
+  appMenu: storefrontMenuSurfaceDesignSchema,
+  globalLoader: storefrontMenuSurfaceDesignSchema,
+})
+
 export const storefrontFooterGroupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -591,6 +611,7 @@ export const storefrontSettingsSchema = z.object({
   }),
   trustNotes: z.array(storefrontTrustNoteSchema).min(1),
   footer: storefrontFooterSchema,
+  menuDesigner: storefrontMenuDesignerSchema,
   floatingContact: storefrontFloatingContactSchema,
   pickupLocation: storefrontPickupLocationSchema,
   shippingMethods: z.array(storefrontShippingMethodSchema).min(1),
@@ -784,6 +805,8 @@ export type StorefrontFooterDesign = z.infer<typeof storefrontFooterDesignSchema
 export type StorefrontFooterGroup = z.infer<typeof storefrontFooterGroupSchema>
 export type StorefrontFooterLink = z.infer<typeof storefrontFooterLinkSchema>
 export type StorefrontFooterSocialLink = z.infer<typeof storefrontFooterSocialLinkSchema>
+export type StorefrontMenuSurfaceDesign = z.infer<typeof storefrontMenuSurfaceDesignSchema>
+export type StorefrontMenuDesigner = z.infer<typeof storefrontMenuDesignerSchema>
 export type StorefrontFloatingContact = z.infer<typeof storefrontFloatingContactSchema>
 export type StorefrontPickupLocation = z.infer<typeof storefrontPickupLocationSchema>
 export type StorefrontShippingMethod = z.infer<typeof storefrontShippingMethodSchema>

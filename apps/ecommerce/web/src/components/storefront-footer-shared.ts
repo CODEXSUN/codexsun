@@ -10,6 +10,7 @@ export function useStorefrontFooterData() {
   return {
     brand,
     footer: settings?.footer ?? null,
+    menuDesign: settings?.menuDesigner.footerMenu ?? null,
     supportEmail: settings?.supportEmail,
     supportPhone: settings?.supportPhone,
   }

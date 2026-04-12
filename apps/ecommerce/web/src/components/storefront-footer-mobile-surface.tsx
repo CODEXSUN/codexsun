@@ -1,8 +1,9 @@
 import { ChevronRight, Mail, MapPin, Phone } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Link } from "react-router-dom"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
-import type { StorefrontFooter } from "@ecommerce/shared"
+import type { StorefrontFooter, StorefrontMenuSurfaceDesign } from "@ecommerce/shared"
 import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import {
   Accordion,
@@ -12,6 +13,10 @@ import {
 } from "@/components/ui/accordion"
 
 import { getFooterSocialPlatformIcon } from "../lib/storefront-footer-socials"
+import {
+  getMenuLogoFrameStyle,
+  getMenuLogoImageStyle,
+} from "../lib/storefront-menu-designer"
 import { normalizeStorefrontHref } from "../lib/storefront-routes"
 
 function isExternalHref(href: string) {
@@ -49,11 +54,13 @@ function buildLocation(brand: CompanyBrandProfile | null) {
 export function StorefrontFooterMobileSurface({
   brand,
   footer,
+  menuDesign,
   supportEmail,
   supportPhone,
 }: {
   brand: CompanyBrandProfile | null
   footer: StorefrontFooter
+  menuDesign?: StorefrontMenuSurfaceDesign
   supportEmail?: string | null
   supportPhone?: string | null
 }) {
@@ -64,7 +71,19 @@ export function StorefrontFooterMobileSurface({
   const location = buildLocation(brand)
   const visibleGroups = footer.groups.slice(0, 4)
   const design = footer.design
-  const logoUrl = resolveRuntimeBrandLogoUrl(brand, "dark")
+  const effectiveMenuDesign = menuDesign ?? {
+    logoVariant: "dark",
+    frameWidth: 96,
+    frameHeight: 56,
+    logoWidth: 96,
+    logoHeight: 56,
+    offsetX: 0,
+    offsetY: 0,
+    logoHoverColor: "#f6c453",
+    areaBackgroundColor: "#00000000",
+    logoBackgroundColor: "#ffffff",
+  }
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand, effectiveMenuDesign.logoVariant)
 
   return (
     <footer
@@ -78,19 +97,36 @@ export function StorefrontFooterMobileSurface({
     >
       <div className="space-y-6 px-4 sm:px-6">
         <div className="space-y-4 rounded-[1.6rem] border px-4 py-4" style={{ borderColor: design.borderColor }}>
-          <Link to="/" className="inline-flex min-w-0 items-center gap-3">
-            <img
-              src={logoUrl}
-              alt={brand?.brandName ?? "Codexsun"}
-              className="h-10 w-auto shrink-0 rounded-xl p-1.5"
-              style={{ backgroundColor: design.logoBackgroundColor }}
-            />
+          <Link
+            to="/"
+            className="group inline-flex min-w-0 items-center gap-3"
+            style={
+              {
+                "--storefront-logo-hover-color": effectiveMenuDesign.logoHoverColor,
+              } as CSSProperties
+            }
+          >
+            <div
+              className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[1rem]"
+              style={getMenuLogoFrameStyle(effectiveMenuDesign, {
+                backgroundColor: effectiveMenuDesign.areaBackgroundColor,
+                widthOverride: Math.min(effectiveMenuDesign.frameWidth, 144),
+                heightOverride: Math.min(effectiveMenuDesign.frameHeight, 68),
+              })}
+            >
+              <img
+                src={logoUrl}
+                alt={brand?.brandName ?? "Codexsun"}
+                className="absolute rounded-xl object-contain"
+                style={getMenuLogoImageStyle(effectiveMenuDesign)}
+              />
+            </div>
             <div className="min-w-0 space-y-1">
-              <p className="truncate font-heading text-[0.92rem] font-semibold uppercase tracking-[0.16em]" style={{ color: design.titleColor }}>
+              <p className="truncate font-heading text-[0.92rem] font-semibold uppercase tracking-[0.16em] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]" style={{ color: design.titleColor }}>
                 {brand?.brandName ?? "Codexsun"}
               </p>
               {brand?.tagline ? (
-                <p className="line-clamp-1 text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: design.mutedTextColor }}>
+                <p className="line-clamp-1 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]" style={{ color: design.mutedTextColor }}>
                   {brand.tagline}
                 </p>
               ) : null}

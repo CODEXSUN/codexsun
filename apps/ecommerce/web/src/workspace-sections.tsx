@@ -31,6 +31,7 @@ import { StorefrontCampaignSection as StorefrontCampaignDesignerSection } from "
 import { StorefrontCouponBannerSection } from "./features/storefront-admin/storefront-coupon-banner-section"
 import { StorefrontFooterSection } from "./features/storefront-admin/storefront-footer-section"
 import { StorefrontFloatingContactSection } from "./features/storefront-admin/storefront-floating-contact-section"
+import { StorefrontMenuEditorSection } from "./features/storefront-admin/storefront-menu-editor-section"
 import { StorefrontPickupSection } from "./features/storefront-admin/storefront-pickup-section"
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
@@ -456,6 +457,10 @@ function GiftCornerDesignerSection() {
 
 function PickupDesignerSection() {
   return <StorefrontPickupSection />
+}
+
+function MenuEditorDesignerSection() {
+  return <StorefrontMenuEditorSection />
 }
 
 function TrendingSectionDesignerSection() {
@@ -991,6 +996,8 @@ export function EcommerceWorkspaceSection({
       return <ShippingSettingsSection />
     case "footer":
       return <StorefrontFooterSection />
+    case "menu-editor":
+      return <MenuEditorDesignerSection />
     case "floating-contact":
       return <StorefrontFloatingContactSection />
     case "pickup":

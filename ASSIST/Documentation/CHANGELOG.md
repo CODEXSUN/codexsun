@@ -8,6 +8,63 @@
 
 ## v-0.0.1
 
+### [#132] 2026-04-12 - Menu logo variant toggles and global-loader designer
+
+- extended the shared storefront `menuDesigner` contract with per-surface `logoVariant` selection and a new `globalLoader` surface so menu logo treatment can independently use the light or dark brand asset without changing fresh defaults
+- updated the menu editor with light-or-dark logo toggles on each surface and added a dedicated global-loader editor below the app-menu section so loader logo size and position can be tuned from the same workspace
+- wired storefront top menu, storefront footer, the dashboard app sidebar, and the shared global loader to the selected runtime logo variant while preserving existing default behavior for untouched storefront settings
+- replaced the ecommerce menu editor's static global-loader mock with the real shared loader component so operators now tune the same animated runtime surface, including draft brand-asset previews, directly from the editor
+- changed each menu-surface logo-tone chooser to a switch-style control, aligned the menu and logo actions into one row, and made the main `Publish live` action run menu save, logo draft save, logo publish, and storefront publish as one sequence
+- hard-centered the shared global-loader logo anchor so the default global loader logo now sits at the true center and offsets move predictably from that centered baseline
+- hardened the ecommerce settings tests so legacy stored settings and revision snapshots hydrate the new `globalLoader` and `logoVariant` fields through defaults
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`
+
+### [#131] 2026-04-12 - Menu editor company-logo upload and live publish
+
+- added primary-company branding API helpers to the ecommerce admin client so the menu editor can read companies, load the company brand draft, save the shared branding draft, and trigger the existing public SVG publish flow without duplicating backend logic
+- extended the menu editor with a new `Logo source and publish` panel that mirrors the company-logo workflow for light logo, dark logo, and favicon uploads, keeps the company logo tab intact, and publishes the live public brand files directly from the ecommerce workspace
+- wired the menu editor previews to use the newly selected brand SVG source immediately for preview surfaces while keeping the live runtime reload after publish so storefront and app chrome refresh against the published files
+- added focused Playwright coverage for uploading and publishing the light logo directly from the menu editor
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd playwright test tests/e2e/menu-editor-logo-publish.spec.ts`
+
+### [#130] 2026-04-12 - Menu editor per-field reset actions
+
+- added icon-based reset actions inside the menu editor for hover color, area background color, logo background color, and the position offsets so operators can restore each control to the seeded default without manually retyping values
+- wired those reset actions against `defaultStorefrontSettings.menuDesigner` per surface so future default changes remain the single source of truth for reset behavior
+- corrected the menu-editor permission split while touching the screen so `Save menu designer` uses edit access and `Publish live` uses approval access
+- validated the change with `npm.cmd run typecheck`
+
+### [#129] 2026-04-12 - Menu editor live publish and fresh-default restoration
+
+- added direct `Publish live` support to the standalone menu editor so approved operators can push menu-logo changes to the public storefront from the same designer screen instead of leaving that workflow
+- restored the fresh menu-designer defaults to preserve the earlier storefront and app-menu appearance, removing the unintended forced framed-logo look for untouched data while keeping the new numeric designer available for deliberate customization
+- removed the extra default frame borders around the storefront top-menu and footer logo wrappers so transparent menu-designer backgrounds render like the previous menu layout until a background is intentionally chosen for testing or customization
+- validated the fix with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`; the suite still logs the existing non-blocking SMTP auth warning during email-path tests, but all tests passed
+
+### [#128] 2026-04-12 - Full-control menu logo-area designer
+
+- replaced the first-pass storefront menu editor presets with a company-logo-tab-style numeric designer so each menu surface now stores direct frame width, frame height, logo width, logo height, X offset, Y offset, hover color, area background color, and logo background color
+- rebuilt the `Menu Editor` admin screen around those numeric controls and a grid-backed preview surface so operators can tune awkward or non-standard client logos directly instead of being limited to coarse preset size or alignment options
+- updated storefront top-menu desktop and mobile, storefront footer desktop and mobile, and the dashboard app sidebar to render the logo area from the new frame-and-offset settings instead of the removed position and size presets
+- kept backward compatibility by merging stored menu-designer payloads through current defaults, so earlier saved preset-era menu settings hydrate cleanly into the new numeric logo-area model
+- validated the refactor with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`; the suite still logs the existing non-blocking SMTP auth warning during email-path tests, but all tests passed
+
+### [#127] 2026-04-12 - Storefront revision compatibility for menu designer
+
+- fixed the storefront designer workflow failure triggered by older revision snapshots that were saved before the new `menuDesigner` field existed
+- hardened storefront revision reads so historical snapshots are merged through current storefront defaults before revision schema parsing, allowing workflow and history responses to remain backward compatible without rewriting stored revision rows
+- extended the focused ecommerce service suite with a regression that seeds a legacy revision snapshot missing `menuDesigner` and verifies workflow reads hydrate the new menu-designer defaults correctly
+- validated the fix with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`; the suite still logs the existing non-blocking SMTP auth warning during email-path tests, but all tests passed
+
+### [#126] 2026-04-12 - Storefront menu designer for logo presentation
+
+- added a new standalone ecommerce `Menu Editor` workspace item and designer section that lets operators control logo position, logo size, and logo hover color for the storefront top menu, storefront footer, and dashboard app sidebar from one shared storefront-designer surface
+- extended the storefront settings contract and seed defaults with a new `menuDesigner` slice so the new menu presentation controls persist through the existing draft, publish, rollback, and public-settings flows without introducing a separate storage model
+- wired storefront top-menu desktop and mobile surfaces plus storefront footer desktop and mobile surfaces to consume the new menu-designer values, so header and footer logo alignment, size, and hover treatment now reflect the saved storefront designer configuration
+- updated the shared dashboard sidebar logo block to read the storefront menu-designer settings through the existing workflow or public settings endpoints, so the app menu can follow the same light-logo sizing, alignment, and hover accent configuration without importing ecommerce UI into `apps/ui`
+- extended the focused ecommerce service coverage so storefront settings merge and legacy hydration now verify the new `menuDesigner` defaults and persisted values
+- validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`; the service suite still logs the existing non-blocking SMTP auth failure during email-path exercises, but all tests passed
+
 ### [#125] 2026-04-12 - Company logo upload path verification
 
 - refactored the company branding publish path to the requested root-public model where generated brand files are kept under `storage/branding/active`, publish backs up the previous live files into `storage/backups/branding`, and the live storefront-facing files are overwritten only in the repository root `public/` folder as `logo.svg`, `logo-dark.svg`, and `favicon.svg`

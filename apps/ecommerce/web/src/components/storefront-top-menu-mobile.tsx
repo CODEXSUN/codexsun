@@ -1,4 +1,5 @@
 import { ChevronDown, LayoutDashboard, LogIn, LogOut, Menu, UserRound } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +21,7 @@ import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-lo
 import { Dock, DockIcon } from "@/registry/magicui/dock"
 import { cn } from "@ui/lib/utils"
 
+import { getMenuLogoFrameStyle, getMenuLogoImageStyle } from "../lib/storefront-menu-designer"
 import { StorefrontSearchBar } from "./storefront-search-bar"
 import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
 import type { StorefrontTopMenuProps } from "./storefront-top-menu-shared"
@@ -39,7 +41,20 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
     settings,
     showSearch,
   } = useStorefrontTopMenuModel()
-  const logoUrl = resolveRuntimeBrandLogoUrl(brand)
+  const menuDesign = settings?.menuDesigner.topMenu
+  const effectiveMenuDesign = menuDesign ?? {
+    logoVariant: "primary",
+    frameWidth: 92,
+    frameHeight: 52,
+    logoWidth: 92,
+    logoHeight: 52,
+    offsetX: 0,
+    offsetY: 0,
+    logoHoverColor: "#8b5e34",
+    areaBackgroundColor: "#00000000",
+    logoBackgroundColor: "#00000000",
+  }
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand, effectiveMenuDesign.logoVariant)
 
   const mobileDockButtonClassName = cn(
     buttonVariants({ variant: "ghost", size: "icon-lg" }),
@@ -63,11 +78,32 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
         />
         <div className={`flex w-full min-w-0 flex-col gap-3 overflow-x-clip px-4 transition-all duration-300 sm:px-6 ${isScrolled ? "py-2.5" : "py-3.5"}`}>
           <div className="flex min-w-0 items-center justify-between gap-3">
-            <Link to="/" className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 rounded-full pr-1">
-                <img src={logoUrl} alt={brand?.brandName ?? "Codexsun Store"} className="h-9 w-auto shrink-0" />
+            <Link
+              to="/"
+              className="group flex min-w-0 flex-1"
+              style={
+                {
+                  "--storefront-logo-hover-color": effectiveMenuDesign.logoHoverColor,
+                } as CSSProperties
+              }
+            >
+              <div className="flex items-center gap-2 rounded-[1.25rem] pr-1">
+                <div
+                  className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[1rem]"
+                  style={getMenuLogoFrameStyle(effectiveMenuDesign, {
+                    widthOverride: Math.min(effectiveMenuDesign.frameWidth, 148),
+                    heightOverride: Math.min(effectiveMenuDesign.frameHeight, 64),
+                  })}
+                >
+                  <img
+                    src={logoUrl}
+                    alt={brand?.brandName ?? "Codexsun Store"}
+                    className="absolute object-contain transition-transform duration-200"
+                    style={getMenuLogoImageStyle(effectiveMenuDesign)}
+                  />
+                </div>
                 <div className="hidden min-w-0 min-[360px]:block">
-                  <p className="truncate text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[#181818]">
+                  <p className="truncate text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
                     {brand?.brandName ?? "Codexsun Store"}
                   </p>
                 </div>

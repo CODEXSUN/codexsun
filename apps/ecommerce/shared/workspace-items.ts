@@ -91,6 +91,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Standalone footer designer for footer copy, columns, and social links used on the public storefront.",
   },
   {
+    id: "menu-editor",
+    name: "Menu Editor",
+    route: "/dashboard/apps/ecommerce/menu-editor",
+    summary: "Standalone menu designer for logo position, logo size, and logo hover treatment across storefront top menu, footer, and app sidebar.",
+  },
+  {
     id: "floating-contact",
     name: "Floating Contact",
     route: "/dashboard/apps/ecommerce/floating-contact",

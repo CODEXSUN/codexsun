@@ -3,13 +3,15 @@ import {
   MapPin,
   Phone,
 } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Link } from "react-router-dom"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
-import type { StorefrontFooter } from "@ecommerce/shared"
+import type { StorefrontFooter, StorefrontMenuSurfaceDesign } from "@ecommerce/shared"
 import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 
 import { getFooterSocialPlatformIcon } from "../lib/storefront-footer-socials"
+import { getMenuLogoFrameStyle, getMenuLogoImageStyle } from "../lib/storefront-menu-designer"
 import { normalizeStorefrontHref } from "../lib/storefront-routes"
 
 function isExternalHref(href: string) {
@@ -47,12 +49,14 @@ function buildLocation(brand: CompanyBrandProfile | null) {
 export function StorefrontFooterSurface({
   brand,
   footer,
+  menuDesign,
   supportEmail,
   supportPhone,
   previewMode = false,
 }: {
   brand: CompanyBrandProfile | null
   footer: StorefrontFooter
+  menuDesign?: StorefrontMenuSurfaceDesign
   supportEmail?: string | null
   supportPhone?: string | null
   previewMode?: boolean
@@ -64,7 +68,19 @@ export function StorefrontFooterSurface({
   const location = buildLocation(brand)
   const visibleGroups = footer.groups.slice(0, 4)
   const design = footer.design
-  const logoUrl = resolveRuntimeBrandLogoUrl(brand, "dark")
+  const effectiveMenuDesign = menuDesign ?? {
+    logoVariant: "dark",
+    frameWidth: 96,
+    frameHeight: 56,
+    logoWidth: 96,
+    logoHeight: 56,
+    offsetX: 0,
+    offsetY: 0,
+    logoHoverColor: "#f6c453",
+    areaBackgroundColor: "#00000000",
+    logoBackgroundColor: "#ffffff",
+  }
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand, effectiveMenuDesign.logoVariant)
 
   return (
     <footer
@@ -83,23 +99,38 @@ export function StorefrontFooterSurface({
           }`}
         >
           <div className="space-y-6 lg:pr-8">
-            <Link to="/" className="inline-flex items-center gap-3">
-              <img
-                src={logoUrl}
-                alt={brand?.brandName ?? "Codexsun"}
-                className="h-11 w-auto shrink-0 rounded-xl p-1.5"
-                style={{ backgroundColor: design.logoBackgroundColor }}
-              />
-              <div className="space-y-1">
+            <Link
+              to="/"
+              className="group inline-flex min-w-0 items-center gap-3"
+              style={
+                {
+                  "--storefront-logo-hover-color": effectiveMenuDesign.logoHoverColor,
+                } as CSSProperties
+              }
+            >
+              <div
+                className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[1.15rem]"
+                style={getMenuLogoFrameStyle(effectiveMenuDesign, {
+                  backgroundColor: effectiveMenuDesign.areaBackgroundColor,
+                })}
+              >
+                <img
+                  src={logoUrl}
+                  alt={brand?.brandName ?? "Codexsun"}
+                  className="absolute rounded-xl object-contain"
+                  style={getMenuLogoImageStyle(effectiveMenuDesign)}
+                />
+              </div>
+              <div className="min-w-0 space-y-1">
                 <p
-                  className="font-heading text-xl font-semibold uppercase tracking-[0.18em] sm:text-2xl"
+                  className="truncate font-heading text-xl font-semibold uppercase tracking-[0.18em] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] sm:text-2xl"
                   style={{ color: design.titleColor }}
                 >
                   {brand?.brandName ?? "Codexsun"}
                 </p>
                 {brand?.tagline ? (
                   <p
-                    className="text-[11px] font-medium uppercase tracking-[0.18em]"
+                    className="truncate text-[11px] font-medium uppercase tracking-[0.18em] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]"
                     style={{ color: design.mutedTextColor }}
                   >
                     {brand.tagline}

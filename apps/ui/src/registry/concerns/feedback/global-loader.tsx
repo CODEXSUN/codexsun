@@ -1,6 +1,13 @@
 import { useState, type HTMLAttributes } from "react"
 import { motion } from "framer-motion"
+import { useQuery } from "@tanstack/react-query"
 
+import {
+  storefrontSettingsSchema,
+  storefrontSettingsWorkflowStatusSchema,
+  type StorefrontMenuSurfaceDesign,
+} from "@ecommerce/shared"
+import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { cn } from "@/lib/utils"
@@ -11,6 +18,11 @@ type GlobalLoaderProps = HTMLAttributes<HTMLDivElement> & {
   size?: LoaderSize
   fullScreen?: boolean
   label?: string
+  brandOverride?: {
+    darkLogoUrl?: string | null
+    logoUrl?: string | null
+  } | null
+  designOverride?: StorefrontMenuSurfaceDesign | null
 }
 
 const sizeClasses: Record<LoaderSize, string> = {
@@ -19,15 +31,93 @@ const sizeClasses: Record<LoaderSize, string> = {
   lg: "size-60",
 }
 
+const defaultGlobalLoaderDesign: StorefrontMenuSurfaceDesign = {
+  logoVariant: "primary",
+  frameWidth: 88,
+  frameHeight: 88,
+  logoWidth: 40,
+  logoHeight: 40,
+  offsetX: 0,
+  offsetY: 0,
+  logoHoverColor: "#8b5e34",
+  areaBackgroundColor: "#ffffff",
+  logoBackgroundColor: "#00000000",
+}
+
+function getCenteredLogoStyle(design: StorefrontMenuSurfaceDesign) {
+  return {
+    width: `${design.logoWidth}px`,
+    height: `${design.logoHeight}px`,
+    backgroundColor: design.logoBackgroundColor,
+  }
+}
+
+function getCenteredLogoWrapperStyle(design: StorefrontMenuSurfaceDesign) {
+  return {
+    position: "absolute" as const,
+    left: "50%",
+    top: "50%",
+    width: `${design.logoWidth}px`,
+    height: `${design.logoHeight}px`,
+    transform: `translate(-50%, -50%) translate(${design.offsetX}px, ${design.offsetY}px)`,
+  }
+}
+
+function useGlobalLoaderMenuDesign() {
+  const query = useQuery({
+    queryKey: ["storefront", "menu-designer", "global-loader"],
+    queryFn: async () => {
+      const accessToken = getStoredAccessToken()
+
+      if (accessToken) {
+        const workflowResponse = await fetch("/internal/v1/ecommerce/storefront-settings/workflow", {
+          cache: "no-store",
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        })
+
+        if (workflowResponse.ok) {
+          const workflowPayload = storefrontSettingsWorkflowStatusSchema.parse(
+            await workflowResponse.json()
+          )
+          return workflowPayload.previewSettings.menuDesigner.globalLoader
+        }
+      }
+
+      const response = await fetch("/public/v1/storefront/settings", {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}.`)
+      }
+
+      const payload = storefrontSettingsSchema.parse(await response.json())
+      return payload.menuDesigner.globalLoader
+    },
+    staleTime: 30_000,
+    gcTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+
+  return query.data ?? defaultGlobalLoaderDesign
+}
+
 export function GlobalLoader({
   size = "lg",
   fullScreen = true,
   label,
+  brandOverride,
+  designOverride,
   className,
   ...props
 }: GlobalLoaderProps) {
   const { brand } = useRuntimeBrand()
   const [logoFailed, setLogoFailed] = useState(false)
+  const runtimeLoaderDesign = useGlobalLoaderMenuDesign()
+  const loaderDesign = designOverride ?? runtimeLoaderDesign
+  const resolvedBrand = brandOverride ?? brand
 
   return (
     <div
@@ -126,15 +216,26 @@ export function GlobalLoader({
         />
         <div className="absolute inset-0 flex items-center justify-center">
           {logoFailed ? (
-            <div className="size-6 rounded-full bg-foreground/85 shadow-sm" aria-hidden="true" />
-          ) : (
-            <img
-              src={resolveRuntimeBrandLogoUrl(brand)}
-              alt=""
+            <div
+              className="rounded-full bg-foreground/85 shadow-sm"
               aria-hidden="true"
-              className="h-10 w-10 object-contain"
-              onError={() => setLogoFailed(true)}
+              style={{
+                ...getCenteredLogoWrapperStyle(loaderDesign),
+                width: `${Math.max(16, loaderDesign.logoWidth)}px`,
+                height: `${Math.max(16, loaderDesign.logoHeight)}px`,
+              }}
             />
+          ) : (
+            <div style={getCenteredLogoWrapperStyle(loaderDesign)}>
+              <img
+                src={resolveRuntimeBrandLogoUrl(resolvedBrand, loaderDesign.logoVariant)}
+                alt=""
+                aria-hidden="true"
+                className="h-full w-full object-contain"
+                style={getCenteredLogoStyle(loaderDesign)}
+                onError={() => setLogoFailed(true)}
+              />
+            </div>
           )}
         </div>
       </motion.div>

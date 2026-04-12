@@ -49,6 +49,14 @@ import type {
   StorefrontPaymentReconciliationResponse,
   StorefrontProductResponse,
 } from "@ecommerce/shared"
+import type {
+  CompanyBrandAssetDesigner,
+  CompanyBrandAssetDraftReadResponse,
+  CompanyBrandAssetDraftResponse,
+  CompanyBrandAssetPublishResponse,
+  CompanyListResponse,
+  CompanyResponse,
+} from "@cxapp/shared"
 
 type JsonRequestOptions = RequestInit & {
   accessToken?: string | null
@@ -173,6 +181,59 @@ export const storefrontApi = {
       accessToken,
       cache: "no-store",
     })
+  },
+  getCompanies(accessToken: string) {
+    return requestJson<CompanyListResponse>("/internal/v1/cxapp/companies", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  getCompany(accessToken: string, companyId: string) {
+    const url = new URL("/internal/v1/cxapp/company", window.location.origin)
+    url.searchParams.set("id", companyId)
+
+    return requestJson<CompanyResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  getCompanyBrandDraft(accessToken: string, companyId: string) {
+    const url = new URL("/internal/v1/cxapp/company-brand-draft", window.location.origin)
+    url.searchParams.set("companyId", companyId)
+
+    return requestJson<CompanyBrandAssetDraftReadResponse>(url.toString(), {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  saveCompanyBrandDraft(
+    accessToken: string,
+    companyId: string,
+    designer: CompanyBrandAssetDesigner
+  ) {
+    const url = new URL("/internal/v1/cxapp/company-brand-draft", window.location.origin)
+    url.searchParams.set("companyId", companyId)
+
+    return requestJson<CompanyBrandAssetDraftResponse>(url.toString(), {
+      method: "PUT",
+      accessToken,
+      body: JSON.stringify({
+        designer,
+      }),
+    })
+  },
+  publishCompanyBrandAssets(
+    accessToken: string,
+    payload: Pick<CompanyBrandAssetDesigner, "primary" | "dark" | "favicon">
+  ) {
+    return requestJson<CompanyBrandAssetPublishResponse>(
+      "/internal/v1/cxapp/company-brand-assets/publish",
+      {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify(payload),
+      }
+    )
   },
   getEcommerceSettings(accessToken: string) {
     return requestJson<EcommerceSettings>("/internal/v1/ecommerce/settings", {

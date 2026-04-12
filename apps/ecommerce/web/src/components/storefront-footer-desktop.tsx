@@ -3,7 +3,7 @@ import { useStorefrontFooterData } from "./storefront-footer-shared"
 import { StorefrontTechnicalNameBadgeRow } from "./storefront-technical-name-badge"
 
 export function StorefrontFooterDesktop() {
-  const { brand, footer, supportEmail, supportPhone } = useStorefrontFooterData()
+  const { brand, footer, menuDesign, supportEmail, supportPhone } = useStorefrontFooterData()
 
   if (!footer) {
     return null
@@ -17,6 +17,7 @@ export function StorefrontFooterDesktop() {
       <StorefrontFooterSurface
         brand={brand}
         footer={footer}
+        menuDesign={menuDesign ?? undefined}
         supportEmail={supportEmail}
         supportPhone={supportPhone}
       />

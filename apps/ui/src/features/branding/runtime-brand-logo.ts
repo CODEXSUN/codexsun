@@ -4,6 +4,12 @@ type RuntimeBrandLogo = {
   darkLogoUrl?: string | null
 }
 
+export function resolveRuntimeBrandLogoVariant(
+  requestedVariant: RuntimeBrandLogoVariant | null | undefined
+): RuntimeBrandLogoVariant {
+  return requestedVariant === "dark" ? "dark" : "primary"
+}
+
 export function resolveRuntimeBrandLogoUrl(
   brand: RuntimeBrandLogo | null | undefined,
   variant: RuntimeBrandLogoVariant = "primary"

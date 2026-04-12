@@ -13,10 +13,16 @@ import {
   Workflow,
   Wrench,
 } from "lucide-react"
+import type { CSSProperties } from "react"
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
+import {
+  storefrontSettingsSchema,
+  storefrontSettingsWorkflowStatusSchema,
+  type StorefrontMenuSurfaceDesign,
+} from "@ecommerce/shared"
 import {
   Collapsible,
   CollapsibleContent,
@@ -222,6 +228,76 @@ function useDemoMenuCounts(isActive: boolean) {
     "/dashboard/apps/demo/billing": moduleCountMap.billing ?? 0,
     "/dashboard/apps/demo/frappe": moduleCountMap.frappe ?? 0,
   }
+}
+
+function getSidebarLogoFrameStyle(design: StorefrontMenuSurfaceDesign): CSSProperties {
+  return {
+    width: `${design.frameWidth}px`,
+    height: `${design.frameHeight}px`,
+    backgroundColor: design.areaBackgroundColor,
+  }
+}
+
+function getSidebarLogoImageStyle(design: StorefrontMenuSurfaceDesign): CSSProperties {
+  return {
+    width: `${design.logoWidth}px`,
+    height: `${design.logoHeight}px`,
+    transform: `translate(${design.offsetX}px, ${design.offsetY}px)`,
+    backgroundColor: design.logoBackgroundColor,
+  }
+}
+
+function useSidebarMenuDesigner() {
+  const query = useQuery({
+    queryKey: ["storefront", "menu-designer", "workflow"],
+    queryFn: async () => {
+      const accessToken = getStoredAccessToken()
+
+      if (accessToken) {
+        const workflowResponse = await fetch("/internal/v1/ecommerce/storefront-settings/workflow", {
+          cache: "no-store",
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        })
+
+        if (workflowResponse.ok) {
+          const workflowPayload = storefrontSettingsWorkflowStatusSchema.parse(
+            await workflowResponse.json()
+          )
+          return workflowPayload.previewSettings.menuDesigner
+        }
+      }
+
+      const response = await fetch("/public/v1/storefront/settings", {
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}.`)
+      }
+
+      const payload = storefrontSettingsSchema.parse(await response.json())
+      return payload.menuDesigner
+    },
+    staleTime: 30_000,
+    gcTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+
+  useEffect(() => {
+    const handleInvalidate = () => {
+      void query.refetch()
+    }
+
+    window.addEventListener("storefront-shell-invalidated", handleInvalidate)
+
+    return () => {
+      window.removeEventListener("storefront-shell-invalidated", handleInvalidate)
+    }
+  }, [query.refetch])
+
+  return query.data ?? null
 }
 
 function MenuCountBadge({
@@ -487,6 +563,20 @@ export function AppSidebar() {
   const isDashboardRoot = location.pathname === links.dashboard
   const currentAppUtilityGroups = getUtilityGroupsForCurrentApp(currentApp)
   const demoMenuCounts = useDemoMenuCounts(currentApp?.id === "demo")
+  const menuDesigner = useSidebarMenuDesigner()
+  const appMenuDesign = menuDesigner?.appMenu ?? null
+  const effectiveAppMenuDesign: StorefrontMenuSurfaceDesign = appMenuDesign ?? {
+    logoVariant: "primary",
+    frameWidth: 48,
+    frameHeight: 40,
+    logoWidth: 24,
+    logoHeight: 24,
+    offsetX: 0,
+    offsetY: 0,
+    logoHoverColor: "#8b5e34",
+    areaBackgroundColor: "#ffffff",
+    logoBackgroundColor: "#00000000",
+  }
   const showFrameworkUtilityGroups =
     isDashboardRoot ||
     isRouteActive(location.pathname, "/dashboard/mail-service") ||
@@ -499,22 +589,36 @@ export function AppSidebar() {
       <SidebarHeader>
         <Link
           to={links.dashboard}
-          className={`block ${open ? "px-1 py-1" : "px-0 py-1"}`}
-        >
-          <div className={`flex items-center ${open ? "gap-3" : "justify-center"}`}>
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-sidebar-border bg-background shadow-sm">
-              <img
-                src={resolveRuntimeBrandLogoUrl(runtimeBrand, "primary")}
-                alt={brand.name}
-                className="size-6 object-contain"
-              />
-            </div>
+          className={`group block ${open ? "px-1 py-1" : "px-0 py-1"}`}
+          style={
+            {
+              "--app-menu-logo-hover-color": appMenuDesign?.logoHoverColor ?? "#8b5e34",
+            } as CSSProperties
+          }
+          >
+            <div
+              className={`flex items-center ${open ? "gap-3" : "justify-center"}`}
+            >
+              <div
+                className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-sidebar-border shadow-sm transition-colors duration-200 group-hover:border-[var(--app-menu-logo-hover-color)]"
+                style={getSidebarLogoFrameStyle(effectiveAppMenuDesign)}
+              >
+                <img
+                  src={resolveRuntimeBrandLogoUrl(
+                    runtimeBrand,
+                    effectiveAppMenuDesign.logoVariant
+                  )}
+                  alt={brand.name}
+                  className="absolute object-contain"
+                  style={getSidebarLogoImageStyle(effectiveAppMenuDesign)}
+                />
+              </div>
             {open ? (
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="truncate whitespace-nowrap text-sm font-semibold uppercase tracking-[0.22em] text-foreground">
+                <p className="truncate whitespace-nowrap text-sm font-semibold uppercase tracking-[0.22em] text-foreground transition-colors duration-200 group-hover:text-[var(--app-menu-logo-hover-color)]">
                   {brand.name}
                 </p>
-                <p className="truncate whitespace-nowrap text-sm text-muted-foreground">
+                <p className="truncate whitespace-nowrap text-sm text-muted-foreground transition-colors duration-200 group-hover:text-[var(--app-menu-logo-hover-color)]">
                   {brand.tagline}
                 </p>
               </div>

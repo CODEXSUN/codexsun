@@ -201,11 +201,30 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
           cornerStyle: "rounded",
           backgroundColor: "#2c1e16",
         },
+        menuDesigner: {
+          topMenu: {
+            ...storedSettings.menuDesigner.topMenu,
+            frameWidth: 240,
+            frameHeight: 92,
+            logoWidth: 128,
+            logoHeight: 64,
+            offsetX: 12,
+            offsetY: -4,
+            logoHoverColor: "#d97706",
+            areaBackgroundColor: "#f5efe6",
+            logoBackgroundColor: "#fffaf3",
+          },
+        },
       })
 
       assert.equal(savedSettings.announcement, "Updated storefront announcement")
       assert.equal(savedSettings.announcementDesign.iconKey, "truck")
       assert.equal(savedSettings.announcementDesign.cornerStyle, "rounded")
+      assert.equal(savedSettings.menuDesigner.topMenu.frameWidth, 240)
+      assert.equal(savedSettings.menuDesigner.topMenu.logoVariant, "primary")
+      assert.equal(savedSettings.menuDesigner.topMenu.logoWidth, 128)
+      assert.equal(savedSettings.menuDesigner.topMenu.offsetX, 12)
+      assert.equal(savedSettings.menuDesigner.topMenu.logoHoverColor, "#d97706")
       assert.equal(savedSettings.shippingMethods.length > 0, true)
       assert.equal((await getStorefrontSettings(runtime.primary)).announcement, storedSettings.announcement)
       assert.equal(
@@ -290,6 +309,41 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
         "Updated storefront announcement"
       )
 
+      await replaceJsonStoreRecords(
+        runtime.primary,
+        ecommerceTableNames.storefrontSettingsRevisions,
+        [
+          {
+            id: "legacy-revision",
+            sortOrder: 1,
+            payload: {
+              id: "legacy-revision",
+              settingsId: storedSettings.id,
+              source: "publish",
+              snapshot: {
+                ...storedSettings,
+                menuDesigner: undefined,
+              },
+              snapshotUpdatedAt: storedSettings.updatedAt,
+              createdAt: storedSettings.updatedAt,
+              updatedAt: storedSettings.updatedAt,
+            },
+            createdAt: storedSettings.updatedAt,
+            updatedAt: storedSettings.updatedAt,
+          },
+        ]
+      )
+
+      const compatibilityWorkflow = await getStorefrontSettingsWorkflowStatus(runtime.primary)
+      assert.equal(
+        compatibilityWorkflow.revisions[0]?.snapshot.menuDesigner.appMenu.logoWidth,
+        defaultStorefrontSettings.menuDesigner.appMenu.logoWidth
+      )
+      assert.equal(
+        compatibilityWorkflow.revisions[0]?.snapshot.menuDesigner.globalLoader.logoVariant,
+        defaultStorefrontSettings.menuDesigner.globalLoader.logoVariant
+      )
+
       await assert.rejects(
         () =>
           saveStorefrontSettings(runtime.primary, {
@@ -362,6 +416,14 @@ test("ecommerce storefront supports customer registration, mock checkout, portal
       assert.equal(
         hydratedLegacySettings.announcementDesign.iconKey,
         defaultStorefrontSettings.announcementDesign.iconKey
+      )
+      assert.equal(
+        hydratedLegacySettings.menuDesigner.appMenu.logoHoverColor,
+        defaultStorefrontSettings.menuDesigner.appMenu.logoHoverColor
+      )
+      assert.equal(
+        hydratedLegacySettings.menuDesigner.globalLoader.logoVariant,
+        defaultStorefrontSettings.menuDesigner.globalLoader.logoVariant
       )
       assert.equal(
         hydratedLegacySettings.homeSlider.slides[0]?.theme.themeKey,
