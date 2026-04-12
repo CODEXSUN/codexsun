@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.5.2`
+Current baseline: `1.6.0`
 
-Next target: `1.6.0`
+Next target: `1.7.0`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -592,6 +592,8 @@ Completion notes:
 
 ## 1.6.0 Review Automation
 
+Status: complete.
+
 Goal:
 
 Create structured review findings from Zetro review playbooks.
@@ -609,6 +611,16 @@ Exit criteria:
 
 1. Findings are structured.
 2. Findings can be accepted, dismissed, fixed, or moved to Task.
+
+Completion notes:
+
+1. Review lane model exists in `apps/zetro/src/services/review-lanes.ts` with 8 lanes (architecture, security, performance, code-quality, testing, documentation, compliance, general).
+2. Review service exists in `apps/zetro/src/services/review-service.ts` with severity/confidence mapping, content parsing, and summary building.
+3. Review API routes exist in `apps/api/src/internal/zetro-routes.ts` (`/zetro/review/lanes`, `/zetro/review/parse`, `/zetro/review/summarize`).
+4. Review workspace item registered in `apps/zetro/shared/workspace-items.ts` and `apps/zetro/web/src/workspace-sections.tsx`.
+5. Review dashboard page exists in `apps/zetro/web/src/pages/review-page.tsx` with lane overview, parsing form, and finding cards.
+6. Terminal commands added: `review-lanes` and `review-summary [--run <id>]`.
+7. Typecheck and doctor pass.
 
 ## 1.7.0 Controlled Loop
 

@@ -29,6 +29,9 @@ import {
   buildZetroModelSettings,
   checkProviderHealth,
   listSupportedProviders,
+  ZETRO_REVIEW_LANES,
+  extractReviewFindingsFromContent,
+  buildReviewSummary,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
@@ -41,6 +44,7 @@ import {
   type ZetroExecuteCommandInput,
   type ZetroModelProviderId,
   type ZetroProviderConfig,
+  type ZetroReviewFindingInput,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -543,6 +547,72 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
         };
 
         return jsonResponse(await checkProviderHealth(providerId, config));
+      },
+    }),
+    defineInternalRoute("/zetro/review/lanes", {
+      summary: "List available review lanes with metadata.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        return jsonResponse({
+          items: ZETRO_REVIEW_LANES,
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/review/parse", {
+      summary:
+        "Parse model output content and extract structured review findings.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          content: string;
+          runId?: string;
+          sessionId?: string;
+        };
+
+        if (!body.content || typeof body.content !== "string") {
+          throw new ApplicationError("Review content is required.", {}, 400);
+        }
+
+        const findings = extractReviewFindingsFromContent(body.content, {
+          runId: body.runId,
+          sessionId: body.sessionId,
+        });
+
+        return jsonResponse({ items: findings }, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/review/summarize", {
+      summary: "Build a review summary from a list of findings.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as {
+          findings: Array<{
+            laneId: string;
+            severity: string;
+            status: string;
+          }>;
+        };
+
+        if (!body.findings || !Array.isArray(body.findings)) {
+          throw new ApplicationError("Findings array is required.", {}, 400);
+        }
+
+        const summary = buildReviewSummary(
+          body.findings as Parameters<typeof buildReviewSummary>[0],
+        );
+
+        return jsonResponse(summary);
       },
     }),
   ];

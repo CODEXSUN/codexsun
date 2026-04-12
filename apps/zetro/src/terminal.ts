@@ -16,6 +16,7 @@ import {
   createZetroCommandProposal,
   getZetroRunWithDetails,
   listZetroCommandProposals,
+  listZetroFindings,
   updateZetroFindingStatus,
   updateZetroCommandProposalStatus,
   buildZetroModelSettings,
@@ -25,6 +26,8 @@ import {
   createZetroChatSession,
   createZetroChatMessage,
   listZetroChatMessages,
+  ZETRO_REVIEW_LANES,
+  buildReviewSummary,
 } from "./services/index.js";
 import type {
   ZetroFindingStatus,
@@ -61,6 +64,8 @@ type ZetroTerminalCommand =
   | "findings"
   | "create-finding"
   | "finding-status"
+  | "review-lanes"
+  | "review-summary"
   | "plan"
   | "assist"
   | "doctor"
@@ -107,6 +112,10 @@ function printUsage() {
     "  create-finding --title <v> --summary <v> [--run <id>] [--id <id>]",
   );
   console.info("  finding-status --finding <id> --status <status>");
+  console.info("  review-lanes                  List all review lanes.");
+  console.info(
+    "  review-summary [--run <id>]  Show review summary from findings.",
+  );
   console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
   );
@@ -156,6 +165,8 @@ function resolveCommand(
     case "findings":
     case "create-finding":
     case "finding-status":
+    case "review-lanes":
+    case "review-summary":
     case "plan":
     case "assist":
     case "doctor":
@@ -657,6 +668,53 @@ function printFindings(data: ZetroTerminalData) {
   }
 }
 
+function printReviewLanes() {
+  printHeader("Review lanes");
+  for (const lane of ZETRO_REVIEW_LANES) {
+    console.info(`${lane.id} | ${lane.name} | ${lane.defaultSeverity}`);
+    console.info(`  ${lane.description}`);
+    console.info(`  Keywords: ${lane.keywords.join(", ")}`);
+  }
+}
+
+async function printReviewSummary(args: string[]) {
+  const runId = readOption(args, "--run");
+
+  try {
+    const findings = await withZetroDatabase((database) =>
+      listZetroFindings(database, runId ? { runId } : undefined),
+    );
+
+    const findingsForSummary = findings.map((f) => ({
+      laneId: (f.category as any) ?? "general",
+      severity: f.severity as any,
+      status: f.status as any,
+    }));
+
+    const summary = buildReviewSummary(
+      findingsForSummary as Parameters<typeof buildReviewSummary>[0],
+    );
+
+    printHeader("Review summary");
+    console.info(`Total: ${summary.total}`);
+    console.info(
+      `Open: ${summary.open} | Accepted: ${summary.accepted} | Dismissed: ${summary.dismissed} | Fixed: ${summary.fixed} | Deferred: ${summary.deferred}`,
+    );
+    console.info("");
+    console.info("By lane:");
+    for (const [laneId, count] of Object.entries(summary.byLane)) {
+      console.info(`  ${laneId}: ${count}`);
+    }
+    console.info("");
+    console.info("By severity:");
+    for (const [severity, count] of Object.entries(summary.bySeverity)) {
+      console.info(`  ${severity}: ${count}`);
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
 async function createRunFromArgs(args: string[]) {
   try {
     const payload = {
@@ -1007,6 +1065,12 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "finding-status":
       await updateFindingStatusFromArgs(rest);
+      return;
+    case "review-lanes":
+      printReviewLanes();
+      return;
+    case "review-summary":
+      await printReviewSummary(rest);
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

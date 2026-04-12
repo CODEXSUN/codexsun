@@ -9,6 +9,8 @@ export * from "./model-provider-service.js";
 export * from "./output-section-service.js";
 export * from "./playbook-service.js";
 export * from "./prompt-builder.js";
+export * from "./review-lanes.js";
+export * from "./review-service.js";
 export * from "./run-service.js";
 export * from "./runner-service.js";
 export * from "./settings-service.js";

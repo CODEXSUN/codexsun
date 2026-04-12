@@ -12,8 +12,15 @@ Build Zetro into a terminal-first, dashboard-backed agent workspace for planning
 4. Static output modes.
 5. Static guardrails.
 6. Static sample runs and findings.
-7. Terminal command: `npm.cmd run zetro -- ...`.
-8. Interactive shell: `npm.cmd run zetro -- chat`.
+7. Persisted playbooks, runs, findings, guardrails, settings.
+8. Advisory command proposals with approval workflow.
+9. Approved CLI runner with allowlist and policy validation.
+10. Model provider adapters (none, ollama-local, openai, anthropic).
+11. Interactive shell with chat sessions.
+12. Review lanes (8 structured categories) with severity/confidence mapping.
+13. Review dashboard and terminal commands.
+14. Terminal command: `npm.cmd run zetro -- ...`.
+15. Interactive shell: `npm.cmd run zetro -- chat`.
 
 ## Phase Order
 

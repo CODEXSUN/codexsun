@@ -24,8 +24,9 @@ Available pages:
 4. Rollout Plan
 5. Runs
 6. Findings
-7. Guardrails
-8. Settings
+7. Review Lanes
+8. Guardrails
+9. Settings
 
 ## Use The Terminal
 
@@ -45,6 +46,8 @@ npm.cmd run zetro -- modes
 npm.cmd run zetro -- guardrails
 npm.cmd run zetro -- runs
 npm.cmd run zetro -- findings
+npm.cmd run zetro -- review-lanes
+npm.cmd run zetro -- review-summary --run <id>
 npm.cmd run zetro -- plan "build persisted playbooks"
 npm.cmd run zetro -- chat
 ```
