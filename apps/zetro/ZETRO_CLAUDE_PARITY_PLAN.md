@@ -19,13 +19,13 @@ Read these files in order:
 Current lock:
 
 1. Zetro is terminal-first plus dashboard catalog.
-2. Runner mode is manual.
+2. CLI runner with approval workflow.
 3. Command proposals exist with policy validation.
 4. Command allowlist with blocked/sensitive commands.
-5. No LLM provider call yet.
-6. No command execution yet.
+5. Command execution with stdout/stderr capture and timeout.
+6. No LLM provider call yet.
 7. No autonomous loop yet.
 
 Next build target:
 
-Approved CLI runner (1.4.0).
+Model provider adapter (1.5.0).

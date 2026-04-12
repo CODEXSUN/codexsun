@@ -9,6 +9,8 @@ import {
   createZetroCommandProposal,
   createZetroAllowlistEntry,
   createZetroBlockedCommand,
+  executeAndApprove,
+  executeApprovedCommand,
   getZetroDashboardSummary,
   getZetroPlaybook,
   getZetroRunWithDetails,
@@ -17,6 +19,7 @@ import {
   listZetroGuardrails,
   listZetroAllowlistEntries,
   listZetroBlockedCommands,
+  listZetroExecutedCommands,
   listZetroPlaybooks,
   listZetroRuns,
   readZetroSettings,
@@ -32,6 +35,7 @@ import {
   type ZetroFindingStatus,
   type ZetroCreateAllowlistEntryInput,
   type ZetroCreateBlockedCommandInput,
+  type ZetroExecuteCommandInput,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -431,6 +435,68 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(
           await getZetroRunnerPolicy(context.databases.primary),
         );
+      },
+    }),
+    defineInternalRoute("/zetro/execute", {
+      summary: "Execute an approved command or run a command directly.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as ZetroExecuteCommandInput;
+
+        if (!body.command || !body.runId) {
+          throw new ApplicationError(
+            "Zetro execution command and runId are required.",
+            {},
+            400,
+          );
+        }
+
+        return jsonResponse(
+          await executeApprovedCommand(context.databases.primary, body),
+          201,
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/execute/proposal", {
+      summary: "Approve a proposal and execute it immediately.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as { proposalId: string };
+        const proposalId = body.proposalId?.trim();
+
+        if (!proposalId) {
+          throw new ApplicationError("Zetro proposalId is required.", {}, 400);
+        }
+
+        return jsonResponse(
+          await executeAndApprove(context.databases.primary, proposalId),
+          201,
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/executed", {
+      summary: "List executed commands.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId =
+          context.request.url.searchParams.get("runId") ?? undefined;
+
+        return jsonResponse({
+          items: await listZetroExecutedCommands(context.databases.primary, {
+            runId,
+          }),
+        });
       },
     }),
   ];

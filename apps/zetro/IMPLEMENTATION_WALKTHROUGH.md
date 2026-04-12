@@ -22,13 +22,13 @@ http://localhost:5173/dashboard/apps/zetro
 
 Current mode:
 
-1. Manual runner.
+1. CLI runner with approval workflow.
 2. Database-backed catalog with JSON store.
 3. Run output sections.
 4. Command proposals with policy validation.
 5. Command allowlist with blocked/sensitive commands.
-6. No LLM call.
-7. No command execution.
+6. Command execution with stdout/stderr capture.
+7. No LLM call.
 8. No background loop.
 
-Phase: 1.3.1 complete (Runner Policy And Allowlist)
+Phase: 1.4.0 complete (Approved CLI Runner)

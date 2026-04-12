@@ -5,5 +5,6 @@ export * from "./guardrail-service.js";
 export * from "./output-section-service.js";
 export * from "./playbook-service.js";
 export * from "./run-service.js";
+export * from "./runner-service.js";
 export * from "./settings-service.js";
 export * from "./zetro-summary-service.js";

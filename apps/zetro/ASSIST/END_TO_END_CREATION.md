@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.3.1`
+Current baseline: `1.4.0`
 
-Next target: `1.4.0`
+Next target: `1.5.0`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -417,9 +417,43 @@ Completion notes:
 7. Blocked commands throw an error. Commands not in allowlist throw an error.
 8. Policy settings: allowAll, requireApproval, maxTimeoutSeconds, auditAllCommands.
 9. API routes exist for allowlist entries, blocked patterns, and policy settings.
-10. No command execution was added.
 
 ## 1.4.0 Approved CLI Runner
+
+Status: complete.
+
+Goal:
+
+Execute allowlisted commands after approval.
+
+Deliverables:
+
+1. CLI bridge
+2. approval check
+3. stdout capture
+4. stderr capture
+5. exit code capture
+6. timeout
+7. cancellation
+8. run event persistence
+
+Exit criteria:
+
+1. Every command has approval.
+2. Every command has output capture.
+3. Every command has exit code.
+4. Every command is visible in the run timeline.
+
+Completion notes:
+
+1. `zetro_executed_commands` table exists with migration `09-zetro-executed-commands`.
+2. Runner service with CLI bridge, approval check, stdout/stderr/exit code capture.
+3. Timeout support with configurable duration (default 300s).
+4. Cancellation support via SIGTERM.
+5. Commands are persisted with full output, status, and timing.
+6. API routes: `POST /zetro/execute` for direct execution, `POST /zetro/execute/proposal` for approve-and-execute.
+7. API route: `GET /zetro/executed` for listing executed commands.
+8. All execution passes through policy validation.
 
 Goal:
 
