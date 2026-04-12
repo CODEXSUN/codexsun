@@ -4,12 +4,14 @@ import type {
 import type {
   Company,
   CompanyAddressInput,
+  CompanyBrandAssetDesigner,
   CompanyBankAccountInput,
   CompanyEmailInput,
   CompanyLogoInput,
   CompanyPhoneInput,
   CompanyUpsertPayload,
 } from "@cxapp/shared"
+import { defaultCompanyBrandAssetDesigner } from "@cxapp/shared"
 
 export type CompanyFormValues = CompanyUpsertPayload
 export type CompanyLocationModuleKey = Extract<
@@ -99,6 +101,7 @@ export function createDefaultCompanyFormValues(): CompanyFormValues {
     emails: [createEmptyCompanyEmail()],
     phones: [createEmptyCompanyPhone()],
     bankAccounts: [createEmptyCompanyBankAccount()],
+    brandAssetDesigner: structuredClone(defaultCompanyBrandAssetDesigner) as CompanyBrandAssetDesigner,
   }
 }
 
@@ -163,5 +166,6 @@ export function toCompanyFormValues(company: Company): CompanyFormValues {
           isPrimary: account.isPrimary,
         }))
       : [createEmptyCompanyBankAccount()],
+    brandAssetDesigner: company.brandAssetDesigner,
   }
 }

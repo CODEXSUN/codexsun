@@ -73,6 +73,13 @@ test("internal route registry includes the frappe connector endpoints", () => {
   assert.ok(routePaths.includes("GET /internal/v1/frappe/purchase-receipts"))
 })
 
+test("internal route registry includes the framework developer operations endpoint", () => {
+  const routes = createInternalApiRoutes(createAppSuite())
+  const routePaths = routes.map((route) => `${route.method} ${route.path}`)
+
+  assert.ok(routePaths.includes("POST /internal/v1/framework/developer-operations"))
+})
+
 test("internal route registry includes the billing voucher and report endpoints", () => {
   const routes = createInternalApiRoutes(createAppSuite())
   const routePaths = routes.map((route) => `${route.method} ${route.path}`)
@@ -127,8 +134,10 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("PATCH /internal/v1/core/common-modules/item"))
   assert.ok(routePaths.includes("DELETE /internal/v1/core/common-modules/item"))
   assert.ok(routePaths.includes("GET /internal/v1/cxapp/company"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/company-brand-draft"))
   assert.ok(routePaths.includes("POST /internal/v1/cxapp/companies"))
   assert.ok(routePaths.includes("PATCH /internal/v1/cxapp/company"))
+  assert.ok(routePaths.includes("PUT /internal/v1/cxapp/company-brand-draft"))
   assert.ok(routePaths.includes("DELETE /internal/v1/cxapp/company"))
   assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/users"))
   assert.ok(routePaths.includes("GET /internal/v1/cxapp/auth/user"))
@@ -159,6 +168,7 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("GET /internal/v1/framework/system-update/preview"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/system-update"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/system-update/reset"))
+  assert.ok(routePaths.includes("POST /internal/v1/framework/developer-operations"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/activity-log"))
   assert.ok(routePaths.includes("POST /internal/v1/framework/activity-log/test"))
   assert.ok(routePaths.includes("GET /internal/v1/framework/alerts-dashboard"))

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { cn } from "@/lib/utils"
 
 type AppBrandProps = {
@@ -22,7 +23,7 @@ export function AppBrand({
       className={cn("flex items-center gap-3 text-foreground", className)}
     >
       <img
-        src="/logo.svg"
+        src={resolveRuntimeBrandLogoUrl(brand)}
         alt={`${brand?.brandName ?? "Codexsun"} logo`}
         className={cn("w-auto shrink-0", compact ? "h-10" : "h-12")}
       />

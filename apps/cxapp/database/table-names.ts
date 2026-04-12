@@ -1,6 +1,7 @@
 export const cxappTableNames = {
   bootstrapSnapshots: "cxapp_bootstrap_snapshots",
   companies: "cxapp_companies",
+  companyBrandAssetDrafts: "cxapp_company_brand_asset_drafts",
   authUsers: "cxapp_auth_users",
   authPermissions: "cxapp_auth_permissions",
   authOptionCatalog: "cxapp_auth_option_catalog",

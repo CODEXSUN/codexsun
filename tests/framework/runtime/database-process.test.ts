@@ -45,6 +45,7 @@ test("registered database processes stay ordered by app and module", () => {
       "framework:runtime:03-activity-log",
       "framework:runtime:04-monitoring-events",
       "framework:runtime:05-operations-governance",
+      "framework:runtime:06-runtime-jobs",
       "cxapp:bootstrap:01-bootstrap",
       "cxapp:companies:02-companies",
       "cxapp:auth:05-auth-foundation",
@@ -54,6 +55,7 @@ test("registered database processes stay ordered by app and module", () => {
       "cxapp:auth:13-auth-permission-scope",
       "cxapp:auth:14-auth-option-catalog",
       "cxapp:auth:15-auth-hardening",
+      "cxapp:companies:16-company-brand-asset-drafts",
       "core:contacts:03-contacts",
       "core:common-modules:04-common-modules",
       "core:common-modules:08-common-module-tables",
@@ -94,6 +96,7 @@ test("registered database processes stay ordered by app and module", () => {
       "ecommerce:order-requests:04-order-requests",
       "ecommerce:storefront:05-storefront-settings-revisions",
       "ecommerce:storefront:06-storefront-settings-drafts",
+      "ecommerce:storefront:07-ecommerce-settings",
       "frappe:settings:01-settings",
       "frappe:todos:02-todos",
       "frappe:items:03-items",
@@ -120,6 +123,7 @@ test("registered database processes stay ordered by app and module", () => {
       "billing:vouchers:03-vouchers",
       "billing:voucher-types:03-voucher-types",
       "ecommerce:storefront:01-storefront-settings",
+      "ecommerce:storefront:02-ecommerce-settings",
       "frappe:settings:01-settings",
       "frappe:todos:02-todos",
       "frappe:items:03-items",
@@ -178,6 +182,10 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
         .selectFrom(cxappTableNames.companies)
         .select(["id"])
         .execute()
+      const companyBrandDraftRows = await queryDatabase
+        .selectFrom(cxappTableNames.companyBrandAssetDrafts)
+        .select(["id"])
+        .execute()
       const commonCategoryRows = await queryDatabase
         .selectFrom(commonModuleTableNames.productCategories)
         .select(["id"])
@@ -218,6 +226,7 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
       )
       assert.equal(appliedSeeders.length, listRegisteredDatabaseSeeders().length)
       assert.equal(companyRows.length, 2)
+      assert.equal(companyBrandDraftRows.length, 0)
       assert.equal(billingVoucherRows.length, 6)
       assert.equal(salesVoucherSplitRows.length, 0)
       assert.equal(salesItemSplitRows.length, 0)

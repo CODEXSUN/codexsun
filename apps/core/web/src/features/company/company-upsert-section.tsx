@@ -1,16 +1,28 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeftIcon } from "lucide-react"
 
 import type { CommonModuleItem } from "@core/shared"
-import type { CompanyResponse } from "@cxapp/shared"
+import type {
+  CompanyBrandAssetDesigner,
+  CompanyBrandAssetDraftReadResponse,
+  CompanyBrandAssetDraftResponse,
+  CompanyBrandAssetPublishResponse,
+  CompanyResponse,
+} from "@cxapp/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
+import {
+  handleMediaPreviewError,
+  resolveMediaPreviewUrl,
+} from "@cxapp/web/src/features/framework-media/media-url"
 
+import { showAppToast } from "@/components/ui/app-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { Textarea } from "@/components/ui/textarea"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
@@ -22,7 +34,6 @@ import {
   createEmptyCompanyAddress,
   createEmptyCompanyBankAccount,
   createEmptyCompanyEmail,
-  createEmptyCompanyLogo,
   createEmptyCompanyPhone,
   toCompanyFormValues,
   type CompanyFormValues,
@@ -42,8 +53,129 @@ import {
 
 type LookupState = Record<CompanyLocationModuleKey, CommonModuleItem[]>
 type CompanyFieldErrors = Partial<Record<keyof CompanyFormValues, string>>
+type BrandAssetVariant = "primary" | "dark" | "favicon" | "print"
+type BrandAssetSourceState = {
+  logoUrl: string
+  darkLogoUrl: string
+  faviconUrl: string
+  printLogoUrl: string
+}
+type SvgEditorDraft = {
+  canvasWidth: number
+  canvasHeight: number
+  offsetX: number
+  offsetY: number
+  scale: number
+  fillColor: string
+  hoverFillColor: string
+}
+type BrandAssetEditorState = Record<BrandAssetVariant, SvgEditorDraft>
+type BrandAssetSourceMarkupState = Record<BrandAssetVariant, string | null>
+type BrandAssetDraftStatus = "idle" | "dirty" | "saving" | "saved" | "error"
 
 const lookupModules: CompanyLocationModuleKey[] = ["addressTypes", "countries", "states", "districts", "cities", "pincodes"]
+const companyUpsertTechnicalName = "section.core.companies.upsert"
+const defaultBrandAssetSourceState: BrandAssetSourceState = {
+  logoUrl: "",
+  darkLogoUrl: "",
+  faviconUrl: "",
+  printLogoUrl: "",
+}
+const defaultBrandAssetEditorState: BrandAssetEditorState = {
+  primary: {
+    canvasWidth: 320,
+    canvasHeight: 120,
+    offsetX: 0,
+    offsetY: 0,
+    scale: 100,
+    fillColor: "#111111",
+    hoverFillColor: "#8b5e34",
+  },
+  dark: {
+    canvasWidth: 320,
+    canvasHeight: 120,
+    offsetX: 0,
+    offsetY: 0,
+    scale: 100,
+    fillColor: "#f5efe8",
+    hoverFillColor: "#f0c48a",
+  },
+  favicon: {
+    canvasWidth: 64,
+    canvasHeight: 64,
+    offsetX: 0,
+    offsetY: 0,
+    scale: 100,
+    fillColor: "#8b5e34",
+    hoverFillColor: "#5a3a1b",
+  },
+  print: {
+    canvasWidth: 420,
+    canvasHeight: 120,
+    offsetX: 0,
+    offsetY: 0,
+    scale: 100,
+    fillColor: "#111111",
+    hoverFillColor: "#3b3b3b",
+  },
+}
+const brandAssetEditorDefinitions: Array<{
+  variant: BrandAssetVariant
+  label: string
+  fileName: string
+  description: string
+  surfaceClassName: string
+  imageClassName: string
+  targetLabel: string
+  publishable: boolean
+}> = [
+  {
+    variant: "primary",
+    label: "Light",
+    fileName: "logo.svg",
+    description: "Default light-surface logo used across web and app chrome.",
+    surfaceClassName: "bg-[linear-gradient(135deg,#f5f1eb_0%,#ece5dc_100%)]",
+    imageClassName: "max-h-24 max-w-[80%]",
+    targetLabel: "Publish target: public/logo.svg",
+    publishable: true,
+  },
+  {
+    variant: "dark",
+    label: "Dark",
+    fileName: "logo-dark.svg",
+    description: "Dark-surface logo for storefront footer, dark shells, and contrast-heavy sections.",
+    surfaceClassName: "bg-[linear-gradient(135deg,#181818_0%,#31261d_100%)]",
+    imageClassName: "max-h-24 max-w-[80%]",
+    targetLabel: "Publish target: public/logo-dark.svg",
+    publishable: true,
+  },
+  {
+    variant: "favicon",
+    label: "Favicon",
+    fileName: "favicon.svg",
+    description: "Compact mark for browser tabs, pinned surfaces, and small icon contexts.",
+    surfaceClassName: "bg-[linear-gradient(135deg,#edf2f7_0%,#d8e1eb_100%)]",
+    imageClassName: "max-h-16 max-w-16",
+    targetLabel: "Publish target: public/favicon.svg",
+    publishable: true,
+  },
+  {
+    variant: "print",
+    label: "Company Logo",
+    fileName: "company-logo.svg",
+    description: "Company logo draft for letterhead, print-safe layouts, and document-first branding.",
+    surfaceClassName: "bg-[linear-gradient(135deg,#ffffff_0%,#f3f3f3_100%)]",
+    imageClassName: "max-h-20 max-w-[85%]",
+    targetLabel: "Company logo draft for letterhead. Not published yet.",
+    publishable: false,
+  },
+]
+const emptyBrandAssetSourceMarkupState: BrandAssetSourceMarkupState = {
+  primary: null,
+  dark: null,
+  favicon: null,
+  print: null,
+}
 
 function getCommonModuleRoute(moduleKey: CompanyLocationModuleKey) {
   return `/dashboard/apps/core/common-${moduleKey}`
@@ -75,6 +207,206 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T
+}
+
+async function requestText(path: string) {
+  const accessToken = getStoredAccessToken()
+  const response = await fetch(path, {
+    headers:
+      path.startsWith("/internal/") && accessToken
+        ? {
+            authorization: `Bearer ${accessToken}`,
+          }
+        : undefined,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}.`)
+  }
+
+  return response.text()
+}
+
+function parseSvgLength(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const match = value.match(/-?\d+(?:\.\d+)?/)
+  return match ? Number(match[0]) : null
+}
+
+function extractSvgAttribute(attributes: string, name: string) {
+  const pattern = new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, "i")
+  return attributes.match(pattern)?.[1] ?? null
+}
+
+function normalizeHexColor(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const normalized = value.trim()
+
+  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+    return normalized.toLowerCase()
+  }
+
+  if (/^#[0-9a-fA-F]{3}$/.test(normalized)) {
+    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase()
+  }
+
+  return null
+}
+
+function extractSvgEditorDefaults(svgSource: string, fallback: SvgEditorDraft) {
+  const rootMatch = svgSource.match(/<svg\b([^>]*)>/i)
+  const attributes = rootMatch?.[1] ?? ""
+  const width = parseSvgLength(extractSvgAttribute(attributes, "width"))
+  const height = parseSvgLength(extractSvgAttribute(attributes, "height"))
+  const viewBox = extractSvgAttribute(attributes, "viewBox")
+  const viewBoxParts = viewBox?.split(/[\s,]+/).map(Number).filter(Number.isFinite) ?? []
+  const derivedWidth = width ?? (viewBoxParts.length === 4 ? viewBoxParts[2] : null)
+  const derivedHeight = height ?? (viewBoxParts.length === 4 ? viewBoxParts[3] : null)
+  const fillMatch = svgSource.match(/fill\s*=\s*["'](#[0-9a-fA-F]{3,6})["']/i)
+  const fillColor = normalizeHexColor(fillMatch?.[1]) ?? fallback.fillColor
+
+  return {
+    canvasWidth: Math.max(32, Math.round(derivedWidth ?? fallback.canvasWidth)),
+    canvasHeight: Math.max(32, Math.round(derivedHeight ?? fallback.canvasHeight)),
+    fillColor,
+  }
+}
+
+function parseSourceSvg(svgSource: string) {
+  const rootMatch = svgSource.match(/<svg\b([^>]*)>([\s\S]*)<\/svg>/i)
+  const selfClosingMatch = svgSource.match(/<svg\b([^>]*)\/>/i)
+
+  if (!rootMatch && !selfClosingMatch) {
+    throw new Error("The selected source does not contain a valid SVG document.")
+  }
+
+  const attributes = rootMatch?.[1] ?? selfClosingMatch?.[1] ?? ""
+  const innerMarkup = rootMatch?.[2] ?? ""
+  const width = parseSvgLength(extractSvgAttribute(attributes, "width"))
+  const height = parseSvgLength(extractSvgAttribute(attributes, "height"))
+  const viewBox = extractSvgAttribute(attributes, "viewBox")
+  const viewBoxParts = viewBox?.split(/[\s,]+/).map(Number).filter(Number.isFinite) ?? []
+  const parsedWidth = width ?? (viewBoxParts.length === 4 ? viewBoxParts[2] : 100)
+  const parsedHeight = height ?? (viewBoxParts.length === 4 ? viewBoxParts[3] : 100)
+  const resolvedViewBox =
+    viewBoxParts.length === 4
+      ? viewBoxParts.join(" ")
+      : `0 0 ${parsedWidth} ${parsedHeight}`
+
+  return {
+    innerMarkup,
+    viewBox: resolvedViewBox,
+    width: Math.max(1, parsedWidth),
+    height: Math.max(1, parsedHeight),
+  }
+}
+
+function replaceSvgFillColors(svgMarkup: string, fillColor: string) {
+  return svgMarkup
+    .replace(/fill\s*=\s*["'](#[0-9a-fA-F]{3,8})["']/gi, `fill="${fillColor}"`)
+    .replace(/fill:\s*(#[0-9a-fA-F]{3,8})/gi, `fill:${fillColor}`)
+}
+
+function buildDesignedSvgPreview(sourceSvg: string, editor: SvgEditorDraft) {
+  const parsed = parseSourceSvg(sourceSvg)
+  const scaledWidth = Math.max(1, Number((parsed.width * editor.scale) / 100))
+  const scaledHeight = Math.max(1, Number((parsed.height * editor.scale) / 100))
+  const recoloredMarkup = replaceSvgFillColors(parsed.innerMarkup, editor.fillColor)
+
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${editor.canvasWidth}" height="${editor.canvasHeight}" viewBox="0 0 ${editor.canvasWidth} ${editor.canvasHeight}" fill="none">`,
+    `  <svg x="${editor.offsetX}" y="${editor.offsetY}" width="${scaledWidth}" height="${scaledHeight}" viewBox="${parsed.viewBox}" overflow="visible">`,
+    `    <style>:root svg:hover [data-hover-fill]{ fill: ${editor.hoverFillColor}; }</style>`,
+    `    <g data-hover-fill="true">${recoloredMarkup}</g>`,
+    "  </svg>",
+    "</svg>",
+  ].join("\n")
+}
+
+function buildBrandAssetDesignerPayload(
+  sources: BrandAssetSourceState,
+  editors: BrandAssetEditorState
+): CompanyBrandAssetDesigner {
+  return {
+    primary: {
+      sourceUrl: sources.logoUrl.trim(),
+      ...editors.primary,
+    },
+    dark: {
+      sourceUrl: sources.darkLogoUrl.trim(),
+      ...editors.dark,
+    },
+    favicon: {
+      sourceUrl: sources.faviconUrl.trim(),
+      ...editors.favicon,
+    },
+    print: {
+      sourceUrl: sources.printLogoUrl.trim(),
+      ...editors.print,
+    },
+  }
+}
+
+function createBrandAssetDraftSnapshot(
+  sources: BrandAssetSourceState,
+  editors: BrandAssetEditorState
+) {
+  return JSON.stringify(buildBrandAssetDesignerPayload(sources, editors))
+}
+
+function createBrandAssetStateFromDesigner(designer: CompanyBrandAssetDesigner) {
+  return {
+    sources: {
+      logoUrl: designer.primary.sourceUrl,
+      darkLogoUrl: designer.dark.sourceUrl,
+      faviconUrl: designer.favicon.sourceUrl,
+      printLogoUrl: designer.print.sourceUrl,
+    },
+    editors: {
+      primary: {
+        canvasWidth: designer.primary.canvasWidth,
+        canvasHeight: designer.primary.canvasHeight,
+        offsetX: designer.primary.offsetX,
+        offsetY: designer.primary.offsetY,
+        scale: designer.primary.scale,
+        fillColor: designer.primary.fillColor,
+        hoverFillColor: designer.primary.hoverFillColor,
+      },
+      dark: {
+        canvasWidth: designer.dark.canvasWidth,
+        canvasHeight: designer.dark.canvasHeight,
+        offsetX: designer.dark.offsetX,
+        offsetY: designer.dark.offsetY,
+        scale: designer.dark.scale,
+        fillColor: designer.dark.fillColor,
+        hoverFillColor: designer.dark.hoverFillColor,
+      },
+      favicon: {
+        canvasWidth: designer.favicon.canvasWidth,
+        canvasHeight: designer.favicon.canvasHeight,
+        offsetX: designer.favicon.offsetX,
+        offsetY: designer.favicon.offsetY,
+        scale: designer.favicon.scale,
+        fillColor: designer.favicon.fillColor,
+        hoverFillColor: designer.favicon.hoverFillColor,
+      },
+      print: {
+        canvasWidth: designer.print.canvasWidth,
+        canvasHeight: designer.print.canvasHeight,
+        offsetX: designer.print.offsetX,
+        offsetY: designer.print.offsetY,
+        scale: designer.print.scale,
+        fillColor: designer.print.fillColor,
+        hoverFillColor: designer.print.hoverFillColor,
+      },
+    } satisfies BrandAssetEditorState,
+  }
 }
 
 function StateCard({ message }: { message: string }) {
@@ -122,6 +454,46 @@ function validateCompanyForm(values: CompanyFormValues) {
   return errors
 }
 
+function isSvgLogo(logo: CompanyFormValues["logos"][number]) {
+  return /\.svg(?:$|\?)/i.test(logo.logoUrl) || /\bsvg\b/i.test(logo.logoType)
+}
+
+function findSvgLogoUrlByType(
+  logos: CompanyFormValues["logos"],
+  expectedTypes: string[]
+) {
+  const normalizedTypes = expectedTypes.map((type) => type.trim().toLowerCase())
+
+  return (
+    logos.find(
+      (logo) =>
+        isSvgLogo(logo) &&
+        normalizedTypes.includes(logo.logoType.trim().toLowerCase())
+    )?.logoUrl ?? ""
+  )
+}
+
+function getDefaultBrandAssetSources(
+  logos: CompanyFormValues["logos"]
+): BrandAssetSourceState {
+  const firstSvgLogoUrl = logos.find(isSvgLogo)?.logoUrl ?? ""
+  const primaryLogoUrl =
+    findSvgLogoUrlByType(logos, ["primary", "logo", "light"]) || firstSvgLogoUrl
+  const darkLogoUrl =
+    findSvgLogoUrlByType(logos, ["dark", "logo-dark", "dark-logo"]) || primaryLogoUrl
+  const faviconUrl =
+    findSvgLogoUrlByType(logos, ["favicon", "icon", "site-icon"]) || primaryLogoUrl
+  const printLogoUrl =
+    findSvgLogoUrlByType(logos, ["print", "letterhead", "print-logo"]) || primaryLogoUrl
+
+  return {
+    logoUrl: primaryLogoUrl,
+    darkLogoUrl,
+    faviconUrl,
+    printLogoUrl,
+  }
+}
+
 export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
   const navigate = useNavigate()
   const isEditing = Boolean(companyId)
@@ -136,10 +508,179 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
   })
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSavingBrandAssetDraft, setIsSavingBrandAssetDraft] = useState(false)
+  const [isPublishingBrandAssets, setIsPublishingBrandAssets] = useState(false)
+  const [brandAssetSources, setBrandAssetSources] = useState<BrandAssetSourceState>(
+    defaultBrandAssetSourceState
+  )
+  const [brandAssetEditors, setBrandAssetEditors] = useState<BrandAssetEditorState>(
+    defaultBrandAssetEditorState
+  )
+  const [brandAssetSourceMarkup, setBrandAssetSourceMarkup] = useState<BrandAssetSourceMarkupState>(
+    emptyBrandAssetSourceMarkupState
+  )
   const [loadError, setLoadError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [brandAssetDraftError, setBrandAssetDraftError] = useState<string | null>(null)
+  const [brandAssetDraftNotice, setBrandAssetDraftNotice] = useState<string | null>(null)
+  const [brandAssetDraftStatus, setBrandAssetDraftStatus] = useState<BrandAssetDraftStatus>("idle")
+  const [brandAssetDraftLastSavedSnapshot, setBrandAssetDraftLastSavedSnapshot] = useState<string | null>(null)
+  const [publishError, setPublishError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<CompanyFieldErrors>({})
-  useGlobalLoading(isLoading || isSaving)
+  const hasHydratedBrandAssetDraftRef = useRef(false)
+  useGlobalLoading(isLoading || isSaving || isSavingBrandAssetDraft || isPublishingBrandAssets)
+
+  const svgLogos = useMemo(() => form.logos.filter(isSvgLogo), [form.logos])
+  const resolvedBrandAssetSources = useMemo(() => {
+    const primaryLogoUrl = brandAssetSources.logoUrl.trim()
+
+    return {
+      logoUrl: primaryLogoUrl,
+      darkLogoUrl: brandAssetSources.darkLogoUrl.trim() || primaryLogoUrl,
+      faviconUrl: brandAssetSources.faviconUrl.trim() || primaryLogoUrl,
+      printLogoUrl: brandAssetSources.printLogoUrl.trim() || primaryLogoUrl,
+    }
+  }, [brandAssetSources])
+  const currentBrandAssetDraftPayload = useMemo(
+    () => buildBrandAssetDesignerPayload(brandAssetSources, brandAssetEditors),
+    [brandAssetEditors, brandAssetSources]
+  )
+  const currentBrandAssetDraftSnapshot = useMemo(
+    () => createBrandAssetDraftSnapshot(brandAssetSources, brandAssetEditors),
+    [brandAssetEditors, brandAssetSources]
+  )
+  const isBrandAssetDraftDirty =
+    Boolean(companyId) &&
+    hasHydratedBrandAssetDraftRef.current &&
+    currentBrandAssetDraftSnapshot !== brandAssetDraftLastSavedSnapshot
+
+  function updateBrandAssetSource(variant: BrandAssetVariant, value: string) {
+    setBrandAssetDraftError(null)
+    setBrandAssetDraftNotice(null)
+    if (companyId && hasHydratedBrandAssetDraftRef.current) {
+      setBrandAssetDraftStatus("dirty")
+    }
+
+    setBrandAssetSources((current) => {
+      switch (variant) {
+        case "primary":
+          return { ...current, logoUrl: value }
+        case "dark":
+          return { ...current, darkLogoUrl: value }
+        case "favicon":
+          return { ...current, faviconUrl: value }
+        case "print":
+          return { ...current, printLogoUrl: value }
+      }
+    })
+  }
+
+  async function handleBrandAssetSourceChange(variant: BrandAssetVariant, value: string) {
+    updateBrandAssetSource(variant, value)
+
+    if (!value.trim()) {
+      setBrandAssetSourceMarkup((current) => ({ ...current, [variant]: null }))
+      return
+    }
+
+    try {
+      const svgMarkup = await requestText(value)
+      const nextDefaults = extractSvgEditorDefaults(svgMarkup, brandAssetEditors[variant])
+
+      setBrandAssetSourceMarkup((current) => ({ ...current, [variant]: svgMarkup }))
+      setBrandAssetEditors((current) => ({
+        ...current,
+        [variant]: {
+          ...current[variant],
+          canvasWidth: nextDefaults.canvasWidth,
+          canvasHeight: nextDefaults.canvasHeight,
+          fillColor: nextDefaults.fillColor,
+        },
+      }))
+    } catch {
+      setBrandAssetSourceMarkup((current) => ({ ...current, [variant]: null }))
+    }
+  }
+
+  function updateBrandAssetEditor<K extends keyof SvgEditorDraft>(
+    variant: BrandAssetVariant,
+    key: K,
+    value: SvgEditorDraft[K]
+  ) {
+    setBrandAssetDraftError(null)
+    setBrandAssetDraftNotice(null)
+    if (companyId && hasHydratedBrandAssetDraftRef.current) {
+      setBrandAssetDraftStatus("dirty")
+    }
+
+    setBrandAssetEditors((current) => ({
+      ...current,
+      [variant]: {
+        ...current[variant],
+        [key]: value,
+      },
+    }))
+  }
+
+  function resetBrandAssetVariantToSourceDefaults(variant: BrandAssetVariant) {
+    const sourceMarkup = brandAssetSourceMarkup[variant]
+    const fallback = defaultBrandAssetEditorState[variant]
+
+    if (!sourceMarkup) {
+      setBrandAssetDraftError("Select an SVG source before resetting this variant.")
+      setBrandAssetDraftStatus("error")
+      return
+    }
+
+    try {
+      const nextDefaults = extractSvgEditorDefaults(sourceMarkup, fallback)
+
+      setBrandAssetDraftError(null)
+      setBrandAssetDraftNotice(null)
+      if (companyId && hasHydratedBrandAssetDraftRef.current) {
+        setBrandAssetDraftStatus("dirty")
+      }
+      setBrandAssetEditors((current) => ({
+        ...current,
+        [variant]: {
+          ...current[variant],
+          canvasWidth: nextDefaults.canvasWidth,
+          canvasHeight: nextDefaults.canvasHeight,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: nextDefaults.fillColor,
+        },
+      }))
+    } catch (error) {
+      setBrandAssetDraftError(
+        error instanceof Error ? error.message : "Failed to reset variant defaults."
+      )
+      setBrandAssetDraftStatus("error")
+    }
+  }
+
+  function copyPrimaryBrandAssetSettings(variant: Exclude<BrandAssetVariant, "primary">) {
+    setBrandAssetDraftError(null)
+    setBrandAssetDraftNotice(null)
+    if (companyId && hasHydratedBrandAssetDraftRef.current) {
+      setBrandAssetDraftStatus("dirty")
+    }
+
+    setBrandAssetEditors((current) => ({
+      ...current,
+      [variant]: {
+        ...current[variant],
+        canvasWidth: current.primary.canvasWidth,
+        canvasHeight: current.primary.canvasHeight,
+        offsetX: current.primary.offsetX,
+        offsetY: current.primary.offsetY,
+        scale: current.primary.scale,
+        fillColor: current.primary.fillColor,
+        hoverFillColor: current.primary.hoverFillColor,
+      },
+    }))
+  }
 
   function openCommonModule(moduleKey: CompanyLocationModuleKey) {
     navigate(getCommonModuleRoute(moduleKey))
@@ -171,21 +712,53 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
         setLookupState(Object.fromEntries(lookupEntries) as LookupState)
 
         if (!companyId) {
-          setForm(createDefaultCompanyFormValues())
+          const defaultForm = createDefaultCompanyFormValues()
+          const defaultDesignerState = createBrandAssetStateFromDesigner(defaultForm.brandAssetDesigner)
+
+          hasHydratedBrandAssetDraftRef.current = false
+          setForm(defaultForm)
+          setBrandAssetSources(defaultDesignerState.sources)
+          setBrandAssetEditors(defaultDesignerState.editors)
+          setBrandAssetDraftError(null)
+          setBrandAssetDraftNotice(null)
+          setBrandAssetDraftStatus("idle")
+          setBrandAssetDraftLastSavedSnapshot(null)
           setIsLoading(false)
           return
         }
 
-        const company = await requestJson<CompanyResponse>(
-          `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`
-        )
+        const [company, draft] = await Promise.all([
+          requestJson<CompanyResponse>(
+            `/internal/v1/cxapp/company?id=${encodeURIComponent(companyId)}`
+          ),
+          requestJson<CompanyBrandAssetDraftReadResponse>(
+            `/internal/v1/cxapp/company-brand-draft?companyId=${encodeURIComponent(companyId)}`
+          ),
+        ])
 
         if (!cancelled) {
-          setForm(toCompanyFormValues(company.item))
+          const nextForm = toCompanyFormValues(company.item)
+          const designer = draft.item?.designer ?? nextForm.brandAssetDesigner
+          const designerState = createBrandAssetStateFromDesigner(designer)
+          const snapshot = createBrandAssetDraftSnapshot(
+            designerState.sources,
+            designerState.editors
+          )
+
+          hasHydratedBrandAssetDraftRef.current = true
+          setForm(nextForm)
+          setBrandAssetSources(designerState.sources)
+          setBrandAssetEditors(designerState.editors)
+          setBrandAssetDraftError(null)
+          setBrandAssetDraftNotice(draft.item ? "Logo draft loaded." : null)
+          setBrandAssetDraftStatus(draft.item ? "saved" : "idle")
+          setBrandAssetDraftLastSavedSnapshot(snapshot)
           setIsLoading(false)
         }
       } catch (error) {
         if (!cancelled) {
+          hasHydratedBrandAssetDraftRef.current = false
+          setBrandAssetDraftNotice(null)
           setLoadError(
             error instanceof Error ? error.message : "Failed to load company workspace data."
           )
@@ -200,6 +773,348 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
       cancelled = true
     }
   }, [companyId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSourceMarkup() {
+      const sourceEntries: Array<[BrandAssetVariant, string]> = [
+        ["primary", resolvedBrandAssetSources.logoUrl],
+        ["dark", resolvedBrandAssetSources.darkLogoUrl],
+        ["favicon", resolvedBrandAssetSources.faviconUrl],
+        ["print", resolvedBrandAssetSources.printLogoUrl],
+      ]
+
+      for (const [variant, sourceUrl] of sourceEntries) {
+        if (!sourceUrl) {
+          if (!cancelled) {
+            setBrandAssetSourceMarkup((current) => ({ ...current, [variant]: null }))
+          }
+          continue
+        }
+
+        try {
+          const svgMarkup = await requestText(sourceUrl)
+
+          if (!cancelled) {
+            setBrandAssetSourceMarkup((current) =>
+              current[variant] === svgMarkup ? current : { ...current, [variant]: svgMarkup }
+            )
+          }
+        } catch {
+          if (!cancelled) {
+            setBrandAssetSourceMarkup((current) => ({ ...current, [variant]: null }))
+          }
+        }
+      }
+    }
+
+    void loadSourceMarkup()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    resolvedBrandAssetSources.darkLogoUrl,
+    resolvedBrandAssetSources.faviconUrl,
+    resolvedBrandAssetSources.logoUrl,
+    resolvedBrandAssetSources.printLogoUrl,
+  ])
+
+  useEffect(() => {
+    const defaults = getDefaultBrandAssetSources(svgLogos)
+
+    setBrandAssetSources((current) => {
+      const next = {
+        logoUrl: current.logoUrl || defaults.logoUrl,
+        darkLogoUrl: current.darkLogoUrl || defaults.darkLogoUrl,
+        faviconUrl: current.faviconUrl || defaults.faviconUrl,
+        printLogoUrl: current.printLogoUrl || defaults.printLogoUrl,
+      }
+
+      return (
+        next.logoUrl === current.logoUrl &&
+        next.darkLogoUrl === current.darkLogoUrl &&
+        next.faviconUrl === current.faviconUrl &&
+        next.printLogoUrl === current.printLogoUrl
+      )
+        ? current
+        : next
+    })
+  }, [svgLogos])
+
+  useEffect(() => {
+    if (!companyId || !hasHydratedBrandAssetDraftRef.current) {
+      return
+    }
+
+    if (currentBrandAssetDraftSnapshot === brandAssetDraftLastSavedSnapshot) {
+      if (brandAssetDraftStatus === "dirty") {
+        setBrandAssetDraftStatus("saved")
+      }
+      return
+    }
+
+    if (isSavingBrandAssetDraft || isPublishingBrandAssets) {
+      return
+    }
+
+    setBrandAssetDraftStatus("dirty")
+
+    const timeout = window.setTimeout(() => {
+      void saveBrandAssetDraft({
+        showSuccessToast: false,
+        silent: true,
+        payload: currentBrandAssetDraftPayload,
+        snapshot: currentBrandAssetDraftSnapshot,
+      })
+    }, 900)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [
+    brandAssetDraftLastSavedSnapshot,
+    brandAssetDraftStatus,
+    companyId,
+    currentBrandAssetDraftPayload,
+    currentBrandAssetDraftSnapshot,
+    isPublishingBrandAssets,
+    isSavingBrandAssetDraft,
+  ])
+
+  const brandAssetEditorTabs = useMemo(
+    () =>
+      brandAssetEditorDefinitions.map((asset) => {
+        const sourceUrl =
+          asset.variant === "primary"
+            ? brandAssetSources.logoUrl
+            : asset.variant === "dark"
+              ? brandAssetSources.darkLogoUrl
+              : asset.variant === "favicon"
+                ? brandAssetSources.faviconUrl
+                : brandAssetSources.printLogoUrl
+        const resolvedSourceUrl =
+          asset.variant === "primary"
+            ? resolvedBrandAssetSources.logoUrl
+            : asset.variant === "dark"
+              ? resolvedBrandAssetSources.darkLogoUrl
+              : asset.variant === "favicon"
+                ? resolvedBrandAssetSources.faviconUrl
+                : resolvedBrandAssetSources.printLogoUrl
+        const editor = brandAssetEditors[asset.variant]
+        const sourceMarkup = brandAssetSourceMarkup[asset.variant]
+        const previewMarkup = (() => {
+          if (!sourceMarkup) {
+            return null
+          }
+
+          try {
+            return buildDesignedSvgPreview(sourceMarkup, editor)
+          } catch {
+            return null
+          }
+        })()
+
+        return {
+          label: asset.label,
+          value: asset.variant,
+          content: (
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{asset.label} Preview</p>
+                  <p className="text-sm text-muted-foreground">{asset.description}</p>
+                </div>
+                <div
+                  className={`relative overflow-hidden rounded-[1.6rem] border border-border/70 ${asset.surfaceClassName}`}
+                  style={{ minHeight: asset.variant === "favicon" ? 240 : 280 }}
+                >
+                  <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[size:24px_24px]" />
+                  <div className="relative flex min-h-[inherit] items-center justify-center p-8">
+                    <div
+                      className="flex items-center justify-center rounded-[1rem] border border-dashed border-foreground/20 bg-background/60 px-6 py-5 shadow-sm"
+                      style={{
+                        width: `${Math.max(72, editor.canvasWidth)}px`,
+                        height: `${Math.max(72, editor.canvasHeight)}px`,
+                        transform: `translate(${editor.offsetX}px, ${editor.offsetY}px) scale(${editor.scale / 100})`,
+                      }}
+                    >
+                      {previewMarkup ? (
+                        <img
+                          src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(previewMarkup)}`}
+                          alt={`${form.name || "Company"} ${asset.label.toLowerCase()} preview`}
+                          className={`h-auto w-auto object-contain ${asset.imageClassName}`}
+                        />
+                      ) : resolvedSourceUrl ? (
+                        <img
+                          src={resolveMediaPreviewUrl(
+                            resolvedSourceUrl,
+                            `${form.name || "Company"} ${asset.label.toLowerCase()}`
+                          )}
+                          alt={`${form.name || "Company"} ${asset.label.toLowerCase()} preview`}
+                          className={`h-auto w-auto object-contain ${asset.imageClassName}`}
+                          onError={(event) =>
+                            handleMediaPreviewError(
+                              event,
+                              `${form.name || "Company"} ${asset.label.toLowerCase()}`
+                            )
+                          }
+                        />
+                      ) : (
+                        <div className="text-center text-sm text-muted-foreground">
+                          Select an SVG file to start this editor.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute bottom-3 left-3 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs text-muted-foreground">
+                    {asset.fileName}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-[1.25rem] border border-border/70 bg-background/70 p-4">
+                <div className="space-y-2">
+                  <Label>{asset.label} SVG Source</Label>
+                  <FrameworkMediaPickerField
+                    value={sourceUrl}
+                    onChange={(value) => {
+                      void handleBrandAssetSourceChange(asset.variant, value)
+                    }}
+                    previewAlt={`${form.name || "Company"} ${asset.label.toLowerCase()} source`}
+                    showPreview={false}
+                    helperText={asset.targetLabel}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!sourceUrl}
+                    onClick={() => {
+                      resetBrandAssetVariantToSourceDefaults(asset.variant)
+                    }}
+                  >
+                    Reset To Source
+                  </Button>
+                  {asset.variant !== "primary" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        copyPrimaryBrandAssetSettings(
+                          asset.variant as Exclude<BrandAssetVariant, "primary">
+                        )
+                      }}
+                    >
+                      Copy Light Settings
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <CompanyField label="Canvas Width">
+                    <Input
+                      type="number"
+                      min={32}
+                      value={editor.canvasWidth}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(
+                          asset.variant,
+                          "canvasWidth",
+                          Math.max(32, Number(event.target.value) || 32)
+                        )
+                      }
+                    />
+                  </CompanyField>
+                  <CompanyField label="Canvas Height">
+                    <Input
+                      type="number"
+                      min={32}
+                      value={editor.canvasHeight}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(
+                          asset.variant,
+                          "canvasHeight",
+                          Math.max(32, Number(event.target.value) || 32)
+                        )
+                      }
+                    />
+                  </CompanyField>
+                  <CompanyField label="Offset X">
+                    <Input
+                      type="number"
+                      value={editor.offsetX}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(
+                          asset.variant,
+                          "offsetX",
+                          Math.round(Number(event.target.value) || 0)
+                        )
+                      }
+                    />
+                  </CompanyField>
+                  <CompanyField label="Offset Y">
+                    <Input
+                      type="number"
+                      value={editor.offsetY}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(
+                          asset.variant,
+                          "offsetY",
+                          Math.round(Number(event.target.value) || 0)
+                        )
+                      }
+                    />
+                  </CompanyField>
+                  <CompanyField label="Scale %">
+                    <Input
+                      type="number"
+                      min={10}
+                      max={300}
+                      value={editor.scale}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(
+                          asset.variant,
+                          "scale",
+                          Math.min(300, Math.max(10, Math.round(Number(event.target.value) || 100)))
+                        )
+                      }
+                    />
+                  </CompanyField>
+                  <div className="grid gap-2">
+                    <Label>Fill Color</Label>
+                    <Input
+                      type="color"
+                      value={editor.fillColor}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(asset.variant, "fillColor", event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Hover Color</Label>
+                    <Input
+                      type="color"
+                      value={editor.hoverFillColor}
+                      onChange={(event) =>
+                        updateBrandAssetEditor(asset.variant, "hoverFillColor", event.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          ),
+        } satisfies AnimatedContentTab
+      }),
+    [brandAssetEditors, brandAssetSourceMarkup, brandAssetSources, form.name, resolvedBrandAssetSources]
+  )
 
   const tabs = useMemo(
     () =>
@@ -311,72 +1226,88 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
                   </div>
                 </div>
               </CompanyFormSectionCard>
-
+            </div>
+          ),
+        },
+        {
+          label: "Logos",
+          value: "logos",
+          content: (
+            <div className="space-y-5">
               <CompanyFormSectionCard
-                title="Company Logos"
-                description="Primary, secondary, and favicon branding assets."
-                onAdd={() =>
-                  setForm((current) => ({
-                    ...current,
-                    logos: [...current.logos, createEmptyCompanyLogo()],
-                  }))
-                }
+                title="Logo Designer"
               >
-                {form.logos.length === 0 ? (
-                  <div className="rounded-[1.25rem] border border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
-                    No logos added yet.
+                <div className="space-y-4">
+                  <AnimatedTabs defaultTabValue="primary" tabs={brandAssetEditorTabs} />
+
+                  <div className="space-y-2 rounded-[1.25rem] border border-border/70 bg-background/70 p-4">
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Save the logo designer draft into the temporary branding store first, then
+                      publish to overwrite `public/logo.svg`, `public/logo-dark.svg`, and
+                      `public/favicon.svg`. Existing public files are backed up to
+                      `storage/backups/branding` with a version suffix before replacement.
+                    </p>
+                    {!companyId ? (
+                      <p className="text-xs text-muted-foreground">
+                        Save the company first to enable draft save and public publish.
+                      </p>
+                    ) : null}
+                    {companyId ? (
+                      <p className="text-xs text-muted-foreground">
+                        {brandAssetDraftStatus === "saving"
+                          ? "Draft status: saving changes..."
+                          : brandAssetDraftStatus === "error"
+                            ? "Draft status: save failed."
+                            : isBrandAssetDraftDirty || brandAssetDraftStatus === "dirty"
+                              ? "Draft status: unsaved changes."
+                              : brandAssetDraftStatus === "saved"
+                                ? "Draft status: saved."
+                                : "Draft status: ready."}
+                      </p>
+                    ) : null}
+                    {brandAssetDraftNotice ? (
+                      <p className="text-xs text-muted-foreground">{brandAssetDraftNotice}</p>
+                    ) : null}
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:flex-1"
+                        disabled={
+                          !companyId ||
+                          (!isBrandAssetDraftDirty && brandAssetDraftStatus !== "error") ||
+                          isSavingBrandAssetDraft ||
+                          isPublishingBrandAssets
+                        }
+                        onClick={() => {
+                          void saveBrandAssetDraft()
+                        }}
+                      >
+                        {isSavingBrandAssetDraft ? "Saving Draft..." : "Save Draft"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:flex-1"
+                        disabled={
+                          !companyId ||
+                          !resolvedBrandAssetSources.logoUrl ||
+                          isSavingBrandAssetDraft ||
+                          isPublishingBrandAssets
+                        }
+                        onClick={() => {
+                          void handlePublishBrandAssets()
+                        }}
+                      >
+                        {isPublishingBrandAssets ? "Publishing..." : "Publish To Public"}
+                      </Button>
+                    </div>
                   </div>
-                ) : null}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                  {form.logos.map((logo, index) => (
-                    <FrameworkMediaPickerField
-                      key={`logo-${index}`}
-                      value={logo.logoUrl}
-                      previewAlt={`${form.name || "Company"} logo ${index + 1}`}
-                      clearLabel="Clear"
-                      onChange={(value) =>
-                        setForm((current) => ({
-                          ...current,
-                          logos: updateCollectionItem(current.logos, index, (item) => ({
-                            ...item,
-                            logoUrl: value,
-                          })),
-                        }))
-                      }
-                      footer={
-                        <div className="grid gap-2">
-                          <Label>Logo Type</Label>
-                          <CompanyTextField
-                            value={logo.logoType}
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                logos: updateCollectionItem(current.logos, index, (item) => ({
-                                  ...item,
-                                  logoType: event.target.value,
-                                })),
-                              }))
-                            }
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="justify-start px-0 text-muted-foreground"
-                            onClick={() =>
-                              setForm((current) => ({
-                                ...current,
-                                logos: current.logos.filter((_, itemIndex) => itemIndex !== index),
-                              }))
-                            }
-                          >
-                            Remove card
-                          </Button>
-                        </div>
-                      }
-                    />
-                  ))}
                 </div>
+                {brandAssetDraftError ? (
+                  <CompanyFormMessage>{brandAssetDraftError}</CompanyFormMessage>
+                ) : null}
+                {publishError ? <CompanyFormMessage>{publishError}</CompanyFormMessage> : null}
               </CompanyFormSectionCard>
             </div>
           ),
@@ -904,7 +1835,21 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
           ),
         },
       ] satisfies AnimatedContentTab[],
-    [fieldErrors.name, form, lookupState]
+    [
+      brandAssetEditorTabs,
+      brandAssetDraftError,
+      brandAssetDraftNotice,
+      brandAssetDraftStatus,
+      fieldErrors.name,
+      form,
+      companyId,
+      isBrandAssetDraftDirty,
+      isSavingBrandAssetDraft,
+      isPublishingBrandAssets,
+      lookupState,
+      publishError,
+      svgLogos,
+    ]
   )
 
   async function handleSave() {
@@ -945,6 +1890,135 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
     }
   }
 
+  async function saveBrandAssetDraft(options?: {
+    showSuccessToast?: boolean
+    silent?: boolean
+    payload?: CompanyBrandAssetDesigner
+    snapshot?: string
+  }) {
+    if (!companyId) {
+      throw new Error("Save the company first before saving the logo draft.")
+    }
+
+    setIsSavingBrandAssetDraft(true)
+    setBrandAssetDraftError(null)
+    setBrandAssetDraftStatus("saving")
+
+    const payload = options?.payload ?? currentBrandAssetDraftPayload
+    const snapshot = options?.snapshot ?? currentBrandAssetDraftSnapshot
+
+    try {
+      const response = await requestJson<CompanyBrandAssetDraftResponse>(
+        `/internal/v1/cxapp/company-brand-draft?companyId=${encodeURIComponent(companyId)}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            designer: payload,
+          }),
+        }
+      )
+
+      setBrandAssetDraftNotice("Logo draft saved.")
+      setBrandAssetDraftLastSavedSnapshot(snapshot)
+      setBrandAssetDraftStatus("saved")
+
+      if (options?.showSuccessToast !== false && !options?.silent) {
+        showAppToast({
+          variant: "success",
+          title: "Logo draft saved",
+          description: "Designer values were saved to the temporary branding draft.",
+        })
+      }
+
+      return response
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to save the logo designer draft."
+
+      setBrandAssetDraftError(message)
+      setBrandAssetDraftStatus("error")
+
+      if (options?.showSuccessToast !== false && !options?.silent) {
+        showAppToast({
+          variant: "error",
+          title: "Draft save failed",
+          description: message,
+        })
+      }
+
+      throw error
+    } finally {
+      setIsSavingBrandAssetDraft(false)
+    }
+  }
+
+  async function handlePublishBrandAssets() {
+    if (!companyId) {
+      setPublishError("Save the company first before publishing brand files.")
+      return
+    }
+
+    if (!resolvedBrandAssetSources.logoUrl) {
+      setPublishError("Select at least the light theme SVG logo before publishing.")
+      return
+    }
+
+    setIsPublishingBrandAssets(true)
+    setPublishError(null)
+
+    try {
+      await saveBrandAssetDraft({
+        showSuccessToast: false,
+        silent: true,
+        payload: currentBrandAssetDraftPayload,
+        snapshot: currentBrandAssetDraftSnapshot,
+      })
+
+      const response = await requestJson<CompanyBrandAssetPublishResponse>(
+        "/internal/v1/cxapp/company-brand-assets/publish",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            primary: {
+              sourceUrl: resolvedBrandAssetSources.logoUrl,
+              ...brandAssetEditors.primary,
+            },
+            dark: {
+              sourceUrl: resolvedBrandAssetSources.darkLogoUrl,
+              ...brandAssetEditors.dark,
+            },
+            favicon: {
+              sourceUrl: resolvedBrandAssetSources.faviconUrl,
+              ...brandAssetEditors.favicon,
+            },
+          }),
+        }
+      )
+
+      showAppToast({
+        variant: "success",
+        title: "Brand SVGs published",
+        description: response.item.message,
+      })
+
+      window.setTimeout(() => {
+        window.location.reload()
+      }, 900)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to publish the company brand SVG files."
+
+      setPublishError(message)
+      showAppToast({
+        variant: "error",
+        title: "Brand publish failed",
+        description: message,
+      })
+    } finally {
+      setIsPublishingBrandAssets(false)
+    }
+  }
+
   if (isLoading) {
     return <LoadingCard message="Loading company form..." />
   }
@@ -954,7 +2028,14 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="relative space-y-6"
+      data-technical-name={companyUpsertTechnicalName}
+    >
+      <TechnicalNameBadge
+        name={companyUpsertTechnicalName}
+        className="absolute -top-3 right-0 z-20"
+      />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <Button variant="ghost" size="sm" asChild className="-ml-3 w-fit">

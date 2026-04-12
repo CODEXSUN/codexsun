@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { cn } from "@/lib/utils"
 
 type AuthLayoutProps = {
@@ -8,6 +10,8 @@ type AuthLayoutProps = {
 }
 
 function AuthLayout({ children, variant = "web" }: AuthLayoutProps) {
+  const { brand } = useRuntimeBrand()
+
   return (
     <div
       className={cn(
@@ -18,16 +22,16 @@ function AuthLayout({ children, variant = "web" }: AuthLayoutProps) {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <img
-            src="/logo.svg"
-            alt="Codexsun logo"
+            src={resolveRuntimeBrandLogoUrl(brand)}
+            alt={`${brand?.brandName ?? "Codexsun"} logo`}
             className="h-12 w-auto"
           />
           <div className="space-y-1">
             <p className="text-3xl font-semibold tracking-[0.28em] text-foreground uppercase">
-              codexsun
+              {brand?.brandName ?? "codexsun"}
             </p>
             <p className="text-sm text-muted-foreground">
-              Business software, made to work together.
+              {brand?.tagline ?? "Business software, made to work together."}
             </p>
           </div>
         </div>

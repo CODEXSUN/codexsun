@@ -8,6 +8,14 @@
 
 ## v-0.0.1
 
+### [#120] 2026-04-12 - Logo designer draft usability
+
+- moved the company logo designer onto its own temporary draft table and internal read or save routes so draft editing is no longer coupled to the company form save cycle
+- fixed the logo-tab editor refresh path so width, height, color, and offset changes stay editable instead of being overwritten by stale memoized tab content
+- added debounced autosave for existing companies, explicit draft-state feedback for `ready`, `unsaved`, `saving`, `saved`, and `error`, and kept manual `Save Draft` plus public publish on the same draft-save path
+- added quick per-variant actions to reset editor values from the selected SVG source defaults and copy light-logo settings into dark, favicon, and company-logo variants
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/cxapp/company-brand-assets-service.test.ts tests/api/internal/company-brand-assets-routes.test.ts tests/framework/runtime/database-process.test.ts`
+
 ### [#118] 2026-04-11 - Storefront hero fit and footer-shell lock
 
 - tightened the desktop storefront hero into a shorter, more screen-fitting composition, then rebalanced the content spacing and fixed the media frame to a vertically centered `610x560` image holder without changing the accepted mobile hero behavior

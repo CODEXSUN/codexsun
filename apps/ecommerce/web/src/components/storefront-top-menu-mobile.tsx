@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { Dock, DockIcon } from "@/registry/magicui/dock"
 import { cn } from "@ui/lib/utils"
 
@@ -38,6 +39,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
     settings,
     showSearch,
   } = useStorefrontTopMenuModel()
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand)
 
   const mobileDockButtonClassName = cn(
     buttonVariants({ variant: "ghost", size: "icon-lg" }),
@@ -63,7 +65,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
           <div className="flex min-w-0 items-center justify-between gap-3">
             <Link to="/" className="min-w-0 flex-1">
               <div className="flex items-center gap-2 rounded-full pr-1">
-                <img src="/logo.svg" alt={brand?.brandName ?? "Codexsun Store"} className="h-9 w-auto shrink-0" />
+                <img src={logoUrl} alt={brand?.brandName ?? "Codexsun Store"} className="h-9 w-auto shrink-0" />
                 <div className="hidden min-w-0 min-[360px]:block">
                   <p className="truncate text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[#181818]">
                     {brand?.brandName ?? "Codexsun Store"}

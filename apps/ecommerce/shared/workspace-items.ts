@@ -124,7 +124,7 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     id: "branding",
     name: "Branding",
     route: "/dashboard/apps/ecommerce/branding",
-    summary: "Standalone branding designer for independent brand cards, media, title, description, and links on the storefront.",
+    summary: "Entry point that sends operators to the company logo editor where the public brand SVG is designed and published.",
   },
   {
     id: "settings",

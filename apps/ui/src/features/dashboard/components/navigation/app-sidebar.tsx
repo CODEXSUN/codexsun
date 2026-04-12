@@ -39,6 +39,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import { NavUser } from "@/features/dashboard/components/navigation/nav-user"
 import type { DashboardAppDefinition } from "@/features/dashboard/types"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
@@ -484,6 +486,7 @@ function UtilityNavigationMenu({
 
 export function AppSidebar() {
   const { brand, currentApp, links, user } = useDashboardShell()
+  const { brand: runtimeBrand } = useRuntimeBrand()
   const location = useLocation()
   const { open } = useSidebar()
   const isDashboardRoot = location.pathname === links.dashboard
@@ -506,7 +509,7 @@ export function AppSidebar() {
           <div className={`flex items-center ${open ? "gap-3" : "justify-center"}`}>
             <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background shadow-sm">
               <img
-                src="/logo.svg"
+                src={resolveRuntimeBrandLogoUrl(runtimeBrand)}
                 alt={brand.name}
                 className="size-6 object-contain"
               />

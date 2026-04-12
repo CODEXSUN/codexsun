@@ -7,6 +7,7 @@ import { Link } from "react-router-dom"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
 import type { StorefrontFooter } from "@ecommerce/shared"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 
 import { getFooterSocialPlatformIcon } from "../lib/storefront-footer-socials"
 import { normalizeStorefrontHref } from "../lib/storefront-routes"
@@ -63,6 +64,7 @@ export function StorefrontFooterSurface({
   const location = buildLocation(brand)
   const visibleGroups = footer.groups.slice(0, 4)
   const design = footer.design
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand, "dark")
 
   return (
     <footer
@@ -83,7 +85,7 @@ export function StorefrontFooterSurface({
           <div className="space-y-6 lg:pr-8">
             <Link to="/" className="inline-flex items-center gap-3">
               <img
-                src="/logo-dark.svg"
+                src={logoUrl}
                 alt={brand?.brandName ?? "Codexsun"}
                 className="h-11 w-auto shrink-0 rounded-xl p-1.5"
                 style={{ backgroundColor: design.logoBackgroundColor }}

@@ -37,6 +37,7 @@ import {
   resetSystemToLastCommit,
   runSystemUpdate,
 } from "../../../framework/src/runtime/system-update/system-update-service.js"
+import { runDeveloperOperation } from "../../../framework/src/runtime/operations/developer-operations-service.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
@@ -120,6 +121,31 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
           details: {
             branch: response.status.branch,
             localChanges: response.status.localChanges.length,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/developer-operations", {
+      method: "POST",
+      summary: "Run admin-only frontend build recovery actions such as build, cache clear, and force clean rebuild.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const response = await runDeveloperOperation(context.config, context.request.jsonBody)
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: `developer-operations.${response.action}`,
+          level: response.action === "force_clean_rebuild" ? "warn" : "info",
+          message: "Developer build recovery action was triggered from the admin workspace.",
+          details: {
+            action: response.action,
+            restartScheduled: response.restartScheduled,
+            clearedPaths: response.clearedPaths,
           },
         })
 

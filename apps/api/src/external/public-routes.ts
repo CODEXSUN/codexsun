@@ -1,6 +1,9 @@
 import type { AppSuite } from "../../../framework/src/application/app-manifest.js"
 import { createWorkspaceHostBaseline } from "../../../framework/src/application/workspace-baseline.js"
 import { getAppSettingsSnapshot } from "../../../cxapp/src/services/auth-option-service.js"
+import {
+  readPublishedBrandAsset,
+} from "../../../cxapp/src/services/company-brand-assets-service.js"
 import { getPrimaryCompanyBrandProfile } from "../../../cxapp/src/services/company-service.js"
 import {
   getStorefrontCatalog,
@@ -164,11 +167,56 @@ export function createPublicApiRoutes(appSuite: AppSuite): HttpRouteDefinition[]
     }),
     definePublicRoute("/brand-profile", {
       summary: "Public primary company brand profile for shell and storefront surfaces.",
-      handler: async ({ databases }) => ({
+      handler: async ({ databases, config }) => ({
         statusCode: 200,
         headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify(await getPrimaryCompanyBrandProfile(databases.primary)),
+        body: JSON.stringify(await getPrimaryCompanyBrandProfile(databases.primary, config)),
       }),
+    }),
+    definePublicRoute("/brand-logo", {
+      summary: "Serve the active public primary brand logo asset.",
+      handler: async ({ config }) => {
+        const { content, mimeType } = await readPublishedBrandAsset(config, "primary")
+
+        return {
+          statusCode: 200,
+          headers: {
+            "cache-control": "no-store, no-cache, must-revalidate",
+            "content-type": mimeType,
+          },
+          body: content,
+        }
+      },
+    }),
+    definePublicRoute("/brand-logo-dark", {
+      summary: "Serve the active public dark brand logo asset.",
+      handler: async ({ config }) => {
+        const { content, mimeType } = await readPublishedBrandAsset(config, "dark")
+
+        return {
+          statusCode: 200,
+          headers: {
+            "cache-control": "no-store, no-cache, must-revalidate",
+            "content-type": mimeType,
+          },
+          body: content,
+        }
+      },
+    }),
+    definePublicRoute("/brand-favicon", {
+      summary: "Serve the active public favicon brand asset.",
+      handler: async ({ config }) => {
+        const { content, mimeType } = await readPublishedBrandAsset(config, "favicon")
+
+        return {
+          statusCode: 200,
+          headers: {
+            "cache-control": "no-store, no-cache, must-revalidate",
+            "content-type": mimeType,
+          },
+          body: content,
+        }
+      },
     }),
     definePublicRoute("/framework/media-file", {
       summary: "Serve a public framework media file by asset id.",

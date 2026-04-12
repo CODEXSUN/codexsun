@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { cn } from "@ui/lib/utils"
 
 import { StorefrontSearchBar } from "./storefront-search-bar"
@@ -42,6 +43,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
     showSearch,
     wishlistCount,
   } = useStorefrontTopMenuModel()
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand)
 
   return (
     <div
@@ -65,7 +67,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
         <Link to="/" className="min-w-0 shrink-0">
           <div className="flex items-center gap-3 rounded-full px-1 py-1">
             <img
-              src="/logo.svg"
+              src={logoUrl}
               alt={brand?.brandName ?? "Codexsun Store"}
               className="h-11 w-auto shrink-0 xl:h-12"
             />

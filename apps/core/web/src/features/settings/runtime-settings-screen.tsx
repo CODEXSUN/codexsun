@@ -8,7 +8,6 @@ import {
   type RuntimeSettingsSnapshot,
 } from "../../../../../framework/shared/runtime-settings"
 import type { AppSettingsSnapshot } from "../../../../../framework/shared/index.js"
-import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +27,8 @@ import { getActivityStatusPanelClassName } from "@/features/status/activity-stat
 import { cn } from "@/lib/utils"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
+
+import { requestSettingsJson } from "./settings-request-json"
 
 type RuntimeSettingsValueMap = RuntimeSettingsSnapshot["values"]
 const DEVTOOLS_NAMES_STORAGE_KEY = "codexsun.ui.developer-tools.show-technical-names"
@@ -52,35 +53,6 @@ function getSelectFieldValue(
   const allowedValues = new Set((field.options ?? []).map((option) => option.value))
 
   return allowedValues.has(value) ? value : ""
-}
-
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const accessToken = getStoredAccessToken()
-  const response = await fetch(path, {
-    ...init,
-    headers: accessToken
-      ? {
-          "content-type": "application/json",
-          authorization: `Bearer ${accessToken}`,
-          ...(init?.headers ?? {}),
-        }
-      : {
-          "content-type": "application/json",
-          ...(init?.headers ?? {}),
-        },
-  })
-
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as
-      | { error?: string; message?: string }
-      | null
-
-    throw new Error(
-      payload?.error ?? payload?.message ?? `Request failed with status ${response.status}.`
-    )
-  }
-
-  return (await response.json()) as T
 }
 
 function SettingsBooleanField({
@@ -202,12 +174,14 @@ export function RuntimeSettingsScreen({
   recordId,
   recordName,
   groupIds,
+  extraTabs = [],
 }: {
   title: string
   description: string
   recordId: string
   recordName: string
   groupIds?: string[]
+  extraTabs?: AnimatedContentTab[]
 }) {
   const queryClient = useQueryClient()
   const [envFilePath, setEnvFilePath] = useState("")
@@ -226,7 +200,7 @@ export function RuntimeSettingsScreen({
       setError(null)
 
       try {
-        const snapshot = await requestJson<RuntimeSettingsSnapshot>(
+        const snapshot = await requestSettingsJson<RuntimeSettingsSnapshot>(
           "/internal/v1/cxapp/runtime-settings"
         )
 
@@ -258,7 +232,7 @@ export function RuntimeSettingsScreen({
     setMessage(null)
 
     try {
-      const response = await requestJson<RuntimeSettingsSaveResponse>(
+      const response = await requestSettingsJson<RuntimeSettingsSaveResponse>(
         "/internal/v1/cxapp/runtime-settings",
         {
           method: "POST",
@@ -266,7 +240,7 @@ export function RuntimeSettingsScreen({
             values,
             restart,
           }),
-        }
+        },
       )
 
       setEnvFilePath(response.snapshot.envFilePath)
@@ -333,7 +307,7 @@ export function RuntimeSettingsScreen({
     [groupIds]
   )
 
-  const tabs = useMemo<AnimatedContentTab[]>(
+  const settingTabs = useMemo<AnimatedContentTab[]>(
     () =>
       groups.map((group) => ({
         label: group.label,
@@ -349,6 +323,10 @@ export function RuntimeSettingsScreen({
         ),
       })),
     [groups, values]
+  )
+  const tabs = useMemo<AnimatedContentTab[]>(
+    () => [...settingTabs, ...extraTabs],
+    [extraTabs, settingTabs]
   )
 
   if (isLoading) {
@@ -395,8 +373,8 @@ export function RuntimeSettingsScreen({
         </div>
       ) : null}
 
-      {groups.length > 1 ? (
-        <AnimatedTabs defaultTabValue={groups[0]?.id ?? "application"} tabs={tabs} />
+      {tabs.length > 1 ? (
+        <AnimatedTabs defaultTabValue={tabs[0]?.value ?? groups[0]?.id ?? "application"} tabs={tabs} />
       ) : groups[0] ? (
         <RuntimeSettingsGroupCard
           group={groups[0]}
@@ -405,6 +383,8 @@ export function RuntimeSettingsScreen({
             setValues((current) => ({ ...current, [key]: nextValue }))
           }
         />
+      ) : tabs[0] ? (
+        tabs[0].content
       ) : (
         <Card>
           <CardContent className="p-5 text-sm text-muted-foreground">

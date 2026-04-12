@@ -32,6 +32,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { useAuth } from "@cxapp/web/src/auth/auth-context"
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import { cn } from "@/lib/utils"
@@ -57,6 +58,7 @@ export function CustomerPortalSidebar({
   activeSection: PortalSectionId
 }) {
   const { brand } = useRuntimeBrand()
+  const logoUrl = resolveRuntimeBrandLogoUrl(brand)
   const customerAuth = useStorefrontCustomerAuth()
   const auth = useAuth()
   const navigate = useNavigate()
@@ -75,7 +77,7 @@ export function CustomerPortalSidebar({
           <div className={cn("flex items-center", open ? "gap-3" : "justify-center")}>
             <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background shadow-sm">
               <img
-                src="/logo.svg"
+                src={logoUrl}
                 alt={brand?.brandName ?? "Customer Portal"}
                 className="size-6 object-contain"
               />

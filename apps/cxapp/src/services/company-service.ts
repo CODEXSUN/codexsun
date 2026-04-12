@@ -4,10 +4,12 @@ import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import type { ServerConfig } from "../../../framework/src/runtime/config/index.js"
 import {
   companyBrandProfileResponseSchema,
   companyResponseSchema,
   companySchema,
+  defaultCompanyBrandAssetDesigner,
   companyUpsertPayloadSchema,
   companyListResponseSchema,
   type Company,
@@ -15,6 +17,8 @@ import {
   type CompanyResponse,
   type CompanyListResponse,
 } from "../../shared/index.js"
+import { getPublishedBrandAssetPublicUrl } from "./company-brand-assets-service.js"
+import { deleteCompanyBrandAssetDraft } from "./company-brand-asset-draft-service.js"
 
 import { cxappTableNames } from "../../database/table-names.js"
 import {
@@ -59,6 +63,26 @@ async function readCompanies(database: Kysely<unknown>) {
         shortAbout: company.shortAbout ?? null,
         longAbout: company.longAbout ?? null,
         isPrimary: company.isPrimary ?? false,
+        brandAssetDesigner: {
+          ...defaultCompanyBrandAssetDesigner,
+          ...(company.brandAssetDesigner ?? {}),
+          primary: {
+            ...defaultCompanyBrandAssetDesigner.primary,
+            ...(company.brandAssetDesigner?.primary ?? {}),
+          },
+          dark: {
+            ...defaultCompanyBrandAssetDesigner.dark,
+            ...(company.brandAssetDesigner?.dark ?? {}),
+          },
+          favicon: {
+            ...defaultCompanyBrandAssetDesigner.favicon,
+            ...(company.brandAssetDesigner?.favicon ?? {}),
+          },
+          print: {
+            ...defaultCompanyBrandAssetDesigner.print,
+            ...(company.brandAssetDesigner?.print ?? {}),
+          },
+        },
         addresses: (company.addresses ?? []).map((address) => ({
           ...address,
           addressTypeId:
@@ -214,6 +238,7 @@ function buildCompanyRecord(
       createdAt: existing?.bankAccounts[index]?.createdAt ?? timestamp,
       updatedAt: timestamp,
     })),
+    brandAssetDesigner: existing?.brandAssetDesigner ?? payload.brandAssetDesigner,
   })
 }
 
@@ -323,6 +348,7 @@ export async function deleteCompany(
   }
 
   await writeCompanies(database, nextCompanies)
+  await deleteCompanyBrandAssetDraft(database, companyId)
 
   return {
     deleted: true as const,
@@ -331,7 +357,8 @@ export async function deleteCompany(
 }
 
 export async function getPrimaryCompanyBrandProfile(
-  database: Kysely<unknown>
+  database: Kysely<unknown>,
+  config: ServerConfig
 ): Promise<CompanyBrandProfileResponse> {
   const companies = ensurePrimaryCompany(await readCompanies(database))
   const company = companies.find((item) => item.isPrimary) ?? companies[0] ?? null
@@ -348,6 +375,11 @@ export async function getPrimaryCompanyBrandProfile(
     company.addresses.find((address) => address.isDefault) ??
     company.addresses[0] ??
     null
+  const companyLogoUrl = primaryLogo?.logoUrl ?? null
+  const publishedLogoUrl = await getPublishedBrandAssetPublicUrl(config, "primary")
+  const publishedDarkLogoUrl = await getPublishedBrandAssetPublicUrl(config, "dark")
+  const resolvedLogoUrl = publishedLogoUrl ?? companyLogoUrl
+  const resolvedDarkLogoUrl = publishedDarkLogoUrl ?? resolvedLogoUrl
 
   return companyBrandProfileResponseSchema.parse({
     item: {
@@ -360,7 +392,13 @@ export async function getPrimaryCompanyBrandProfile(
       website: company.website,
       primaryEmail: company.primaryEmail,
       primaryPhone: company.primaryPhone,
-      logoUrl: primaryLogo?.logoUrl ?? null,
+      logoUrl: resolvedLogoUrl,
+      darkLogoUrl: resolvedDarkLogoUrl,
+      companyLogoUrl,
+      logoSource:
+        publishedLogoUrl ? "published"
+        : companyLogoUrl ? "company"
+        : "none",
       addressLine1: primaryAddress?.addressLine1 ?? null,
       addressLine2: primaryAddress?.addressLine2 ?? null,
     },

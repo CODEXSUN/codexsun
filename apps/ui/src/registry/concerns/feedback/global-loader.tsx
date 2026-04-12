@@ -1,6 +1,8 @@
 import { useState, type HTMLAttributes } from "react"
 import { motion } from "framer-motion"
 
+import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
+import { resolveRuntimeBrandLogoUrl } from "@/features/branding/runtime-brand-logo"
 import { cn } from "@/lib/utils"
 
 type LoaderSize = "sm" | "md" | "lg"
@@ -24,6 +26,7 @@ export function GlobalLoader({
   className,
   ...props
 }: GlobalLoaderProps) {
+  const { brand } = useRuntimeBrand()
   const [logoFailed, setLogoFailed] = useState(false)
 
   return (
@@ -126,7 +129,7 @@ export function GlobalLoader({
             <div className="size-6 rounded-full bg-foreground/85 shadow-sm" aria-hidden="true" />
           ) : (
             <img
-              src="/logo.svg"
+              src={resolveRuntimeBrandLogoUrl(brand)}
               alt=""
               aria-hidden="true"
               className="h-10 w-10 object-contain"

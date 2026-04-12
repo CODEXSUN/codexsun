@@ -1,0 +1,207 @@
+import assert from "node:assert/strict"
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import test from "node:test"
+
+import { getServerConfig } from "../../apps/framework/src/runtime/config/index.js"
+import {
+  getPublishedBrandAssetPublicUrl,
+  publishCompanyBrandAssets,
+  readPublishedBrandAsset,
+} from "../../apps/cxapp/src/services/company-brand-assets-service.js"
+
+test("published brand asset url prefers managed runtime logo, then legacy public logo, then null", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-urls-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+
+    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
+    assert.equal(await getPublishedBrandAssetPublicUrl(config, "primary"), null)
+
+    writeFileSync(path.join(config.webRoot, "public", "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
+    assert.equal(await getPublishedBrandAssetPublicUrl(config, "primary"), "/logo.svg")
+
+    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "primary.svg"),
+      '<svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#111"/></svg>',
+      "utf8"
+    )
+
+    const response = await publishCompanyBrandAssets(
+      {} as never,
+      config,
+      {
+        primary: {
+          sourceUrl: "/storage/source/primary.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 12,
+          offsetY: 8,
+          scale: 100,
+          fillColor: "#111111",
+          hoverFillColor: "#8b5e34",
+        },
+        dark: {
+          sourceUrl: "/storage/source/primary.svg",
+          canvasWidth: 320,
+          canvasHeight: 120,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#ffffff",
+          hoverFillColor: "#f0c48a",
+        },
+        favicon: {
+          sourceUrl: "/storage/source/primary.svg",
+          canvasWidth: 64,
+          canvasHeight: 64,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 100,
+          fillColor: "#8b5e34",
+          hoverFillColor: "#5a3a1b",
+        },
+      }
+    )
+
+    assert.equal(
+      await getPublishedBrandAssetPublicUrl(config, "primary"),
+      `/logo.svg?v=${encodeURIComponent(response.item.version)}`
+    )
+    assert.equal(
+      await getPublishedBrandAssetPublicUrl(config, "dark"),
+      `/logo-dark.svg?v=${encodeURIComponent(response.item.version)}`
+    )
+    assert.equal(
+      await getPublishedBrandAssetPublicUrl(config, "favicon"),
+      `/favicon.svg?v=${encodeURIComponent(response.item.version)}`
+    )
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("company brand asset publishing backs up and replaces direct public brand files", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+
+    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
+    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+
+    writeFileSync(path.join(config.webRoot, "public", "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
+    writeFileSync(path.join(config.webRoot, "public", "logo-dark.svg"), "<svg>legacy-dark</svg>", "utf8")
+    writeFileSync(path.join(config.webRoot, "public", "favicon.svg"), "<svg>legacy-favicon</svg>", "utf8")
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "primary.svg"),
+      '<svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#111"/><text x="50" y="26" text-anchor="middle" fill="#fff">Brand</text></svg>',
+      "utf8"
+    )
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "dark.svg"),
+      '<svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#000"/><text x="50" y="26" text-anchor="middle" fill="#f8e7c8">Brand Dark</text></svg>',
+      "utf8"
+    )
+    writeFileSync(
+      path.join(config.webRoot, "storage", "source", "favicon.svg"),
+      '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#8b5e34"/><text x="32" y="39" text-anchor="middle" fill="#fff" font-size="24">B</text></svg>',
+      "utf8"
+    )
+
+    const response = await publishCompanyBrandAssets(
+      {} as never,
+      config,
+      {
+        primary: {
+          sourceUrl: "/storage/source/primary.svg",
+          canvasWidth: 360,
+          canvasHeight: 140,
+          offsetX: 18,
+          offsetY: 12,
+          scale: 125,
+          fillColor: "#224466",
+          hoverFillColor: "#8b5e34",
+        },
+        dark: {
+          sourceUrl: "/storage/source/dark.svg",
+          canvasWidth: 360,
+          canvasHeight: 140,
+          offsetX: 10,
+          offsetY: 6,
+          scale: 110,
+          fillColor: "#f2d7aa",
+          hoverFillColor: "#f0c48a",
+        },
+        favicon: {
+          sourceUrl: "/storage/source/favicon.svg",
+          canvasWidth: 72,
+          canvasHeight: 72,
+          offsetX: 4,
+          offsetY: 5,
+          scale: 90,
+          fillColor: "#9b5f2d",
+          hoverFillColor: "#5a3a1b",
+        },
+      }
+    )
+
+    assert.equal(response.item.format, "svg")
+    assert.match(response.item.backupPath ?? "", /storage[\\/]backups[\\/]branding[\\/]logo-/)
+    assert.equal(existsSync(response.item.backupPath ?? ""), true)
+    assert.equal(readFileSync(response.item.backupPath ?? "", "utf8"), "<svg>legacy-primary</svg>")
+    assert.equal(
+      readFileSync(response.item.backupPaths.dark ?? "", "utf8"),
+      "<svg>legacy-dark</svg>"
+    )
+    assert.equal(
+      readFileSync(response.item.backupPaths.favicon ?? "", "utf8"),
+      "<svg>legacy-favicon</svg>"
+    )
+    assert.equal(
+      response.item.publicUrl,
+      `/logo.svg?v=${encodeURIComponent(response.item.version)}`
+    )
+    assert.equal(
+      response.item.publicUrls.dark,
+      `/logo-dark.svg?v=${encodeURIComponent(response.item.version)}`
+    )
+    assert.equal(
+      response.item.publicUrls.favicon,
+      `/favicon.svg?v=${encodeURIComponent(response.item.version)}`
+    )
+
+    const publishedLogo = readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8")
+    const publishedDarkLogo = readFileSync(path.join(config.webRoot, "public", "logo-dark.svg"), "utf8")
+    const publishedFavicon = readFileSync(path.join(config.webRoot, "public", "favicon.svg"), "utf8")
+
+    assert.match(publishedLogo, /width="360"/)
+    assert.match(publishedLogo, /height="140"/)
+    assert.match(publishedLogo, /x="18"/)
+    assert.match(publishedLogo, /y="12"/)
+    assert.match(publishedLogo, /fill="#224466"/)
+    assert.match(publishedDarkLogo, /fill="#f2d7aa"/)
+    assert.match(publishedDarkLogo, /x="10"/)
+    assert.match(publishedFavicon, /width="72"/)
+    assert.match(publishedFavicon, /fill="#9b5f2d"/)
+
+    const favicon = await readPublishedBrandAsset(config, "favicon")
+    const dark = await readPublishedBrandAsset(config, "dark")
+
+    assert.equal(favicon.mimeType, "image/svg+xml")
+    assert.match(favicon.content.toString("utf8"), /fill="#9b5f2d"/)
+    assert.match(dark.content.toString("utf8"), /fill="#f2d7aa"/)
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
