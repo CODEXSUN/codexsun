@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#123] 2026-04-12 - Local container git-sync runtime mode defaults
+
+- fixed the local container setup defaults so `GIT_SYNC_ENABLED=true` no longer boots the runtime in development mode where the entrypoint overlays stale image code onto the synced repository
+- updated both shared and local setup scripts to default local git-sync runs to `APP_ENV=production`, keeping the runtime repository authoritative while preserving local port and URL behavior
+- documented the local git-sync mode in the codexsun container usage guide so operators know the expected `GIT_SYNC_ENABLED=true` plus `APP_ENV=production` combination
+- validated the batch with `bash -n .container/bash-sh/setup.sh` and `bash -n .container/bash-sh/setup-local.sh`
+
 ### [#122] 2026-04-12 - Companies branding data compatibility hardening
 
 - fixed the Companies workspace load regression where malformed persisted `brandAssetDesigner` data could break company reads and surface the frontend `Unexpected token '<'` JSON parse error
