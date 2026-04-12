@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
+} from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeftIcon } from "lucide-react"
 
 import type { CommonModuleItem } from "@core/shared"
 import type {
+  CompanyBrandAssetColorOverride,
   CompanyBrandAssetDesigner,
   CompanyBrandAssetDraftReadResponse,
   CompanyBrandAssetDraftResponse,
@@ -68,6 +76,8 @@ type SvgEditorDraft = {
   scale: number
   fillColor: string
   hoverFillColor: string
+  colorMode: "uniform" | "token"
+  colorOverrides: CompanyBrandAssetColorOverride[]
 }
 type BrandAssetEditorState = Record<BrandAssetVariant, SvgEditorDraft>
 type BrandAssetSourceMarkupState = Record<BrandAssetVariant, string | null>
@@ -90,6 +100,8 @@ const defaultBrandAssetEditorState: BrandAssetEditorState = {
     scale: 100,
     fillColor: "#111111",
     hoverFillColor: "#8b5e34",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
   dark: {
     canvasWidth: 320,
@@ -99,6 +111,8 @@ const defaultBrandAssetEditorState: BrandAssetEditorState = {
     scale: 100,
     fillColor: "#f5efe8",
     hoverFillColor: "#f0c48a",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
   favicon: {
     canvasWidth: 64,
@@ -108,6 +122,8 @@ const defaultBrandAssetEditorState: BrandAssetEditorState = {
     scale: 100,
     fillColor: "#8b5e34",
     hoverFillColor: "#5a3a1b",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
   print: {
     canvasWidth: 420,
@@ -117,6 +133,8 @@ const defaultBrandAssetEditorState: BrandAssetEditorState = {
     scale: 100,
     fillColor: "#111111",
     hoverFillColor: "#3b3b3b",
+    colorMode: "uniform",
+    colorOverrides: [],
   },
 }
 const brandAssetEditorDefinitions: Array<{
@@ -209,6 +227,46 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
+function decodeSvgBytes(content: ArrayBuffer) {
+  const bytes = new Uint8Array(content)
+
+  if (bytes.length >= 2) {
+    if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+      return new TextDecoder("utf-16le").decode(bytes.subarray(2)).replace(/^\uFEFF/, "")
+    }
+
+    if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+      return new TextDecoder("utf-16be").decode(bytes.subarray(2)).replace(/^\uFEFF/, "")
+    }
+  }
+
+  const sample = bytes.subarray(0, Math.min(bytes.length, 64))
+  let evenZeros = 0
+  let oddZeros = 0
+
+  for (let index = 0; index < sample.length; index += 1) {
+    if (sample[index] !== 0) {
+      continue
+    }
+
+    if (index % 2 === 0) {
+      evenZeros += 1
+    } else {
+      oddZeros += 1
+    }
+  }
+
+  if (oddZeros >= Math.max(4, Math.floor(sample.length / 4))) {
+    return new TextDecoder("utf-16le").decode(bytes).replace(/^\uFEFF/, "")
+  }
+
+  if (evenZeros >= Math.max(4, Math.floor(sample.length / 4))) {
+    return new TextDecoder("utf-16be").decode(bytes).replace(/^\uFEFF/, "")
+  }
+
+  return new TextDecoder("utf-8").decode(bytes).replace(/^\uFEFF/, "")
+}
+
 async function requestText(path: string) {
   const accessToken = getStoredAccessToken()
   const response = await fetch(path, {
@@ -224,7 +282,7 @@ async function requestText(path: string) {
     throw new Error(`Request failed with status ${response.status}.`)
   }
 
-  return response.text()
+  return decodeSvgBytes(await response.arrayBuffer())
 }
 
 function parseSvgLength(value: string | null | undefined) {
@@ -239,6 +297,17 @@ function parseSvgLength(value: string | null | undefined) {
 function extractSvgAttribute(attributes: string, name: string) {
   const pattern = new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, "i")
   return attributes.match(pattern)?.[1] ?? null
+}
+
+function sanitizeSvgSource(svgSource: string) {
+  return svgSource
+    .replace(/^\uFEFF/, "")
+    .replace(/<\?xml[\s\S]*?\?>/gi, "")
+    .replace(/<!DOCTYPE[\s\S]*?>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<metadata\b[^>]*>[\s\S]*?<\/metadata>/gi, "")
+    .replace(/<metadata\b[^>]*\/>/gi, "")
+    .trim()
 }
 
 function normalizeHexColor(value: string | null | undefined) {
@@ -259,8 +328,51 @@ function normalizeHexColor(value: string | null | undefined) {
   return null
 }
 
+function extractSvgColorTokens(svgSource: string) {
+  const sanitizedSource = sanitizeSvgSource(svgSource)
+  const uniqueTokens = new Map<string, CompanyBrandAssetColorOverride>()
+
+  const collectColor = (colorValue: string) => {
+    const normalizedColor = normalizeHexColor(colorValue)
+
+    if (!normalizedColor || uniqueTokens.has(normalizedColor)) {
+      return
+    }
+
+    uniqueTokens.set(normalizedColor, {
+      source: normalizedColor,
+      target: normalizedColor,
+    })
+  }
+
+  for (const match of sanitizedSource.matchAll(/(?:fill|stroke)\s*=\s*["'](#[0-9a-fA-F]{3,8})["']/gi)) {
+    collectColor(match[1] ?? "")
+  }
+
+  for (const match of sanitizedSource.matchAll(/(?:fill|stroke)\s*:\s*(#[0-9a-fA-F]{3,8})/gi)) {
+    collectColor(match[1] ?? "")
+  }
+
+  return Array.from(uniqueTokens.values())
+}
+
+function mergeColorOverrides(
+  nextTokens: CompanyBrandAssetColorOverride[],
+  existingOverrides: CompanyBrandAssetColorOverride[]
+) {
+  const existingMap = new Map(
+    existingOverrides.map((entry) => [entry.source.toLowerCase(), entry.target.toLowerCase()])
+  )
+
+  return nextTokens.map((token) => ({
+    source: token.source,
+    target: existingMap.get(token.source.toLowerCase()) ?? token.target,
+  }))
+}
+
 function extractSvgEditorDefaults(svgSource: string, fallback: SvgEditorDraft) {
-  const rootMatch = svgSource.match(/<svg\b([^>]*)>/i)
+  const sanitizedSource = sanitizeSvgSource(svgSource)
+  const rootMatch = sanitizedSource.match(/<svg\b([^>]*)>/i)
   const attributes = rootMatch?.[1] ?? ""
   const width = parseSvgLength(extractSvgAttribute(attributes, "width"))
   const height = parseSvgLength(extractSvgAttribute(attributes, "height"))
@@ -268,19 +380,29 @@ function extractSvgEditorDefaults(svgSource: string, fallback: SvgEditorDraft) {
   const viewBoxParts = viewBox?.split(/[\s,]+/).map(Number).filter(Number.isFinite) ?? []
   const derivedWidth = width ?? (viewBoxParts.length === 4 ? viewBoxParts[2] : null)
   const derivedHeight = height ?? (viewBoxParts.length === 4 ? viewBoxParts[3] : null)
-  const fillMatch = svgSource.match(/fill\s*=\s*["'](#[0-9a-fA-F]{3,6})["']/i)
+  const fillMatch = sanitizedSource.match(/fill\s*=\s*["'](#[0-9a-fA-F]{3,6})["']/i)
   const fillColor = normalizeHexColor(fillMatch?.[1]) ?? fallback.fillColor
+  const colorOverrides = mergeColorOverrides(
+    extractSvgColorTokens(sanitizedSource),
+    fallback.colorOverrides
+  )
 
   return {
     canvasWidth: Math.max(32, Math.round(derivedWidth ?? fallback.canvasWidth)),
     canvasHeight: Math.max(32, Math.round(derivedHeight ?? fallback.canvasHeight)),
     fillColor,
+    colorOverrides,
+    colorMode:
+      colorOverrides.length > 1
+        ? fallback.colorMode === "uniform" ? "token" : fallback.colorMode
+        : fallback.colorMode,
   }
 }
 
 function parseSourceSvg(svgSource: string) {
-  const rootMatch = svgSource.match(/<svg\b([^>]*)>([\s\S]*)<\/svg>/i)
-  const selfClosingMatch = svgSource.match(/<svg\b([^>]*)\/>/i)
+  const sanitizedSource = sanitizeSvgSource(svgSource)
+  const rootMatch = sanitizedSource.match(/<svg\b([^>]*)>([\s\S]*)<\/svg>/i)
+  const selfClosingMatch = sanitizedSource.match(/<svg\b([^>]*)\/>/i)
 
   if (!rootMatch && !selfClosingMatch) {
     throw new Error("The selected source does not contain a valid SVG document.")
@@ -307,17 +429,49 @@ function parseSourceSvg(svgSource: string) {
   }
 }
 
-function replaceSvgFillColors(svgMarkup: string, fillColor: string) {
+function rewriteSvgHexColors(
+  svgMarkup: string,
+  resolveReplacement: (normalizedColor: string) => string | null
+) {
   return svgMarkup
-    .replace(/fill\s*=\s*["'](#[0-9a-fA-F]{3,8})["']/gi, `fill="${fillColor}"`)
-    .replace(/fill:\s*(#[0-9a-fA-F]{3,8})/gi, `fill:${fillColor}`)
+    .replace(
+      /(fill|stroke)\s*=\s*(["'])(#[0-9a-fA-F]{3,8})\2/gi,
+      (match, attributeName: string, quote: string, colorValue: string) => {
+        const normalizedColor = normalizeHexColor(colorValue)
+        const replacement = normalizedColor ? resolveReplacement(normalizedColor) : null
+
+        return replacement ? `${attributeName}=${quote}${replacement}${quote}` : match
+      }
+    )
+    .replace(/(fill|stroke)\s*:\s*(#[0-9a-fA-F]{3,8})/gi, (match, propertyName: string, colorValue: string) => {
+      const normalizedColor = normalizeHexColor(colorValue)
+      const replacement = normalizedColor ? resolveReplacement(normalizedColor) : null
+
+      return replacement ? `${propertyName}:${replacement}` : match
+    })
+}
+
+function applySvgDesignerColors(svgMarkup: string, editor: SvgEditorDraft) {
+  const overrideMap = new Map(
+    editor.colorOverrides.map((entry) => [entry.source.toLowerCase(), entry.target.toLowerCase()])
+  )
+
+  if (editor.colorMode === "token") {
+    if (overrideMap.size === 0) {
+      return svgMarkup
+    }
+
+    return rewriteSvgHexColors(svgMarkup, (normalizedColor) => overrideMap.get(normalizedColor) ?? null)
+  }
+
+  return rewriteSvgHexColors(svgMarkup, () => editor.fillColor)
 }
 
 function buildDesignedSvgPreview(sourceSvg: string, editor: SvgEditorDraft) {
   const parsed = parseSourceSvg(sourceSvg)
   const scaledWidth = Math.max(1, Number((parsed.width * editor.scale) / 100))
   const scaledHeight = Math.max(1, Number((parsed.height * editor.scale) / 100))
-  const recoloredMarkup = replaceSvgFillColors(parsed.innerMarkup, editor.fillColor)
+  const recoloredMarkup = applySvgDesignerColors(parsed.innerMarkup, editor)
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${editor.canvasWidth}" height="${editor.canvasHeight}" viewBox="0 0 ${editor.canvasWidth} ${editor.canvasHeight}" fill="none">`,
@@ -377,6 +531,8 @@ function createBrandAssetStateFromDesigner(designer: CompanyBrandAssetDesigner) 
         scale: designer.primary.scale,
         fillColor: designer.primary.fillColor,
         hoverFillColor: designer.primary.hoverFillColor,
+        colorMode: designer.primary.colorMode,
+        colorOverrides: designer.primary.colorOverrides,
       },
       dark: {
         canvasWidth: designer.dark.canvasWidth,
@@ -386,6 +542,8 @@ function createBrandAssetStateFromDesigner(designer: CompanyBrandAssetDesigner) 
         scale: designer.dark.scale,
         fillColor: designer.dark.fillColor,
         hoverFillColor: designer.dark.hoverFillColor,
+        colorMode: designer.dark.colorMode,
+        colorOverrides: designer.dark.colorOverrides,
       },
       favicon: {
         canvasWidth: designer.favicon.canvasWidth,
@@ -395,6 +553,8 @@ function createBrandAssetStateFromDesigner(designer: CompanyBrandAssetDesigner) 
         scale: designer.favicon.scale,
         fillColor: designer.favicon.fillColor,
         hoverFillColor: designer.favicon.hoverFillColor,
+        colorMode: designer.favicon.colorMode,
+        colorOverrides: designer.favicon.colorOverrides,
       },
       print: {
         canvasWidth: designer.print.canvasWidth,
@@ -404,6 +564,8 @@ function createBrandAssetStateFromDesigner(designer: CompanyBrandAssetDesigner) 
         scale: designer.print.scale,
         fillColor: designer.print.fillColor,
         hoverFillColor: designer.print.hoverFillColor,
+        colorMode: designer.print.colorMode,
+        colorOverrides: designer.print.colorOverrides,
       },
     } satisfies BrandAssetEditorState,
   }
@@ -528,6 +690,13 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
   const [publishError, setPublishError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<CompanyFieldErrors>({})
   const hasHydratedBrandAssetDraftRef = useRef(false)
+  const brandAssetDragStateRef = useRef<{
+    variant: BrandAssetVariant
+    startX: number
+    startY: number
+    initialOffsetX: number
+    initialOffsetY: number
+  } | null>(null)
   useGlobalLoading(isLoading || isSaving || isSavingBrandAssetDraft || isPublishingBrandAssets)
 
   const svgLogos = useMemo(() => form.logos.filter(isSvgLogo), [form.logos])
@@ -595,6 +764,8 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
           canvasWidth: nextDefaults.canvasWidth,
           canvasHeight: nextDefaults.canvasHeight,
           fillColor: nextDefaults.fillColor,
+          colorMode: nextDefaults.colorMode,
+          colorOverrides: nextDefaults.colorOverrides,
         },
       }))
     } catch {
@@ -620,6 +791,72 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
         [key]: value,
       },
     }))
+  }
+
+  function updateBrandAssetColorMode(
+    variant: BrandAssetVariant,
+    value: SvgEditorDraft["colorMode"]
+  ) {
+    updateBrandAssetEditor(variant, "colorMode", value)
+  }
+
+  function updateBrandAssetColorOverride(
+    variant: BrandAssetVariant,
+    sourceColor: string,
+    targetColor: string
+  ) {
+    setBrandAssetDraftError(null)
+    setBrandAssetDraftNotice(null)
+    if (companyId && hasHydratedBrandAssetDraftRef.current) {
+      setBrandAssetDraftStatus("dirty")
+    }
+
+    setBrandAssetEditors((current) => ({
+      ...current,
+      [variant]: {
+        ...current[variant],
+        colorOverrides: current[variant].colorOverrides.map((entry) =>
+          entry.source.toLowerCase() === sourceColor.toLowerCase()
+            ? { ...entry, target: targetColor }
+            : entry
+        ),
+      },
+    }))
+  }
+
+  function startBrandAssetDrag(
+    variant: BrandAssetVariant,
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (event.button !== 0) {
+      return
+    }
+
+    brandAssetDragStateRef.current = {
+      variant,
+      startX: event.clientX,
+      startY: event.clientY,
+      initialOffsetX: brandAssetEditors[variant].offsetX,
+      initialOffsetY: brandAssetEditors[variant].offsetY,
+    }
+  }
+
+  function handleBrandAssetPreviewWheel(
+    variant: BrandAssetVariant,
+    event: ReactWheelEvent<HTMLDivElement>
+  ) {
+    event.preventDefault()
+
+    const nextScale =
+      event.deltaY < 0
+        ? brandAssetEditors[variant].scale + 5
+        : brandAssetEditors[variant].scale - 5
+
+    updateBrandAssetEditor(
+      variant,
+      "scale",
+      Math.min(300, Math.max(10, nextScale))
+    )
   }
 
   function resetBrandAssetVariantToSourceDefaults(variant: BrandAssetVariant) {
@@ -650,6 +887,8 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
           offsetY: 0,
           scale: 100,
           fillColor: nextDefaults.fillColor,
+          colorMode: nextDefaults.colorMode,
+          colorOverrides: nextDefaults.colorOverrides,
         },
       }))
     } catch (error) {
@@ -678,6 +917,8 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
         scale: current.primary.scale,
         fillColor: current.primary.fillColor,
         hoverFillColor: current.primary.hoverFillColor,
+        colorMode: current.primary.colorMode,
+        colorOverrides: current.primary.colorOverrides.map((entry) => ({ ...entry })),
       },
     }))
   }
@@ -800,6 +1041,37 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
             setBrandAssetSourceMarkup((current) =>
               current[variant] === svgMarkup ? current : { ...current, [variant]: svgMarkup }
             )
+            setBrandAssetEditors((current) => {
+              const existingEditor = current[variant]
+              const nextDefaults = extractSvgEditorDefaults(svgMarkup, existingEditor)
+              const sameOverrides =
+                existingEditor.colorOverrides.length === nextDefaults.colorOverrides.length &&
+                existingEditor.colorOverrides.every((entry, index) => {
+                  const nextEntry = nextDefaults.colorOverrides[index]
+
+                  return (
+                    nextEntry !== undefined &&
+                    nextEntry.source === entry.source &&
+                    nextEntry.target === entry.target
+                  )
+                })
+
+              if (
+                sameOverrides &&
+                existingEditor.colorMode === nextDefaults.colorMode
+              ) {
+                return current
+              }
+
+              return {
+                ...current,
+                [variant]: {
+                  ...existingEditor,
+                  colorMode: nextDefaults.colorMode,
+                  colorOverrides: nextDefaults.colorOverrides,
+                },
+              }
+            })
           }
         } catch {
           if (!cancelled) {
@@ -883,6 +1155,42 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
     isSavingBrandAssetDraft,
   ])
 
+  useEffect(() => {
+    function handlePointerMove(event: PointerEvent) {
+      const dragState = brandAssetDragStateRef.current
+
+      if (!dragState) {
+        return
+      }
+
+      const deltaX = event.clientX - dragState.startX
+      const deltaY = event.clientY - dragState.startY
+
+      updateBrandAssetEditor(
+        dragState.variant,
+        "offsetX",
+        Math.round(dragState.initialOffsetX + deltaX)
+      )
+      updateBrandAssetEditor(
+        dragState.variant,
+        "offsetY",
+        Math.round(dragState.initialOffsetY + deltaY)
+      )
+    }
+
+    function handlePointerUp() {
+      brandAssetDragStateRef.current = null
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+    }
+  }, [brandAssetEditors])
+
   const brandAssetEditorTabs = useMemo(
     () =>
       brandAssetEditorDefinitions.map((asset) => {
@@ -933,12 +1241,13 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
                   <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[size:24px_24px]" />
                   <div className="relative flex min-h-[inherit] items-center justify-center p-8">
                     <div
-                      className="flex items-center justify-center rounded-[1rem] border border-dashed border-foreground/20 bg-background/60 px-6 py-5 shadow-sm"
+                      className="flex cursor-grab items-center justify-center rounded-[1rem] border border-dashed border-foreground/20 bg-background/60 px-6 py-5 shadow-sm active:cursor-grabbing"
                       style={{
                         width: `${Math.max(72, editor.canvasWidth)}px`,
                         height: `${Math.max(72, editor.canvasHeight)}px`,
-                        transform: `translate(${editor.offsetX}px, ${editor.offsetY}px) scale(${editor.scale / 100})`,
                       }}
+                      onPointerDown={(event) => startBrandAssetDrag(asset.variant, event)}
+                      onWheel={(event) => handleBrandAssetPreviewWheel(asset.variant, event)}
                     >
                       {previewMarkup ? (
                         <img
@@ -967,6 +1276,9 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
                         </div>
                       )}
                     </div>
+                  </div>
+                  <div className="absolute right-3 top-3 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-[11px] text-muted-foreground">
+                    Drag to move • Wheel to scale
                   </div>
                   <div className="absolute bottom-3 left-3 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs text-muted-foreground">
                     {asset.fileName}
@@ -1106,6 +1418,83 @@ export function CompanyUpsertSection({ companyId }: { companyId?: string }) {
                       }
                     />
                   </div>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Color Engine</p>
+                      <p className="text-xs text-muted-foreground">
+                        Use one uniform color or edit extracted SVG color tokens individually.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={editor.colorMode === "uniform" ? "default" : "outline"}
+                        onClick={() => {
+                          updateBrandAssetColorMode(asset.variant, "uniform")
+                        }}
+                      >
+                        Uniform
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={editor.colorMode === "token" ? "default" : "outline"}
+                        disabled={editor.colorOverrides.length === 0}
+                        onClick={() => {
+                          updateBrandAssetColorMode(asset.variant, "token")
+                        }}
+                      >
+                        Token
+                      </Button>
+                    </div>
+                  </div>
+
+                  {editor.colorOverrides.length > 0 ? (
+                    <div className="grid gap-3">
+                      {editor.colorOverrides.map((colorOverride) => (
+                        <div
+                          key={`${asset.variant}-${colorOverride.source}`}
+                          className="grid gap-3 rounded-lg border border-border/60 bg-background/70 p-3 sm:grid-cols-[minmax(0,1fr)_7rem]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="size-7 rounded-full border border-border/70"
+                              style={{ backgroundColor: colorOverride.source }}
+                            />
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium text-foreground">
+                                Source {colorOverride.source}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {editor.colorMode === "token"
+                                  ? "Published exactly to this target color."
+                                  : "Used when token mode is active."}
+                              </p>
+                            </div>
+                          </div>
+                          <Input
+                            type="color"
+                            value={colorOverride.target}
+                            onChange={(event) =>
+                              updateBrandAssetColorOverride(
+                                asset.variant,
+                                colorOverride.source,
+                                event.target.value
+                              )
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      No editable SVG hex color tokens were detected in this source.
+                    </p>
+                  )}
                 </div>
 
               </div>
