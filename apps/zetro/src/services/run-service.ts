@@ -32,7 +32,14 @@ export type ZetroRunEventKind =
   | "approval"
   | "finding"
   | "command-proposal"
-  | "output";
+  | "output"
+  | "loop-start"
+  | "loop-stop"
+  | "loop-cancel"
+  | "loop-timeout"
+  | "iteration-start"
+  | "iteration-end"
+  | "stop-condition-met";
 
 export type ZetroRunEvent = {
   id: string;
@@ -94,6 +101,13 @@ const zetroRunEventKinds = new Set<ZetroRunEventKind>([
   "finding",
   "command-proposal",
   "output",
+  "loop-start",
+  "loop-stop",
+  "loop-cancel",
+  "loop-timeout",
+  "iteration-start",
+  "iteration-end",
+  "stop-condition-met",
 ]);
 const zetroRunOutputModes = new Set<ZetroOutputModeId>(
   zetroOutputModes.map((mode) => mode.id),

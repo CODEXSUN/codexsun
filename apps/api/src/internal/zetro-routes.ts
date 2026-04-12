@@ -32,6 +32,19 @@ import {
   ZETRO_REVIEW_LANES,
   extractReviewFindingsFromContent,
   buildReviewSummary,
+  getZetroLoopState,
+  createZetroLoopState,
+  startZetroLoop,
+  cancelZetroLoop,
+  completeZetroLoop,
+  failZetroLoop,
+  timeoutZetroLoop,
+  incrementZetroLoopIteration,
+  logZetroIterationEvent,
+  listZetroIterationEvents,
+  checkStopConditions,
+  normalizeLoopConfiguration,
+  DEFAULT_LOOP_CONFIGURATION,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
@@ -45,6 +58,7 @@ import {
   type ZetroModelProviderId,
   type ZetroProviderConfig,
   type ZetroReviewFindingInput,
+  type ZetroCreateLoopConfigurationInput,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -613,6 +627,157 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
         );
 
         return jsonResponse(summary);
+      },
+    }),
+    defineInternalRoute("/zetro/loop/state", {
+      summary: "Read the loop state for a run.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+
+        const state = await getZetroLoopState(context.databases.primary, runId);
+
+        if (!state) {
+          return jsonResponse({
+            exists: false,
+            defaultConfiguration: DEFAULT_LOOP_CONFIGURATION,
+          });
+        }
+
+        return jsonResponse({
+          exists: true,
+          state,
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/loop/configure", {
+      summary: "Configure loop settings for a run.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+        const body = requireJsonObject(
+          context,
+        ) as ZetroCreateLoopConfigurationInput;
+
+        const state = await createZetroLoopState(
+          context.databases.primary,
+          runId,
+          body,
+        );
+
+        return jsonResponse(state, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/loop/start", {
+      summary: "Start a loop for a run.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+
+        const state = await startZetroLoop(context.databases.primary, runId);
+
+        await logZetroIterationEvent(context.databases.primary, runId, {
+          iteration: state.currentIteration,
+          kind: "loop-started",
+          summary: `Loop started at iteration ${state.currentIteration}`,
+          detail: `Configuration: maxIterations=${state.configuration.maxIterations}, timeoutMs=${state.configuration.timeoutMs}`,
+        });
+
+        return jsonResponse(state);
+      },
+    }),
+    defineInternalRoute("/zetro/loop/cancel", {
+      summary: "Cancel a running loop.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+
+        const state = await cancelZetroLoop(context.databases.primary, runId);
+
+        await logZetroIterationEvent(context.databases.primary, runId, {
+          iteration: state.currentIteration,
+          kind: "loop-cancelled",
+          summary: "Loop cancelled by operator",
+        });
+
+        return jsonResponse(state);
+      },
+    }),
+    defineInternalRoute("/zetro/loop/stop", {
+      summary: "Stop (complete) a running loop.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+
+        const state = await completeZetroLoop(context.databases.primary, runId);
+
+        await logZetroIterationEvent(context.databases.primary, runId, {
+          iteration: state.currentIteration,
+          kind: "loop-completed",
+          summary: `Loop completed after ${state.currentIteration} iterations`,
+        });
+
+        return jsonResponse(state);
+      },
+    }),
+    defineInternalRoute("/zetro/loop/iteration", {
+      summary: "Advance to next iteration.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+
+        const state = await incrementZetroLoopIteration(
+          context.databases.primary,
+          runId,
+        );
+
+        await logZetroIterationEvent(context.databases.primary, runId, {
+          iteration: state.currentIteration,
+          kind: "iteration-start",
+          summary: `Iteration ${state.currentIteration} started`,
+        });
+
+        return jsonResponse(state);
+      },
+    }),
+    defineInternalRoute("/zetro/loop/events", {
+      summary: "List iteration events for a run.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = requireQueryId(context, "Zetro run");
+
+        const events = await listZetroIterationEvents(
+          context.databases.primary,
+          runId,
+        );
+
+        return jsonResponse({ items: events });
       },
     }),
   ];

@@ -48,6 +48,11 @@ npm.cmd run zetro -- runs
 npm.cmd run zetro -- findings
 npm.cmd run zetro -- review-lanes
 npm.cmd run zetro -- review-summary --run <id>
+npm.cmd run zetro -- loop <runId>
+npm.cmd run zetro -- loop-start --run <id> [--max <n>] [--timeout <ms>]
+npm.cmd run zetro -- loop-stop --run <id>
+npm.cmd run zetro -- loop-cancel --run <id>
+npm.cmd run zetro -- loop-events --run <id>
 npm.cmd run zetro -- plan "build persisted playbooks"
 npm.cmd run zetro -- chat
 ```

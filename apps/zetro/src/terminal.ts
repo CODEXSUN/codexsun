@@ -28,6 +28,14 @@ import {
   listZetroChatMessages,
   ZETRO_REVIEW_LANES,
   buildReviewSummary,
+  getZetroLoopState,
+  createZetroLoopState,
+  startZetroLoop,
+  cancelZetroLoop,
+  completeZetroLoop,
+  listZetroIterationEvents,
+  DEFAULT_LOOP_CONFIGURATION,
+  type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
   ZetroFindingStatus,
@@ -66,6 +74,11 @@ type ZetroTerminalCommand =
   | "finding-status"
   | "review-lanes"
   | "review-summary"
+  | "loop"
+  | "loop-start"
+  | "loop-stop"
+  | "loop-cancel"
+  | "loop-events"
   | "plan"
   | "assist"
   | "doctor"
@@ -115,6 +128,15 @@ function printUsage() {
   console.info("  review-lanes                  List all review lanes.");
   console.info(
     "  review-summary [--run <id>]  Show review summary from findings.",
+  );
+  console.info("  loop <runId>                  Show loop state for a run.");
+  console.info(
+    "  loop-start --run <id> [--max <n>] [--timeout <ms>]  Start a loop.",
+  );
+  console.info("  loop-stop --run <id>          Stop/complete a loop.");
+  console.info("  loop-cancel --run <id>       Cancel a running loop.");
+  console.info(
+    "  loop-events --run <id>       Show iteration events for a run.",
   );
   console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
@@ -167,6 +189,11 @@ function resolveCommand(
     case "finding-status":
     case "review-lanes":
     case "review-summary":
+    case "loop":
+    case "loop-start":
+    case "loop-stop":
+    case "loop-cancel":
+    case "loop-events":
     case "plan":
     case "assist":
     case "doctor":
@@ -804,6 +831,165 @@ async function updateFindingStatusFromArgs(args: string[]) {
   }
 }
 
+async function printLoopState(runId: string | undefined) {
+  if (!runId) {
+    console.info("Missing run id. Try: npm run zetro -- loop <runId>");
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    const state = await withZetroDatabase((database) =>
+      getZetroLoopState(database, runId),
+    );
+
+    printHeader("Loop state");
+    console.info(`Run: ${runId}`);
+
+    if (!state) {
+      console.info("No loop configured for this run.");
+      console.info("");
+      console.info("Default configuration:");
+      console.info(
+        `  maxIterations: ${DEFAULT_LOOP_CONFIGURATION.maxIterations}`,
+      );
+      console.info(
+        `  timeoutMs: ${DEFAULT_LOOP_CONFIGURATION.timeoutMs} (${DEFAULT_LOOP_CONFIGURATION.timeoutMs / 60000} min)`,
+      );
+      console.info(`  dryRun: ${DEFAULT_LOOP_CONFIGURATION.dryRun}`);
+      console.info(
+        `  stopConditions: ${DEFAULT_LOOP_CONFIGURATION.stopConditions.map((c) => c.type).join(", ")}`,
+      );
+      return;
+    }
+
+    console.info(`Status: ${state.status}`);
+    console.info(`Current iteration: ${state.currentIteration}`);
+    console.info(`Max iterations: ${state.configuration.maxIterations}`);
+    console.info(
+      `Timeout: ${state.configuration.timeoutMs}ms (${state.configuration.timeoutMs / 60000} min)`,
+    );
+    console.info(`Dry run: ${state.configuration.dryRun}`);
+    if (state.startedAt) {
+      console.info(`Started: ${new Date(state.startedAt).toLocaleString()}`);
+    }
+    if (state.endedAt) {
+      console.info(`Ended: ${new Date(state.endedAt).toLocaleString()}`);
+    }
+    if (state.cancelledAt) {
+      console.info(
+        `Cancelled: ${new Date(state.cancelledAt).toLocaleString()} by ${state.cancelledBy}`,
+      );
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function startLoopFromArgs(args: string[]) {
+  const runId = requireOption(args, "--run");
+  const maxIterations = readOption(args, "--max");
+  const timeoutMs = readOption(args, "--timeout");
+
+  try {
+    const config: ZetroCreateLoopConfigurationInput = {};
+    if (maxIterations) {
+      config.maxIterations = Number(maxIterations);
+    }
+    if (timeoutMs) {
+      config.timeoutMs = Number(timeoutMs);
+    }
+
+    let state = await withZetroDatabase((database) =>
+      getZetroLoopState(database, runId),
+    );
+
+    if (!state) {
+      state = await withZetroDatabase((database) =>
+        createZetroLoopState(database, runId, config),
+      );
+      console.info("Loop configuration created.");
+    }
+
+    state = await withZetroDatabase((database) =>
+      startZetroLoop(database, runId),
+    );
+
+    printHeader("Loop started");
+    console.info(`Run: ${runId}`);
+    console.info(`Status: ${state.status}`);
+    console.info(`Current iteration: ${state.currentIteration}`);
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function stopLoopFromArgs(args: string[]) {
+  const runId = requireOption(args, "--run");
+
+  try {
+    const state = await withZetroDatabase((database) =>
+      completeZetroLoop(database, runId),
+    );
+
+    printHeader("Loop stopped");
+    console.info(`Run: ${runId}`);
+    console.info(`Status: ${state.status}`);
+    console.info(`Completed after ${state.currentIteration} iterations`);
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function cancelLoopFromArgs(args: string[]) {
+  const runId = requireOption(args, "--run");
+
+  try {
+    const state = await withZetroDatabase((database) =>
+      cancelZetroLoop(database, runId, "operator"),
+    );
+
+    printHeader("Loop cancelled");
+    console.info(`Run: ${runId}`);
+    console.info(`Status: ${state.status}`);
+    console.info(`Cancelled at iteration ${state.currentIteration}`);
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function printLoopEvents(args: string[]) {
+  const runId = requireOption(args, "--run");
+
+  try {
+    const events = await withZetroDatabase((database) =>
+      listZetroIterationEvents(database, runId),
+    );
+
+    printHeader("Loop events");
+    console.info(`Run: ${runId}`);
+    console.info(`Total events: ${events.length}`);
+
+    if (events.length === 0) {
+      console.info("No iteration events recorded.");
+      return;
+    }
+
+    for (const event of events) {
+      console.info("");
+      console.info(
+        `${new Date(event.createdAt).toLocaleString()} | Iter ${event.iteration} | ${event.kind}`,
+      );
+      console.info(`  ${event.summary}`);
+      if (event.detail) {
+        console.info(`  ${event.detail}`);
+      }
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
 function buildPlanScaffold(request: string) {
   return [
     "Intent",
@@ -1071,6 +1257,21 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "review-summary":
       await printReviewSummary(rest);
+      return;
+    case "loop":
+      await printLoopState(rest[0]);
+      return;
+    case "loop-start":
+      await startLoopFromArgs(rest);
+      return;
+    case "loop-stop":
+      await stopLoopFromArgs(rest);
+      return;
+    case "loop-cancel":
+      await cancelLoopFromArgs(rest);
+      return;
+    case "loop-events":
+      await printLoopEvents(rest);
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.6.0`
+Current baseline: `1.7.0`
 
-Next target: `1.7.0`
+Next target: `1.8.0`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -624,6 +624,8 @@ Completion notes:
 
 ## 1.7.0 Controlled Loop
 
+Status: complete.
+
 Goal:
 
 Allow bounded iterative workflows.
@@ -643,6 +645,39 @@ Exit criteria:
 1. No unbounded loop is possible.
 2. Operator can stop immediately.
 3. Every iteration is auditable.
+
+Completion notes:
+
+1. Loop service exists in `apps/zetro/src/services/loop-service.ts` with loop state, configuration, and iteration tracking.
+2. Loop table name added to `apps/zetro/database/table-names.ts` (`zetro_loop_states`).
+3. Migration 11 created for loop states table.
+4. Loop event kinds added to run-service (`loop-start`, `loop-stop`, `loop-cancel`, `loop-timeout`, `iteration-start`, `iteration-end`, `stop-condition-met`).
+5. Loop API routes exist in `apps/api/src/internal/zetro-routes.ts` (`/zetro/loop/state`, `/zetro/loop/configure`, `/zetro/loop/start`, `/zetro/loop/cancel`, `/zetro/loop/stop`, `/zetro/loop/iteration`, `/zetro/loop/events`).
+6. Terminal commands added: `loop <runId>`, `loop-start --run <id> [--max <n>] [--timeout <ms>]`, `loop-stop --run <id>`, `loop-cancel --run <id>`, `loop-events --run <id>`.
+7. Default configuration: maxIterations=10, timeoutMs=1800000 (30 min), dryRun=true.
+8. Stop conditions: max-iterations, timeout, zero-critical-findings.
+9. Typecheck and doctor pass.
+
+## 1.8.0 Dashboard Loop Control
+
+Status: not started.
+
+Goal:
+
+Add dashboard UI for loop control and monitoring.
+
+Deliverables:
+
+1. loop control panel in run detail page
+2. loop state display
+3. iteration event timeline
+4. start/stop/cancel buttons
+
+Exit criteria:
+
+1. Loop can be controlled from dashboard.
+2. Iteration events are visible.
+3. Loop state is always visible.
 
 ## Build Rule
 
