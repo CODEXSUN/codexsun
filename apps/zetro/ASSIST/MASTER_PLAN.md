@@ -27,8 +27,9 @@ Build Zetro into a terminal-first, dashboard-backed agent workspace for planning
 19. **Phase 2.2**: Smart playbooks with conditional logic (skipIf, requireIf, gotoIf, retry).
 20. **Phase 2.3**: Multi-model task router with task classification and routing map.
 21. **Phase 2.4**: Agent role specialization (planner, executor, reviewer agents).
-22. Terminal command: `npm.cmd run zetro -- ...`.
-23. Interactive shell: `npm.cmd run zetro -- chat`.
+22. **Phase 2.5**: Tiered autonomy system with risk classification and auto-approval rules.
+23. Terminal command: `npm.cmd run zetro -- ...`.
+24. Interactive shell: `npm.cmd run zetro -- chat`.
 
 ## Phase Order
 

@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `2.4.0`
+Current baseline: `2.5.0`
 
-Next target: `2.5.0`
+Next target: `2.6.0`
 
 ## Phase 1: Foundation
 
@@ -124,7 +124,7 @@ Completion notes:
 
 ## 2.5.0 Tiered Autonomy System
 
-Status: not started.
+Status: complete.
 
 Goal:
 
@@ -136,6 +136,16 @@ Deliverables:
 2. Risk classification with auto-approval rules
 3. Autonomy service with decision logging
 4. Dashboard autonomy controls
+
+Completion notes:
+
+1. Created `autonomy-types.ts` with `ZetroAutonomyLevel`, `ZetroRiskLevel`, `ZetroAutoApproveRule`, `ZetroAutonomyLogEntry`.
+2. Created `autonomy-service.ts` with `classifyCommandRisk()`, `shouldAutoApprove()`, `getAutonomyLogs()`, `getAutonomyStats()`, `findMatchingRule()`.
+3. Risk levels: none, low, medium, high, critical.
+4. Autonomy levels: manual, assisted, supervised, autonomous.
+5. 13 default auto-approve rules covering git, npm, file operations, and blocked commands.
+6. Terminal commands added: `autonomy`, `autonomy-check <command>`, `autonomy-logs [--run <id>]`.
+7. Typecheck and doctor pass.
 
 ## 2.6.0 Task Integration Layer
 

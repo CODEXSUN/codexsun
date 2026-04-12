@@ -57,6 +57,14 @@ import {
   cancelAgent,
   resetAgent,
   ZETRO_AGENT_ROLE_SUMMARY,
+  getAutonomyConfig,
+  getAutonomyRules,
+  classifyCommandRisk,
+  shouldAutoApprove,
+  getAutonomyLogs,
+  getAutonomyStats,
+  ZETRO_AUTONOMY_LEVEL_SUMMARY,
+  ZETRO_RISK_LEVEL_SUMMARY,
   type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
@@ -120,6 +128,9 @@ type ZetroTerminalCommand =
   | "agent-logs"
   | "agent-run"
   | "agent-cancel"
+  | "autonomy"
+  | "autonomy-check"
+  | "autonomy-logs"
   | "plan"
   | "assist"
   | "doctor"
@@ -201,6 +212,11 @@ function printUsage() {
   console.info("  agent-logs <id>              Show agent event logs.");
   console.info("  agent-run <id> --task <desc>  Run an agent task.");
   console.info("  agent-cancel <id>            Cancel a running agent.");
+  console.info("  autonomy                     Show autonomy configuration.");
+  console.info(
+    "  autonomy-check <command>     Check if command auto-approves.",
+  );
+  console.info("  autonomy-logs [--run <id>]   Show autonomy decision logs.");
   console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
   );
@@ -271,6 +287,9 @@ function resolveCommand(
     case "agent-logs":
     case "agent-run":
     case "agent-cancel":
+    case "autonomy":
+    case "autonomy-check":
+    case "autonomy-logs":
     case "plan":
     case "assist":
     case "doctor":
@@ -1660,6 +1679,109 @@ function cancelAgentFromArgs(agentId: string | undefined) {
   }
 }
 
+function printAutonomy() {
+  const config = getAutonomyConfig();
+  const rules = getAutonomyRules();
+
+  printHeader("Autonomy Configuration");
+  console.info(`Default level: ${config.defaultLevel}`);
+  console.info(
+    `Override requires approval: ${config.overrideRequiresApproval}`,
+  );
+  console.info(`Log all decisions: ${config.logAllDecisions}`);
+  console.info("");
+  console.info("Autonomy Level Summary:");
+  for (const [level, summary] of Object.entries(ZETRO_AUTONOMY_LEVEL_SUMMARY)) {
+    console.info(`  ${level}: ${summary}`);
+  }
+  console.info("");
+  console.info(`Rules: ${rules.length}`);
+  console.info("");
+
+  for (const rule of rules) {
+    console.info(`  ${rule.id}`);
+    console.info(`    Pattern: ${rule.pattern}`);
+    console.info(`    Level: ${rule.autonomyLevel}`);
+    console.info(`    Reason: ${rule.reason ?? "N/A"}`);
+    console.info("");
+  }
+
+  const stats = getAutonomyStats();
+  console.info("Statistics:");
+  console.info(`  Total decisions: ${stats.total}`);
+  console.info("  By action:");
+  for (const [action, count] of Object.entries(stats.byAction)) {
+    console.info(`    ${action}: ${count}`);
+  }
+}
+
+function checkAutonomyFromArgs(args: string[]) {
+  const command = args.join(" ").trim();
+
+  if (!command) {
+    console.info(
+      'Missing command. Try: npm run zetro -- autonomy-check "npm run build"',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const riskLevel = classifyCommandRisk(command);
+  const decision = shouldAutoApprove(command);
+
+  printHeader("Autonomy Check");
+  console.info(`Command: ${command}`);
+  console.info("");
+  console.info(
+    `Risk level: ${riskLevel} - ${ZETRO_RISK_LEVEL_SUMMARY[riskLevel]}`,
+  );
+  console.info(`Autonomy level: ${decision.autonomyLevel}`);
+  console.info(`Action: ${decision.action}`);
+  console.info(`Reason: ${decision.reason}`);
+
+  if (decision.matchedRule) {
+    console.info(`Matched rule: ${decision.matchedRule.id}`);
+  }
+
+  if (decision.action === "auto_approved") {
+    console.info("");
+    console.info("This command will be AUTO-APPROVED.");
+  } else if (decision.action === "blocked") {
+    console.info("");
+    console.info("This command is BLOCKED.");
+    process.exitCode = 1;
+  } else {
+    console.info("");
+    console.info("This command requires APPROVAL.");
+  }
+}
+
+function printAutonomyLogsFromArgs(args: string[]) {
+  const runId = readOption(args, "--run");
+
+  const logs = getAutonomyLogs(runId ?? undefined);
+
+  printHeader("Autonomy Logs");
+  if (runId) {
+    console.info(`Run: ${runId}`);
+  }
+  console.info(`Total entries: ${logs.length}`);
+  console.info("");
+
+  if (logs.length === 0) {
+    console.info("No autonomy logs recorded.");
+    return;
+  }
+
+  for (const log of logs.slice(-20).reverse()) {
+    console.info(`${new Date(log.timestamp).toLocaleString()} [${log.action}]`);
+    console.info(`  Command: ${log.command}`);
+    console.info(`  Risk: ${log.riskLevel} | Level: ${log.autonomyLevel}`);
+    console.info(`  Reason: ${log.reason}`);
+    console.info("");
+  }
+}
+
 function buildPlanScaffold(request: string) {
   return [
     "Intent",
@@ -1984,6 +2106,15 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "agent-cancel":
       cancelAgentFromArgs(rest[0]);
+      return;
+    case "autonomy":
+      printAutonomy();
+      return;
+    case "autonomy-check":
+      checkAutonomyFromArgs(rest);
+      return;
+    case "autonomy-logs":
+      printAutonomyLogsFromArgs(rest);
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

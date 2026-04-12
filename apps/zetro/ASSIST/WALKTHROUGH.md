@@ -66,6 +66,8 @@ npm.cmd run zetro -- router-test "write a React component"
 npm.cmd run zetro -- agents
 npm.cmd run zetro -- agent planner-default
 npm.cmd run zetro -- agent-run planner-default --task "build a feature"
+npm.cmd run zetro -- autonomy
+npm.cmd run zetro -- autonomy-check "git status"
 npm.cmd run zetro -- plan "build persisted playbooks"
 npm.cmd run zetro -- chat
 ```
