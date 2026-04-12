@@ -8,6 +8,20 @@
 
 ## v-0.0.1
 
+### [#138] 2026-04-12 - ERPNext-aligned Frappe ToDo fields
+
+- inspected the live ERPNext `ToDo` DocType through the env-backed Frappe connector and confirmed the active field pattern for status, priority, color, due date, assignee, description, reference, role, assigned-by, sender, and assignment-rule fields
+- expanded the shared Frappe ToDo schema, upsert payload, seeds, and live sync mapping so app snapshots preserve ERPNext ToDo fields instead of dropping them during pull or push
+- updated the Frappe ToDo popup dialog and operational data grid to expose the ERPNext field groups from the live form while retaining the shared core-style `MasterList` table pattern
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/frappe/services.test.ts`
+
+### [#137] 2026-04-12 - Frappe ToDo workspace data-grid polish
+
+- replaced the Frappe ToDo side-panel create and edit form with a controlled popup dialog so record editing no longer competes with the list layout
+- switched the Frappe ToDo list to the shared `MasterList` data-grid block used by core operational screens, adding sortable columns, pagination, searchable filters, technical names, and a denser production-style table surface
+- moved `Live Sync` and `Create ToDo` into the list header while keeping `Refresh` at the outer Frappe section level
+- validated the UI refactor with `npm run typecheck`
+
 ### [#136] 2026-04-12 - Live Frappe ToDo sync
 
 - added a strict Frappe-owned ToDo live sync flow that requires the current `.env` connector config to be enabled, configured, and verified before talking to ERPNext

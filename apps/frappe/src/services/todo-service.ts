@@ -77,13 +77,28 @@ function toLocalTodo(remoteTodo: Record<string, unknown>) {
 
   return frappeTodoSchema.parse({
     id: `frappe-todo:${name}`,
-    description:
-      typeof remoteTodo.description === "string" ? remoteTodo.description : "",
     status: typeof remoteTodo.status === "string" ? remoteTodo.status : "",
     priority: typeof remoteTodo.priority === "string" ? remoteTodo.priority : "",
+    color: typeof remoteTodo.color === "string" ? remoteTodo.color : "",
     dueDate: typeof remoteTodo.date === "string" ? remoteTodo.date : "",
     allocatedTo:
       typeof remoteTodo.allocated_to === "string" ? remoteTodo.allocated_to : "",
+    description:
+      typeof remoteTodo.description === "string" ? remoteTodo.description : "",
+    referenceType:
+      typeof remoteTodo.reference_type === "string" ? remoteTodo.reference_type : "",
+    referenceName:
+      typeof remoteTodo.reference_name === "string" ? remoteTodo.reference_name : "",
+    role: typeof remoteTodo.role === "string" ? remoteTodo.role : "",
+    assignedBy:
+      typeof remoteTodo.assigned_by === "string" ? remoteTodo.assigned_by : "",
+    assignedByFullName:
+      typeof remoteTodo.assigned_by_full_name === "string"
+        ? remoteTodo.assigned_by_full_name
+        : "",
+    sender: typeof remoteTodo.sender === "string" ? remoteTodo.sender : "",
+    assignmentRule:
+      typeof remoteTodo.assignment_rule === "string" ? remoteTodo.assignment_rule : "",
     owner: typeof remoteTodo.owner === "string" ? remoteTodo.owner : "",
     modifiedAt:
       typeof remoteTodo.modified === "string"
@@ -94,11 +109,17 @@ function toLocalTodo(remoteTodo: Record<string, unknown>) {
 
 function toRemoteTodoPayload(todo: FrappeTodo) {
   return {
-    description: todo.description,
     status: todo.status,
     priority: todo.priority,
+    color: todo.color || null,
     date: todo.dueDate || null,
     allocated_to: todo.allocatedTo || null,
+    description: todo.description,
+    reference_type: todo.referenceType || null,
+    reference_name: todo.referenceName || null,
+    role: todo.role || null,
+    assigned_by: todo.assignedBy || null,
+    sender: todo.sender || null,
   }
 }
 
@@ -118,8 +139,14 @@ function todoPayloadMatchesRemote(todo: FrappeTodo, remoteTodo: FrappeTodo) {
     todo.description === remoteTodo.description &&
     todo.status === remoteTodo.status &&
     todo.priority === remoteTodo.priority &&
+    todo.color === remoteTodo.color &&
     todo.dueDate === remoteTodo.dueDate &&
-    todo.allocatedTo === remoteTodo.allocatedTo
+    todo.allocatedTo === remoteTodo.allocatedTo &&
+    todo.referenceType === remoteTodo.referenceType &&
+    todo.referenceName === remoteTodo.referenceName &&
+    todo.role === remoteTodo.role &&
+    todo.assignedBy === remoteTodo.assignedBy &&
+    todo.sender === remoteTodo.sender
   )
 }
 
@@ -130,8 +157,16 @@ async function readRemoteTodos(connection: ReturnType<typeof createFrappeConnect
       "description",
       "status",
       "priority",
+      "color",
       "date",
       "allocated_to",
+      "reference_type",
+      "reference_name",
+      "role",
+      "assigned_by",
+      "assigned_by_full_name",
+      "sender",
+      "assignment_rule",
       "owner",
       "modified",
     ])
@@ -250,8 +285,16 @@ export async function createFrappeTodo(
     description: parsedPayload.description,
     status: parsedPayload.status,
     priority: parsedPayload.priority,
+    color: parsedPayload.color,
     dueDate: parsedPayload.dueDate,
     allocatedTo: parsedPayload.allocatedTo,
+    referenceType: parsedPayload.referenceType,
+    referenceName: parsedPayload.referenceName,
+    role: parsedPayload.role,
+    assignedBy: parsedPayload.assignedBy,
+    assignedByFullName: "",
+    sender: parsedPayload.sender,
+    assignmentRule: "",
     owner: user.email,
     modifiedAt: timestamp,
   })

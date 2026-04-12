@@ -54,11 +54,17 @@ export function formatCurrency(value: number, currency = "INR") {
 
 export function createDefaultTodoValues(): FrappeTodoUpsertPayload {
   return {
-    description: "",
     status: "Open",
     priority: "Medium",
+    color: "",
     dueDate: "",
     allocatedTo: "",
+    description: "",
+    referenceType: "",
+    referenceName: "",
+    role: "",
+    assignedBy: "",
+    sender: "",
   }
 }
 

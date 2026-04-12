@@ -2,10 +2,10 @@
 
 ## Active Batch
 
-- `#136` Add live bidirectional Frappe ToDo sync
-  - Scope: let super-admin operators sync Frappe ToDo snapshots both ways, pushing app-owned local ToDos to ERPNext and pulling ERPNext ToDo documents back into the local Frappe snapshot table.
-  - Constraint: keep `.env` as the only Frappe connection source, keep ERPNext orchestration inside `apps/frappe`, and expose the browser only to the internal API.
-  - Assumption: the existing Frappe connection must be enabled, configured, and successfully verified before ToDo live sync can run.
-  - Phase 1: add an app-owned idempotent ToDo live sync service that pulls ERPNext ToDo documents and pushes local Frappe snapshots through the strict Frappe connection factory. Completed.
-  - Phase 2: expose the internal ToDo live sync route and frontend API helper without direct browser access to `.env` or ERPNext. Completed.
-  - Phase 3: add the Frappe workspace live sync button and validate with typecheck, focused Frappe tests, and route-registry coverage. Completed.
+- `#138` Align Frappe ToDo snapshots to the live ERPNext ToDo DocType
+  - Scope: make the app-owned Frappe ToDo snapshot, sync payload, and workspace dialog match the live ERPNext `ToDo` DocType field pattern instead of the earlier simplified snapshot.
+  - Constraint: use the existing env-backed Frappe connector for metadata verification and keep orchestration inside `apps/frappe`.
+  - Assumption: the live site's `ToDo` DocType fields are the authority for this connector surface: status, priority, color, date, allocated_to, description, reference_type, reference_name, role, assigned_by, assigned_by_full_name, sender, and assignment_rule.
+  - Phase 1: inspect the live ERPNext ToDo DocType metadata through the env-backed connector. Completed.
+  - Phase 2: expand the shared ToDo contract, seed data, and sync mapping to preserve ERPNext fields. Completed.
+  - Phase 3: update the ToDo dialog and data grid to expose the ERPNext field pattern and validate with focused tests. Completed.

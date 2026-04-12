@@ -409,11 +409,19 @@ export const frappeTodoPrioritySchema = z.enum(["Low", "Medium", "High"])
 
 export const frappeTodoSchema = z.object({
   id: z.string().trim().min(1),
-  description: z.string().trim(),
   status: frappeTodoStatusSchema,
   priority: frappeTodoPrioritySchema,
+  color: z.string().trim().default(""),
   dueDate: z.string().trim(),
   allocatedTo: z.string().trim(),
+  description: z.string().trim(),
+  referenceType: z.string().trim().default(""),
+  referenceName: z.string().trim().default(""),
+  role: z.string().trim().default(""),
+  assignedBy: z.string().trim().default(""),
+  assignedByFullName: z.string().trim().default(""),
+  sender: z.string().trim().default(""),
+  assignmentRule: z.string().trim().default(""),
   owner: z.string().trim(),
   modifiedAt: z.string().trim(),
 })
@@ -428,11 +436,17 @@ export const frappeTodoListResponseSchema = z.object({
 })
 
 export const frappeTodoUpsertPayloadSchema = z.object({
-  description: z.string().trim().min(1),
   status: frappeTodoStatusSchema,
   priority: frappeTodoPrioritySchema,
+  color: z.string().trim(),
   dueDate: z.string().trim(),
   allocatedTo: z.string().trim(),
+  description: z.string().trim().min(1),
+  referenceType: z.string().trim(),
+  referenceName: z.string().trim(),
+  role: z.string().trim(),
+  assignedBy: z.string().trim(),
+  sender: z.string().trim(),
 })
 
 export const frappeTodoResponseSchema = z.object({
