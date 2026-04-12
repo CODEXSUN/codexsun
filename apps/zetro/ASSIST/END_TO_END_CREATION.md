@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.4.0`
+Current baseline: `1.5.0`
 
-Next target: `1.5.0`
+Next target: `1.5.1`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -479,6 +479,8 @@ Exit criteria:
 
 ## 1.5.0 Model Provider Adapter
 
+Status: complete.
+
 Goal:
 
 Connect a model provider in a controlled, configurable way.
@@ -503,6 +505,18 @@ Exit criteria:
 3. Ollama can be used locally when configured.
 4. Hosted providers are opt-in only.
 5. No model output writes files or executes commands.
+
+Completion notes:
+
+1. Model provider types exist in `model-provider-types.ts`.
+2. Provider adapters for none, ollama-local, openai, anthropic, custom-openai-compatible exist in `model-provider-adapters.ts`.
+3. Model provider service with health check exists in `model-provider-service.ts`.
+4. Environment-backed configuration via `ZETRO_PROVIDER`, `ZETRO_*_API_KEY`, `ZETRO_*_BASE_URL`, `ZETRO_*_MODEL` env vars.
+5. Provider settings default to "none" (disabled).
+6. Token/cost metadata captured in model responses.
+7. Health check API route: `GET /zetro/provider/health`.
+8. Provider list API route: `GET /zetro/providers`.
+9. No model output writes files or executes commands.
 
 ## 1.5.1 Terminal Agent Mode
 

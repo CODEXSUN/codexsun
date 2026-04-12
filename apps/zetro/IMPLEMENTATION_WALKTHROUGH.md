@@ -28,7 +28,7 @@ Current mode:
 4. Command proposals with policy validation.
 5. Command allowlist with blocked/sensitive commands.
 6. Command execution with stdout/stderr capture.
-7. No LLM call.
+7. Model provider adapters (none, ollama, openai, anthropic).
 8. No background loop.
 
-Phase: 1.4.0 complete (Approved CLI Runner)
+Phase: 1.5.0 complete (Model Provider Adapter)

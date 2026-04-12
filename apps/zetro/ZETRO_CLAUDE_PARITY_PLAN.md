@@ -23,9 +23,9 @@ Current lock:
 3. Command proposals exist with policy validation.
 4. Command allowlist with blocked/sensitive commands.
 5. Command execution with stdout/stderr capture and timeout.
-6. No LLM provider call yet.
+6. Model provider adapters ready (none, ollama, openai, anthropic).
 7. No autonomous loop yet.
 
 Next build target:
 
-Model provider adapter (1.5.0).
+Terminal agent mode (1.5.1).

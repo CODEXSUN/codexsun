@@ -26,6 +26,9 @@ import {
   replaceZetroRunOutputSections,
   updateZetroFindingStatus,
   updateZetroCommandProposalStatus,
+  buildZetroModelSettings,
+  checkProviderHealth,
+  listSupportedProviders,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
@@ -36,6 +39,8 @@ import {
   type ZetroCreateAllowlistEntryInput,
   type ZetroCreateBlockedCommandInput,
   type ZetroExecuteCommandInput,
+  type ZetroModelProviderId,
+  type ZetroProviderConfig,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -497,6 +502,47 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
             runId,
           }),
         });
+      },
+    }),
+    defineInternalRoute("/zetro/providers", {
+      summary: "List supported model providers.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        return jsonResponse({
+          items: listSupportedProviders(),
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/provider/settings", {
+      summary: "Read current model provider settings.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        return jsonResponse(buildZetroModelSettings());
+      },
+    }),
+    defineInternalRoute("/zetro/provider/health", {
+      summary: "Check model provider health.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const providerId = (context.request.url.searchParams
+          .get("providerId")
+          ?.trim() ?? "none") as ZetroModelProviderId;
+        const settings = buildZetroModelSettings();
+        const config = settings.providerConfigs[providerId] ?? {
+          providerId,
+          enabled: false,
+        };
+
+        return jsonResponse(await checkProviderHealth(providerId, config));
       },
     }),
   ];
