@@ -1,4 +1,6 @@
 export * from "./allowlist-service.js";
+export * from "./agent-service.js";
+export * from "./agent-types.js";
 export * from "./chat-service.js";
 export * from "./command-proposal-service.js";
 export * from "./finding-service.js";

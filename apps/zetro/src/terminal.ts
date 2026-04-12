@@ -48,6 +48,15 @@ import {
   routeToModel,
   getFallbackModel,
   ZETRO_TASK_TYPE_SUMMARY,
+  getAgentRegistry,
+  getAgentState,
+  listAgentStates,
+  listAgentConfigs,
+  getAgentLogs,
+  runAgent,
+  cancelAgent,
+  resetAgent,
+  ZETRO_AGENT_ROLE_SUMMARY,
   type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
@@ -58,6 +67,7 @@ import type {
   ZetroCreateCommandProposalInput,
   ZetroRunEventKind,
   ZetroModelMessage,
+  ZetroAgentTaskInput,
 } from "./services/index.js";
 import type {
   ZetroOutputModeId,
@@ -105,6 +115,11 @@ type ZetroTerminalCommand =
   | "memory-stats"
   | "router-info"
   | "router-test"
+  | "agents"
+  | "agent"
+  | "agent-logs"
+  | "agent-run"
+  | "agent-cancel"
   | "plan"
   | "assist"
   | "doctor"
@@ -181,6 +196,11 @@ function printUsage() {
   console.info("  memory-stats                 Show memory statistics.");
   console.info("  router-info                  Show routing configuration.");
   console.info("  router-test <task>           Test routing for a task input.");
+  console.info("  agents                       List available agents.");
+  console.info("  agent <id>                   Show agent configuration.");
+  console.info("  agent-logs <id>              Show agent event logs.");
+  console.info("  agent-run <id> --task <desc>  Run an agent task.");
+  console.info("  agent-cancel <id>            Cancel a running agent.");
   console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
   );
@@ -246,6 +266,11 @@ function resolveCommand(
     case "memory-stats":
     case "router-info":
     case "router-test":
+    case "agents":
+    case "agent":
+    case "agent-logs":
+    case "agent-run":
+    case "agent-cancel":
     case "plan":
     case "assist":
     case "doctor":
@@ -1402,6 +1427,239 @@ function testRouterFromArgs(args: string[]) {
   console.info(`  Model: ${fallback.model ?? "default"}`);
 }
 
+function printAgents() {
+  const configs = listAgentConfigs();
+  const states = listAgentStates();
+
+  printHeader("Agents");
+  console.info(`Registered agents: ${configs.length}`);
+  console.info("");
+
+  for (const config of configs) {
+    const state = states.find((s) => s.id === config.id);
+    console.info(`${config.id}`);
+    console.info(`  Role: ${config.role}`);
+    console.info(`  Name: ${config.name}`);
+    console.info(
+      `  Provider: ${config.provider}${config.model ? ` (${config.model})` : ""}`,
+    );
+    console.info(`  Output mode: ${config.outputMode}`);
+    if (state) {
+      console.info(`  Status: ${state.status}`);
+      if (state.status === "failed" && state.lastError) {
+        console.info(`  Error: ${state.lastError}`);
+      }
+    } else {
+      console.info(`  Status: not started`);
+    }
+    console.info(`  Description: ${config.description}`);
+    console.info("");
+  }
+
+  console.info("Agent Role Summary:");
+  for (const [role, summary] of Object.entries(ZETRO_AGENT_ROLE_SUMMARY)) {
+    console.info(`  ${role}: ${summary}`);
+  }
+}
+
+function printAgent(agentId: string | undefined) {
+  if (!agentId) {
+    console.info(
+      "Missing agent id. Try: npm run zetro -- agent planner-default",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const config = listAgentConfigs().find((c) => c.id === agentId);
+  const state = getAgentState(agentId);
+
+  if (!config) {
+    console.info(`Unknown agent: ${agentId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  printHeader(`Agent: ${config.name}`);
+  console.info(`ID: ${config.id}`);
+  console.info(`Role: ${config.role}`);
+  console.info(`Description: ${config.description}`);
+  console.info("");
+  console.info("Configuration:");
+  console.info(`  Provider: ${config.provider}`);
+  console.info(`  Model: ${config.model ?? "default"}`);
+  console.info(`  Output mode: ${config.outputMode}`);
+  console.info(`  Temperature: ${config.temperature ?? 0.7}`);
+  if (config.maxTokens) {
+    console.info(`  Max tokens: ${config.maxTokens}`);
+  }
+  console.info("");
+  console.info("Status:");
+  if (state) {
+    console.info(`  Status: ${state.status}`);
+    console.info(`  Created: ${new Date(state.createdAt).toLocaleString()}`);
+    if (state.startedAt) {
+      console.info(`  Started: ${new Date(state.startedAt).toLocaleString()}`);
+    }
+    if (state.completedAt) {
+      console.info(
+        `  Completed: ${new Date(state.completedAt).toLocaleString()}`,
+      );
+    }
+    if (state.lastError) {
+      console.info(`  Last error: ${state.lastError}`);
+    }
+  } else {
+    console.info("  Status: not started");
+  }
+}
+
+function printAgentLogs(agentId: string | undefined) {
+  if (!agentId) {
+    console.info(
+      "Missing agent id. Try: npm run zetro -- agent-logs planner-default",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const config = listAgentConfigs().find((c) => c.id === agentId);
+
+  if (!config) {
+    console.info(`Unknown agent: ${agentId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const logs = getAgentLogs(agentId);
+
+  printHeader(`Agent Logs: ${config.name}`);
+  console.info(`Agent: ${agentId}`);
+  console.info(`Total events: ${logs.length}`);
+  console.info("");
+
+  if (logs.length === 0) {
+    console.info("No events recorded.");
+    return;
+  }
+
+  for (const log of logs) {
+    console.info(
+      `${new Date(log.timestamp).toLocaleString()} [${log.level.toUpperCase()}]`,
+    );
+    console.info(`  ${log.message}`);
+    if (log.details) {
+      console.info(`  Details: ${JSON.stringify(log.details)}`);
+    }
+    console.info("");
+  }
+}
+
+async function runAgentFromArgs(args: string[]) {
+  const agentId = args[0];
+  const task = readOption(args, "--task");
+
+  if (!agentId) {
+    console.info(
+      'Missing agent id. Try: npm run zetro -- agent-run planner-default --task "build a feature"',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!task) {
+    console.info(
+      'Missing --task. Try: npm run zetro -- agent-run planner-default --task "build a feature"',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const config = listAgentConfigs().find((c) => c.id === agentId);
+
+  if (!config) {
+    console.info(`Unknown agent: ${agentId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  printHeader("Agent Task");
+  console.info(`Agent: ${config.name} (${config.role})`);
+  console.info(`Task: ${task}`);
+  console.info("");
+  console.info("Running agent...");
+
+  const input: ZetroAgentTaskInput = {
+    id: `task-${Date.now()}`,
+    type:
+      config.role === "planner"
+        ? "plan"
+        : config.role === "reviewer"
+          ? "review"
+          : "execute",
+    description: task,
+  };
+
+  const result = await runAgent(agentId, input);
+
+  console.info("");
+  if (result.success) {
+    console.info(`Status: SUCCESS`);
+    console.info(`Duration: ${result.durationMs}ms`);
+    if (result.output) {
+      console.info("");
+      console.info("Output:");
+      if (typeof result.output === "object") {
+        console.info(JSON.stringify(result.output, null, 2));
+      } else {
+        console.info(String(result.output));
+      }
+    }
+    if (result.findings) {
+      console.info("");
+      console.info(`Findings: ${result.findings.length}`);
+      for (const finding of result.findings) {
+        console.info(`  [${finding.severity}] ${finding.title}`);
+      }
+    }
+  } else {
+    console.info(`Status: FAILED`);
+    console.info(`Duration: ${result.durationMs}ms`);
+    console.info(`Error: ${result.error}`);
+    process.exitCode = 1;
+  }
+}
+
+function cancelAgentFromArgs(agentId: string | undefined) {
+  if (!agentId) {
+    console.info(
+      "Missing agent id. Try: npm run zetro -- agent-cancel planner-default",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const config = listAgentConfigs().find((c) => c.id === agentId);
+
+  if (!config) {
+    console.info(`Unknown agent: ${agentId}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const success = cancelAgent(agentId);
+
+  printHeader("Agent Cancel");
+  console.info(`Agent: ${config.name}`);
+
+  if (success) {
+    console.info("Status: CANCELLED");
+  } else {
+    console.info("Status: NOT RUNNING (cannot cancel)");
+    process.exitCode = 1;
+  }
+}
+
 function buildPlanScaffold(request: string) {
   return [
     "Intent",
@@ -1711,6 +1969,21 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "router-test":
       testRouterFromArgs(rest);
+      return;
+    case "agents":
+      printAgents();
+      return;
+    case "agent":
+      printAgent(rest[0]);
+      return;
+    case "agent-logs":
+      printAgentLogs(rest[0]);
+      return;
+    case "agent-run":
+      await runAgentFromArgs(rest);
+      return;
+    case "agent-cancel":
+      cancelAgentFromArgs(rest[0]);
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

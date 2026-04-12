@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `2.3.0`
+Current baseline: `2.4.0`
 
-Next target: `2.4.0`
+Next target: `2.5.0`
 
 ## Phase 1: Foundation
 
@@ -100,7 +100,7 @@ Completion notes:
 
 ## 2.4.0 Agent Role Specialization
 
-Status: not started.
+Status: complete.
 
 Goal:
 
@@ -112,6 +112,15 @@ Deliverables:
 2. Agent service with role registry
 3. Integration with loop and review services
 4. Dashboard agent activity monitor
+
+Completion notes:
+
+1. Created `agent-types.ts` with `ZetroAgentRole`, `ZetroAgentConfig`, `ZetroAgentState`, `ZetroAgentResult`, `ZetroAgentPlan`, `ZetroAgentLogEntry`.
+2. Created `agent-service.ts` with agent registry, lifecycle management (run, cancel, pause, resume, reset), and three agent implementations.
+3. Default agents: `planner-default` (task decomposition), `executor-default` (command execution), `reviewer-default` (finding generation).
+4. Terminal commands added: `agents`, `agent <id>`, `agent-logs <id>`, `agent-run <id> --task <desc>`, `agent-cancel <id>`.
+5. Agent logs track info, warn, and error events with timestamps.
+6. Typecheck and doctor pass.
 
 ## 2.5.0 Tiered Autonomy System
 
