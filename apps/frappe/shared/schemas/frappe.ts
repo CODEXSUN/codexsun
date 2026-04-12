@@ -2,23 +2,23 @@ import { z } from "zod"
 
 export const frappeSettingsSchema = z.object({
   enabled: z.boolean(),
-  baseUrl: z.string().trim(),
+  baseUrl: z.string().trim().min(1),
   siteName: z.string().trim(),
-  apiKey: z.string().trim(),
-  apiSecret: z.string().trim(),
+  apiKey: z.string().trim().min(1),
+  apiSecret: z.string().trim().min(1),
   hasApiKey: z.boolean(),
   hasApiSecret: z.boolean(),
   timeoutSeconds: z.number().int().min(1).max(120),
   defaultCompany: z.string().trim(),
   defaultWarehouse: z.string().trim(),
-  defaultPriceList: z.string().trim(),
-  defaultCustomerGroup: z.string().trim(),
-  defaultItemGroup: z.string().trim(),
   isConfigured: z.boolean(),
+  configSource: z.literal("env"),
   lastVerifiedAt: z.string().trim(),
   lastVerificationStatus: z.enum(["idle", "passed", "failed"]),
   lastVerificationMessage: z.string().trim(),
   lastVerificationDetail: z.string().trim(),
+  lastVerifiedUser: z.string().trim(),
+  lastVerifiedLatencyMs: z.number().int().nonnegative().nullable(),
 })
 
 export const frappeSettingsResponseSchema = z.object({
@@ -27,30 +27,23 @@ export const frappeSettingsResponseSchema = z.object({
 
 export const frappeSettingsUpdatePayloadSchema = z.object({
   enabled: z.boolean(),
-  baseUrl: z.string().trim(),
-  siteName: z.string().trim(),
-  apiKey: z.string().trim(),
-  apiSecret: z.string().trim(),
+  baseUrl: z.string().trim().min(1),
+  siteName: z.string().trim().min(1),
+  apiKey: z.string().trim().min(1),
+  apiSecret: z.string().trim().min(1),
   timeoutSeconds: z.number().int().min(1).max(120),
   defaultCompany: z.string().trim(),
-  defaultWarehouse: z.string().trim(),
-  defaultPriceList: z.string().trim(),
-  defaultCustomerGroup: z.string().trim(),
-  defaultItemGroup: z.string().trim(),
+  defaultWarehouse: z.string().trim().min(1),
 })
 
-export const frappeSettingsVerificationPayloadSchema =
-  frappeSettingsUpdatePayloadSchema.partial()
-
 export const frappeConnectionVerificationSchema = z.object({
-  ok: z.boolean(),
-  message: z.string().min(1),
-  detail: z.string().trim(),
+  status: z.enum(["success", "failed"]),
+  latencyMs: z.number().int().nonnegative(),
+  user: z.string().trim(),
+  error: z.string().trim().nullable(),
   serverUrl: z.string().trim(),
   siteName: z.string().trim(),
-  connectedUser: z.string().trim(),
   verifiedAt: z.string().trim(),
-  usedSavedCredentials: z.boolean(),
   persistedToSettings: z.boolean(),
 })
 
@@ -446,6 +439,26 @@ export const frappeTodoResponseSchema = z.object({
   item: frappeTodoSchema,
 })
 
+export const frappeTodoLiveSyncPayloadSchema = z.object({
+  direction: z.enum(["push", "pull", "bidirectional"]).optional().default("bidirectional"),
+})
+
+export const frappeTodoLiveSyncResponseSchema = z.object({
+  sync: z.object({
+    direction: z.enum(["push", "pull", "bidirectional"]),
+    pushedCount: z.number().int().nonnegative(),
+    pulledCount: z.number().int().nonnegative(),
+    frappeRecordCount: z.number().int().nonnegative(),
+    appRecordCount: z.number().int().nonnegative(),
+    recordCountDifference: z.number().int(),
+    updatedLocalCount: z.number().int().nonnegative(),
+    failedCount: z.number().int().nonnegative(),
+    syncedAt: z.string().trim().min(1),
+    items: z.array(frappeTodoSchema),
+    errors: z.array(z.string().trim().min(1)),
+  }),
+})
+
 export const frappeReferenceOptionSchema = z.object({
   id: z.string().trim().min(1),
   label: z.string().trim().min(1),
@@ -484,8 +497,6 @@ export const frappeItemReferencesSchema = z.object({
   defaults: z.object({
     company: z.string().trim(),
     warehouse: z.string().trim(),
-    itemGroup: z.string().trim(),
-    priceList: z.string().trim(),
   }),
 })
 
@@ -669,9 +680,6 @@ export const frappePurchaseReceiptSyncResponseSchema = z.object({
 export type FrappeSettings = z.infer<typeof frappeSettingsSchema>
 export type FrappeSettingsResponse = z.infer<typeof frappeSettingsResponseSchema>
 export type FrappeSettingsUpdatePayload = z.infer<typeof frappeSettingsUpdatePayloadSchema>
-export type FrappeSettingsVerificationPayload = z.infer<
-  typeof frappeSettingsVerificationPayloadSchema
->
 export type FrappeConnectionVerification = z.infer<typeof frappeConnectionVerificationSchema>
 export type FrappeConnectionVerificationResponse = z.infer<typeof frappeConnectionVerificationResponseSchema>
 export type FrappeSyncOperationPolicy = z.infer<typeof frappeSyncOperationPolicySchema>
@@ -774,6 +782,8 @@ export type FrappeTodoList = z.infer<typeof frappeTodoListSchema>
 export type FrappeTodoListResponse = z.infer<typeof frappeTodoListResponseSchema>
 export type FrappeTodoUpsertPayload = z.infer<typeof frappeTodoUpsertPayloadSchema>
 export type FrappeTodoResponse = z.infer<typeof frappeTodoResponseSchema>
+export type FrappeTodoLiveSyncPayload = z.infer<typeof frappeTodoLiveSyncPayloadSchema>
+export type FrappeTodoLiveSyncResponse = z.infer<typeof frappeTodoLiveSyncResponseSchema>
 export type FrappeReferenceOption = z.infer<typeof frappeReferenceOptionSchema>
 export type FrappeItem = z.infer<typeof frappeItemSchema>
 export type FrappeItemReferences = z.infer<typeof frappeItemReferencesSchema>

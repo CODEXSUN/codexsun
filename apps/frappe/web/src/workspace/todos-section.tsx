@@ -25,6 +25,7 @@ import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-pr
 import {
   createFrappeTodo,
   listFrappeTodos,
+  syncFrappeTodosLive,
   updateFrappeTodo,
 } from "../api/frappe-api"
 import {
@@ -50,9 +51,11 @@ export function FrappeTodosSection() {
   )
   const [lastSyncedAt, setLastSyncedAt] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  useGlobalLoading(isLoading)
+  const [isLiveSyncing, setIsLiveSyncing] = useState(false)
+  useGlobalLoading(isLoading || isLiveSyncing)
 
   async function loadTodos() {
     setIsLoading(true)
@@ -123,6 +126,28 @@ export function FrappeTodosSection() {
     }
   }
 
+  async function handleLiveSync() {
+    setIsLiveSyncing(true)
+    setError(null)
+    setSyncMessage(null)
+
+    try {
+      const response = await syncFrappeTodosLive({
+        direction: "bidirectional",
+      })
+
+      setItems(response.sync.items)
+      setLastSyncedAt(response.sync.syncedAt)
+      setSyncMessage(
+        `Live sync completed: ${response.sync.pushedCount} pushed, ${response.sync.pulledCount} pulled, ${response.sync.failedCount} failed. Frappe records: ${response.sync.frappeRecordCount}; app records: ${response.sync.appRecordCount}; difference: ${response.sync.recordCountDifference}.`
+      )
+    } catch (nextError) {
+      setError(toErrorMessage(nextError))
+    } finally {
+      setIsLiveSyncing(false)
+    }
+  }
+
   if (isLoading) {
     return null
   }
@@ -140,9 +165,18 @@ export function FrappeTodosSection() {
             Refresh
           </Button>
           {user.isSuperAdmin ? (
-            <Button variant="outline" onClick={resetForm}>
-              New ToDo
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => void handleLiveSync()}
+                disabled={isLiveSyncing}
+              >
+                {isLiveSyncing ? "Syncing..." : "Live Sync"}
+              </Button>
+              <Button variant="outline" onClick={resetForm}>
+                New ToDo
+              </Button>
+            </>
           ) : null}
         </>
       )}
@@ -171,6 +205,7 @@ export function FrappeTodosSection() {
       </div>
 
       {error ? <StateCard message={error} /> : null}
+      {syncMessage ? <StateCard message={syncMessage} /> : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Card>

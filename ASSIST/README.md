@@ -107,6 +107,7 @@ After the changelog entry is created for finished work:
 
 - `AI_RULES.md`: top-level operating rules for agents
 - `APP_OWNED_MODULES.md`: quick ownership map by app
+- `FRAPPE.md`: code-backed app-detail guide for the live `apps/frappe` connector surface
 - `Documentation/`: architecture, setup, support boundary, testing, changelog, and contribution workflow
 - `Discipline/`: coding, testing, review, branching, and release rules
 - `Execution/`: active task and planning docs for the current tracked batch

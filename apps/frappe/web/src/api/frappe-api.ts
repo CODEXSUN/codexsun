@@ -16,6 +16,8 @@ import type {
   FrappeSettingsResponse,
   FrappeSettingsUpdatePayload,
   FrappeTodoListResponse,
+  FrappeTodoLiveSyncPayload,
+  FrappeTodoLiveSyncResponse,
   FrappeTodoResponse,
   FrappeTodoUpsertPayload,
 } from "@frappe/shared"
@@ -72,12 +74,11 @@ export function updateFrappeSettings(payload: FrappeSettingsUpdatePayload) {
   })
 }
 
-export function verifyFrappeConnection(payload: FrappeSettingsUpdatePayload) {
+export function verifyFrappeConnection() {
   return request<FrappeConnectionVerificationResponse>(
     "/internal/v1/frappe/settings/verify",
     {
       method: "POST",
-      body: JSON.stringify(payload),
     }
   )
 }
@@ -117,6 +118,15 @@ export function updateFrappeTodo(todoId: string, payload: FrappeTodoUpsertPayloa
       body: JSON.stringify(payload),
     }
   )
+}
+
+export function syncFrappeTodosLive(
+  payload: FrappeTodoLiveSyncPayload = { direction: "bidirectional" }
+) {
+  return request<FrappeTodoLiveSyncResponse>("/internal/v1/frappe/todos/sync-live", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
 }
 
 export function listFrappeItems() {

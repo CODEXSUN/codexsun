@@ -8,6 +8,40 @@
 
 ## v-0.0.1
 
+### [#136] 2026-04-12 - Live Frappe ToDo sync
+
+- added a strict Frappe-owned ToDo live sync flow that requires the current `.env` connector config to be enabled, configured, and verified before talking to ERPNext
+- implemented bidirectional ToDo sync through `apps/frappe`, pulling ERPNext `ToDo` resources into the local snapshot store and pushing local snapshots back to ERPNext through the shared Frappe connection factory
+- made repeated ToDo sync idempotent by matching existing ERPNext ToDos before POST, skipping unchanged remote writes, and re-reading ERPNext after push so the app snapshot count matches the Frappe record count after every sync
+- exposed `POST /internal/v1/frappe/todos/sync-live` and a frontend API helper so the browser talks only to the internal API instead of reading `.env` or calling ERPNext directly
+- added a super-admin `Live Sync` action to the Frappe ToDo workspace with pushed, pulled, and failed counts after completion
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, and a direct internal-route registry assertion covering `POST /internal/v1/frappe/todos/sync-live`
+
+### [#135] 2026-04-12 - Editable Frappe env contract
+
+- changed the Frappe connector settings surface from read-only status to an editable env contract so the connector workspace can save only `FRAPPE_*` keys back into `.env` without touching unrelated runtime settings
+- fixed the Frappe env loader to read from `.env` only instead of letting `process.env` override the file, which keeps the saved connector contract as the actual single source of truth and allows the edited values to apply immediately to Frappe verification flows
+- added a Frappe-only settings save payload and internal `PATCH /internal/v1/frappe/settings` route, with app-owned save orchestration in `apps/frappe` and route-level activity logging for the connector workspace update action
+- reworked the Frappe connection screen into an editable two-card env form for base URL, site name, API credentials, timeout, enabled flag, and projection defaults, while keeping live verification on the same screen and preventing direct browser access to `.env`
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, and a direct internal-route registry assertion covering `GET/PATCH /internal/v1/frappe/settings` and `POST /internal/v1/frappe/settings/verify`
+
+### [#134] 2026-04-12 - Strict env-only Frappe live connection
+
+- replaced the Frappe connector's database-backed settings authority with a strict `.env` contract, added `apps/frappe/src/config/frappe.ts`, and enforced fail-fast parsing for required ERP URL, site, credentials, timeout, and projection defaults without fallback values
+- added a shared Frappe connection factory in `apps/frappe/src/services/connection.ts` and rewired backend verification plus Sales Order push flows to use that single live client with token auth, timeout enforcement, and optional site headers owned inside `apps/frappe`
+- reduced persisted Frappe settings storage to config-keyed verification state only, removed writable connector config updates from the internal API surface, and updated observability logging so handshake outcomes write latency and failure details into monitoring plus activity history
+- reworked the Frappe admin connection workspace into a read-only status and verify surface backed by `/internal/v1/frappe/settings` and `/internal/v1/frappe/settings/verify`, and added a frontend service layer so the browser never reads `.env` directly
+- updated Frappe seeds, schemas, policies, and focused tests for the env-only contract, then validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts tests/framework/runtime/database-process.test.ts`, and a live `verifyFrappeSettings` handshake using the repository `.env`
+- confirmed the live ERP handshake succeeded against `https://erp.thetirupurtextiles.com` for site `thetirupurtextiles`, authenticating `sundar@sundar.com` in `497 ms` with the result persisted to the current verification state
+
+### [#133] 2026-04-12 - Frappe app documentation baseline
+
+- added `ASSIST/FRAPPE.md` as a code-backed app detail guide for the current `apps/frappe` boundary, covering manifest ownership, shared contracts, persistence layout, service responsibilities, internal routes, workspace sections, and cross-app trigger points
+- documented the connector's live transactional bridge scope, including paid-order Sales Order push, ERP delivery or invoice or return sync-back, shared observability logging, and the current split between implemented behavior and contract-only later projection baselines
+- recorded the current Frappe-specific limitations that are visible in code today, including local-only snapshot CRUD for todos, items, and purchase receipts, lazy-created transaction-sync tables outside the registered migration list, receipt payload decoration that strips product-link display fields, and workspace gaps versus the broader internal route surface
+- replaced the stale execution batch tracking with a new `#133` ASSIST documentation batch aligned to the current Frappe source inspection
+- validated the batch by checking the new documentation against `apps/frappe`, `apps/api/src/internal/frappe-routes.ts`, ecommerce Sales Order trigger wiring, and `tests/frappe/*`
+
 ### [#132] 2026-04-12 - Menu logo variant toggles and global-loader designer
 
 - extended the shared storefront `menuDesigner` contract with per-surface `logoVariant` selection and a new `globalLoader` surface so menu logo treatment can independently use the light or dark brand asset without changing fresh defaults
@@ -16,6 +50,7 @@
 - replaced the ecommerce menu editor's static global-loader mock with the real shared loader component so operators now tune the same animated runtime surface, including draft brand-asset previews, directly from the editor
 - changed each menu-surface logo-tone chooser to a switch-style control, aligned the menu and logo actions into one row, and made the main `Publish live` action run menu save, logo draft save, logo publish, and storefront publish as one sequence
 - hard-centered the shared global-loader logo anchor so the default global loader logo now sits at the true center and offsets move predictably from that centered baseline
+- normalized the current live `public/logo.svg` canvas by removing the off-center wrapper SVG so the light logo artwork itself now renders centered inside the global loader
 - hardened the ecommerce settings tests so legacy stored settings and revision snapshots hydrate the new `globalLoader` and `logoVariant` fields through defaults
 - validated the batch with `npm.cmd run typecheck` and `npx.cmd tsx --test tests/ecommerce/services.test.ts`
 

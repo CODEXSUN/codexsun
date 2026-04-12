@@ -16,6 +16,7 @@ import {
 } from "../../shared/index.js"
 
 import { frappeTableNames } from "../../database/table-names.js"
+import type { FrappeEnvConfig } from "../config/frappe.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
@@ -64,15 +65,21 @@ function decorateReceipt(receipt: FrappePurchaseReceipt) {
   })
 }
 
+type FrappePurchaseReceiptServiceOptions = {
+  config?: FrappeEnvConfig
+  cwd?: string
+}
+
 export async function listFrappePurchaseReceipts(
   database: Kysely<unknown>,
-  user: AuthUser
+  user: AuthUser,
+  options?: FrappePurchaseReceiptServiceOptions
 ) {
   assertFrappeViewer(user)
 
   const [receipts, settings] = await Promise.all([
     readReceipts(database),
-    readStoredFrappeSettings(database),
+    readStoredFrappeSettings(database, options),
   ])
   const items = receipts.map((receipt) => decorateReceipt(receipt))
 

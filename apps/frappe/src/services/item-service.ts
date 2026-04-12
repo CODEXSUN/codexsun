@@ -25,6 +25,7 @@ import {
 } from "../../shared/index.js"
 
 import { frappeTableNames } from "../../database/table-names.js"
+import type { FrappeEnvConfig } from "../config/frappe.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
@@ -72,15 +73,16 @@ async function readItemSyncLogs(database: Kysely<unknown>) {
   return items.sort((left, right) => right.syncedAt.localeCompare(left.syncedAt))
 }
 
-async function readStoredDefaults(database: Kysely<unknown>) {
-  const settings = await readStoredFrappeSettings(database)
+type FrappeItemServiceOptions = {
+  config?: FrappeEnvConfig
+  cwd?: string
+}
 
-  return settings ?? {
-    defaultCompany: "",
-    defaultWarehouse: "",
-    defaultItemGroup: "",
-    defaultPriceList: "",
-  }
+async function readStoredDefaults(
+  database: Kysely<unknown>,
+  options?: FrappeItemServiceOptions
+) {
+  return readStoredFrappeSettings(database, options)
 }
 
 function toProjectedProductPayload(item: FrappeItem) {
@@ -193,13 +195,14 @@ async function resolveTargetProductId(
 
 export async function listFrappeItems(
   database: Kysely<unknown>,
-  user: AuthUser
+  user: AuthUser,
+  options?: FrappeItemServiceOptions
 ) {
   assertFrappeViewer(user)
 
   const [items, defaults] = await Promise.all([
     readItems(database),
-    readStoredDefaults(database),
+    readStoredDefaults(database, options),
   ])
 
   return frappeItemManagerResponseSchema.parse({
@@ -216,8 +219,6 @@ export async function listFrappeItems(
         defaults: {
           company: defaults.defaultCompany,
           warehouse: defaults.defaultWarehouse,
-          itemGroup: defaults.defaultItemGroup,
-          priceList: defaults.defaultPriceList,
         },
       },
       syncedAt: new Date().toISOString(),
@@ -246,7 +247,8 @@ export async function getFrappeItem(
 export async function createFrappeItem(
   database: Kysely<unknown>,
   user: AuthUser,
-  payload: unknown
+  payload: unknown,
+  options?: FrappeItemServiceOptions
 ) {
   assertSuperAdmin(user)
 
@@ -270,7 +272,7 @@ export async function createFrappeItem(
   const createdItem = frappeItemSchema.parse({
     id: `frappe-item:${slugify(parsedPayload.itemCode) || randomUUID()}`,
     ...parsedPayload,
-    defaultCompany: (await readStoredDefaults(database)).defaultCompany,
+    defaultCompany: (await readStoredDefaults(database, options)).defaultCompany,
     modifiedAt: new Date().toISOString(),
     syncedProductId: "",
     syncedProductName: "",

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import test from "node:test"
@@ -27,6 +27,7 @@ import {
   saveFrappeSettings,
   verifyFrappeSettings,
 } from "../../apps/frappe/src/services/settings-service.js"
+import { syncFrappeTodosLive } from "../../apps/frappe/src/services/todo-service.js"
 import { readFrappeObservabilityReport } from "../../apps/frappe/src/services/observability-service.js"
 import { readFrappeItemProjectionContract } from "../../apps/frappe/src/services/item-projection-contract-service.js"
 import { readFrappePriceProjectionContract } from "../../apps/frappe/src/services/price-projection-contract-service.js"
@@ -35,6 +36,10 @@ import { readFrappeCustomerCommercialProfileContract } from "../../apps/frappe/s
 import { readFrappeSalesOrderPushPolicy } from "../../apps/frappe/src/services/sales-order-policy-service.js"
 import { readFrappeSyncPolicy } from "../../apps/frappe/src/services/sync-policy-service.js"
 import { frappeTableNames } from "../../apps/frappe/database/table-names.js"
+import {
+  parseFrappeEnv,
+  type FrappeEnvConfig,
+} from "../../apps/frappe/src/config/frappe.js"
 import {
   attachStorefrontOrderErpSalesOrderLink,
   createCheckoutOrder,
@@ -63,6 +68,35 @@ function createAdminUser() {
     createdAt: "2026-03-30T00:00:00.000Z",
     updatedAt: "2026-03-30T00:00:00.000Z",
   }
+}
+
+function createFrappeConfig(
+  overrides: Partial<
+    Pick<
+      FrappeEnvConfig,
+      | "enabled"
+      | "baseUrl"
+      | "siteName"
+      | "apiKey"
+      | "apiSecret"
+      | "timeoutSeconds"
+      | "defaultCompany"
+      | "defaultWarehouse"
+    >
+  > = {}
+) {
+  return parseFrappeEnv({
+    FRAPPE_ENABLED: String(overrides.enabled ?? true),
+    FRAPPE_BASE_URL: overrides.baseUrl ?? "https://erp.example.test",
+    FRAPPE_SITE_NAME: overrides.siteName ?? "codexsun",
+    FRAPPE_API_KEY: overrides.apiKey ?? "saved-key",
+    FRAPPE_API_SECRET: overrides.apiSecret ?? "saved-secret",
+    FRAPPE_TIMEOUT_SECONDS: String(overrides.timeoutSeconds ?? 15),
+    FRAPPE_DEFAULT_COMPANY:
+      overrides.defaultCompany ?? "Codexsun Trading Pvt Ltd",
+    FRAPPE_DEFAULT_WAREHOUSE:
+      overrides.defaultWarehouse ?? "Main Warehouse - CS",
+  })
 }
 
 test("frappe item sync projects unsynced item snapshots into core products", async () => {
@@ -110,10 +144,26 @@ test("frappe item sync projects unsynced item snapshots into core products", asy
   }
 })
 
-test("frappe settings save and purchase receipt sync stay inside the connector flow with ecommerce scaffolded", async () => {
+test("frappe settings save updates only the frappe env contract and purchase receipt sync uses that saved env", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-receipts-"))
+  const previousBaseUrl = process.env.FRAPPE_BASE_URL
+  const previousSiteName = process.env.FRAPPE_SITE_NAME
 
   try {
+    process.env.FRAPPE_BASE_URL = "https://process-env-should-not-win.test"
+    process.env.FRAPPE_SITE_NAME = "process-env-should-not-win"
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      [
+        "APP_NAME=codexsun",
+        "# Existing comment",
+        "FRAPPE_ENABLED=false",
+        "FRAPPE_BASE_URL=https://legacy.example.test",
+        "FRAPPE_SITE_NAME=legacy-site",
+      ].join("\n"),
+      "utf8"
+    )
+
     const config = getServerConfig(tempRoot)
     config.database.driver = "sqlite"
     config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
@@ -125,7 +175,7 @@ test("frappe settings save and purchase receipt sync stay inside the connector f
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
+      const response = await saveFrappeSettings(runtime.primary, adminUser, {
         enabled: true,
         baseUrl: "https://erp.example.test",
         siteName: "codexsun",
@@ -134,26 +184,45 @@ test("frappe settings save and purchase receipt sync stay inside the connector f
         timeoutSeconds: 15,
         defaultCompany: "Codexsun Trading Pvt Ltd",
         defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
+      }, {
+        cwd: tempRoot,
       })
-
-      const storedSettings = await readFrappeSettings(runtime.primary, adminUser)
+      const storedSettings = await readFrappeSettings(runtime.primary, adminUser, {
+        cwd: tempRoot,
+      })
       const receiptSync = await syncFrappePurchaseReceipts(runtime.primary, adminUser, {
         receiptIds: ["frappe-receipt:2026-0002"],
       })
-      const receipts = await listFrappePurchaseReceipts(runtime.primary, adminUser)
+      const receipts = await listFrappePurchaseReceipts(runtime.primary, adminUser, {
+        cwd: tempRoot,
+      })
       const syncedReceipt = receipts.manager.items.find(
         (item) => item.id === "frappe-receipt:2026-0002"
       )
+      const envFile = readFileSync(path.join(tempRoot, ".env"), "utf8")
 
+      assert.equal(response.settings.baseUrl, "https://erp.example.test")
       assert.equal(storedSettings.settings.isConfigured, true)
       assert.equal(storedSettings.settings.baseUrl, "https://erp.example.test")
-      assert.equal(storedSettings.settings.apiKey, "")
-      assert.equal(storedSettings.settings.apiSecret, "")
+      assert.equal(storedSettings.settings.siteName, "codexsun")
+      assert.equal(storedSettings.settings.apiKey, "test-key")
+      assert.equal(storedSettings.settings.apiSecret, "test-secret")
+      assert.equal(storedSettings.settings.configSource, "env")
       assert.equal(storedSettings.settings.hasApiKey, true)
       assert.equal(storedSettings.settings.hasApiSecret, true)
+      assert.equal(storedSettings.settings.lastVerificationStatus, "idle")
+      assert.match(envFile, /APP_NAME=codexsun/)
+      assert.match(envFile, /FRAPPE_ENABLED=true/)
+      assert.match(envFile, /FRAPPE_BASE_URL=https:\/\/erp\.example\.test/)
+      assert.match(envFile, /FRAPPE_SITE_NAME=codexsun/)
+      assert.match(envFile, /FRAPPE_API_KEY=test-key/)
+      assert.match(envFile, /FRAPPE_API_SECRET=test-secret/)
+      assert.doesNotMatch(envFile, /process-env-should-not-win/)
+      assert.equal((envFile.match(/^# Frappe$/gm) ?? []).length, 1)
+      assert.equal(
+        (envFile.match(/^# Frappe ERPNext connector contract\.$/gm) ?? []).length,
+        1
+      )
       assert.equal(receiptSync.sync.items.length, 1)
       assert.equal(receiptSync.sync.items[0]?.mode, "create")
       assert.equal(receiptSync.sync.items[0]?.linkedProductCount, 0)
@@ -163,11 +232,23 @@ test("frappe settings save and purchase receipt sync stay inside the connector f
       await runtime.destroy()
     }
   } finally {
+    if (previousBaseUrl === undefined) {
+      delete process.env.FRAPPE_BASE_URL
+    } else {
+      process.env.FRAPPE_BASE_URL = previousBaseUrl
+    }
+
+    if (previousSiteName === undefined) {
+      delete process.env.FRAPPE_SITE_NAME
+    } else {
+      process.env.FRAPPE_SITE_NAME = previousSiteName
+    }
+
     rmSync(tempRoot, { recursive: true, force: true })
   }
 })
 
-test("frappe settings preserve saved secrets across non-secret updates and persist saved-setting verification", async () => {
+test("frappe verification persists only for the active env-backed connector config", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-verify-"))
 
   const originalFetch = globalThis.fetch
@@ -184,32 +265,10 @@ test("frappe settings preserve saved secrets across non-secret updates and persi
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test/",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
-        timeoutSeconds: 15,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
-      })
-
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
+      const frappeConfig = createFrappeConfig({
         siteName: "codexsun-prod",
-        apiKey: "",
-        apiSecret: "",
         timeoutSeconds: 30,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
         defaultWarehouse: "Secondary Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
       globalThis.fetch = async () =>
@@ -223,27 +282,194 @@ test("frappe settings preserve saved secrets across non-secret updates and persi
       const verification = await verifyFrappeSettings(
         runtime.primary,
         adminUser,
-        {}
+        undefined,
+        { config: frappeConfig }
       )
-      const storedSettings = await readFrappeSettings(runtime.primary, adminUser)
+      const storedSettings = await readFrappeSettings(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
 
-      assert.equal(verification.verification.ok, true)
-      assert.equal(verification.verification.usedSavedCredentials, true)
+      assert.equal(verification.verification.status, "success")
+      assert.equal(verification.verification.user, "connector@example.test")
       assert.equal(verification.verification.persistedToSettings, true)
       assert.equal(storedSettings.settings.isConfigured, true)
       assert.equal(storedSettings.settings.baseUrl, "https://erp.example.test")
       assert.equal(storedSettings.settings.siteName, "codexsun-prod")
       assert.equal(storedSettings.settings.defaultWarehouse, "Secondary Warehouse - CS")
-      assert.equal(storedSettings.settings.apiKey, "")
-      assert.equal(storedSettings.settings.apiSecret, "")
       assert.equal(storedSettings.settings.hasApiKey, true)
       assert.equal(storedSettings.settings.hasApiSecret, true)
       assert.equal(storedSettings.settings.lastVerificationStatus, "passed")
+      assert.equal(
+        storedSettings.settings.lastVerifiedUser,
+        "connector@example.test"
+      )
+      assert.equal(
+        storedSettings.settings.lastVerifiedLatencyMs != null,
+        true
+      )
       assert.equal(
         storedSettings.settings.lastVerificationMessage,
         "ERPNext connection verified."
       )
       assert.match(storedSettings.settings.lastVerifiedAt, /\d{4}-\d{2}-\d{2}T/)
+    } finally {
+      globalThis.fetch = originalFetch
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("frappe ToDo live sync pushes local snapshots and pulls remote ERPNext ToDos", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-todo-live-sync-"))
+  const originalFetch = globalThis.fetch
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const adminUser = createAdminUser()
+      const frappeConfig = createFrappeConfig({
+        timeoutSeconds: 20,
+      })
+      const remoteTodos: Record<string, unknown>[] = [
+        {
+          name: "catalog-review",
+          description: "Review the next ERPNext catalog sync window before launch.",
+          status: "Open",
+          priority: "High",
+          date: "2026-04-01",
+          allocated_to: "operator@codexsun.local",
+          owner: "sundar@sundar.com",
+          modified: "2026-04-02T10:00:00.000Z",
+        },
+        {
+          name: "remote-follow-up",
+          description: "Remote ERP follow-up from live sync.",
+          status: "Open",
+          priority: "Medium",
+          date: "2026-04-04",
+          allocated_to: "erp.user@example.test",
+          owner: "connector@example.test",
+          modified: "2026-04-03T10:00:00.000Z",
+        },
+      ]
+      let createdCount = 0
+      let updatedCount = 0
+
+      globalThis.fetch = async (input, init) => {
+        const url = String(input)
+
+        if (url.endsWith("/api/method/frappe.auth.get_logged_user")) {
+          return new Response(JSON.stringify({ message: "connector@example.test" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        if (url.includes("/api/resource/ToDo?")) {
+          return new Response(
+            JSON.stringify({
+              data: remoteTodos,
+            }),
+            {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }
+          )
+        }
+
+        if (url.includes("/api/resource/ToDo/") && init?.method === "PUT") {
+          const name = decodeURIComponent(url.split("/api/resource/ToDo/")[1] ?? "")
+          const body = JSON.parse(String(init.body ?? "{}")) as Record<string, unknown>
+          const existingIndex = remoteTodos.findIndex((item) => item.name === name)
+
+          updatedCount += 1
+
+          if (existingIndex >= 0) {
+            remoteTodos[existingIndex] = {
+              ...remoteTodos[existingIndex],
+              ...body,
+              name,
+              modified: "2026-04-04T10:00:00.000Z",
+            }
+          }
+
+          return new Response(JSON.stringify({ data: remoteTodos[existingIndex] }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        if (url.endsWith("/api/resource/ToDo") && init?.method === "POST") {
+          const body = JSON.parse(String(init.body ?? "{}")) as Record<string, unknown>
+          const createdTodo = {
+            ...body,
+            name: `created-local-${createdCount + 1}`,
+            owner: "connector@example.test",
+            modified: "2026-04-04T11:00:00.000Z",
+          }
+
+          createdCount += 1
+          remoteTodos.push(createdTodo)
+
+          return new Response(JSON.stringify({ data: createdTodo }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        throw new Error(`Unexpected Frappe ToDo request: ${url}`)
+      }
+
+      await verifyFrappeSettings(runtime.primary, adminUser, undefined, {
+        config: frappeConfig,
+      })
+
+      const sync = await syncFrappeTodosLive(
+        runtime.primary,
+        adminUser,
+        { direction: "bidirectional" },
+        { config: frappeConfig }
+      )
+
+      assert.equal(sync.sync.failedCount, 0)
+      assert.equal(sync.sync.pushedCount, 2)
+      assert.equal(sync.sync.pulledCount, 1)
+      assert.equal(sync.sync.frappeRecordCount, 4)
+      assert.equal(sync.sync.appRecordCount, 4)
+      assert.equal(sync.sync.recordCountDifference, 0)
+      assert.equal(createdCount, 2)
+      assert.equal(updatedCount, 0)
+      assert.ok(
+        sync.sync.items.some((item) => item.id === "frappe-todo:remote-follow-up")
+      )
+      assert.ok(
+        sync.sync.items.some((item) => item.id === "frappe-todo:created-local-1")
+      )
+
+      const secondSync = await syncFrappeTodosLive(
+        runtime.primary,
+        adminUser,
+        { direction: "bidirectional" },
+        { config: frappeConfig }
+      )
+
+      assert.equal(secondSync.sync.failedCount, 0)
+      assert.equal(secondSync.sync.pushedCount, 0)
+      assert.equal(secondSync.sync.frappeRecordCount, 4)
+      assert.equal(secondSync.sync.appRecordCount, 4)
+      assert.equal(secondSync.sync.recordCountDifference, 0)
+      assert.equal(createdCount, 2)
+      assert.equal(remoteTodos.length, secondSync.sync.items.length)
     } finally {
       globalThis.fetch = originalFetch
       await runtime.destroy()
@@ -268,21 +494,13 @@ test("frappe sync policy derives timeout and retry guardrails from saved connect
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
+      const frappeConfig = createFrappeConfig({
         timeoutSeconds: 45,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
-      const policy = await readFrappeSyncPolicy(runtime.primary, adminUser)
+      const policy = await readFrappeSyncPolicy(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
       const erpReadPolicy = policy.policy.policies.find(
         (item) => item.operationKey === "erp-read"
       )
@@ -308,7 +526,7 @@ test("frappe sync policy derives timeout and retry guardrails from saved connect
   }
 })
 
-test("frappe services tolerate legacy settings rows without derived verification fields", async () => {
+test("frappe services tolerate legacy verification rows without derived fields", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-legacy-settings-"))
 
   try {
@@ -323,18 +541,8 @@ test("frappe services tolerate legacy settings rows without derived verification
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
+      const frappeConfig = createFrappeConfig({
         timeoutSeconds: 25,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
       const database = runtime.primary as {
@@ -356,46 +564,53 @@ test("frappe services tolerate legacy settings rows without derived verification
       const row = await database
         .selectFrom(frappeTableNames.settings)
         .select(["payload"])
-        .where("id", "=", "frappe-settings:default")
+        .where("id", "=", "frappe-settings:verification")
         .executeTakeFirst()
 
       assert.ok(row)
 
-      const legacyPayload = JSON.parse(row.payload) as Record<string, unknown>
-      delete legacyPayload.hasApiKey
-      delete legacyPayload.hasApiSecret
-      delete legacyPayload.lastVerifiedAt
-      delete legacyPayload.lastVerificationStatus
-      delete legacyPayload.lastVerificationMessage
-      delete legacyPayload.lastVerificationDetail
+      const legacyPayload = {
+        configFingerprint: frappeConfig.configFingerprint,
+        connectedUser: "legacy@example.test",
+        lastVerifiedAt: "2026-03-30T10:00:00.000Z",
+        lastVerificationStatus: "passed",
+        lastVerificationMessage: "Legacy verification row loaded.",
+        lastVerificationDetail: "Migrated from an earlier connector payload.",
+        lastVerifiedLatencyMs: 42,
+      }
 
       await database
         .updateTable(frappeTableNames.settings)
         .set({ payload: JSON.stringify(legacyPayload) })
-        .where("id", "=", "frappe-settings:default")
+        .where("id", "=", "frappe-settings:verification")
         .execute()
 
       const [settings, items, receipts, syncPolicy, salesOrderPolicy] =
         await Promise.all([
-          readFrappeSettings(runtime.primary, adminUser),
-          listFrappeItems(runtime.primary, adminUser),
-          listFrappePurchaseReceipts(runtime.primary, adminUser),
-          readFrappeSyncPolicy(runtime.primary, adminUser),
-          readFrappeSalesOrderPushPolicy(runtime.primary, adminUser),
+          readFrappeSettings(runtime.primary, adminUser, { config: frappeConfig }),
+          listFrappeItems(runtime.primary, adminUser, { config: frappeConfig }),
+          listFrappePurchaseReceipts(runtime.primary, adminUser, {
+            config: frappeConfig,
+          }),
+          readFrappeSyncPolicy(runtime.primary, adminUser, { config: frappeConfig }),
+          readFrappeSalesOrderPushPolicy(runtime.primary, adminUser, {
+            config: frappeConfig,
+          }),
         ])
 
       assert.equal(settings.settings.hasApiKey, true)
       assert.equal(settings.settings.hasApiSecret, true)
-      assert.equal(settings.settings.lastVerificationStatus, "idle")
+      assert.equal(settings.settings.lastVerificationStatus, "passed")
+      assert.equal(settings.settings.lastVerifiedUser, "legacy@example.test")
       assert.equal(items.manager.references.defaults.company, "Codexsun Trading Pvt Ltd")
       assert.equal(
         receipts.manager.references.defaults.warehouse,
         "Main Warehouse - CS"
       )
       assert.equal(syncPolicy.policy.connectorEnabled, true)
-      assert.equal(syncPolicy.policy.verificationStatus, "idle")
+      assert.equal(syncPolicy.policy.verificationStatus, "passed")
       assert.equal(salesOrderPolicy.policy.connectorEnabled, true)
-      assert.equal(salesOrderPolicy.policy.verificationStatus, "idle")
+      assert.equal(salesOrderPolicy.policy.verificationStatus, "passed")
     } finally {
       await runtime.destroy()
     }
@@ -421,18 +636,8 @@ test("paid storefront orders push into ERPNext Sales Order once and reuse the lo
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
+      const frappeConfig = createFrappeConfig({
         timeoutSeconds: 20,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
       globalThis.fetch = async (input, init) => {
@@ -450,7 +655,9 @@ test("paid storefront orders push into ERPNext Sales Order once and reuse the lo
         throw new Error(`Unexpected verification request: ${url}`)
       }
 
-      await verifyFrappeSettings(runtime.primary, adminUser, {})
+      await verifyFrappeSettings(runtime.primary, adminUser, undefined, {
+        config: frappeConfig,
+      })
 
       const products = await listProducts(runtime.primary)
       const checkoutProduct = products.items[0]
@@ -519,12 +726,12 @@ test("paid storefront orders push into ERPNext Sales Order once and reuse the lo
       const firstPush = await pushStorefrontOrderToFrappeSalesOrder(
         runtime.primary,
         paidOrder.item,
-        { source: "manual_replay" }
+        { config: frappeConfig, source: "manual_replay" }
       )
       const secondPush = await pushStorefrontOrderToFrappeSalesOrder(
         runtime.primary,
         paidOrder.item,
-        { source: "manual_replay" }
+        { config: frappeConfig, source: "manual_replay" }
       )
       await attachStorefrontOrderErpSalesOrderLink(
         runtime.primary,
@@ -575,21 +782,13 @@ test("frappe sales-order push policy makes approval and retry rules explicit for
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
+      const frappeConfig = createFrappeConfig({
         timeoutSeconds: 20,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
-      const policy = await readFrappeSalesOrderPushPolicy(runtime.primary, adminUser)
+      const policy = await readFrappeSalesOrderPushPolicy(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
 
       assert.equal(policy.policy.connectorEnabled, true)
       assert.equal(policy.policy.verificationStatus, "idle")
@@ -633,18 +832,8 @@ test("frappe transaction sync updates ecommerce delivery, invoice, refund links 
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
+      const frappeConfig = createFrappeConfig({
         timeoutSeconds: 20,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
       globalThis.fetch = async (input) => {
@@ -667,7 +856,9 @@ test("frappe transaction sync updates ecommerce delivery, invoice, refund links 
         throw new Error(`Unexpected request: ${url}`)
       }
 
-      await verifyFrappeSettings(runtime.primary, adminUser, {})
+      await verifyFrappeSettings(runtime.primary, adminUser, undefined, {
+        config: frappeConfig,
+      })
       const products = await listProducts(runtime.primary)
       const checkout = await createCheckoutOrder(runtime.primary, config, {
         items: [{ productId: products.items[0]!.id, quantity: 1 }],
@@ -717,6 +908,8 @@ test("frappe transaction sync updates ecommerce delivery, invoice, refund links 
       const replay = await replayFrappeTransactionSync(runtime.primary, adminUser, {
         storefrontOrderId: paid.item.id,
         queueType: "sales_order",
+      }, {
+        config: frappeConfig,
       })
       const replayedOrder = await getStorefrontOrderForConnector(runtime.primary, paid.item.id)
 
@@ -800,18 +993,8 @@ test("frappe observability report captures connector failures and recent excepti
       await prepareApplicationDatabase(runtime)
 
       const adminUser = createAdminUser()
-      await saveFrappeSettings(runtime.primary, adminUser, {
-        enabled: true,
-        baseUrl: "https://erp.example.test",
-        siteName: "codexsun",
-        apiKey: "saved-key",
-        apiSecret: "saved-secret",
+      const frappeConfig = createFrappeConfig({
         timeoutSeconds: 20,
-        defaultCompany: "Codexsun Trading Pvt Ltd",
-        defaultWarehouse: "Main Warehouse - CS",
-        defaultPriceList: "Standard Selling",
-        defaultCustomerGroup: "Retail Customer",
-        defaultItemGroup: "Ready Goods",
       })
 
       globalThis.fetch = async () => {
@@ -821,7 +1004,8 @@ test("frappe observability report captures connector failures and recent excepti
       const verification = await verifyFrappeSettings(
         runtime.primary,
         adminUser,
-        {}
+        undefined,
+        { config: frappeConfig }
       )
       const receiptSync = await syncFrappePurchaseReceipts(runtime.primary, adminUser, {
         receiptIds: ["frappe-receipt:2026-0002"],
@@ -832,7 +1016,7 @@ test("frappe observability report captures connector failures and recent excepti
         adminUser
       )
 
-      assert.equal(verification.verification.ok, false)
+      assert.equal(verification.verification.status, "failed")
       assert.equal(receiptSync.sync.items.length, 1)
       assert.equal(report.report.summary.connectorFailureCount, 1)
       assert.equal(report.report.summary.connectorSuccessCount >= 1, true)

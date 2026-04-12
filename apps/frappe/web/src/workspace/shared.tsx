@@ -6,8 +6,6 @@ import type {
   FrappeItemManager,
   FrappeItemUpsertPayload,
   FrappePurchaseReceiptManager,
-  FrappeSettings,
-  FrappeSettingsUpdatePayload,
   FrappeTodoUpsertPayload,
 } from "@frappe/shared"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,22 +52,6 @@ export function formatCurrency(value: number, currency = "INR") {
   }
 }
 
-export function createDefaultSettingsValues(): FrappeSettingsUpdatePayload {
-  return {
-    enabled: false,
-    baseUrl: "",
-    siteName: "",
-    apiKey: "",
-    apiSecret: "",
-    timeoutSeconds: 15,
-    defaultCompany: "",
-    defaultWarehouse: "",
-    defaultPriceList: "",
-    defaultCustomerGroup: "",
-    defaultItemGroup: "",
-  }
-}
-
 export function createDefaultTodoValues(): FrappeTodoUpsertPayload {
   return {
     description: "",
@@ -87,29 +69,13 @@ export function createDefaultItemValues(
     itemCode: "",
     itemName: "",
     description: "",
-    itemGroup: references?.defaults.itemGroup ?? "",
+    itemGroup: "",
     stockUom: "Nos",
     brand: "",
     gstHsnCode: "",
     defaultWarehouse: references?.defaults.warehouse ?? "",
     disabled: false,
     isStockItem: true,
-  }
-}
-
-export function toSettingsValues(settings: FrappeSettings): FrappeSettingsUpdatePayload {
-  return {
-    enabled: settings.enabled,
-    baseUrl: settings.baseUrl,
-    siteName: settings.siteName,
-    apiKey: "",
-    apiSecret: "",
-    timeoutSeconds: settings.timeoutSeconds,
-    defaultCompany: settings.defaultCompany,
-    defaultWarehouse: settings.defaultWarehouse,
-    defaultPriceList: settings.defaultPriceList,
-    defaultCustomerGroup: settings.defaultCustomerGroup,
-    defaultItemGroup: settings.defaultItemGroup,
   }
 }
 

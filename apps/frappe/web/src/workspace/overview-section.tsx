@@ -147,16 +147,16 @@ export function FrappeOverviewSection() {
           label="Connection"
           value={
             state.settings
-              ? state.settings.isConfigured
-                ? "Configured"
-                : "Pending"
+              ? state.settings.lastVerificationStatus === "passed"
+                ? "Connected"
+                : "Failed"
               : "Restricted"
           }
           hint={
             state.settings
               ? state.settings.enabled
-                ? "Connector is enabled for ERPNext workflows."
-                : "Connector is saved but not yet enabled."
+                ? "Connector config is loaded from `.env` for ERPNext workflows."
+                : "Connector is disabled in `.env`."
               : "Connection details are visible to super-admin only."
           }
         />
@@ -180,10 +180,10 @@ export function FrappeOverviewSection() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
-            <p>1. Save ERPNext connection settings and default mappings in the Frappe app.</p>
-            <p>2. Review or edit local Frappe ToDo and Item snapshots before syncing.</p>
-            <p>3. Keep item and receipt snapshots local while downstream product ownership is being rebuilt.</p>
-            <p>4. Re-enable target-app sync only after the rebuilt commerce boundary is ready.</p>
+            <p>1. Load the live ERPNext connection contract strictly from `.env` on the backend.</p>
+            <p>2. Verify the handshake through the internal Frappe API before running live connector work.</p>
+            <p>3. Review or edit local Frappe ToDo and Item snapshots before syncing.</p>
+            <p>4. Keep item and receipt snapshots local while downstream product ownership is being rebuilt.</p>
           </CardContent>
         </Card>
 
@@ -204,12 +204,16 @@ export function FrappeOverviewSection() {
               <p>{state.settings?.defaultWarehouse || "Not configured"}</p>
             </div>
             <div className="rounded-xl border border-border/70 bg-card/70 p-4">
-              <p className="font-medium text-foreground">Default Price List</p>
-              <p>{state.settings?.defaultPriceList || "Not configured"}</p>
+              <p className="font-medium text-foreground">ERP User</p>
+              <p>{state.settings?.lastVerifiedUser || "Not verified"}</p>
             </div>
             <div className="rounded-xl border border-border/70 bg-card/70 p-4">
-              <p className="font-medium text-foreground">Default Item Group</p>
-              <p>{state.settings?.defaultItemGroup || "Not configured"}</p>
+              <p className="font-medium text-foreground">Latency</p>
+              <p>
+                {state.settings?.lastVerifiedLatencyMs != null
+                  ? `${state.settings.lastVerifiedLatencyMs} ms`
+                  : "Not verified"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -236,7 +240,7 @@ export function FrappeOverviewSection() {
               <p className="font-medium text-foreground">Timeout budget</p>
               <p>
                 {erpReadPolicy
-                  ? `${erpReadPolicy.timeoutSeconds}s per connector call, derived from the saved connector settings.`
+                  ? `${erpReadPolicy.timeoutSeconds}s per connector call, derived from the current env-backed connector settings.`
                   : "Policy unavailable."}
               </p>
             </div>

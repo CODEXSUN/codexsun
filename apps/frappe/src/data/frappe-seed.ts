@@ -9,32 +9,41 @@ import {
   type FrappeItem,
   type FrappeItemProductSyncLog,
   type FrappePurchaseReceipt,
-  type FrappeSettings,
   type FrappeTodo,
 } from "../../shared/index.js"
 
 const timestamp = "2026-03-30T11:30:00.000Z"
 
-export const frappeSettings: FrappeSettings = frappeSettingsSchema.parse({
+export const frappeSettings = frappeSettingsSchema.parse({
   enabled: false,
-  baseUrl: "",
-  siteName: "",
-  apiKey: "",
-  apiSecret: "",
-  hasApiKey: false,
-  hasApiSecret: false,
+  baseUrl: "https://erp.demo.example.com",
+  siteName: "demo",
+  apiKey: "demo-key",
+  apiSecret: "demo-secret",
+  hasApiKey: true,
+  hasApiSecret: true,
   timeoutSeconds: 15,
   defaultCompany: "Codexsun Trading Pvt Ltd",
   defaultWarehouse: "Main Warehouse - CS",
-  defaultPriceList: "Standard Selling",
-  defaultCustomerGroup: "Retail Customer",
-  defaultItemGroup: "Ready Goods",
   isConfigured: false,
+  configSource: "env",
   lastVerifiedAt: "",
   lastVerificationStatus: "idle",
   lastVerificationMessage: "",
   lastVerificationDetail: "",
+  lastVerifiedUser: "",
+  lastVerifiedLatencyMs: null,
 })
+
+export const frappeVerificationStateSeed = {
+  configFingerprint: "",
+  lastVerifiedAt: "",
+  lastVerificationStatus: "idle" as const,
+  lastVerificationMessage: "",
+  lastVerificationDetail: "",
+  lastVerifiedUser: "",
+  lastVerifiedLatencyMs: null,
+}
 
 export const frappeTodos: FrappeTodo[] = [
   frappeTodoSchema.parse({
@@ -276,14 +285,13 @@ export const frappeItemProductSyncLogs: FrappeItemProductSyncLog[] = [
 export const defaultFrappeVerificationResponse: FrappeConnectionVerificationResponse =
   frappeConnectionVerificationResponseSchema.parse({
     verification: {
-      ok: false,
-      message: "ERPNext connection is not configured.",
-      detail: "Save valid ERPNext URL and API credentials before attempting verification.",
+      status: "failed",
+      latencyMs: 0,
+      user: "",
+      error: "ERPNext connection is not configured.",
       serverUrl: "",
       siteName: "",
-      connectedUser: "",
       verifiedAt: "",
-      usedSavedCredentials: false,
       persistedToSettings: false,
     },
   })

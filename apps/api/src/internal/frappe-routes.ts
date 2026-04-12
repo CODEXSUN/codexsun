@@ -1,4 +1,6 @@
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import { writeFrameworkActivityFromContext } from "../../../framework/src/runtime/activity-log/activity-log-service.js"
+import { resolveRuntimeSettingsRoot } from "../../../framework/src/runtime/config/runtime-settings-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import {
@@ -36,6 +38,7 @@ import { readFrappeObservabilityReport } from "../../../frappe/src/services/obse
 import {
   createFrappeTodo,
   listFrappeTodos,
+  syncFrappeTodosLive,
   updateFrappeTodo,
 } from "../../../frappe/src/services/todo-service.js"
 
@@ -52,41 +55,54 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(
-          await readFrappeSettings(context.databases.primary, user)
+          await readFrappeSettings(context.databases.primary, user, {
+            cwd: resolveRuntimeSettingsRoot(context.config),
+          })
         )
       },
     }),
     defineInternalRoute("/frappe/settings", {
       method: "PATCH",
-      summary: "Save app-owned Frappe connector settings.",
+      summary: "Save only the Frappe ERPNext env contract back into the runtime .env file.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
         })
 
-        return jsonResponse(
-          await saveFrappeSettings(
-            context.databases.primary,
-            user,
-            context.request.jsonBody
-          )
+        const response = await saveFrappeSettings(
+          context.databases.primary,
+          user,
+          context.request.jsonBody,
+          {
+            cwd: resolveRuntimeSettingsRoot(context.config),
+          }
         )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "frappe",
+          action: "frappe-settings.save",
+          message: "Frappe env contract was updated from the connector workspace.",
+          details: {
+            baseUrl: response.settings.baseUrl,
+            siteName: response.settings.siteName,
+          },
+        })
+
+        return jsonResponse(response)
       },
     }),
     defineInternalRoute("/frappe/settings/verify", {
       method: "POST",
-      summary: "Verify an ERPNext connection against the current or proposed settings.",
+      summary: "Verify the current env-backed ERPNext connection against the live endpoint.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
         })
 
         return jsonResponse(
-          await verifyFrappeSettings(
-            context.databases.primary,
-            user,
-            context.request.jsonBody
-          )
+          await verifyFrappeSettings(context.databases.primary, user, undefined, {
+            cwd: resolveRuntimeSettingsRoot(context.config),
+          })
         )
       },
     }),
@@ -304,6 +320,26 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
             user,
             todoId,
             context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/todos/sync-live", {
+      method: "POST",
+      summary: "Live sync Frappe ToDo snapshots to and from ERPNext.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await syncFrappeTodosLive(
+            context.databases.primary,
+            user,
+            context.request.jsonBody,
+            {
+              cwd: resolveRuntimeSettingsRoot(context.config),
+            }
           )
         )
       },

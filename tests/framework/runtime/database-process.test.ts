@@ -20,6 +20,7 @@ import { billingTableNames } from "../../../apps/billing/database/table-names.js
 import { listBillingLedgers } from "../../../apps/billing/src/services/ledger-service.js"
 import { listBillingVouchers } from "../../../apps/billing/src/services/voucher-service.js"
 import { ecommerceTableNames } from "../../../apps/ecommerce/database/table-names.js"
+import { parseFrappeEnv } from "../../../apps/frappe/src/config/frappe.js"
 import { listFrappeItems } from "../../../apps/frappe/src/services/item-service.js"
 import { listFrappePurchaseReceipts } from "../../../apps/frappe/src/services/purchase-receipt-service.js"
 import { readFrappeSettings } from "../../../apps/frappe/src/services/settings-service.js"
@@ -35,6 +36,19 @@ import {
 } from "../../../apps/framework/src/runtime/database/index.js"
 
 type DynamicDatabase = Record<string, Record<string, unknown>>
+
+function createFrappeConfig() {
+  return parseFrappeEnv({
+    FRAPPE_ENABLED: "true",
+    FRAPPE_BASE_URL: "https://erp.example.test",
+    FRAPPE_SITE_NAME: "codexsun",
+    FRAPPE_API_KEY: "saved-key",
+    FRAPPE_API_SECRET: "saved-secret",
+    FRAPPE_TIMEOUT_SECONDS: "15",
+    FRAPPE_DEFAULT_COMPANY: "Codexsun Trading Pvt Ltd",
+    FRAPPE_DEFAULT_WAREHOUSE: "Main Warehouse - CS",
+  })
+}
 
 test("registered database processes stay ordered by app and module", () => {
   assert.deepEqual(
@@ -102,6 +116,18 @@ test("registered database processes stay ordered by app and module", () => {
       "frappe:items:03-items",
       "frappe:purchase-receipts:04-purchase-receipts",
       "frappe:item-sync-logs:05-item-product-sync-logs",
+      "zetro:playbooks:01-zetro-playbooks",
+      "zetro:runs:02-zetro-runs",
+      "zetro:findings:03-zetro-findings",
+      "zetro:guardrails:04-zetro-guardrails",
+      "zetro:settings:05-zetro-settings",
+      "zetro:run-output-sections:06-zetro-run-output-sections",
+      "zetro:command-proposals:07-zetro-command-proposals",
+      "zetro:command-allowlist:08-zetro-command-allowlist",
+      "zetro:executed-commands:09-zetro-executed-commands",
+      "zetro:chat:10-zetro-chat",
+      "zetro:loop:11-zetro-loop",
+      "zetro:memory:12-zetro-memory",
     ]
   )
 
@@ -129,6 +155,7 @@ test("registered database processes stay ordered by app and module", () => {
       "frappe:items:03-items",
       "frappe:purchase-receipts:04-purchase-receipts",
       "frappe:item-sync-logs:05-item-product-sync-logs",
+      "zetro:defaults:01-zetro-defaults",
     ]
   )
 })
@@ -258,10 +285,17 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
       const billingVouchers = await listBillingVouchers(runtime.primary, adminUser)
       const commonModuleSummary = await listCommonModuleSummaries(runtime.primary)
       const products = await listCoreProducts(runtime.primary)
-      const frappeSettings = await readFrappeSettings(runtime.primary, adminUser)
+      const frappeConfig = createFrappeConfig()
+      const frappeSettings = await readFrappeSettings(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
       const frappeTodos = await listFrappeTodos(runtime.primary, adminUser)
-      const frappeItems = await listFrappeItems(runtime.primary, adminUser)
-      const frappeReceipts = await listFrappePurchaseReceipts(runtime.primary, adminUser)
+      const frappeItems = await listFrappeItems(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
+      const frappeReceipts = await listFrappePurchaseReceipts(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
 
       assert.equal(companies.items.length, 2)
       assert.equal(contacts.items.length, 3)

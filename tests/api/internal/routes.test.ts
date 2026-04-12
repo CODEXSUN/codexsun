@@ -54,6 +54,7 @@ test("internal route registry includes the frappe connector endpoints", () => {
   const routePaths = routes.map((route) => `${route.method} ${route.path}`)
 
   assert.ok(routePaths.includes("GET /internal/v1/frappe/settings"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/frappe/settings"))
   assert.ok(routePaths.includes("POST /internal/v1/frappe/settings/verify"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/sync-policy"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/sales-order-push-policy"))
@@ -68,6 +69,7 @@ test("internal route registry includes the frappe connector endpoints", () => {
   assert.ok(routePaths.includes("GET /internal/v1/frappe/contracts/stock-projection"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/contracts/customer-commercial-profile"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/todos"))
+  assert.ok(routePaths.includes("POST /internal/v1/frappe/todos/sync-live"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/items"))
   assert.ok(routePaths.includes("POST /internal/v1/frappe/items/sync-products"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/purchase-receipts"))

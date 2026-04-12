@@ -13,6 +13,11 @@ import {
 } from "../../shared/index.js"
 
 import { frappeTableNames } from "../../database/table-names.js"
+import type { FrappeEnvConfig } from "../config/frappe.js"
+import {
+  createFrappeConnection,
+  readFrappeErrorText,
+} from "./connection.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { listStorePayloads, replaceStorePayloads } from "./store.js"
 import { readStoredFrappeSettings } from "./settings-service.js"
@@ -109,47 +114,6 @@ async function resolveSalesOrderLines(
   })
 }
 
-function createHeaders(settings: {
-  apiKey: string
-  apiSecret: string
-  siteName: string
-}) {
-  const headers = new Headers({
-    authorization: `token ${settings.apiKey}:${settings.apiSecret}`,
-    accept: "application/json",
-    "content-type": "application/json",
-  })
-
-  if (settings.siteName) {
-    headers.set("x-frappe-site-name", settings.siteName)
-  }
-
-  return headers
-}
-
-async function readResponseText(response: Response) {
-  const contentType = response.headers.get("content-type") ?? ""
-
-  if (contentType.includes("application/json")) {
-    const payload = (await response.json().catch(() => null)) as
-      | Record<string, unknown>
-      | null
-
-    const detail = [
-      typeof payload?.message === "string" ? payload.message : "",
-      typeof payload?.exception === "string" ? payload.exception : "",
-      typeof payload?.exc_type === "string" ? payload.exc_type : "",
-    ]
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .join(" | ")
-
-    return detail || `HTTP ${response.status}`
-  }
-
-  return (await response.text().catch(() => "")).trim() || `HTTP ${response.status}`
-}
-
 function buildSalesOrderRequest(
   settings: FrappeSettings,
   order: StorefrontOrder,
@@ -159,7 +123,6 @@ function buildSalesOrderRequest(
     doctype: "Sales Order",
     customer: deriveCustomerCode(order),
     customer_name: order.shippingAddress.fullName,
-    customer_group: settings.defaultCustomerGroup || undefined,
     company: settings.defaultCompany,
     currency: order.currency,
     transaction_date: formatDate(order.createdAt),
@@ -266,6 +229,7 @@ export async function pushStorefrontOrderToFrappeSalesOrder(
   order: StorefrontOrder,
   input?: {
     source?: "checkout_verify" | "razorpay_webhook" | "payment_reconcile" | "manual_replay"
+    config?: FrappeEnvConfig
   }
 ) {
   const source = input?.source ?? "checkout_verify"
@@ -279,7 +243,7 @@ export async function pushStorefrontOrderToFrappeSalesOrder(
   }
 
   const [settings, syncs] = await Promise.all([
-    readStoredFrappeSettings(database),
+    readStoredFrappeSettings(database, { config: input?.config }),
     readSalesOrderSyncs(database),
   ])
   const existingRecord = syncs.find((item) => item.storefrontOrderId === order.id) ?? null
@@ -293,7 +257,7 @@ export async function pushStorefrontOrderToFrappeSalesOrder(
 
   const attemptedAt = new Date().toISOString()
   const customerCode = deriveCustomerCode(order)
-  const company = settings?.defaultCompany?.trim() || "Unknown Company"
+  const company = settings.defaultCompany.trim()
   let itemLines: FrappeSalesOrderSyncLine[]
 
   const persistRecord = async (record: FrappeSalesOrderSyncRecord) => {
@@ -345,7 +309,7 @@ export async function pushStorefrontOrderToFrappeSalesOrder(
     return record
   }
 
-  if (!settings || !settings.enabled || !settings.isConfigured) {
+  if (!settings.enabled || !settings.isConfigured) {
     const record = await persistRecord(
       buildFailureRecord({
         existingRecord,
@@ -400,17 +364,20 @@ export async function pushStorefrontOrderToFrappeSalesOrder(
   }
 
   const requestBody = buildSalesOrderRequest(settings, order, itemLines)
+  const connection = createFrappeConnection(input?.config)
 
   try {
-    const response = await fetch(`${settings.baseUrl}/api/resource/Sales Order`, {
+    const { response } = await connection.request({
+      path: "/api/resource/Sales Order",
       method: "POST",
-      headers: createHeaders(settings),
+      headers: {
+        "content-type": "application/json",
+      },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(settings.timeoutSeconds * 1000),
     })
 
     if (!response.ok) {
-      const detail = await readResponseText(response)
+      const detail = await readFrappeErrorText(response)
       const record = await persistRecord(
         buildFailureRecord({
           existingRecord,

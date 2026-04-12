@@ -2,17 +2,19 @@ import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { frappeSyncPolicyResponseSchema } from "../../shared/index.js"
+import type { FrappeEnvConfig } from "../config/frappe.js"
 import { assertFrappeViewer } from "./access.js"
 import { readStoredFrappeSettings } from "./settings-service.js"
 
 export async function readFrappeSyncPolicy(
   database: Kysely<unknown>,
-  user: AuthUser
+  user: AuthUser,
+  options?: { config?: FrappeEnvConfig; cwd?: string }
 ) {
   assertFrappeViewer(user)
 
-  const settings = await readStoredFrappeSettings(database)
-  const timeoutSeconds = settings.timeoutSeconds || 15
+  const settings = await readStoredFrappeSettings(database, options)
+  const timeoutSeconds = settings.timeoutSeconds
 
   return frappeSyncPolicyResponseSchema.parse({
     policy: {

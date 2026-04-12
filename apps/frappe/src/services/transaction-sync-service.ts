@@ -32,6 +32,7 @@ import {
 } from "../../shared/index.js"
 
 import { frappeTableNames } from "../../database/table-names.js"
+import type { FrappeEnvConfig } from "../config/frappe.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
 import { recordFrappeConnectorEvent } from "./observability-service.js"
 import { pushStorefrontOrderToFrappeSalesOrder } from "./sales-order-service.js"
@@ -413,7 +414,8 @@ export async function readFrappeTransactionReconciliationQueue(
 export async function replayFrappeTransactionSync(
   database: Kysely<unknown>,
   user: AuthUser,
-  payload: unknown
+  payload: unknown,
+  options?: { config?: FrappeEnvConfig }
 ) {
   assertSuperAdmin(user)
 
@@ -426,6 +428,7 @@ export async function replayFrappeTransactionSync(
 
   if (parsed.queueType === "sales_order") {
     const syncRecord = await pushStorefrontOrderToFrappeSalesOrder(database, order, {
+      config: options?.config,
       source: "manual_replay",
     })
     await attachStorefrontOrderErpSalesOrderLink(database, order.id, syncRecord)

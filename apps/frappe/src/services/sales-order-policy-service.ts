@@ -2,23 +2,25 @@ import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { frappeSalesOrderPushPolicyResponseSchema } from "../../shared/index.js"
+import type { FrappeEnvConfig } from "../config/frappe.js"
 
 import { assertFrappeViewer } from "./access.js"
 import { readStoredFrappeSettings } from "./settings-service.js"
 
 export async function readFrappeSalesOrderPushPolicy(
   database: Kysely<unknown>,
-  user: AuthUser
+  user: AuthUser,
+  options?: { config?: FrappeEnvConfig; cwd?: string }
 ) {
   assertFrappeViewer(user)
 
-  const settings = await readStoredFrappeSettings(database)
+  const settings = await readStoredFrappeSettings(database, options)
 
   return frappeSalesOrderPushPolicyResponseSchema.parse({
     policy: {
       generatedAt: new Date().toISOString(),
-      connectorEnabled: settings?.enabled ?? false,
-      verificationStatus: settings?.lastVerificationStatus ?? "idle",
+      connectorEnabled: settings.enabled,
+      verificationStatus: settings.lastVerificationStatus,
       approvalMode: "auto_for_paid_orders",
       autoPushSources: [
         "checkout_verify",
