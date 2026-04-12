@@ -135,6 +135,10 @@ const zetroQueryKeys = {
   findings: ["zetro", "findings"] as const,
   guardrails: ["zetro", "guardrails"] as const,
   settings: ["zetro", "settings"] as const,
+  loopState: (runId: string | null) =>
+    ["zetro", "loop", "state", runId] as const,
+  loopEvents: (runId: string | null) =>
+    ["zetro", "loop", "events", runId] as const,
 };
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -530,6 +534,283 @@ export function useUpdateZetroCommandProposalStatusMutation(
           queryKey: zetroQueryKeys.run(runId),
         });
       }
+    },
+  });
+}
+
+export type ZetroLoopState = {
+  runId: string;
+  status:
+    | "idle"
+    | "running"
+    | "paused"
+    | "completed"
+    | "cancelled"
+    | "failed"
+    | "timed-out";
+  currentIteration: number;
+  startedAt: string | null;
+  endedAt: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  configuration: {
+    maxIterations: number;
+    timeoutMs: number;
+    stopConditions: Array<{ type: string; threshold?: number }>;
+    dryRun: boolean;
+  };
+};
+
+export type ZetroIterationEvent = {
+  id: string;
+  runId: string;
+  iteration: number;
+  kind: string;
+  summary: string;
+  detail?: string;
+  createdAt: string;
+};
+
+export type ZetroLoopStateResponse = {
+  exists: boolean;
+  state?: ZetroLoopState;
+  defaultConfiguration: ZetroLoopState["configuration"];
+};
+
+export function getZetroLoopState(runId: string) {
+  return requestJson<ZetroLoopStateResponse>(
+    `/internal/v1/zetro/loop/state?id=${encodeURIComponent(runId)}`,
+  );
+}
+
+export function createZetroLoopConfiguration(
+  runId: string,
+  payload: {
+    maxIterations?: number;
+    timeoutMs?: number;
+    dryRun?: boolean;
+  },
+) {
+  return requestJson<ZetroLoopState>(
+    `/internal/v1/zetro/loop/configure?id=${encodeURIComponent(runId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function startZetroLoop(runId: string) {
+  return requestJson<ZetroLoopState>(
+    `/internal/v1/zetro/loop/start?id=${encodeURIComponent(runId)}`,
+    { method: "POST" },
+  );
+}
+
+export function stopZetroLoop(runId: string) {
+  return requestJson<ZetroLoopState>(
+    `/internal/v1/zetro/loop/stop?id=${encodeURIComponent(runId)}`,
+    { method: "POST" },
+  );
+}
+
+export function cancelZetroLoop(runId: string) {
+  return requestJson<ZetroLoopState>(
+    `/internal/v1/zetro/loop/cancel?id=${encodeURIComponent(runId)}`,
+    { method: "POST" },
+  );
+}
+
+export function listZetroLoopEvents(runId: string) {
+  return requestJson<{ items: ZetroIterationEvent[] }>(
+    `/internal/v1/zetro/loop/events?id=${encodeURIComponent(runId)}`,
+  );
+}
+
+export function useZetroLoopStateQuery(runId: string | null) {
+  return useQuery({
+    queryKey: zetroQueryKeys.loopState(runId),
+    queryFn: () => getZetroLoopState(runId ?? ""),
+    enabled: Boolean(runId),
+  });
+}
+
+export function useZetroLoopEventsQuery(runId: string | null) {
+  return useQuery({
+    queryKey: zetroQueryKeys.loopEvents(runId),
+    queryFn: () => listZetroLoopEvents(runId ?? ""),
+    enabled: Boolean(runId),
+    select: (payload) => payload.items,
+  });
+}
+
+export function useZetroLoopControlMutation(runId: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (action: "start" | "stop" | "cancel") => {
+      if (!runId) throw new Error("Run ID is required");
+      switch (action) {
+        case "start":
+          return startZetroLoop(runId);
+        case "stop":
+          return stopZetroLoop(runId);
+        case "cancel":
+          return cancelZetroLoop(runId);
+      }
+    },
+    onSuccess: () => {
+      if (runId) {
+        void queryClient.invalidateQueries({
+          queryKey: zetroQueryKeys.loopState(runId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: zetroQueryKeys.loopEvents(runId),
+        });
+      }
+    },
+  });
+}
+
+export type ZetroMemorySearchResult = {
+  id: string;
+  content: string;
+  contentType: "finding" | "run-summary" | "chat-message" | "command-output";
+  similarity: number;
+  findingId?: string;
+  runId?: string;
+  createdAt: string;
+  metadata?: Record<string, string | number | boolean>;
+};
+
+export type ZetroMemoryVector = {
+  id: string;
+  findingId?: string;
+  runId?: string;
+  content: string;
+  contentType: "finding" | "run-summary" | "chat-message" | "command-output";
+  provider: string;
+  model?: string;
+  createdAt: string;
+};
+
+export type ZetroMemoryStats = {
+  total: number;
+  byType: Record<string, number>;
+  byProvider: Record<string, number>;
+  config: {
+    provider: string;
+    ollamaUrl: string;
+    ollamaModel: string;
+  };
+};
+
+export function searchZetroMemory(
+  query: string,
+  options?: {
+    limit?: number;
+    threshold?: number;
+    contentType?: string;
+  },
+) {
+  const params = new URLSearchParams({ q: query });
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.threshold) params.set("threshold", String(options.threshold));
+  if (options?.contentType) params.set("contentType", options.contentType);
+
+  return requestJson<{ items: ZetroMemorySearchResult[] }>(
+    `/internal/v1/zetro/memory/search?${params}`,
+  );
+}
+
+export function findSimilarZetroFindings(
+  findingId: string,
+  title: string,
+  summary: string,
+) {
+  return requestJson<{
+    items: ZetroMemorySearchResult[];
+    query: { findingId: string; title: string; summary: string };
+  }>(
+    `/internal/v1/zetro/memory/similar-findings?id=${encodeURIComponent(findingId)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(summary)}`,
+  );
+}
+
+export function storeZetroMemoryVector(payload: {
+  findingId?: string;
+  runId?: string;
+  content: string;
+  contentType: "finding" | "run-summary" | "chat-message" | "command-output";
+}) {
+  return requestJson<ZetroMemoryVector>("/internal/v1/zetro/memory/store", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listZetroMemoryVectors(options?: {
+  contentType?: string;
+  runId?: string;
+  limit?: number;
+}) {
+  const params = new URLSearchParams();
+  if (options?.contentType) params.set("contentType", options.contentType);
+  if (options?.runId) params.set("runId", options.runId);
+  if (options?.limit) params.set("limit", String(options.limit));
+
+  return requestJson<{ items: ZetroMemoryVector[] }>(
+    `/internal/v1/zetro/memory/vectors?${params}`,
+  );
+}
+
+export function getZetroMemoryStats() {
+  return requestJson<ZetroMemoryStats>("/internal/v1/zetro/memory/stats");
+}
+
+export function useZetroMemorySearchQuery(
+  query: string | null,
+  options?: { limit?: number; threshold?: number; contentType?: string },
+) {
+  return useQuery({
+    queryKey: ["zetro", "memory", "search", query, options],
+    queryFn: () => searchZetroMemory(query ?? "", options),
+    enabled: Boolean(query),
+    select: (data) => data.items,
+  });
+}
+
+export function useZetroMemoryVectorsQuery(options?: {
+  contentType?: string;
+  runId?: string;
+  limit?: number;
+}) {
+  return useQuery({
+    queryKey: ["zetro", "memory", "vectors", options],
+    queryFn: () => listZetroMemoryVectors(options),
+    select: (data) => data.items,
+  });
+}
+
+export function useZetroMemoryStatsQuery() {
+  return useQuery({
+    queryKey: ["zetro", "memory", "stats"],
+    queryFn: () => getZetroMemoryStats(),
+  });
+}
+
+export function useStoreZetroMemoryMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof storeZetroMemoryVector>[0]) =>
+      storeZetroMemoryVector(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["zetro", "memory", "vectors"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["zetro", "memory", "stats"],
+      });
     },
   });
 }

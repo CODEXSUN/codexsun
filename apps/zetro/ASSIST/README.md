@@ -34,7 +34,7 @@ Zetro is the Codexsun-owned terminal and dashboard agent workspace. It should pl
    Decisions that keep the app direction stable.
 
 10. `SYSTEM_PROMPT.md`
-   Draft prompt for the future model-backed Zetro runtime.
+    Draft prompt for the future model-backed Zetro runtime.
 
 ## Current Lock
 
@@ -44,4 +44,16 @@ Current runner: manual only.
 
 Current execution policy: no shell execution from Zetro, no LLM calls, no network calls, no background loop.
 
-Next build target: persisted playbooks and runs.
+Current phase: **1.8.0 Complete**
+
+## Phase 2 Evolution
+
+See [ZETRO_PHASE2_EVOLUTION.md](./ZETRO_PHASE2_EVOLUTION.md) for the Phase 2 roadmap covering:
+
+- Semantic Memory Layer
+- Smart Playbooks
+- Multi-Model Task Router
+- Agent Role Specialization
+- Tiered Autonomy System
+- Task Integration Layer
+- External Integration Layer

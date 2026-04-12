@@ -19,6 +19,9 @@ import {
   useCreateZetroOutputSectionMutation,
   useCreateZetroRunMutation,
   useUpdateZetroCommandProposalStatusMutation,
+  useZetroLoopControlMutation,
+  useZetroLoopEventsQuery,
+  useZetroLoopStateQuery,
   useZetroPlaybooksQuery,
   useZetroRunQuery,
   useZetroRunsQuery,
@@ -94,6 +97,9 @@ export function ZetroRunsPage() {
     useCreateZetroCommandProposalMutation(selectedRunId);
   const updateCommandProposalStatusMutation =
     useUpdateZetroCommandProposalStatusMutation(selectedRunId);
+  const loopStateQuery = useZetroLoopStateQuery(selectedRunId);
+  const loopEventsQuery = useZetroLoopEventsQuery(selectedRunId);
+  const loopControlMutation = useZetroLoopControlMutation(selectedRunId);
   const [runTitle, setRunTitle] = useState("");
   const [runSummary, setRunSummary] = useState("");
   const [runPlaybookId, setRunPlaybookId] = useState("");
@@ -758,6 +764,185 @@ export function ZetroRunsPage() {
                   Propose command
                 </Button>
               </form>
+
+              <div className="space-y-3">
+                <p className="text-foreground text-sm font-semibold">
+                  Loop control
+                </p>
+                {selectedRunId ? (
+                  <>
+                    <div className="border-border/70 bg-background rounded-md border p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-foreground text-sm font-semibold">
+                          Status
+                        </p>
+                        <Badge
+                          variant={
+                            loopStateQuery.data?.state?.status === "running"
+                              ? "default"
+                              : loopStateQuery.data?.state?.status ===
+                                  "completed"
+                                ? "secondary"
+                                : loopStateQuery.data?.state?.status ===
+                                      "cancelled" ||
+                                    loopStateQuery.data?.state?.status ===
+                                      "failed"
+                                  ? "destructive"
+                                  : "outline"
+                          }
+                          className="rounded-md"
+                        >
+                          {loopStateQuery.data?.state?.status ??
+                            "not configured"}
+                        </Badge>
+                      </div>
+                      {loopStateQuery.data?.state ? (
+                        <>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">
+                                Iteration:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {loopStateQuery.data.state.currentIteration}/
+                                {
+                                  loopStateQuery.data.state.configuration
+                                    .maxIterations
+                                }
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Timeout:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {loopStateQuery.data.state.configuration
+                                  .timeoutMs / 60000}
+                                m
+                              </span>
+                            </div>
+                          </div>
+                          {loopStateQuery.data.state.startedAt ? (
+                            <p className="text-muted-foreground mt-2 text-xs">
+                              Started:{" "}
+                              {new Date(
+                                loopStateQuery.data.state.startedAt,
+                              ).toLocaleString()}
+                            </p>
+                          ) : null}
+                          {loopStateQuery.data.state.endedAt ? (
+                            <p className="text-muted-foreground mt-1 text-xs">
+                              Ended:{" "}
+                              {new Date(
+                                loopStateQuery.data.state.endedAt,
+                              ).toLocaleString()}
+                            </p>
+                          ) : null}
+                          {loopStateQuery.data.state.cancelledAt ? (
+                            <p className="text-muted-foreground mt-1 text-xs">
+                              Cancelled by{" "}
+                              {loopStateQuery.data.state.cancelledBy} at{" "}
+                              {new Date(
+                                loopStateQuery.data.state.cancelledAt,
+                              ).toLocaleString()}
+                            </p>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground mt-2 text-sm">
+                          No loop configured. Default: max 10 iterations, 30 min
+                          timeout, dry-run mode.
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        className="rounded-md"
+                        disabled={
+                          loopControlMutation.isPending ||
+                          loopStateQuery.data?.state?.status === "running"
+                        }
+                        onClick={() => loopControlMutation.mutate("start")}
+                      >
+                        {loopControlMutation.isPending
+                          ? "Starting..."
+                          : "Start loop"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-md"
+                        disabled={
+                          loopControlMutation.isPending ||
+                          loopStateQuery.data?.state?.status !== "running"
+                        }
+                        onClick={() => loopControlMutation.mutate("stop")}
+                      >
+                        {loopControlMutation.isPending
+                          ? "Stopping..."
+                          : "Stop loop"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="rounded-md"
+                        disabled={
+                          loopControlMutation.isPending ||
+                          loopStateQuery.data?.state?.status !== "running"
+                        }
+                        onClick={() => loopControlMutation.mutate("cancel")}
+                      >
+                        {loopControlMutation.isPending
+                          ? "Cancelling..."
+                          : "Cancel loop"}
+                      </Button>
+                    </div>
+                    {loopControlMutation.error ? (
+                      <p className="text-destructive text-sm">
+                        {loopControlMutation.error.message}
+                      </p>
+                    ) : null}
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs font-semibold uppercase">
+                        Iteration events
+                      </p>
+                      {(loopEventsQuery.data ?? []).length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                          No iteration events recorded.
+                        </p>
+                      ) : (
+                        <div className="max-h-[200px] space-y-2 overflow-y-auto">
+                          {(loopEventsQuery.data ?? []).map((event) => (
+                            <div
+                              key={event.id}
+                              className="border-border/50 bg-background rounded border p-2"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-1">
+                                <p className="text-foreground text-xs font-semibold">
+                                  Iter {event.iteration}: {event.kind}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  {new Date(
+                                    event.createdAt,
+                                  ).toLocaleTimeString()}
+                                </p>
+                              </div>
+                              <p className="text-muted-foreground mt-1 text-xs leading-5">
+                                {event.summary}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    Select a run to control the loop.
+                  </p>
+                )}
+              </div>
             </CardContent>
           </ZetroPanel>
         </div>

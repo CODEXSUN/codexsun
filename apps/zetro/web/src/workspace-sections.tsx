@@ -1,6 +1,7 @@
 import { ZetroClaudeAnalysisPage } from "./pages/claude-analysis-page";
 import { ZetroFindingsPage } from "./pages/findings-page";
 import { ZetroGuardrailsPage } from "./pages/guardrails-page";
+import { ZetroMemoryPage } from "./pages/memory-page";
 import { ZetroOverviewPage } from "./pages/overview-page";
 import { ZetroPlaybooksPage } from "./pages/playbooks-page";
 import { ZetroReviewPage } from "./pages/review-page";
@@ -22,6 +23,8 @@ export function ZetroWorkspaceSection({ sectionId }: { sectionId?: string }) {
       return <ZetroFindingsPage />;
     case "review":
       return <ZetroReviewPage />;
+    case "memory":
+      return <ZetroMemoryPage />;
     case "guardrails":
       return <ZetroGuardrailsPage />;
     case "settings":

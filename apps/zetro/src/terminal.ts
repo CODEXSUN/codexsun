@@ -35,6 +35,11 @@ import {
   completeZetroLoop,
   listZetroIterationEvents,
   DEFAULT_LOOP_CONFIGURATION,
+  storeMemoryVector,
+  searchMemory,
+  findSimilarFindings,
+  listMemoryVectors,
+  getMemoryStats,
   type ZetroCreateLoopConfigurationInput,
 } from "./services/index.js";
 import type {
@@ -79,6 +84,11 @@ type ZetroTerminalCommand =
   | "loop-stop"
   | "loop-cancel"
   | "loop-events"
+  | "memory-search"
+  | "memory-similar"
+  | "memory-store"
+  | "memory-list"
+  | "memory-stats"
   | "plan"
   | "assist"
   | "doctor"
@@ -139,6 +149,17 @@ function printUsage() {
     "  loop-events --run <id>       Show iteration events for a run.",
   );
   console.info(
+    "  memory-search <query>        Search memory for similar content.",
+  );
+  console.info(
+    "  memory-similar --title <v> --summary <v>  Find similar past findings.",
+  );
+  console.info(
+    "  memory-store --finding <id> --content <v>  Store finding in memory.",
+  );
+  console.info("  memory-list [--type <type>]   List memory vectors.");
+  console.info("  memory-stats                 Show memory statistics.");
+  console.info(
     "  plan <request>               Print a maximum-output plan scaffold.",
   );
   console.info(
@@ -194,6 +215,11 @@ function resolveCommand(
     case "loop-stop":
     case "loop-cancel":
     case "loop-events":
+    case "memory-search":
+    case "memory-similar":
+    case "memory-store":
+    case "memory-list":
+    case "memory-stats":
     case "plan":
     case "assist":
     case "doctor":
@@ -990,6 +1016,166 @@ async function printLoopEvents(args: string[]) {
   }
 }
 
+async function searchMemoryFromArgs(args: string[]) {
+  const query = args.join(" ").trim();
+
+  if (!query) {
+    console.info(
+      'Missing search query. Try: npm run zetro -- memory-search "SQL injection"',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    const results = await withZetroDatabase((database) =>
+      searchMemory(database, query, { limit: 10 }),
+    );
+
+    printHeader("Memory search");
+    console.info(`Query: "${query}"`);
+    console.info(`Results: ${results.length}`);
+
+    if (results.length === 0) {
+      console.info("No similar content found.");
+      return;
+    }
+
+    for (const result of results) {
+      console.info("");
+      console.info(`Similarity: ${(result.similarity * 100).toFixed(1)}%`);
+      console.info(`Type: ${result.contentType}`);
+      console.info(`Content: ${result.content.substring(0, 200)}...`);
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function findSimilarFindingsFromArgs(args: string[]) {
+  const title = requireOption(args, "--title");
+  const summary = requireOption(args, "--summary");
+
+  try {
+    const results = await withZetroDatabase((database) =>
+      findSimilarFindings(database, title, summary, { limit: 5 }),
+    );
+
+    printHeader("Similar findings");
+    console.info(`Title: "${title}"`);
+    console.info(`Summary: "${summary}"`);
+    console.info(`Similar findings: ${results.length}`);
+
+    if (results.length === 0) {
+      console.info("No similar past findings found.");
+      return;
+    }
+
+    for (const result of results) {
+      console.info("");
+      console.info(`Similarity: ${(result.similarity * 100).toFixed(1)}%`);
+      console.info(`Content: ${result.content.substring(0, 200)}...`);
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function storeMemoryFromArgs(args: string[]) {
+  const findingId = readOption(args, "--finding");
+  const content = readOption(args, "--content");
+  const runId = readOption(args, "--run");
+
+  if (!content) {
+    console.info(
+      'Missing --content. Try: npm run zetro -- memory-store --finding <id> --content "finding text"',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    const vector = await withZetroDatabase((database) =>
+      storeMemoryVector(database, {
+        findingId,
+        runId,
+        content,
+        contentType: "finding",
+      }),
+    );
+
+    printHeader("Memory stored");
+    console.info(`Id: ${vector.id}`);
+    console.info(`Provider: ${vector.provider}`);
+    console.info(`Model: ${vector.model ?? "fallback"}`);
+    console.info(`Dimension: ${vector.embedding.length}`);
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function listMemoryFromArgs(args: string[]) {
+  const contentType = readOption(args, "--type");
+  const runId = readOption(args, "--run");
+  const limit = readOption(args, "--limit");
+
+  try {
+    const vectors = await withZetroDatabase((database) =>
+      listMemoryVectors(database, {
+        contentType: contentType as
+          | "finding"
+          | "run-summary"
+          | "chat-message"
+          | "command-output"
+          | undefined,
+        runId,
+        limit: limit ? Number(limit) : 20,
+      }),
+    );
+
+    printHeader("Memory vectors");
+    console.info(`Total: ${vectors.length}`);
+
+    if (vectors.length === 0) {
+      console.info("No memory vectors stored.");
+      return;
+    }
+
+    for (const vector of vectors) {
+      console.info("");
+      console.info(`${vector.id}`);
+      console.info(`  Type: ${vector.contentType}`);
+      console.info(`  Created: ${new Date(vector.createdAt).toLocaleString()}`);
+      console.info(`  Content: ${vector.content.substring(0, 100)}...`);
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
+async function printMemoryStats() {
+  try {
+    const stats = await withZetroDatabase((database) =>
+      getMemoryStats(database),
+    );
+
+    printHeader("Memory statistics");
+    console.info(`Total vectors: ${stats.total}`);
+    console.info("");
+    console.info("By type:");
+    for (const [type, count] of Object.entries(stats.byType)) {
+      console.info(`  ${type}: ${count}`);
+    }
+    console.info("");
+    console.info("By provider:");
+    for (const [provider, count] of Object.entries(stats.byProvider)) {
+      console.info(`  ${provider}: ${count}`);
+    }
+  } catch (error) {
+    printWriteError(error);
+  }
+}
+
 function buildPlanScaffold(request: string) {
   return [
     "Intent",
@@ -1272,6 +1458,21 @@ export async function runZetroTerminal(args = process.argv.slice(2)) {
       return;
     case "loop-events":
       await printLoopEvents(rest);
+      return;
+    case "memory-search":
+      await searchMemoryFromArgs(rest);
+      return;
+    case "memory-similar":
+      await findSimilarFindingsFromArgs(rest);
+      return;
+    case "memory-store":
+      await storeMemoryFromArgs(rest);
+      return;
+    case "memory-list":
+      await listMemoryFromArgs(rest);
+      return;
+    case "memory-stats":
+      await printMemoryStats();
       return;
     case "assist":
       printAssist(await loadZetroTerminalData());

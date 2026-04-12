@@ -13,4 +13,5 @@ export const zetroTableNames = {
   guardrails: "zetro_guardrails",
   settings: "zetro_settings",
   loopStates: "zetro_loop_states",
+  memoryVectors: "zetro_memory_vectors",
 } as const;

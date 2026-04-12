@@ -56,6 +56,13 @@ export const zetroWorkspaceItems: ZetroWorkspaceItem[] = [
       "Structured review lanes for organizing AI-generated findings into actionable categories.",
   },
   {
+    id: "memory",
+    name: "Memory",
+    route: "/dashboard/apps/zetro/memory",
+    summary:
+      "Semantic memory layer using vector embeddings for finding similar past work.",
+  },
+  {
     id: "guardrails",
     name: "Guardrails",
     route: "/dashboard/apps/zetro/guardrails",

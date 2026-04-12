@@ -4,9 +4,139 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.7.0`
+Current baseline: `2.1.0`
 
-Next target: `1.8.0`
+Next target: `2.2.0`
+
+## Phase 1: Foundation
+
+Status: complete (1.0.0 through 1.8.0).
+
+## 2.0.0 Phase 2: Evolution
+
+Status: in progress.
+
+Goal:
+
+Transform Zetro into a controlled AI workforce with memory, intelligence, and tiered autonomy.
+
+## 2.1.0 Semantic Memory Layer
+
+Status: complete.
+
+Goal:
+
+Give Zetro long-term memory beyond raw history.
+
+Deliverables:
+
+1. Embedding service (configurable: Ollama, OpenAI, Anthropic, or fallback)
+2. Memory table: `zetro_memory_vectors`
+3. `storeMemoryVector(finding)` — embed finding and store
+4. `searchMemory(query)` — semantic search
+5. `findSimilarFindings(title, summary)` — "have we seen this?" queries
+6. Dashboard memory panel
+
+Completion notes:
+
+1. Memory service exists in `apps/zetro/src/services/memory-service.ts` with Ollama embeddings, fallback TF-IDF, and cosine similarity.
+2. Memory table `zetro_memory_vectors` added to `apps/zetro/database/table-names.ts`.
+3. Migration 12 created in `apps/zetro/database/migration/12-zetro-memory.ts`.
+4. Memory API routes exist: `/zetro/memory/search`, `/zetro/memory/similar-findings`, `/zetro/memory/store`, `/zetro/memory/vectors`, `/zetro/memory/stats`, `/zetro/memory/vector/:id`, `/zetro/memory/clear`.
+5. Terminal commands added: `memory-search`, `memory-similar`, `memory-store`, `memory-list`, `memory-stats`.
+6. Dashboard memory page exists at `/dashboard/apps/zetro/memory`.
+7. Memory workspace item registered.
+8. Typecheck and doctor pass.
+
+## 2.2.0 Smart Playbooks
+
+Status: not started.
+
+Goal:
+
+Playbooks that adapt based on context with conditional logic.
+
+Deliverables:
+
+1. Extend ZetroPlaybookPhase with conditions and dynamic commands
+2. New playbook kind: "smart"
+3. Execution engine for smart phases
+4. Dashboard smart playbook editor
+
+## 2.3.0 Multi-Model Task Router
+
+Status: not started.
+
+Goal:
+
+Route tasks to optimal model based on task type.
+
+Deliverables:
+
+1. Task type taxonomy (reasoning, coding, review, creative, fast)
+2. Router service with classification and routing
+3. Configurable routing map
+4. Cost tracking per task type
+
+## 2.4.0 Agent Role Specialization
+
+Status: not started.
+
+Goal:
+
+Multiple specialized agents working under Zetro governance.
+
+Deliverables:
+
+1. PlannerAgent, ExecutorAgent, ReviewerAgent
+2. Agent service with role registry
+3. Integration with loop and review services
+4. Dashboard agent activity monitor
+
+## 2.5.0 Tiered Autonomy System
+
+Status: not started.
+
+Goal:
+
+Scale from manual to semi-autonomous based on risk.
+
+Deliverables:
+
+1. Autonomy levels: manual, assisted, supervised, autonomous
+2. Risk classification with auto-approval rules
+3. Autonomy service with decision logging
+4. Dashboard autonomy controls
+
+## 2.6.0 Task Integration Layer
+
+Status: not started.
+
+Goal:
+
+Connect findings to actionable tasks in the existing Task app.
+
+Deliverables:
+
+1. Task integration service
+2. Auto-task creation rules
+3. Task templates for findings
+4. "Create Task" button on findings
+
+## 2.7.0 External Integration Layer
+
+Status: not started.
+
+Goal:
+
+Connect Zetro to external systems for notifications and sync.
+
+Deliverables:
+
+1. Webhook system
+2. GitHub integration
+3. Slack integration
+4. API triggers
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -660,7 +790,7 @@ Completion notes:
 
 ## 1.8.0 Dashboard Loop Control
 
-Status: not started.
+Status: complete.
 
 Goal:
 
@@ -678,6 +808,33 @@ Exit criteria:
 1. Loop can be controlled from dashboard.
 2. Iteration events are visible.
 3. Loop state is always visible.
+
+Completion notes:
+
+1. Loop API client exists in `apps/zetro/web/src/api/zetro-api.ts` with hooks for state, events, and control mutations.
+2. Loop control panel added to runs detail page with status display, iteration count, timeout info, and control buttons.
+3. Iteration events are displayed in a scrollable list.
+4. Typecheck and doctor pass.
+
+## 1.9.0 Review Findings Integration
+
+Status: not started.
+
+Goal:
+
+Connect review findings to runs and findings board.
+
+Deliverables:
+
+1. link review findings to runs
+2. update finding status from review
+3. review summary in run detail
+4. severity breakdown
+
+Exit criteria:
+
+1. Review findings can be linked to runs.
+2. Findings board shows review metadata.
 
 ## Build Rule
 

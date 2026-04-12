@@ -45,6 +45,14 @@ import {
   checkStopConditions,
   normalizeLoopConfiguration,
   DEFAULT_LOOP_CONFIGURATION,
+  storeMemoryVector,
+  searchMemory,
+  findSimilarFindings,
+  listMemoryVectors,
+  getMemoryStats,
+  deleteMemoryVector,
+  clearMemoryVectors,
+  DEFAULT_MEMORY_CONFIG,
   type ZetroCreateRunEventInput,
   type ZetroCreateFindingInput,
   type ZetroCreateRunInput,
@@ -59,6 +67,9 @@ import {
   type ZetroProviderConfig,
   type ZetroReviewFindingInput,
   type ZetroCreateLoopConfigurationInput,
+  type ZetroCreateMemoryVectorInput,
+  type ZetroMemoryVector,
+  type ZetroMemorySearchResult,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -778,6 +789,165 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
         );
 
         return jsonResponse({ items: events });
+      },
+    }),
+    defineInternalRoute("/zetro/memory/search", {
+      summary: "Search memory vectors for similar content.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const query = context.request.url.searchParams.get("q")?.trim();
+        const limit = context.request.url.searchParams.get("limit");
+        const threshold = context.request.url.searchParams.get("threshold");
+        const contentType = context.request.url.searchParams.get("contentType");
+
+        if (!query) {
+          throw new ApplicationError("Search query is required.", {}, 400);
+        }
+
+        const results = await searchMemory(context.databases.primary, query, {
+          limit: limit ? Number(limit) : undefined,
+          threshold: threshold ? Number(threshold) : undefined,
+          contentType: contentType as
+            | ZetroMemoryVector["contentType"]
+            | undefined,
+        });
+
+        return jsonResponse({ items: results });
+      },
+    }),
+    defineInternalRoute("/zetro/memory/similar-findings", {
+      summary: "Find similar findings to a given finding.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const findingId = requireQueryId(context, "Finding");
+        const title = context.request.url.searchParams.get("title")?.trim();
+        const summary = context.request.url.searchParams.get("summary")?.trim();
+
+        if (!title || !summary) {
+          throw new ApplicationError(
+            "Finding title and summary are required.",
+            {},
+            400,
+          );
+        }
+
+        const results = await findSimilarFindings(
+          context.databases.primary,
+          title,
+          summary,
+          { excludeFindingId: findingId },
+        );
+
+        return jsonResponse({
+          items: results,
+          query: { findingId, title, summary },
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/memory/store", {
+      summary: "Store a new memory vector.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(context) as ZetroCreateMemoryVectorInput;
+
+        if (!body.content) {
+          throw new ApplicationError("Content is required.", {}, 400);
+        }
+
+        if (!body.contentType) {
+          throw new ApplicationError("Content type is required.", {}, 400);
+        }
+
+        const vector = await storeMemoryVector(context.databases.primary, body);
+
+        return jsonResponse(vector, 201);
+      },
+    }),
+    defineInternalRoute("/zetro/memory/vectors", {
+      summary: "List memory vectors.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const contentType = context.request.url.searchParams.get("contentType");
+        const runId = context.request.url.searchParams.get("runId");
+        const limit = context.request.url.searchParams.get("limit");
+
+        const vectors = await listMemoryVectors(context.databases.primary, {
+          contentType: contentType as
+            | ZetroMemoryVector["contentType"]
+            | undefined,
+          runId: runId ?? undefined,
+          limit: limit ? Number(limit) : undefined,
+        });
+
+        return jsonResponse({ items: vectors });
+      },
+    }),
+    defineInternalRoute("/zetro/memory/stats", {
+      summary: "Get memory statistics.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const stats = await getMemoryStats(context.databases.primary);
+
+        return jsonResponse({
+          ...stats,
+          config: DEFAULT_MEMORY_CONFIG,
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/memory/vector/:id", {
+      summary: "Delete a memory vector.",
+      method: "DELETE",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const id = context.request.url.pathname.split("/").pop();
+
+        if (!id) {
+          throw new ApplicationError("Memory vector id is required.", {}, 400);
+        }
+
+        await deleteMemoryVector(context.databases.primary, id);
+
+        return jsonResponse({ deleted: true, id });
+      },
+    }),
+    defineInternalRoute("/zetro/memory/clear", {
+      summary: "Clear memory vectors by filters.",
+      method: "DELETE",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const runId = context.request.url.searchParams.get("runId");
+        const contentType = context.request.url.searchParams.get("contentType");
+
+        const count = await clearMemoryVectors(context.databases.primary, {
+          runId: runId ?? undefined,
+          contentType: contentType as
+            | ZetroMemoryVector["contentType"]
+            | undefined,
+        });
+
+        return jsonResponse({ cleared: count });
       },
     }),
   ];

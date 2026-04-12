@@ -25,8 +25,9 @@ Available pages:
 5. Runs
 6. Findings
 7. Review Lanes
-8. Guardrails
-9. Settings
+8. Memory (Phase 2.1)
+9. Guardrails
+10. Settings
 
 ## Use The Terminal
 
@@ -53,6 +54,11 @@ npm.cmd run zetro -- loop-start --run <id> [--max <n>] [--timeout <ms>]
 npm.cmd run zetro -- loop-stop --run <id>
 npm.cmd run zetro -- loop-cancel --run <id>
 npm.cmd run zetro -- loop-events --run <id>
+npm.cmd run zetro -- memory-search "SQL injection"
+npm.cmd run zetro -- memory-similar --title "XSS" --summary "Cross-site scripting vulnerability"
+npm.cmd run zetro -- memory-store --finding <id> --content "Security finding text"
+npm.cmd run zetro -- memory-list
+npm.cmd run zetro -- memory-stats
 npm.cmd run zetro -- plan "build persisted playbooks"
 npm.cmd run zetro -- chat
 ```
@@ -69,15 +75,18 @@ It can:
 6. Show sample findings.
 7. Create a maximum-output plan scaffold.
 8. Run a local interactive `zetro>` prompt.
+9. Control loop iterations (start, stop, cancel).
+10. Show loop state and iteration events.
+11. Search semantic memory for similar findings.
+12. Store content in vector memory.
+13. Show memory statistics.
 
 It cannot yet:
 
 1. Execute commands.
 2. Write files from a prompt.
-3. Call an LLM.
-4. Use the network.
-5. Persist sessions.
-6. Run an autonomous loop.
+3. Use the network.
+4. Run an autonomous loop without operator control.
 
 That is intentional.
 
