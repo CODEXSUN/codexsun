@@ -1,20 +1,25 @@
-import { zetroSampleFindings } from "@zetro/shared"
 import { Badge } from "@/components/ui/badge"
 import { CardContent } from "@/components/ui/card"
+import { useZetroFindingsQuery } from "../api/zetro-api"
 
-import { ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
+import { ZetroDataState, ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
 
 export function ZetroFindingsPage() {
+  const findingsQuery = useZetroFindingsQuery()
+  const findings = findingsQuery.data ?? []
+
   return (
     <div className="space-y-4">
       <ZetroSectionIntro
         eyebrow="Findings"
-        title="Review findings board preview"
-        description="Static findings define the future review output model: severity, confidence, category, status, and follow-up readiness."
+        title="Review findings board"
+        description="Persisted findings keep severity, confidence, category, status, run linkage, and follow-up readiness."
       />
 
+      <ZetroDataState error={findingsQuery.error} isLoading={findingsQuery.isLoading} />
+
       <div className="grid gap-4 md:grid-cols-2">
-        {zetroSampleFindings.map((finding) => (
+        {findings.map((finding) => (
           <ZetroPanel key={finding.id}>
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -30,6 +35,9 @@ export function ZetroFindingsPage() {
                 <Badge variant="outline" className="rounded-md">{finding.category}</Badge>
                 <Badge variant="secondary" className="rounded-md">{finding.confidence}% confidence</Badge>
                 <Badge variant="outline" className="rounded-md">{finding.status}</Badge>
+                {finding.runId ? (
+                  <Badge variant="outline" className="rounded-md">{finding.runId}</Badge>
+                ) : null}
               </div>
             </CardContent>
           </ZetroPanel>

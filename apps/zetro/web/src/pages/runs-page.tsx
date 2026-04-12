@@ -1,22 +1,32 @@
-import { zetroSampleRuns, zetroStaticPlaybooks } from "@zetro/shared"
 import { Badge } from "@/components/ui/badge"
 import { CardContent } from "@/components/ui/card"
+import { useZetroPlaybooksQuery, useZetroRunsQuery } from "../api/zetro-api"
 
-import { ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
+import { ZetroDataState, ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
 
 export function ZetroRunsPage() {
-  const playbookNameById = new Map(zetroStaticPlaybooks.map((playbook) => [playbook.id, playbook.name]))
+  const runsQuery = useZetroRunsQuery()
+  const playbooksQuery = useZetroPlaybooksQuery()
+  const runs = runsQuery.data ?? []
+  const playbookNameById = new Map(
+    (playbooksQuery.data ?? []).map((playbook) => [playbook.id, playbook.name])
+  )
 
   return (
     <div className="space-y-4">
       <ZetroSectionIntro
         eyebrow="Runs"
-        title="Manual run console preview"
-        description="Phase 1 shows the run shape without persistence or command execution. Phase 4 turns this into a reloadable run console."
+        title="Manual run console"
+        description="Persisted manual runs keep output mode, status, playbook context, and summary without command execution."
+      />
+
+      <ZetroDataState
+        error={runsQuery.error ?? playbooksQuery.error}
+        isLoading={runsQuery.isLoading || playbooksQuery.isLoading}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        {zetroSampleRuns.map((run) => (
+        {runs.map((run) => (
           <ZetroPanel key={run.id}>
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">

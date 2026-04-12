@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.1.2`
+Current baseline: `1.1.3`
 
-Next target: `1.1.3`
+Next target: `1.1.4`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -187,6 +187,8 @@ Completion notes:
 
 ## 1.1.3 Dashboard API Integration
 
+Status: complete.
+
 Goal:
 
 Replace static dashboard reads with API-backed reads.
@@ -215,6 +217,13 @@ Verification:
 npm.cmd run typecheck
 npx.cmd eslint apps\zetro\web\src
 ```
+
+Completion notes:
+
+1. Zetro web API client exists in `apps/zetro/web/src/api/zetro-api.ts`.
+2. Overview, playbooks, runs, findings, guardrails, and settings pages read internal API data.
+3. Dashboard pages show loading and error states through the Zetro page shell.
+4. Static data remains the seeder/source catalog, not the primary dashboard source.
 
 Manual routes:
 

@@ -53,6 +53,36 @@ export function ZetroMetricPanel({
   )
 }
 
+export function ZetroDataState({
+  error,
+  isLoading,
+}: {
+  error: unknown
+  isLoading: boolean
+}) {
+  if (isLoading) {
+    return (
+      <ZetroPanel>
+        <CardContent className="p-5 text-sm text-muted-foreground">
+          Loading Zetro data.
+        </CardContent>
+      </ZetroPanel>
+    )
+  }
+
+  if (error) {
+    return (
+      <ZetroPanel>
+        <CardContent className="p-5 text-sm text-destructive">
+          {error instanceof Error ? error.message : "Zetro data could not be loaded."}
+        </CardContent>
+      </ZetroPanel>
+    )
+  }
+
+  return null
+}
+
 export function ZetroPanel({
   children,
   className = "",

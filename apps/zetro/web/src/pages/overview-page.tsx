@@ -2,54 +2,58 @@ import { ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import {
-  zetroDefaultOutputMode,
-  zetroGuardrailTemplates,
-  zetroOutputModes,
-  zetroSampleFindings,
-  zetroSampleRuns,
-  zetroStaticPlaybooks,
   zetroWorkspaceItems,
 } from "@zetro/shared"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CardContent } from "@/components/ui/card"
+import { useZetroSummaryQuery } from "../api/zetro-api"
 
-import { ZetroMetricPanel, ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
-
-const overviewMetrics = [
-  {
-    label: "Playbooks",
-    value: String(zetroStaticPlaybooks.length),
-    detail: "Static maximum-output catalog entries ready for persistence in Phase 2.",
-  },
-  {
-    label: "Output default",
-    value: zetroDefaultOutputMode,
-    detail: "Planning starts in maximum mode unless a playbook overrides it.",
-  },
-  {
-    label: "Guardrails",
-    value: String(zetroGuardrailTemplates.length),
-    detail: "Advisory and blocking rule templates before live runner work begins.",
-  },
-  {
-    label: "Sample runs",
-    value: String(zetroSampleRuns.length),
-    detail: "Run console shape without shell execution or database dependency.",
-  },
-  {
-    label: "Findings",
-    value: String(zetroSampleFindings.length),
-    detail: "Review output format for the future persisted findings board.",
-  },
-  {
-    label: "Output modes",
-    value: String(zetroOutputModes.length),
-    detail: "Brief, normal, detailed, maximum, and audit profiles.",
-  },
-] as const
+import {
+  ZetroDataState,
+  ZetroMetricPanel,
+  ZetroPanel,
+  ZetroSectionIntro,
+} from "./zetro-page-shell"
 
 export function ZetroOverviewPage() {
+  const summaryQuery = useZetroSummaryQuery()
+  const summary = summaryQuery.data
+  const overviewMetrics = summary
+    ? [
+        {
+          label: "Playbooks",
+          value: String(summary.playbooks),
+          detail: `${summary.activePlaybooks} active, ${summary.approvalRequiredPlaybooks} approval gated.`,
+        },
+        {
+          label: "Output default",
+          value: summary.defaultOutputMode,
+          detail: "Planning starts with the persisted default output mode.",
+        },
+        {
+          label: "Guardrails",
+          value: String(summary.guardrails),
+          detail: `Highest playbook risk: ${summary.highestPlaybookRisk ?? "none"}.`,
+        },
+        {
+          label: "Runs",
+          value: String(summary.runs),
+          detail: `${summary.activeRuns} active manual runs are persisted.`,
+        },
+        {
+          label: "Findings",
+          value: String(summary.findings),
+          detail: `${summary.openFindings} findings remain open.`,
+        },
+        {
+          label: "Runner lock",
+          value: summary.runnerMode,
+          detail: `Command execution: ${summary.commandExecution}.`,
+        },
+      ]
+    : []
+
   return (
     <div className="space-y-4">
       <ZetroSectionIntro
@@ -57,6 +61,8 @@ export function ZetroOverviewPage() {
         title="High-output agent operations"
         description="Plan, review, guard, and eventually execute Codexsun work through app-owned playbooks with visible output modes and approval gates."
       />
+
+      <ZetroDataState error={summaryQuery.error} isLoading={summaryQuery.isLoading} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {overviewMetrics.map((metric) => (

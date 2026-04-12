@@ -1,20 +1,25 @@
-import { zetroStaticPlaybooks } from "@zetro/shared"
 import { Badge } from "@/components/ui/badge"
 import { CardContent } from "@/components/ui/card"
+import { useZetroPlaybooksQuery } from "../api/zetro-api"
 
-import { ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
+import { ZetroDataState, ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
 
 export function ZetroPlaybooksPage() {
+  const playbooksQuery = useZetroPlaybooksQuery()
+  const playbooks = playbooksQuery.data ?? []
+
   return (
     <div className="space-y-4">
       <ZetroSectionIntro
         eyebrow="Playbooks"
-        title="Static maximum-output catalog"
-        description="These playbooks define the first Zetro capability surface. Phase 2 will move them into migrations, seeders, services, and API-backed views."
+        title="Persisted maximum-output catalog"
+        description="These playbooks define the current Zetro capability surface with persisted phases, output modes, risk levels, and approval gates."
       />
 
+      <ZetroDataState error={playbooksQuery.error} isLoading={playbooksQuery.isLoading} />
+
       <div className="grid gap-4 xl:grid-cols-2">
-        {zetroStaticPlaybooks.map((playbook) => (
+        {playbooks.map((playbook) => (
           <ZetroPanel key={playbook.id}>
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">

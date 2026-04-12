@@ -1,10 +1,13 @@
-import { zetroGuardrailTemplates } from "@zetro/shared"
 import { Badge } from "@/components/ui/badge"
 import { CardContent } from "@/components/ui/card"
+import { useZetroGuardrailsQuery } from "../api/zetro-api"
 
-import { ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
+import { ZetroDataState, ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
 
 export function ZetroGuardrailsPage() {
+  const guardrailsQuery = useZetroGuardrailsQuery()
+  const guardrails = guardrailsQuery.data ?? []
+
   return (
     <div className="space-y-4">
       <ZetroSectionIntro
@@ -13,8 +16,10 @@ export function ZetroGuardrailsPage() {
         description="Guardrails start as advisory templates. Blocking mode only becomes active after persistence, approvals, and runner policy are implemented."
       />
 
+      <ZetroDataState error={guardrailsQuery.error} isLoading={guardrailsQuery.isLoading} />
+
       <div className="grid gap-4 md:grid-cols-2">
-        {zetroGuardrailTemplates.map((guardrail) => (
+        {guardrails.map((guardrail) => (
           <ZetroPanel key={guardrail.id}>
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">

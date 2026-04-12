@@ -1,8 +1,8 @@
-import { zetroDefaultOutputMode, zetroOutputModes } from "@zetro/shared"
 import { Badge } from "@/components/ui/badge"
 import { CardContent } from "@/components/ui/card"
+import { useZetroSettingsQuery } from "../api/zetro-api"
 
-import { ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
+import { ZetroDataState, ZetroPanel, ZetroSectionIntro } from "./zetro-page-shell"
 
 const runnerModes = [
   {
@@ -26,13 +26,18 @@ const runnerModes = [
 ] as const
 
 export function ZetroSettingsPage() {
+  const settingsQuery = useZetroSettingsQuery()
+  const settings = settingsQuery.data
+
   return (
     <div className="space-y-4">
       <ZetroSectionIntro
         eyebrow="Settings"
         title="Output and runner policy"
-        description="Phase 1 keeps settings static. Phase 2 persists them and Phase 5 starts advisory command proposals."
+        description="Persisted settings keep output modes and the runner lock visible before model or command providers are enabled."
       />
+
+      <ZetroDataState error={settingsQuery.error} isLoading={settingsQuery.isLoading} />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ZetroPanel>
@@ -40,11 +45,11 @@ export function ZetroSettingsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-semibold text-foreground">Output modes</p>
               <Badge variant="secondary" className="rounded-md">
-                default: {zetroDefaultOutputMode}
+                default: {settings?.outputModes.defaultOutputMode ?? "loading"}
               </Badge>
             </div>
             <div className="grid gap-3">
-              {zetroOutputModes.map((mode) => (
+              {(settings?.outputModes.modes ?? []).map((mode) => (
                 <div key={mode.id} className="rounded-md border border-border/70 bg-background p-3">
                   <p className="text-sm font-semibold text-foreground">{mode.name}</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{mode.summary}</p>
@@ -56,13 +61,18 @@ export function ZetroSettingsPage() {
 
         <ZetroPanel>
           <CardContent className="space-y-4 p-5">
-            <p className="font-semibold text-foreground">Runner modes</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-semibold text-foreground">Runner modes</p>
+              <Badge variant="secondary" className="rounded-md">
+                {settings?.runtimeLock.commandExecution ?? "disabled"}
+              </Badge>
+            </div>
             <div className="grid gap-3">
               {runnerModes.map((mode) => (
                 <div key={mode.id} className="rounded-md border border-border/70 bg-background p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-foreground">{mode.name}</p>
-                    {mode.active ? (
+                    {mode.id === settings?.runtimeLock.runnerMode ? (
                       <Badge variant="secondary" className="rounded-md">active</Badge>
                     ) : (
                       <Badge variant="outline" className="rounded-md">planned</Badge>
