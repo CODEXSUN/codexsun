@@ -25,9 +25,10 @@ Current mode:
 1. Manual runner.
 2. Database-backed catalog with JSON store.
 3. Run output sections.
-4. Command proposals with approval workflow.
-5. No LLM call.
-6. No command execution.
-7. No background loop.
+4. Command proposals with policy validation.
+5. Command allowlist with blocked/sensitive commands.
+6. No LLM call.
+7. No command execution.
+8. No background loop.
 
-Phase: 1.3.0 complete (Advisory Command Proposals)
+Phase: 1.3.1 complete (Runner Policy And Allowlist)

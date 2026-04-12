@@ -4,9 +4,9 @@ This is the build checklist for turning Zetro from static terminal/dashboard cat
 
 Version line: `1.x`
 
-Current baseline: `1.3.0`
+Current baseline: `1.3.1`
 
-Next target: `1.3.1`
+Next target: `1.4.0`
 
 ## 1.0.0 Baseline: App Shell And Static Surface
 
@@ -386,6 +386,8 @@ Completion notes:
 
 ## 1.3.1 Runner Policy And Allowlist
 
+Status: complete.
+
 Goal:
 
 Define what can ever be run later.
@@ -403,6 +405,19 @@ Exit criteria:
 
 1. Policy can reject unsafe proposals.
 2. Policy can explain why a command is blocked.
+
+Completion notes:
+
+1. `zetro_command_allowlist` table exists with migration `08-zetro-command-allowlist`.
+2. Allowlist service exists with list, create, and policy check operations.
+3. Default allowlist entries for npm, tsc, npx, git are seeded.
+4. Built-in blocked commands: sudo, su, chmod, chown, chgrp.
+5. Built-in sensitive commands: rm, rmdir, del, format, shutdown, reboot, halt, init, mkfs, dd, fdisk.
+6. Command proposals are validated against the policy before creation.
+7. Blocked commands throw an error. Commands not in allowlist throw an error.
+8. Policy settings: allowAll, requireApproval, maxTimeoutSeconds, auditAllCommands.
+9. API routes exist for allowlist entries, blocked patterns, and policy settings.
+10. No command execution was added.
 
 ## 1.4.0 Approved CLI Runner
 

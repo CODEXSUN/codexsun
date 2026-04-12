@@ -1,5 +1,5 @@
-import { replaceJsonStoreRecords } from "../../../framework/src/runtime/database/process/json-store.js"
-import { defineDatabaseSeeder } from "../../../framework/src/runtime/database/process/types.js"
+import { replaceJsonStoreRecords } from "../../../framework/src/runtime/database/process/json-store.js";
+import { defineDatabaseSeeder } from "../../../framework/src/runtime/database/process/types.js";
 import {
   zetroDefaultOutputMode,
   zetroGuardrailTemplates,
@@ -7,9 +7,9 @@ import {
   zetroSampleFindings,
   zetroSampleRuns,
   zetroStaticPlaybooks,
-} from "../../shared/index.js"
+} from "../../shared/index.js";
 
-import { zetroTableNames } from "../table-names.js"
+import { zetroTableNames } from "../table-names.js";
 
 export const zetroDefaultsSeeder = defineDatabaseSeeder({
   id: "zetro:defaults:01-zetro-defaults",
@@ -38,8 +38,8 @@ export const zetroDefaultsSeeder = defineDatabaseSeeder({
           status: playbook.status,
           reviewLanes: playbook.reviewLanes,
         },
-      }))
-    )
+      })),
+    );
 
     await replaceJsonStoreRecords(
       database,
@@ -54,9 +54,9 @@ export const zetroDefaultsSeeder = defineDatabaseSeeder({
             playbookId: playbook.id,
             sequence: phaseIndex + 1,
           },
-        }))
-      )
-    )
+        })),
+      ),
+    );
 
     await replaceJsonStoreRecords(
       database,
@@ -66,8 +66,8 @@ export const zetroDefaultsSeeder = defineDatabaseSeeder({
         moduleKey: run.status,
         sortOrder: (index + 1) * 10,
         payload: run,
-      }))
-    )
+      })),
+    );
 
     await replaceJsonStoreRecords(
       database,
@@ -77,8 +77,8 @@ export const zetroDefaultsSeeder = defineDatabaseSeeder({
         moduleKey: finding.category,
         sortOrder: (index + 1) * 10,
         payload: finding,
-      }))
-    )
+      })),
+    );
 
     await replaceJsonStoreRecords(
       database,
@@ -88,8 +88,8 @@ export const zetroDefaultsSeeder = defineDatabaseSeeder({
         moduleKey: guardrail.event,
         sortOrder: (index + 1) * 10,
         payload: guardrail,
-      }))
-    )
+      })),
+    );
 
     await replaceJsonStoreRecords(database, zetroTableNames.settings, [
       {
@@ -113,6 +113,64 @@ export const zetroDefaultsSeeder = defineDatabaseSeeder({
           modes: zetroOutputModes,
         },
       },
-    ])
+    ]);
+
+    const defaultAllowlistEntries = [
+      {
+        id: "allow-npm",
+        command: "npm",
+        category: "build" as const,
+        description: "Node package manager for build, test, and scripts.",
+        enabled: true,
+        maxArgs: 10,
+        maxTimeoutSeconds: 300,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      },
+      {
+        id: "allow-tsc",
+        command: "tsc",
+        category: "typecheck" as const,
+        description: "TypeScript compiler for type checking.",
+        enabled: true,
+        maxArgs: 5,
+        maxTimeoutSeconds: 120,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      },
+      {
+        id: "allow-npx",
+        command: "npx",
+        category: "build" as const,
+        description: "Node package executor for running packages.",
+        enabled: true,
+        maxArgs: 10,
+        maxTimeoutSeconds: 300,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      },
+      {
+        id: "allow-git",
+        command: "git",
+        category: "git" as const,
+        description: "Git for version control operations.",
+        enabled: true,
+        maxArgs: 10,
+        maxTimeoutSeconds: 60,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      },
+    ];
+
+    await replaceJsonStoreRecords(
+      database,
+      zetroTableNames.commandAllowlist,
+      defaultAllowlistEntries.map((entry, index) => ({
+        id: entry.id,
+        moduleKey: entry.category,
+        sortOrder: (index + 1) * 10,
+        payload: entry,
+      })),
+    );
   },
-})
+});

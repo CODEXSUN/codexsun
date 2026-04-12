@@ -1,3 +1,4 @@
+export * from "./allowlist-service.js";
 export * from "./command-proposal-service.js";
 export * from "./finding-service.js";
 export * from "./guardrail-service.js";

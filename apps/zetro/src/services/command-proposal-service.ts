@@ -20,6 +20,7 @@ export type ZetroCommandProposal = {
   summary: string;
   rationale: string;
   status: ZetroCommandProposalStatus;
+  policyWarning?: string | null;
   reviewedAt: string | null;
   reviewedBy: string | null;
   createdAt: string;
@@ -133,6 +134,21 @@ export async function createZetroCommandProposal(
     );
   }
 
+  const { checkCommandPolicy } = await import("./allowlist-service.js");
+  const policyCheck = await checkCommandPolicy(
+    database,
+    normalizedInput.command,
+    normalizedInput.args,
+  );
+
+  if (policyCheck.blocked) {
+    throw new ApplicationError(
+      `Command '${normalizedInput.command}' is blocked by policy: ${policyCheck.reason}`,
+      { command: normalizedInput.command, reason: policyCheck.reason },
+      400,
+    );
+  }
+
   const proposal = {
     id: normalizedInput.id,
     runId: normalizedInput.runId,
@@ -143,8 +159,9 @@ export async function createZetroCommandProposal(
     status: "pending" as ZetroCommandProposalStatus,
     reviewedAt: null,
     reviewedBy: null,
+    policyWarning: policyCheck.allowed ? null : policyCheck.reason,
     createdAt: new Date().toISOString(),
-  } satisfies ZetroCommandProposal;
+  } satisfies ZetroCommandProposal & { policyWarning?: string | null };
 
   await replaceStoreRecords(database, zetroTableNames.commandProposals, [
     ...records,

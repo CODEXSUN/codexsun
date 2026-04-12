@@ -5,6 +5,7 @@ export const zetroTableNames = {
   runEvents: "zetro_run_events",
   runOutputSections: "zetro_run_output_sections",
   commandProposals: "zetro_command_proposals",
+  commandAllowlist: "zetro_command_allowlist",
   findings: "zetro_findings",
   guardrails: "zetro_guardrails",
   settings: "zetro_settings",

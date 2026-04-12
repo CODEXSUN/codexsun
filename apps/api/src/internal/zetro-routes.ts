@@ -7,11 +7,16 @@ import {
   createZetroRun,
   createZetroRunOutputSection,
   createZetroCommandProposal,
+  createZetroAllowlistEntry,
+  createZetroBlockedCommand,
   getZetroDashboardSummary,
   getZetroPlaybook,
   getZetroRunWithDetails,
+  getZetroRunnerPolicy,
   listZetroFindings,
   listZetroGuardrails,
+  listZetroAllowlistEntries,
+  listZetroBlockedCommands,
   listZetroPlaybooks,
   listZetroRuns,
   readZetroSettings,
@@ -25,6 +30,8 @@ import {
   type ZetroCreateCommandProposalInput,
   type ZetroUpdateCommandProposalStatusInput,
   type ZetroFindingStatus,
+  type ZetroCreateAllowlistEntryInput,
+  type ZetroCreateBlockedCommandInput,
 } from "../../../zetro/src/services/index.js";
 
 import { jsonResponse } from "../shared/http-responses.js";
@@ -351,6 +358,78 @@ export function createZetroInternalRoutes(): HttpRouteDefinition[] {
             proposalId,
             body,
           ),
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/allowlist", {
+      summary: "List allowed commands in the allowlist.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        return jsonResponse({
+          items: await listZetroAllowlistEntries(context.databases.primary),
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/allowlist/entry", {
+      summary: "Add a command to the allowlist.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(
+          context,
+        ) as ZetroCreateAllowlistEntryInput;
+
+        return jsonResponse(
+          await createZetroAllowlistEntry(context.databases.primary, body),
+          201,
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/allowlist/blocked", {
+      summary: "List blocked command patterns.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        return jsonResponse({
+          items: await listZetroBlockedCommands(context.databases.primary),
+        });
+      },
+    }),
+    defineInternalRoute("/zetro/allowlist/blocked", {
+      summary: "Add a blocked command pattern.",
+      method: "POST",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        const body = requireJsonObject(
+          context,
+        ) as ZetroCreateBlockedCommandInput;
+
+        return jsonResponse(
+          await createZetroBlockedCommand(context.databases.primary, body),
+          201,
+        );
+      },
+    }),
+    defineInternalRoute("/zetro/policy", {
+      summary: "Read the current runner policy settings.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        });
+
+        return jsonResponse(
+          await getZetroRunnerPolicy(context.databases.primary),
         );
       },
     }),
