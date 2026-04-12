@@ -74,7 +74,7 @@ export type MasterListColumn<TData> = {
 
 export type MasterListProps<TData> = {
   header: {
-    pageTitle: string
+    pageTitle: ReactNode
     pageDescription: string
     technicalName?: string
     addLabel?: string

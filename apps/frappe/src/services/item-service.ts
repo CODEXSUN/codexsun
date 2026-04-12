@@ -54,13 +54,32 @@ function createReferenceOptions(values: string[]) {
 }
 
 async function readItems(database: Kysely<unknown>) {
-  const items = await listStorePayloads(
+  const products = await listStorePayloads(
     database,
-    frappeTableNames.items,
+    frappeTableNames.products,
     frappeItemSchema
   )
 
+  const items =
+    products.length > 0
+      ? products
+      : await listStorePayloads(
+          database,
+          frappeTableNames.items,
+          frappeItemSchema
+        )
+
   return items.sort((left, right) => left.itemCode.localeCompare(right.itemCode))
+}
+
+function writeItems(database: Kysely<unknown>, items: FrappeItem[]) {
+  return replaceStorePayloads(database, frappeTableNames.products, items.map((item, index) => ({
+    id: item.id,
+    moduleKey: "products",
+    sortOrder: index + 1,
+    payload: item,
+    updatedAt: item.modifiedAt,
+  })))
 }
 
 async function readItemSyncLogs(database: Kysely<unknown>) {
@@ -280,16 +299,10 @@ export async function createFrappeItem(
     isSyncedToProduct: false,
   })
 
-  await replaceStorePayloads(database, frappeTableNames.items, [
+  await writeItems(database, [
     ...items,
     createdItem,
-  ].map((item, index) => ({
-    id: item.id,
-    moduleKey: "items",
-    sortOrder: index + 1,
-    payload: item,
-    updatedAt: item.modifiedAt,
-  })))
+  ])
 
   return frappeItemResponseSchema.parse({
     item: createdItem,
@@ -323,13 +336,7 @@ export async function updateFrappeItem(
   )
   const updatedItem = nextItems.find((item) => item.id === itemId)!
 
-  await replaceStorePayloads(database, frappeTableNames.items, nextItems.map((item, index) => ({
-    id: item.id,
-    moduleKey: "items",
-    sortOrder: index + 1,
-    payload: item,
-    updatedAt: item.modifiedAt,
-  })))
+  await writeItems(database, nextItems)
 
   return frappeItemResponseSchema.parse({
     item: updatedItem,
@@ -446,17 +453,7 @@ export async function syncFrappeItemsToProducts(
     }
   }
 
-  await replaceStorePayloads(
-    database,
-    frappeTableNames.items,
-    nextItems.map((item, index) => ({
-      id: item.id,
-      moduleKey: "items",
-      sortOrder: index + 1,
-      payload: item,
-      updatedAt: item.modifiedAt,
-    }))
-  )
+  await writeItems(database, nextItems)
 
   const successCount = syncLogItems.filter((item) => item.mode === "create" || item.mode === "update").length
   const skippedCount = syncLogItems.filter((item) => item.mode === "skipped").length

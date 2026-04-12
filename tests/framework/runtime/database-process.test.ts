@@ -116,6 +116,7 @@ test("registered database processes stay ordered by app and module", () => {
       "frappe:items:03-items",
       "frappe:purchase-receipts:04-purchase-receipts",
       "frappe:item-sync-logs:05-item-product-sync-logs",
+      "frappe:products:06-products",
       "zetro:playbooks:01-zetro-playbooks",
       "zetro:runs:02-zetro-runs",
       "zetro:findings:03-zetro-findings",
@@ -155,6 +156,7 @@ test("registered database processes stay ordered by app and module", () => {
       "frappe:items:03-items",
       "frappe:purchase-receipts:04-purchase-receipts",
       "frappe:item-sync-logs:05-item-product-sync-logs",
+      "frappe:products:06-products",
       "zetro:defaults:01-zetro-defaults",
     ]
   )
@@ -289,7 +291,9 @@ test("database prepare applies app-owned migrations and seeders with ecommerce s
       const frappeSettings = await readFrappeSettings(runtime.primary, adminUser, {
         config: frappeConfig,
       })
-      const frappeTodos = await listFrappeTodos(runtime.primary, adminUser)
+      const frappeTodos = await listFrappeTodos(runtime.primary, adminUser, {
+        config: frappeConfig,
+      })
       const frappeItems = await listFrappeItems(runtime.primary, adminUser, {
         config: frappeConfig,
       })

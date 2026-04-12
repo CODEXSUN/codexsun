@@ -275,6 +275,7 @@ export function FrameworkAppWorkspacePage({
     crmWorkspaceContent ??
     zetroWorkspaceContent
   const hideWorkspaceHero =
+    app.id === "frappe" ||
     app.id === "ecommerce" ||
     (
       app.id === "demo" &&

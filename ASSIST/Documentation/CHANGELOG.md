@@ -8,6 +8,52 @@
 
 ## v-0.0.1
 
+### [#144] 2026-04-12 - Frappe product manager alignment
+
+- added a dedicated `frappe_products` app-owned snapshot table and seeder for Frappe product records while preserving `frappe_items` as a legacy read fallback
+- changed Frappe item/product snapshot writes to persist through `frappe_products`, keeping product sync orchestration inside `apps/frappe`
+- refactored the Frappe Item Manager into the same compact `MasterList` table, same-height toolbar actions, inline sync status text, ERP status dot, row selection, pagination, and popup create/edit flow used by the ToDo workspace
+- added selected product sync and all-filtered product sync actions for projecting Frappe product snapshots into core products
+
+### [#143] 2026-04-12 - Frappe ToDo ERP status header
+
+- removed the generic Frappe workspace hero card so the ToDo workspace no longer shows the connector intro block above the operational table
+- added a compact green or red ERP connection status dot beside the `ToDos` header, backed by the existing internal Frappe settings status
+- widened the shared `MasterList` title contract to accept a renderable header node so app-owned sections can add compact status indicators without adding extra cards
+- validated the batch with `npm run typecheck`; `git diff --check` reported only line-ending warnings
+
+### [#142] 2026-04-12 - Compact Frappe ToDo toolbar status
+
+- moved Frappe ToDo sync result messages under the toolbar as compact right-aligned helper text
+- removed the separate sync-result status card so selected push, live sync, delete, and verify feedback no longer creates an extra card above the table
+- reduced the ToDo master-list header copy from a hero-style description to compact record-count context
+- validated the batch with `npm run typecheck`
+
+### [#141] 2026-04-12 - Frappe ToDo sync verification status
+
+- added a read-only Frappe ToDo verification service that compares app-owned local snapshots with live ERPNext ToDo records using the connector's existing matching and payload-equality rules
+- exposed `POST /internal/v1/frappe/todos/verify-sync` and a frontend API helper so the browser can request verification only through the internal API boundary
+- added a `Sync` table column with `Synced`, `Not synced`, `Changed`, and pre-verification `Verify` states
+- added a same-height `Verify` toolbar button that reports synced, not-synced, and changed record counts without mutating either local snapshots or ERPNext
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, and a focused route-registry assertion for `POST /internal/v1/frappe/todos/verify-sync`
+
+### [#140] 2026-04-12 - Selected Frappe ToDo actions
+
+- removed the extra Frappe ToDo section card and metric cards so the workspace starts directly at the operational ToDo list with less vertical whitespace
+- moved refresh, selected push, live sync, selected delete, and create into one same-height icon toolbar with distinct action colors
+- added ToDo table multi-select through the shared `MasterList` row-selection path
+- extended live sync payloads with optional `todoIds` so the `Push` toolbar action syncs only the selected local ToDo snapshots
+- added local selected-delete support for Frappe ToDo snapshots through `DELETE /internal/v1/frappe/todos` without deleting ERPNext records
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, and a direct internal-route registry assertion covering `DELETE /internal/v1/frappe/todos`
+
+### [#139] 2026-04-12 - ERPNext User dropdowns for Frappe ToDo
+
+- added an app-owned ERPNext `User` reference fetch for Frappe ToDo so `allocated_to` and `assigned_by` can display full names and be selected from live ERPNext users without direct browser access to Frappe
+- enriched ToDo snapshots with `allocatedToFullName` from linked ERPNext users while preserving `assignedByFullName` from the ToDo document or linked User record
+- replaced manual allocated-to and assigned-by inputs with searchable user dropdowns in the Frappe ToDo popup, filtering out disabled users from selectable options
+- hid reference type, reference name, role, and sender from the current ToDo upsert form while preserving those ERPNext fields in synced snapshots for a later advanced toggle
+- trimmed ToDo descriptions on create and update, and validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, `npx tsx --test tests/framework/runtime/database-process.test.ts`, and a live read-only ERPNext User lookup
+
 ### [#138] 2026-04-12 - ERPNext-aligned Frappe ToDo fields
 
 - inspected the live ERPNext `ToDo` DocType through the env-backed Frappe connector and confirmed the active field pattern for status, priority, color, due date, assignee, description, reference, role, assigned-by, sender, and assignment-rule fields

@@ -3,6 +3,7 @@ import { frappeTodosMigration } from "./02-todos.js"
 import { frappeItemsMigration } from "./03-items.js"
 import { frappePurchaseReceiptsMigration } from "./04-purchase-receipts.js"
 import { frappeItemProductSyncLogsMigration } from "./05-item-product-sync-logs.js"
+import { frappeProductsMigration } from "./06-products.js"
 
 export const frappeDatabaseMigrations = [
   frappeSettingsMigration,
@@ -10,4 +11,5 @@ export const frappeDatabaseMigrations = [
   frappeItemsMigration,
   frappePurchaseReceiptsMigration,
   frappeItemProductSyncLogsMigration,
+  frappeProductsMigration,
 ]

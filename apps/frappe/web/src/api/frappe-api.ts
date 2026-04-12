@@ -18,8 +18,11 @@ import type {
   FrappeTodoListResponse,
   FrappeTodoLiveSyncPayload,
   FrappeTodoLiveSyncResponse,
+  FrappeTodoBulkDeletePayload,
+  FrappeTodoBulkDeleteResponse,
   FrappeTodoResponse,
   FrappeTodoUpsertPayload,
+  FrappeTodoVerifySyncResponse,
 } from "@frappe/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 
@@ -120,13 +123,32 @@ export function updateFrappeTodo(todoId: string, payload: FrappeTodoUpsertPayloa
   )
 }
 
+export function deleteFrappeTodos(payload: FrappeTodoBulkDeletePayload) {
+  return request<FrappeTodoBulkDeleteResponse>("/internal/v1/frappe/todos", {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+  })
+}
+
 export function syncFrappeTodosLive(
-  payload: FrappeTodoLiveSyncPayload = { direction: "bidirectional" }
+  payload: FrappeTodoLiveSyncPayload = {
+    direction: "bidirectional",
+    todoIds: [],
+  }
 ) {
   return request<FrappeTodoLiveSyncResponse>("/internal/v1/frappe/todos/sync-live", {
     method: "POST",
     body: JSON.stringify(payload),
   })
+}
+
+export function verifyFrappeTodosSync() {
+  return request<FrappeTodoVerifySyncResponse>(
+    "/internal/v1/frappe/todos/verify-sync",
+    {
+      method: "POST",
+    }
+  )
 }
 
 export function listFrappeItems() {

@@ -414,6 +414,7 @@ export const frappeTodoSchema = z.object({
   color: z.string().trim().default(""),
   dueDate: z.string().trim(),
   allocatedTo: z.string().trim(),
+  allocatedToFullName: z.string().trim().default(""),
   description: z.string().trim(),
   referenceType: z.string().trim().default(""),
   referenceName: z.string().trim().default(""),
@@ -426,9 +427,20 @@ export const frappeTodoSchema = z.object({
   modifiedAt: z.string().trim(),
 })
 
+export const frappeTodoUserOptionSchema = z.object({
+  id: z.string().trim().min(1),
+  email: z.string().trim(),
+  fullName: z.string().trim(),
+  label: z.string().trim().min(1),
+  disabled: z.boolean(),
+})
+
 export const frappeTodoListSchema = z.object({
   items: z.array(frappeTodoSchema),
   syncedAt: z.string().trim().min(1),
+  references: z.object({
+    users: z.array(frappeTodoUserOptionSchema),
+  }),
 })
 
 export const frappeTodoListResponseSchema = z.object({
@@ -442,19 +454,26 @@ export const frappeTodoUpsertPayloadSchema = z.object({
   dueDate: z.string().trim(),
   allocatedTo: z.string().trim(),
   description: z.string().trim().min(1),
-  referenceType: z.string().trim(),
-  referenceName: z.string().trim(),
-  role: z.string().trim(),
   assignedBy: z.string().trim(),
-  sender: z.string().trim(),
 })
 
 export const frappeTodoResponseSchema = z.object({
   item: frappeTodoSchema,
 })
 
+export const frappeTodoBulkDeletePayloadSchema = z.object({
+  todoIds: z.array(z.string().trim().min(1)).min(1),
+})
+
+export const frappeTodoBulkDeleteResponseSchema = z.object({
+  deletedCount: z.number().int().nonnegative(),
+  remainingCount: z.number().int().nonnegative(),
+  items: z.array(frappeTodoSchema),
+})
+
 export const frappeTodoLiveSyncPayloadSchema = z.object({
   direction: z.enum(["push", "pull", "bidirectional"]).optional().default("bidirectional"),
+  todoIds: z.array(z.string().trim().min(1)).optional().default([]),
 })
 
 export const frappeTodoLiveSyncResponseSchema = z.object({
@@ -470,6 +489,26 @@ export const frappeTodoLiveSyncResponseSchema = z.object({
     syncedAt: z.string().trim().min(1),
     items: z.array(frappeTodoSchema),
     errors: z.array(z.string().trim().min(1)),
+  }),
+})
+
+export const frappeTodoSyncStatusSchema = z.enum(["synced", "not_synced", "changed"])
+
+export const frappeTodoVerifySyncItemSchema = z.object({
+  todoId: z.string().trim().min(1),
+  remoteName: z.string().trim(),
+  status: frappeTodoSyncStatusSchema,
+  message: z.string().trim().min(1),
+})
+
+export const frappeTodoVerifySyncResponseSchema = z.object({
+  verification: z.object({
+    checkedCount: z.number().int().nonnegative(),
+    syncedCount: z.number().int().nonnegative(),
+    notSyncedCount: z.number().int().nonnegative(),
+    changedCount: z.number().int().nonnegative(),
+    verifiedAt: z.string().trim().min(1),
+    items: z.array(frappeTodoVerifySyncItemSchema),
   }),
 })
 
@@ -796,8 +835,13 @@ export type FrappeTodoList = z.infer<typeof frappeTodoListSchema>
 export type FrappeTodoListResponse = z.infer<typeof frappeTodoListResponseSchema>
 export type FrappeTodoUpsertPayload = z.infer<typeof frappeTodoUpsertPayloadSchema>
 export type FrappeTodoResponse = z.infer<typeof frappeTodoResponseSchema>
+export type FrappeTodoBulkDeletePayload = z.infer<typeof frappeTodoBulkDeletePayloadSchema>
+export type FrappeTodoBulkDeleteResponse = z.infer<typeof frappeTodoBulkDeleteResponseSchema>
 export type FrappeTodoLiveSyncPayload = z.infer<typeof frappeTodoLiveSyncPayloadSchema>
 export type FrappeTodoLiveSyncResponse = z.infer<typeof frappeTodoLiveSyncResponseSchema>
+export type FrappeTodoSyncStatus = z.infer<typeof frappeTodoSyncStatusSchema>
+export type FrappeTodoVerifySyncItem = z.infer<typeof frappeTodoVerifySyncItemSchema>
+export type FrappeTodoVerifySyncResponse = z.infer<typeof frappeTodoVerifySyncResponseSchema>
 export type FrappeReferenceOption = z.infer<typeof frappeReferenceOptionSchema>
 export type FrappeItem = z.infer<typeof frappeItemSchema>
 export type FrappeItemReferences = z.infer<typeof frappeItemReferencesSchema>

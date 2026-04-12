@@ -60,11 +60,7 @@ export function createDefaultTodoValues(): FrappeTodoUpsertPayload {
     dueDate: "",
     allocatedTo: "",
     description: "",
-    referenceType: "",
-    referenceName: "",
-    role: "",
     assignedBy: "",
-    sender: "",
   }
 }
 

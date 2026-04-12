@@ -7,9 +7,13 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import {
   frappeTodoLiveSyncPayloadSchema,
   frappeTodoLiveSyncResponseSchema,
+  frappeTodoVerifySyncResponseSchema,
+  frappeTodoBulkDeletePayloadSchema,
+  frappeTodoBulkDeleteResponseSchema,
   frappeTodoListResponseSchema,
   frappeTodoResponseSchema,
   frappeTodoSchema,
+  frappeTodoUserOptionSchema,
   frappeTodoUpsertPayloadSchema,
   type FrappeTodo,
 } from "../../shared/index.js"
@@ -28,6 +32,14 @@ import { listStorePayloads, replaceStorePayloads } from "./store.js"
 type FrappeTodoServiceOptions = {
   config?: FrappeEnvConfig
   cwd?: string
+}
+
+type FrappeTodoUserOption = {
+  id: string
+  email: string
+  fullName: string
+  label: string
+  disabled: boolean
 }
 
 async function readTodos(database: Kysely<unknown>) {
@@ -83,6 +95,7 @@ function toLocalTodo(remoteTodo: Record<string, unknown>) {
     dueDate: typeof remoteTodo.date === "string" ? remoteTodo.date : "",
     allocatedTo:
       typeof remoteTodo.allocated_to === "string" ? remoteTodo.allocated_to : "",
+    allocatedToFullName: "",
     description:
       typeof remoteTodo.description === "string" ? remoteTodo.description : "",
     referenceType:
@@ -121,6 +134,63 @@ function toRemoteTodoPayload(todo: FrappeTodo) {
     assigned_by: todo.assignedBy || null,
     sender: todo.sender || null,
   }
+}
+
+function toRemoteUserOption(remoteUser: Record<string, unknown>) {
+  const id = typeof remoteUser.name === "string" ? remoteUser.name.trim() : ""
+  const email = typeof remoteUser.email === "string" ? remoteUser.email.trim() : id
+  const fullName =
+    typeof remoteUser.full_name === "string" ? remoteUser.full_name.trim() : ""
+  const enabled =
+    typeof remoteUser.enabled === "boolean"
+      ? remoteUser.enabled
+      : Number(remoteUser.enabled ?? 1) !== 0
+
+  if (!id) {
+    return null
+  }
+
+  return frappeTodoUserOptionSchema.parse({
+    id,
+    email,
+    fullName,
+    label: fullName ? `${fullName} - ${email || id}` : email || id,
+    disabled: !enabled,
+  })
+}
+
+function getUserOptionKeys(user: FrappeTodoUserOption) {
+  return [user.id, user.email]
+    .filter(Boolean)
+    .map((value) => value.toLowerCase())
+}
+
+function enrichTodosWithUsers(todos: FrappeTodo[], users: FrappeTodoUserOption[]) {
+  const usersByKey = new Map<string, FrappeTodoUserOption>()
+
+  for (const user of users) {
+    for (const key of getUserOptionKeys(user)) {
+      usersByKey.set(key, user)
+    }
+  }
+
+  return todos.map((todo) => {
+    const allocatedUser = usersByKey.get(todo.allocatedTo.toLowerCase())
+    const assignedByUser = usersByKey.get(todo.assignedBy.toLowerCase())
+
+    return frappeTodoSchema.parse({
+      ...todo,
+      allocatedToFullName: allocatedUser?.fullName ?? todo.allocatedToFullName,
+      assignedByFullName:
+        todo.assignedByFullName || assignedByUser?.fullName || "",
+    })
+  })
+}
+
+function sortTodosByModifiedAt(todos: FrappeTodo[]) {
+  return [...todos].sort((left, right) =>
+    right.modifiedAt.localeCompare(left.modifiedAt)
+  )
 }
 
 function findMatchingRemoteTodo(todo: FrappeTodo, remoteTodos: FrappeTodo[]) {
@@ -196,6 +266,79 @@ async function readRemoteTodos(connection: ReturnType<typeof createFrappeConnect
   )
 }
 
+async function readRemoteUsers(connection: ReturnType<typeof createFrappeConnection>) {
+  const fields = encodeURIComponent(
+    JSON.stringify(["name", "email", "full_name", "enabled"])
+  )
+  const { response } = await connection.request({
+    path: `/api/resource/User?fields=${fields}&limit_page_length=500`,
+  })
+
+  if (!response.ok) {
+    throw new ApplicationError(
+      "ERPNext rejected the User reference request.",
+      { detail: await readFrappeErrorText(response) },
+      response.status
+    )
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | { data?: unknown }
+    | null
+
+  if (!Array.isArray(payload?.data)) {
+    throw new ApplicationError("ERPNext User reference request returned an invalid payload.", {}, 502)
+  }
+
+  return payload.data
+    .map((item) =>
+      toRemoteUserOption(item && typeof item === "object" ? item as Record<string, unknown> : {})
+    )
+    .filter((item): item is FrappeTodoUserOption => Boolean(item))
+}
+
+async function readTodoUserReferences(
+  database: Kysely<unknown>,
+  options?: FrappeTodoServiceOptions
+) {
+  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
+  const settings = await readStoredFrappeSettings(database, {
+    ...options,
+    config,
+  })
+
+  if (!settings.enabled || !settings.isConfigured) {
+    return []
+  }
+
+  if (settings.lastVerificationStatus !== "passed") {
+    return []
+  }
+
+  return readRemoteUsers(createFrappeConnection(config))
+}
+
+async function createVerifiedTodoConnection(
+  database: Kysely<unknown>,
+  options?: FrappeTodoServiceOptions
+) {
+  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
+  const settings = await readStoredFrappeSettings(database, {
+    ...options,
+    config,
+  })
+
+  if (!settings.enabled || !settings.isConfigured) {
+    throw new ApplicationError("ERPNext connector must be enabled and configured before ToDo sync checks.", {}, 409)
+  }
+
+  if (settings.lastVerificationStatus !== "passed") {
+    throw new ApplicationError("ERPNext connector must be verified successfully before ToDo sync checks.", {}, 409)
+  }
+
+  return createFrappeConnection(config)
+}
+
 async function pushRemoteTodo(
   connection: ReturnType<typeof createFrappeConnection>,
   todo: FrappeTodo,
@@ -258,14 +401,20 @@ async function pushRemoteTodo(
 
 export async function listFrappeTodos(
   database: Kysely<unknown>,
-  user: AuthUser
+  user: AuthUser,
+  options?: FrappeTodoServiceOptions
 ) {
   assertFrappeViewer(user)
 
+  const users = await readTodoUserReferences(database, options)
+
   return frappeTodoListResponseSchema.parse({
     todos: {
-      items: await readTodos(database),
+      items: enrichTodosWithUsers(await readTodos(database), users),
       syncedAt: new Date().toISOString(),
+      references: {
+        users,
+      },
     },
   })
 }
@@ -280,20 +429,22 @@ export async function createFrappeTodo(
   const parsedPayload = frappeTodoUpsertPayloadSchema.parse(payload)
   const timestamp = new Date().toISOString()
   const items = await readTodos(database)
+  const description = parsedPayload.description.trim()
   const createdItem = frappeTodoSchema.parse({
     id: `frappe-todo:${randomUUID()}`,
-    description: parsedPayload.description,
+    description,
     status: parsedPayload.status,
     priority: parsedPayload.priority,
     color: parsedPayload.color,
     dueDate: parsedPayload.dueDate,
     allocatedTo: parsedPayload.allocatedTo,
-    referenceType: parsedPayload.referenceType,
-    referenceName: parsedPayload.referenceName,
-    role: parsedPayload.role,
+    allocatedToFullName: "",
+    referenceType: "",
+    referenceName: "",
+    role: "",
     assignedBy: parsedPayload.assignedBy,
     assignedByFullName: "",
-    sender: parsedPayload.sender,
+    sender: "",
     assignmentRule: "",
     owner: user.email,
     modifiedAt: timestamp,
@@ -334,6 +485,7 @@ export async function updateFrappeTodo(
   const updatedItem = frappeTodoSchema.parse({
     ...existingItem,
     ...parsedPayload,
+    description: parsedPayload.description.trim(),
     modifiedAt: new Date().toISOString(),
   })
   const nextItems = items.map((item) =>
@@ -353,6 +505,28 @@ export async function updateFrappeTodo(
   })
 }
 
+export async function deleteFrappeTodos(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  payload: unknown
+) {
+  assertSuperAdmin(user)
+
+  const parsedPayload = frappeTodoBulkDeletePayloadSchema.parse(payload)
+  const deleteIds = new Set(parsedPayload.todoIds)
+  const items = await readTodos(database)
+  const nextItems = items.filter((item) => !deleteIds.has(item.id))
+  const deletedCount = items.length - nextItems.length
+
+  await writeTodos(database, nextItems)
+
+  return frappeTodoBulkDeleteResponseSchema.parse({
+    deletedCount,
+    remainingCount: nextItems.length,
+    items: nextItems,
+  })
+}
+
 export async function syncFrappeTodosLive(
   database: Kysely<unknown>,
   user: AuthUser,
@@ -362,24 +536,16 @@ export async function syncFrappeTodosLive(
   assertSuperAdmin(user)
 
   const parsedPayload = frappeTodoLiveSyncPayloadSchema.parse(payload ?? {})
-  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
-  const settings = await readStoredFrappeSettings(database, {
-    ...options,
-    config,
-  })
-
-  if (!settings.enabled || !settings.isConfigured) {
-    throw new ApplicationError("ERPNext connector must be enabled and configured before ToDo live sync.", {}, 409)
-  }
-
-  if (settings.lastVerificationStatus !== "passed") {
-    throw new ApplicationError("ERPNext connector must be verified successfully before ToDo live sync.", {}, 409)
-  }
-
-  const connection = createFrappeConnection(config)
+  const connection = await createVerifiedTodoConnection(database, options)
   const syncedAt = new Date().toISOString()
   const localTodos = await readTodos(database)
+  const selectedTodoIds = new Set(parsedPayload.todoIds)
+  const pushTodos =
+    selectedTodoIds.size > 0
+      ? localTodos.filter((item) => selectedTodoIds.has(item.id))
+      : localTodos
   const remoteTodos = await readRemoteTodos(connection)
+  const users = await readRemoteUsers(connection)
   const errors: string[] = []
   let pushedCount = 0
   let pulledCount = 0
@@ -393,14 +559,14 @@ export async function syncFrappeTodosLive(
     pulledCount = remoteTodos.filter(
       (item) => !localKeys.has(item.id) && !localKeys.has(todoLogicalKey(item))
     ).length
-    nextTodos = remoteTodos
+    nextTodos = enrichTodosWithUsers(remoteTodos, users)
   }
 
   if (parsedPayload.direction === "push" || parsedPayload.direction === "bidirectional") {
     const pushedTodos: FrappeTodo[] = []
     const knownRemoteTodos = [...remoteTodos]
 
-    for (const todo of localTodos) {
+    for (const todo of pushTodos) {
       try {
         const pushedTodo = await pushRemoteTodo(connection, todo, knownRemoteTodos)
         pushedTodos.push(pushedTodo.item)
@@ -414,7 +580,14 @@ export async function syncFrappeTodosLive(
       }
     }
 
-    nextTodos = await readRemoteTodos(connection)
+    if (selectedTodoIds.size > 0 && parsedPayload.direction === "push") {
+      nextTodos = sortTodosByModifiedAt([
+        ...localTodos.filter((item) => !selectedTodoIds.has(item.id)),
+        ...enrichTodosWithUsers(pushedTodos, users),
+      ])
+    } else {
+      nextTodos = enrichTodosWithUsers(await readRemoteTodos(connection), users)
+    }
   }
 
   const frappeRecordCount = nextTodos.length
@@ -451,6 +624,72 @@ export async function syncFrappeTodosLive(
       syncedAt,
       items: nextTodos,
       errors,
+    },
+  })
+}
+
+export async function verifyFrappeTodosSync(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  options?: FrappeTodoServiceOptions
+) {
+  assertSuperAdmin(user)
+
+  const connection = await createVerifiedTodoConnection(database, options)
+  const verifiedAt = new Date().toISOString()
+  const localTodos = await readTodos(database)
+  const remoteTodos = await readRemoteTodos(connection)
+  const items = localTodos.map((todo) => {
+    const matchingRemoteTodo = findMatchingRemoteTodo(todo, remoteTodos)
+
+    if (!matchingRemoteTodo) {
+      return {
+        todoId: todo.id,
+        remoteName: "",
+        status: "not_synced" as const,
+        message: "No matching ERPNext ToDo was found.",
+      }
+    }
+
+    const isSynced = todoPayloadMatchesRemote(todo, matchingRemoteTodo)
+
+    return {
+      todoId: todo.id,
+      remoteName: remoteNameFromLocalId(matchingRemoteTodo.id),
+      status: isSynced ? "synced" as const : "changed" as const,
+      message: isSynced
+        ? "Local snapshot matches ERPNext."
+        : "Local snapshot differs from ERPNext.",
+    }
+  })
+  const syncedCount = items.filter((item) => item.status === "synced").length
+  const notSyncedCount = items.filter((item) => item.status === "not_synced").length
+  const changedCount = items.filter((item) => item.status === "changed").length
+
+  await recordFrappeConnectorEvent(database, user, {
+    action: "todos.verify_sync",
+    status: notSyncedCount > 0 || changedCount > 0 ? "failure" : "success",
+    message:
+      notSyncedCount > 0 || changedCount > 0
+        ? `Frappe ToDo sync verification found ${notSyncedCount} not synced and ${changedCount} changed record${notSyncedCount + changedCount === 1 ? "" : "s"}.`
+        : "Frappe ToDo sync verification passed.",
+    referenceId: "frappe-todos:verify-sync",
+    details: {
+      checkedCount: items.length,
+      syncedCount,
+      notSyncedCount,
+      changedCount,
+    },
+  })
+
+  return frappeTodoVerifySyncResponseSchema.parse({
+    verification: {
+      checkedCount: items.length,
+      syncedCount,
+      notSyncedCount,
+      changedCount,
+      verifiedAt,
+      items,
     },
   })
 }

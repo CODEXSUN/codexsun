@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react"
+import {
+  CheckCircle2Icon,
+  PlusIcon,
+  RefreshCwIcon,
+  SendIcon,
+  Trash2Icon,
+  WifiIcon,
+} from "lucide-react"
 
 import type {
   FrappeTodo,
   FrappeTodoPriority,
+  FrappeTodoSyncStatus,
   FrappeTodoStatus,
   FrappeTodoUpsertPayload,
 } from "@frappe/shared"
@@ -21,18 +30,20 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
+import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 
 import {
   createFrappeTodo,
+  deleteFrappeTodos,
   listFrappeTodos,
   syncFrappeTodosLive,
   updateFrappeTodo,
+  verifyFrappeTodosSync,
 } from "../api/frappe-api"
+import { getConnectionStatus } from "../services/frappe"
 import {
   createDefaultTodoValues,
   Field,
-  MetricCard,
-  SectionShell,
   StateCard,
   formatDateTime,
   toErrorMessage,
@@ -40,33 +51,67 @@ import {
 
 const todoStatusOptions: FrappeTodoStatus[] = ["Open", "Closed", "Cancelled"]
 const todoPriorityOptions: FrappeTodoPriority[] = ["High", "Medium", "Low"]
+const todoSyncStatusCopy: Record<
+  FrappeTodoSyncStatus | "unknown",
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  synced: { label: "Synced", variant: "default" },
+  not_synced: { label: "Not synced", variant: "destructive" },
+  changed: { label: "Changed", variant: "secondary" },
+  unknown: { label: "Verify", variant: "outline" },
+}
 
 export function FrappeTodosSection() {
   const { user } = useDashboardShell()
   const [items, setItems] = useState<FrappeTodo[]>([])
+  const [userOptions, setUserOptions] = useState<
+    Array<{ label: string; value: string; disabled?: boolean }>
+  >([])
   const [searchValue, setSearchValue] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [values, setValues] = useState<FrappeTodoUpsertPayload>(
     createDefaultTodoValues()
   )
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedTodoIds, setSelectedTodoIds] = useState<Array<string | number>>([])
+  const [syncStatusById, setSyncStatusById] = useState<
+    Partial<Record<string, FrappeTodoSyncStatus>>
+  >({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [lastSyncedAt, setLastSyncedAt] = useState("")
+  const [connectionState, setConnectionState] = useState<"connected" | "failed">("failed")
   const [error, setError] = useState<string | null>(null)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isLiveSyncing, setIsLiveSyncing] = useState(false)
-  useGlobalLoading(isLoading || isLiveSyncing)
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false)
+  const [isVerifyingSync, setIsVerifyingSync] = useState(false)
+  useGlobalLoading(isLoading || isLiveSyncing || isDeletingSelected || isVerifyingSync)
 
   async function loadTodos() {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await listFrappeTodos()
+      const [response, connectionStatus] = await Promise.all([
+        listFrappeTodos(),
+        getConnectionStatus().catch(() => null),
+      ])
       setItems(response.todos.items)
+      setSyncStatusById({})
+      setConnectionState(
+        connectionStatus?.state === "connected" ? "connected" : "failed"
+      )
+      setUserOptions(
+        response.todos.references.users
+          .filter((item) => !item.disabled)
+          .map((item) => ({
+            label: item.label,
+            value: item.id,
+          }))
+      )
       setLastSyncedAt(response.todos.syncedAt)
     } catch (nextError) {
       setError(toErrorMessage(nextError))
@@ -94,6 +139,7 @@ export function FrappeTodosSection() {
       [
         item.description,
         item.allocatedTo,
+        item.allocatedToFullName,
         item.owner,
         item.referenceType,
         item.referenceName,
@@ -136,11 +182,7 @@ export function FrappeTodosSection() {
       color: item.color,
       dueDate: item.dueDate,
       allocatedTo: item.allocatedTo,
-      referenceType: item.referenceType,
-      referenceName: item.referenceName,
-      role: item.role,
       assignedBy: item.assignedBy,
-      sender: item.sender,
     })
     setDialogOpen(true)
   }
@@ -159,6 +201,7 @@ export function FrappeTodosSection() {
       resetForm()
       setDialogOpen(false)
       await loadTodos()
+      setSyncStatusById({})
     } catch (nextError) {
       setError(toErrorMessage(nextError))
     } finally {
@@ -174,9 +217,12 @@ export function FrappeTodosSection() {
     try {
       const response = await syncFrappeTodosLive({
         direction: "bidirectional",
+        todoIds: [],
       })
 
       setItems(response.sync.items)
+      setSyncStatusById({})
+      setConnectionState("connected")
       setLastSyncedAt(response.sync.syncedAt)
       setSyncMessage(
         `Live sync completed: ${response.sync.pushedCount} pushed, ${response.sync.pulledCount} pulled, ${response.sync.failedCount} failed. Frappe records: ${response.sync.frappeRecordCount}; app records: ${response.sync.appRecordCount}; difference: ${response.sync.recordCountDifference}.`
@@ -188,66 +234,201 @@ export function FrappeTodosSection() {
     }
   }
 
+  async function handlePushSelected() {
+    const todoIds = selectedTodoIds.map(String)
+
+    if (todoIds.length === 0) {
+      setError("Select at least one ToDo to push.")
+      return
+    }
+
+    setIsLiveSyncing(true)
+    setError(null)
+    setSyncMessage(null)
+
+    try {
+      const response = await syncFrappeTodosLive({
+        direction: "push",
+        todoIds,
+      })
+
+      setItems(response.sync.items)
+      setSyncStatusById({})
+      setConnectionState("connected")
+      setSelectedTodoIds([])
+      setLastSyncedAt(response.sync.syncedAt)
+      setSyncMessage(
+        `Selected push completed: ${response.sync.pushedCount} pushed, ${response.sync.failedCount} failed. Frappe records: ${response.sync.frappeRecordCount}; app records: ${response.sync.appRecordCount}.`
+      )
+    } catch (nextError) {
+      setError(toErrorMessage(nextError))
+    } finally {
+      setIsLiveSyncing(false)
+    }
+  }
+
+  async function handleDeleteSelected() {
+    const todoIds = selectedTodoIds.map(String)
+
+    if (todoIds.length === 0) {
+      setError("Select at least one ToDo to delete.")
+      return
+    }
+
+    setIsDeletingSelected(true)
+    setError(null)
+    setSyncMessage(null)
+
+    try {
+      const response = await deleteFrappeTodos({ todoIds })
+      setItems(response.items)
+      setSyncStatusById({})
+      setSelectedTodoIds([])
+      setSyncMessage(
+        `Deleted ${response.deletedCount} local ToDo snapshot${response.deletedCount === 1 ? "" : "s"}.`
+      )
+    } catch (nextError) {
+      setError(toErrorMessage(nextError))
+    } finally {
+      setIsDeletingSelected(false)
+    }
+  }
+
+  async function handleVerifySync() {
+    setIsVerifyingSync(true)
+    setError(null)
+    setSyncMessage(null)
+
+    try {
+      const response = await verifyFrappeTodosSync()
+      setConnectionState("connected")
+      setSyncStatusById(
+        Object.fromEntries(
+          response.verification.items.map((item) => [item.todoId, item.status])
+        )
+      )
+      setSyncMessage(
+        `Verify completed: ${response.verification.syncedCount} synced, ${response.verification.notSyncedCount} not synced, ${response.verification.changedCount} changed across ${response.verification.checkedCount} app records.`
+      )
+      setLastSyncedAt(response.verification.verifiedAt)
+    } catch (nextError) {
+      setError(toErrorMessage(nextError))
+    } finally {
+      setIsVerifyingSync(false)
+    }
+  }
+
   if (isLoading) {
     return null
   }
 
   const openCount = items.filter((item) => item.status === "Open").length
-  const highPriorityCount = items.filter((item) => item.priority === "High").length
+  const selectedCount = selectedTodoIds.length
 
   return (
-    <SectionShell
-      title="Frappe ToDo"
-      description="Manage app-owned ToDo snapshots that operators can stage before or after ERPNext synchronization."
-      actions={(
-        <Button variant="outline" onClick={() => void loadTodos()}>
-          Refresh
-        </Button>
-      )}
+    <div
+      className="space-y-3"
+      data-technical-name="section.frappe.todos"
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Records"
-          value={items.length}
-          hint="Current ToDo snapshots owned by the Frappe app."
-        />
-        <MetricCard
-          label="Open"
-          value={openCount}
-          hint="Outstanding operator actions still in progress."
-        />
-        <MetricCard
-          label="High Priority"
-          value={highPriorityCount}
-          hint="Items that need immediate operational follow-up."
-        />
-        <MetricCard
-          label="Last Sync"
-          value={lastSyncedAt ? formatDateTime(lastSyncedAt) : "Pending"}
-          hint="Most recent snapshot refresh time."
-        />
-      </div>
-
       {error ? <StateCard message={error} /> : null}
-      {syncMessage ? <StateCard message={syncMessage} /> : null}
 
       <MasterList
         header={{
-          pageTitle: "ToDo Snapshots",
+          pageTitle: (
+            <span className="inline-flex items-center gap-2">
+              ToDos
+              <span
+                className={`size-2.5 rounded-full ${
+                  connectionState === "connected"
+                    ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]"
+                    : "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.14)]"
+                }`}
+                title={
+                  connectionState === "connected"
+                    ? "ERP connection is live"
+                    : "ERP connection is not verified"
+                }
+                aria-label={
+                  connectionState === "connected"
+                    ? "ERP connection is live"
+                    : "ERP connection is not verified"
+                }
+              />
+            </span>
+          ),
           pageDescription:
-            "Review ERPNext ToDo records and local connector snapshots from one operational list.",
+            `${totalRecords} records, ${openCount} open${lastSyncedAt ? `, last sync ${formatDateTime(lastSyncedAt)}` : ""}.`,
           technicalName: "section.frappe.todos.master-list",
-          actions: user.isSuperAdmin ? (
-            <Button
-              variant="outline"
-              onClick={() => void handleLiveSync()}
-              disabled={isLiveSyncing}
-            >
-              {isLiveSyncing ? "Syncing..." : "Live Sync"}
-            </Button>
-          ) : null,
-          addLabel: user.isSuperAdmin ? "Create ToDo" : undefined,
-          onAddClick: user.isSuperAdmin ? openCreateDialog : undefined,
+          actions: (
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="h-9 gap-2 border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100"
+                  onClick={() => void loadTodos()}
+                  disabled={isLoading}
+                >
+                  <RefreshCwIcon className="size-4" />
+                  Refresh
+                </Button>
+                {user.isSuperAdmin ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="h-9 gap-2 border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                      onClick={() => void handlePushSelected()}
+                      disabled={isLiveSyncing || selectedCount === 0}
+                    >
+                      <SendIcon className="size-4" />
+                      Push {selectedCount > 0 ? `(${selectedCount})` : ""}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-9 gap-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                      onClick={() => void handleLiveSync()}
+                      disabled={isLiveSyncing}
+                    >
+                      <WifiIcon className="size-4" />
+                      {isLiveSyncing ? "Syncing..." : "Live Sync"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-9 gap-2 border-indigo-200 bg-indigo-50 text-indigo-900 hover:bg-indigo-100"
+                      onClick={() => void handleVerifySync()}
+                      disabled={isVerifyingSync}
+                    >
+                      <CheckCircle2Icon className="size-4" />
+                      {isVerifyingSync ? "Verifying..." : "Verify"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-9 gap-2 border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100"
+                      onClick={() => void handleDeleteSelected()}
+                      disabled={isDeletingSelected || selectedCount === 0}
+                    >
+                      <Trash2Icon className="size-4" />
+                      Delete {selectedCount > 0 ? `(${selectedCount})` : ""}
+                    </Button>
+                    <Button
+                      className="h-9 gap-2 bg-slate-950 text-white hover:bg-slate-800"
+                      onClick={openCreateDialog}
+                    >
+                      <PlusIcon className="size-4" />
+                      Create ToDo
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+              {syncMessage ? (
+                <p
+                  className="max-w-3xl text-right text-xs leading-5 text-muted-foreground"
+                  aria-live="polite"
+                >
+                  {syncMessage}
+                </p>
+              ) : null}
+            </div>
+          ),
         }}
         search={{
           value: searchValue,
@@ -299,6 +480,22 @@ export function FrappeTodosSection() {
               ),
             },
             {
+              id: "syncStatus",
+              header: "Sync",
+              sortable: true,
+              accessor: (item) => syncStatusById[item.id] ?? "unknown",
+              cell: (item) => {
+                const syncStatus = syncStatusById[item.id] ?? "unknown"
+                const copy = todoSyncStatusCopy[syncStatus]
+
+                return (
+                  <Badge variant={copy.variant}>
+                    {copy.label}
+                  </Badge>
+                )
+              },
+            },
+            {
               id: "color",
               header: "Color",
               accessor: (item) => item.color,
@@ -327,10 +524,15 @@ export function FrappeTodosSection() {
               cell: (item) => (
                 <div className="space-y-1 text-sm">
                   <p className="text-foreground">
-                    {item.allocatedTo || "Unassigned"}
+                    {item.allocatedToFullName || item.allocatedTo || "Unassigned"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    By: {item.assignedByFullName || item.assignedBy || "None"}
+                    {item.allocatedToFullName && item.allocatedTo
+                      ? item.allocatedTo
+                      : "No allocated user id"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Assigned by: {item.assignedByFullName || item.assignedBy || "None"}
                   </p>
                 </div>
               ),
@@ -350,6 +552,7 @@ export function FrappeTodosSection() {
                   </p>
                 </div>
               ),
+              defaultVisible: false,
             },
             {
               id: "role",
@@ -404,6 +607,11 @@ export function FrappeTodosSection() {
           data: paginatedItems,
           emptyMessage: "No Frappe ToDos found.",
           rowKey: (item) => item.id,
+        }}
+        rowSelection={{
+          selectedRowIds: selectedTodoIds,
+          onSelectedRowIdsChange: setSelectedTodoIds,
+          selectionLabel: "Select Frappe ToDos",
         }}
         footer={{
           content: (
@@ -514,14 +722,20 @@ export function FrappeTodosSection() {
                     />
                   </Field>
                   <Field label="Allocated To">
-                    <Input
+                    <SearchableLookupField
                       value={values.allocatedTo}
-                      onChange={(event) =>
+                      onValueChange={(nextValue) =>
                         setValues((current) => ({
                           ...current,
-                          allocatedTo: event.target.value,
+                          allocatedTo: nextValue,
                         }))
                       }
+                      options={userOptions}
+                      placeholder="Select allocated user"
+                      searchPlaceholder="Search ERPNext users"
+                      allowEmptyOption
+                      emptyOptionLabel="Unassigned"
+                      noResultsMessage="No ERPNext users found."
                     />
                   </Field>
                 </div>
@@ -538,59 +752,21 @@ export function FrappeTodosSection() {
                   />
                 </Field>
                 <div className="grid gap-4 border-t pt-4 md:grid-cols-2">
-                  <Field label="Reference Type">
-                    <Input
-                      value={values.referenceType}
-                      onChange={(event) =>
-                        setValues((current) => ({
-                          ...current,
-                          referenceType: event.target.value,
-                        }))
-                      }
-                    />
-                  </Field>
-                  <Field label="Role">
-                    <Input
-                      value={values.role}
-                      onChange={(event) =>
-                        setValues((current) => ({
-                          ...current,
-                          role: event.target.value,
-                        }))
-                      }
-                    />
-                  </Field>
-                  <Field label="Reference Name">
-                    <Input
-                      value={values.referenceName}
-                      onChange={(event) =>
-                        setValues((current) => ({
-                          ...current,
-                          referenceName: event.target.value,
-                        }))
-                      }
-                    />
-                  </Field>
                   <Field label="Assigned By">
-                    <Input
+                    <SearchableLookupField
                       value={values.assignedBy}
-                      onChange={(event) =>
+                      onValueChange={(nextValue) =>
                         setValues((current) => ({
                           ...current,
-                          assignedBy: event.target.value,
+                          assignedBy: nextValue,
                         }))
                       }
-                    />
-                  </Field>
-                  <Field label="Sender">
-                    <Input
-                      value={values.sender}
-                      onChange={(event) =>
-                        setValues((current) => ({
-                          ...current,
-                          sender: event.target.value,
-                        }))
-                      }
+                      options={userOptions}
+                      placeholder="Select assigning user"
+                      searchPlaceholder="Search ERPNext users"
+                      allowEmptyOption
+                      emptyOptionLabel="No assigned by"
+                      noResultsMessage="No ERPNext users found."
                     />
                   </Field>
                 </div>
@@ -620,6 +796,6 @@ export function FrappeTodosSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SectionShell>
+    </div>
   )
 }

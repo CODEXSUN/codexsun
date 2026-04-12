@@ -27,7 +27,11 @@ import {
   saveFrappeSettings,
   verifyFrappeSettings,
 } from "../../apps/frappe/src/services/settings-service.js"
-import { syncFrappeTodosLive } from "../../apps/frappe/src/services/todo-service.js"
+import {
+  deleteFrappeTodos,
+  syncFrappeTodosLive,
+  verifyFrappeTodosSync,
+} from "../../apps/frappe/src/services/todo-service.js"
 import { readFrappeObservabilityReport } from "../../apps/frappe/src/services/observability-service.js"
 import { readFrappeItemProjectionContract } from "../../apps/frappe/src/services/item-projection-contract-service.js"
 import { readFrappePriceProjectionContract } from "../../apps/frappe/src/services/price-projection-contract-service.js"
@@ -403,6 +407,43 @@ test("frappe ToDo live sync pushes local snapshots and pulls remote ERPNext ToDo
           )
         }
 
+        if (url.includes("/api/resource/User?")) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  name: "operator@codexsun.local",
+                  email: "operator@codexsun.local",
+                  full_name: "Operator",
+                  enabled: 1,
+                },
+                {
+                  name: "sundar@sundar.com",
+                  email: "sundar@sundar.com",
+                  full_name: "Sundar",
+                  enabled: 1,
+                },
+                {
+                  name: "connector@example.test",
+                  email: "connector@example.test",
+                  full_name: "Connector",
+                  enabled: 1,
+                },
+                {
+                  name: "erp.user@example.test",
+                  email: "erp.user@example.test",
+                  full_name: "ERP User",
+                  enabled: 1,
+                },
+              ],
+            }),
+            {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }
+          )
+        }
+
         if (url.includes("/api/resource/ToDo/") && init?.method === "PUT") {
           const name = decodeURIComponent(url.split("/api/resource/ToDo/")[1] ?? "")
           const body = JSON.parse(String(init.body ?? "{}")) as Record<string, unknown>
@@ -463,6 +504,11 @@ test("frappe ToDo live sync pushes local snapshots and pulls remote ERPNext ToDo
       assert.equal(sync.sync.frappeRecordCount, 4)
       assert.equal(sync.sync.appRecordCount, 4)
       assert.equal(sync.sync.recordCountDifference, 0)
+      assert.equal(
+        sync.sync.items.find((item) => item.allocatedTo === "operator@codexsun.local")
+          ?.allocatedToFullName,
+        "Operator"
+      )
       assert.equal(createdCount, 2)
       assert.equal(updatedCount, 0)
       assert.ok(
@@ -486,6 +532,49 @@ test("frappe ToDo live sync pushes local snapshots and pulls remote ERPNext ToDo
       assert.equal(secondSync.sync.recordCountDifference, 0)
       assert.equal(createdCount, 2)
       assert.equal(remoteTodos.length, secondSync.sync.items.length)
+
+      const verifySync = await verifyFrappeTodosSync(
+        runtime.primary,
+        adminUser,
+        { config: frappeConfig }
+      )
+
+      assert.equal(verifySync.verification.checkedCount, 4)
+      assert.equal(verifySync.verification.syncedCount, 4)
+      assert.equal(verifySync.verification.notSyncedCount, 0)
+      assert.equal(verifySync.verification.changedCount, 0)
+      assert.ok(
+        verifySync.verification.items.every((item) => item.status === "synced")
+      )
+
+      const selectedPush = await syncFrappeTodosLive(
+        runtime.primary,
+        adminUser,
+        {
+          direction: "push",
+          todoIds: ["frappe-todo:created-local-1"],
+        },
+        { config: frappeConfig }
+      )
+
+      assert.equal(selectedPush.sync.failedCount, 0)
+      assert.equal(selectedPush.sync.pushedCount, 0)
+      assert.equal(
+        selectedPush.sync.items.some((item) => item.id === "frappe-todo:created-local-2"),
+        true
+      )
+      assert.equal(createdCount, 2)
+
+      const deleteResponse = await deleteFrappeTodos(runtime.primary, adminUser, {
+        todoIds: ["frappe-todo:created-local-1"],
+      })
+
+      assert.equal(deleteResponse.deletedCount, 1)
+      assert.equal(deleteResponse.remainingCount, 3)
+      assert.equal(
+        deleteResponse.items.some((item) => item.id === "frappe-todo:created-local-1"),
+        false
+      )
     } finally {
       globalThis.fetch = originalFetch
       await runtime.destroy()

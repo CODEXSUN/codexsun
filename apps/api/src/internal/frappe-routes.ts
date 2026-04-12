@@ -37,9 +37,11 @@ import { readFrappeSyncPolicy } from "../../../frappe/src/services/sync-policy-s
 import { readFrappeObservabilityReport } from "../../../frappe/src/services/observability-service.js"
 import {
   createFrappeTodo,
+  deleteFrappeTodos,
   listFrappeTodos,
   syncFrappeTodosLive,
   updateFrappeTodo,
+  verifyFrappeTodosSync,
 } from "../../../frappe/src/services/todo-service.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
@@ -279,7 +281,9 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(
-          await listFrappeTodos(context.databases.primary, user)
+          await listFrappeTodos(context.databases.primary, user, {
+            cwd: resolveRuntimeSettingsRoot(context.config),
+          })
         )
       },
     }),
@@ -324,6 +328,23 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/frappe/todos", {
+      method: "DELETE",
+      summary: "Delete selected local Frappe todo snapshots.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await deleteFrappeTodos(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
     defineInternalRoute("/frappe/todos/sync-live", {
       method: "POST",
       summary: "Live sync Frappe ToDo snapshots to and from ERPNext.",
@@ -337,6 +358,25 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
             context.databases.primary,
             user,
             context.request.jsonBody,
+            {
+              cwd: resolveRuntimeSettingsRoot(context.config),
+            }
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/todos/verify-sync", {
+      method: "POST",
+      summary: "Verify local Frappe ToDo snapshots against ERPNext.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(
+          await verifyFrappeTodosSync(
+            context.databases.primary,
+            user,
             {
               cwd: resolveRuntimeSettingsRoot(context.config),
             }
