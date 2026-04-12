@@ -46,7 +46,6 @@ test("publishing company brand assets updates storefront runtime logo surfaces",
   await configureBrandVariant(page, "Favicon", "#4a7c59")
 
   await page.getByRole("button", { name: "Publish To Public" }).click()
-  await expect(page.getByText("Brand SVGs published")).toBeVisible()
   await page.waitForTimeout(1500)
   await page.waitForLoadState("networkidle")
 

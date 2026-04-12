@@ -222,11 +222,7 @@ RUNTIME_SECRETS_LAST_ROTATED_AT="${RUNTIME_SECRETS_LAST_ROTATED_AT:-$(date -u +%
 RUNTIME_SQLITE_FILE="${RUNTIME_SQLITE_FILE:-storage/desktop/codexsun.sqlite}"
 
 if [ "$TARGET_ENV" = "local" ]; then
-  if [ "$GIT_SYNC_ENABLED" = "true" ]; then
-    DEFAULT_RUNTIME_APP_ENV="production"
-  else
-    DEFAULT_RUNTIME_APP_ENV="development"
-  fi
+  DEFAULT_RUNTIME_APP_ENV="development"
   DEFAULT_RUNTIME_PUBLIC_SCHEME="http"
   DEFAULT_RUNTIME_CLOUDFLARE_ENABLED="false"
   DEFAULT_RUNTIME_DB_DRIVER="mariadb"

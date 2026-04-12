@@ -25,15 +25,7 @@ export GIT_BRANCH="${GIT_BRANCH:-main}"
 export INSTALL_DEPS_ON_START="${INSTALL_DEPS_ON_START:-false}"
 export BUILD_ON_START="${BUILD_ON_START:-false}"
 
-if [ -z "${RUNTIME_APP_ENV:-}" ]; then
-  if [ "$GIT_SYNC_ENABLED" = "true" ]; then
-    export RUNTIME_APP_ENV="production"
-  else
-    export RUNTIME_APP_ENV="development"
-  fi
-else
-  export RUNTIME_APP_ENV
-fi
+export RUNTIME_APP_ENV="${RUNTIME_APP_ENV:-development}"
 export RUNTIME_CLOUDFLARE_ENABLED="${RUNTIME_CLOUDFLARE_ENABLED:-false}"
 export RUNTIME_PUBLIC_SCHEME="${RUNTIME_PUBLIC_SCHEME:-http}"
 export RUNTIME_PUBLIC_PORT="${RUNTIME_PUBLIC_PORT:-4000}"

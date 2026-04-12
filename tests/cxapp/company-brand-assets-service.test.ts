@@ -21,19 +21,21 @@ import {
 
 test("published brand asset url prefers managed runtime logo, then legacy public logo, then null", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-urls-"))
+  const publicRoot = path.join(tempRoot, "public")
+  const storageSourceRoot = path.join(tempRoot, "storage", "source")
 
   try {
     const config = getServerConfig(tempRoot)
 
-    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
+    mkdirSync(publicRoot, { recursive: true })
     assert.equal(await getPublishedBrandAssetPublicUrl(config, "primary"), null)
 
-    writeFileSync(path.join(config.webRoot, "public", "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
+    writeFileSync(path.join(publicRoot, "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
     assert.equal(await getPublishedBrandAssetPublicUrl(config, "primary"), "/logo.svg")
 
-    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+    mkdirSync(storageSourceRoot, { recursive: true })
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "primary.svg"),
+      path.join(storageSourceRoot, "primary.svg"),
       '<svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#111"/></svg>',
       "utf8"
     )
@@ -94,28 +96,31 @@ test("published brand asset url prefers managed runtime logo, then legacy public
 
 test("company brand asset publishing backs up and replaces direct public brand files", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-"))
+  const publicRoot = path.join(tempRoot, "public")
+  const activeBrandRoot = path.join(tempRoot, "storage", "branding", "active")
+  const storageSourceRoot = path.join(tempRoot, "storage", "source")
 
   try {
     const config = getServerConfig(tempRoot)
 
-    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
-    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+    mkdirSync(publicRoot, { recursive: true })
+    mkdirSync(storageSourceRoot, { recursive: true })
 
-    writeFileSync(path.join(config.webRoot, "public", "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
-    writeFileSync(path.join(config.webRoot, "public", "logo-dark.svg"), "<svg>legacy-dark</svg>", "utf8")
-    writeFileSync(path.join(config.webRoot, "public", "favicon.svg"), "<svg>legacy-favicon</svg>", "utf8")
+    writeFileSync(path.join(publicRoot, "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
+    writeFileSync(path.join(publicRoot, "logo-dark.svg"), "<svg>legacy-dark</svg>", "utf8")
+    writeFileSync(path.join(publicRoot, "favicon.svg"), "<svg>legacy-favicon</svg>", "utf8")
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "primary.svg"),
+      path.join(storageSourceRoot, "primary.svg"),
       '<svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#111"/><text x="50" y="26" text-anchor="middle" fill="#fff">Brand</text></svg>',
       "utf8"
     )
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "dark.svg"),
+      path.join(storageSourceRoot, "dark.svg"),
       '<svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#000"/><text x="50" y="26" text-anchor="middle" fill="#f8e7c8">Brand Dark</text></svg>',
       "utf8"
     )
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "favicon.svg"),
+      path.join(storageSourceRoot, "favicon.svg"),
       '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#8b5e34"/><text x="32" y="39" text-anchor="middle" fill="#fff" font-size="24">B</text></svg>',
       "utf8"
     )
@@ -182,9 +187,12 @@ test("company brand asset publishing backs up and replaces direct public brand f
       `/favicon.svg?v=${encodeURIComponent(response.item.version)}`
     )
 
-    const publishedLogo = readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8")
-    const publishedDarkLogo = readFileSync(path.join(config.webRoot, "public", "logo-dark.svg"), "utf8")
-    const publishedFavicon = readFileSync(path.join(config.webRoot, "public", "favicon.svg"), "utf8")
+    const publishedLogo = readFileSync(path.join(publicRoot, "logo.svg"), "utf8")
+    const publishedDarkLogo = readFileSync(path.join(publicRoot, "logo-dark.svg"), "utf8")
+    const publishedFavicon = readFileSync(path.join(publicRoot, "favicon.svg"), "utf8")
+    const storedLogo = readFileSync(path.join(activeBrandRoot, "logo.svg"), "utf8")
+    const storedDarkLogo = readFileSync(path.join(activeBrandRoot, "logo-dark.svg"), "utf8")
+    const storedFavicon = readFileSync(path.join(activeBrandRoot, "favicon.svg"), "utf8")
 
     assert.match(publishedLogo, /width="360"/)
     assert.match(publishedLogo, /height="140"/)
@@ -195,6 +203,9 @@ test("company brand asset publishing backs up and replaces direct public brand f
     assert.match(publishedDarkLogo, /x="10"/)
     assert.match(publishedFavicon, /width="72"/)
     assert.match(publishedFavicon, /fill="#9b5f2d"/)
+    assert.equal(storedLogo, publishedLogo)
+    assert.equal(storedDarkLogo, publishedDarkLogo)
+    assert.equal(storedFavicon, publishedFavicon)
 
     const favicon = await readPublishedBrandAsset(config, "favicon")
     const dark = await readPublishedBrandAsset(config, "dark")
@@ -209,12 +220,14 @@ test("company brand asset publishing backs up and replaces direct public brand f
 
 test("company brand asset publishing accepts utf16 svg source files", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-utf16-"))
+  const publicRoot = path.join(tempRoot, "public")
+  const storageSourceRoot = path.join(tempRoot, "storage", "source")
 
   try {
     const config = getServerConfig(tempRoot)
 
-    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
-    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+    mkdirSync(publicRoot, { recursive: true })
+    mkdirSync(storageSourceRoot, { recursive: true })
 
     const utf16Svg =
       '<?xml version="1.0" encoding="UTF-16"?><svg viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="40" fill="#662c90"/></svg>'
@@ -223,9 +236,9 @@ test("company brand asset publishing accepts utf16 svg source files", async () =
       Buffer.from(utf16Svg, "utf16le"),
     ])
 
-    writeFileSync(path.join(config.webRoot, "public", "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
+    writeFileSync(path.join(publicRoot, "logo.svg"), "<svg>legacy-primary</svg>", "utf8")
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "utf16-primary.svg"),
+      path.join(storageSourceRoot, "utf16-primary.svg"),
       utf16Bytes
     )
 
@@ -268,7 +281,7 @@ test("company brand asset publishing accepts utf16 svg source files", async () =
 
     assert.equal(response.item.format, "svg")
     assert.match(
-      readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8"),
+      readFileSync(path.join(publicRoot, "logo.svg"), "utf8"),
       /fill="#224466"/
     )
   } finally {
@@ -278,15 +291,17 @@ test("company brand asset publishing accepts utf16 svg source files", async () =
 
 test("company brand asset publishing strips xml wrapper tags and metadata before parsing", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-sanitize-"))
+  const publicRoot = path.join(tempRoot, "public")
+  const storageSourceRoot = path.join(tempRoot, "storage", "source")
 
   try {
     const config = getServerConfig(tempRoot)
 
-    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
-    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+    mkdirSync(publicRoot, { recursive: true })
+    mkdirSync(storageSourceRoot, { recursive: true })
 
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "wrapped.svg"),
+      path.join(storageSourceRoot, "wrapped.svg"),
       [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
@@ -336,7 +351,7 @@ test("company brand asset publishing strips xml wrapper tags and metadata before
       }
     )
 
-    const publishedLogo = readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8")
+    const publishedLogo = readFileSync(path.join(publicRoot, "logo.svg"), "utf8")
 
     assert.equal(response.item.format, "svg")
     assert.match(publishedLogo, /fill="#224466"/)
@@ -351,15 +366,17 @@ test("company brand asset publishing strips xml wrapper tags and metadata before
 
 test("company brand asset publishing applies token color overrides without flattening all svg colors", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-company-brand-assets-token-mode-"))
+  const publicRoot = path.join(tempRoot, "public")
+  const storageSourceRoot = path.join(tempRoot, "storage", "source")
 
   try {
     const config = getServerConfig(tempRoot)
 
-    mkdirSync(path.join(config.webRoot, "public"), { recursive: true })
-    mkdirSync(path.join(config.webRoot, "storage", "source"), { recursive: true })
+    mkdirSync(publicRoot, { recursive: true })
+    mkdirSync(storageSourceRoot, { recursive: true })
 
     writeFileSync(
-      path.join(config.webRoot, "storage", "source", "token.svg"),
+      path.join(storageSourceRoot, "token.svg"),
       '<svg viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="40" fill="#111111" stroke="#662c90" stroke-width="4"/><circle cx="30" cy="20" r="10" fill="#f2d7aa"/></svg>',
       "utf8"
     )
@@ -416,8 +433,8 @@ test("company brand asset publishing applies token color overrides without flatt
       }
     )
 
-    const publishedLogo = readFileSync(path.join(config.webRoot, "public", "logo.svg"), "utf8")
-    const publishedDarkLogo = readFileSync(path.join(config.webRoot, "public", "logo-dark.svg"), "utf8")
+    const publishedLogo = readFileSync(path.join(publicRoot, "logo.svg"), "utf8")
+    const publishedDarkLogo = readFileSync(path.join(publicRoot, "logo-dark.svg"), "utf8")
 
     assert.match(publishedLogo, /fill="#224466"/)
     assert.match(publishedLogo, /stroke="#335577"/)

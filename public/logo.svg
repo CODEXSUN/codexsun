@@ -1,5 +1,15 @@
-<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="160" height="160" rx="36" fill="#111827"/>
-<path d="M115 24H45C33.402 24 24 33.402 24 45V115C24 126.598 33.402 136 45 136H115C126.598 136 136 126.598 136 115V45C136 33.402 126.598 24 115 24Z" fill="#F8FAFC"/>
-<path d="M123 60V48H108V33H96V48H64V33H52V48H37V60H52H64H65.32H96V95H64V73H52V95H37V107H52V122H64V107H96V122H108V107H123V95H108V60H123Z" fill="#111827"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1869" height="1550" viewBox="0 0 1869 1550" fill="none">
+  <svg x="0" y="0" width="1214.85" height="1007.5" viewBox="0 0 18406000 15260000" overflow="visible">
+    
+ <g id="Layer_x0020_1">
+  
+  <g id="_3121942909600">
+   <polygon fill="#662c90" stroke="#662c90" stroke-width="23000" stroke-miterlimit="22.9256" points="3454000,21000 9958000,21000 8524000,6801000 1781000,6818000 "/>
+   <polygon fill="#662c90" stroke="#662c90" stroke-width="23000" stroke-miterlimit="22.9256" points="11887000,12000 18392000,12000 16958000,6792000 10215000,6809000 "/>
+   <polygon fill="#662c90" stroke="#662c90" stroke-width="23000" stroke-miterlimit="22.9256" points="9944000,8450000 16448000,8450000 15014000,15231000 8272000,15248000 "/>
+   <polygon fill="#662c90" stroke="#662c90" stroke-width="23000" stroke-miterlimit="22.9256" points="1687000,8450000 8192000,8450000 6758000,15231000 15000,15248000 "/>
+  </g>
+ </g>
+
+  </svg>
 </svg>
