@@ -5,6 +5,7 @@ import { getStoredAccessToken, readStoredAuthSession } from "@cxapp/web/src/auth
 import type { AppSettingsSnapshot } from "../../../../framework/shared/index.js"
 
 import { fallbackRuntimeAppSettings } from "../features/runtime-app-settings/runtime-app-settings-fallback"
+import { formatHttpErrorMessage } from "../lib/http-error"
 import { queryKeys } from "./query-keys"
 
 declare global {
@@ -65,7 +66,10 @@ async function requestJson<T>(path: string, withAuth = false) {
   }
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}.`)
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; message?: string; detail?: string }
+      | null
+    throw new Error(formatHttpErrorMessage(payload, response.status))
   }
 
   return (await response.json()) as { item?: T }

@@ -16,6 +16,8 @@ import type {
   AuthTokenResponse,
 } from "@cxapp/shared"
 
+import { formatHttpErrorMessage } from "../lib/http-error"
+
 export class HttpError extends Error {
   readonly statusCode: number
   readonly context?: unknown
@@ -49,9 +51,14 @@ async function request<T>(path: string, init?: RequestInit) {
   if (!response.ok) {
     const message =
       payload && typeof payload === "object"
-        ? ("error" in payload && payload.error) ||
-          ("message" in payload && payload.message) ||
-          "Request failed."
+        ? formatHttpErrorMessage(
+            {
+              error: "error" in payload ? payload.error : undefined,
+              message: "message" in payload ? payload.message : undefined,
+              detail: "detail" in payload ? String(payload.detail ?? "") : undefined,
+            },
+            response.status
+          )
         : "Request failed."
     const context =
       payload && typeof payload === "object" && "context" in payload

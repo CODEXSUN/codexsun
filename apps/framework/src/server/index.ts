@@ -96,6 +96,63 @@ function renderWelcomePage(appName: string) {
 </html>`)
 }
 
+export function describeStartupFailure(errorMessage: string | null) {
+  const normalized = errorMessage?.trim() ?? ""
+
+  if (!normalized) {
+    return {
+      summary: "The application could not finish startup.",
+      detail:
+        "The runtime is online, but startup did not complete. Review the server logs for the exact failure.",
+    }
+  }
+
+  if (
+    normalized.includes("ECONNREFUSED") ||
+    normalized.includes("connect ETIMEDOUT") ||
+    normalized.includes("ENOTFOUND") ||
+    normalized.includes("database") ||
+    normalized.includes("DB_")
+  ) {
+    return {
+      summary: "Database connection is unavailable.",
+      detail:
+        "The server is reachable, but it could not connect to the configured database. Confirm that the database server is running and that the DB host, port, name, user, and password are correct.",
+    }
+  }
+
+  return {
+    summary: "The application could not finish startup.",
+    detail: normalized,
+  }
+}
+
+function renderStartupFailurePage(appName: string, errorMessage: string | null) {
+  const failure = describeStartupFailure(errorMessage)
+
+  return html(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${appName} Startup Warning</title>
+  </head>
+  <body style="margin:0;background:#f5f0e8;color:#1f2937;font-family:Geist,system-ui,sans-serif;">
+    <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+      <section style="width:min(680px,100%);border:1px solid #d6c3a7;background:#fffaf3;border-radius:18px;padding:28px;box-shadow:0 20px 50px rgba(15,23,42,.08);">
+        <p style="margin:0 0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8b5e34;">Runtime status</p>
+        <h1 style="margin:0 0 12px;font-size:32px;line-height:1.15;">${failure.summary}</h1>
+        <p style="margin:0 0 18px;font-size:16px;line-height:1.7;color:#4b5563;">${failure.detail}</p>
+        <div style="border-radius:12px;background:#f8efe1;padding:14px 16px;font-size:14px;line-height:1.6;color:#6b7280;">
+          <strong style="color:#8b5e34;">Check next:</strong>
+          database service status, runtime <code>.env</code> database settings, container networking, and server logs.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`, 503)
+}
+
 type RuntimeStartupState = {
   errorMessage: string | null
   startedAt: string
@@ -407,6 +464,21 @@ export async function startFrameworkServerWithOptions(
       const isHealthRoute =
         requestUrl.pathname === "/health" ||
         requestUrl.pathname === "/public/v1/health"
+      const isApiRoute =
+        requestUrl.pathname.startsWith("/api/") ||
+        requestUrl.pathname.startsWith("/internal/")
+      const failure = describeStartupFailure(startupState.errorMessage)
+
+      if (startupState.status === "failed" && !isHealthRoute && !isApiRoute) {
+        const fallback = renderStartupFailurePage(appName, startupState.errorMessage)
+        response.writeHead(fallback.statusCode, {
+          ...fallback.headers,
+          "retry-after": "5",
+          "x-request-id": requestId,
+        })
+        response.end(request.method === "HEAD" ? undefined : fallback.body)
+        return
+      }
 
       response.writeHead(startupState.status === "failed" ? 500 : 503, {
         "content-type": "application/json; charset=utf-8",
@@ -423,19 +495,19 @@ export async function startFrameworkServerWithOptions(
                     ? "startup_failed"
                     : "starting_up",
                 startedAt: startupState.startedAt,
-                detail: startupState.errorMessage,
+                detail: failure.detail,
               }
             : {
                 message:
                   startupState.status === "failed"
-                    ? "Server startup failed"
+                    ? failure.summary
                     : "Server is starting up",
                 status:
                   startupState.status === "failed"
                     ? "startup_failed"
                     : "starting_up",
                 startedAt: startupState.startedAt,
-                detail: startupState.errorMessage,
+                detail: failure.detail,
               }
         )
       )
@@ -778,8 +850,7 @@ export async function startFrameworkServerWithOptions(
     logger.error("runtime.startup_preparation_error", {
       error: error instanceof Error ? error.message : String(error),
     })
-    shutdown("startupFailure")
-    throw error
+    await destroyRuntimeResources()
   }
 }
 

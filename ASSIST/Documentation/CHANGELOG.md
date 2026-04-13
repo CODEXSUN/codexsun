@@ -2,11 +2,48 @@
 
 ## Version State
 
-- Current package version: `1.0.174`
-- Current release tag: `v-1.0.174`
-- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>`
+- Current package version: `1.0.180`
+- Current release tag: `v-1.0.180`
+- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
 
-## v-1.0.174
+## v-1.0.180
+
+### [v 1.0.180] 2026-04-13 - Module manifest specification and first current-to-target inventory
+
+- added the future module-manifest specification covering manifest types, dependency rules, workspace contributions, feature flags, route contributions, settings declarations, and coexistence with the current `AppManifest`
+- added the first current-to-target module inventory mapping today’s apps toward future engines, shared packages, standalone apps, industry packs, client overlays, and orchestration roles
+- added a shared TypeScript `ModuleManifest` contract plus planning examples for one industry-pack and one client-overlay so future migration work has typed starting points
+- linked the manifest spec and module inventory from the main modular ERP blueprint and architecture docs
+
+### [v 1.0.179] 2026-04-13 - Modular ERP blueprint for engines, apps, industries, clients, and workspace orchestration
+
+- added a dedicated modular ERP blueprint covering the future target structure for engines, shared packages, standalone apps, industry packs, client overlays, and Codexsun-operated orchestration
+- documented the target dependency rules, communication boundaries, manifest model, workspace-resolution strategy, feature enablement model, open-source split, and phased migration path
+- updated the core architecture and project overview docs so the future plugin-first direction is visible from the main ASSIST architecture entry points
+
+### [v 1.0.178] 2026-04-13 - Keep startup failures reachable with a database warning page
+
+- changed framework startup failure handling so the HTTP host stays online when startup preparation fails instead of immediately shutting down and leaving only reverse-proxy connection errors
+- added a clear startup-failure message mapper and browser-facing warning page that explains when the configured database is unavailable or misconfigured
+- updated auth and storefront frontend request wrappers so login and storefront surfaces show the startup failure explanation instead of only `Request failed with status 503`
+- preserved structured `/health` and API startup-failure responses so monitoring still receives `startup_failed` JSON instead of misleading HTML
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/framework/runtime/server-startup.test.ts tests/cxapp/web/http-error.test.ts`
+
+### [v 1.0.177] 2026-04-13 - Add explicit confirmation gates for destructive Docker cleanup
+
+- changed the shared Docker setup flow so `CLEAN_INSTALL=true` now also requires `CONFIRM_CLEAN_INSTALL=YES` before volumes and stack teardown can run
+- preserved the existing database-drop opt-in and documented it more clearly so database removal still requires `DROP_DATABASES=true` plus `CONFIRM_DROP_DATABASES=YES`
+- changed the shared cleanup script to refuse destructive cleanup unless `CONFIRM_DESTRUCTIVE_CLEAN=YES` is supplied, preventing accidental volume and Docker resource removal
+
+### [v 1.0.176] 2026-04-13 - Add Docker native build prerequisites
+
+- added `build-essential` and `python3` to the shared Docker image package layer so native Node dependency installs have the standard compiler and Python prerequisites available during image builds
+
+### [v 1.0.175] 2026-04-13 - Immutable Docker deployment guidance instead of live git-sync rebuilds
+
+- replaced the Docker cloud guidance to recommend immutable image deployment, where the built app ships inside the image and only the image changes during updates
+- clarified the common production split between image, runtime `.env`, persistent media volume, and external MariaDB so env and storage are treated as normal persistent infrastructure rather than as update blockers
+- updated setup and install docs to discourage runtime `git pull`, `npm ci`, and `npm run build` inside live Ubuntu containers, and documented the simpler pull-restart-healthcheck-rollback sequence instead
 
 ### [v 1.0.174] 2026-04-13 - Task-linked application versioning and admin footer display
 

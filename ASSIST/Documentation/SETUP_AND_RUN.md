@@ -5,8 +5,7 @@
 1. Node.js 22 or later
 2. npm 10 or later
 3. MariaDB for the current primary transactional database path
-4. optional SQLite for offline and desktop work
-5. optional PostgreSQL for analytics work
+4. optional PostgreSQL for analytics work
 
 ## Install
 
@@ -49,27 +48,25 @@ Important keys:
 19. `DB_PASSWORD`
 20. `DB_NAME`
 21. `DB_SSL`
-22. `SQLITE_FILE`
-23. `OFFLINE_SUPPORT_ENABLED`
-24. `ANALYTICS_DB_ENABLED`
-25. `ANALYTICS_DB_HOST`
-26. `ANALYTICS_DB_PORT`
-27. `ANALYTICS_DB_USER`
-28. `ANALYTICS_DB_PASSWORD`
-29. `ANALYTICS_DB_NAME`
-30. `ANALYTICS_DB_SSL`
-31. `JWT_SECRET`
-32. `JWT_EXPIRES_IN_SECONDS`
-33. `AUTH_OTP_DEBUG`
-34. `AUTH_OTP_EXPIRY_MINUTES`
-35. `SUPER_ADMIN_EMAILS`
-36. `SMTP_HOST`
-37. `SMTP_PORT`
-38. `SMTP_SECURE`
-39. `SMTP_USER`
-40. `SMTP_PASS`
-41. `SMTP_FROM_EMAIL`
-42. `SMTP_FROM_NAME`
+22. `ANALYTICS_DB_ENABLED`
+23. `ANALYTICS_DB_HOST`
+24. `ANALYTICS_DB_PORT`
+25. `ANALYTICS_DB_USER`
+26. `ANALYTICS_DB_PASSWORD`
+27. `ANALYTICS_DB_NAME`
+28. `ANALYTICS_DB_SSL`
+29. `JWT_SECRET`
+30. `JWT_EXPIRES_IN_SECONDS`
+31. `AUTH_OTP_DEBUG`
+32. `AUTH_OTP_EXPIRY_MINUTES`
+33. `SUPER_ADMIN_EMAILS`
+34. `SMTP_HOST`
+35. `SMTP_PORT`
+36. `SMTP_SECURE`
+37. `SMTP_USER`
+38. `SMTP_PASS`
+39. `SMTP_FROM_EMAIL`
+40. `SMTP_FROM_NAME`
 
 ## Main Commands
 
@@ -126,5 +123,5 @@ Current useful host endpoints:
 10. SMTP delivery is enabled only when `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` are configured; otherwise mailbox sends fall back to stored debug records for local development
 11. the app-owned `frappe` connector baseline is database-backed and available in the shared desk under `/dashboard/apps/frappe`
 12. the app-owned `crm` workspace is available in the shared desk under `/dashboard/apps/crm`
-13. the checked-in local `.env` now uses `DB_DRIVER=sqlite` so the backend and frontend auth flow can boot without a local MariaDB instance; switch it back to `mariadb` when validating the live transactional path
+13. production Docker deployment should use a prebuilt image plus persistent runtime `.env`, persistent media storage, and external MariaDB instead of runtime git sync and live server rebuilds
 14. `apps/mobile` is run through its Expo scripts and is not part of the framework-composed web build output

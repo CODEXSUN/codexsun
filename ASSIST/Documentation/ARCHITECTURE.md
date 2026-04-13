@@ -6,6 +6,14 @@ This file is the single source of truth for Codexsun platform architecture.
 
 If another ASSIST file conflicts with this file, this file wins.
 
+For the long-term modular target structure, read:
+
+1. [MODULAR_ERP_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULAR_ERP_BLUEPRINT.md)
+2. [MODULE_MANIFEST_SPEC.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULE_MANIFEST_SPEC.md)
+3. [MODULE_INVENTORY.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULE_INVENTORY.md)
+
+Those documents define the future engine or app or industry-pack or client-overlay model and the first current-to-target inventory. This file continues to define the current repository architecture and the approved direction of travel.
+
 ## Platform Goal
 
 Codexsun is a reusable ERP and business software platform that should support:
@@ -15,6 +23,26 @@ Codexsun is a reusable ERP and business software platform that should support:
 3. ERP-style combined suites
 4. connector-led deployments
 5. future desktop and offline clients
+6. future plugin-first engines, standalone apps, industry packs, client overlays, and Codexsun-operated control-plane orchestration
+
+## Architecture Direction
+
+Codexsun is currently a semi-modular suite under `apps/`.
+
+The approved long-term target is:
+
+1. reusable neutral engines
+2. shared contracts and UI packages
+3. standalone business apps
+4. reusable industry packs
+5. client-specific overlays
+6. Codexsun control-plane orchestration above client tenants
+
+Future dependency direction must converge toward:
+
+`client overlay -> industry pack -> app -> engine/shared`
+
+Current repository code is not fully in that final structure yet. Migration into that shape must happen in phases, not as one rewrite.
 
 ## App Roots
 

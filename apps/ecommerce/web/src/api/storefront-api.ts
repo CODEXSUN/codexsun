@@ -57,6 +57,7 @@ import type {
   CompanyListResponse,
   CompanyResponse,
 } from "@cxapp/shared"
+import { formatHttpErrorMessage } from "@cxapp/web/src/lib/http-error"
 
 type JsonRequestOptions = RequestInit & {
   accessToken?: string | null
@@ -80,7 +81,12 @@ async function requestJson<T>(url: string, options: JsonRequestOptions = {}) {
   })
 
   const payload = (await response.json().catch(() => null)) as
-    | { error?: string; context?: { issues?: Array<{ path?: Array<string | number>; message?: string }> } }
+    | {
+        error?: string
+        message?: string
+        detail?: string
+        context?: { issues?: Array<{ path?: Array<string | number>; message?: string }> }
+      }
     | T
     | null
 
@@ -94,10 +100,24 @@ async function requestJson<T>(url: string, options: JsonRequestOptions = {}) {
         : null
 
     throw new Error(
-      typeof payload === "object" && payload && "error" in payload && payload.error
+      typeof payload === "object" && payload
         ? issueDetail
-          ? `${String(payload.error)} ${issueDetail}`
-          : String(payload.error)
+          ? `${formatHttpErrorMessage(
+              {
+                error: "error" in payload ? payload.error : undefined,
+                message: "message" in payload ? payload.message : undefined,
+                detail: "detail" in payload ? payload.detail : undefined,
+              },
+              response.status
+            )} ${issueDetail}`
+          : formatHttpErrorMessage(
+              {
+                error: "error" in payload ? payload.error : undefined,
+                message: "message" in payload ? payload.message : undefined,
+                detail: "detail" in payload ? payload.detail : undefined,
+              },
+              response.status
+            )
         : `Request failed with status ${response.status}`
     )
   }
@@ -118,8 +138,10 @@ async function downloadDocument(
   })
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null
-    throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; message?: string; detail?: string }
+      | null
+    throw new Error(formatHttpErrorMessage(payload, response.status))
   }
 
   const text = await response.text()

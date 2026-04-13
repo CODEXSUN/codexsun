@@ -29,6 +29,7 @@ else
 fi
 
 IMAGE_TAG="${IMAGE_TAG:-codexsun-app:v1}"
+CONFIRM_DESTRUCTIVE_CLEAN="${CONFIRM_DESTRUCTIVE_CLEAN:-}"
 
 CODEXSUN_COMPOSE_FILE="${CODEXSUN_COMPOSE_FILE:-.container/clients/codexsun/docker-compose.yml}"
 TMNEXT_COMPOSE_FILE="${TMNEXT_COMPOSE_FILE:-.container/clients/tmnext_in/docker-compose.yml}"
@@ -82,6 +83,12 @@ remove_volume() {
   log "Removing volume ${volume_name}..."
   docker volume rm "$volume_name" >/dev/null 2>&1 || true
 }
+
+if [ "$CONFIRM_DESTRUCTIVE_CLEAN" != "YES" ]; then
+  log "Refusing destructive cleanup."
+  log "Set CONFIRM_DESTRUCTIVE_CLEAN=YES to remove containers, volumes, image, and prune Docker resources."
+  exit 1
+fi
 
 log "Stopping Codexsun app containers, bringing stacks down, removing volumes, image, and unused Docker resources..."
 

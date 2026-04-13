@@ -115,6 +115,9 @@ Environment:
   BUILD_IMAGE=true|false      Default: true
   CREATE_DATABASES=true|false Default: true
   CLEAN_INSTALL=true|false    Default: false
+  CONFIRM_CLEAN_INSTALL=YES   Required when CLEAN_INSTALL=true
+  DROP_DATABASES=true|false   Default: false
+  CONFIRM_DROP_DATABASES=YES  Required when DROP_DATABASES=true
 
 Available clients:
 $(printf '  - %s\n' "${AVAILABLE_CLIENTS[@]}")
@@ -186,6 +189,7 @@ START_MARIADB="${START_MARIADB:-false}"
 BUILD_IMAGE="${BUILD_IMAGE:-true}"
 CREATE_DATABASES="${CREATE_DATABASES:-true}"
 CLEAN_INSTALL="${CLEAN_INSTALL:-false}"
+CONFIRM_CLEAN_INSTALL="${CONFIRM_CLEAN_INSTALL:-}"
 REMOVE_IMAGE="${REMOVE_IMAGE:-false}"
 PRUNE_DOCKER="${PRUNE_DOCKER:-false}"
 DROP_DATABASES="${DROP_DATABASES:-false}"
@@ -481,6 +485,10 @@ wait_for_mariadb() {
 }
 
 clean_install() {
+  if [ "$CONFIRM_CLEAN_INSTALL" != "YES" ]; then
+    die "CLEAN_INSTALL=true requires CONFIRM_CLEAN_INSTALL=YES to proceed."
+  fi
+
   log "Stopping selected client stacks and removing volumes..."
 
   local client_id

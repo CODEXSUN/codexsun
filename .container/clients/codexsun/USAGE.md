@@ -32,15 +32,42 @@ TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setu
 - Updates `/opt/codexsun/runtime/.env`
 - Restarts the container and waits for health before exiting
 
-Runtime Git sync is disabled by default in local mode and enabled by default in cloud mode. Local installs without git sync run the image built from your current workspace. If you enable git sync in local mode, the runtime repository remains authoritative and local installs keep `APP_ENV=development` without reapplying stale baked image code over the synced checkout. Cloud installs boot from the runtime repository so the live update flow can fetch, rebuild, and restart from Git.
+Production recommendation:
 
-Local git-sync example:
+- local mode may still build from your current workspace for development convenience
+- cloud mode should use a prebuilt image and should not depend on runtime git sync, live `npm ci`, or live rebuilds inside the container
+- runtime `.env`, media storage, and database state should stay persistent across image replacements
+
+## Common cloud update process
+
+Use this as the normal Ubuntu server update path:
+
+1. build and tag the image outside the live server, for example `codexsun-app:v-1.0.175`
+2. push or transfer that image to the server
+3. keep `/opt/codexsun/runtime/.env` as the runtime config source
+4. keep uploaded media on a persistent Docker volume or host mount
+5. keep MariaDB outside the app container
+6. pull the new image on the server
+7. restart the container with the same env file and same persistent storage
+8. confirm `/health` is green
+9. keep the previous image tag available for rollback
+
+This is the common deployment model used by most Dockerized production apps because only the image changes during an update.
+
+Avoid this in production:
+
+- `git pull` inside the live container
+- runtime repo clone or reset during normal updates
+- `npm ci` during normal updates
+- `npm run build` during normal updates
+
+## Development-only git sync
 
 ```bash
 GIT_SYNC_ENABLED=true ./.container/clients/codexsun/setup.sh
 ```
 
-That local mode keeps:
+Use that only for local development experiments. That local mode keeps:
 
 - `GIT_SYNC_ENABLED=true`
 - `APP_ENV=development`
@@ -50,7 +77,7 @@ That local mode keeps:
 GIT_SYNC_ENABLED=true GIT_FORCE_UPDATE_ON_START=true TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setup.sh
 ```
 
-Use `GIT_FORCE_UPDATE_ON_START=true` only for a one-time forced resync. Normal cloud installs do not need it.
+Use `GIT_FORCE_UPDATE_ON_START=true` only for a one-time development resync. It is not the recommended production update path.
 
 ## Requirements
 
@@ -72,6 +99,12 @@ Start MariaDB if you host it in Docker on the same server:
 ```bash
 docker compose -f .container/mariadb.yml up -d
 ```
+
+Safety gates:
+
+- `CLEAN_INSTALL=true` requires `CONFIRM_CLEAN_INSTALL=YES`
+- `DROP_DATABASES=true` requires `CONFIRM_DROP_DATABASES=YES`
+- the shared cleanup script requires `CONFIRM_DESTRUCTIVE_CLEAN=YES`
 
 ## Local mode
 

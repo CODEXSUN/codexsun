@@ -9,6 +9,7 @@ Build Codexsun as a reusable ERP platform with:
 3. isolated standalone app boundaries
 4. explicit connector boundaries
 5. one repository that scales without collapsing into one monolith
+6. a future path toward plugin-first engines, reusable industry packs, client overlays, and Codexsun-operated multi-client orchestration
 
 ## Current Baseline
 
@@ -58,6 +59,17 @@ Current app roots:
 6. apps stay isolated even when composed together
 7. companion clients such as `apps/mobile` must be documented explicitly instead of being forced into the suite-app shape
 8. documentation and planning must track the real repository state
+
+## Long-Term Direction
+
+The approved future direction is:
+
+1. keep the current repository working while planning a move toward engines, shared packages, standalone apps, industry packs, client overlays, and orchestration surfaces
+2. keep all app communication flowing through API, framework, core, UI, or explicit shared contracts instead of direct cross-app coupling
+3. support many clients and industries from one platform through feature enablement, workspace resolution, and client overlays rather than repeated forks
+4. evolve Codexsun itself into the internal control plane for deployment, monitoring, support, maintenance, and cross-client operations
+
+The detailed target model is defined in [MODULAR_ERP_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULAR_ERP_BLUEPRINT.md).
 
 ## Delivery Discipline
 

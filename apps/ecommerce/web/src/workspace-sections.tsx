@@ -7,6 +7,7 @@ import type { ProductListResponse } from "@core/shared"
 import type { ProductResponse } from "@core/shared"
 import type { StorefrontOverviewKpiReport } from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
+import { formatHttpErrorMessage } from "@cxapp/web/src/lib/http-error"
 import {
   CommonModulesSection as ExactCoreCommonModulesSection,
   ProductShowSection as ExactCoreProductShowSection,
@@ -125,10 +126,9 @@ async function requestJson<T>(path: string): Promise<T> {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as
-      | { error?: string; message?: string }
+      | { error?: string; message?: string; detail?: string }
       | null
-    const message =
-      payload?.error ?? payload?.message ?? `Request failed with status ${response.status}.`
+    const message = formatHttpErrorMessage(payload, response.status)
     throw new Error(message)
   }
 
