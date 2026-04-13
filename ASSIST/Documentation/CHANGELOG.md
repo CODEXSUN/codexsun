@@ -2,9 +2,25 @@
 
 ## Version State
 
-- Current package version: `1.0.186`
-- Current release tag: `v-1.0.186`
-- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
+- Current package version: `1.0.188`
+- Current release tag: `v-1.0.188`
+- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
+
+## v-1.0.188
+
+### [v 1.0.188] 2026-04-14 - Rename ecommerce goods inward to stock entry and align it with purchase receipt
+
+- renamed the ecommerce stock page label from `Goods Inward` to `Stock Entry` while keeping the existing route id stable for backward compatibility
+- rebuilt the stock-entry form to use the same document-style shell and voucher-style subtable pattern as purchase receipts
+- aligned stock-entry queue, posting, and sticker-generation wording so the receiving flow reads consistently across the ecommerce stock workspace
+
+## v-1.0.187
+
+### [v 1.0.187] 2026-04-14 - Split ecommerce stock operations into dedicated submenu pages
+
+- split the ecommerce stock workspace into dedicated stock pages for overview, purchase receipts, goods inward, barcode generation, and outward issue while reusing the existing stock runtime surface
+- changed the ecommerce side menu so `Stock Operations` now appears as a grouped stock submenu instead of one flat stock entry
+- updated the ecommerce workspace routing and shell behavior so the dedicated stock pages open with the same clean app-style layout as the other ecommerce operator pages
 
 ## v-1.0.186
 

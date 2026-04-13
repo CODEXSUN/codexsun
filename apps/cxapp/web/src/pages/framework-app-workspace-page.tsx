@@ -346,6 +346,10 @@ export function FrameworkAppWorkspacePage({
         "customers",
         "orders",
         "stock-operations",
+        "stock-purchase-receipts",
+        "stock-goods-inward",
+        "stock-barcodes",
+        "stock-outward",
         "checkout",
         "settings",
       ].includes(sectionId ?? "overview")

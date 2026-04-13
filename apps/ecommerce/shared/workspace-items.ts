@@ -67,10 +67,28 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Checkout-created orders, payment verification, tracking flow, and customer order history behavior.",
   },
   {
-    id: "stock-operations",
-    name: "Stock Operations",
-    route: "/dashboard/apps/ecommerce/stock-operations",
-    summary: "Purchase receipt, goods inward, barcode, sticker print, warehouse stock readiness, and scan-based sales issue flow.",
+    id: "stock-purchase-receipts",
+    name: "Purchase Receipts",
+    route: "/dashboard/apps/ecommerce/stock-purchase-receipts",
+    summary: "Create and review purchase receipts for inbound stock intake.",
+  },
+  {
+    id: "stock-goods-inward",
+    name: "Stock Entry",
+    route: "/dashboard/apps/ecommerce/stock-goods-inward",
+    summary: "Record stock entry, manufacturer identity, and posting readiness after receipt.",
+  },
+  {
+    id: "stock-barcodes",
+    name: "Generate Barcode",
+    route: "/dashboard/apps/ecommerce/stock-barcodes",
+    summary: "Generate stock stickers and review barcode-ready stock units.",
+  },
+  {
+    id: "stock-outward",
+    name: "Outward",
+    route: "/dashboard/apps/ecommerce/stock-outward",
+    summary: "Verify scans and issue stock into outward and sales flows.",
   },
   {
     id: "payments",

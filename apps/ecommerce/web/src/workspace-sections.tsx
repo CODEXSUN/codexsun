@@ -903,8 +903,20 @@ function PaymentsSection() {
   return <StorefrontPaymentsSection />
 }
 
-function StockOperationsSection() {
-  return <StorefrontStockOperationsSection />
+function PurchaseReceiptSection() {
+  return <StorefrontStockOperationsSection mode="purchase" />
+}
+
+function StockEntrySection() {
+  return <StorefrontStockOperationsSection mode="inward" />
+}
+
+function StockBarcodeSection() {
+  return <StorefrontStockOperationsSection mode="barcodes" />
+}
+
+function StockOutwardSection() {
+  return <StorefrontStockOperationsSection mode="outward" />
 }
 
 function CheckoutSection() {
@@ -996,7 +1008,15 @@ export function EcommerceWorkspaceSection({
     case "payments":
       return <PaymentsSection />
     case "stock-operations":
-      return <StockOperationsSection />
+      return <PurchaseReceiptSection />
+    case "stock-purchase-receipts":
+      return <PurchaseReceiptSection />
+    case "stock-goods-inward":
+      return <StockEntrySection />
+    case "stock-barcodes":
+      return <StockBarcodeSection />
+    case "stock-outward":
+      return <StockOutwardSection />
     case "checkout":
       return <CheckoutSection />
     case "shipping":

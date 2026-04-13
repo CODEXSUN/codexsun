@@ -27,7 +27,9 @@ import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { formatHttpErrorMessage } from "@cxapp/web/src/lib/http-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -41,6 +43,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
+
+type StockOperationsMode =
+  | "all"
+  | "overview"
+  | "purchase"
+  | "inward"
+  | "barcodes"
+  | "outward"
+
+const voucherInlineInputClassName =
+  "h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
 
 type PurchaseReceiptLineForm = {
   productId: string
@@ -256,7 +269,11 @@ function printStickerBatch(batch: BillingStickerPrintBatchResponse["item"]) {
   popup.document.close()
 }
 
-export function StorefrontStockOperationsSection() {
+export function StorefrontStockOperationsSection({
+  mode = "all",
+}: {
+  mode?: StockOperationsMode
+}) {
   const [purchaseReceipts, setPurchaseReceipts] = useState<BillingPurchaseReceipt[]>([])
   const [goodsInwards, setGoodsInwards] = useState<BillingGoodsInward[]>([])
   const [stockUnits, setStockUnits] = useState<BillingStockUnit[]>([])
@@ -416,10 +433,10 @@ export function StorefrontStockOperationsSection() {
         }),
       })
       setGoodsInwardForm(createGoodsInwardForm())
-      setSuccess("Goods inward note created.")
+      setSuccess("Stock entry created.")
       await loadData()
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to create goods inward note.")
+      setError(submitError instanceof Error ? submitError.message : "Failed to create stock entry.")
     } finally {
       setIsSubmitting(false)
     }
@@ -437,7 +454,7 @@ export function StorefrontStockOperationsSection() {
       setSuccess(`${response.unitsCreated} stock unit${response.unitsCreated === 1 ? "" : "s"} created and posted to inventory.`)
       await loadData()
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to post goods inward into stock.")
+      setError(submitError instanceof Error ? submitError.message : "Failed to post stock entry into inventory.")
     } finally {
       setIsSubmitting(false)
     }
@@ -445,7 +462,7 @@ export function StorefrontStockOperationsSection() {
 
   async function generateStickerBatch() {
     if (!selectedGoodsInwardId) {
-      setError("Select a posted goods inward record to generate stickers.")
+      setError("Select a posted stock entry to generate stickers.")
       return
     }
     setIsSubmitting(true)
@@ -540,7 +557,7 @@ export function StorefrontStockOperationsSection() {
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard icon={ClipboardList} title="Purchase receipts" value={String(purchaseReceipts.length)} description="Inbound buying documents tracked inside the ecommerce stock workflow." />
-            <SummaryCard icon={ClipboardCheck} title="Goods inward" value={String(goodsInwards.length)} description="Verification records prepared before stock becomes available for sale." />
+            <SummaryCard icon={ClipboardCheck} title="Stock entry" value={String(goodsInwards.length)} description="Verification records prepared before stock becomes available for sale." />
             <SummaryCard icon={PackageCheck} title="Available stock units" value={String(availableStockUnits.length)} description="Individually identified units ready for scanning and sales issue." />
             <SummaryCard icon={ShoppingCart} title="Sale allocations" value={String(saleAllocations.length)} description="Scan-based stock issue records already mapped into the sales lifecycle." />
           </div>
@@ -548,13 +565,13 @@ export function StorefrontStockOperationsSection() {
             <CardHeader>
               <CardTitle>Runtime coverage</CardTitle>
               <CardDescription>
-                This workspace covers purchase receipt, goods inward, inward posting, stock-unit identity, barcode verification, sticker print payloads, and scan-based sales issue.
+                This workspace covers purchase receipt, stock entry, inward posting, stock-unit identity, barcode verification, sticker print payloads, and scan-based sales issue.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">Create purchase receipts before physical stock arrives.</div>
-              <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">Verify goods inward and capture manufacturer barcode or serial values.</div>
-              <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">Post inward stock to create sellable stock units and update aggregate warehouse stock.</div>
+              <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">Verify stock entry lines and capture manufacturer barcode or serial values.</div>
+              <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">Post stock entry records to create sellable stock units and update aggregate warehouse stock.</div>
               <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">Print stickers, scan products, and issue them into the sales flow.</div>
             </CardContent>
           </Card>
@@ -567,39 +584,215 @@ export function StorefrontStockOperationsSection() {
       content: (
         <div className="space-y-4">
           <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>Purchase receipt</CardTitle>
-              <CardDescription>Capture incoming supplier stock before goods inward verification starts.</CardDescription>
+            <CardHeader className="space-y-4">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                <ClipboardList className="size-3.5" />
+                Purchase receipt
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="space-y-2">
+                  <Label>Receipt Number</Label>
+                  <Input value={purchaseReceiptForm.receiptNumber} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, receiptNumber: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Supplier Name</Label>
+                  <Input value={purchaseReceiptForm.supplierName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierName: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Posting Date</Label>
+                  <Input type="date" value={purchaseReceiptForm.postingDate} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, postingDate: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Supplier Ledger</Label>
+                  <Input value={purchaseReceiptForm.supplierLedgerId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierLedgerId: event.target.value }))} placeholder="Optional ledger id" />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse ID</p>
+                  <Input className="mt-2" value={purchaseReceiptForm.warehouseId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, warehouseId: event.target.value }))} />
+                </div>
+                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse Name</p>
+                  <Input className="mt-2" value={purchaseReceiptForm.warehouseName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, warehouseName: event.target.value }))} />
+                </div>
+                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Receipt note</p>
+                  <Textarea className="mt-2 min-h-24" value={purchaseReceiptForm.note} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, note: event.target.value }))} />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div className="space-y-2"><Label>Receipt Number</Label><Input value={purchaseReceiptForm.receiptNumber} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, receiptNumber: event.target.value }))} /></div>
-                <div className="space-y-2"><Label>Supplier Name</Label><Input value={purchaseReceiptForm.supplierName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierName: event.target.value }))} /></div>
-                <div className="space-y-2"><Label>Posting Date</Label><Input type="date" value={purchaseReceiptForm.postingDate} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, postingDate: event.target.value }))} /></div>
-                <div className="space-y-2"><Label>Warehouse ID</Label><Input value={purchaseReceiptForm.warehouseId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, warehouseId: event.target.value }))} /></div>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2"><Label>Warehouse Name</Label><Input value={purchaseReceiptForm.warehouseName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, warehouseName: event.target.value }))} /></div>
-                <div className="space-y-2"><Label>Note</Label><Textarea value={purchaseReceiptForm.note} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, note: event.target.value }))} /></div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-foreground">Receipt lines</p>
-                  <Button type="button" variant="outline" onClick={() => setPurchaseReceiptForm((current) => ({ ...current, lines: [...current.lines, createPurchaseReceiptLineForm(current.warehouseId)] }))}>Add line</Button>
-                </div>
-                {purchaseReceiptForm.lines.map((line, index) => (
-                  <div key={`purchase-line-${index}`} className="grid gap-3 rounded-2xl border border-border/70 bg-card/60 p-4 xl:grid-cols-8">
-                    <Input value={line.productId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, productId: event.target.value } : item) }))} placeholder="Product ID" />
-                    <Input value={line.productName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, productName: event.target.value } : item) }))} placeholder="Product name" />
-                    <Input value={line.variantId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, variantId: event.target.value } : item) }))} placeholder="Variant ID" />
-                    <Input value={line.variantName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, variantName: event.target.value } : item) }))} placeholder="Variant name" />
-                    <Input value={line.quantity} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: event.target.value } : item) }))} placeholder="Qty" />
-                    <Input value={line.unitCost} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, unitCost: event.target.value } : item) }))} placeholder="Unit cost" />
-                    <Input value={line.unit} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, unit: event.target.value } : item) }))} placeholder="Unit" />
-                    <Button type="button" variant="ghost" onClick={() => setPurchaseReceiptForm((current) => ({ ...current, lines: current.lines.length === 1 ? current.lines : current.lines.filter((_, itemIndex) => itemIndex !== index) }))}>Remove</Button>
-                  </div>
-                ))}
-              </div>
+              <VoucherInlineEditableTable
+                title="Purchase items"
+                description="Add purchase receipt lines as inward sub-items. Totals and downstream inward verification are derived from this table."
+                addLabel="Add item"
+                fitToContainer
+                rows={purchaseReceiptForm.lines}
+                onAddRow={() =>
+                  setPurchaseReceiptForm((current) => ({
+                    ...current,
+                    lines: [...current.lines, createPurchaseReceiptLineForm(current.warehouseId)],
+                  }))
+                }
+                onRemoveRow={(index) =>
+                  setPurchaseReceiptForm((current) => ({
+                    ...current,
+                    lines:
+                      current.lines.length === 1
+                        ? current.lines
+                        : current.lines.filter((_, itemIndex) => itemIndex !== index),
+                  }))
+                }
+                removeButtonLabel="Remove"
+                getRowKey={(item, index) => `purchase-item:${index}:${item.productId}:${item.productName}`}
+                columns={[
+                  {
+                    id: "productId",
+                    header: "Product ID",
+                    headerClassName: "min-w-40",
+                    renderCell: (item, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        value={item.productId}
+                        onChange={(event) =>
+                          setPurchaseReceiptForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((line, lineIndex) =>
+                              lineIndex === index ? { ...line, productId: event.target.value } : line
+                            ),
+                          }))
+                        }
+                        placeholder="Product ID"
+                      />
+                    ),
+                  },
+                  {
+                    id: "productName",
+                    header: "Product",
+                    headerClassName: "min-w-60",
+                    renderCell: (item, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        value={item.productName}
+                        onChange={(event) =>
+                          setPurchaseReceiptForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((line, lineIndex) =>
+                              lineIndex === index ? { ...line, productName: event.target.value } : line
+                            ),
+                          }))
+                        }
+                        placeholder="Product name"
+                      />
+                    ),
+                  },
+                  {
+                    id: "variant",
+                    header: "Variant",
+                    headerClassName: "w-[20%]",
+                    renderCell: (item, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        value={item.variantName}
+                        onChange={(event) =>
+                          setPurchaseReceiptForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((line, lineIndex) =>
+                              lineIndex === index ? { ...line, variantName: event.target.value } : line
+                            ),
+                          }))
+                        }
+                        placeholder="Variant"
+                      />
+                    ),
+                  },
+                  {
+                    id: "quantity",
+                    header: "Qty",
+                    headerClassName: "w-[10%]",
+                    cellClassName: "w-[10%]",
+                    renderCell: (item, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.quantity}
+                        onChange={(event) =>
+                          setPurchaseReceiptForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((line, lineIndex) =>
+                              lineIndex === index ? { ...line, quantity: event.target.value } : line
+                            ),
+                          }))
+                        }
+                      />
+                    ),
+                  },
+                  {
+                    id: "unitCost",
+                    header: "Rate",
+                    headerClassName: "w-[12%]",
+                    cellClassName: "w-[12%]",
+                    renderCell: (item, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.unitCost}
+                        onChange={(event) =>
+                          setPurchaseReceiptForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((line, lineIndex) =>
+                              lineIndex === index ? { ...line, unitCost: event.target.value } : line
+                            ),
+                          }))
+                        }
+                      />
+                    ),
+                  },
+                  {
+                    id: "amount",
+                    header: "Amount",
+                    headerClassName: "w-[12%] text-right",
+                    cellClassName: "w-[12%] text-right font-medium text-foreground",
+                    renderCell: (item) =>
+                      formatMoney(Number(item.quantity || 0) * Number(item.unitCost || 0)),
+                  },
+                ]}
+                footer={
+                  <>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Line count</p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">{purchaseReceiptForm.lines.length}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Quantity</p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">
+                        {purchaseReceiptForm.lines.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Subtotal</p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">
+                        {formatMoney(
+                          purchaseReceiptForm.lines.reduce(
+                            (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitCost || 0),
+                            0
+                          )
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">{purchaseReceiptForm.warehouseName || "Not set"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{purchaseReceiptForm.warehouseId || "Enter the warehouse id for inward posting."}</p>
+                    </div>
+                  </>
+                }
+              />
               <div className="flex flex-wrap gap-3">
                 <Button type="button" onClick={() => void createPurchaseReceipt()}>Save purchase receipt</Button>
                 <Button type="button" variant="outline" onClick={() => setPurchaseReceiptForm(createPurchaseReceiptForm())}>Reset</Button>
@@ -627,74 +820,300 @@ export function StorefrontStockOperationsSection() {
     },
     {
       value: "inward",
-      label: `Inward (${goodsInwards.length})`,
+      label: `Stock Entry (${goodsInwards.length})`,
       content: (
         <div className="space-y-4">
           <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
             <CardHeader>
-              <CardTitle>Goods inward verification</CardTitle>
-              <CardDescription>Bind a purchase receipt to physical inward, accepted quantity, and manufacturer identity.</CardDescription>
+              <CardTitle>Stock entry</CardTitle>
+              <CardDescription>Bind a purchase receipt to physical stock entry, accepted quantity, and manufacturer identity.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <div className="space-y-2"><Label>Inward Number</Label><Input value={goodsInwardForm.inwardNumber} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, inwardNumber: event.target.value }))} /></div>
-                <div className="space-y-2">
-                  <Label>Purchase Receipt</Label>
-                  <Select value={goodsInwardForm.purchaseReceiptId} onValueChange={(value) => applyReceiptToGoodsInward(value)}>
-                    <SelectTrigger><SelectValue placeholder="Select receipt" /></SelectTrigger>
-                    <SelectContent>{purchaseReceipts.map((item) => <SelectItem key={item.id} value={item.id}>{item.receiptNumber}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2"><Label>Posting Date</Label><Input type="date" value={goodsInwardForm.postingDate} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, postingDate: event.target.value }))} /></div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={goodsInwardForm.status} onValueChange={(value) => setGoodsInwardForm((current) => ({ ...current, status: value as GoodsInwardForm["status"] }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="pending_verification">Pending verification</SelectItem>
-                      <SelectItem value="verified">Verified</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2"><Label>Supplier</Label><Input value={goodsInwardForm.supplierName} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, supplierName: event.target.value }))} /></div>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2"><Label>Warehouse</Label><Input value={goodsInwardForm.warehouseName} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, warehouseName: event.target.value }))} /></div>
-                <div className="space-y-2"><Label>Note</Label><Textarea value={goodsInwardForm.note} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, note: event.target.value }))} /></div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-foreground">Verified inward lines</p>
-                  <Button type="button" variant="outline" onClick={() => setGoodsInwardForm((current) => ({ ...current, lines: [...current.lines, createGoodsInwardLineForm()] }))}>Add line</Button>
-                </div>
-                {goodsInwardForm.lines.map((line, index) => (
-                  <div key={`inward-line-${index}`} className="grid gap-3 rounded-2xl border border-border/70 bg-card/60 p-4 xl:grid-cols-6">
-                    <Input value={line.purchaseReceiptLineId} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, purchaseReceiptLineId: event.target.value } : item) }))} placeholder="Receipt line ID" />
-                    <Input value={line.productId} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, productId: event.target.value } : item) }))} placeholder="Product ID" />
-                    <Input value={line.productName} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, productName: event.target.value } : item) }))} placeholder="Product name" />
-                    <Input value={line.expectedQuantity} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, expectedQuantity: event.target.value } : item) }))} placeholder="Expected" />
-                    <Input value={line.acceptedQuantity} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, acceptedQuantity: event.target.value } : item) }))} placeholder="Accepted" />
-                    <Input value={line.manufacturerSerial} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, manufacturerSerial: event.target.value } : item) }))} placeholder="Manufacturer serial" />
-                    <Input value={line.manufacturerBarcode} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, manufacturerBarcode: event.target.value } : item) }))} placeholder="Manufacturer barcode" />
-                    <Input value={line.rejectedQuantity} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, rejectedQuantity: event.target.value } : item) }))} placeholder="Rejected" />
-                    <Input value={line.damagedQuantity} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, damagedQuantity: event.target.value } : item) }))} placeholder="Damaged" />
-                    <Input value={line.variantId} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, variantId: event.target.value } : item) }))} placeholder="Variant ID" />
-                    <Input value={line.variantName} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === index ? { ...item, variantName: event.target.value } : item) }))} placeholder="Variant name" />
-                    <Button type="button" variant="ghost" onClick={() => setGoodsInwardForm((current) => ({ ...current, lines: current.lines.length === 1 ? current.lines : current.lines.filter((_, itemIndex) => itemIndex !== index) }))}>Remove</Button>
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Stock Entry Number</Label>
+                    <Input value={goodsInwardForm.inwardNumber} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, inwardNumber: event.target.value }))} />
                   </div>
-                ))}
+                  <div className="space-y-2">
+                    <Label>Purchase Receipt</Label>
+                    <Select value={goodsInwardForm.purchaseReceiptId} onValueChange={(value) => applyReceiptToGoodsInward(value)}>
+                      <SelectTrigger><SelectValue placeholder="Select receipt" /></SelectTrigger>
+                      <SelectContent>{purchaseReceipts.map((item) => <SelectItem key={item.id} value={item.id}>{item.receiptNumber}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Posting Date</Label>
+                    <Input type="date" value={goodsInwardForm.postingDate} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, postingDate: event.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={goodsInwardForm.status} onValueChange={(value) => setGoodsInwardForm((current) => ({ ...current, status: value as GoodsInwardForm["status"] }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="pending_verification">Pending verification</SelectItem>
+                        <SelectItem value="verified">Verified</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Supplier</Label>
+                    <Input value={goodsInwardForm.supplierName} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, supplierName: event.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Warehouse</Label>
+                    <Input value={goodsInwardForm.warehouseName} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, warehouseName: event.target.value }))} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Note</Label>
+                  <Textarea value={goodsInwardForm.note} onChange={(event) => setGoodsInwardForm((current) => ({ ...current, note: event.target.value }))} className="min-h-[9.5rem]" />
+                </div>
               </div>
+              <VoucherInlineEditableTable
+                title="Stock entry items"
+                description="Record accepted, rejected, damaged, and manufacturer identity values before posting stock."
+                addLabel="Add line"
+                onAddRow={() =>
+                  setGoodsInwardForm((current) => ({
+                    ...current,
+                    lines: [...current.lines, createGoodsInwardLineForm()],
+                  }))
+                }
+                rows={goodsInwardForm.lines}
+                getRowKey={(_, index) => `stock-entry-line-${index}`}
+                onRemoveRow={(index: number) =>
+                  setGoodsInwardForm((current) => ({
+                    ...current,
+                    lines:
+                      current.lines.length === 1
+                        ? current.lines
+                        : current.lines.filter((_, itemIndex) => itemIndex !== index),
+                  }))
+                }
+                columns={[
+                  {
+                    id: "purchaseReceiptLineId",
+                    header: "Receipt Line ID",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.purchaseReceiptLineId}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, purchaseReceiptLineId: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "productId",
+                    header: "Product ID",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.productId}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, productId: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "productName",
+                    header: "Product",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.productName}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, productName: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "variantName",
+                    header: "Variant",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.variantName}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, variantName: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "expectedQuantity",
+                    header: "Expected",
+                    headerClassName: "text-right",
+                    cellClassName: "text-right",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.expectedQuantity}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, expectedQuantity: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "acceptedQuantity",
+                    header: "Accepted",
+                    headerClassName: "text-right",
+                    cellClassName: "text-right",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.acceptedQuantity}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, acceptedQuantity: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "manufacturerSerial",
+                    header: "Manufacturer Serial",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.manufacturerSerial}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, manufacturerSerial: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "manufacturerBarcode",
+                    header: "Manufacturer Barcode",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.manufacturerBarcode}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, manufacturerBarcode: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "rejectedQuantity",
+                    header: "Rejected",
+                    headerClassName: "text-right",
+                    cellClassName: "text-right",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.rejectedQuantity}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, rejectedQuantity: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                  {
+                    id: "damagedQuantity",
+                    header: "Damaged",
+                    headerClassName: "text-right",
+                    cellClassName: "text-right",
+                    renderCell: (line: GoodsInwardLineForm, index: number) => (
+                      <Input
+                        value={line.damagedQuantity}
+                        onChange={(event) =>
+                          setGoodsInwardForm((current) => ({
+                            ...current,
+                            lines: current.lines.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, damagedQuantity: event.target.value } : item
+                            ),
+                          }))
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                    ),
+                  },
+                ]}
+                footer={
+                  <>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Line count</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{goodsInwardForm.lines.length}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Expected total</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{goodsInwardForm.lines.reduce((sum, item) => sum + Number(item.expectedQuantity || 0), 0)}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Accepted total</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{goodsInwardForm.lines.reduce((sum, item) => sum + Number(item.acceptedQuantity || 0), 0)}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">{goodsInwardForm.warehouseName || "Not set"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{goodsInwardForm.purchaseReceiptNumber || "Bind a purchase receipt before posting."}</p>
+                    </div>
+                  </>
+                }
+              />
               <div className="flex flex-wrap gap-3">
-                <Button type="button" onClick={() => void createGoodsInward()}>Save goods inward</Button>
+                <Button type="button" onClick={() => void createGoodsInward()}>Save stock entry</Button>
                 <Button type="button" variant="outline" onClick={() => setGoodsInwardForm(createGoodsInwardForm())}>Reset</Button>
               </div>
             </CardContent>
           </Card>
           <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
-            <CardHeader><CardTitle>Goods inward queue</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Stock entry queue</CardTitle></CardHeader>
             <CardContent>
-              <Table><TableHeader><TableRow><TableHead>Inward</TableHead><TableHead>Supplier</TableHead><TableHead>Status</TableHead><TableHead>Posting</TableHead><TableHead>Accepted</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>
+              <Table><TableHeader><TableRow><TableHead>Stock Entry</TableHead><TableHead>Supplier</TableHead><TableHead>Status</TableHead><TableHead>Posting</TableHead><TableHead>Accepted</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>
                 {goodsInwards.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell><div><p className="font-medium text-foreground">{item.inwardNumber}</p><p className="text-xs text-muted-foreground">{item.purchaseReceiptNumber}</p></div></TableCell>
@@ -702,7 +1121,7 @@ export function StorefrontStockOperationsSection() {
                     <TableCell><Badge variant={statusBadge(item.status)}>{item.status}</Badge></TableCell>
                     <TableCell><Badge variant={statusBadge(item.stockPostingStatus)}>{item.stockPostingStatus}</Badge></TableCell>
                     <TableCell>{item.lines.reduce((sum, line) => sum + line.acceptedQuantity, 0)}</TableCell>
-                    <TableCell className="text-right"><Button type="button" size="sm" variant="outline" disabled={isSubmitting || item.status !== "verified" || item.stockPostingStatus === "posted"} onClick={() => void postGoodsInward(item.id)}>Post to stock</Button></TableCell>
+                    <TableCell className="text-right"><Button type="button" size="sm" variant="outline" disabled={isSubmitting || item.status !== "verified" || item.stockPostingStatus === "posted"} onClick={() => void postGoodsInward(item.id)}>Post to inventory</Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody></Table>
@@ -717,10 +1136,10 @@ export function StorefrontStockOperationsSection() {
       content: (
         <div className="space-y-4">
           <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
-            <CardHeader><CardTitle>Sticker generation</CardTitle><CardDescription>Create a `25 x 50 mm` stock sticker batch from posted goods inward stock units.</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Sticker generation</CardTitle><CardDescription>Create a `25 x 50 mm` stock sticker batch from posted stock-entry units.</CardDescription></CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
               <Select value={selectedGoodsInwardId} onValueChange={setSelectedGoodsInwardId}>
-                <SelectTrigger><SelectValue placeholder="Select posted goods inward" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select posted stock entry" /></SelectTrigger>
                 <SelectContent>{postedGoodsInwards.map((item) => <SelectItem key={item.id} value={item.id}>{item.inwardNumber}</SelectItem>)}</SelectContent>
               </Select>
               <Button type="button" variant="outline" onClick={() => void generateStickerBatch()}><Printer className="mr-2 size-4" />Generate stickers</Button>
@@ -826,26 +1245,84 @@ export function StorefrontStockOperationsSection() {
     },
   ]
 
+  const selectedTabValue =
+    mode === "purchase" ? "purchase"
+    : mode === "inward" ? "inward"
+    : mode === "barcodes" ? "stock-units"
+    : mode === "outward" ? "scan-issue"
+    : "overview"
+
+  const sectionMeta = {
+    all: {
+      title: "Ecommerce stock inward to sales issue",
+      description:
+        "Run purchase receipt, stock entry, inward posting, barcode, sticker, and scan-based selling operations from one ecommerce-owned stock workspace.",
+      technicalName: "page.ecommerce.stock-operations",
+    },
+    overview: {
+      title: "Stock operations overview",
+      description:
+        "Review the current stock workflow posture before moving into receiving, barcode, and outward execution pages.",
+      technicalName: "page.ecommerce.stock-operations.overview",
+    },
+    purchase: {
+      title: "Purchase receipts",
+      description:
+        "Create and review purchase receipts for incoming stock before physical inward verification.",
+      technicalName: "page.ecommerce.stock-operations.purchase-receipts",
+    },
+    inward: {
+      title: "Stock entry",
+      description:
+        "Verify received goods, record accepted or damaged quantity, and prepare stock entry for posting.",
+      technicalName: "page.ecommerce.stock-operations.stock-entry",
+    },
+    barcodes: {
+      title: "Generate barcode",
+      description:
+        "Review stock units, generate barcode stickers, and print the `25 x 50 mm` stock label batch.",
+      technicalName: "page.ecommerce.stock-operations.barcodes",
+    },
+    outward: {
+      title: "Outward",
+      description:
+        "Verify scanned stock identity and issue sellable units into the outward and sales flow.",
+      technicalName: "page.ecommerce.stock-operations.outward",
+    },
+  }[mode]
+
+  const selectedTab = tabs.find((tab) => tab.value === selectedTabValue) ?? tabs[0]
+
   return (
     <div className="space-y-4">
       {error ? <Card className="border-amber-500/40 bg-amber-500/5 py-0"><CardContent className="p-4 text-sm text-amber-800">{error}</CardContent></Card> : null}
       {success ? <Card className="border-emerald-500/40 bg-emerald-500/5 py-0"><CardContent className="p-4 text-sm text-emerald-700">{success}</CardContent></Card> : null}
-      <Card className="border border-border/70 bg-background/90 shadow-sm">
+      <Card className="relative border border-border/70 bg-background/90 shadow-sm">
         <CardHeader className="space-y-3">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             <Barcode className="size-3.5" />
             Stock operations
           </div>
+          <TechnicalNameBadge
+            name={sectionMeta.technicalName}
+            className="absolute top-4 right-4 z-20"
+          />
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-2">
-              <CardTitle>Ecommerce stock inward to sales issue</CardTitle>
-              <CardDescription className="max-w-3xl text-sm leading-7">Run purchase receipt, goods inward, inward posting, barcode, sticker, and scan-based selling operations from one ecommerce-owned stock workspace.</CardDescription>
+              <CardTitle>{sectionMeta.title}</CardTitle>
+              <CardDescription className="max-w-3xl text-sm leading-7">
+                {sectionMeta.description}
+              </CardDescription>
             </div>
             <Button type="button" variant="outline" onClick={() => void loadData()}><RefreshCw className="mr-2 size-4" />Refresh stock workspace</Button>
           </div>
         </CardHeader>
       </Card>
-      {!isLoading ? <AnimatedTabs defaultTabValue="overview" tabs={tabs} /> : null}
+      {!isLoading
+        ? mode === "all"
+          ? <AnimatedTabs defaultTabValue="overview" tabs={tabs} />
+          : selectedTab?.content
+        : null}
     </div>
   )
 }

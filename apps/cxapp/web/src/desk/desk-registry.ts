@@ -805,10 +805,14 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
             {
               id: `${app.id}-stock`,
               label: "Stock",
+              icon: Warehouse,
               shared: false,
               items: modules.filter((item) =>
                 [
-                  `/dashboard/apps/${app.id}/stock-operations`,
+                  `/dashboard/apps/${app.id}/stock-purchase-receipts`,
+                  `/dashboard/apps/${app.id}/stock-goods-inward`,
+                  `/dashboard/apps/${app.id}/stock-barcodes`,
+                  `/dashboard/apps/${app.id}/stock-outward`,
                 ].includes(item.route)
               ),
             },
