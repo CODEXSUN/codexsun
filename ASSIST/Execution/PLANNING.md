@@ -2,6 +2,18 @@
 
 ## Active Batch
 
+- `#168` Dedicated mail settings editor backed by runtime `.env`
+  - Scope: add a dedicated framework mail settings surface that reads SMTP configuration from the active runtime `.env` file and allows operators to update it from the frontend through the backend.
+  - Constraint: keep `.env` ownership and write semantics inside the existing framework runtime-settings path, avoid introducing a second ad hoc env writer, and ensure missing SMTP keys are created during save instead of requiring a pre-seeded `.env`.
+  - Delivered fix:
+    - added a framework-owned mail-settings schema and service around `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `AUTH_OTP_DEBUG`, and `AUTH_OTP_EXPIRY_MINUTES`
+    - exposed dedicated authenticated `GET` and `POST /internal/v1/cxapp/mail-settings` endpoints that delegate env persistence to the existing runtime-settings writer so missing SMTP keys are created in `.env` on save
+    - added a dedicated frontend `Mail Settings` page under framework settings using the shared runtime-settings UI constrained to the notifications group plus a filtered `Developer Testing` tab for OTP debug and expiry controls
+    - registered the new page in the framework settings launcher, desk route metadata, sidebar utility navigation, and fallback runtime app settings so it appears under `Mail` immediately after `Mail Service`
+  - Validation:
+    - `npm run typecheck`
+    - focused internal route coverage for the new mail settings endpoint
+
 - `#167` Text-editable pricing formula inputs in product upsert
   - Scope: make the pricing formula helper in the core product upsert pricing tab editable as free text for purchase price, selling percent, and MRP percent.
   - Constraint: keep the current calculation flow intact while shifting numeric parsing to calculate time so operators can type and edit values more freely.

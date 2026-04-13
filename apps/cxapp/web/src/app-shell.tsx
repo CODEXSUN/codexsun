@@ -219,6 +219,10 @@ const FrameworkMailServicePage = lazyNamed(
   () => import("./pages/framework-mail-service-page"),
   "FrameworkMailServicePage",
 );
+const FrameworkMailSettingsPage = lazyNamed(
+  () => import("./pages/framework-mail-settings-page"),
+  "FrameworkMailSettingsPage",
+);
 const FrameworkMailTemplatePage = lazyNamed(
   () => import("./pages/framework-mail-template-page"),
   "FrameworkMailTemplatePage",
@@ -379,6 +383,11 @@ function FrameworkUtilityPage({
             title: "Core Settings",
             href: "/dashboard/settings/core-settings",
             summary: "Runtime environment settings and operational controls.",
+          },
+          {
+            title: "Mail Settings",
+            href: "/dashboard/settings/mail-settings",
+            summary: "SMTP host, credentials, and sender identity controls saved to runtime .env.",
           },
           {
             title: "Developer Settings",
@@ -909,6 +918,16 @@ function AuthenticatedAppShell() {
                     appId="core"
                     sectionId="core-settings"
                   />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/mail-settings"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkMailSettingsPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -91,6 +91,11 @@ const frameworkUtilityGroups: FrameworkUtilityGroup[] = [
         name: "Mail Service",
         route: "/dashboard/mail-service",
       },
+      {
+        icon: Settings2,
+        name: "Mail Settings",
+        route: "/dashboard/settings/mail-settings",
+      },
     ],
   },
   {
@@ -623,6 +628,7 @@ export function AppSidebar() {
   const showFrameworkUtilityGroups =
     isDashboardRoot ||
     isRouteActive(location.pathname, "/dashboard/mail-service") ||
+    isRouteActive(location.pathname, "/dashboard/settings/mail-settings") ||
     isRouteActive(location.pathname, links.mediaManager) ||
     isRouteActive(location.pathname, links.settings) ||
     isRouteActive(location.pathname, links.systemUpdate) ||

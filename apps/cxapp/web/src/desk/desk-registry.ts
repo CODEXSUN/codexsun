@@ -1302,6 +1302,15 @@ export function resolveDeskLocation(
       }
     }
 
+    if (pathname === "/dashboard/settings/mail-settings" || pathname.startsWith("/dashboard/settings/mail-settings/")) {
+      return {
+        section: "Framework",
+        title: "Mail Settings",
+        description: "SMTP transport, sender identity, and outbound mail runtime settings saved into the active .env file.",
+        app: null,
+      }
+    }
+
     if (pathname === "/dashboard/settings/developer-settings" || pathname.startsWith("/dashboard/settings/developer-settings/")) {
       return {
         section: "Framework",

@@ -54,6 +54,7 @@ const resources = [
   ["admin", "Admin Desk", "framework", "/admin/dashboard", "desk", "Administrative desk surface."],
   ["media-manager", "Media Manager", "framework", "/dashboard/media", "page", "Shared media manager."],
   ["mail-service", "Mail Service", "framework", "/dashboard/mail-service", "page", "Shared outbound mail templates and delivery history."],
+  ["mail-settings", "Mail Settings", "framework", "/dashboard/settings/mail-settings", "page", "Framework SMTP transport and sender identity settings saved to runtime .env."],
   ["users", "Users", "framework", "/dashboard/settings/users", "module", "Framework user manager."],
   ["roles", "Roles", "framework", "/dashboard/settings/roles", "module", "Framework role manager."],
   ["permissions", "Permissions", "framework", "/dashboard/settings/permissions", "module", "Framework permission manager."],

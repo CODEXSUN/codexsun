@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#168] 2026-04-13 - Dedicated mail settings editor backed by runtime .env
+
+- added a framework-owned mail settings contract and service for `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `AUTH_OTP_DEBUG`, and `AUTH_OTP_EXPIRY_MINUTES`, with save behavior delegated to the existing runtime settings writer so missing mail keys are created in the managed `.env` output
+- exposed authenticated `GET` and `POST /internal/v1/cxapp/mail-settings` routes for the admin frontend instead of requiring operators to edit the full runtime settings payload for SMTP changes
+- added a dedicated `Mail Settings` admin page at `/dashboard/settings/mail-settings`, including a filtered `Developer Testing` tab for OTP debug and expiry controls, and registered it in the settings launcher, desk metadata, fallback resource catalog, and the sidebar `Mail` group directly after `Mail Service`
+- validated the batch with `npm run typecheck` and focused internal route coverage for the new mail settings endpoint
+
 ### [#167] 2026-04-13 - Text-editable pricing formula inputs in product upsert
 
 - changed the `Apply Pricing` helper in the core product upsert pricing tab so `Purchase Price`, `Selling %`, and `MRP %` are editable text fields instead of browser number inputs

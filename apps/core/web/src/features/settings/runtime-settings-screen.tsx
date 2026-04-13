@@ -175,6 +175,9 @@ export function RuntimeSettingsScreen({
   recordName,
   groupIds,
   extraTabs = [],
+  endpoint = "/internal/v1/cxapp/runtime-settings",
+  groupFieldKeys,
+  groupDisplayOverrides,
 }: {
   title: string
   description: string
@@ -182,6 +185,9 @@ export function RuntimeSettingsScreen({
   recordName: string
   groupIds?: string[]
   extraTabs?: AnimatedContentTab[]
+  endpoint?: string
+  groupFieldKeys?: Record<string, string[]>
+  groupDisplayOverrides?: Record<string, { label?: string; summary?: string }>
 }) {
   const queryClient = useQueryClient()
   const [envFilePath, setEnvFilePath] = useState("")
@@ -200,9 +206,7 @@ export function RuntimeSettingsScreen({
       setError(null)
 
       try {
-        const snapshot = await requestSettingsJson<RuntimeSettingsSnapshot>(
-          "/internal/v1/cxapp/runtime-settings"
-        )
+        const snapshot = await requestSettingsJson<RuntimeSettingsSnapshot>(endpoint)
 
         if (!cancelled) {
           setEnvFilePath(snapshot.envFilePath)
@@ -224,7 +228,7 @@ export function RuntimeSettingsScreen({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [endpoint])
 
   async function handleSave(restart: boolean) {
     setIsSaving(true)
@@ -233,7 +237,7 @@ export function RuntimeSettingsScreen({
 
     try {
       const response = await requestSettingsJson<RuntimeSettingsSaveResponse>(
-        "/internal/v1/cxapp/runtime-settings",
+        endpoint,
         {
           method: "POST",
           body: JSON.stringify({
@@ -301,10 +305,25 @@ export function RuntimeSettingsScreen({
 
   const groups = useMemo(
     () =>
-      groupIds && groupIds.length > 0
+      (groupIds && groupIds.length > 0
         ? runtimeSettingGroups.filter((group) => groupIds.includes(group.id))
-        : runtimeSettingGroups,
-    [groupIds]
+        : runtimeSettingGroups)
+        .map((group) => {
+          const fieldKeys = groupFieldKeys?.[group.id]
+          const filteredFields = fieldKeys
+            ? group.fields.filter((field) => fieldKeys.includes(field.key))
+            : group.fields
+          const displayOverride = groupDisplayOverrides?.[group.id]
+
+          return {
+            ...group,
+            label: displayOverride?.label ?? group.label,
+            summary: displayOverride?.summary ?? group.summary,
+            fields: filteredFields,
+          }
+        })
+        .filter((group) => group.fields.length > 0),
+    [groupDisplayOverrides, groupFieldKeys, groupIds]
   )
 
   const settingTabs = useMemo<AnimatedContentTab[]>(

@@ -1,5 +1,9 @@
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
+  getMailSettingsSnapshot,
+  saveMailSettings,
+} from "../../../framework/src/runtime/config/mail-settings-service.js"
+import {
   getRuntimeSettingsSnapshot,
   resolveRuntimeSettingsRoot,
   saveRuntimeSettings,
@@ -71,6 +75,45 @@ export function createCxappInternalRoutes(): HttpRouteDefinition[] {
           message: "Runtime settings were updated from the admin workspace.",
           details: {
             restartScheduled: response.restartScheduled,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/cxapp/mail-settings", {
+      summary: "Read SMTP mail settings from the active runtime .env file.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(
+          getMailSettingsSnapshot(resolveRuntimeSettingsRoot(context.config))
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/mail-settings", {
+      method: "POST",
+      summary: "Save SMTP mail settings into the active runtime .env file and create missing keys when needed.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const response = await saveMailSettings(
+          context.request.jsonBody,
+          resolveRuntimeSettingsRoot(context.config)
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "settings",
+          action: "mail-settings.save",
+          message: "Mail settings were updated from the admin workspace.",
+          details: {
+            restartScheduled: response.restartScheduled,
+            fromEmail: response.snapshot.values.SMTP_FROM_EMAIL,
+            smtpHost: response.snapshot.values.SMTP_HOST,
           },
         })
 

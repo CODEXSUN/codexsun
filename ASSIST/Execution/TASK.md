@@ -2,6 +2,12 @@
 
 ## Active Batch
 
+- [x] `#168` Dedicated mail settings editor backed by runtime `.env`
+  - [x] Phase 1: inspect the existing runtime settings `.env` persistence flow, SMTP field ownership, and framework settings navigation
+  - [x] Phase 2: define a narrow backend mail-settings contract that reads and saves SMTP env values while creating missing variables in `.env`
+  - [x] Phase 3: add a dedicated frontend mail settings screen and framework side-menu entry for editing mail configuration
+  - [x] Phase 4: validate with typecheck and focused route coverage
+
 - [x] `#167` Text-editable pricing formula inputs in product upsert
   - [x] Phase 1: inspect the pricing formula card in the product upsert pricing tab
   - [x] Phase 2: change purchase price, selling %, and MRP % inputs to text-editable fields with parse-on-calculate validation

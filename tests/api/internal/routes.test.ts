@@ -158,6 +158,8 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("PATCH /internal/v1/cxapp/auth/permission"))
   assert.ok(routePaths.includes("GET /internal/v1/cxapp/runtime-settings"))
   assert.ok(routePaths.includes("POST /internal/v1/cxapp/runtime-settings"))
+  assert.ok(routePaths.includes("GET /internal/v1/cxapp/mail-settings"))
+  assert.ok(routePaths.includes("POST /internal/v1/cxapp/mail-settings"))
   assert.ok(routePaths.includes("GET /internal/v1/core/products"))
   assert.ok(routePaths.includes("GET /internal/v1/core/product"))
   assert.ok(routePaths.includes("POST /internal/v1/core/products"))
@@ -447,6 +449,237 @@ test("authenticated core runtime settings routes read and save env-backed settin
       delete process.env.SQLITE_FILE
     } else {
       process.env.SQLITE_FILE = previousSqliteFile
+    }
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("authenticated mail settings routes read and save SMTP env-backed settings", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-mail-settings-"))
+  const previousAppName = process.env.APP_NAME
+  const previousDbDriver = process.env.DB_DRIVER
+  const previousSqliteFile = process.env.SQLITE_FILE
+  const previousSmtpHost = process.env.SMTP_HOST
+  const previousSmtpPort = process.env.SMTP_PORT
+  const previousSmtpSecure = process.env.SMTP_SECURE
+  const previousSmtpUser = process.env.SMTP_USER
+  const previousSmtpPass = process.env.SMTP_PASS
+  const previousSmtpFromEmail = process.env.SMTP_FROM_EMAIL
+  const previousSmtpFromName = process.env.SMTP_FROM_NAME
+
+  try {
+    delete process.env.APP_NAME
+    delete process.env.DB_DRIVER
+    delete process.env.SQLITE_FILE
+    delete process.env.SMTP_HOST
+    delete process.env.SMTP_PORT
+    delete process.env.SMTP_SECURE
+    delete process.env.SMTP_USER
+    delete process.env.SMTP_PASS
+    delete process.env.SMTP_FROM_EMAIL
+    delete process.env.SMTP_FROM_NAME
+
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      ["DB_DRIVER=sqlite", "SQLITE_FILE=storage/runtime.sqlite", "APP_NAME=codexsun"].join("\n"),
+      "utf8"
+    )
+
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const readRoute = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/cxapp/mail-settings"
+      )
+      const saveRoute = routes.find(
+        (candidate) =>
+          candidate.method === "POST" && candidate.path === "/internal/v1/cxapp/mail-settings"
+      )
+
+      assert.ok(readRoute)
+      assert.ok(saveRoute)
+
+      const readResponse = await readRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/cxapp/mail-settings",
+          url: new URL("http://localhost/internal/v1/cxapp/mail-settings"),
+          headers,
+          bodyText: null,
+          jsonBody: null,
+        },
+        route: {
+          auth: readRoute.auth,
+          path: readRoute.path,
+          surface: readRoute.surface,
+          version: readRoute.version,
+        },
+      })
+
+      const readPayload = JSON.parse(readResponse.body) as {
+        envFilePath: string
+        values: Record<string, string | boolean>
+      }
+
+      assert.equal(readResponse.statusCode, 200)
+      assert.equal(typeof readPayload.values.SMTP_HOST, "string")
+      assert.equal(typeof readPayload.values.SMTP_SECURE, "boolean")
+      assert.equal(typeof readPayload.values.AUTH_OTP_DEBUG, "boolean")
+      assert.equal(typeof readPayload.values.AUTH_OTP_EXPIRY_MINUTES, "string")
+
+      const saveResponse = await saveRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "POST",
+          pathname: "/internal/v1/cxapp/mail-settings",
+          url: new URL("http://localhost/internal/v1/cxapp/mail-settings"),
+          headers,
+          bodyText: JSON.stringify({
+            restart: false,
+            values: {
+              SMTP_HOST: "smtp.example.com",
+              SMTP_PORT: "587",
+              SMTP_SECURE: false,
+              SMTP_USER: "mailer@example.com",
+              SMTP_PASS: "secret-pass",
+              SMTP_FROM_EMAIL: "hello@example.com",
+              SMTP_FROM_NAME: "Codexsun Mail",
+              AUTH_OTP_DEBUG: true,
+              AUTH_OTP_EXPIRY_MINUTES: "15",
+            },
+          }),
+          jsonBody: {
+            restart: false,
+            values: {
+              SMTP_HOST: "smtp.example.com",
+              SMTP_PORT: "587",
+              SMTP_SECURE: false,
+              SMTP_USER: "mailer@example.com",
+              SMTP_PASS: "secret-pass",
+              SMTP_FROM_EMAIL: "hello@example.com",
+              SMTP_FROM_NAME: "Codexsun Mail",
+              AUTH_OTP_DEBUG: true,
+              AUTH_OTP_EXPIRY_MINUTES: "15",
+            },
+          },
+        },
+        route: {
+          auth: saveRoute.auth,
+          path: saveRoute.path,
+          surface: saveRoute.surface,
+          version: saveRoute.version,
+        },
+      })
+
+      const savedPayload = JSON.parse(saveResponse.body) as {
+        saved: boolean
+        restartScheduled: boolean
+        snapshot: {
+          values: Record<string, string | boolean>
+        }
+      }
+
+      const envContents = readFileSync(path.join(tempRoot, ".env"), "utf8")
+
+      assert.equal(saveResponse.statusCode, 200)
+      assert.equal(savedPayload.saved, true)
+      assert.equal(savedPayload.restartScheduled, false)
+      assert.equal(savedPayload.snapshot.values.SMTP_HOST, "smtp.example.com")
+      assert.equal(savedPayload.snapshot.values.SMTP_FROM_NAME, "Codexsun Mail")
+      assert.equal(savedPayload.snapshot.values.AUTH_OTP_DEBUG, true)
+      assert.equal(savedPayload.snapshot.values.AUTH_OTP_EXPIRY_MINUTES, "15")
+      assert.match(envContents, /SMTP_HOST=smtp\.example\.com/)
+      assert.match(envContents, /SMTP_PORT=587/)
+      assert.match(envContents, /SMTP_SECURE=false/)
+      assert.match(envContents, /SMTP_USER=mailer@example\.com/)
+      assert.match(envContents, /SMTP_PASS=secret-pass/)
+      assert.match(envContents, /SMTP_FROM_EMAIL=hello@example\.com/)
+      assert.match(envContents, /SMTP_FROM_NAME=\"Codexsun Mail\"/)
+      assert.match(envContents, /AUTH_OTP_DEBUG=true/)
+      assert.match(envContents, /AUTH_OTP_EXPIRY_MINUTES=15/)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    if (previousAppName === undefined) {
+      delete process.env.APP_NAME
+    } else {
+      process.env.APP_NAME = previousAppName
+    }
+    if (previousDbDriver === undefined) {
+      delete process.env.DB_DRIVER
+    } else {
+      process.env.DB_DRIVER = previousDbDriver
+    }
+    if (previousSqliteFile === undefined) {
+      delete process.env.SQLITE_FILE
+    } else {
+      process.env.SQLITE_FILE = previousSqliteFile
+    }
+    if (previousSmtpHost === undefined) {
+      delete process.env.SMTP_HOST
+    } else {
+      process.env.SMTP_HOST = previousSmtpHost
+    }
+    if (previousSmtpPort === undefined) {
+      delete process.env.SMTP_PORT
+    } else {
+      process.env.SMTP_PORT = previousSmtpPort
+    }
+    if (previousSmtpSecure === undefined) {
+      delete process.env.SMTP_SECURE
+    } else {
+      process.env.SMTP_SECURE = previousSmtpSecure
+    }
+    if (previousSmtpUser === undefined) {
+      delete process.env.SMTP_USER
+    } else {
+      process.env.SMTP_USER = previousSmtpUser
+    }
+    if (previousSmtpPass === undefined) {
+      delete process.env.SMTP_PASS
+    } else {
+      process.env.SMTP_PASS = previousSmtpPass
+    }
+    if (previousSmtpFromEmail === undefined) {
+      delete process.env.SMTP_FROM_EMAIL
+    } else {
+      process.env.SMTP_FROM_EMAIL = previousSmtpFromEmail
+    }
+    if (previousSmtpFromName === undefined) {
+      delete process.env.SMTP_FROM_NAME
+    } else {
+      process.env.SMTP_FROM_NAME = previousSmtpFromName
     }
     rmSync(tempRoot, { recursive: true, force: true })
   }
