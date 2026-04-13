@@ -642,15 +642,113 @@ export const frappeItemProductSyncResponseSchema = z.object({
   }),
 })
 
+export const frappeItemPullLivePayloadSchema = z.object({
+  manualQuery: z.string().trim().default(""),
+})
+
 export const frappeItemPullLiveResponseSchema = z.object({
   sync: z.object({
     pulledCount: z.number().int().nonnegative(),
     updatedCount: z.number().int().nonnegative(),
     skippedCount: z.number().int().nonnegative(),
     appRecordCount: z.number().int().nonnegative(),
+    query: z.string().trim(),
     syncedAt: z.string().trim().min(1),
     items: z.array(frappeItemSchema),
   }),
+})
+
+export const frappeItemProductMappingSchema = z.object({
+  id: z.string().trim().min(1),
+  itemId: z.string().trim().min(1),
+  itemCode: z.string().trim().min(1),
+  targetProductId: z.string().trim(),
+  productName: z.string().trim(),
+  productSlug: z.string().trim(),
+  shortDescription: z.string().trim(),
+  categoryName: z.string().trim(),
+  productGroupName: z.string().trim(),
+  productTypeName: z.string().trim(),
+  brandName: z.string().trim(),
+  hsnCodeId: z.string().trim(),
+  sku: z.string().trim(),
+  storefrontDepartment: z.string().trim().nullable(),
+  isActive: z.boolean(),
+  isFeatured: z.boolean(),
+  isNewArrival: z.boolean(),
+  isBestSeller: z.boolean(),
+  isFeaturedLabel: z.boolean(),
+  catalogBadge: z.string().trim(),
+  promoBadge: z.string().trim(),
+  shippingNote: z.string().trim(),
+  tagNames: z.array(z.string().trim().min(1)),
+  notes: z.string().trim(),
+  updatedAt: z.string().trim().min(1),
+})
+
+export const frappeItemProductMappingUpsertPayloadSchema = z.object({
+  targetProductId: z.string().trim().default(""),
+  productName: z.string().trim().default(""),
+  productSlug: z.string().trim().default(""),
+  shortDescription: z.string().trim().default(""),
+  categoryName: z.string().trim().default(""),
+  productGroupName: z.string().trim().default(""),
+  productTypeName: z.string().trim().default(""),
+  brandName: z.string().trim().default(""),
+  hsnCodeId: z.string().trim().default(""),
+  sku: z.string().trim().default(""),
+  storefrontDepartment: z.string().trim().nullable().default(null),
+  isActive: z.boolean().optional().default(true),
+  isFeatured: z.boolean().optional().default(false),
+  isNewArrival: z.boolean().optional().default(false),
+  isBestSeller: z.boolean().optional().default(false),
+  isFeaturedLabel: z.boolean().optional().default(false),
+  catalogBadge: z.string().trim().default(""),
+  promoBadge: z.string().trim().default(""),
+  shippingNote: z.string().trim().default(""),
+  tagNames: z.array(z.string().trim().min(1)).default([]),
+  notes: z.string().trim().default(""),
+})
+
+export const frappeItemProductMappingProductSummarySchema = z.object({
+  id: z.string().trim().min(1),
+  code: z.string().trim().min(1),
+  sku: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  slug: z.string().trim().min(1),
+  isActive: z.boolean(),
+  storefrontDepartment: z.string().trim().nullable(),
+  catalogBadge: z.string().trim().nullable(),
+})
+
+export const frappeItemProductProjectionDraftSchema = z.object({
+  name: z.string().trim().min(1),
+  slug: z.string().trim().min(1),
+  sku: z.string().trim().min(1),
+  shortDescription: z.string().trim().nullable(),
+  description: z.string().trim().nullable(),
+  brandName: z.string().trim().nullable(),
+  categoryName: z.string().trim().nullable(),
+  productGroupName: z.string().trim().nullable(),
+  productTypeName: z.string().trim().nullable(),
+  hsnCodeId: z.string().trim().nullable(),
+  storefrontDepartment: z.string().trim().nullable(),
+  catalogBadge: z.string().trim().nullable(),
+  promoBadge: z.string().trim().nullable(),
+  isActive: z.boolean(),
+  isFeatured: z.boolean(),
+  isNewArrival: z.boolean(),
+  isBestSeller: z.boolean(),
+  isFeaturedLabel: z.boolean(),
+  tagNames: z.array(z.string().trim().min(1)),
+  shippingNote: z.string().trim().nullable(),
+})
+
+export const frappeItemProductMappingResponseSchema = z.object({
+  item: frappeItemSchema,
+  mapping: frappeItemProductMappingSchema,
+  draft: frappeItemProductProjectionDraftSchema,
+  targetProduct: frappeItemProductMappingProductSummarySchema.nullable(),
 })
 
 export const frappePurchaseReceiptItemSchema = z.object({
@@ -867,7 +965,13 @@ export type FrappeItemProductSyncLog = z.infer<typeof frappeItemProductSyncLogSc
 export type FrappeItemProductSyncLogManager = z.infer<typeof frappeItemProductSyncLogManagerSchema>
 export type FrappeItemProductSyncLogManagerResponse = z.infer<typeof frappeItemProductSyncLogManagerResponseSchema>
 export type FrappeItemProductSyncResponse = z.infer<typeof frappeItemProductSyncResponseSchema>
+export type FrappeItemPullLivePayload = z.infer<typeof frappeItemPullLivePayloadSchema>
 export type FrappeItemPullLiveResponse = z.infer<typeof frappeItemPullLiveResponseSchema>
+export type FrappeItemProductMapping = z.infer<typeof frappeItemProductMappingSchema>
+export type FrappeItemProductMappingUpsertPayload = z.infer<typeof frappeItemProductMappingUpsertPayloadSchema>
+export type FrappeItemProductMappingProductSummary = z.infer<typeof frappeItemProductMappingProductSummarySchema>
+export type FrappeItemProductProjectionDraft = z.infer<typeof frappeItemProductProjectionDraftSchema>
+export type FrappeItemProductMappingResponse = z.infer<typeof frappeItemProductMappingResponseSchema>
 export type FrappePurchaseReceiptItem = z.infer<typeof frappePurchaseReceiptItemSchema>
 export type FrappePurchaseReceipt = z.infer<typeof frappePurchaseReceiptSchema>
 export type FrappePurchaseReceiptReferences = z.infer<typeof frappePurchaseReceiptReferencesSchema>

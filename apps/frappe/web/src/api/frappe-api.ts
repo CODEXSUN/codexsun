@@ -1,7 +1,13 @@
 import type {
+  ProductListResponse,
+} from "@core/shared"
+import type {
   FrappeConnectionVerificationResponse,
   FrappeItemManagerResponse,
+  FrappeItemProductMappingResponse,
+  FrappeItemProductMappingUpsertPayload,
   FrappeItemProductSyncLogManagerResponse,
+  FrappeItemPullLivePayload,
   FrappeItemPullLiveResponse,
   FrappeItemProductSyncPayload,
   FrappeItemProductSyncResponse,
@@ -185,6 +191,29 @@ export function listFrappeItemSyncLogs() {
   )
 }
 
+export function getFrappeItemMapping(itemId: string) {
+  return request<FrappeItemProductMappingResponse>(
+    `/internal/v1/frappe/items/mapping?id=${encodeURIComponent(itemId)}`
+  )
+}
+
+export function updateFrappeItemMapping(
+  itemId: string,
+  payload: FrappeItemProductMappingUpsertPayload
+) {
+  return request<FrappeItemProductMappingResponse>(
+    `/internal/v1/frappe/items/mapping?id=${encodeURIComponent(itemId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  )
+}
+
+export function listCoreProducts() {
+  return request<ProductListResponse>("/internal/v1/core/products")
+}
+
 export function syncFrappeItemsToProducts(payload: FrappeItemProductSyncPayload) {
   return request<FrappeItemProductSyncResponse>(
     "/internal/v1/frappe/items/sync-products",
@@ -195,9 +224,10 @@ export function syncFrappeItemsToProducts(payload: FrappeItemProductSyncPayload)
   )
 }
 
-export function pullFrappeItemsLive() {
+export function pullFrappeItemsLive(payload: FrappeItemPullLivePayload = { manualQuery: "" }) {
   return request<FrappeItemPullLiveResponse>("/internal/v1/frappe/items/pull-live", {
     method: "POST",
+    body: JSON.stringify(payload),
   })
 }
 

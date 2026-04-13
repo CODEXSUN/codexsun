@@ -8,6 +8,21 @@
 
 ## v-0.0.1
 
+### [#160] 2026-04-13 - Fix live-server git update rebuild missing TypeScript
+
+- fixed the production container rebuild path so image build, runtime repository bootstrap, and framework one-way git update now install dependencies with `npm ci --include=dev` instead of plain `npm ci`
+- removed the live-server update failure where the running container rebuilt the runtime repository without devDependencies and then failed immediately at `npm run typecheck` with `sh: 1: tsc: not found`
+- updated `.container/Dockerfile`, `.container/entrypoint.sh`, and `apps/framework/src/runtime/system-update/system-update-service.ts` so all build-capable server paths install `typescript` and the rest of the build toolchain consistently
+- validated the batch with `bash -n .container/entrypoint.sh`, `npm run typecheck`, and `npm run build`
+
+### [#159] 2026-04-13 - Frappe item mapping and core product sync workflow
+
+- added a Frappe-owned `frappe_item_product_mappings` store plus mapping services and internal routes so each ERP item can carry its own core-product projection defaults, target product selection, badge defaults, and operator notes without moving ownership into `apps/core`
+- extended live Frappe item pull to accept an optional manual ERP query string such as `disabled=0&item_group=Laptop`, and surfaced that filter input in the Frappe Item Manager so operators can pull narrowed ERP item sets on demand
+- changed Frappe item sync to project through the saved mapping draft into canonical `core/product` records, preserving existing core-owned arrays and detail on update while writing ecommerce-facing badge state to the core product storefront payload
+- rebuilt the Frappe Item Manager around a compare-and-map workflow: the selected ERP item appears on the left, the resolved core product draft appears on the right, and operators can save mapping defaults before syncing to core
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/frappe/services.test.ts`, `npx tsx --test --test-name-pattern "internal route registry includes the frappe connector endpoints" tests/api/internal/routes.test.ts`, and `npm run build`
+
 ### [#158] 2026-04-13 - ASSIST README guidance refresh
 
 - reloaded `ASSIST/README.md` and recorded the ASSIST guidance refresh in the active execution tracking docs so the current working context stays explicit

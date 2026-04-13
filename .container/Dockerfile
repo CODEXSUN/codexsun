@@ -9,7 +9,7 @@ RUN apt-get update \
 WORKDIR /opt/codexsun/app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --include=dev
 
 COPY apps ./apps
 COPY public ./public

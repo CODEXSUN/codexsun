@@ -5,12 +5,14 @@ import type { Kysely } from "kysely"
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import {
   createProduct,
-  listProducts,
+  getProduct,
   updateProduct,
 } from "../../../core/src/services/product-service.js"
+import { productUpsertPayloadSchema, type Product } from "../../../core/shared/index.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   frappeItemManagerResponseSchema,
+  frappeItemPullLivePayloadSchema,
   frappeItemPullLiveResponseSchema,
   frappeItemProductSyncLogManagerResponseSchema,
   frappeItemProductSyncLogSchema,
@@ -28,6 +30,11 @@ import {
 import { frappeTableNames } from "../../database/table-names.js"
 import { readFrappeEnvConfig, type FrappeEnvConfig } from "../config/frappe.js"
 import { assertFrappeViewer, assertSuperAdmin } from "./access.js"
+import {
+  buildItemProductProjectionDraft,
+  readResolvedItemProductMapping,
+  resolveTargetCoreProductSummary,
+} from "./item-product-mapping-service.js"
 import {
   createFrappeConnection,
   readFrappeErrorText,
@@ -185,7 +192,8 @@ function toLocalItem(
 async function readRemoteItems(
   connection: ReturnType<typeof createFrappeConnection>,
   defaults: Awaited<ReturnType<typeof readStoredDefaults>>,
-  existingItems: FrappeItem[]
+  existingItems: FrappeItem[],
+  manualQuery = ""
 ) {
   const fields = encodeURIComponent(
     JSON.stringify([
@@ -202,8 +210,10 @@ async function readRemoteItems(
       "modified",
     ])
   )
+  const normalizedManualQuery = manualQuery.trim().replace(/^\?/, "")
+  const querySuffix = normalizedManualQuery ? `&${normalizedManualQuery}` : ""
   const { response } = await connection.request({
-    path: `/api/resource/Item?fields=${fields}&limit_page_length=5000`,
+    path: `/api/resource/Item?fields=${fields}&limit_page_length=5000${querySuffix}`,
   })
 
   if (!response.ok) {
@@ -239,112 +249,43 @@ async function readRemoteItems(
   )
 }
 
-function toProjectedProductPayload(item: FrappeItem) {
-  const slugBase = slugify(item.itemName) || slugify(item.itemCode) || randomUUID()
-  const timestamp = new Date().toISOString()
-
-  return {
-    code: item.itemCode,
-    name: item.itemName,
-    slug: slugBase,
-    description: item.description,
-    shortDescription: item.itemName,
-    brandId: null,
-    brandName: item.brand,
-    categoryId: null,
-    categoryName: item.itemGroup,
-    productGroupId: null,
-    productGroupName: item.itemGroup,
-    productTypeId: null,
-    productTypeName: item.isStockItem ? "Finished Good" : "Service",
-    unitId: null,
-    hsnCodeId: item.gstHsnCode || null,
-    styleId: null,
-    sku: item.itemCode,
-    hasVariants: item.hasVariants,
-    basePrice: 0,
-    costPrice: 0,
-    taxId: null,
-    isFeatured: false,
-    isActive: !item.disabled,
-    storefrontDepartment: null,
-    homeSliderEnabled: false,
-    promoSliderEnabled: false,
-    featureSectionEnabled: false,
-    isNewArrival: false,
-    isBestSeller: false,
-    isFeaturedLabel: false,
-    images: [],
-    variants: [],
-    prices: [],
-    discounts: [],
-    offers: [],
-    attributes: [],
-    attributeValues: [],
-    variantMap: [],
-    stockItems: [],
-    stockMovements: [],
-    seo: {
-      metaTitle: item.itemName,
-      metaDescription: item.description || item.itemName,
-      metaKeywords: `${item.brand}, ${item.itemGroup}, ${item.itemCode}`,
-      isActive: true,
-    },
-    storefront: {
-      department: null,
-      homeSliderEnabled: false,
-      homeSliderOrder: 0,
-      promoSliderEnabled: false,
-      promoSliderOrder: 0,
-      featureSectionEnabled: false,
-      featureSectionOrder: 0,
-      isNewArrival: false,
-      isBestSeller: false,
-      isFeaturedLabel: false,
-      catalogBadge: null,
-      promoBadge: null,
-      promoTitle: null,
-      promoSubtitle: null,
-      promoCtaLabel: null,
-      fabric: null,
-      fit: null,
-      sleeve: null,
-      occasion: null,
-      shippingNote: "Projected from Frappe item snapshot.",
-      shippingCharge: null,
-      handlingCharge: null,
-      isActive: true,
-    },
-    tags: [
-      { name: "frappe", isActive: true },
-      { name: slugify(item.itemGroup) || "projected", isActive: true },
-    ],
-    reviews: [],
-    _projectedAt: timestamp,
-  }
-}
-
 async function resolveTargetProductId(
   database: Kysely<unknown>,
   item: FrappeItem
 ) {
-  const products = await listProducts(database)
+  const mapping = await readResolvedItemProductMapping(database, item)
+  const targetProduct = await resolveTargetCoreProductSummary(database, item, mapping)
+  return targetProduct?.id ?? null
+}
 
-  const linkedProduct = item.syncedProductId
-    ? products.items.find((product) => product.id === item.syncedProductId)
-    : null
-
-  if (linkedProduct) {
-    return linkedProduct.id
-  }
-
-  const directMatch = products.items.find(
-    (product) =>
-      product.code.trim().toLowerCase() === item.itemCode.trim().toLowerCase() ||
-      product.sku.trim().toLowerCase() === item.itemCode.trim().toLowerCase()
-  )
-
-  return directMatch?.id ?? null
+function mergeProjectedPayload(existingProduct: Product, draft: ReturnType<typeof buildItemProductProjectionDraft>) {
+  return productUpsertPayloadSchema.parse({
+    ...existingProduct,
+    code: draft.code,
+    name: draft.name,
+    slug: draft.slug,
+    description: draft.description,
+    shortDescription: draft.shortDescription,
+    brandName: draft.brandName,
+    categoryName: draft.categoryName,
+    productGroupName: draft.productGroupName,
+    productTypeName: draft.productTypeName,
+    hsnCodeId: draft.hsnCodeId,
+    sku: draft.sku,
+    hasVariants: draft.hasVariants,
+    isFeatured: draft.isFeatured,
+    isActive: draft.isActive,
+    storefrontDepartment: draft.storefrontDepartment,
+    homeSliderEnabled: draft.homeSliderEnabled,
+    promoSliderEnabled: draft.promoSliderEnabled,
+    featureSectionEnabled: draft.featureSectionEnabled,
+    isNewArrival: draft.isNewArrival,
+    isBestSeller: draft.isBestSeller,
+    isFeaturedLabel: draft.isFeaturedLabel,
+    seo: draft.seo,
+    storefront: draft.storefront,
+    tags: draft.tags,
+  })
 }
 
 export async function listFrappeItems(
@@ -519,10 +460,12 @@ export async function syncFrappeItemsToProducts(
 
   for (const item of selectedItems as FrappeItem[]) {
     const targetProductId = await resolveTargetProductId(database, item)
+    const mapping = await readResolvedItemProductMapping(database, item)
 
     if (
       parsedPayload.duplicateMode === "skip" &&
       targetProductId &&
+      !mapping.targetProductId.trim() &&
       !item.syncedProductId
     ) {
       syncLogItems.push({
@@ -539,10 +482,18 @@ export async function syncFrappeItemsToProducts(
     }
 
     try {
-      const projectionPayload = toProjectedProductPayload(item)
+      const projectionDraft = buildItemProductProjectionDraft(item, mapping)
       const productResponse = targetProductId
-        ? await updateProduct(database, user, targetProductId, projectionPayload)
-        : await createProduct(database, user, projectionPayload)
+        ? await updateProduct(
+            database,
+            user,
+            targetProductId,
+            mergeProjectedPayload(
+              (await getProduct(database, user, targetProductId)).item,
+              projectionDraft
+            )
+          )
+        : await createProduct(database, user, projectionDraft)
       const mode = targetProductId ? "update" : "create"
 
       syncResults.push({
@@ -658,14 +609,35 @@ export async function syncFrappeItemsToProducts(
 export async function pullFrappeItemsLive(
   database: Kysely<unknown>,
   user: AuthUser,
+  payloadOrOptions?: unknown,
   options?: FrappeItemServiceOptions
 ) {
   assertSuperAdmin(user)
 
+  const serviceOptions =
+    options ??
+    (payloadOrOptions &&
+    typeof payloadOrOptions === "object" &&
+    ("config" in (payloadOrOptions as Record<string, unknown>) ||
+      "cwd" in (payloadOrOptions as Record<string, unknown>))
+      ? (payloadOrOptions as FrappeItemServiceOptions)
+      : undefined)
+  const payload =
+    options !== undefined
+      ? payloadOrOptions
+      : serviceOptions === undefined
+        ? payloadOrOptions
+        : undefined
+  const parsedPayload = frappeItemPullLivePayloadSchema.parse(payload ?? {})
   const existingItems = await readItems(database)
-  const defaults = await readStoredDefaults(database, options)
-  const connection = await createVerifiedItemConnection(database, options)
-  const remoteItems = await readRemoteItems(connection, defaults, existingItems)
+  const defaults = await readStoredDefaults(database, serviceOptions)
+  const connection = await createVerifiedItemConnection(database, serviceOptions)
+  const remoteItems = await readRemoteItems(
+    connection,
+    defaults,
+    existingItems,
+    parsedPayload.manualQuery
+  )
   const existingItemsByCode = new Map(
     existingItems.map((item) => [item.itemCode.trim().toLowerCase(), item])
   )
@@ -701,6 +673,7 @@ export async function pullFrappeItemsLive(
       updatedCount,
       skippedCount,
       appRecordCount: remoteItems.length,
+      query: parsedPayload.manualQuery,
     },
   })
 
@@ -710,6 +683,7 @@ export async function pullFrappeItemsLive(
       updatedCount,
       skippedCount,
       appRecordCount: remoteItems.length,
+      query: parsedPayload.manualQuery,
       syncedAt,
       items: remoteItems,
     },

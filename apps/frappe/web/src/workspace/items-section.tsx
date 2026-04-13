@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
-import {
-  PackagePlusIcon,
-  RefreshCwIcon,
-  SendIcon,
-  UploadCloudIcon,
-} from "lucide-react"
+import { PackagePlusIcon, RefreshCwIcon, SendIcon, UploadCloudIcon } from "lucide-react"
 
-import type { FrappeItem, FrappeItemManager, FrappeItemUpsertPayload } from "@frappe/shared"
+import type { ProductSummary } from "@core/shared"
+import type {
+  FrappeItem,
+  FrappeItemManager,
+  FrappeItemProductMappingResponse,
+  FrappeItemProductMappingUpsertPayload,
+  FrappeItemUpsertPayload,
+} from "@frappe/shared"
 import { MasterList } from "@/components/blocks/master-list"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,67 +27,135 @@ import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-pr
 
 import {
   createFrappeItem,
-  listFrappeItems,
+  getFrappeItemMapping,
+  listCoreProducts,
   listFrappeItemSyncLogs,
+  listFrappeItems,
   pullFrappeItemsLive,
   syncFrappeItemsToProducts,
   updateFrappeItem,
+  updateFrappeItemMapping,
 } from "../api/frappe-api"
 import { getConnectionStatus } from "../services/frappe"
+import { ItemMappingComparePanel } from "./item-mapping-compare-panel"
 import {
-  createDefaultItemValues,
   Field,
   NativeCheckbox,
   StateCard,
+  createDefaultItemValues,
   formatDateTime,
   getActiveOptions,
   getLeafOptions,
   toErrorMessage,
 } from "./shared"
 
+function toMappingValues(
+  response: FrappeItemProductMappingResponse
+): FrappeItemProductMappingUpsertPayload {
+  return {
+    targetProductId: response.mapping.targetProductId,
+    productName: response.mapping.productName,
+    productSlug: response.mapping.productSlug,
+    shortDescription: response.mapping.shortDescription,
+    categoryName: response.mapping.categoryName,
+    productGroupName: response.mapping.productGroupName,
+    productTypeName: response.mapping.productTypeName,
+    brandName: response.mapping.brandName,
+    hsnCodeId: response.mapping.hsnCodeId,
+    sku: response.mapping.sku,
+    storefrontDepartment: response.mapping.storefrontDepartment,
+    isActive: response.mapping.isActive,
+    isFeatured: response.mapping.isFeatured,
+    isNewArrival: response.mapping.isNewArrival,
+    isBestSeller: response.mapping.isBestSeller,
+    isFeaturedLabel: response.mapping.isFeaturedLabel,
+    catalogBadge: response.mapping.catalogBadge,
+    promoBadge: response.mapping.promoBadge,
+    shippingNote: response.mapping.shippingNote,
+    tagNames: response.mapping.tagNames,
+    notes: response.mapping.notes,
+  }
+}
+
 export function FrappeItemsSection() {
   const { user } = useDashboardShell()
   const [items, setItems] = useState<FrappeItem[]>([])
+  const [coreProducts, setCoreProducts] = useState<ProductSummary[]>([])
   const [references, setReferences] =
     useState<FrappeItemManager["references"] | null>(null)
   const [selectedIds, setSelectedIds] = useState<Array<string | number>>([])
   const [searchValue, setSearchValue] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [duplicateMode, setDuplicateMode] = useState<"overwrite" | "skip">(
-    "overwrite"
-  )
-  const [values, setValues] = useState<FrappeItemUpsertPayload>(
-    createDefaultItemValues(null)
-  )
+  const [duplicateMode, setDuplicateMode] = useState<"overwrite" | "skip">("overwrite")
+  const [values, setValues] = useState<FrappeItemUpsertPayload>(createDefaultItemValues(null))
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [lastSyncedAt, setLastSyncedAt] = useState("")
+  const [manualQuery, setManualQuery] = useState("disabled=0")
   const [connectionState, setConnectionState] = useState<"connected" | "failed">("failed")
+  const [activeCompareItemId, setActiveCompareItemId] = useState<string | null>(null)
+  const [mappingResponse, setMappingResponse] = useState<FrappeItemProductMappingResponse | null>(null)
+  const [mappingValues, setMappingValues] = useState<FrappeItemProductMappingUpsertPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isMappingLoading, setIsMappingLoading] = useState(false)
+  const [isMappingSaving, setIsMappingSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   useGlobalLoading(isLoading || isSyncing)
+
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = searchValue.trim().toLowerCase()
+    if (!normalizedSearch) {
+      return items
+    }
+    return items.filter((item) =>
+      [
+        item.itemCode,
+        item.itemName,
+        item.description,
+        item.itemGroup,
+        item.brand,
+        item.gstHsnCode,
+        item.defaultWarehouse,
+        item.syncedProductName,
+        item.syncedProductSlug,
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedSearch))
+    )
+  }, [items, searchValue])
+
+  const activeCompareItem =
+    filteredItems.find((item) => item.id === activeCompareItemId) ??
+    items.find((item) => item.id === activeCompareItemId) ??
+    filteredItems[0] ??
+    items[0] ??
+    null
 
   async function loadItems() {
     setIsLoading(true)
     setError(null)
 
     try {
-      const [itemResponse, logResponse, connectionStatus] = await Promise.all([
+      const [itemResponse, logResponse, connectionStatus, coreProductResponse] = await Promise.all([
         listFrappeItems(),
         listFrappeItemSyncLogs(),
         getConnectionStatus().catch(() => null),
+        listCoreProducts().catch(() => ({ items: [] })),
       ])
 
       setItems(itemResponse.manager.items)
+      setCoreProducts(coreProductResponse.items)
       setReferences(itemResponse.manager.references)
       setLastSyncedAt(itemResponse.manager.syncedAt)
-      setConnectionState(
-        connectionStatus?.state === "connected" ? "connected" : "failed"
-      )
+      setConnectionState(connectionStatus?.state === "connected" ? "connected" : "failed")
+
+      if (!activeCompareItemId && itemResponse.manager.items[0]) {
+        setActiveCompareItemId(itemResponse.manager.items[0].id)
+      }
 
       const latestLog = logResponse.manager.items[0]
       if (latestLog && !syncMessage) {
@@ -112,35 +182,56 @@ export function FrappeItemsSection() {
     }
   }, [editingId, references])
 
-  const filteredItems = useMemo(() => {
-    const normalizedSearch = searchValue.trim().toLowerCase()
-
-    if (!normalizedSearch) {
-      return items
+  useEffect(() => {
+    if (selectedIds.length > 0) {
+      setActiveCompareItemId(String(selectedIds[0]))
+      return
     }
 
-    return items.filter((item) =>
-      [
-        item.itemCode,
-        item.itemName,
-        item.description,
-        item.itemGroup,
-        item.brand,
-        item.gstHsnCode,
-        item.defaultWarehouse,
-        item.syncedProductName,
-        item.syncedProductSlug,
-      ]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(normalizedSearch))
-    )
-  }, [items, searchValue])
+    if (!activeCompareItemId && filteredItems[0]) {
+      setActiveCompareItemId(filteredItems[0].id)
+    }
+  }, [activeCompareItemId, filteredItems, selectedIds])
+
+  useEffect(() => {
+    if (!activeCompareItem) {
+      setMappingResponse(null)
+      setMappingValues(null)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadMapping() {
+      setIsMappingLoading(true)
+
+      try {
+        const response = await getFrappeItemMapping(activeCompareItem.id)
+        if (cancelled) {
+          return
+        }
+        setMappingResponse(response)
+        setMappingValues(toMappingValues(response))
+      } catch (nextError) {
+        if (!cancelled) {
+          setError(toErrorMessage(nextError))
+        }
+      } finally {
+        if (!cancelled) {
+          setIsMappingLoading(false)
+        }
+      }
+    }
+
+    void loadMapping()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeCompareItem?.id])
 
   const totalRecords = filteredItems.length
-  const safeCurrentPage = Math.min(
-    currentPage,
-    Math.max(1, Math.ceil(totalRecords / pageSize))
-  )
+  const safeCurrentPage = Math.min(currentPage, Math.max(1, Math.ceil(totalRecords / pageSize)))
   const paginatedItems = filteredItems.slice(
     (safeCurrentPage - 1) * pageSize,
     safeCurrentPage * pageSize
@@ -229,19 +320,39 @@ export function FrappeItemsSection() {
     setSyncMessage(null)
 
     try {
-      const response = await pullFrappeItemsLive()
+      const response = await pullFrappeItemsLive({ manualQuery })
       setItems(response.sync.items)
       setSelectedIds([])
       setConnectionState("connected")
       setLastSyncedAt(response.sync.syncedAt)
       setSyncMessage(
-        `ERP pull completed: ${response.sync.pulledCount} new, ${response.sync.updatedCount} updated, ${response.sync.skippedCount} unchanged. App records: ${response.sync.appRecordCount}.`
+        `ERP pull completed: ${response.sync.pulledCount} new, ${response.sync.updatedCount} updated, ${response.sync.skippedCount} unchanged. Query: ${response.sync.query || "default"}. App records: ${response.sync.appRecordCount}.`
       )
       await loadItems()
     } catch (nextError) {
       setError(toErrorMessage(nextError))
     } finally {
       setIsSyncing(false)
+    }
+  }
+
+  async function handleSaveMapping() {
+    if (!activeCompareItem || !mappingValues) {
+      return
+    }
+
+    setIsMappingSaving(true)
+    setError(null)
+
+    try {
+      const response = await updateFrappeItemMapping(activeCompareItem.id, mappingValues)
+      setMappingResponse(response)
+      setMappingValues(toMappingValues(response))
+      setSyncMessage(`Saved mapping for ${activeCompareItem.itemCode}.`)
+    } catch (nextError) {
+      setError(toErrorMessage(nextError))
+    } finally {
+      setIsMappingSaving(false)
     }
   }
 
@@ -283,8 +394,7 @@ export function FrappeItemsSection() {
               />
             </span>
           ),
-          pageDescription:
-            `${totalRecords} records, ${syncedCount} linked to core products${lastSyncedAt ? `, last sync ${formatDateTime(lastSyncedAt)}` : ""}.`,
+          pageDescription: `${totalRecords} records, ${syncedCount} linked to core products${lastSyncedAt ? `, last sync ${formatDateTime(lastSyncedAt)}` : ""}.`,
           technicalName: "section.frappe.items.master-list",
           actions: (
             <div className="flex flex-col items-end gap-1">
@@ -292,13 +402,17 @@ export function FrappeItemsSection() {
                 <select
                   className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   value={duplicateMode}
-                  onChange={(event) =>
-                    setDuplicateMode(event.target.value as "overwrite" | "skip")
-                  }
+                  onChange={(event) => setDuplicateMode(event.target.value as "overwrite" | "skip")}
                 >
                   <option value="overwrite">Overwrite duplicates</option>
                   <option value="skip">Skip duplicates</option>
                 </select>
+                <Input
+                  className="h-9 min-w-[260px]"
+                  value={manualQuery}
+                  onChange={(event) => setManualQuery(event.target.value)}
+                  placeholder="ERP query, e.g. disabled=0&item_group=Laptop"
+                />
                 <Button
                   variant="outline"
                   className="h-9 gap-2 border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100"
@@ -348,10 +462,7 @@ export function FrappeItemsSection() {
                 ) : null}
               </div>
               {syncMessage ? (
-                <p
-                  className="max-w-3xl text-right text-xs leading-5 text-muted-foreground"
-                  aria-live="polite"
-                >
+                <p className="max-w-3xl text-right text-xs leading-5 text-muted-foreground" aria-live="polite">
                   {syncMessage}
                 </p>
               ) : null}
@@ -372,14 +483,18 @@ export function FrappeItemsSection() {
               sortable: true,
               accessor: (item) => item.itemName,
               cell: (item) => (
-                <div className="space-y-1">
-                  <p className="font-medium leading-5 text-foreground">
+                <button
+                  type="button"
+                  className="space-y-1 text-left"
+                  onClick={() => setActiveCompareItemId(item.id)}
+                >
+                  <p className="font-medium leading-5 text-foreground hover:text-primary">
                     {item.itemName}
                   </p>
                   <p className="font-mono text-[11px] text-muted-foreground">
                     {item.itemCode}
                   </p>
-                </div>
+                </button>
               ),
               className: "min-w-[260px]",
             },
@@ -391,9 +506,7 @@ export function FrappeItemsSection() {
               cell: (item) => (
                 <div className="space-y-1 text-sm">
                   <p className="text-foreground">{item.itemGroup || "No group"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.brand || "No brand"}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{item.brand || "No brand"}</p>
                 </div>
               ),
             },
@@ -420,9 +533,7 @@ export function FrappeItemsSection() {
               cell: (item) =>
                 item.isSyncedToProduct ? (
                   <div className="space-y-1 text-sm">
-                    <p className="font-medium text-foreground">
-                      {item.syncedProductName}
-                    </p>
+                    <p className="font-medium text-foreground">{item.syncedProductName}</p>
                     <p className="text-xs text-muted-foreground">
                       {item.syncedProductSlug || item.syncedProductId}
                     </p>
@@ -437,9 +548,7 @@ export function FrappeItemsSection() {
               sortable: true,
               accessor: (item) => item.defaultWarehouse,
               cell: (item) => (
-                <span className="text-sm text-muted-foreground">
-                  {item.defaultWarehouse || "-"}
-                </span>
+                <span className="text-sm text-muted-foreground">{item.defaultWarehouse || "-"}</span>
               ),
               defaultVisible: false,
             },
@@ -449,9 +558,7 @@ export function FrappeItemsSection() {
               sortable: true,
               accessor: (item) => item.modifiedAt,
               cell: (item) => (
-                <span className="text-sm text-muted-foreground">
-                  {formatDateTime(item.modifiedAt)}
-                </span>
+                <span className="text-sm text-muted-foreground">{formatDateTime(item.modifiedAt)}</span>
               ),
             },
             {
@@ -459,14 +566,19 @@ export function FrappeItemsSection() {
               header: "Actions",
               cell: (item) =>
                 user.isSuperAdmin ? (
-                  <Button variant="ghost" size="sm" onClick={() => startEdit(item)}>
-                    Edit
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => setActiveCompareItemId(item.id)}>
+                      Map
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(item)}>
+                      Edit
+                    </Button>
+                  </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">View only</span>
                 ),
-              className: "w-24 text-right",
-              headerClassName: "w-24 text-right",
+              className: "w-32 text-right",
+              headerClassName: "w-32 text-right",
             },
           ],
           data: paginatedItems,
@@ -482,12 +594,10 @@ export function FrappeItemsSection() {
           content: (
             <div className="flex flex-wrap items-center gap-4">
               <span>
-                Total Products:{" "}
-                <span className="font-medium text-foreground">{totalRecords}</span>
+                Total Products: <span className="font-medium text-foreground">{totalRecords}</span>
               </span>
               <span>
-                Linked:{" "}
-                <span className="font-medium text-foreground">{syncedCount}</span>
+                Linked: <span className="font-medium text-foreground">{syncedCount}</span>
               </span>
             </div>
           ),
@@ -504,6 +614,31 @@ export function FrappeItemsSection() {
           pageSizeOptions: [10, 20, 50, 100],
         }}
       />
+
+      {activeCompareItem && mappingValues ? (
+        <div className="space-y-2" data-technical-name="section.frappe.items.compare">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Compare and map</p>
+              <p className="text-xs text-muted-foreground">
+                Left shows ERP data. Right controls how that item becomes a core product and what ecommerce badge it carries.
+              </p>
+            </div>
+            {isMappingLoading ? <Badge variant="outline">Loading mapping</Badge> : null}
+          </div>
+          <ItemMappingComparePanel
+            item={activeCompareItem}
+            mappingResponse={mappingResponse}
+            value={mappingValues}
+            coreProducts={coreProducts}
+            isSaving={isMappingSaving}
+            isSyncing={isSyncing}
+            onChange={setMappingValues}
+            onSave={() => void handleSaveMapping()}
+            onSync={() => void handleSyncProducts([activeCompareItem.id])}
+          />
+        </div>
+      ) : null}
 
       <Dialog
         open={dialogOpen}
@@ -592,7 +727,11 @@ export function FrappeItemsSection() {
                   </Field>
                   <Field
                     label="Default Warehouse"
-                    hint={references?.defaults.company ? `Default company: ${references.defaults.company}` : undefined}
+                    hint={
+                      references?.defaults.company
+                        ? `Default company: ${references.defaults.company}`
+                        : undefined
+                    }
                   >
                     <select
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -623,9 +762,7 @@ export function FrappeItemsSection() {
                   <label className="flex items-center gap-3">
                     <NativeCheckbox
                       checked={!values.disabled}
-                      onChange={(checked) =>
-                        setValues((current) => ({ ...current, disabled: !checked }))
-                      }
+                      onChange={(checked) => setValues((current) => ({ ...current, disabled: !checked }))}
                     />
                     <span className="text-muted-foreground">Product is active</span>
                   </label>
@@ -647,12 +784,7 @@ export function FrappeItemsSection() {
             )}
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={isSaving}
-            >
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
             <Button

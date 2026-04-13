@@ -10,6 +10,10 @@ import {
   pullFrappeItemsLive,
   syncFrappeItemsToProducts,
 } from "../../apps/frappe/src/services/item-service.js"
+import {
+  getFrappeItemProductMapping,
+  upsertFrappeItemProductMapping,
+} from "../../apps/frappe/src/services/item-product-mapping-service.js"
 import { listProducts } from "../../apps/core/src/services/product-service.js"
 import {
   listFrappePurchaseReceipts,
@@ -149,6 +153,78 @@ test("frappe item sync projects unsynced item snapshots into core products", asy
   }
 })
 
+test("frappe item sync respects saved mapping defaults for storefront badge and target fields", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-item-mapping-sync-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const adminUser = createAdminUser()
+      const itemResponse = await listFrappeItems(runtime.primary, adminUser)
+      const lunaItem = itemResponse.manager.items.find((item) => item.id === "frappe-item:luna-tote")
+
+      assert.ok(lunaItem)
+      if (!lunaItem) {
+        throw new Error("Expected seeded Luna item.")
+      }
+
+      await upsertFrappeItemProductMapping(runtime.primary, adminUser, lunaItem, {
+        targetProductId: "",
+        productName: "Luna Tote Sync",
+        productSlug: "luna-tote-sync",
+        shortDescription: "Luna tote mapped from ERP",
+        categoryName: "Laptop Bags",
+        productGroupName: "Laptop Bags",
+        productTypeName: "Finished Good",
+        brandName: "Luna Works",
+        hsnCodeId: "4202",
+        sku: "LUNA-TOTE-ERP",
+        storefrontDepartment: "accessories",
+        isActive: true,
+        isFeatured: false,
+        isNewArrival: true,
+        isBestSeller: false,
+        isFeaturedLabel: true,
+        catalogBadge: "ERP Laptop",
+        promoBadge: "",
+        shippingNote: "ERP shipping note",
+        tagNames: ["frappe", "laptop"],
+        notes: "Mapped for laptop bag storefront lane.",
+      })
+
+      await syncFrappeItemsToProducts(runtime.primary, adminUser, {
+        itemIds: ["frappe-item:luna-tote"],
+        duplicateMode: "overwrite",
+      })
+
+      const products = await listProducts(runtime.primary)
+      const syncedProduct = products.items.find((item) => item.slug === "luna-tote-sync")
+      const mapping = await getFrappeItemProductMapping(runtime.primary, adminUser, lunaItem)
+
+      assert.equal(mapping.mapping.catalogBadge, "ERP Laptop")
+      assert.equal(mapping.draft.catalogBadge, "ERP Laptop")
+      assert.equal(syncedProduct?.name, "Luna Tote Sync")
+      assert.equal(syncedProduct?.sku, "LUNA-TOTE-ERP")
+      assert.equal(syncedProduct?.categoryName, "Laptop Bags")
+      assert.equal(syncedProduct?.storefrontDepartment, "accessories")
+      assert.equal(syncedProduct?.isNewArrival, true)
+      assert.equal(syncedProduct?.isFeaturedLabel, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("frappe item pull imports live ERPNext items into local frappe products", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-frappe-item-pull-"))
 
@@ -167,6 +243,8 @@ test("frappe item pull imports live ERPNext items into local frappe products", a
       const frappeConfig = createFrappeConfig()
       const originalFetch = globalThis.fetch
 
+      let lastItemUrl = ""
+
       globalThis.fetch = async (input) => {
         const url = String(input)
 
@@ -178,6 +256,7 @@ test("frappe item pull imports live ERPNext items into local frappe products", a
         }
 
         if (url.includes("/api/resource/Item?")) {
+          lastItemUrl = url
           return new Response(
             JSON.stringify({
               data: [
@@ -211,9 +290,12 @@ test("frappe item pull imports live ERPNext items into local frappe products", a
           config: frappeConfig,
         })
 
-        const pull = await pullFrappeItemsLive(runtime.primary, adminUser, {
-          config: frappeConfig,
-        })
+        const pull = await pullFrappeItemsLive(
+          runtime.primary,
+          adminUser,
+          { manualQuery: "disabled=0&item_group=Laptop" },
+          { config: frappeConfig }
+        )
         const items = await listFrappeItems(runtime.primary, adminUser, {
           config: frappeConfig,
         })
@@ -222,9 +304,11 @@ test("frappe item pull imports live ERPNext items into local frappe products", a
         assert.equal(pull.sync.updatedCount, 0)
         assert.equal(pull.sync.skippedCount, 0)
         assert.equal(pull.sync.appRecordCount, 1)
+        assert.equal(pull.sync.query, "disabled=0&item_group=Laptop")
         assert.equal(items.manager.items.length, 1)
         assert.equal(items.manager.items[0]?.itemCode, "ERP-KURTA-01")
         assert.equal(items.manager.items[0]?.defaultWarehouse, "Main Warehouse - CS")
+        assert.match(lastItemUrl, /disabled=0&item_group=Laptop/)
       } finally {
         globalThis.fetch = originalFetch
       }

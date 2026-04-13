@@ -203,7 +203,7 @@ sync_runtime_repository() {
 
   if [ ! -d "$RUNTIME_REPO_ROOT/node_modules" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || is_truthy "$install_deps"; then
     log "Installing runtime dependencies..."
-    (cd "$RUNTIME_REPO_ROOT" && npm ci)
+    (cd "$RUNTIME_REPO_ROOT" && npm ci --include=dev)
   fi
 
   if [ ! -f "$RUNTIME_REPO_ROOT/build/app/cxapp/server/cxapp/src/server/index.js" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || is_truthy "$build_on_start"; then

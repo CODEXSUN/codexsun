@@ -12,6 +12,10 @@ import {
   syncFrappeItemsToProducts,
   updateFrappeItem,
 } from "../../../frappe/src/services/item-service.js"
+import {
+  getFrappeItemProductMapping,
+  upsertFrappeItemProductMapping,
+} from "../../../frappe/src/services/item-product-mapping-service.js"
 import { readFrappeCustomerCommercialProfileContract } from "../../../frappe/src/services/customer-commercial-profile-contract-service.js"
 import { readFrappeItemProjectionContract } from "../../../frappe/src/services/item-projection-contract-service.js"
 import { readFrappePriceProjectionContract } from "../../../frappe/src/services/price-projection-contract-service.js"
@@ -469,7 +473,7 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
     }),
     defineInternalRoute("/frappe/items/sync-products", {
       method: "POST",
-      summary: "Sync selected Frappe items into ecommerce products.",
+      summary: "Sync selected Frappe items into core products through stored Frappe mapping rules.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
@@ -486,7 +490,7 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
     }),
     defineInternalRoute("/frappe/items/pull-live", {
       method: "POST",
-      summary: "Pull live ERPNext items into app-owned Frappe product snapshots.",
+      summary: "Pull live ERPNext items into app-owned Frappe product snapshots with optional manual ERP filters.",
       handler: async (context) => {
         const { user } = await requireAuthenticatedUser(context, {
           allowedActorTypes: ["admin", "staff"],
@@ -496,9 +500,66 @@ export function createFrappeInternalRoutes(): HttpRouteDefinition[] {
           await pullFrappeItemsLive(
             context.databases.primary,
             user,
+            context.request.jsonBody,
             {
               cwd: resolveRuntimeSettingsRoot(context.config),
             }
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/items/mapping", {
+      summary: "Read one Frappe item to core product mapping draft.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const itemId = context.request.url.searchParams.get("id")
+
+        if (!itemId) {
+          throw new ApplicationError("Frappe item id is required.", {}, 400)
+        }
+
+        const itemResponse = await getFrappeItem(
+          context.databases.primary,
+          user,
+          itemId
+        )
+
+        return jsonResponse(
+          await getFrappeItemProductMapping(
+            context.databases.primary,
+            user,
+            itemResponse.item
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/frappe/items/mapping", {
+      method: "PATCH",
+      summary: "Save one Frappe item to core product mapping draft.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+        const itemId = context.request.url.searchParams.get("id")
+
+        if (!itemId) {
+          throw new ApplicationError("Frappe item id is required.", {}, 400)
+        }
+
+        const itemResponse = await getFrappeItem(
+          context.databases.primary,
+          user,
+          itemId
+        )
+
+        return jsonResponse(
+          await upsertFrappeItemProductMapping(
+            context.databases.primary,
+            user,
+            itemResponse.item,
+            context.request.jsonBody
           )
         )
       },

@@ -142,7 +142,7 @@ function clearBuildCaches(cwd: string) {
 
 async function installAndBuild(cwd: string, commandRunner: CommandRunner) {
   clearBuildCaches(cwd)
-  await commandRunner(npmCommand(), ["ci"], cwd)
+  await commandRunner(npmCommand(), ["ci", "--include=dev"], cwd)
   await commandRunner(npmCommand(), ["run", "build"], cwd)
 }
 

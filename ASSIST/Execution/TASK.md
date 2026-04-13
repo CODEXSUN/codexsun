@@ -2,9 +2,14 @@
 
 ## Active Batch
 
-- [ ] `#159` Plan Frappe item-to-core-product sync and mapping workflow
-  - [ ] Phase 1: inspect the current `apps/frappe` item pull flow, `apps/core` product contract, and any existing ecommerce product projection path
-  - [ ] Phase 2: define support for manual ERP item queries such as `item_group=Laptop` and decide where filtered pull inputs belong in the Frappe app boundary
-  - [ ] Phase 3: define the sync action that projects Frappe item data into `core/product` and then updates ecommerce product state and badges from that canonical product record
-  - [ ] Phase 4: design a Frappe-to-core product mapping surface with left/right compare, default field mapping, and explicit fallback or default-value handling for mismatched schemas
-  - [ ] Phase 5: record validation expectations, open questions, and implementation order before code changes start
+- [x] `#159` Frappe item-to-core-product sync and mapping workflow
+  - [x] Phase 1: inspect the current `apps/frappe` item pull flow, `apps/core` product contract, and any existing ecommerce product projection path
+  - [x] Phase 2: add support for manual ERP item queries such as `item_group=Laptop` inside the Frappe app boundary
+  - [x] Phase 3: project Frappe item data into `core/product` through a Frappe-owned mapping draft and keep ecommerce badge state on the canonical core product
+  - [x] Phase 4: add a Frappe-to-core product mapping surface with left/right compare, default field mapping, and explicit default-value handling for mismatched schemas
+  - [x] Phase 5: validate the implementation with typecheck, focused Frappe service tests, a Frappe route-registry check, and a full build
+
+- [x] `#160` Fix live-server git update rebuild missing TypeScript in production container
+  - [x] Phase 1: inspect the container image build, runtime repository bootstrap, and framework git-update rebuild path
+  - [x] Phase 2: force build-time dependency install to include devDependencies so `typescript` and `tsc` exist during live rebuilds
+  - [x] Phase 3: validate the shell entrypoint, typecheck, and full build after the dependency-install change
