@@ -8,6 +8,47 @@
 
 ## v-0.0.1
 
+### [#167] 2026-04-13 - Text-editable pricing formula inputs in product upsert
+
+- changed the `Apply Pricing` helper in the core product upsert pricing tab so `Purchase Price`, `Selling %`, and `MRP %` are editable text fields instead of browser number inputs
+- moved numeric parsing to calculate time and added a validation warning when any of the three values is not numeric before recalculating pricing rows
+- kept the existing `Calculate` action updating all relevant product and variant pricing fields once the entered values parse successfully
+- validated the batch with `npm run typecheck`
+
+### [#166] 2026-04-13 - Dedicated SEO tab in product upsert
+
+- moved the product SEO form card out of the `Storefront` tab and into a new dedicated `SEO` tab in `apps/core/web/src/features/product/product-upsert-section.tsx`
+- kept the existing backend-driven SEO field generator buttons and field behavior unchanged while narrowing the storefront tab back to storefront-specific controls only
+- validated the batch with `npm run typecheck`
+
+### [#165] 2026-04-13 - Storefront department mapped to product group lookup
+
+- widened the core storefront department contract from enum-only values to text-backed values so the field can reflect product-group master data
+- updated the Frappe item-to-core product projection path to preserve storefront department text instead of dropping any non-enum value
+- replaced the core product upsert storefront `Department` select with the shared product-group autocomplete lookup and inline create-new flow, and synchronized that selection into `productGroupId`, `productGroupName`, and storefront department text together
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/core/product-service.test.ts`, and `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+### [#164] 2026-04-13 - Backend-driven core product SEO field generator
+
+- added shared core SEO generation request and response schemas plus a `generateProductSeoField()` helper so meta title, description, and keywords are generated from backend-owned rules
+- exposed `POST /internal/v1/core/products/generate-seo-field` through the internal core route surface for authenticated product workflows
+- refined the core product upsert SEO section so `Meta Title`, `Meta Description`, and `Meta Keywords` each render a small right-aligned icon button that requests the generated value from the backend and fills the field
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/core/product-service.test.ts`, and `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+### [#163] 2026-04-13 - Backend-driven core product slug generator
+
+- added shared core product slug-generation request and response schemas plus a `generateProductSlug()` helper in `apps/core/src/services/product-service.ts` so slug rules stay backend-owned
+- exposed `POST /internal/v1/core/products/generate-slug` through `apps/api/src/internal/core-routes.ts` for authenticated admin and staff product workflows
+- refined the core product upsert slug field so its label now supports a small right-aligned icon button that requests the slug from the backend using the current product name and fills the slug input automatically
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/core/product-service.test.ts`, and `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+### [#162] 2026-04-13 - Table-based Frappe item field mapping
+
+- replaced the old Frappe item compare card with a table-oriented mapping panel in `apps/frappe/web/src/workspace/item-mapping-compare-panel.tsx`
+- the new surface shows the core database key on the left and adds `Frappe`, `Product mapping`, and `Action` dropdown columns so operators can drive mapping from a row-based table instead of the earlier side-by-side form layout
+- kept the existing target-product selector, notes, editable field values, flag toggles, preview, and save/sync controls below the table so the current Frappe-owned mapping payload still works without backend contract changes
+- validated the batch with `npm run typecheck`
+
 ### [#161] 2026-04-13 - Preserve prior web chunks across rebuilds
 
 - changed `vite.config.ts` so frontend builds no longer clear `build/app/cxapp/web`, preserving previous hashed lazy chunks alongside the current `index.html` and latest asset set

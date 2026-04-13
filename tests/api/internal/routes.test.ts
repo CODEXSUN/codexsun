@@ -161,6 +161,8 @@ test("internal route registry includes the core common-module CRUD endpoints", (
   assert.ok(routePaths.includes("GET /internal/v1/core/products"))
   assert.ok(routePaths.includes("GET /internal/v1/core/product"))
   assert.ok(routePaths.includes("POST /internal/v1/core/products"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/products/generate-slug"))
+  assert.ok(routePaths.includes("POST /internal/v1/core/products/generate-seo-field"))
   assert.ok(routePaths.includes("PATCH /internal/v1/core/product"))
   assert.ok(routePaths.includes("DELETE /internal/v1/core/product"))
   assert.ok(routePaths.includes("GET /internal/v1/demo/summary"))

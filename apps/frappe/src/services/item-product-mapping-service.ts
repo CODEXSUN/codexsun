@@ -183,13 +183,7 @@ export function buildItemProductProjectionDraft(
     taxId: null,
     isFeatured: mapping.isFeatured,
     isActive: mapping.isActive,
-    storefrontDepartment:
-      mapping.storefrontDepartment === "women" ||
-      mapping.storefrontDepartment === "men" ||
-      mapping.storefrontDepartment === "kids" ||
-      mapping.storefrontDepartment === "accessories"
-        ? mapping.storefrontDepartment
-        : null,
+    storefrontDepartment: trimOrNull(mapping.storefrontDepartment),
     homeSliderEnabled: false,
     promoSliderEnabled: false,
     featureSectionEnabled: false,
@@ -213,13 +207,7 @@ export function buildItemProductProjectionDraft(
       isActive: true,
     },
     storefront: {
-      department:
-        mapping.storefrontDepartment === "women" ||
-        mapping.storefrontDepartment === "men" ||
-        mapping.storefrontDepartment === "kids" ||
-        mapping.storefrontDepartment === "accessories"
-          ? mapping.storefrontDepartment
-          : null,
+      department: trimOrNull(mapping.storefrontDepartment),
       homeSliderEnabled: false,
       homeSliderOrder: 0,
       promoSliderEnabled: false,

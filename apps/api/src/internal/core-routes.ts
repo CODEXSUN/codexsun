@@ -16,6 +16,8 @@ import {
   createProduct,
   deleteProduct,
   duplicateProduct,
+  generateProductSeoField,
+  generateProductSlug,
   getProduct,
   listProducts,
   updateProduct,
@@ -148,6 +150,28 @@ export function createCoreInternalRoutes(): HttpRouteDefinition[] {
           await createProduct(context.databases.primary, user, context.request.jsonBody),
           201
         )
+      },
+    }),
+    defineInternalRoute("/core/products/generate-slug", {
+      method: "POST",
+      summary: "Generate a canonical core product slug from operator-provided text.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(generateProductSlug(context.request.jsonBody))
+      },
+    }),
+    defineInternalRoute("/core/products/generate-seo-field", {
+      method: "POST",
+      summary: "Generate a canonical core product SEO field from current product form text.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(generateProductSeoField(context.request.jsonBody))
       },
     }),
     defineInternalRoute("/core/products/bulk-edit", {

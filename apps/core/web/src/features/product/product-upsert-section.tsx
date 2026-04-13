@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeftIcon, BoxesIcon, StarIcon, Trash2Icon } from "lucide-react"
+import { ArrowLeftIcon, BoxesIcon, SparklesIcon, StarIcon, Trash2Icon } from "lucide-react"
 
-import type { CommonModuleItem, ProductResponse } from "@core/shared"
+import type {
+  CommonModuleItem,
+  ProductResponse,
+  ProductSeoFieldKey,
+  ProductSeoGenerateResponse,
+  ProductSlugGenerateResponse,
+} from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
 
@@ -25,7 +31,6 @@ import {
   createEmptyProductTag,
   createEmptyProductVariant,
   createEmptyProductVariantAttribute,
-  storefrontDepartmentOptions,
   toProductFormValues,
   toProductUpsertPayload,
   type ProductFormValues,
@@ -38,7 +43,6 @@ import {
   ProductFormMessage,
   ProductFormSectionCard,
   ProductLookupField,
-  ProductSelectField,
   ProductStatusField,
   ProductTextField,
 } from "./product-form-sections"
@@ -160,9 +164,124 @@ export function ProductUpsertSection({
   })
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSlugGenerating, setIsSlugGenerating] = useState(false)
+  const [activeSeoField, setActiveSeoField] = useState<ProductSeoFieldKey | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({})
   useGlobalLoading(isLoading || isSaving)
+
+  const resolvedProductLabel = useMemo(() => {
+    const name = form.name.trim()
+    const code = form.code.trim()
+
+    if (isEditing && name && code) {
+      return `${name} -: ${code}`
+    }
+
+    return isEditing ? "Update Product" : "Create Product"
+  }, [form.code, form.name, isEditing])
+
+  const resolvedStorefrontProductGroupId = useMemo(() => {
+    if (form.productGroupId) {
+      return form.productGroupId
+    }
+
+    const storefrontDepartment =
+      form.storefront?.department?.trim() || form.storefrontDepartment?.trim() || ""
+
+    if (!storefrontDepartment) {
+      return ""
+    }
+
+    const matchedGroup = lookupState.productGroups.find((item) => {
+      const candidates = [item.name, item.title, item.code]
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim().toLowerCase())
+
+      return candidates.includes(storefrontDepartment.toLowerCase())
+    })
+
+    return matchedGroup?.id ?? ""
+  }, [
+    form.productGroupId,
+    form.storefront?.department,
+    form.storefrontDepartment,
+    lookupState.productGroups,
+  ])
+
+  async function handleGenerateSlug() {
+    if (form.name.trim().length === 0) {
+      setFormError("Enter a product name before generating a slug.")
+      return
+    }
+
+    setIsSlugGenerating(true)
+
+    try {
+      const response = await requestJson<ProductSlugGenerateResponse>(
+        "/internal/v1/core/products/generate-slug",
+        {
+          method: "POST",
+          body: JSON.stringify({ text: form.name }),
+        }
+      )
+
+      setForm((current) => ({
+        ...current,
+        slug: response.slug,
+      }))
+      setFormError((current) =>
+        current === "Enter a product name before generating a slug." ? null : current
+      )
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Failed to generate slug.")
+    } finally {
+      setIsSlugGenerating(false)
+    }
+  }
+
+  async function handleGenerateSeoField(field: ProductSeoFieldKey) {
+    if (form.name.trim().length === 0) {
+      setFormError("Enter a product name before generating SEO fields.")
+      return
+    }
+
+    setActiveSeoField(field)
+
+    try {
+      const response = await requestJson<ProductSeoGenerateResponse>(
+        "/internal/v1/core/products/generate-seo-field",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            field,
+            name: form.name,
+            description: form.description,
+            shortDescription: form.shortDescription,
+            brandName: form.brandName,
+            categoryName: form.categoryName,
+            productGroupName: form.productGroupName,
+            tagNames: form.tags.map((tag) => tag.name).filter(Boolean),
+          }),
+        }
+      )
+
+      setForm((current) => ({
+        ...current,
+        seo: {
+          ...(current.seo ?? createDefaultProductFormValues().seo!),
+          [response.field]: response.value,
+        },
+      }))
+      setFormError((current) =>
+        current === "Enter a product name before generating SEO fields." ? null : current
+      )
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Failed to generate SEO field.")
+    } finally {
+      setActiveSeoField(null)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -212,6 +331,14 @@ export function ProductUpsertSection({
       cancelled = true
     }
   }, [productId])
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return
+    }
+
+    document.title = `${resolvedProductLabel} | Codexsun`
+  }, [resolvedProductLabel])
 
   function handleApplyPricingFormula() {
     setForm((current) => {
@@ -319,7 +446,25 @@ export function ProductUpsertSection({
                   }
                 />
               </ProductField>
-              <ProductField label="Slug">
+              <ProductField
+                label={
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Slug</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 rounded-md"
+                      onClick={() => void handleGenerateSlug()}
+                      disabled={isSlugGenerating}
+                      title="Generate slug from product name"
+                      aria-label="Generate slug from product name"
+                    >
+                      <SparklesIcon className="size-3.5" />
+                    </Button>
+                  </div>
+                }
+              >
                 <ProductTextField
                   value={form.slug}
                   onChange={(event) =>
@@ -1312,20 +1457,34 @@ export function ProductUpsertSection({
               description="Flags consumed by ecommerce and storefront."
             >
               <div className="grid gap-4 md:grid-cols-2">
-                <ProductSelectField
+                <ProductLookupField
                   label="Department"
-                  value={form.storefront?.department ?? ""}
-                  options={storefrontDepartmentOptions}
-                  onValueChange={(value) =>
+                  items={lookupState.productGroups}
+                  value={resolvedStorefrontProductGroupId}
+                  onValueChange={(value) => {
+                    const selectedGroup = lookupState.productGroups.find((item) => item.id === value)
+                    const selectedGroupName =
+                      [selectedGroup?.name, selectedGroup?.title, selectedGroup?.code]
+                        .find(
+                          (entry): entry is string =>
+                            typeof entry === "string" && entry.trim().length > 0
+                        )
+                        ?.trim() ?? ""
+
                     setForm((current) => ({
                       ...current,
-                      storefrontDepartment: value as ProductFormValues["storefrontDepartment"],
+                      productGroupId: value || null,
+                      productGroupName: selectedGroupName,
+                      storefrontDepartment: selectedGroupName || null,
                       storefront: {
                         ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                        department: value as NonNullable<ProductFormValues["storefront"]>["department"],
+                        department: selectedGroupName || null,
                       },
                     }))
-                  }
+                  }}
+                  onCreateNew={() => void navigate(`${commonRouteBase}/common-productGroups`)}
+                  createActionLabel='Create new "Product Group"'
+                  placeholder="Select department"
                 />
                 <ProductField label="Catalog Badge">
                   <ProductTextField
@@ -1522,54 +1681,117 @@ export function ProductUpsertSection({
                 />
               </div>
             </ProductFormSectionCard>
-            <ProductFormSectionCard title="SEO" description="Search metadata for public product surfaces.">
-              <div className="grid gap-4">
-                <ProductField label="Meta Title">
-                  <ProductTextField
-                    value={form.seo?.metaTitle ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        seo: {
-                          ...(current.seo ?? createDefaultProductFormValues().seo!),
-                          metaTitle: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Meta Description">
-                  <Textarea
-                    rows={3}
-                    value={form.seo?.metaDescription ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        seo: {
-                          ...(current.seo ?? createDefaultProductFormValues().seo!),
-                          metaDescription: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Meta Keywords">
-                  <ProductTextField
-                    value={form.seo?.metaKeywords ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        seo: {
-                          ...(current.seo ?? createDefaultProductFormValues().seo!),
-                          metaKeywords: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-              </div>
-            </ProductFormSectionCard>
           </div>
+        ),
+      },
+      {
+        label: "SEO",
+        value: "seo",
+        content: (
+          <ProductFormSectionCard
+            title="SEO"
+            description="Search metadata for public product surfaces."
+          >
+            <div className="grid gap-4">
+              <ProductField
+                label={
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Meta Title</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 rounded-md"
+                      onClick={() => void handleGenerateSeoField("metaTitle")}
+                      disabled={activeSeoField === "metaTitle"}
+                      title="Generate meta title"
+                      aria-label="Generate meta title"
+                    >
+                      <SparklesIcon className="size-3.5" />
+                    </Button>
+                  </div>
+                }
+              >
+                <ProductTextField
+                  value={form.seo?.metaTitle ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      seo: {
+                        ...(current.seo ?? createDefaultProductFormValues().seo!),
+                        metaTitle: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField
+                label={
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Meta Description</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 rounded-md"
+                      onClick={() => void handleGenerateSeoField("metaDescription")}
+                      disabled={activeSeoField === "metaDescription"}
+                      title="Generate meta description"
+                      aria-label="Generate meta description"
+                    >
+                      <SparklesIcon className="size-3.5" />
+                    </Button>
+                  </div>
+                }
+              >
+                <Textarea
+                  rows={3}
+                  value={form.seo?.metaDescription ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      seo: {
+                        ...(current.seo ?? createDefaultProductFormValues().seo!),
+                        metaDescription: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField
+                label={
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Meta Keywords</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 rounded-md"
+                      onClick={() => void handleGenerateSeoField("metaKeywords")}
+                      disabled={activeSeoField === "metaKeywords"}
+                      title="Generate meta keywords"
+                      aria-label="Generate meta keywords"
+                    >
+                      <SparklesIcon className="size-3.5" />
+                    </Button>
+                  </div>
+                }
+              >
+                <ProductTextField
+                  value={form.seo?.metaKeywords ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      seo: {
+                        ...(current.seo ?? createDefaultProductFormValues().seo!),
+                        metaKeywords: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+            </div>
+          </ProductFormSectionCard>
         ),
       },
       {
@@ -1687,7 +1909,7 @@ export function ProductUpsertSection({
         ),
       },
     ],
-    [fieldErrors.name, fieldErrors.sku, form, lookupState, navigate]
+    [activeSeoField, fieldErrors.name, fieldErrors.sku, form, isSlugGenerating, lookupState, navigate]
   )
 
   async function handleSave() {
@@ -1746,7 +1968,7 @@ export function ProductUpsertSection({
             </Link>
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {isEditing ? "Update Product" : "Create Product"}
+            {resolvedProductLabel}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">

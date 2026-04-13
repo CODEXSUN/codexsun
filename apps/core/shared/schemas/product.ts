@@ -10,12 +10,7 @@ const nullableChargeField = z.preprocess((value) => {
   return value
 }, z.number().finite().nonnegative().nullable())
 
-export const storefrontDepartmentSchema = z.enum([
-  "women",
-  "men",
-  "kids",
-  "accessories",
-])
+export const storefrontDepartmentSchema = z.string().trim().min(1)
 
 export const productImageSchema = z.object({
   id: z.string().min(1),
@@ -510,6 +505,36 @@ export const productBulkEditResponseSchema = z.object({
   updatedIds: z.array(z.string().min(1)),
 })
 
+export const productSlugGeneratePayloadSchema = z.object({
+  text: z.string().trim().min(1),
+})
+
+export const productSlugGenerateResponseSchema = z.object({
+  slug: z.string(),
+})
+
+export const productSeoFieldKeySchema = z.enum([
+  "metaTitle",
+  "metaDescription",
+  "metaKeywords",
+])
+
+export const productSeoGeneratePayloadSchema = z.object({
+  field: productSeoFieldKeySchema,
+  name: z.string().trim().min(1),
+  description: dashStringField,
+  shortDescription: dashStringField,
+  brandName: dashStringField,
+  categoryName: dashStringField,
+  productGroupName: dashStringField,
+  tagNames: z.array(z.string().trim().min(1)).default([]),
+})
+
+export const productSeoGenerateResponseSchema = z.object({
+  field: productSeoFieldKeySchema,
+  value: z.string(),
+})
+
 export type StorefrontDepartment = z.infer<typeof storefrontDepartmentSchema>
 export type ProductImage = z.infer<typeof productImageSchema>
 export type ProductVariantImage = z.infer<typeof productVariantImageSchema>
@@ -550,3 +575,8 @@ export type ProductBulkEditPayload = z.infer<typeof productBulkEditPayloadSchema
 export type ProductListResponse = z.infer<typeof productListResponseSchema>
 export type ProductResponse = z.infer<typeof productResponseSchema>
 export type ProductBulkEditResponse = z.infer<typeof productBulkEditResponseSchema>
+export type ProductSlugGeneratePayload = z.infer<typeof productSlugGeneratePayloadSchema>
+export type ProductSlugGenerateResponse = z.infer<typeof productSlugGenerateResponseSchema>
+export type ProductSeoFieldKey = z.infer<typeof productSeoFieldKeySchema>
+export type ProductSeoGeneratePayload = z.infer<typeof productSeoGeneratePayloadSchema>
+export type ProductSeoGenerateResponse = z.infer<typeof productSeoGenerateResponseSchema>

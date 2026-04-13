@@ -9,6 +9,10 @@ import {
   productBulkEditPayloadSchema,
   productListResponseSchema,
   productResponseSchema,
+  productSeoGeneratePayloadSchema,
+  productSeoGenerateResponseSchema,
+  productSlugGeneratePayloadSchema,
+  productSlugGenerateResponseSchema,
   productSchema,
   productUpsertPayloadSchema,
   type ProductStorefront,
@@ -948,5 +952,49 @@ export async function duplicateProduct(
 
   return productResponseSchema.parse({
     item: record,
+  })
+}
+
+export function generateProductSlug(payload: unknown) {
+  const parsedPayload = productSlugGeneratePayloadSchema.parse(payload)
+
+  return productSlugGenerateResponseSchema.parse({
+    slug: slugify(parsedPayload.text),
+  })
+}
+
+function normalizeTextPart(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? ""
+  return trimmed
+}
+
+function uniqueNonEmptyText(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => normalizeTextPart(value)).filter(Boolean))]
+}
+
+export function generateProductSeoField(payload: unknown) {
+  const parsedPayload = productSeoGeneratePayloadSchema.parse(payload)
+  const summarySource =
+    normalizeTextPart(parsedPayload.description) ||
+    normalizeTextPart(parsedPayload.shortDescription) ||
+    normalizeTextPart(parsedPayload.name)
+  const keywordParts = uniqueNonEmptyText([
+    parsedPayload.name,
+    parsedPayload.brandName,
+    parsedPayload.categoryName,
+    parsedPayload.productGroupName,
+    ...parsedPayload.tagNames,
+  ])
+
+  const value =
+    parsedPayload.field === "metaTitle"
+      ? normalizeTextPart(parsedPayload.name)
+      : parsedPayload.field === "metaDescription"
+        ? summarySource
+        : keywordParts.join(", ")
+
+  return productSeoGenerateResponseSchema.parse({
+    field: parsedPayload.field,
+    value,
   })
 }

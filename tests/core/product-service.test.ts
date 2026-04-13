@@ -7,6 +7,8 @@ import test from "node:test"
 import {
   createProduct,
   deleteProduct,
+  generateProductSeoField,
+  generateProductSlug,
   listProducts,
   updateProduct,
 } from "../../apps/core/src/services/product-service.js"
@@ -31,6 +33,54 @@ const adminUser = {
   createdAt: "2026-03-30T00:00:00.000Z",
   updatedAt: "2026-03-30T00:00:00.000Z",
 }
+
+test("core product service generates a canonical slug from input text", () => {
+  const generated = generateProductSlug({
+    text: "HORSE CLUB- MINI TRUNK 4 WAY LYCRA - PLAIN",
+  })
+
+  assert.equal(generated.slug, "horse-club-mini-trunk-4-way-lycra-plain")
+})
+
+test("core product service generates SEO fields from product form text", () => {
+  const title = generateProductSeoField({
+    field: "metaTitle",
+    name: "Horse Club Mini Trunk",
+    description: "Soft lycra plain trunk for daily wear.",
+    shortDescription: "Daily wear trunk",
+    brandName: "Horse Club",
+    categoryName: "Innerwear",
+    productGroupName: "Trunks",
+    tagNames: ["lycra", "plain"],
+  })
+  const description = generateProductSeoField({
+    field: "metaDescription",
+    name: "Horse Club Mini Trunk",
+    description: "Soft lycra plain trunk for daily wear.",
+    shortDescription: "Daily wear trunk",
+    brandName: "Horse Club",
+    categoryName: "Innerwear",
+    productGroupName: "Trunks",
+    tagNames: ["lycra", "plain"],
+  })
+  const keywords = generateProductSeoField({
+    field: "metaKeywords",
+    name: "Horse Club Mini Trunk",
+    description: "Soft lycra plain trunk for daily wear.",
+    shortDescription: "Daily wear trunk",
+    brandName: "Horse Club",
+    categoryName: "Innerwear",
+    productGroupName: "Trunks",
+    tagNames: ["lycra", "plain"],
+  })
+
+  assert.equal(title.value, "Horse Club Mini Trunk")
+  assert.equal(description.value, "Soft lycra plain trunk for daily wear.")
+  assert.equal(
+    keywords.value,
+    "Horse Club Mini Trunk, Horse Club, Innerwear, Trunks, lycra, plain"
+  )
+})
 
 test("core product service supports create update and delete CRUD", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-core-products-"))

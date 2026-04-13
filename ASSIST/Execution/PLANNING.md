@@ -2,6 +2,71 @@
 
 ## Active Batch
 
+- `#167` Text-editable pricing formula inputs in product upsert
+  - Scope: make the pricing formula helper in the core product upsert pricing tab editable as free text for purchase price, selling percent, and MRP percent.
+  - Constraint: keep the current calculation flow intact while shifting numeric parsing to calculate time so operators can type and edit values more freely.
+  - Delivered fix:
+    - changed the pricing formula draft state from numeric fields to string fields
+    - changed purchase price, selling %, and MRP % from number inputs to text fields in the pricing tab
+    - added parse-on-calculate validation so invalid non-numeric entries show a warning instead of updating pricing rows
+  - Validation:
+    - `npm run typecheck`
+
+- `#166` Move product SEO fields into a dedicated upsert tab
+  - Scope: separate the product SEO form fields from the storefront tab so operators can manage SEO in its own focused tab.
+  - Constraint: keep the current SEO generation buttons and field behavior unchanged while changing only the tab placement.
+  - Delivered fix:
+    - removed the SEO section from the storefront tab content
+    - added a dedicated `SEO` tab containing the existing SEO section card and generated-field actions
+  - Validation:
+    - `npm run typecheck`
+
+- `#165` Map storefront department to product group lookup in product upsert
+  - Scope: change the core product upsert storefront department field so it reuses the product-group master through autocomplete lookup and inline create-new support.
+  - Constraint: keep the UX aligned with existing `ProductLookupField` behavior and avoid introducing a second storefront-specific master when product groups already exist.
+  - Delivered fix:
+    - widened the core storefront department contract from enum-only to text-backed nullable string
+    - updated Frappe product projection to pass storefront department through as text instead of enum-gating it away
+    - replaced the storefront `Department` select in the product upsert form with a `ProductLookupField` bound to `productGroups`, and synchronized the selected group into both product-group fields and storefront department text
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/core/product-service.test.ts`
+    - `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+- `#164` Backend-driven SEO field generation for core product upsert
+  - Scope: add backend-owned generation for the core product SEO title, description, and keywords so the product upsert form can populate those fields through a narrow internal API instead of browser-local rules.
+  - Constraint: keep generation logic inside `apps/core`, expose it only through `apps/api`, and keep the UI refinement limited to the existing SEO fields in the core product upsert surface.
+  - Delivered fix:
+    - added shared SEO generation request and response schemas plus a core service helper for `metaTitle`, `metaDescription`, and `metaKeywords`
+    - added protected `POST /internal/v1/core/products/generate-seo-field`
+    - added small right-aligned icon buttons to the `Meta Title`, `Meta Description`, and `Meta Keywords` labels and wired them to the backend generator using current product form values
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/core/product-service.test.ts`
+    - `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+- `#163` Backend-driven slug generation for core product upsert
+  - Scope: add a core-owned slug generation endpoint so the product upsert UI can request the canonical slug from the backend instead of duplicating slugify rules in the browser.
+  - Constraint: keep slug ownership inside `apps/core`, expose it through the internal API route layer, and keep the UI change narrow to the existing slug field in the core product upsert surface.
+  - Delivered fix:
+    - added shared core slug-generation request and response schemas plus a `generateProductSlug()` helper in `apps/core/src/services/product-service.ts`
+    - added protected `POST /internal/v1/core/products/generate-slug` in `apps/api/src/internal/core-routes.ts`
+    - widened the product field label contract so the slug field can render a small right-aligned icon button, then wired the core product upsert form to call the backend endpoint and fill the slug from the current product name
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/core/product-service.test.ts`
+    - `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+- `#162` Convert Frappe item mapping compare surface into table-based field mapping
+  - Scope: change the Frappe item-to-core mapping UI from the current side-by-side compare card into a table-oriented mapping board that matches the requested screenshot direction.
+  - Constraint: keep the existing Frappe-owned mapping payload and save/sync workflow intact without introducing a new backend field-mapping persistence contract in this batch.
+  - Delivered fix:
+    - replaced the old compare card in `apps/frappe/web/src/workspace/item-mapping-compare-panel.tsx` with a table-based mapping card
+    - added rows keyed by core database field, with `Frappe`, `Product mapping`, and `Action` dropdown columns
+    - kept target-product selection, operator notes, direct value editors, flag toggles, preview, and save/sync actions below the table so the current mapping payload remains editable
+  - Validation:
+    - `npm run typecheck`
+
 - `#161` Preserve prior web chunks during rebuilds to avoid stale dashboard lazy-import 404s
   - Scope: stop already-open dashboard sessions from failing lazy route imports after a web rebuild or live server git update replaces hashed frontend chunks.
   - Root cause: the frontend uses hashed lazy chunk filenames, but Vite is configured to clear the web output directory and the runtime system-update flow also clears the entire `build/` tree before rebuilding. Browsers holding the previous shell chunk can still request the old lazy filename after deploy, which then 404s because the file was deleted.

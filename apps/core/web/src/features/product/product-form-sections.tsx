@@ -100,12 +100,18 @@ export function ProductField({
   className?: string
   description?: string
   error?: string | null
-  label: string
+  label: ReactNode
 }) {
   return (
     <div className={cn("grid gap-3", className)}>
       <div className="grid gap-1">
-        <Label className={error ? "text-destructive" : undefined}>{label}</Label>
+        {typeof label === "string" ? (
+          <Label className={error ? "text-destructive" : undefined}>{label}</Label>
+        ) : (
+          <div className={cn("text-sm font-medium", error ? "text-destructive" : undefined)}>
+            {label}
+          </div>
+        )}
         {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
       </div>
       {children}
