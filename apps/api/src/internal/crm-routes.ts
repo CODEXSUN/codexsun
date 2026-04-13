@@ -1,21 +1,40 @@
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
+import {
+  assignCrmTask,
+  createCrmFollowUpTask,
+  getCrmOverviewMetrics,
+  listCrmAuditEvents,
+  listCrmFollowUpTasks,
+  listCrmReminders,
+  listCrmTaskAssignments,
+  updateCrmReminder,
+  updateCrmTaskStatus,
+} from "../../../crm/src/services/crm-follow-up-service.js"
+import {
+  createLead,
+  linkTaskToInteraction,
+  listInteractionHeaders,
+  listLeadHeaders,
+  registerInteraction,
+  updateLeadStatus,
+} from "../../../crm/src/services/crm-repository.js"
 import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
-import {
-  listLeadHeaders,
-  createLead,
-  updateLeadStatus,
-  listInteractionHeaders,
-  registerInteraction,
-  linkTaskToInteraction,
-} from "../../../crm/src/services/crm-repository.js"
-import { instantiateTaskTemplate } from "../../../task/src/services/task-repository.js"
 
 export function createCrmInternalRoutes(): HttpRouteDefinition[] {
   return [
-    // ─── Leads ─────────────────────────────────────────────────────────────
+    defineInternalRoute("/crm/overview", {
+      summary: "Read CRM overview metrics for leads, tasks, and reminders",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+        return jsonResponse({
+          item: await getCrmOverviewMetrics(context.databases.primary),
+        })
+      },
+    }),
+
     defineInternalRoute("/crm/leads", {
       summary: "List lead headers filtered by status or owner",
       handler: async (context) => {
@@ -69,7 +88,6 @@ export function createCrmInternalRoutes(): HttpRouteDefinition[] {
       },
     }),
 
-    // ─── Interactions ───────────────────────────────────────────────────────
     defineInternalRoute("/crm/interactions", {
       summary: "List interactions, optionally filtered by leadId",
       handler: async (context) => {
@@ -85,7 +103,7 @@ export function createCrmInternalRoutes(): HttpRouteDefinition[] {
 
     defineInternalRoute("/crm/interactions", {
       method: "POST",
-      summary: "Register a cold call or interaction and optionally auto-spawn a follow-up task",
+      summary: "Register a CRM interaction and optionally create a CRM follow-up task",
       handler: async (context) => {
         const session = await requireAuthenticatedUser(context)
         const body = context.request.jsonBody as {
@@ -95,7 +113,13 @@ export function createCrmInternalRoutes(): HttpRouteDefinition[] {
           sentiment?: string
           next_steps?: string
           requires_followup?: boolean
-          template_id?: string // If provided, auto-instantiate a linked task
+          follow_up_title?: string
+          follow_up_description?: string
+          assignee_user_id?: string
+          assignee_name?: string
+          due_at?: string
+          reminder_at?: string
+          priority?: "low" | "medium" | "high" | "urgent"
         }
 
         if (!body.lead_id || !body.type || !body.summary) {
@@ -103,8 +127,6 @@ export function createCrmInternalRoutes(): HttpRouteDefinition[] {
         }
 
         const db = context.databases.primary
-
-        // 1. Save the interaction
         const interactionId = await registerInteraction(db, {
           lead_id: body.lead_id,
           type: body.type,
@@ -114,24 +136,187 @@ export function createCrmInternalRoutes(): HttpRouteDefinition[] {
           requires_followup: body.requires_followup ?? false,
         })
 
-        // 2. If requires follow-up, auto-instantiate a task from given template
         let taskId: string | undefined
-        if (body.requires_followup && body.template_id) {
-          taskId = await instantiateTaskTemplate(
-            db,
-            body.template_id,
-            session.user.id,
-            {
-              entityType: "crm_lead",
-              entityId: body.lead_id,
-            }
-          )
+        let reminderId: string | null | undefined
 
-          // 3. Link the new task back to this interaction record
+        if (body.requires_followup) {
+          const taskResult = await createCrmFollowUpTask(db, {
+            leadId: body.lead_id,
+            interactionId,
+            title: body.follow_up_title?.trim() || body.next_steps?.trim() || "Follow up with customer",
+            description: body.follow_up_description?.trim() || body.summary,
+            assigneeUserId: body.assignee_user_id?.trim() || session.user.id,
+            assigneeName: body.assignee_name?.trim() || session.user.displayName,
+            dueAt: body.due_at?.trim() || null,
+            reminderAt: body.reminder_at?.trim() || null,
+            priority: body.priority ?? "medium",
+            createdByUserId: session.user.id,
+            actor: {
+              userId: session.user.id,
+              displayName: session.user.displayName,
+            },
+          })
+
+          taskId = taskResult.crmTaskId
+          reminderId = taskResult.reminderId
           await linkTaskToInteraction(db, interactionId, taskId)
         }
 
-        return jsonResponse({ success: true, interactionId, taskId })
+        return jsonResponse({ success: true, interactionId, taskId, reminderId })
+      },
+    }),
+
+    defineInternalRoute("/crm/follow-up-tasks", {
+      summary: "List CRM follow-up tasks filtered by lead, assignee, or status",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+        const url = new URL(context.request.url)
+
+        return jsonResponse({
+          items: await listCrmFollowUpTasks(context.databases.primary, {
+            leadId: url.searchParams.get("leadId") ?? undefined,
+            assigneeUserId: url.searchParams.get("assigneeUserId") ?? undefined,
+            status: url.searchParams.get("status") ?? undefined,
+          }),
+        })
+      },
+    }),
+
+    defineInternalRoute("/crm/follow-up-task/assignments", {
+      summary: "List CRM task assignment history filtered by lead or CRM task",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+        const url = new URL(context.request.url)
+
+        return jsonResponse({
+          items: await listCrmTaskAssignments(context.databases.primary, {
+            leadId: url.searchParams.get("leadId") ?? undefined,
+            crmTaskId: url.searchParams.get("crmTaskId") ?? undefined,
+          }),
+        })
+      },
+    }),
+
+    defineInternalRoute("/crm/follow-up-task/assignment", {
+      method: "PATCH",
+      summary: "Assign or reassign a CRM follow-up task with assignment history tracking",
+      handler: async (context) => {
+        const session = await requireAuthenticatedUser(context)
+        const body = context.request.jsonBody as {
+          crmTaskId: string
+          assigneeUserId?: string
+          assigneeName?: string
+          reason?: string
+        }
+
+        if (!body.crmTaskId) {
+          return jsonResponse({ error: "crmTaskId is required" }, 400)
+        }
+
+        const result = await assignCrmTask(context.databases.primary, {
+          crmTaskId: body.crmTaskId,
+          assigneeUserId: body.assigneeUserId?.trim() || null,
+          assigneeName: body.assigneeName?.trim() || null,
+          reason: body.reason?.trim() || null,
+          actor: {
+            userId: session.user.id,
+            displayName: session.user.displayName,
+          },
+        })
+
+        return jsonResponse({ success: true, item: result })
+      },
+    }),
+
+    defineInternalRoute("/crm/follow-up-task/status", {
+      method: "PATCH",
+      summary: "Update CRM follow-up task status to in progress, completed, or revoked",
+      handler: async (context) => {
+        const session = await requireAuthenticatedUser(context)
+        const body = context.request.jsonBody as {
+          crmTaskId: string
+          status: "open" | "in_progress" | "completed" | "revoked"
+          note?: string
+        }
+
+        if (!body.crmTaskId || !body.status) {
+          return jsonResponse({ error: "crmTaskId and status are required" }, 400)
+        }
+
+        await updateCrmTaskStatus(context.databases.primary, {
+          crmTaskId: body.crmTaskId,
+          status: body.status,
+          note: body.note,
+          actor: {
+            userId: session.user.id,
+            displayName: session.user.displayName,
+          },
+        })
+
+        return jsonResponse({ success: true })
+      },
+    }),
+
+    defineInternalRoute("/crm/reminders", {
+      summary: "List CRM reminders filtered by lead, task, or status",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+        const url = new URL(context.request.url)
+
+        return jsonResponse({
+          items: await listCrmReminders(context.databases.primary, {
+            leadId: url.searchParams.get("leadId") ?? undefined,
+            crmTaskId: url.searchParams.get("crmTaskId") ?? undefined,
+            status: url.searchParams.get("status") ?? undefined,
+          }),
+        })
+      },
+    }),
+
+    defineInternalRoute("/crm/reminder", {
+      method: "PATCH",
+      summary: "Snooze, complete, or revoke a CRM reminder",
+      handler: async (context) => {
+        const session = await requireAuthenticatedUser(context)
+        const body = context.request.jsonBody as {
+          reminderId: string
+          status: "pending" | "snoozed" | "completed" | "revoked"
+          snoozedUntil?: string
+          note?: string
+        }
+
+        if (!body.reminderId || !body.status) {
+          return jsonResponse({ error: "reminderId and status are required" }, 400)
+        }
+
+        await updateCrmReminder(context.databases.primary, {
+          reminderId: body.reminderId,
+          status: body.status,
+          snoozedUntil: body.snoozedUntil,
+          note: body.note,
+          actor: {
+            userId: session.user.id,
+            displayName: session.user.displayName,
+          },
+        })
+
+        return jsonResponse({ success: true })
+      },
+    }),
+
+    defineInternalRoute("/crm/audit", {
+      summary: "List CRM audit events filtered by lead, interaction, or CRM task",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+        const url = new URL(context.request.url)
+
+        return jsonResponse({
+          items: await listCrmAuditEvents(context.databases.primary, {
+            leadId: url.searchParams.get("leadId") ?? undefined,
+            crmTaskId: url.searchParams.get("crmTaskId") ?? undefined,
+            interactionId: url.searchParams.get("interactionId") ?? undefined,
+          }),
+        })
       },
     }),
   ]

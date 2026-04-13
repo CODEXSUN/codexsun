@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react"
 
+import { readStoredAuthSession } from "@cxapp/web/src/auth/session-storage"
+import { TechnicalNameBadge } from "../../../../ui/src/components/system/technical-name-badge"
+
 interface LeadHeader {
   lead_id: string
   company_name: string
@@ -24,10 +27,16 @@ const STAGE_CONFIG: Record<string, { color: string; bg: string; accent: string }
 export function LeadPipelinePage() {
   const [leads, setLeads] = useState<LeadHeader[]>([])
   const [loading, setLoading] = useState(true)
+  const authHeaders = {
+    "Content-Type": "application/json",
+    ...(readStoredAuthSession()?.accessToken
+      ? { authorization: `Bearer ${readStoredAuthSession()?.accessToken}` }
+      : {}),
+  }
 
   const loadLeads = async () => {
     try {
-      const res = await fetch("/api/internal/crm/leads")
+      const res = await fetch("/internal/v1/crm/leads", { headers: authHeaders })
       const data = await res.json()
       setLeads(data.items ?? [])
     } catch (err) {
@@ -40,9 +49,9 @@ export function LeadPipelinePage() {
   useEffect(() => { loadLeads() }, [])
 
   const handleAdvance = async (lead: LeadHeader, newStatus: string) => {
-    await fetch("/api/internal/crm/leads/status", {
+    await fetch("/internal/v1/crm/leads/status", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({ leadId: lead.lead_id, status: newStatus }),
     })
     await loadLeads()
@@ -54,13 +63,14 @@ export function LeadPipelinePage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="animate-pulse text-sm text-muted-foreground">Loading pipeline…</div>
+        <div className="animate-pulse text-sm text-muted-foreground">Loading pipeline...</div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4" data-technical-name="page.crm.lead-pipeline">
+      <TechnicalNameBadge name="page.crm.lead-pipeline" className="absolute -top-3 right-4 z-20" />
       {/* Header */}
       <div className="rounded-2xl border border-border/60 bg-card px-5 py-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">CRM</p>
@@ -130,7 +140,7 @@ export function LeadPipelinePage() {
                             onClick={() => handleAdvance(lead, next)}
                             className="rounded-md border border-border/50 bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent/20 transition"
                           >
-                            → {next}
+                            {"->"} {next}
                           </button>
                         ))}
                       </div>
@@ -145,7 +155,7 @@ export function LeadPipelinePage() {
 
       {leads.length === 0 && (
         <div className="rounded-xl border border-border/40 bg-card p-8 text-center space-y-2">
-          <p className="text-2xl">📋</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">CRM</p>
           <p className="text-sm font-medium text-foreground">No leads in the pipeline</p>
           <p className="text-xs text-muted-foreground">
             Go to Cold Calls to register your first contact.

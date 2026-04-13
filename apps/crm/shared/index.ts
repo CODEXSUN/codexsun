@@ -3,3 +3,4 @@ import { defineAppWorkspace } from "../../framework/src/application/app-workspac
 export const crmAppWorkspace = defineAppWorkspace("crm", "CRM")
 
 export * from "./workspace-items.js"
+export * from "./crm.js"

@@ -4,8 +4,10 @@ import {
   listJsonStorePayloads,
   replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
+import type { CrmInteractionType, CrmLeadStatus } from "../../shared/crm.js"
 import { crmTableNames } from "../../database/table-names.js"
 import { asQueryDatabase } from "../data/query-database.js"
+import { recordCrmAuditEvent } from "./crm-follow-up-service.js"
 
 // ─── Lead Types ──────────────────────────────────────────────────────────────
 
@@ -16,7 +18,7 @@ export interface CrmLeadPayload {
   email?: string
   phone?: string
   source?: string
-  status: "Cold" | "Warm" | "Qualified" | "Converted" | "Lost"
+  status: CrmLeadStatus
   notes?: string
   created_at: string
 }
@@ -24,7 +26,7 @@ export interface CrmLeadPayload {
 export interface CrmInteractionPayload {
   id: string
   lead_id: string
-  type: "Cold Call" | "Email" | "Reply" | "Meeting"
+  type: CrmInteractionType
   summary: string
   sentiment?: "Positive" | "Neutral" | "Negative"
   next_steps?: string
@@ -115,8 +117,20 @@ export async function createLead(
       owner_id: data.owner_id ?? null,
       created_at: now,
       updated_at: now,
-    } as any)
+    } as Record<string, unknown>)
     .execute()
+
+  await recordCrmAuditEvent(database, {
+    entityType: "crm_lead",
+    entityId: leadId,
+    leadId,
+    action: "crm_lead_created",
+    summary: `Created CRM lead for ${data.company_name}`,
+    metadata: {
+      source: data.source ?? "Manual",
+      ownerId: data.owner_id ?? null,
+    },
+  })
 
   return leadId
 }
@@ -131,6 +145,15 @@ export async function updateLeadStatus(
     .set({ status, updated_at: new Date().toISOString() })
     .where("lead_id", "=", leadId)
     .execute()
+
+  await recordCrmAuditEvent(database, {
+    entityType: "crm_lead",
+    entityId: leadId,
+    leadId,
+    action: "crm_lead_status_updated",
+    summary: `Updated CRM lead status to ${status}`,
+    metadata: { status },
+  })
 }
 
 // ─── Interactions ─────────────────────────────────────────────────────────────
@@ -155,7 +178,7 @@ export async function registerInteraction(
   database: Kysely<unknown>,
   data: {
     lead_id: string
-    type: "Cold Call" | "Email" | "Reply" | "Meeting"
+    type: CrmInteractionType
     summary: string
     sentiment?: string
     next_steps?: string
@@ -171,7 +194,7 @@ export async function registerInteraction(
     lead_id: data.lead_id,
     type: data.type,
     summary: data.summary,
-    sentiment: data.sentiment as any,
+    sentiment: data.sentiment as CrmInteractionPayload["sentiment"],
     next_steps: data.next_steps,
     requires_followup: data.requires_followup ?? false,
     interaction_date: now,
@@ -206,8 +229,21 @@ export async function registerInteraction(
       linked_task_id: null,
       interaction_date: now,
       created_at: now,
-    } as any)
+    } as Record<string, unknown>)
     .execute()
+
+  await recordCrmAuditEvent(database, {
+    entityType: "crm_interaction",
+    entityId: interactionId,
+    leadId: data.lead_id,
+    interactionId,
+    action: "crm_interaction_logged",
+    summary: `${data.type} logged for CRM lead`,
+    metadata: {
+      type: data.type,
+      requiresFollowUp: data.requires_followup ?? false,
+    },
+  })
 
   return interactionId
 }

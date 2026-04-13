@@ -5,4 +5,8 @@ export const crmTableNames = {
   // Relational Headers / Indexes
   leadHeaders: "crm_lead_headers",
   interactionHeaders: "crm_interaction_headers",
+  followUpTasks: "crm_follow_up_tasks",
+  taskAssignments: "crm_task_assignments",
+  reminders: "crm_reminders",
+  auditEvents: "crm_audit_events",
 } as const

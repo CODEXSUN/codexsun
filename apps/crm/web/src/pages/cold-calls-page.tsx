@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react"
 
+import { readStoredAuthSession } from "@cxapp/web/src/auth/session-storage"
+import { TechnicalNameBadge } from "../../../../ui/src/components/system/technical-name-badge"
+
 interface LeadHeader {
   lead_id: string
   company_name: string
@@ -31,9 +34,18 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const SENTIMENT_ICON: Record<string, string> = {
-  Positive: "✅",
-  Neutral: "➖",
-  Negative: "❌",
+  Positive: "POS",
+  Neutral: "NEU",
+  Negative: "NEG",
+}
+
+function getHeaders() {
+  const token = readStoredAuthSession()?.accessToken
+
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+  }
 }
 
 export function ColdCallsPage() {
@@ -65,11 +77,13 @@ export function ColdCallsPage() {
     template_id: "",
   })
 
+  const authHeaders = getHeaders()
+
   const loadData = async () => {
     try {
       const [leadsRes, interactionsRes] = await Promise.all([
-        fetch("/api/internal/crm/leads"),
-        fetch("/api/internal/crm/interactions"),
+        fetch("/internal/v1/crm/leads", { headers: authHeaders }),
+        fetch("/internal/v1/crm/interactions", { headers: authHeaders }),
       ])
       const [leadsData, interactionsData] = await Promise.all([
         leadsRes.json(),
@@ -93,9 +107,9 @@ export function ColdCallsPage() {
     if (!newLead.company_name || !newLead.contact_name) return
     setSubmitting(true)
     try {
-      const res = await fetch("/api/internal/crm/leads", {
+      const res = await fetch("/internal/v1/crm/leads", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify(newLead),
       })
       if (res.ok) {
@@ -113,9 +127,9 @@ export function ColdCallsPage() {
     if (!selectedLead || !newInteraction.summary) return
     setSubmitting(true)
     try {
-      const res = await fetch("/api/internal/crm/interactions", {
+      const res = await fetch("/internal/v1/crm/interactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           lead_id: selectedLead.lead_id,
           type: newInteraction.type,
@@ -123,7 +137,6 @@ export function ColdCallsPage() {
           sentiment: newInteraction.sentiment,
           next_steps: newInteraction.next_steps,
           requires_followup: newInteraction.requires_followup,
-          template_id: newInteraction.requires_followup ? newInteraction.template_id || "default-followup" : undefined,
         }),
       })
       if (res.ok) {
@@ -132,7 +145,7 @@ export function ColdCallsPage() {
         setNewInteraction({ type: "Cold Call", summary: "", sentiment: "Neutral", next_steps: "", requires_followup: false, template_id: "" })
         await loadData()
         if (data.taskId) {
-          alert(`✅ Interaction saved. Task created: ${data.taskId}`)
+          alert(`Interaction saved. Task created: ${data.taskId}`)
         }
       }
     } finally {
@@ -141,9 +154,9 @@ export function ColdCallsPage() {
   }
 
   const handleAdvanceStatus = async (lead: LeadHeader, status: string) => {
-    await fetch("/api/internal/crm/leads/status", {
+    await fetch("/internal/v1/crm/leads/status", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({ leadId: lead.lead_id, status }),
     })
     await loadData()
@@ -154,14 +167,18 @@ export function ColdCallsPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="animate-pulse text-slate-400 text-sm">Loading CRM pipeline…</div>
+        <div className="animate-pulse text-slate-400 text-sm">Loading CRM pipeline...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-full gap-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
-      {/* ── Left Panel: Lead List ── */}
+    <div
+      className="relative flex h-full gap-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm"
+      data-technical-name="page.crm.cold-calls"
+    >
+      <TechnicalNameBadge name="page.crm.cold-calls" className="absolute right-4 top-3 z-20" />
+      {/* Left Panel: Lead List */}
       <div className="flex w-80 shrink-0 flex-col border-r border-border/40 bg-card">
         <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
           <div>
@@ -206,12 +223,12 @@ export function ColdCallsPage() {
         </div>
       </div>
 
-      {/* ── Right Panel: Lead Detail or Forms ── */}
+      {/* Right Panel: Lead Detail or Forms */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {!selectedLead && !showNewLeadForm ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center space-y-2">
-              <p className="text-3xl">📞</p>
+              <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">CRM</p>
               <p className="text-sm font-medium text-foreground">Select a lead or register a new cold call</p>
               <p className="text-xs text-muted-foreground">Track every engagement from first contact to close.</p>
               <button
@@ -242,7 +259,7 @@ export function ColdCallsPage() {
                   <input
                     type="text"
                     placeholder={placeholder}
-                    value={(newLead as any)[field]}
+                    value={newLead[field as keyof typeof newLead]}
                     onChange={(e) => setNewLead((p) => ({ ...p, [field]: e.target.value }))}
                     className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
@@ -264,7 +281,7 @@ export function ColdCallsPage() {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Notes</label>
                 <textarea
                   rows={3}
-                  placeholder="Initial call context…"
+                  placeholder="Initial call context..."
                   value={newLead.notes}
                   onChange={(e) => setNewLead((p) => ({ ...p, notes: e.target.value }))}
                   className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
@@ -276,7 +293,7 @@ export function ColdCallsPage() {
                   disabled={submitting}
                   className="px-5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-50"
                 >
-                  {submitting ? "Saving…" : "Register Lead"}
+                  {submitting ? "Saving..." : "Register Lead"}
                 </button>
                 <button
                   type="button"
@@ -289,13 +306,13 @@ export function ColdCallsPage() {
             </form>
           </div>
         ) : selectedLead ? (
-          /* ── Lead Detail Panel ── */
+          /* Lead Detail Panel */
           <div className="flex h-full flex-col overflow-hidden">
             {/* Lead header bar */}
             <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
               <div>
                 <h2 className="text-base font-bold text-foreground">{selectedLead.company_name}</h2>
-                <p className="text-xs text-muted-foreground">{selectedLead.contact_name} · {selectedLead.phone ?? selectedLead.email ?? "No contact info"}</p>
+                <p className="text-xs text-muted-foreground">{selectedLead.contact_name} | {selectedLead.phone ?? selectedLead.email ?? "No contact info"}</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[selectedLead.status] ?? "bg-muted text-muted-foreground"}`}>
@@ -306,7 +323,7 @@ export function ColdCallsPage() {
                   defaultValue=""
                   className="rounded-lg border border-border/60 bg-background px-2 py-1 text-xs text-muted-foreground shadow-sm"
                 >
-                  <option value="" disabled>Move to…</option>
+                  <option value="" disabled>Move to...</option>
                   {["Cold", "Warm", "Qualified", "Converted", "Lost"].map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -331,7 +348,7 @@ export function ColdCallsPage() {
                         <label className="block text-xs font-semibold text-muted-foreground mb-1">Type</label>
                         <select
                           value={newInteraction.type}
-                          onChange={(e) => setNewInteraction((p) => ({ ...p, type: e.target.value as any }))}
+                          onChange={(e) => setNewInteraction((p) => ({ ...p, type: e.target.value as typeof p.type }))}
                           className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground shadow-sm"
                         >
                           {["Cold Call", "Email", "Reply", "Meeting"].map((t) => (
@@ -367,7 +384,7 @@ export function ColdCallsPage() {
                       <label className="block text-xs font-semibold text-muted-foreground mb-1">Next Steps / Reply to Customer</label>
                       <input
                         type="text"
-                        placeholder="Send proposal, schedule demo…"
+                        placeholder="Send proposal, schedule demo..."
                         value={newInteraction.next_steps}
                         onChange={(e) => setNewInteraction((p) => ({ ...p, next_steps: e.target.value }))}
                         className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground shadow-sm"
@@ -388,7 +405,7 @@ export function ColdCallsPage() {
                         disabled={submitting}
                         className="px-5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-50"
                       >
-                        {submitting ? "Saving…" : "Save Interaction"}
+                        {submitting ? "Saving..." : "Save Interaction"}
                       </button>
                       <button
                         type="button"

@@ -5,6 +5,8 @@ import path from "node:path"
 import test from "node:test"
 
 import { createInternalApiRoutes } from "../../../apps/api/src/internal/routes.js"
+import { createCrmFollowUpTask, listCrmTaskAssignments } from "../../../apps/crm/src/services/crm-follow-up-service.js"
+import { createLead } from "../../../apps/crm/src/services/crm-repository.js"
 import { createAuthService } from "../../../apps/cxapp/src/services/service-factory.js"
 import { createAppSuite } from "../../../apps/framework/src/application/app-suite.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
@@ -76,6 +78,134 @@ test("internal route registry includes the frappe connector endpoints", () => {
   assert.ok(routePaths.includes("POST /internal/v1/frappe/items/pull-live"))
   assert.ok(routePaths.includes("POST /internal/v1/frappe/items/sync-products"))
   assert.ok(routePaths.includes("GET /internal/v1/frappe/purchase-receipts"))
+})
+
+test("internal route registry includes the CRM intake, follow-up, reminder, and audit endpoints", () => {
+  const routes = createInternalApiRoutes(createAppSuite())
+  const routePaths = routes.map((route) => `${route.method} ${route.path}`)
+
+  assert.ok(routePaths.includes("GET /internal/v1/crm/overview"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/leads"))
+  assert.ok(routePaths.includes("POST /internal/v1/crm/leads"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/crm/leads/status"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/interactions"))
+  assert.ok(routePaths.includes("POST /internal/v1/crm/interactions"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/follow-up-tasks"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/follow-up-task/assignments"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/crm/follow-up-task/assignment"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/crm/follow-up-task/status"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/reminders"))
+  assert.ok(routePaths.includes("PATCH /internal/v1/crm/reminder"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/audit"))
+})
+
+test("CRM assignment route reassigns a follow-up task and records assignment history", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-crm-assignment-route-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const leadId = await createLead(runtime.primary, {
+        company_name: "Assignment Route Labs",
+        contact_name: "Priya Devi",
+        phone: "+91 8888888888",
+        source: "Cold Call",
+      })
+      const task = await createCrmFollowUpTask(runtime.primary, {
+        leadId,
+        title: "Initial follow-up assignment",
+        assigneeUserId: "user-crm-agent",
+        assigneeName: "CRM Agent",
+        createdByUserId: "user-admin",
+        actor: {
+          userId: "user-admin",
+          displayName: "Admin User",
+        },
+      })
+
+      const assignRoute = routes.find(
+        (candidate) =>
+          candidate.method === "PATCH" &&
+          candidate.path === "/internal/v1/crm/follow-up-task/assignment"
+      )
+
+      assert.ok(assignRoute)
+
+      const response = await assignRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "PATCH",
+          pathname: "/internal/v1/crm/follow-up-task/assignment",
+          url: new URL("http://localhost/internal/v1/crm/follow-up-task/assignment"),
+          headers,
+          bodyText: JSON.stringify({
+            crmTaskId: task.crmTaskId,
+            assigneeUserId: "user-crm-manager",
+            assigneeName: "CRM Manager",
+            reason: "Manager takeover",
+          }),
+          jsonBody: {
+            crmTaskId: task.crmTaskId,
+            assigneeUserId: "user-crm-manager",
+            assigneeName: "CRM Manager",
+            reason: "Manager takeover",
+          },
+        },
+        route: {
+          auth: assignRoute.auth,
+          path: assignRoute.path,
+          surface: assignRoute.surface,
+          version: assignRoute.version,
+        },
+      })
+
+      const payload = JSON.parse(response.body) as {
+        success: boolean
+        item: { assignmentId: string | null; changed: boolean }
+      }
+      const assignments = await listCrmTaskAssignments(runtime.primary, { crmTaskId: task.crmTaskId })
+
+      assert.equal(response.statusCode, 200)
+      assert.equal(payload.success, true)
+      assert.equal(payload.item.changed, true)
+      assert.equal(typeof payload.item.assignmentId, "string")
+      assert.equal(assignments.length, 2)
+      assert.equal(assignments[0]?.to_assignee_user_id, "user-crm-manager")
+      assert.equal(assignments[0]?.from_assignee_user_id, "user-crm-agent")
+      assert.equal(assignments[0]?.reason, "Manager takeover")
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
 })
 
 test("internal route registry includes the framework developer operations endpoint", () => {

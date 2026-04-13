@@ -2,14 +2,98 @@
 
 ## Active Batch
 
-- `#186` Implement ecommerce stock operations frontend and separate side-menu entry
-  - Scope: expose the new stock lifecycle runtime through the ecommerce admin workspace so operators can create purchase receipts, record goods inward verification, post inward stock, generate stickers, verify scans, and issue stock into sales without dropping into backend-only tooling.
-  - Constraint: keep the UI inside the existing ecommerce workspace shell and add it as a distinct side-menu destination rather than mixing it into billing or framework utility menus.
-  - Delivered:
-    - added a dedicated ecommerce stock operations workspace section with overview, purchase receipt, goods inward, stock-unit and sticker, and scan-to-sale tabs
-    - wired the section to the new billing internal routes for receipt creation, inward creation, inward posting, sticker batch generation, barcode resolution, and stock sale allocation
-    - added `Stock Operations` to the ecommerce workspace items and desk menu grouping as its own stock menu section
-    - updated the framework workspace hero suppression list so the page opens in the same clean app-style layout as the other ecommerce operator sections
-  - Validation:
+- `#184` Rebuild `apps/crm` into a full CRM platform
+  - Goal: evolve the current CRM baseline from simple leads and interactions into a complete operator-facing and manager-facing CRM platform with intake, assignment, tasks, reminders, campaign follow-up, analytics, audit visibility, and customer-centric relationship tracking.
+  - Current reality:
+    - `apps/crm` currently contains a small persistence baseline for leads and interactions, a limited workspace, and a narrow internal route surface.
+    - The requested full CRM scope does not exist yet and must be delivered in bounded phases.
+  - Product direction:
+    - support inbound calls from both known customers and unknown callers
+    - record each interaction, create work immediately, assign ownership, track reminders, and monitor completion
+    - maintain long-term relationships through contact history, goodwill or reputation notes, update mails, launch invites, and engagement trails
+    - give operators one customer-centric board and give managers scoreboards, leaderboards, workload views, and audit trails
+    - leave room for digital-marketing workflows, post or reel tracking, campaign responses, and future automation without pretending those integrations already exist
+  - Ownership boundaries:
+    - `apps/crm` owns CRM records, workflows, campaigns, scoring, timelines, analytics reads, and audit behavior for CRM operations
+    - `apps/core` remains the reusable master-data owner where shared contact or common master reuse is appropriate
+    - `apps/cxapp` remains the auth, user, role, permission, session, mailbox, and suite shell owner
+    - `apps/api` remains transport-only for CRM route exposure
+    - `apps/ui` remains the neutral reusable design-system and shared block owner, not the CRM business owner
+  - Phase plan:
+    - Phase 1. Architecture and scope reset
+      - remove completed execution clutter and keep only the active CRM batch
+      - confirm CRM ownership boundaries and cross-app touchpoints
+      - define the first executable slice as `call intake -> task assignment -> reminder -> closure -> audit trail`
+    - Phase 2. CRM domain model and database foundation
+      - add explicit CRM tables for accounts, account contacts, leads, opportunities, stages, calls, call outcomes, assignments, follow-up tasks, reminders, notes, activities, campaign records, reputation records, score snapshots, and audit events
+      - replace the current CRM-only minimal baseline where reporting, filtering, or lifecycle tracking needs real structured storage
+      - preserve status history, owner history, assignment history, and due-date visibility for audit-safe operations
+    - Phase 3. Shared contracts and backend modules
+      - define shared CRM schemas for records, transitions, filters, board summaries, metrics, and audit responses
+      - split backend concerns into focused repositories, services, engines, analytics reads, and audit modules
+      - keep new modules compact and reviewable instead of centralizing CRM into one oversized service
+    - Phase 4. Workflow engines and business rules
+      - intake engine for unknown callers and known customers
+      - assignment engine for ownership, reassignment, and monitoring
+      - task and reminder engine for due dates, snooze, revoke, close, completion, and overdue tracking
+      - activity engine for calls, notes, mails, status changes, and campaign touches
+      - scoring and leaderboard engine for lead quality, engagement, staff output, and conversion visibility
+      - campaign workflow foundations for updates, launch invites, nurture flows, and response tracking
+    - Phase 5. Internal API and permission surface
+      - add internal routes for intake, boards, tasks, reminders, campaigns, analytics, customer 360 views, and audit
+      - add permission gates for CRM agents, managers, campaign operators, and admins
+      - validate inputs at the route layer and keep CRM decisions inside CRM services
+    - Phase 6. CRM UI and operator surfaces
+      - rebuild the CRM workspace navigation and overview
+      - add customer 360 board, call desk, task monitor, reminder center, pipeline boards, campaign workspace, analytics, and audit screens
+      - use shared UI blocks where appropriate but keep CRM business composition inside `apps/crm`
+      - add technical-name badges on the real outer CRM shells
+    - Phase 7. Customer engagement and communication workflows
+      - support relationship-maintenance workflows such as update mails, launch invites, follow-up sequences, and continuous touch history
+      - centralize customer-centric monitoring on one CRM board
+      - model extension points for digital marketing and social-response workflows honestly, without fake live integrations
+    - Phase 8. Testing and release validation
+      - add focused service and route tests for engines, permissions, scoreboards, and audits
+      - add CRM e2e coverage for the first critical operational journeys
+      - validate each delivery slice with `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build`
+  - First implementation slice:
+    - intake a call from an unknown caller or existing customer
+    - create or attach the CRM entity
+    - create a task and assign it to a user
+    - set a reminder and monitor due state
+    - close or revoke the follow-up
+    - persist activity and audit history for manager review
+  - Delivered in the first slice:
+    - registered `apps/crm` as a framework database module and added CRM follow-up task, reminder, and audit tables
+    - added CRM shared types plus focused follow-up and audit services for task creation, reminder state changes, overdue promotion, closure, and overview metrics
+    - replaced the old task-template-only CRM follow-up path with CRM-owned follow-up task creation from interactions
+    - added CRM-owned assignment history storage plus assignment and reassignment service logic so task ownership changes remain queryable and audit-safe
+    - added internal CRM routes for overview metrics, follow-up tasks, reminder actions, and audit reads alongside the lead and interaction routes
+    - added internal CRM assignment routes so authenticated users can reassign tasks through the CRM service boundary instead of direct task-row mutation
+    - added a CRM task-monitor workspace page, updated the CRM overview, and aligned CRM frontend fetches to the versioned internal route surface with bearer-auth headers
+    - added focused CRM service coverage plus internal route-registry coverage for the new first-slice endpoints
+  - Delivery order:
+    - 1. database and shared schemas
+    - 2. repository and service modules
+    - 3. workflow engines
+    - 4. internal API routes and permission checks
+    - 5. CRM workspace UI
+    - 6. analytics, leaderboards, and campaign foundations
+    - 7. focused tests and CRM e2e
+  - Constraints:
+    - do not move CRM business logic into `apps/api`
+    - do not move CRM app ownership into `apps/ui`
+    - do not claim live social or marketing integrations until they exist in code
+    - keep the implementation phased; do not try to ship the entire CRM suite in one uncontrolled batch
+  - Validation target:
+    - the first CRM slice must be fully operational end to end before expanding into advanced campaigns, broader portals, and richer marketing automation
+  - Validation completed:
+    - `npx tsx --test tests/crm/services.test.ts`
+    - `npx tsx --test --test-name-pattern "CRM intake, follow-up, reminder, and audit endpoints|crm" tests/api/internal/routes.test.ts`
+    - `npx tsx --test --test-name-pattern "CRM assignment route reassigns a follow-up task and records assignment history|internal route registry includes the CRM intake, follow-up, reminder, and audit endpoints" tests/api/internal/routes.test.ts`
     - `npm run typecheck`
-    - `npm run version:sync`
+    - `npm run build`
+  - Validation blocked or incomplete:
+    - `npm run lint` still fails on a large pre-existing repo-wide backlog outside the CRM slice, including unrelated billing, core, cxapp, demo, ecommerce, ui-registry, and test files
+  - Residual risk:
+    - the requested CRM scope is large enough that it needs staged delivery and explicit boundaries; trying to implement everything at once would make the repository harder to maintain.

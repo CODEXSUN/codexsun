@@ -1,4 +1,5 @@
 import { billingDatabaseModule } from "../../../../../billing/src/database-module.js"
+import { crmDatabaseModule } from "../../../../../crm/src/database-module.js"
 import { coreDatabaseModule } from "../../../../../core/src/database-module.js"
 import { cxappDatabaseModule } from "../../../../../cxapp/src/database-module.js"
 import { ecommerceDatabaseModule } from "../../../../../ecommerce/src/database-module.js"
@@ -25,6 +26,7 @@ export const registeredDatabaseModules: AppDatabaseModule[] = [
   cxappDatabaseModule,
   coreDatabaseModule,
   billingDatabaseModule,
+  crmDatabaseModule,
   ecommerceDatabaseModule,
   frappeDatabaseModule,
 ].sort((left, right) => left.order - right.order || left.appId.localeCompare(right.appId))

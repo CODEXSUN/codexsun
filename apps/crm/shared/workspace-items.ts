@@ -17,4 +17,10 @@ export const crmWorkspaceItems = [
     route: "/dashboard/apps/crm/cold-calls",
     summary: "Register and orchestrate outbound engagement events.",
   },
+  {
+    id: "task-monitor",
+    name: "Task Monitor",
+    route: "/dashboard/apps/crm/task-monitor",
+    summary: "Monitor CRM follow-up tasks, reminders, and audit activity.",
+  },
 ]
