@@ -345,6 +345,7 @@ export function FrameworkAppWorkspacePage({
         "catalog",
         "customers",
         "orders",
+        "stock-operations",
         "checkout",
         "settings",
       ].includes(sectionId ?? "overview")

@@ -67,6 +67,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Checkout-created orders, payment verification, tracking flow, and customer order history behavior.",
   },
   {
+    id: "stock-operations",
+    name: "Stock Operations",
+    route: "/dashboard/apps/ecommerce/stock-operations",
+    summary: "Purchase receipt, goods inward, barcode, sticker print, warehouse stock readiness, and scan-based sales issue flow.",
+  },
+  {
     id: "payments",
     name: "Payments",
     route: "/dashboard/apps/ecommerce/payments",

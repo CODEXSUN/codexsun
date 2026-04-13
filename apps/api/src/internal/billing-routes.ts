@@ -12,6 +12,27 @@ import { listBillingRegisterSummaries } from "../../../billing/src/services/regi
 import { executeBillingOpeningBalanceRollover } from "../../../billing/src/services/opening-balance-rollover-service.js"
 import { executeBillingYearEndAdjustmentControl } from "../../../billing/src/services/year-end-control-service.js"
 import { executeBillingYearCloseWorkflow } from "../../../billing/src/services/year-close-service.js"
+import {
+  createBillingPurchaseReceipt,
+  getBillingPurchaseReceipt,
+  listBillingPurchaseReceipts,
+  updateBillingPurchaseReceipt,
+} from "../../../billing/src/services/purchase-receipt-service.js"
+import {
+  createBillingGoodsInwardNote,
+  getBillingGoodsInwardNote,
+  listBillingGoodsInwardNotes,
+  updateBillingGoodsInwardNote,
+} from "../../../billing/src/services/goods-inward-service.js"
+import {
+  createBillingStickerPrintBatch,
+  createBillingStockSaleAllocation,
+  getBillingStockUnit,
+  listBillingStockSaleAllocations,
+  listBillingStockUnits,
+  postBillingGoodsInwardToInventory,
+  resolveBillingStockBarcode,
+} from "../../../billing/src/services/stock-lifecycle-service.js"
 import { billingVoucherDocumentFormatSchema, billingVoucherTypeSchema } from "../../../billing/shared/index.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
@@ -438,6 +459,232 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
             user,
             typeParam ? billingVoucherTypeSchema.parse(typeParam) : undefined
           )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/purchase-receipts", {
+      summary: "List billing-owned local purchase receipt documents.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+
+        return jsonResponse(
+          await listBillingPurchaseReceipts(context.databases.primary, user)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/purchase-receipt", {
+      summary: "Read one billing purchase receipt by id.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+        const receiptId = context.request.url.searchParams.get("id")
+
+        if (!receiptId) {
+          throw new ApplicationError("Billing purchase receipt id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingPurchaseReceipt(context.databases.primary, user, receiptId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/purchase-receipts", {
+      method: "POST",
+      summary: "Create a local billing purchase receipt document.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+
+        return jsonResponse(
+          await createBillingPurchaseReceipt(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/purchase-receipt", {
+      method: "PATCH",
+      summary: "Update a local billing purchase receipt document.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+        const receiptId = context.request.url.searchParams.get("id")
+
+        if (!receiptId) {
+          throw new ApplicationError("Billing purchase receipt id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingPurchaseReceipt(
+            context.databases.primary,
+            user,
+            receiptId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/goods-inward-notes", {
+      summary: "List billing-owned local goods inward records.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+
+        return jsonResponse(
+          await listBillingGoodsInwardNotes(context.databases.primary, user)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/goods-inward-note", {
+      summary: "Read one billing goods inward note by id.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+        const inwardId = context.request.url.searchParams.get("id")
+
+        if (!inwardId) {
+          throw new ApplicationError("Billing goods inward note id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingGoodsInwardNote(context.databases.primary, user, inwardId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/goods-inward-notes", {
+      method: "POST",
+      summary: "Create a local billing goods inward note.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+
+        return jsonResponse(
+          await createBillingGoodsInwardNote(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/goods-inward-note", {
+      method: "PATCH",
+      summary: "Update a local billing goods inward note.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+        const inwardId = context.request.url.searchParams.get("id")
+
+        if (!inwardId) {
+          throw new ApplicationError("Billing goods inward note id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateBillingGoodsInwardNote(
+            context.databases.primary,
+            user,
+            inwardId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/goods-inward-note/post", {
+      method: "POST",
+      summary: "Post a verified billing goods inward note into stock units and aggregate core inventory.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+        const inwardId = context.request.url.searchParams.get("id")
+
+        if (!inwardId) {
+          throw new ApplicationError("Billing goods inward note id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await postBillingGoodsInwardToInventory(
+            context.databases.primary,
+            user,
+            inwardId
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/stock-units", {
+      summary: "List posted billing stock units created from goods inward.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+
+        return jsonResponse(
+          await listBillingStockUnits(context.databases.primary, user)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/stock-unit", {
+      summary: "Read one billing stock unit by id.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+        const stockUnitId = context.request.url.searchParams.get("id")
+
+        if (!stockUnitId) {
+          throw new ApplicationError("Billing stock unit id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getBillingStockUnit(context.databases.primary, user, stockUnitId)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/stock/barcode/resolve", {
+      method: "POST",
+      summary: "Resolve an internal or manufacturer barcode to a billing stock unit.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+
+        return jsonResponse(
+          await resolveBillingStockBarcode(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/stock/sticker-batches", {
+      method: "POST",
+      summary: "Create a sticker print batch for posted inward stock units.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+
+        return jsonResponse(
+          await createBillingStickerPrintBatch(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/billing/stock/sale-allocations", {
+      summary: "List scan-based stock sale allocations.",
+      handler: async (context) => {
+        const { user } = await requireBillingWorkspaceView(context)
+
+        return jsonResponse(
+          await listBillingStockSaleAllocations(context.databases.primary, user)
+        )
+      },
+    }),
+    defineInternalRoute("/billing/stock/sale-allocations", {
+      method: "POST",
+      summary: "Allocate a scanned stock unit into a sales issue flow.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+
+        return jsonResponse(
+          await createBillingStockSaleAllocation(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
         )
       },
     }),

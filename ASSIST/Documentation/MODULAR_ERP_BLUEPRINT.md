@@ -225,6 +225,10 @@ The next-level manifest contract and examples are documented in:
 
 1. [MODULE_MANIFEST_SPEC.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULE_MANIFEST_SPEC.md)
 2. [MODULE_INVENTORY.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULE_INVENTORY.md)
+3. [WORKSPACE_VISIBILITY_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/WORKSPACE_VISIBILITY_MATRIX.md)
+4. [PERMISSION_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/PERMISSION_MATRIX.md)
+5. [FEATURE_FLAG_POLICY.md](/E:/Workspace/codexsun/ASSIST/Documentation/FEATURE_FLAG_POLICY.md)
+6. [VISIBILITY_LEDGER_DESIGN.md](/E:/Workspace/codexsun/ASSIST/Documentation/VISIBILITY_LEDGER_DESIGN.md)
 
 Minimum manifest fields:
 
@@ -272,6 +276,12 @@ Result examples:
 5. Neot sees education-specific app surfaces
 6. Codexsun operations sees a cross-client control workspace
 
+The detailed visibility matrix and resolution precedence rules are documented in [WORKSPACE_VISIBILITY_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/WORKSPACE_VISIBILITY_MATRIX.md).
+Permission posture and support-debug explanation are documented in:
+
+1. [PERMISSION_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/PERMISSION_MATRIX.md)
+2. [VISIBILITY_LEDGER_DESIGN.md](/E:/Workspace/codexsun/ASSIST/Documentation/VISIBILITY_LEDGER_DESIGN.md)
+
 ## Feature Enablement Model
 
 Feature visibility should be resolved through explicit flags and contributions.
@@ -289,6 +299,7 @@ Rules:
 1. do not fork apps just to hide one feature
 2. prefer manifest-driven enable or disable logic
 3. workspace filtering must be deterministic and inspectable
+4. final scope and precedence rules should follow [FEATURE_FLAG_POLICY.md](/E:/Workspace/codexsun/ASSIST/Documentation/FEATURE_FLAG_POLICY.md)
 
 ## Multi-Client Model
 
@@ -396,8 +407,7 @@ Recommended phases:
 
 The next architecture batches after this blueprint should define:
 
-1. manifest schema
-2. current-to-target module map
-3. workspace resolution model
-4. tenant, client, industry, and user matrix
-5. migration backlog ordered by dependency risk
+1. first manifest inventory mapped onto real current runtime modules
+2. permission and feature-flag contracts wired into future manifest contributions
+3. visibility-ledger-ready shell-composition migration planning
+4. migration backlog ordered by dependency risk

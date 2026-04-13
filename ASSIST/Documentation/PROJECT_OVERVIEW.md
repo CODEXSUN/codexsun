@@ -70,6 +70,18 @@ The approved future direction is:
 4. evolve Codexsun itself into the internal control plane for deployment, monitoring, support, maintenance, and cross-client operations
 
 The detailed target model is defined in [MODULAR_ERP_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULAR_ERP_BLUEPRINT.md).
+The planned workspace, permission, and feature-resolution follow-up contracts are defined in:
+
+1. [WORKSPACE_VISIBILITY_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/WORKSPACE_VISIBILITY_MATRIX.md)
+2. [PERMISSION_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/PERMISSION_MATRIX.md)
+3. [FEATURE_FLAG_POLICY.md](/E:/Workspace/codexsun/ASSIST/Documentation/FEATURE_FLAG_POLICY.md)
+4. [VISIBILITY_LEDGER_DESIGN.md](/E:/Workspace/codexsun/ASSIST/Documentation/VISIBILITY_LEDGER_DESIGN.md)
+
+The planned stock and warehouse operating flow is defined in:
+
+1. [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md)
+
+The runtime now covers local billing purchase receipt and goods inward documents, verified inward posting into aggregate `core` stock, stock-unit identity with batch or serial and internal barcode mappings, sticker-print payload generation, and scan-based sales allocation records. Warehouse UI, putaway, and delivery workspace flows remain later phases.
 
 ## Delivery Discipline
 

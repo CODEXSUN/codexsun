@@ -2,11 +2,58 @@
 
 ## Version State
 
-- Current package version: `1.0.180`
-- Current release tag: `v-1.0.180`
+- Current package version: `1.0.186`
+- Current release tag: `v-1.0.186`
 - Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
 
-## v-1.0.180
+## v-1.0.186
+
+### [v 1.0.186] 2026-04-13 - Ecommerce stock operations frontend and separate stock side-menu entry
+
+- added a dedicated ecommerce stock operations workspace section with overview, purchase receipt, goods inward, stock-unit and sticker preview, and scan-to-sale tabs backed by the new billing stock lifecycle routes
+- wired the ecommerce workspace to create purchase receipts and goods inward records, post verified inward stock, generate `25 x 50 mm` sticker batches, verify barcode scans, and issue scanned stock into the sales flow
+- added `Stock Operations` as its own ecommerce workspace item and separate stock side-menu group so operators can reach the flow directly from the ecommerce app shell
+
+## v-1.0.185
+
+### [v 1.0.185] 2026-04-13 - Stock-unit lifecycle from verified inward to scan-based sales issue
+
+- extended the billing stock foundation with stock-unit, barcode-alias, sticker-print-batch, and sales-allocation contracts plus JSON-store tables and migrations
+- added a backend stock lifecycle service that posts verified goods inward records into stock units, updates aggregate `core` warehouse stock, recalculates purchase receipt received quantities, resolves barcode scans, generates `25 x 50 mm` sticker payloads with company contact details, and records scan-based sales issue allocations
+- exposed the new billing stock lifecycle routes for inward posting, stock-unit reads, barcode resolution, sticker batch creation, and sales-allocation listing or creation, and aligned the architecture docs with the new runtime coverage
+
+## v-1.0.184
+
+### [v 1.0.184] 2026-04-13 - Purchase receipt and goods inward stock foundation
+
+- added billing-owned purchase receipt and goods inward contracts, JSON-store tables, services, and internal routes as the first runtime stock-foundation step
+- kept inward records non-sellable in this batch by leaving `core` stock untouched even when a goods inward record reaches `verified`
+- added focused tests covering the new document lifecycle and route registry, and aligned architecture docs with the new stock-foundation reality
+
+## v-1.0.183
+
+### [v 1.0.183] 2026-04-13 - Stock, warehouse, barcode, and delivery operating blueprint
+
+- added a dedicated stock-operations blueprint covering purchase receipt, goods inward verification, batch or serial identity, barcode mapping, sticker printing, scan verification, warehouse putaway, sales issue, and delivery traceability
+- added a shared planning contract for stock workflow stages, identity modes, barcode-source modes, and the first `25 mm x 50 mm` inventory sticker layout
+- aligned the architecture and project overview docs so the future inward-to-delivery flow is documented against the current `core`, `billing`, `frappe`, `ecommerce`, and company-data ownership split
+
+## v-1.0.182
+
+### [v 1.0.182] 2026-04-13 - Permission matrix, feature-flag policy, and visibility-ledger design for modular workspace resolution
+
+- added dedicated planning documents for the future permission matrix, feature-flag resolution policy, and visibility-ledger design that will sit underneath the modular workspace system
+- added shared TypeScript planning contracts for workspace permissions, feature-flag resolution, and visibility-ledger records so future runtime work has typed architecture guidance
+- aligned the modular ERP blueprint, manifest spec, workspace visibility matrix, architecture overview, and project overview to reference the new permission and support-debug layers
+
+## v-1.0.181
+
+### [v 1.0.181] 2026-04-13 - Workspace visibility matrix and deterministic resolution rules
+
+- added a dedicated workspace visibility matrix covering tenant mode, client overlays, industry packs, workspace profiles, and Codexsun control-plane users
+- added a shared planning contract for workspace visibility inputs and decisions so future runtime implementation has typed architecture guidance
+- documented deterministic visibility precedence from platform defaults through industry, client, role, and feature-flag layers
+- linked the workspace matrix back into the modular ERP blueprint and module-manifest specification
 
 ### [v 1.0.180] 2026-04-13 - Module manifest specification and first current-to-target inventory
 

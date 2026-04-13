@@ -46,6 +46,7 @@ import {
 import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-orders-section"
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontSupportSection } from "./features/storefront-admin/storefront-support-section"
+import { StorefrontStockOperationsSection } from "./features/storefront-admin/storefront-stock-operations-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { useStorefrontDesignerAccess } from "./features/storefront-admin/storefront-designer-access"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
@@ -902,6 +903,10 @@ function PaymentsSection() {
   return <StorefrontPaymentsSection />
 }
 
+function StockOperationsSection() {
+  return <StorefrontStockOperationsSection />
+}
+
 function CheckoutSection() {
   return (
     <div className="space-y-4">
@@ -990,6 +995,8 @@ export function EcommerceWorkspaceSection({
       return <OrdersSection />
     case "payments":
       return <PaymentsSection />
+    case "stock-operations":
+      return <StockOperationsSection />
     case "checkout":
       return <CheckoutSection />
     case "shipping":

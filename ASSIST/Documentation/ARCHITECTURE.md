@@ -11,6 +11,10 @@ For the long-term modular target structure, read:
 1. [MODULAR_ERP_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULAR_ERP_BLUEPRINT.md)
 2. [MODULE_MANIFEST_SPEC.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULE_MANIFEST_SPEC.md)
 3. [MODULE_INVENTORY.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULE_INVENTORY.md)
+4. [WORKSPACE_VISIBILITY_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/WORKSPACE_VISIBILITY_MATRIX.md)
+5. [PERMISSION_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/PERMISSION_MATRIX.md)
+6. [FEATURE_FLAG_POLICY.md](/E:/Workspace/codexsun/ASSIST/Documentation/FEATURE_FLAG_POLICY.md)
+7. [VISIBILITY_LEDGER_DESIGN.md](/E:/Workspace/codexsun/ASSIST/Documentation/VISIBILITY_LEDGER_DESIGN.md)
 
 Those documents define the future engine or app or industry-pack or client-overlay model and the first current-to-target inventory. This file continues to define the current repository architecture and the approved direction of travel.
 
@@ -145,6 +149,7 @@ Inventory authority rule:
 10. store pickup currently uses the same shared sellable pool as delivery orders, so no pickup-only warehouse promise should be implied until warehouse-aware allocation exists
 11. current multi-warehouse readiness is operator-facing only: ecommerce may report warehouse spread and split-allocation posture from persisted stock rows and active reservations, but storefront runtime still must not expose warehouse choice or split-shipment promises
 12. current reservation allocation is first-fit across active stock rows, so readiness reporting may show split allocations even while the customer-facing storefront remains warehouse-agnostic
+13. the planned stock-operations expansion must follow [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md), where inward verification, batch or serial identity, sticker printing, scan verification, warehouse putaway, sales issue, and delivery traceability are layered under the current aggregate `core` stock rows instead of bypassing them
 
 Pricing authority rule:
 
@@ -467,7 +472,9 @@ Implemented now:
 16. app-owned `ecommerce` storefront settings, dedicated home-slider designer, storefront admin editing, catalog reads from `core` products and shared product masters, customer registration linked to `core` contacts, customer accounts linked to `cxapp` auth users, orders, checkout, Razorpay-ready payments, public tracking, and customer portal pages
 17. app-owned `demo` install profiles, module-specific demo data installers, progress tracking, and demo workspace counts for customer, supplier, product, category, and order data seeding
 18. app-owned `crm` lead and interaction flows registered into the suite manifest, internal API surface, and shared desk workspace
-19. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
+19. the full purchase-receipt to delivery stock plan is documented in [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md), and the runtime now covers purchase receipts, goods inward notes, inward posting into aggregate `core` stock, stock-unit identity, barcode aliasing, sticker payload generation, and scan-based sales allocation records
+20. warehouse UI, putaway, delivery execution, and richer bin-level traceability remain later phases, but the backend stock lifecycle foundation now exists in `apps/billing`
+21. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
 20. shared storefront editor and docs surfaces in `apps/ui` such as reusable search, featured-card, category-card, rich-text editor, and toast blocks that are consumed by both the storefront and design-system docs
 21. an Expo-based `apps/mobile` companion client package for device-native workflows outside the current framework-composed web suite
 22. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, demo installer flows, and Frappe connector behavior

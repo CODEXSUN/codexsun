@@ -803,6 +803,16 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               ),
             },
             {
+              id: `${app.id}-stock`,
+              label: "Stock",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/stock-operations`,
+                ].includes(item.route)
+              ),
+            },
+            {
               id: `${app.id}-settings`,
               label: "Settings",
               shared: false,

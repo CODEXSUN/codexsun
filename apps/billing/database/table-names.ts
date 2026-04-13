@@ -15,6 +15,12 @@ export const billingTableNames = {
   yearCloseWorkflows: "billing_year_close_workflows",
   openingBalanceRollovers: "billing_opening_balance_rollovers",
   yearEndControls: "billing_year_end_controls",
+  purchaseReceipts: "billing_purchase_receipts",
+  goodsInwardNotes: "billing_goods_inward_notes",
+  stockUnits: "billing_stock_units",
+  stockBarcodeAliases: "billing_stock_barcode_aliases",
+  stickerPrintBatches: "billing_sticker_print_batches",
+  stockSaleAllocations: "billing_stock_sale_allocations",
 
   // ── Split voucher-type detail tables (reference billing_voucher_headers) ──
   salesVouchers: "billing_sales_vouchers",

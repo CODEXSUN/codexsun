@@ -24,6 +24,7 @@ The future platform needs more than that:
 5. route contribution declarations
 6. builder and widget registration
 7. industry-pack and client-overlay composition
+8. tenant or client or role-based workspace visibility resolution
 
 That is why the future `ModuleManifest` exists alongside the current `AppManifest`.
 
@@ -118,6 +119,13 @@ Rules:
 2. parent-child relationships must be explicit through `parentId`
 3. route ownership must stay with the owning module, even when another layer enables or hides it
 
+The future visibility matrix and precedence rules are defined in [WORKSPACE_VISIBILITY_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/WORKSPACE_VISIBILITY_MATRIX.md).
+The future permission layer, feature-flag policy, and debug ledger are defined in:
+
+1. [PERMISSION_MATRIX.md](/E:/Workspace/codexsun/ASSIST/Documentation/PERMISSION_MATRIX.md)
+2. [FEATURE_FLAG_POLICY.md](/E:/Workspace/codexsun/ASSIST/Documentation/FEATURE_FLAG_POLICY.md)
+3. [VISIBILITY_LEDGER_DESIGN.md](/E:/Workspace/codexsun/ASSIST/Documentation/VISIBILITY_LEDGER_DESIGN.md)
+
 ## Feature Flags
 
 Feature flags are manifest-declared and scoped.
@@ -135,6 +143,7 @@ Rules:
 1. flags should be declared by the module that owns the feature
 2. clients and industry packs should enable or disable through configuration rather than by forking code
 3. flag resolution must stay inspectable for support and operations
+4. final flag resolution policy should follow [FEATURE_FLAG_POLICY.md](/E:/Workspace/codexsun/ASSIST/Documentation/FEATURE_FLAG_POLICY.md)
 
 ## Route Contributions
 

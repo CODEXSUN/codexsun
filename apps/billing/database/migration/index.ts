@@ -26,6 +26,12 @@ import { billingContraItemVouchersMigration } from "./22-contra-item-vouchers.js
 import { billingBillReferencesMigration } from "./23-bill-references.js"
 import { billingBillSettlementsMigration } from "./24-bill-settlements.js"
 import { billingBillOverdueTrackingMigration } from "./25-bill-overdue-tracking.js"
+import { billingPurchaseReceiptsMigration } from "./26-purchase-receipts.js"
+import { billingGoodsInwardNotesMigration } from "./27-goods-inward-notes.js"
+import { billingStockUnitsMigration } from "./28-stock-units.js"
+import { billingStockBarcodeAliasesMigration } from "./29-stock-barcode-aliases.js"
+import { billingStickerPrintBatchesMigration } from "./30-sticker-print-batches.js"
+import { billingStockSaleAllocationsMigration } from "./31-stock-sale-allocations.js"
 
 export const billingDatabaseMigrations = [
   // ── Foundation ────────────────────────────────────────────────────────────
@@ -58,4 +64,10 @@ export const billingDatabaseMigrations = [
   billingBillReferencesMigration,
   billingBillSettlementsMigration,
   billingBillOverdueTrackingMigration,
+  billingPurchaseReceiptsMigration,
+  billingGoodsInwardNotesMigration,
+  billingStockUnitsMigration,
+  billingStockBarcodeAliasesMigration,
+  billingStickerPrintBatchesMigration,
+  billingStockSaleAllocationsMigration,
 ]
