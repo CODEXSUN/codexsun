@@ -8,6 +8,13 @@
 
 ## v-0.0.1
 
+### [#161] 2026-04-13 - Preserve prior web chunks across rebuilds
+
+- changed `vite.config.ts` so frontend builds no longer clear `build/app/cxapp/web`, preserving previous hashed lazy chunks alongside the current `index.html` and latest asset set
+- changed `apps/framework/src/runtime/system-update/system-update-service.ts` so runtime git-update cleanup no longer deletes the entire web build tree before `npm run build`, while still clearing the server build output and cache directories
+- removed the live-deploy failure mode where an already-open dashboard shell could request an older lazy chunk such as `framework-remote-server-key-generator-page-*.js` after deploy and receive a 404 because the file had been deleted during rebuild
+- validated the batch with `npm run build`
+
 ### [#160] 2026-04-13 - Fix live-server git update rebuild missing TypeScript
 
 - fixed the production container rebuild path so image build, runtime repository bootstrap, and framework one-way git update now install dependencies with `npm ci --include=dev` instead of plain `npm ci`

@@ -52,7 +52,8 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'build/app/cxapp/web',
-      emptyOutDir: true,
+      // Preserve previous hashed chunks so already-open shells can finish lazy imports after a deploy.
+      emptyOutDir: false,
       chunkSizeWarningLimit: 1400,
       rollupOptions: {
         output: {

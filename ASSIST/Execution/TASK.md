@@ -2,6 +2,11 @@
 
 ## Active Batch
 
+- [x] `#161` Preserve prior web chunks during rebuilds to avoid stale dashboard lazy-import 404s
+  - [x] Phase 1: inspect the frontend build output, lazy page chunking, and runtime git-update cleanup path
+  - [x] Phase 2: preserve prior hashed web assets across rebuilds while keeping the current shell entry updated
+  - [x] Phase 3: validate the build output and confirm the stale-chunk mitigation path
+
 - [x] `#159` Frappe item-to-core-product sync and mapping workflow
   - [x] Phase 1: inspect the current `apps/frappe` item pull flow, `apps/core` product contract, and any existing ecommerce product projection path
   - [x] Phase 2: add support for manual ERP item queries such as `item_group=Laptop` inside the Frappe app boundary

@@ -2,6 +2,16 @@
 
 ## Active Batch
 
+- `#161` Preserve prior web chunks during rebuilds to avoid stale dashboard lazy-import 404s
+  - Scope: stop already-open dashboard sessions from failing lazy route imports after a web rebuild or live server git update replaces hashed frontend chunks.
+  - Root cause: the frontend uses hashed lazy chunk filenames, but Vite is configured to clear the web output directory and the runtime system-update flow also clears the entire `build/` tree before rebuilding. Browsers holding the previous shell chunk can still request the old lazy filename after deploy, which then 404s because the file was deleted.
+  - Delivered fix:
+    - changed `vite.config.ts` to keep the web output directory intact during frontend builds so previous hashed chunks remain available beside the latest `index.html` and active assets
+    - changed `apps/framework/src/runtime/system-update/system-update-service.ts` so runtime git-update cleanup clears only the server build output and cache directories instead of deleting the entire web build tree
+    - preserved the current shell rebuild flow while removing the specific stale lazy-chunk deletion path that caused `Failed to fetch dynamically imported module` errors after deploy
+  - Validation:
+    - `npm run build`
+
 - `#159` Frappe item-to-core-product sync and mapping workflow
   - Scope: implement live Frappe `Item` pull filters, a Frappe-owned item-to-core mapping table, a compare-and-map UX, and sync projection into canonical `apps/core` products with ecommerce-visible badge state stored on the core product record.
   - Constraint: keep orchestration, mapping persistence, and ERP query assembly inside `apps/frappe`; `apps/core` remains the owner of the product schema, and ecommerce continues reading badge state from the projected core product instead of a second connector-owned store.

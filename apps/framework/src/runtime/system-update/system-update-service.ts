@@ -132,7 +132,13 @@ function npmCommand() {
 }
 
 function clearBuildCaches(cwd: string) {
-  for (const relativePath of ["build", "dist", "dist-ssr", path.join("node_modules", ".vite")]) {
+  for (const relativePath of [
+    // Keep the web asset directory so stale in-memory shells can still resolve old hashed lazy chunks.
+    path.join("build", "app", "cxapp", "server"),
+    "dist",
+    "dist-ssr",
+    path.join("node_modules", ".vite"),
+  ]) {
     rmSync(path.join(cwd, relativePath), {
       force: true,
       recursive: true,
