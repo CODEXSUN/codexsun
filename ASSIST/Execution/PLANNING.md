@@ -58,3 +58,13 @@
   - Phase 2: add a framework-owned hosted-app operations service plus internal API and CLI entry points. Completed.
   - Phase 3: add the admin dashboard page, route, settings launcher entry, and permission metadata for hosted app status. Completed.
   - Phase 4: validate typecheck, focused framework tests, route coverage, and production build. Completed.
+
+
+clean task and planning and create new plan for sync from apps/frappe to core/product and also add manual query like
+1. want custom filter item_group = laptop https://erp1.techmedia.in/desk/item?disabled=0&item_group=Laptop
+2. add sync to ecommerce product button to sync product details into our core/product with all required fields
+3. frappe items data and our system product data may different so create frappe mapping for our product and set default page with left right compare and also set default if needed
+4. after update set badge inecommerce
+5. 
+
+

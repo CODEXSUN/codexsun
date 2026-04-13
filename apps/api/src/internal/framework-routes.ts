@@ -54,7 +54,7 @@ import {
   getRemoteServerStatus,
   getRemoteServerTarget,
   generateRemoteServerTargetSecret,
-  generateRemoteMonitorSecretValue,
+  generateRemoteMonitorSecretString,
   updateRemoteServerTarget,
 } from "../../../framework/src/runtime/operations/remote-server-status-service.js"
 import { triggerRemoteServerGitUpdate } from "../../../framework/src/runtime/operations/remote-server-control-service.js"
@@ -278,14 +278,14 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
         const { user } = await requireFrameworkSuperAdmin(context)
         const runtimeSettingsRoot = resolveRuntimeSettingsRoot(context.config)
         const currentSnapshot = getRuntimeSettingsSnapshot(runtimeSettingsRoot)
-        const generated = generateRemoteMonitorSecretValue()
+        const generatedSecret = generateRemoteMonitorSecretString()
 
         const response = await saveRuntimeSettings(
           {
             restart: false,
             values: {
               ...currentSnapshot.values,
-              SERVER_MONITOR_SHARED_SECRET: generated.generatedSecret,
+              SERVER_MONITOR_SHARED_SECRET: generatedSecret,
             },
           },
           runtimeSettingsRoot
@@ -302,7 +302,7 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse({
-          generatedSecret: generated.generatedSecret,
+          generatedSecret,
           snapshot: response.snapshot,
         })
       },

@@ -171,6 +171,49 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
   }
 })
 
+test("runtime settings save adds server monitor secret when the key is missing from .env", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-runtime-settings-missing-secret-"))
+
+  try {
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      [
+        "APP_NAME=codexsun-test",
+        "APP_HTTP_PORT=4100",
+        "GIT_SYNC_ENABLED=false",
+        "DB_DRIVER=sqlite",
+        "SQLITE_FILE=storage/local.sqlite",
+      ].join("\n"),
+      "utf8"
+    )
+
+    const snapshot = withClearedEnv(runtimeEnvKeys, () =>
+      getRuntimeSettingsSnapshot(tempRoot)
+    )
+
+    assert.equal(snapshot.values.SERVER_MONITOR_SHARED_SECRET, "")
+
+    await withClearedEnv(runtimeEnvKeys, () =>
+      saveRuntimeSettings(
+        {
+          restart: false,
+          values: {
+            ...snapshot.values,
+            SERVER_MONITOR_SHARED_SECRET: "fresh-monitor-secret",
+          },
+        },
+        tempRoot
+      )
+    )
+
+    const envContents = readFileSync(path.join(tempRoot, ".env"), "utf8")
+
+    assert.match(envContents, /SERVER_MONITOR_SHARED_SECRET=fresh-monitor-secret/)
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test("runtime settings save with restart updates the watched restart token in development mode", async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-runtime-restart-"))
 

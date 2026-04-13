@@ -3,7 +3,6 @@ import { randomBytes, randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import {
-  generatedMonitorSecretResponseSchema,
   remoteServerGeneratedSecretResponseSchema,
   remoteServerDashboardSchema,
   remoteServerSnapshotSchema,
@@ -31,18 +30,12 @@ function nowIso() {
   return new Date().toISOString()
 }
 
-function generateMonitorSecret() {
+export function generateRemoteMonitorSecretString() {
   const characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_!@#$%^&*"
   const bytes = randomBytes(48)
 
   return Array.from(bytes, (value) => characters[value % characters.length]).join("")
-}
-
-export function generateRemoteMonitorSecretValue() {
-  return generatedMonitorSecretResponseSchema.parse({
-    generatedSecret: generateMonitorSecret(),
-  })
 }
 
 function normalizeBaseUrl(value: string) {
@@ -165,7 +158,7 @@ export async function generateRemoteServerTargetSecret(
   actorEmail?: string | null
 ) {
   const target = await getRemoteServerTarget(database, targetId)
-  const secret = generateMonitorSecret()
+  const secret = generateRemoteMonitorSecretString()
   const updatedAt = nowIso()
 
   await asQueryDatabase(database)
