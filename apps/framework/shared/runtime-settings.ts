@@ -642,6 +642,12 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
     summary: "Backup cadence, restore verification, audit logging, and security review checkpoints.",
     fields: [
       {
+        key: "SERVER_MONITOR_SHARED_SECRET",
+        label: "Server Monitor Shared Secret",
+        type: "password",
+        description: "Shared secret required for secure server-to-server status requests.",
+      },
+      {
         key: "DB_BACKUP_ENABLED",
         label: "Backups Enabled",
         type: "boolean",

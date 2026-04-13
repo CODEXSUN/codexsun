@@ -147,6 +147,22 @@ export function buildReleaseEnvReport(cwd = process.cwd()): ReleaseEnvReport {
     checks.push(createBlocker("backup", "Database backups are disabled."))
   }
 
+  if (config.operations.serverMonitorSharedSecret?.trim()) {
+    checks.push(
+      createPass(
+        "server-monitor-secret",
+        "Remote server monitoring shared secret is configured."
+      )
+    )
+  } else {
+    checks.push(
+      createBlocker(
+        "server-monitor-secret",
+        "SERVER_MONITOR_SHARED_SECRET is missing."
+      )
+    )
+  }
+
   if (config.operations.backups.googleDrive.enabled) {
     if (
       config.operations.backups.googleDrive.clientId?.trim() &&

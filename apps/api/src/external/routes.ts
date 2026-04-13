@@ -4,6 +4,7 @@ import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/ro
 
 import { createAuthExternalRoutes } from "./auth-routes.js"
 import { createEcommerceExternalRoutes } from "./ecommerce-routes.js"
+import { createFrameworkExternalRoutes } from "./framework-routes.js"
 
 export function createExternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition[] {
   return [
@@ -30,6 +31,7 @@ export function createExternalApiRoutes(appSuite: AppSuite): HttpRouteDefinition
       }),
     }),
     ...createAuthExternalRoutes(),
+    ...createFrameworkExternalRoutes(),
     ...createEcommerceExternalRoutes(),
   ]
 }

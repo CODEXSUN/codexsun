@@ -65,6 +65,7 @@ const configEnvKeys = [
   "APP_LOG_LEVEL",
   "OPS_ALERT_EMAILS",
   "OPS_ALERT_WEBHOOK_URL",
+  "SERVER_MONITOR_SHARED_SECRET",
   "ALERT_CHECKOUT_FAILURE_THRESHOLD",
   "ALERT_WEBHOOK_FAILURE_THRESHOLD",
   "ALERT_MAIL_FAILURE_THRESHOLD",
@@ -98,6 +99,7 @@ test("server config reads domain, port, db driver, and offline flags from .env",
         "DB_PORT=3306",
         "DB_NAME=codexsun",
         "DB_USER=root",
+        "SERVER_MONITOR_SHARED_SECRET=test-monitor-secret",
         "SUPER_ADMIN_EMAILS= SUNDAR@SUNDAR.COM , admin@example.com ",
         "OFFLINE_SUPPORT_ENABLED=true",
         "SQLITE_FILE=storage/desktop/offline.sqlite",
@@ -111,6 +113,7 @@ test("server config reads domain, port, db driver, and offline flags from .env",
     assert.equal(config.appHttpsPort, 3443)
     assert.equal(config.frontendDomain, "app.example.test")
     assert.equal(config.database.driver, "mariadb")
+    assert.equal(config.operations.serverMonitorSharedSecret, "test-monitor-secret")
     assert.deepEqual(config.auth.superAdminEmails, [
       "sundar@sundar.com",
       "admin@example.com",
@@ -149,7 +152,7 @@ test("server config enforces HTTPS-safe production settings", () => {
     assert.equal(config.environment, "production")
     assert.equal(config.security.httpsOnly, true)
     assert.equal(config.tlsEnabled, true)
-u  } finally {
+  } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }
 })

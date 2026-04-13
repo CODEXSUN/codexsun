@@ -9,6 +9,7 @@ import {
   RefreshCcw,
   Settings2,
   ShieldCheck,
+  Server,
   Users,
   Workflow,
   Wrench,
@@ -56,7 +57,20 @@ function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
 }
 
-const frameworkUtilityGroups = [
+type FrameworkUtilityItem = {
+  icon: typeof Server
+  name: string
+  route: string
+  requiresSuperAdmin?: boolean
+}
+
+type FrameworkUtilityGroup = {
+  id: string
+  label: string
+  items: FrameworkUtilityItem[]
+}
+
+const frameworkUtilityGroups: FrameworkUtilityGroup[] = [
   {
     id: "media",
     label: "Media",
@@ -117,6 +131,24 @@ const frameworkUtilityGroups = [
     ],
   },
   {
+    id: "server-client",
+    label: "Server / Client",
+    items: [
+      {
+        icon: Server,
+        name: "Live Servers",
+        route: "/dashboard/live-servers",
+        requiresSuperAdmin: true,
+      },
+      {
+        icon: KeyRound,
+        name: "Generate Key",
+        route: "/dashboard/live-server-key-generator",
+        requiresSuperAdmin: true,
+      },
+    ],
+  },
+  {
     id: "developer",
     label: "Developer",
     items: [
@@ -146,27 +178,35 @@ const frameworkUtilityGroups = [
         route: "/dashboard/settings/queue-manager",
       },
       {
-        icon: ShieldCheck,
-        name: "Security Review",
-        route: "/dashboard/settings/security-review",
-      },
-      {
         icon: RefreshCcw,
         name: "System Update",
         route: "/dashboard/system-update",
       },
+      {
+        icon: ShieldCheck,
+        name: "Security Review",
+        route: "/dashboard/settings/security-review",
+      },
     ],
   },
-] as const
+]
 
-type FrameworkUtilityGroup = (typeof frameworkUtilityGroups)[number]
+function getUtilityGroupsForCurrentApp(
+  app: DashboardAppDefinition | null,
+  isSuperAdmin: boolean
+) {
+  const visibleGroups = frameworkUtilityGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.requiresSuperAdmin || isSuperAdmin),
+    }))
+    .filter((group) => group.items.length > 0)
 
-function getUtilityGroupsForCurrentApp(app: DashboardAppDefinition | null) {
   if (app?.id === "ecommerce") {
-    return frameworkUtilityGroups.filter((group) => group.id === "media") as readonly FrameworkUtilityGroup[]
+    return visibleGroups.filter((group) => group.id === "media") as readonly FrameworkUtilityGroup[]
   }
 
-  return frameworkUtilityGroups as readonly FrameworkUtilityGroup[]
+  return visibleGroups as readonly FrameworkUtilityGroup[]
 }
 
 function isMenuItemActive(pathname: string, item: DashboardAppDefinition["menuGroups"][number]["items"][number]) {
@@ -561,7 +601,10 @@ export function AppSidebar() {
   const location = useLocation()
   const { open } = useSidebar()
   const isDashboardRoot = location.pathname === links.dashboard
-  const currentAppUtilityGroups = getUtilityGroupsForCurrentApp(currentApp)
+  const currentAppUtilityGroups = getUtilityGroupsForCurrentApp(
+    currentApp,
+    user.isSuperAdmin
+  )
   const demoMenuCounts = useDemoMenuCounts(currentApp?.id === "demo")
   const menuDesigner = useSidebarMenuDesigner()
   const appMenuDesign = menuDesigner?.appMenu ?? null
@@ -582,7 +625,9 @@ export function AppSidebar() {
     isRouteActive(location.pathname, "/dashboard/mail-service") ||
     isRouteActive(location.pathname, links.mediaManager) ||
     isRouteActive(location.pathname, links.settings) ||
-    isRouteActive(location.pathname, links.systemUpdate)
+    isRouteActive(location.pathname, links.systemUpdate) ||
+    isRouteActive(location.pathname, "/dashboard/live-servers") ||
+    isRouteActive(location.pathname, "/dashboard/live-server-key-generator")
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -600,7 +645,7 @@ export function AppSidebar() {
               className={`flex items-center ${open ? "gap-3" : "justify-center"}`}
             >
               <div
-                className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-sidebar-border shadow-sm transition-colors duration-200 group-hover:border-[var(--app-menu-logo-hover-color)]"
+                className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-sidebar-border shadow-sm transition-colors duration-200"
                 style={getSidebarLogoFrameStyle(effectiveAppMenuDesign)}
               >
                 <img

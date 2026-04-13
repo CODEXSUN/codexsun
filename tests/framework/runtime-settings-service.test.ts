@@ -61,6 +61,7 @@ const runtimeEnvKeys = [
   "APP_LOG_LEVEL",
   "OPS_ALERT_EMAILS",
   "OPS_ALERT_WEBHOOK_URL",
+  "SERVER_MONITOR_SHARED_SECRET",
   "ALERT_CHECKOUT_FAILURE_THRESHOLD",
   "ALERT_WEBHOOK_FAILURE_THRESHOLD",
   "ALERT_MAIL_FAILURE_THRESHOLD",
@@ -92,6 +93,7 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
         "GIT_SCHEDULED_UPDATE_AUTO_APPLY=true",
         "DB_DRIVER=sqlite",
         "SQLITE_FILE=storage/local.sqlite",
+        "SERVER_MONITOR_SHARED_SECRET=monitor-secret",
         "UNMANAGED_KEY=keep-me",
       ].join("\n"),
       "utf8"
@@ -114,6 +116,7 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
     assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_AUTO_APPLY, true)
     assert.equal(snapshot.values.DB_DRIVER, "sqlite")
     assert.equal(snapshot.values.SQLITE_FILE, "storage/local.sqlite")
+    assert.equal(snapshot.values.SERVER_MONITOR_SHARED_SECRET, "monitor-secret")
 
     const saveResponse = await withClearedEnv(runtimeEnvKeys, () =>
       saveRuntimeSettings(
@@ -133,6 +136,7 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
             GIT_SCHEDULED_UPDATE_AUTO_APPLY: true,
             DB_DRIVER: "sqlite",
             SQLITE_FILE: "storage/runtime.sqlite",
+            SERVER_MONITOR_SHARED_SECRET: "updated-monitor-secret",
             SMTP_HOST: "smtp.example.com",
             SMTP_PORT: "587",
             SMTP_SECURE: false,
@@ -157,6 +161,7 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
     assert.match(envContents, /GIT_SCHEDULED_UPDATE_CADENCE_MINUTES=15/)
     assert.match(envContents, /GIT_SCHEDULED_UPDATE_AUTO_APPLY=true/)
     assert.match(envContents, /SQLITE_FILE=storage\/runtime\.sqlite/)
+    assert.match(envContents, /SERVER_MONITOR_SHARED_SECRET=updated-monitor-secret/)
     assert.match(envContents, /SMTP_HOST=smtp\.example\.com/)
     assert.match(envContents, /UNMANAGED_KEY=keep-me/)
     assert.match(envContents, /# Application/)

@@ -1404,6 +1404,30 @@ export function resolveDeskLocation(
     }
   }
 
+  if (
+    pathname === "/dashboard/hosted-apps" ||
+    pathname.startsWith("/dashboard/hosted-apps/")
+  ) {
+    return {
+      section: "Framework",
+      title: "Hosted Apps",
+      description: "Live hosted client app status and clean software update controls for Docker-managed deployments.",
+      app: null,
+    }
+  }
+
+  if (
+    pathname === "/dashboard/live-servers" ||
+    pathname.startsWith("/dashboard/live-servers/")
+  ) {
+    return {
+      section: "Framework",
+      title: "Live Servers",
+      description: "Super-admin server fleet status and live remote config checks.",
+      app: null,
+    }
+  }
+
   const app = findDeskAppByPathname(apps, pathname)
 
   if (!app) {

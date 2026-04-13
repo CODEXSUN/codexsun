@@ -149,6 +149,24 @@ const frameworkResources = [
     route: "/dashboard/system-update",
     scopeType: "page",
   }),
+  createOption({
+    category: "resource",
+    key: "hosted-apps",
+    label: "Hosted Apps",
+    summary: "Live hosted app status and clean software update controls.",
+    appId: "framework",
+    route: "/dashboard/hosted-apps",
+    scopeType: "page",
+  }),
+  createOption({
+    category: "resource",
+    key: "live-servers",
+    label: "Live Servers",
+    summary: "Super-admin server fleet status and remote live config checks.",
+    appId: "framework",
+    route: "/dashboard/live-servers",
+    scopeType: "page",
+  }),
 ]
 
 const workspaceModuleMap = new Map<string, Array<{ id: string; name: string; route: string; summary: string }>>([

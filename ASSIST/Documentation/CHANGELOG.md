@@ -8,6 +8,51 @@
 
 ## v-0.0.1
 
+### [#158] 2026-04-13 - ASSIST README guidance refresh
+
+- reloaded `ASSIST/README.md` and recorded the ASSIST guidance refresh in the active execution tracking docs so the current working context stays explicit
+
+### [#157] 2026-04-13 - Remote one-way git control API and CLI
+
+- added a framework-owned remote control contract and service for one-way git update orchestration, including a dirty-worktree safety guard that blocks update unless `overrideDirty=true` is explicitly supplied
+- exposed `POST /api/v1/framework/server-control/git-update` as a shared-secret protected external endpoint on each remote server and `POST /internal/v1/framework/remote-server/git-update?id=...` as the super-admin proxy route for saved live-server targets
+- added `apps/cli/src/remote-server-control-helper.ts` plus `npm run remote:status` and `npm run remote:update` so operators can call remote status and one-way git update directly from CLI using server URL and monitor secret
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/framework/remote-server-control-service.test.ts tests/api/external/framework-server-status-routes.test.ts`, and `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+### [#156] 2026-04-13 - Live server version and git metadata
+
+- extended the remote live-server snapshot contract with `appVersion`, `gitStatus`, `latestUpdateMessage`, and `latestUpdateTimestamp`, all derived from the remote runtime's existing framework system-update status
+- updated the live-server detail page to show the remote app version, git clean or dirty state, latest update message, and latest update time alongside the existing branch and remote-update state
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/framework/remote-server-status-service.test.ts`
+
+### [#155] 2026-04-13 - Runtime env-backed remote key generator
+
+- changed the framework remote key generator so `POST /internal/v1/framework/remote-server-secret/generate` now generates a new server monitor secret, saves it into runtime `.env` through the existing env-backed settings service, and returns the saved runtime settings snapshot
+- updated the `Generate Server Key` page to load the current `SERVER_MONITOR_SHARED_SECRET` from `/internal/v1/cxapp/runtime-settings`, regenerate it into `.env`, and display the saved env value with an explicit `Refresh from .env` action
+- kept `.env` as the single source of truth for the local runtime monitor secret so the frontend value and saved runtime contract stay aligned
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/framework/runtime-settings-service.test.ts`, and `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+### [#154] 2026-04-13 - Separate live-server key generator and pasted remote secret flow
+
+- changed the live-server create, edit, and detail flow so monitored targets now save only a pasted remote `SERVER_MONITOR_SHARED_SECRET` value instead of generating target secrets directly inside the monitor UI
+- added a dedicated super-admin framework page at `/dashboard/live-server-key-generator` plus a matching `Server / Client` sidebar item to generate and copy a remote monitor key without automatically saving it to any target
+- added `POST /internal/v1/framework/remote-server-secret/generate` for one-time key generation and extended remote-server target creation so an optional pasted monitor secret can be saved at create time
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/framework/remote-server-status-service.test.ts`, and `npx tsx --test --test-name-pattern "internal route registry includes the core common-module CRUD endpoints" tests/api/internal/routes.test.ts`
+
+### [#153] 2026-04-13 - Live server edit and one-time secret flows
+
+- added shared live-server dialogs so super admins can edit saved server targets, paste a per-server `SERVER_MONITOR_SHARED_SECRET` manually, and keep server metadata updates inside the existing framework remote-server boundary
+- changed live-server secret generation and regeneration to a one-time reveal flow with copy support on both the list and detail pages, so the generated secret is shown only immediately after creation and is not exposed on normal target reads later
+- added `Edit Server` actions to the live-server list and detail view while preserving isolated per-target secret comparison and confirmation behavior for multi-server monitoring
+- updated the focused remote-server service test to assert against the one-time generated secret response and validated the batch with `npm run typecheck` and `npx tsx --test tests/framework/remote-server-status-service.test.ts`
+
+### [#151] 2026-04-12 - Hosted app status API, CLI, and dashboard operations page
+
+- added a framework-owned hosted-app operations service that reads Docker-managed client app metadata from `.container/clients`, inspects live container state, probes each app's `/health` endpoint, and exposes a clean software update action that reuses framework update behavior
+- exposed `GET /internal/v1/framework/hosted-apps` and `POST /internal/v1/framework/hosted-apps/update-clean`, plus a matching CLI helper at `apps/cli/src/hosted-app-helper.ts` with `npm run hosted:status` and `npm run hosted:update-clean`
+- added a new admin dashboard page at `/dashboard/hosted-apps` with live app status cards, per-app server status table, refresh action, clean software update action, settings launcher entry, and framework permission metadata
+- validated the batch with `npm run typecheck`, `npx tsx --test tests/framework/hosted-apps-service.test.ts`, focused internal route coverage, and `npm run build`
+
 ### [#150] 2026-04-12 - Docker startup health-wait extension for heavier clients
 
 - extended the shared Docker setup health wait from the previous fixed `120 x 2s` loop to a configurable default of `300 x 2s`, giving slower clients such as `codexsun` and `techmedia_in` more time to finish startup migrations and seeders before the setup script declares failure
@@ -980,6 +1025,12 @@
 - added runtime tests that verify registry order, migration execution, seeder execution, and DB-backed service reads for the current `core` and `ecommerce` baseline
 
 ### [#13] 2026-03-30 - Core backend wiring and ecommerce go-live seed baseline
+
+### [#152] 2026-04-13 - Sidebar app-menu hover border cleanup
+
+- removed the hover-only border color treatment from the shared dashboard app-menu header logo frame
+- kept the existing sidebar hover text and background behavior unchanged so the visual cleanup stays narrowly scoped
+- validated the shared UI change with `npm run typecheck`
 
 - audited the imported `temp/core` and `temp/ecommerce` trees against the current app ownership boundaries before copying anything
 - moved the first shared-contract slice from `temp/core` into `apps/core/shared` as app-owned workspace metadata, shared module definitions, and shared Zod schemas

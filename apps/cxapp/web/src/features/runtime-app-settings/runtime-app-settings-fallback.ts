@@ -66,6 +66,8 @@ const resources = [
   ["queue-manager", "Queue Manager", "framework", "/dashboard/settings/queue-manager", "page", "Framework background-job queue, retries, worker pickup, and execution log dashboard."],
   ["security-review", "Security Review", "framework", "/dashboard/settings/security-review", "page", "Framework OWASP-aligned checklist and review signoff history."],
   ["system-update", "System Update", "framework", "/dashboard/system-update", "page", "Framework update controls."],
+  ["hosted-apps", "Hosted Apps", "framework", "/dashboard/hosted-apps", "page", "Live hosted app status and clean software update controls."],
+  ["live-servers", "Live Servers", "framework", "/dashboard/live-servers", "page", "Super-admin server fleet status and remote live config checks."],
   ["core", "Core Workspace", "core", "/dashboard/apps/core", "workspace", "Whole core workspace."],
   ["billing", "Billing Workspace", "billing", "/dashboard/billing", "workspace", "Whole billing workspace."],
   ["ecommerce", "Ecommerce Workspace", "ecommerce", "/dashboard/apps/ecommerce", "workspace", "Whole ecommerce workspace."],

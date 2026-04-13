@@ -1,4 +1,9 @@
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
+import {
+  getRuntimeSettingsSnapshot,
+  resolveRuntimeSettingsRoot,
+  saveRuntimeSettings,
+} from "../../../framework/src/runtime/config/runtime-settings-service.js"
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import {
@@ -38,11 +43,44 @@ import {
   runSystemUpdate,
 } from "../../../framework/src/runtime/system-update/system-update-service.js"
 import { runDeveloperOperation } from "../../../framework/src/runtime/operations/developer-operations-service.js"
+import {
+  getHostedAppsStatus,
+  runHostedAppsCleanSoftwareUpdate,
+} from "../../../framework/src/runtime/operations/hosted-apps-service.js"
+import {
+  createRemoteServerTarget,
+  deleteRemoteServerTarget,
+  getRemoteServerDashboard,
+  getRemoteServerStatus,
+  getRemoteServerTarget,
+  generateRemoteServerTargetSecret,
+  generateRemoteMonitorSecretValue,
+  updateRemoteServerTarget,
+} from "../../../framework/src/runtime/operations/remote-server-status-service.js"
+import { triggerRemoteServerGitUpdate } from "../../../framework/src/runtime/operations/remote-server-control-service.js"
 
 import { jsonResponse } from "../shared/http-responses.js"
 import { requireAuthenticatedUser } from "../shared/session.js"
 
 export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
+  const requireFrameworkSuperAdmin = async (
+    context: Parameters<typeof requireAuthenticatedUser>[0]
+  ) => {
+    const session = await requireAuthenticatedUser(context, {
+      allowedActorTypes: ["admin"],
+    })
+
+    if (!session.user.isSuperAdmin) {
+      throw new ApplicationError(
+        "Only super admins can access remote server controls.",
+        {},
+        403
+      )
+    }
+
+    return session
+  }
+
   return [
     defineInternalRoute("/framework/system-update", {
       summary: "Read repository status and auto-update readiness for the framework shell.",
@@ -121,6 +159,272 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
           details: {
             branch: response.status.branch,
             localChanges: response.status.localChanges.length,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/hosted-apps", {
+      summary: "Read live hosted client app status for Docker-managed suite deployments.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(await getHostedAppsStatus(context.config))
+      },
+    }),
+    defineInternalRoute("/framework/hosted-apps/update-clean", {
+      method: "POST",
+      summary: "Run a clean software update using git-sync update when available, or a forced clean rebuild otherwise.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const response = await runHostedAppsCleanSoftwareUpdate(context.config, {
+          actor: user.email,
+        })
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "hosted-apps.update-clean",
+          level: "warn",
+          message: "Clean software update was triggered from the hosted apps workspace.",
+          details: {
+            mode: response.mode,
+            restartScheduled: response.restartScheduled,
+            rootPath: response.rootPath,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/remote-servers", {
+      summary: "Read live remote server status for super-admin-managed server targets.",
+      handler: async (context) => {
+        await requireFrameworkSuperAdmin(context)
+
+        return jsonResponse(
+          await getRemoteServerDashboard(context.config, context.databases.primary)
+        )
+      },
+    }),
+    defineInternalRoute("/framework/remote-server", {
+      summary: "Read one saved remote server target and its live status.",
+      handler: async (context) => {
+        await requireFrameworkSuperAdmin(context)
+        const targetId = context.request.url.searchParams.get("id")
+
+        if (!targetId) {
+          throw new ApplicationError("Remote server target id is required.", {}, 400)
+        }
+
+        const [target, status] = await Promise.all([
+          getRemoteServerTarget(context.databases.primary, targetId),
+          getRemoteServerStatus(context.config, context.databases.primary, targetId),
+        ])
+
+        return jsonResponse({
+          item: {
+            id: target.item.id,
+            name: target.item.name,
+            baseUrl: target.item.baseUrl,
+            description: target.item.description,
+            isActive: target.item.isActive,
+            hasMonitorSecret: target.item.hasMonitorSecret,
+            confirmedAt: target.item.confirmedAt,
+            createdAt: target.item.createdAt,
+            updatedAt: target.item.updatedAt,
+            createdBy: target.item.createdBy,
+            updatedBy: target.item.updatedBy,
+          },
+          status,
+        })
+      },
+    }),
+    defineInternalRoute("/framework/remote-servers", {
+      method: "POST",
+      summary: "Create a new remote server target for live status checks.",
+      handler: async (context) => {
+        const { user } = await requireFrameworkSuperAdmin(context)
+
+        const response = await createRemoteServerTarget(
+          context.databases.primary,
+          context.request.jsonBody,
+          user.email
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "remote-servers.create",
+          message: "A remote server target was added from the admin workspace.",
+          details: {
+            targetId: response.item.id,
+            targetName: response.item.name,
+            baseUrl: response.item.baseUrl,
+          },
+        })
+
+        return jsonResponse(response, 201)
+      },
+    }),
+    defineInternalRoute("/framework/remote-server-secret/generate", {
+      method: "POST",
+      summary: "Generate a remote monitor secret, save it into runtime .env, and return the saved snapshot.",
+      handler: async (context) => {
+        const { user } = await requireFrameworkSuperAdmin(context)
+        const runtimeSettingsRoot = resolveRuntimeSettingsRoot(context.config)
+        const currentSnapshot = getRuntimeSettingsSnapshot(runtimeSettingsRoot)
+        const generated = generateRemoteMonitorSecretValue()
+
+        const response = await saveRuntimeSettings(
+          {
+            restart: false,
+            values: {
+              ...currentSnapshot.values,
+              SERVER_MONITOR_SHARED_SECRET: generated.generatedSecret,
+            },
+          },
+          runtimeSettingsRoot
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "remote-servers.generate-secret-value",
+          message: "A remote server monitor secret was generated and saved to runtime settings.",
+          details: {
+            targetMode: "manual",
+            saved: response.saved,
+          },
+        })
+
+        return jsonResponse({
+          generatedSecret: generated.generatedSecret,
+          snapshot: response.snapshot,
+        })
+      },
+    }),
+    defineInternalRoute("/framework/remote-server", {
+      method: "PATCH",
+      summary: "Edit one remote server target and optionally save a pasted monitor secret.",
+      handler: async (context) => {
+        const { user } = await requireFrameworkSuperAdmin(context)
+        const targetId = context.request.url.searchParams.get("id")
+
+        if (!targetId) {
+          throw new ApplicationError("Remote server target id is required.", {}, 400)
+        }
+
+        const response = await updateRemoteServerTarget(
+          context.databases.primary,
+          targetId,
+          context.request.jsonBody,
+          user.email
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "remote-servers.update",
+          message: "A remote server target was updated from the admin workspace.",
+          details: {
+            targetId,
+            targetName: response.item.name,
+            baseUrl: response.item.baseUrl,
+            hasMonitorSecret: response.item.hasMonitorSecret,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/remote-server/git-update", {
+      method: "POST",
+      summary: "Trigger the shared-secret protected one-way git update on one saved remote server target.",
+      handler: async (context) => {
+        const { user } = await requireFrameworkSuperAdmin(context)
+        const targetId = context.request.url.searchParams.get("id")
+
+        if (!targetId) {
+          throw new ApplicationError("Remote server target id is required.", {}, 400)
+        }
+
+        const response = await triggerRemoteServerGitUpdate(
+          context.config,
+          context.databases.primary,
+          targetId,
+          context.request.jsonBody
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "remote-servers.git-update",
+          level: response.mode === "override_dirty_update" ? "warn" : "info",
+          message: "A one-way remote git update was triggered from the admin workspace.",
+          details: {
+            targetId,
+            mode: response.mode,
+            overrideDirty: response.overrideDirty,
+            updated: response.update.updated,
+            restartScheduled: response.update.restartScheduled,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/remote-server/generate-secret", {
+      method: "POST",
+      summary: "Generate and save a dedicated monitor secret for one remote server target.",
+      handler: async (context) => {
+        const { user } = await requireFrameworkSuperAdmin(context)
+        const targetId = context.request.url.searchParams.get("id")
+
+        if (!targetId) {
+          throw new ApplicationError("Remote server target id is required.", {}, 400)
+        }
+
+        const response = await generateRemoteServerTargetSecret(
+          context.databases.primary,
+          targetId,
+          user.email
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "remote-servers.generate-secret",
+          message: "A dedicated remote server monitor secret was generated.",
+          details: {
+            targetId,
+            targetName: response.item.name,
+          },
+        })
+
+        return jsonResponse(response)
+      },
+    }),
+    defineInternalRoute("/framework/remote-server", {
+      method: "DELETE",
+      summary: "Delete one saved remote server target.",
+      handler: async (context) => {
+        const { user } = await requireFrameworkSuperAdmin(context)
+        const targetId = context.request.url.searchParams.get("id")
+
+        if (!targetId) {
+          throw new ApplicationError("Remote server target id is required.", {}, 400)
+        }
+
+        const response = await deleteRemoteServerTarget(context.databases.primary, targetId)
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "operations",
+          action: "remote-servers.delete",
+          level: "warn",
+          message: "A remote server target was deleted from the admin workspace.",
+          details: {
+            targetId,
           },
         })
 

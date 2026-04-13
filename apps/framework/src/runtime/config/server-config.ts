@@ -175,6 +175,7 @@ export type ServerConfig = {
     }
   }
   operations: {
+    serverMonitorSharedSecret?: string
     backups: {
       enabled: boolean
       cadenceHours: number
@@ -493,6 +494,8 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
       },
     },
     operations: {
+      serverMonitorSharedSecret:
+        env.SERVER_MONITOR_SHARED_SECRET?.trim() || undefined,
       backups: {
         enabled: readBoolean(env.DB_BACKUP_ENABLED, true),
         cadenceHours: readNumber(

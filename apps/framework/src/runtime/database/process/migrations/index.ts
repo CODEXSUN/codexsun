@@ -4,6 +4,8 @@ import { frameworkActivityLogMigration } from "./03-activity-log.js"
 import { frameworkMonitoringEventsMigration } from "./04-monitoring-events.js"
 import { frameworkOperationsGovernanceMigration } from "./05-operations-governance.js"
 import { frameworkRuntimeJobsMigration } from "./06-runtime-jobs.js"
+import { frameworkRemoteServerTargetsMigration } from "./07-remote-server-targets.js"
+import { frameworkRemoteServerTargetSecretsMigration } from "./08-remote-server-target-secrets.js"
 
 export const frameworkDatabaseMigrations = [
   frameworkSystemLedgerMigration,
@@ -12,4 +14,6 @@ export const frameworkDatabaseMigrations = [
   frameworkMonitoringEventsMigration,
   frameworkOperationsGovernanceMigration,
   frameworkRuntimeJobsMigration,
+  frameworkRemoteServerTargetsMigration,
+  frameworkRemoteServerTargetSecretsMigration,
 ]

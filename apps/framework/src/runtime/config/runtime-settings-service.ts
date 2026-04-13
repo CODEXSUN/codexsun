@@ -150,6 +150,7 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
       config.observability.thresholds.connectorSyncFailures
     ),
     DB_BACKUP_ENABLED: config.operations.backups.enabled,
+    SERVER_MONITOR_SHARED_SECRET: config.operations.serverMonitorSharedSecret ?? "",
     DB_BACKUP_CADENCE_HOURS: String(config.operations.backups.cadenceHours),
     DB_BACKUP_RETENTION_DAYS: String(config.operations.backups.retentionDays),
     DB_BACKUP_MAX_FILES: String(config.operations.backups.maxBackups),

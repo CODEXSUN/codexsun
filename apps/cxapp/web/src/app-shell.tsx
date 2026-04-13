@@ -275,6 +275,22 @@ const FrameworkSystemUpdatePage = lazyNamed(
   () => import("./pages/framework-system-update-page"),
   "FrameworkSystemUpdatePage",
 );
+const FrameworkHostedAppsPage = lazyNamed(
+  () => import("./pages/framework-hosted-apps-page"),
+  "FrameworkHostedAppsPage",
+);
+const FrameworkLiveServersPage = lazyNamed(
+  () => import("./pages/framework-live-servers-page"),
+  "FrameworkLiveServersPage",
+);
+const FrameworkRemoteServerKeyGeneratorPage = lazyNamed(
+  () => import("./pages/framework-remote-server-key-generator-page"),
+  "FrameworkRemoteServerKeyGeneratorPage",
+);
+const FrameworkLiveServerDetailPage = lazyNamed(
+  () => import("./pages/framework-live-server-detail-page"),
+  "FrameworkLiveServerDetailPage",
+);
 const FrameworkUserDetailPage = lazyNamed(
   () => import("./pages/framework-user-detail-page"),
   "FrameworkUserDetailPage",
@@ -312,6 +328,10 @@ const guestUser: DashboardUser = {
   isSuperAdmin: false,
 };
 
+function isSuperAdminSurfaceUser(user: AuthUser) {
+  return user.isSuperAdmin;
+}
+
 function toDashboardUser(user: AuthUser | null | undefined): DashboardUser {
   if (!user) {
     return guestUser;
@@ -333,6 +353,8 @@ function FrameworkUtilityPage({
   title: string;
   description: string;
 }) {
+  const auth = useAuth();
+
   return (
     <div className="space-y-6">
       <div className="border-border bg-background/90 rounded-3xl border p-6 shadow-sm">
@@ -384,6 +406,23 @@ function FrameworkUtilityPage({
             summary: "Watch background jobs, worker pickup, retries, and handler outcomes in one place.",
           },
           {
+            title: "Hosted Apps",
+            href: "/dashboard/hosted-apps",
+            summary: "See live server status for hosted client apps and trigger a clean software update.",
+          },
+          {
+            title: "Live Servers",
+            href: "/dashboard/live-servers",
+            summary: "Super-admin remote server status, config snapshots, and fleet health checks.",
+            superAdminOnly: true,
+          },
+          {
+            title: "Generate Server Key",
+            href: "/dashboard/live-server-key-generator",
+            summary: "Generate and copy a remote SERVER_MONITOR_SHARED_SECRET before saving it to a monitored server target.",
+            superAdminOnly: true,
+          },
+          {
             title: "Security Review",
             href: "/dashboard/settings/security-review",
             summary: "OWASP-aligned checklist, evidence capture, and security review signoff history.",
@@ -403,7 +442,9 @@ function FrameworkUtilityPage({
             href: "/dashboard/settings/permissions",
             summary: "Permission definitions and role mapping controls.",
           },
-        ].map((item) => (
+        ]
+          .filter((item) => !item.superAdminOnly || auth.user?.isSuperAdmin)
+          .map((item) => (
           <Link
             key={item.href}
             to={item.href}
@@ -1191,6 +1232,46 @@ function AuthenticatedAppShell() {
               <ProtectedRoute allow={isAdminSurfaceUser}>
                 <AdminLayout>
                   <FrameworkSystemUpdatePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/hosted-apps"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkHostedAppsPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/live-servers"
+            element={
+              <ProtectedRoute allow={isSuperAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkLiveServersPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/live-servers/:serverId"
+            element={
+              <ProtectedRoute allow={isSuperAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkLiveServerDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/live-server-key-generator"
+            element={
+              <ProtectedRoute allow={isSuperAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkRemoteServerKeyGeneratorPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

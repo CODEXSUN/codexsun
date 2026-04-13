@@ -37,6 +37,7 @@ const managedEnvKeys = [
   "RAZORPAY_KEY_SECRET",
   "RAZORPAY_WEBHOOK_SECRET",
   "DB_BACKUP_ENABLED",
+  "SERVER_MONITOR_SHARED_SECRET",
   "GDRIVE_BACKUP_ENABLED",
   "GDRIVE_CLIENT_ID",
   "GDRIVE_CLIENT_SECRET",
@@ -93,6 +94,7 @@ test("release env check reports blockers for development-style runtime settings"
         "RAZORPAY_ENABLED=true",
         "RAZORPAY_KEY_ID=rzp_live_key",
         "RAZORPAY_KEY_SECRET=rzp_live_secret",
+        "SERVER_MONITOR_SHARED_SECRET=",
         "DB_BACKUP_ENABLED=true",
       ].join("\n"),
       "utf8"
@@ -104,6 +106,11 @@ test("release env check reports blockers for development-style runtime settings"
     assert.ok(report.summary.blockerCount > 0)
     assert.ok(report.checks.some((item) => item.key === "environment" && item.severity === "blocker"))
     assert.ok(report.checks.some((item) => item.key === "razorpay" && item.severity === "blocker"))
+    assert.ok(
+      report.checks.some(
+        (item) => item.key === "server-monitor-secret" && item.severity === "blocker"
+      )
+    )
   })
 })
 
@@ -142,6 +149,7 @@ test("release env check passes a production-like config with owner, alert, and b
         "RAZORPAY_KEY_ID=rzp_live_key",
         "RAZORPAY_KEY_SECRET=rzp_live_secret",
         "RAZORPAY_WEBHOOK_SECRET=rzp_webhook_secret",
+        "SERVER_MONITOR_SHARED_SECRET=prod-monitor-secret",
         "DB_BACKUP_ENABLED=true",
         "GDRIVE_BACKUP_ENABLED=true",
         "GDRIVE_CLIENT_ID=client-id",
@@ -164,5 +172,10 @@ test("release env check passes a production-like config with owner, alert, and b
     assert.equal(report.environment, "production")
     assert.equal(report.summary.blockerCount, 0)
     assert.ok(report.summary.passCount > 0)
+    assert.ok(
+      report.checks.some(
+        (item) => item.key === "server-monitor-secret" && item.severity === "pass"
+      )
+    )
   })
 })

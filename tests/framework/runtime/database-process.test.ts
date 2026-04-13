@@ -60,6 +60,8 @@ test("registered database processes stay ordered by app and module", () => {
       "framework:runtime:04-monitoring-events",
       "framework:runtime:05-operations-governance",
       "framework:runtime:06-runtime-jobs",
+      "framework:runtime:07-remote-server-targets",
+      "framework:runtime:08-remote-server-target-secrets",
       "cxapp:bootstrap:01-bootstrap",
       "cxapp:companies:02-companies",
       "cxapp:auth:05-auth-foundation",
