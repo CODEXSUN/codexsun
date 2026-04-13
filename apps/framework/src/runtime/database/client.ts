@@ -1,8 +1,4 @@
-import { mkdirSync } from "node:fs"
-import path from "node:path"
-
-import Database from "better-sqlite3"
-import { Kysely, MysqlDialect, PostgresDialect, SqliteDialect, sql } from "kysely"
+import { Kysely, MysqlDialect, PostgresDialect, sql } from "kysely"
 import mariadb from "mysql2"
 import pg from "pg"
 
@@ -20,21 +16,10 @@ export type RuntimeDatabases = {
   destroy: () => Promise<void>
 }
 
-function createSqliteDatabase(filename: string) {
-  mkdirSync(path.dirname(filename), { recursive: true })
-  return new Database(filename)
-}
-
 function createPrimaryDatabase(config: ServerConfig) {
   const { database } = config
 
   switch (database.driver) {
-    case "sqlite":
-      return new Kysely({
-        dialect: new SqliteDialect({
-          database: createSqliteDatabase(database.sqliteFile),
-        }),
-      })
     case "postgres":
       return new Kysely({
         dialect: new PostgresDialect({
@@ -93,33 +78,8 @@ function createAnalyticsDatabase(config: ServerConfig) {
 }
 
 export function createRuntimeDatabases(config: ServerConfig): RuntimeDatabases {
-  const sqliteClosers: Array<() => void> = []
-
-  const primary =
-    config.database.driver === "sqlite"
-      ? new Kysely({
-          dialect: new SqliteDialect({
-            database: (() => {
-              const database = createSqliteDatabase(config.database.sqliteFile)
-              sqliteClosers.push(() => database.close())
-              return database
-            })(),
-          }),
-        })
-      : createPrimaryDatabase(config)
-
-  const offline =
-    config.offline.enabled
-      ? new Kysely({
-          dialect: new SqliteDialect({
-            database: (() => {
-              const database = createSqliteDatabase(config.offline.sqliteFile)
-              sqliteClosers.push(() => database.close())
-              return database
-            })(),
-          }),
-        })
-      : undefined
+  const primary = createPrimaryDatabase(config)
+  const offline: Kysely<unknown> | undefined = undefined
   const analytics = createAnalyticsDatabase(config)
 
   return {
@@ -128,22 +88,14 @@ export function createRuntimeDatabases(config: ServerConfig): RuntimeDatabases {
     analytics,
     metadata: {
       primaryDriver: config.database.driver,
-      offlineEnabled: config.offline.enabled,
+      offlineEnabled: false,
       analyticsEnabled: config.analytics.enabled,
     },
     destroy: async () => {
       await primary.destroy()
 
-      if (offline) {
-        await offline.destroy()
-      }
-
       if (analytics) {
         await analytics.destroy()
-      }
-
-      for (const closeSqlite of sqliteClosers) {
-        closeSqlite()
       }
     },
   }

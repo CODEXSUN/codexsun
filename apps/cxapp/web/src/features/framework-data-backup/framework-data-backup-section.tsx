@@ -6,6 +6,7 @@ import {
   RefreshCcwIcon,
   RotateCcwIcon,
   ShieldCheckIcon,
+  TriangleAlertIcon,
 } from "lucide-react"
 
 import type {
@@ -218,6 +219,10 @@ export function FrameworkDataBackupSection() {
   }
 
   async function handleRunBackup() {
+    if (!dashboard?.support.supported) {
+      return
+    }
+
     setIsRunningBackup(true)
     setError(null)
 
@@ -249,6 +254,10 @@ export function FrameworkDataBackupSection() {
   }
 
   async function handleRestoreDrill(backupId: string) {
+    if (!dashboard?.support.supported) {
+      return
+    }
+
     setActionBackupId(backupId)
     setError(null)
 
@@ -275,6 +284,10 @@ export function FrameworkDataBackupSection() {
   }
 
   async function handleRestoreLive(backup: DatabaseBackupRecord) {
+    if (!dashboard?.support.supported) {
+      return
+    }
+
     const confirmed = window.confirm(
       `Restore backup ${backup.fileName} now? The application will schedule a restart after copying the selected backup.`
     )
@@ -325,6 +338,23 @@ export function FrameworkDataBackupSection() {
               <Card><CardContent className="space-y-2 p-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Last Drill</p><p className="text-sm font-semibold text-foreground">{formatTimestamp(dashboard?.scheduler.lastVerifiedAt ?? null)}</p></CardContent></Card>
             </div>
 
+            {dashboard && !dashboard.support.supported ? (
+              <Card className="rounded-[1.5rem] border-amber-300/60 bg-amber-50/80 shadow-sm">
+                <CardContent className="flex gap-3 p-5">
+                  <TriangleAlertIcon className="mt-0.5 size-5 text-amber-700" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-amber-950">
+                      Backup execution is currently unsupported
+                    </p>
+                    <p className="text-sm leading-6 text-amber-900">
+                      {dashboard.support.reason ??
+                        "Manual backup, scheduled backup, and restore actions are disabled in this runtime."}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
             <Card className="rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm">
               <CardHeader>
                 <CardTitle>Backup Targets</CardTitle>
@@ -346,7 +376,9 @@ export function FrameworkDataBackupSection() {
                     <p className="text-sm font-semibold text-foreground">Google Drive</p>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    {dashboard?.drive.enabled
+                    {!dashboard?.support.supported
+                      ? "Drive upload is unavailable because backup execution is not supported in this runtime."
+                      : dashboard?.drive.enabled
                       ? dashboard.drive.configured
                         ? `Enabled and configured for folder ${dashboard.drive.folderId ?? "-"}`
                         : "Enabled but missing credentials or target folder."
@@ -425,6 +457,12 @@ export function FrameworkDataBackupSection() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {!dashboard?.support.supported ? (
+                  <div className="rounded-xl border border-amber-300/50 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
+                    {dashboard?.support.reason ??
+                      "Restore controls are unavailable because backup execution is not supported in this runtime."}
+                  </div>
+                ) : null}
                 <div className="grid gap-2">
                   <Label htmlFor="backup-restore-summary">Live restore note</Label>
                   <Textarea
@@ -432,6 +470,7 @@ export function FrameworkDataBackupSection() {
                     value={restoreSummary}
                     onChange={(event) => setRestoreSummary(event.target.value)}
                     placeholder="Optional operator note for the live restore decision."
+                    disabled={!dashboard?.support.supported}
                   />
                 </div>
               </CardContent>
@@ -457,8 +496,8 @@ export function FrameworkDataBackupSection() {
                           <p className="text-xs text-muted-foreground">{backup.summary ?? "No summary recorded."}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Button type="button" variant="outline" onClick={() => void handleRestoreDrill(backup.id)} disabled={actionBackupId === backup.id}><ShieldCheckIcon className="size-4" />Restore Drill</Button>
-                          <Button type="button" variant="outline" onClick={() => void handleRestoreLive(backup)} disabled={actionBackupId === backup.id}><RotateCcwIcon className="size-4" />Restore Live</Button>
+                          <Button type="button" variant="outline" onClick={() => void handleRestoreDrill(backup.id)} disabled={actionBackupId === backup.id || !dashboard?.support.supported}><ShieldCheckIcon className="size-4" />Restore Drill</Button>
+                          <Button type="button" variant="outline" onClick={() => void handleRestoreLive(backup)} disabled={actionBackupId === backup.id || !dashboard?.support.supported}><RotateCcwIcon className="size-4" />Restore Live</Button>
                         </div>
                       </div>
                     </div>
@@ -509,7 +548,7 @@ export function FrameworkDataBackupSection() {
           <Button type="button" variant="outline" onClick={() => void loadData()} disabled={isLoading || isSaving}><RefreshCcwIcon className="size-4" />Refresh</Button>
           <Button type="button" variant="outline" onClick={() => void handleSave(false)} disabled={isSaving}>{isSaving ? "Saving..." : "Save"}</Button>
           <Button type="button" onClick={() => void handleSave(true)} disabled={isSaving}>{isSaving ? "Saving..." : "Save & Restart"}</Button>
-          <Button type="button" onClick={() => void handleRunBackup()} disabled={isRunningBackup}><DownloadIcon className="size-4" />{isRunningBackup ? "Running..." : "Run Backup"}</Button>
+          <Button type="button" onClick={() => void handleRunBackup()} disabled={isRunningBackup || !dashboard?.support.supported}><DownloadIcon className="size-4" />{isRunningBackup ? "Running..." : "Run Backup"}</Button>
         </div>
       </div>
 

@@ -14,6 +14,8 @@ import type {
   MediaImageUploadPayload,
   MediaListResponse,
   MediaResponse,
+  MediaSymlinkActionPayload,
+  MediaSymlinkResponse,
   MediaSummary,
   MediaUpsertPayload,
 } from "../../../shared/media.js"
@@ -26,6 +28,8 @@ import {
   mediaListResponseSchema,
   mediaResponseSchema,
   mediaSchema,
+  mediaSymlinkActionPayloadSchema,
+  mediaSymlinkResponseSchema,
   mediaUpsertPayloadSchema,
 } from "../../../shared/media.js"
 import type { ServerConfig } from "../config/index.js"
@@ -38,6 +42,7 @@ import { ApplicationError } from "../errors/application-error.js"
 import { frameworkMediaTableNames } from "./media-table-names.js"
 import {
   ensurePublicMediaSymlink,
+  inspectPublicMediaSymlink,
   mediaAbsolutePath,
   mediaRootDirectory,
   moveMediaBinaryBetweenScopes,
@@ -428,4 +433,29 @@ export async function readMediaContent(
     item,
     content,
   }
+}
+
+export async function getMediaSymlinkStatus(
+  config: ServerConfig
+): Promise<MediaSymlinkResponse> {
+  return mediaSymlinkResponseSchema.parse({
+    item: await inspectPublicMediaSymlink(config),
+  })
+}
+
+export async function manageMediaSymlink(
+  config: ServerConfig,
+  payload: unknown
+): Promise<MediaSymlinkResponse> {
+  const parsedPayload = mediaSymlinkActionPayloadSchema.parse(
+    payload
+  ) as MediaSymlinkActionPayload
+
+  if (parsedPayload.action === "recreate") {
+    await ensurePublicMediaSymlink(config)
+  }
+
+  return mediaSymlinkResponseSchema.parse({
+    item: await inspectPublicMediaSymlink(config),
+  })
 }

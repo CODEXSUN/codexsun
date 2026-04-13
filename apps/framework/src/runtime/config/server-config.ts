@@ -267,6 +267,18 @@ export type ServerConfig = {
 }
 
 function validateServerConfig(config: ServerConfig) {
+  if (config.database.driver === "sqlite") {
+    throw new Error(
+      "SQLite runtime support has been removed. Use MariaDB for the primary database."
+    )
+  }
+
+  if (config.offline.enabled) {
+    throw new Error(
+      "Offline SQLite support has been removed from the runtime."
+    )
+  }
+
   if (config.environment === "development") {
     return config
   }

@@ -48,10 +48,10 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
   const menuDesign = settings?.menuDesigner.topMenu
   const effectiveMenuDesign = menuDesign ?? {
     logoVariant: "primary",
-    frameWidth: 92,
-    frameHeight: 52,
-    logoWidth: 92,
-    logoHeight: 52,
+    frameWidth: 84,
+    frameHeight: 46,
+    logoWidth: 84,
+    logoHeight: 46,
     offsetX: 0,
     offsetY: 0,
     logoHoverColor: "#8b5e34",
@@ -75,8 +75,8 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
         className="right-5 top-3"
       />
       <div
-        className={`hidden w-full min-w-0 px-4 transition-all duration-300 sm:px-6 lg:grid lg:grid-cols-[minmax(220px,1fr)_minmax(360px,1.25fr)_auto] lg:items-center lg:gap-5 lg:px-8 xl:grid-cols-[minmax(240px,1fr)_minmax(420px,820px)_auto] xl:gap-6 xl:px-10 ${
-          isScrolled ? "py-2.5" : "py-3.5"
+        className={`hidden w-full min-w-0 px-4 transition-all duration-300 sm:px-6 lg:grid lg:grid-cols-[minmax(220px,1fr)_minmax(360px,1.25fr)_auto] lg:items-center lg:gap-4 lg:px-8 xl:grid-cols-[minmax(240px,1fr)_minmax(420px,820px)_auto] xl:gap-5 xl:px-10 ${
+          isScrolled ? "py-1.5" : "py-2.5"
         }`}
       >
         <Link
@@ -88,7 +88,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
             } as CSSProperties
           }
         >
-          <div className="flex items-center gap-3 rounded-[1.35rem] px-1 py-1">
+          <div className="flex items-center gap-2.5 rounded-[1.2rem] px-1 py-0.5">
             <div
               className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[1.15rem]"
               style={getMenuLogoFrameStyle(effectiveMenuDesign)}
@@ -101,10 +101,10 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
               />
             </div>
             <div className="flex min-w-0 flex-col justify-center leading-none">
-              <p className="truncate text-[1.15rem] font-semibold uppercase tracking-[0.2em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] xl:text-[1.4rem]">
+              <p className="truncate text-[1.05rem] font-semibold uppercase tracking-[0.18em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] xl:text-[1.25rem]">
                 {brand?.brandName ?? "Codexsun Store"}
               </p>
-              <p className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-[0.18em] text-[#a39689] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
+              <p className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-[0.16em] text-[#a39689] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
                 {brand?.tagline ?? "Smart IT. Trusted value."}
               </p>
             </div>
@@ -125,17 +125,17 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
         )}
 
         <div className="flex min-w-0 items-center justify-end gap-2 xl:gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-[#ece3d9] bg-white/62 px-1.5 py-1 shadow-[0_16px_28px_-26px_rgba(58,34,18,0.35)]">
+          <div className="flex items-center gap-1.5 rounded-full border border-[#ece3d9] bg-white/62 px-1.5 py-0.5 shadow-[0_16px_28px_-26px_rgba(58,34,18,0.35)]">
             <Button
               asChild
               variant="outline"
               size="icon"
-              className="relative size-11 rounded-full border-[#ddd4c9] bg-white/90 text-[#534a42] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.08] hover:border-[#111111] hover:bg-white hover:text-[#111111] active:scale-[0.97]"
+              className="relative size-10 rounded-full border-[#ddd4c9] bg-white/90 text-[#534a42] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.06] hover:border-[#111111] hover:bg-white hover:text-[#111111] active:scale-[0.97]"
             >
               <Link to={accountMenuItems[2].href}>
                 <Heart
                   className={cn(
-                    "size-5 transition-colors duration-200",
+                    "size-4.5 transition-colors duration-200",
                     (isWishlistActive || wishlistCount > 0) && "fill-[#8b5e34] text-[#8b5e34]"
                   )}
                 />
@@ -150,11 +150,11 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
               asChild
               variant="outline"
               size="icon"
-              className="relative size-11 rounded-full border-[#ddd4c9] bg-white/90 text-[#534a42] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.08] hover:border-[#111111] hover:bg-white hover:text-[#111111] active:scale-[0.97]"
+              className="relative size-10 rounded-full border-[#ddd4c9] bg-white/90 text-[#534a42] shadow-[0_16px_30px_-24px_rgba(58,34,18,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.06] hover:border-[#111111] hover:bg-white hover:text-[#111111] active:scale-[0.97]"
             >
               <Link to="/cart">
                 <ShoppingCart
-                  className={cn("size-5 transition-colors duration-200", isCartActive && "fill-[#8b5e34] text-[#8b5e34]")}
+                  className={cn("size-4.5 transition-colors duration-200", isCartActive && "fill-[#8b5e34] text-[#8b5e34]")}
                 />
                 {cartCount > 0 ? (
                   <Badge className="absolute -right-1 -top-1 min-w-5 rounded-full border border-white bg-[#111111] px-1 text-[10px] text-white shadow-[0_10px_18px_-12px_rgba(17,17,17,0.9)]">
@@ -170,9 +170,9 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="default"
-                  className="h-11 rounded-full border border-[#ddd4c9] bg-white px-4 font-semibold text-[#1f1a16] shadow-[0_22px_36px_-24px_rgba(58,34,18,0.38)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white"
+                  className="h-10 rounded-full border border-[#ddd4c9] bg-white px-3.5 font-semibold text-[#1f1a16] shadow-[0_22px_36px_-24px_rgba(58,34,18,0.38)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white"
                 >
-                  <UserRound className="size-5" />
+                  <UserRound className="size-4.5" />
                   <span className="hidden xl:inline">{customerAuth.isAuthenticated ? "Account" : "Login"}</span>
                   <ChevronDown className="size-4 text-current" />
                 </Button>
@@ -237,7 +237,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-11 rounded-full border border-transparent bg-transparent px-3 text-[#5c5147] shadow-none transition-all duration-200 hover:text-[#8b5e34]">
+                <Button variant="outline" className="h-10 rounded-full border border-transparent bg-transparent px-3 text-[#5c5147] shadow-none transition-all duration-200 hover:text-[#8b5e34]">
                   <span className="hidden xl:inline">More</span>
                   <ChevronDown className="size-4 text-current" />
                 </Button>

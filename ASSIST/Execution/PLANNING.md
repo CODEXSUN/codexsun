@@ -2,6 +2,57 @@
 
 ## Active Batch
 
+- `#172` Make development runtime logs easier to read
+  - Scope: improve local runtime console readability so startup, request, and warning logs are easy to scan during development without sacrificing structured production logging.
+  - Constraint: keep production-like environments on JSON output for machine readability and preserve the existing runtime logger contract for downstream operational use.
+  - Delivered fix:
+    - added a development-specific runtime log formatter that emits concise human-readable lines instead of raw JSON blobs
+    - preserved structured JSON output for staging and production-like environments so existing machine-readable logging behavior remains intact
+    - added focused logger coverage for both development formatting and production JSON behavior
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/framework/runtime/logger.test.ts`
+
+- `#171` Gate unsupported database backup scheduling and make the admin state explicit
+  - Scope: stop the runtime from attempting scheduled database backups when backup execution is intentionally unsupported, and show that unsupported state clearly in the admin data-backup screen.
+  - Constraint: keep the current route surface intact, avoid background failure noise during startup, and make manual backup or restore actions visibly unavailable rather than failing only after a click.
+  - Delivered fix:
+    - added explicit backup support metadata to the backup dashboard contract so the frontend can distinguish between disabled scheduling and unsupported backup implementation
+    - gated the backup scheduler at runtime so unsupported deployments no longer attempt an immediate scheduled backup on boot and instead log one explicit unsupported warning
+    - updated the data-backup screen to show the unsupported state, explain why backup execution is unavailable, and disable manual backup and restore actions
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/framework/database-backup-scheduler.test.ts`
+  - Residual risk:
+    - backup execution itself is still intentionally unimplemented for the MariaDB/PostgreSQL-only runtime, so a later batch is still needed to build a real backup and restore strategy rather than only gating the unsupported path
+
+- `#170` Add media-manager controls to verify or recreate the public media symlink
+  - Scope: give operators a direct admin control in the shared media manager to verify the runtime public media mount and recreate it when the symlink is missing or broken.
+  - Constraint: reuse the existing framework media route surface and runtime storage helpers, keep the action narrowly scoped to the public media symlink, and make the UI explicit about whether the mount is healthy, missing, or misconfigured.
+  - Delivered fix:
+    - added shared framework media-symlink schemas plus authenticated internal `/internal/v1/framework/media-symlink` read and action routes for verifying or recreating the public mount
+    - extended the runtime media storage helper with a non-destructive symlink inspection path that reports whether the mount is healthy, missing, or misconfigured before any operator action runs
+    - added a compact status card to the media manager with `Verify` and `Add or Recreate` actions, alongside path details for the current mount and resolved target
+  - Validation:
+    - `npm run typecheck`
+  - Residual risk:
+    - this batch only adds operator controls around the symlink; it does not yet change the separate backup scheduler regression or broader update preflight issues identified in the startup review
+
+- `#169` Remove SQLite and better-sqlite3 support from the application runtime
+  - Scope: remove SQLite as a supported application runtime and remove the `better-sqlite3` dependency so the platform supports only MariaDB for primary transactional workloads and PostgreSQL for analytics workloads.
+  - Constraint: keep the removal honest across config, runtime settings, database client construction, backup operations, and operator-facing docs; do not leave dead SQLite options exposed in the admin UI or runtime env contract.
+  - Delivered fix:
+    - removed `better-sqlite3` and its type package from the dependency graph and deleted the SQLite database-client branch from the framework runtime
+    - removed SQLite and offline SQLite controls from the runtime settings contract and made server config fail fast when `DB_DRIVER=sqlite` or `OFFLINE_SUPPORT_ENABLED=true` are still present in runtime env
+    - changed media-root derivation away from the SQLite file path so public media no longer depends on a SQLite-specific storage location
+    - retired the SQLite-only backup and restore implementation by replacing it with an explicit unsupported-driver error for the remaining MariaDB/PostgreSQL-only runtime
+    - updated focused framework tests to assert the new MariaDB-first runtime and the explicit rejection of removed SQLite modes
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/framework/runtime-settings-service.test.ts tests/framework/runtime/config.test.ts tests/framework/runtime/database.test.ts tests/cli/release-env-check.test.ts`
+  - Residual risk:
+    - many older integration and domain tests still construct SQLite temp runtimes explicitly; they still need broader migration if the full historical suite is to execute under the new MariaDB/PostgreSQL-only model
+
 - `#168` Dedicated mail settings editor backed by runtime `.env`
   - Scope: add a dedicated framework mail settings surface that reads SMTP configuration from the active runtime `.env` file and allows operators to update it from the frontend through the backend.
   - Constraint: keep `.env` ownership and write semantics inside the existing framework runtime-settings path, avoid introducing a second ad hoc env writer, and ensure missing SMTP keys are created during save instead of requiring a pre-seeded `.env`.

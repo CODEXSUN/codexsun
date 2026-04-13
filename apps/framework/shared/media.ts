@@ -118,6 +118,24 @@ export const mediaFolderResponseSchema = z.object({
   item: mediaFolderSchema,
 })
 
+export const mediaSymlinkStatusSchema = z.object({
+  mountPath: z.string().min(1),
+  targetPath: z.string().min(1),
+  resolvedTargetPath: z.string().nullable(),
+  exists: z.boolean(),
+  isSymbolicLink: z.boolean(),
+  status: z.enum(["healthy", "missing", "misconfigured"]),
+  detail: z.string().nullable(),
+})
+
+export const mediaSymlinkResponseSchema = z.object({
+  item: mediaSymlinkStatusSchema,
+})
+
+export const mediaSymlinkActionPayloadSchema = z.object({
+  action: z.enum(["verify", "recreate"]).default("verify"),
+})
+
 export type MediaStorageScope = z.infer<typeof mediaStorageScopeSchema>
 export type MediaStorageProvider = z.infer<typeof mediaStorageProviderSchema>
 export type MediaFileType = z.infer<typeof mediaFileTypeSchema>
@@ -132,3 +150,6 @@ export type MediaListResponse = z.infer<typeof mediaListResponseSchema>
 export type MediaResponse = z.infer<typeof mediaResponseSchema>
 export type MediaFolderListResponse = z.infer<typeof mediaFolderListResponseSchema>
 export type MediaFolderResponse = z.infer<typeof mediaFolderResponseSchema>
+export type MediaSymlinkStatus = z.infer<typeof mediaSymlinkStatusSchema>
+export type MediaSymlinkResponse = z.infer<typeof mediaSymlinkResponseSchema>
+export type MediaSymlinkActionPayload = z.infer<typeof mediaSymlinkActionPayloadSchema>

@@ -30,14 +30,14 @@ function CategoryPill({
         compact ? "duration-[420ms]" : "duration-[620ms]",
         compact
           ? "w-20 px-1 py-1 hover:-translate-y-0.5 sm:w-24 lg:w-28"
-          : "w-20 px-1 py-1.5 hover:-translate-y-1 sm:w-24 lg:w-28"
+          : "w-20 px-1 py-1 hover:-translate-y-1 sm:w-24 lg:w-28"
       )}
     >
       <div
         className={cn(
           "flex flex-col items-center justify-center text-center transition-[gap] ease-[cubic-bezier(0.22,1,0.36,1)]",
           compact ? "duration-[420ms]" : "duration-[620ms]",
-          compact ? "gap-0.5" : "gap-3"
+          compact ? "gap-0.5" : "gap-2"
         )}
       >
         <div
@@ -184,7 +184,7 @@ export function StorefrontCategoryMenu({
           className={cn(
             "w-full overflow-x-auto px-3 transition-[padding] ease-[cubic-bezier(0.22,1,0.36,1)] [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent lg:px-4",
             isScrolled ? "duration-[420ms]" : "duration-[620ms]",
-            isScrolled ? "py-2.5" : "py-4"
+            isScrolled ? "py-2" : "py-2.75"
           )}
         >
           <div
@@ -192,8 +192,8 @@ export function StorefrontCategoryMenu({
               "mx-auto flex min-w-max items-end transition-[gap] ease-[cubic-bezier(0.22,1,0.36,1)]",
               isScrolled ? "duration-[420ms]" : "duration-[620ms]",
               isScrolled
-                ? "justify-center gap-5 px-6 sm:gap-6 lg:gap-8"
-                : "justify-center gap-5 px-6 sm:gap-6 lg:gap-8"
+                ? "justify-center gap-4 px-5 sm:gap-5 lg:gap-6"
+                : "justify-center gap-4 px-5 sm:gap-5 lg:gap-6"
             )}
           >
             {topMenuCategories.map((category) => (

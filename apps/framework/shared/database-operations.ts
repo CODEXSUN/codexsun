@@ -6,7 +6,7 @@ export const databaseBackupStatusSchema = z.enum([
   "pending",
   "restored",
 ])
-export const databaseBackupDriverSchema = z.enum(["sqlite", "mariadb", "postgres"])
+export const databaseBackupDriverSchema = z.enum(["mariadb", "postgres"])
 export const databaseBackupTriggerSchema = z.enum(["manual", "scheduled", "restore-point"])
 export const backupStorageTargetSchema = z.enum(["local", "google_drive"])
 export const googleDriveSyncStatusSchema = z.enum([
@@ -51,6 +51,10 @@ export const databaseRestoreRunSchema = z.object({
 })
 
 export const databaseBackupDashboardSchema = z.object({
+  support: z.object({
+    supported: z.boolean(),
+    reason: z.string().nullable(),
+  }),
   backupDirectory: z.string().min(1),
   scheduler: z.object({
     enabled: z.boolean(),

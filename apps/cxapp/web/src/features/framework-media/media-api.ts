@@ -5,6 +5,7 @@ import type {
   MediaListResponse,
   MediaResponse,
   MediaStorageScope,
+  MediaSymlinkResponse,
 } from "../../../../../framework/shared/media"
 
 import { getStoredAccessToken } from "../../auth/session-storage"
@@ -63,6 +64,17 @@ export function listFrameworkMedia() {
     ...response,
     items: response.items.map((item) => normalizeMediaSummaryUrls(item)),
   }))
+}
+
+export function getFrameworkMediaSymlinkStatus() {
+  return requestJson<MediaSymlinkResponse>("/internal/v1/framework/media-symlink")
+}
+
+export function manageFrameworkMediaSymlink(action: "verify" | "recreate") {
+  return requestJson<MediaSymlinkResponse>("/internal/v1/framework/media-symlink", {
+    method: "POST",
+    body: JSON.stringify({ action }),
+  })
 }
 
 export function getFrameworkMediaItem(mediaId: string) {

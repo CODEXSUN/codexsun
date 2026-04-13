@@ -4,9 +4,12 @@ import test from "node:test"
 import { createRuntimeLogger, resolveRequestId } from "../../../apps/framework/src/runtime/observability/runtime-logger.js"
 import type { ServerConfig } from "../../../apps/framework/src/runtime/config/server-config.js"
 
-function createConfig(logLevel: ServerConfig["observability"]["logLevel"]): ServerConfig {
+function createConfig(
+  logLevel: ServerConfig["observability"]["logLevel"],
+  environment: ServerConfig["environment"] = "production"
+): ServerConfig {
   return {
-    environment: "production",
+    environment,
     appName: "codexsun",
     appHost: "0.0.0.0",
     appDomain: "api.example.com",
@@ -143,6 +146,29 @@ test("runtime logger emits structured json records honoring log level", () => {
   assert.equal(record.event, "http.request.application_error")
   assert.equal(record.requestId, "req-1")
   assert.equal(record.statusCode, 400)
+})
+
+test("runtime logger emits readable development records", () => {
+  const output: string[] = []
+  const logger = createRuntimeLogger(createConfig("info", "development"), {
+    debug: (entry) => output.push(entry),
+    info: (entry) => output.push(entry),
+    warn: (entry) => output.push(entry),
+    error: (entry) => output.push(entry),
+  })
+
+  logger.info("runtime.ready")
+  logger.warn("operations.backup.scheduler_unsupported", {
+    driver: "mariadb",
+    reason: "Backup execution is not available.",
+  })
+
+  assert.equal(output.length, 2)
+  assert.match(output[0] ?? "", /^\[\d{2}:\d{2}:\d{2}\] INFO runtime\.ready$/)
+  assert.match(
+    output[1] ?? "",
+    /^\[\d{2}:\d{2}:\d{2}\] WARN operations\.backup\.scheduler_unsupported driver=mariadb reason="Backup execution is not available\."$/
+  )
 })
 
 test("runtime logger resolves incoming request ids safely", () => {

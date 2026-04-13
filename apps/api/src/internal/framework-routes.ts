@@ -26,8 +26,10 @@ import { getRuntimeJobDashboard } from "../../../framework/src/runtime/jobs/runt
 import {
   createMediaFolder,
   getMedia,
+  getMediaSymlinkStatus,
   listMedia,
   listMediaFolders,
+  manageMediaSymlink,
   readMediaContent,
   toggleMediaActive,
   toggleMediaFolderActive,
@@ -714,6 +716,27 @@ export function createFrameworkInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(await listMedia(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/framework/media-symlink", {
+      summary: "Read the current status of the public media symlink mount.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await getMediaSymlinkStatus(context.config))
+      },
+    }),
+    defineInternalRoute("/framework/media-symlink", {
+      method: "POST",
+      summary: "Verify or recreate the public media symlink mount.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff"],
+        })
+
+        return jsonResponse(await manageMediaSymlink(context.config, context.request.jsonBody))
       },
     }),
     defineInternalRoute("/framework/media", {

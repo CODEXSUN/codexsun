@@ -44,10 +44,10 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
   const menuDesign = settings?.menuDesigner.topMenu
   const effectiveMenuDesign = menuDesign ?? {
     logoVariant: "primary",
-    frameWidth: 92,
-    frameHeight: 52,
-    logoWidth: 92,
-    logoHeight: 52,
+    frameWidth: 82,
+    frameHeight: 44,
+    logoWidth: 82,
+    logoHeight: 44,
     offsetX: 0,
     offsetY: 0,
     logoHoverColor: "#8b5e34",
@@ -58,7 +58,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
 
   const mobileDockButtonClassName = cn(
     buttonVariants({ variant: "ghost", size: "icon-lg" }),
-    "relative flex h-14 w-full items-center justify-center rounded-[1.15rem] border border-transparent bg-transparent px-0 text-[#5c5147] shadow-none transition-all duration-200 hover:bg-[#f4ece3] hover:text-[#241913]"
+    "relative flex h-12 w-full items-center justify-center rounded-[1rem] border border-transparent bg-transparent px-0 text-[#5c5147] shadow-none transition-all duration-200 hover:bg-[#f4ece3] hover:text-[#241913]"
   )
 
   return (
@@ -76,7 +76,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
           name="shell.storefront.top-menu"
           className="right-4 top-3"
         />
-        <div className={`flex w-full min-w-0 flex-col gap-3 overflow-x-clip px-4 transition-all duration-300 sm:px-6 ${isScrolled ? "py-2.5" : "py-3.5"}`}>
+        <div className={`flex w-full min-w-0 flex-col gap-2.5 overflow-x-clip px-4 transition-all duration-300 sm:px-6 ${isScrolled ? "py-2" : "py-2.75"}`}>
           <div className="flex min-w-0 items-center justify-between gap-3">
             <Link
               to="/"
@@ -87,12 +87,12 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
                 } as CSSProperties
               }
             >
-              <div className="flex items-center gap-2 rounded-[1.25rem] pr-1">
+              <div className="flex items-center gap-2 rounded-[1.1rem] pr-1">
                 <div
                   className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[1rem]"
                   style={getMenuLogoFrameStyle(effectiveMenuDesign, {
-                    widthOverride: Math.min(effectiveMenuDesign.frameWidth, 148),
-                    heightOverride: Math.min(effectiveMenuDesign.frameHeight, 64),
+                    widthOverride: Math.min(effectiveMenuDesign.frameWidth, 138),
+                    heightOverride: Math.min(effectiveMenuDesign.frameHeight, 54),
                   })}
                 >
                   <img
@@ -103,7 +103,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
                   />
                 </div>
                 <div className="hidden min-w-0 min-[360px]:block">
-                  <p className="truncate text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
+                  <p className="truncate text-[0.76rem] font-semibold uppercase tracking-[0.12em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
                     {brand?.brandName ?? "Codexsun Store"}
                   </p>
                 </div>
@@ -113,7 +113,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="default"
-                  className="h-10 shrink-0 rounded-full border border-[#ddd4c9] bg-white px-3 text-[#1f1a16] shadow-[0_18px_30px_-24px_rgba(58,34,18,0.38)] transition-all duration-200 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white"
+                  className="h-9 shrink-0 rounded-full border border-[#ddd4c9] bg-white px-3 text-[#1f1a16] shadow-[0_18px_30px_-24px_rgba(58,34,18,0.38)] transition-all duration-200 hover:border-[#8b5e34] hover:bg-[#8b5e34] hover:text-white"
                 >
                   <UserRound className="size-4" />
                   <span className="text-xs font-semibold">
@@ -219,9 +219,9 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#e7dbcf] bg-[#fbfaf7]/96 px-0 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-18px_38px_-28px_rgba(34,22,13,0.45)] backdrop-blur-xl lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#e7dbcf] bg-[#fbfaf7]/96 px-0 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1 shadow-[0_-18px_38px_-28px_rgba(34,22,13,0.45)] backdrop-blur-xl lg:hidden">
         <TooltipProvider>
-          <Dock direction="middle" className="w-full justify-between gap-1 rounded-none border-x-0 border-b-0 border-t-0 px-2 pb-0 pt-0.5 shadow-none">
+          <Dock direction="middle" className="w-full justify-between gap-1 rounded-none border-x-0 border-b-0 border-t-0 px-2 pb-0 pt-0 shadow-none">
             {mobileDockItems.map((item) => (
               <DockIcon key={item.key} className="min-w-0 flex-1">
                 <Tooltip>

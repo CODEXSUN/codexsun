@@ -45,7 +45,6 @@ const runtimeEnvKeys = [
   "GIT_SCHEDULED_UPDATE_CADENCE_MINUTES",
   "GIT_SCHEDULED_UPDATE_AUTO_APPLY",
   "DB_DRIVER",
-  "SQLITE_FILE",
   "AUTH_MAX_LOGIN_ATTEMPTS",
   "AUTH_LOCKOUT_MINUTES",
   "ADMIN_SESSION_IDLE_MINUTES",
@@ -91,8 +90,11 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
         "GIT_SCHEDULED_UPDATE_ENABLED=true",
         "GIT_SCHEDULED_UPDATE_CADENCE_MINUTES=45",
         "GIT_SCHEDULED_UPDATE_AUTO_APPLY=true",
-        "DB_DRIVER=sqlite",
-        "SQLITE_FILE=storage/local.sqlite",
+        "DB_DRIVER=mariadb",
+        "DB_HOST=127.0.0.1",
+        "DB_PORT=3306",
+        "DB_NAME=codexsun",
+        "DB_USER=root",
         "SERVER_MONITOR_SHARED_SECRET=monitor-secret",
         "UNMANAGED_KEY=keep-me",
       ].join("\n"),
@@ -114,8 +116,7 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
     assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_ENABLED, true)
     assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_CADENCE_MINUTES, "45")
     assert.equal(snapshot.values.GIT_SCHEDULED_UPDATE_AUTO_APPLY, true)
-    assert.equal(snapshot.values.DB_DRIVER, "sqlite")
-    assert.equal(snapshot.values.SQLITE_FILE, "storage/local.sqlite")
+    assert.equal(snapshot.values.DB_DRIVER, "mariadb")
     assert.equal(snapshot.values.SERVER_MONITOR_SHARED_SECRET, "monitor-secret")
 
     const saveResponse = await withClearedEnv(runtimeEnvKeys, () =>
@@ -134,8 +135,7 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
             GIT_SCHEDULED_UPDATE_ENABLED: true,
             GIT_SCHEDULED_UPDATE_CADENCE_MINUTES: "15",
             GIT_SCHEDULED_UPDATE_AUTO_APPLY: true,
-            DB_DRIVER: "sqlite",
-            SQLITE_FILE: "storage/runtime.sqlite",
+            DB_DRIVER: "mariadb",
             SERVER_MONITOR_SHARED_SECRET: "updated-monitor-secret",
             SMTP_HOST: "smtp.example.com",
             SMTP_PORT: "587",
@@ -160,7 +160,6 @@ test("runtime settings snapshot resolves env-backed values and save persists gro
     assert.match(envContents, /GIT_SCHEDULED_UPDATE_ENABLED=true/)
     assert.match(envContents, /GIT_SCHEDULED_UPDATE_CADENCE_MINUTES=15/)
     assert.match(envContents, /GIT_SCHEDULED_UPDATE_AUTO_APPLY=true/)
-    assert.match(envContents, /SQLITE_FILE=storage\/runtime\.sqlite/)
     assert.match(envContents, /SERVER_MONITOR_SHARED_SECRET=updated-monitor-secret/)
     assert.match(envContents, /SMTP_HOST=smtp\.example\.com/)
     assert.match(envContents, /UNMANAGED_KEY=keep-me/)
@@ -181,8 +180,7 @@ test("runtime settings save adds server monitor secret when the key is missing f
         "APP_NAME=codexsun-test",
         "APP_HTTP_PORT=4100",
         "GIT_SYNC_ENABLED=false",
-        "DB_DRIVER=sqlite",
-        "SQLITE_FILE=storage/local.sqlite",
+        "DB_DRIVER=mariadb",
       ].join("\n"),
       "utf8"
     )
@@ -209,6 +207,25 @@ test("runtime settings save adds server monitor secret when the key is missing f
     const envContents = readFileSync(path.join(tempRoot, ".env"), "utf8")
 
     assert.match(envContents, /SERVER_MONITOR_SHARED_SECRET=fresh-monitor-secret/)
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("runtime settings reject removed sqlite database mode", () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-runtime-settings-sqlite-removed-"))
+
+  try {
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      ["DB_DRIVER=sqlite"].join("\n"),
+      "utf8"
+    )
+
+    assert.throws(
+      () => withClearedEnv(runtimeEnvKeys, () => getRuntimeSettingsSnapshot(tempRoot)),
+      /SQLite runtime support has been removed/
+    )
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }

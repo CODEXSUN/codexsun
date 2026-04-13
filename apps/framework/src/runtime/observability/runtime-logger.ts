@@ -19,12 +19,68 @@ function shouldLog(configuredLevel: LogLevel, candidateLevel: LogLevel) {
   return logLevelOrder[candidateLevel] >= logLevelOrder[configuredLevel]
 }
 
+function formatTimestampForDevelopment(timestamp: string) {
+  const date = new Date(timestamp)
+
+  if (Number.isNaN(date.getTime())) {
+    return timestamp
+  }
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+}
+
+function formatContextValue(value: unknown): string {
+  if (value == null) {
+    return String(value)
+  }
+
+  if (typeof value === "string") {
+    return value.includes(" ") ? JSON.stringify(value) : value
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value)
+  }
+
+  return JSON.stringify(value)
+}
+
+function formatDevelopmentRecord(record: RuntimeLogRecord) {
+  const {
+    timestamp,
+    level,
+    event,
+    environment: _environment,
+    appName: _appName,
+    ...context
+  } = record
+  const prefix = `[${formatTimestampForDevelopment(timestamp)}] ${level.toUpperCase()} ${event}`
+  const contextEntries = Object.entries(context)
+
+  if (contextEntries.length === 0) {
+    return prefix
+  }
+
+  return `${prefix} ${contextEntries
+    .map(([key, value]) => `${key}=${formatContextValue(value)}`)
+    .join(" ")}`
+}
+
 function writeRecord(
+  config: ServerConfig,
   sink: RuntimeLoggerSink,
   level: LogLevel,
   record: RuntimeLogRecord
 ) {
-  const serialized = JSON.stringify(record)
+  const serialized =
+    config.environment === "development"
+      ? formatDevelopmentRecord(record)
+      : JSON.stringify(record)
 
   switch (level) {
     case "debug":
@@ -50,7 +106,7 @@ export function createRuntimeLogger(
       return
     }
 
-    writeRecord(sink, level, {
+    writeRecord(config, sink, level, {
       timestamp: new Date().toISOString(),
       level,
       event,

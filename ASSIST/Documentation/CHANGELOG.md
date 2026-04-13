@@ -8,6 +8,37 @@
 
 ## v-0.0.1
 
+### [#172] 2026-04-13 - Make development runtime logs easier to read
+
+- changed the runtime logger to emit concise human-readable lines in development instead of raw JSON blobs, making startup, request, and warning output easier to scan locally
+- preserved structured JSON logging for production-like environments so operational log consumers still receive machine-readable records
+- added focused runtime logger coverage for both development formatting and production JSON behavior
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/framework/runtime/logger.test.ts`
+
+### [#171] 2026-04-13 - Gate unsupported database backup scheduling and clarify admin state
+
+- added explicit backup support metadata to the database-backup dashboard contract so the admin UI can distinguish between disabled scheduling and an unsupported backup runtime
+- changed the runtime backup scheduler to no-op when backup execution is unsupported, preventing the previous immediate scheduled-backup failure from firing on every startup
+- updated the data-backup admin screen to show the unsupported backup state and disable manual backup, restore drill, and live restore actions with a clear operator message
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/framework/database-backup-scheduler.test.ts`
+
+### [#170] 2026-04-13 - Media manager controls for public media symlink verify and recreate
+
+- added shared media symlink status and action schemas plus authenticated internal routes for reading the current public media mount state and triggering a verify or recreate action from the admin UI
+- extended the runtime media storage helper with an inspection path that reports whether the `/storage` mount is healthy, missing, or misconfigured, including the current mount and resolved target paths
+- added a `Public Media Symlink` status card to the media manager with `Verify` and `Add or Recreate` actions so operators can repair the mount without leaving the media screen
+- validated the batch with `npm run typecheck`
+
+### [#169] 2026-04-13 - Remove SQLite and better-sqlite3 runtime support
+
+- removed `better-sqlite3` and `@types/better-sqlite3` from the application dependency graph and deleted the SQLite-backed database client branch from the framework runtime
+- removed SQLite and offline SQLite controls from the runtime settings surface so operators now see only MariaDB and PostgreSQL in the managed database contract
+- changed server config to reject `DB_DRIVER=sqlite` and `OFFLINE_SUPPORT_ENABLED=true`, making the runtime fail fast instead of booting a no-longer-supported SQLite path
+- changed framework media-root derivation to use the shared runtime storage root instead of the SQLite file path
+- replaced the previous SQLite-only backup or restore implementation with an explicit unsupported-runtime error for the remaining MariaDB/PostgreSQL-only runtime
+- updated focused framework config, runtime-settings, database, and release-env tests around the new supported database surface
+- validated the batch with `npm run typecheck` and `npx tsx --test tests/framework/runtime-settings-service.test.ts tests/framework/runtime/config.test.ts tests/framework/runtime/database.test.ts tests/cli/release-env-check.test.ts`
+
 ### [#168] 2026-04-13 - Dedicated mail settings editor backed by runtime .env
 
 - added a framework-owned mail settings contract and service for `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `AUTH_OTP_DEBUG`, and `AUTH_OTP_EXPIRY_MINUTES`, with save behavior delegated to the existing runtime settings writer so missing mail keys are created in the managed `.env` output

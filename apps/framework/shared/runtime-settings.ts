@@ -356,7 +356,6 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         options: [
           { label: "MariaDB", value: "mariadb" },
           { label: "PostgreSQL", value: "postgres" },
-          { label: "SQLite", value: "sqlite" },
         ],
       },
       {
@@ -398,20 +397,6 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
         label: "Database SSL",
         type: "boolean",
         description: "Enable SSL for the primary database connection.",
-      },
-      {
-        key: "SQLITE_FILE",
-        label: "SQLite File",
-        type: "string",
-        description: "SQLite file path used for local or offline runtime.",
-        placeholder: "storage/desktop/codexsun.sqlite",
-        required: true,
-      },
-      {
-        key: "OFFLINE_SUPPORT_ENABLED",
-        label: "Offline Support",
-        type: "boolean",
-        description: "Enable offline SQLite support in the runtime.",
       },
     ],
   },

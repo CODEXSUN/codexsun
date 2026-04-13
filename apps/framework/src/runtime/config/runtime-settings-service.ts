@@ -100,8 +100,6 @@ function valueFromResolvedConfig(field: RuntimeSettingField, cwd = process.cwd()
     DB_USER: config.database.user ?? "",
     DB_PASSWORD: config.database.password ?? "",
     DB_SSL: config.database.ssl,
-    SQLITE_FILE: path.relative(cwd, config.database.sqliteFile).replace(/\\/g, "/"),
-    OFFLINE_SUPPORT_ENABLED: config.offline.enabled,
     ANALYTICS_DB_ENABLED: config.analytics.enabled,
     ANALYTICS_DB_HOST: config.analytics.host ?? "",
     ANALYTICS_DB_PORT: config.analytics.port ? String(config.analytics.port) : "",

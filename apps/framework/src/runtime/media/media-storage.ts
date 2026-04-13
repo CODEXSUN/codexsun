@@ -1,10 +1,11 @@
-import { lstat, mkdir, readdir, rename, rm, symlink } from "node:fs/promises"
+import { lstat, mkdir, readdir, realpath, rename, rm, symlink } from "node:fs/promises"
 import path from "node:path"
 
 import type { ServerConfig } from "../config/index.js"
+import { mediaSymlinkStatusSchema, type MediaSymlinkStatus } from "../../../shared/media.js"
 
 export function mediaRootDirectory(config: ServerConfig) {
-  return path.resolve(path.dirname(config.database.sqliteFile), "..", "media")
+  return path.resolve(config.webRoot, "..", "..", "..", "..", "storage", "media")
 }
 
 export function mediaVisibilityDirectory(
@@ -31,6 +32,63 @@ export function publicMediaFileUrl(backendKey: string) {
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/")}`
+}
+
+export async function inspectPublicMediaSymlink(
+  config: ServerConfig
+): Promise<MediaSymlinkStatus> {
+  const mountPath = publicMediaMountDirectory(config)
+  const targetPath = mediaVisibilityDirectory(config, "public")
+
+  try {
+    const existing = await lstat(mountPath)
+
+    if (!existing.isSymbolicLink()) {
+      return mediaSymlinkStatusSchema.parse({
+        mountPath,
+        targetPath,
+        resolvedTargetPath: null,
+        exists: true,
+        isSymbolicLink: false,
+        status: "misconfigured",
+        detail: "Public media mount exists but is not a symlink.",
+      })
+    }
+
+    const [resolvedMountPath, resolvedTargetPath] = await Promise.all([
+      realpath(mountPath),
+      realpath(targetPath).catch(() => path.resolve(targetPath)),
+    ])
+    const isHealthy = resolvedMountPath === resolvedTargetPath
+
+    return mediaSymlinkStatusSchema.parse({
+      mountPath,
+      targetPath,
+      resolvedTargetPath: resolvedMountPath,
+      exists: true,
+      isSymbolicLink: true,
+      status: isHealthy ? "healthy" : "misconfigured",
+      detail: isHealthy
+        ? "Public media symlink is healthy."
+        : "Public media symlink exists but points to a different target.",
+    })
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+
+    if (code === "ENOENT") {
+      return mediaSymlinkStatusSchema.parse({
+        mountPath,
+        targetPath,
+        resolvedTargetPath: null,
+        exists: false,
+        isSymbolicLink: false,
+        status: "missing",
+        detail: "Public media symlink is missing.",
+      })
+    }
+
+    throw error
+  }
 }
 
 async function canReplaceExistingMountDirectory(linkDirectory: string) {

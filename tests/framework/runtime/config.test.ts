@@ -46,7 +46,6 @@ const configEnvKeys = [
   "DB_USER",
   "SUPER_ADMIN_EMAILS",
   "OFFLINE_SUPPORT_ENABLED",
-  "SQLITE_FILE",
   "JWT_SECRET",
   "AUTH_MAX_LOGIN_ATTEMPTS",
   "AUTH_LOCKOUT_MINUTES",
@@ -79,7 +78,7 @@ const configEnvKeys = [
   "NODE_ENV",
 ] as const
 
-test("server config reads domain, port, db driver, and offline flags from .env", () => {
+test("server config reads domain, port, and supported database settings from .env", () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-config-"))
 
   try {
@@ -101,8 +100,6 @@ test("server config reads domain, port, db driver, and offline flags from .env",
         "DB_USER=root",
         "SERVER_MONITOR_SHARED_SECRET=test-monitor-secret",
         "SUPER_ADMIN_EMAILS= SUNDAR@SUNDAR.COM , admin@example.com ",
-        "OFFLINE_SUPPORT_ENABLED=true",
-        "SQLITE_FILE=storage/desktop/offline.sqlite",
       ].join("\n")
     )
 
@@ -118,8 +115,27 @@ test("server config reads domain, port, db driver, and offline flags from .env",
       "sundar@sundar.com",
       "admin@example.com",
     ])
-    assert.equal(config.offline.enabled, true)
-    assert.match(config.offline.sqliteFile, /offline\.sqlite$/)
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("server config rejects removed sqlite runtime and offline sqlite settings", () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-config-sqlite-removed-"))
+
+  try {
+    writeFileSync(
+      path.join(tempRoot, ".env"),
+      [
+        "DB_DRIVER=sqlite",
+        "OFFLINE_SUPPORT_ENABLED=true",
+      ].join("\n")
+    )
+
+    assert.throws(
+      () => withClearedEnv(configEnvKeys, () => getServerConfig(tempRoot)),
+      /SQLite runtime support has been removed|Offline SQLite support has been removed/
+    )
   } finally {
     rmSync(tempRoot, { recursive: true, force: true })
   }

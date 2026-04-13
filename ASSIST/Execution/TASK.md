@@ -2,6 +2,29 @@
 
 ## Active Batch
 
+- [x] `#172` Make development runtime logs easier to read
+  - [x] Phase 1: inspect the runtime logger and current logger test expectations
+  - [x] Phase 2: switch development-mode console output to a concise readable format while preserving structured JSON for production-like environments
+  - [x] Phase 3: add logger coverage for the new development formatting and validate with typecheck
+
+- [x] `#171` Gate unsupported database backup scheduling and make the admin state explicit
+  - [x] Phase 1: inspect backup scheduler startup, backup dashboard contract, and current admin backup UI assumptions
+  - [x] Phase 2: add an explicit backup support state and prevent boot-time scheduled backup runs when the runtime backup implementation is unsupported
+  - [x] Phase 3: update the data-backup admin screen to reflect unsupported state and disable invalid actions
+  - [x] Phase 4: validate with typecheck and focused framework backup coverage
+
+- [x] `#170` Add media-manager controls to verify or recreate the public media symlink
+  - [x] Phase 1: inspect the existing media manager UI, media runtime storage helpers, and internal media route surface
+  - [x] Phase 2: add a backend media-symlink status and action contract that can verify the current mount or recreate it safely
+  - [x] Phase 3: add media manager controls for verify and add-or-recreate, then surface the current symlink status to operators
+  - [x] Phase 4: validate with typecheck and focused framework route or media coverage
+
+- [x] `#169` Remove SQLite and better-sqlite3 support from the application runtime
+  - [x] Phase 1: inspect runtime config, database client, backup flows, env settings, and test surfaces that still depend on SQLite
+  - [x] Phase 2: remove SQLite from framework config, runtime settings, database client, and package dependencies so only MariaDB and PostgreSQL remain supported
+  - [x] Phase 3: update or retire SQLite-specific operational flows and align docs or changelog references
+  - [x] Phase 4: address the resulting test fallout and validate the remaining supported runtime surface
+
 - [x] `#168` Dedicated mail settings editor backed by runtime `.env`
   - [x] Phase 1: inspect the existing runtime settings `.env` persistence flow, SMTP field ownership, and framework settings navigation
   - [x] Phase 2: define a narrow backend mail-settings contract that reads and saves SMTP env values while creating missing variables in `.env`
