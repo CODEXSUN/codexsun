@@ -1,5 +1,7 @@
 import { AppBrand } from "./app-brand"
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
+import { useRuntimeAppSettings } from "@cxapp/web/src/features/runtime-app-settings/runtime-app-settings-provider"
+import { applicationVersion } from "../../../../framework/shared/index.js"
 
 type PublicFooterProps = {
   appCount?: number
@@ -7,6 +9,8 @@ type PublicFooterProps = {
 
 export function PublicFooter({ appCount }: PublicFooterProps) {
   const { brand } = useRuntimeBrand()
+  const { settings } = useRuntimeAppSettings()
+  const versionLabel = settings?.applicationVersion.label ?? applicationVersion.label
 
   return (
     <footer className="border-t border-border/70 bg-background/80">
@@ -24,7 +28,7 @@ export function PublicFooter({ appCount }: PublicFooterProps) {
             </div>
           ) : null}
         </div>
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:self-end">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Portfolio
@@ -43,6 +47,12 @@ export function PublicFooter({ appCount }: PublicFooterProps) {
               <p>Main app: cxapp</p>
               <p>Display name: {brand?.brandName ?? "codexsun"}</p>
               <p>Connected apps: {appCount ?? "multiple"}</p>
+            </div>
+          </div>
+          <div className="sm:col-span-2 sm:flex sm:justify-end">
+            <div className="text-right text-xs text-muted-foreground/80">
+              <p className="uppercase tracking-[0.18em]">Version</p>
+              <p className="mt-1">{versionLabel}</p>
             </div>
           </div>
         </div>

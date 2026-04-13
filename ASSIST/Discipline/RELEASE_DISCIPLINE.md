@@ -7,7 +7,8 @@
 3. Changelog is updated
 4. No secrets or unsafe environment data are committed
 5. Root and workspace package versions stay in lockstep when versioning is changed
-6. The changelog version heading matches the active release tag format `v-<semver>`
+6. The installed package version matches the latest logged task reference in `1.0.<reference>` form
+7. The changelog version heading matches the active release tag format `v-1.0.<reference>` and entry labels use `v 1.0.<reference>`
 
 ## Release Caution
 
@@ -32,8 +33,8 @@ If a release changes contracts, data shape, or high-risk logic, document:
 
 ## Release Flow
 
-1. update `package.json` version manually when a version change is approved
-2. update `ASSIST/Documentation/CHANGELOG.md` version state and entry section
+1. update the latest changelog entry for the batch
+2. run `npm run version:sync` or rely on the git helper to align package, lockfile, runtime, and changelog version state
 3. validate the workspace with `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build`
 4. create a reference-first commit using standard git commands
-5. create the release tag manually with the `v-` prefix, for example `git tag -a v-0.0.1 -m "v-0.0.1"`
+5. create the release tag manually with the `v-` prefix, for example `git tag -a v-1.0.172 -m "v-1.0.172"`

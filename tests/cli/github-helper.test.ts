@@ -46,16 +46,31 @@ test("inferPushTarget sets upstream on first push", () => {
 test("parseLatestReference reads the latest changelog heading and title", () => {
   const reference = parseLatestReference(
     [
-      "## v-0.0.1",
+      "## v-1.0.11",
       "",
-      "### [#11] 2026-03-29 - Current batch",
+      "### [v 1.0.11] 2026-03-29 - Current batch",
       "",
-      "### [#10] 2026-03-29 - Previous batch",
+      "### [v 1.0.10] 2026-03-29 - Previous batch",
     ].join("\n")
   )
 
   assert.deepEqual(reference, {
     number: 11,
+    title: "Current batch",
+  })
+})
+
+test("parseLatestReference still accepts older #reference changelog headings", () => {
+  const reference = parseLatestReference(
+    [
+      "## v-1.0.12",
+      "",
+      "### [#12] 2026-03-29 - Current batch",
+    ].join("\n")
+  )
+
+  assert.deepEqual(reference, {
+    number: 12,
     title: "Current batch",
   })
 })

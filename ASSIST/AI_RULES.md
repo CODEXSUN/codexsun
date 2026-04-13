@@ -82,10 +82,10 @@ Every framework-composed app folder except `apps/mobile` must keep the same base
 9. Shared `apps/ui/src/features/*` code is allowed only for neutral cross-app surfaces such as dashboard shell presentation or design-system docs.
 10. For known shared UI components, use `apps/ui/src/design-system/data/project-defaults.ts` as the project source of truth for component names and default variants.
 11. For reusable shared UI compositions, source them from `apps/ui/src/registry/blocks` or `apps/ui/src/components/blocks` rather than recreating page fragments inside docs or app shells.
-12. Keep MariaDB as the default live transactional database, SQLite as the offline desktop option, and PostgreSQL as the optional analytics path.
+12. Keep MariaDB as the default live transactional database and PostgreSQL as the optional secondary database path; SQLite runtime support has been removed.
 13. Keep build outputs under `build/app/<app>/<target>` and reserve `build/module/<module>/<target>` for future modules.
 14. Update docs, task tracking, planning, and changelog in the same batch as architecture changes.
-15. Use one reference number across task tracking, planning, changelog, and commit subjects for the same batch.
+15. Use one reference number across task tracking, planning, changelog, commit subjects, and installed application version for the same batch; task `#172` must map to app version `1.0.172`, changelog label `v 1.0.172`, and release tag `v-1.0.172`.
 16. Keep scaffolds honest; do not present placeholders as completed domain behavior.
 17. Keep migration and seeder execution inside `apps/framework/src/runtime/database`; do not scatter ad hoc table bootstrapping across routes, services, or web code.
 18. Keep framework auth support limited to reusable primitives such as config, hashing, JWT signing, SMTP transport, and request parsing; keep auth users, sessions, OTP records, mailbox templates, bootstrap records, company records, and auth business logic inside the owning app such as `apps/cxapp`.

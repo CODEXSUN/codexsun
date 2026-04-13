@@ -2,6 +2,7 @@ import type { Kysely } from "kysely"
 
 import {
   appSettingsResponseSchema,
+  applicationVersion,
   type AppSettingOption,
   type AppSettingsResponse,
 } from "../../../framework/shared/index.js"
@@ -49,6 +50,7 @@ export async function getAppSettingsSnapshot(
   return appSettingsResponseSchema.parse({
     item: {
       loadedAt: new Date().toISOString(),
+      applicationVersion,
       authMetadata: {
         actorTypes: filterByCategory("actor-type"),
         permissionScopeTypes: filterByCategory("permission-scope-type"),

@@ -76,3 +76,12 @@ sudo cp .container/clients/techmedia_in/nginx/techmedia.in.https.conf /etc/nginx
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+```bash
+docker logs --tail 200 techmedia-in-app
+```
+
+Open a shell:
+
+```bash
+docker exec -it techmedia-in-app bash
+```

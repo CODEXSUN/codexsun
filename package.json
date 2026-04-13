@@ -1,7 +1,7 @@
 {
   "name": "codexsun",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.174",
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,web \"npm:dev:server\" \"vite\"",
@@ -16,6 +16,7 @@
     "mobile:web": "npm --prefix apps/mobile run web",
     "mobile:typecheck": "npm --prefix apps/mobile run typecheck",
     "start": "node build/app/cxapp/server/cxapp/src/server/index.js",
+    "version:sync": "tsx apps/cli/src/version-helper.ts",
     "github": "tsx apps/cli/src/github-helper.ts",
     "github:now": "tsx apps/cli/src/github-helper.ts --yes",
     "github:server": "npm run build:server && node build/app/cxapp/server/cli/src/github-helper.js",

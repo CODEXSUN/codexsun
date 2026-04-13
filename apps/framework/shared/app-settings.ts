@@ -1,5 +1,12 @@
 import { z } from "zod"
 
+export const applicationVersionSchema = z.object({
+  referenceNumber: z.number().int().positive(),
+  version: z.string().min(1),
+  label: z.string().min(1),
+  releaseTag: z.string().min(1),
+})
+
 export const appSettingOptionSchema = z.object({
   appId: z.string().min(1).nullable(),
   category: z.string().min(1),
@@ -43,6 +50,7 @@ export const uiDeveloperToolsSettingsSchema = z.object({
 })
 
 export const appSettingsSnapshotSchema = z.object({
+  applicationVersion: applicationVersionSchema,
   authMetadata: authMetadataSettingsSchema,
   uiFeedback: uiFeedbackSettingsSchema,
   uiDeveloperTools: uiDeveloperToolsSettingsSchema,
@@ -54,6 +62,7 @@ export const appSettingsResponseSchema = z.object({
 })
 
 export type AppSettingOption = z.infer<typeof appSettingOptionSchema>
+export type AppSettingsApplicationVersion = z.infer<typeof applicationVersionSchema>
 export type AuthMetadataSettings = z.infer<typeof authMetadataSettingsSchema>
 export type ToastPosition = z.infer<typeof toastPositionSchema>
 export type ToastTone = z.infer<typeof toastToneSchema>

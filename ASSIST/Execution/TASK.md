@@ -2,6 +2,13 @@
 
 ## Active Batch
 
+- [x] `#174` Introduce task-linked application versioning and surface the installed version in the app
+  - [x] Phase 1: inspect current package version sources, changelog format, app-settings surface, admin footer rendering, and git helper flow
+  - [x] Phase 2: add a shared application-version source and update the repo versioning format to derive `1.0.<reference>` values from execution or changelog history
+  - [x] Phase 3: wire installed-version metadata into the application and render it in the admin bottom area
+  - [x] Phase 4: update the git helper to sync version files automatically and align ASSIST docs with the new versioning policy
+  - [x] Phase 5: validate with focused helper or logger coverage plus typecheck and changelog consistency
+
 - [x] `#172` Make development runtime logs easier to read
   - [x] Phase 1: inspect the runtime logger and current logger test expectations
   - [x] Phase 2: switch development-mode console output to a concise readable format while preserving structured JSON for production-like environments

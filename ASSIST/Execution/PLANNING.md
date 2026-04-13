@@ -2,6 +2,18 @@
 
 ## Active Batch
 
+- `#174` Introduce task-linked application versioning and surface the installed version in the app
+  - Scope: replace the current static `0.0.1` release numbering with a task-linked semantic version pattern such as `1.0.174`, wire that version into the runtime app settings and admin shell, and make the git helper synchronize version files automatically.
+  - Constraint: keep one consistent source of truth for installed version metadata, preserve machine-usable package semver, and avoid a workflow where changelog, package version, helper commit flow, and app footer drift apart.
+  - Delivered fix:
+    - added a shared framework `applicationVersion` contract plus CLI versioning helpers so installed version, footer label, and release tag all derive from the same task number
+    - extended runtime app settings and the fallback snapshot with version metadata, then rendered that installed version in the admin sidebar footer for easy in-app verification
+    - added `npm run version:sync` and automatic git-helper version synchronization so root and mobile package metadata, the shared runtime version file, and changelog version state update together before commit
+    - migrated changelog entry labels to `v 1.0.<reference>` and aligned ASSIST versioning guidance with the new task-linked release pattern
+  - Validation:
+    - `npm run typecheck`
+    - `npx tsx --test tests/cli/github-helper.test.ts tests/cli/versioning.test.ts`
+
 - `#172` Make development runtime logs easier to read
   - Scope: improve local runtime console readability so startup, request, and warning logs are easy to scan during development without sacrificing structured production logging.
   - Constraint: keep production-like environments on JSON output for machine readability and preserve the existing runtime logger contract for downstream operational use.

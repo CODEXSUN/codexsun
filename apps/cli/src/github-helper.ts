@@ -6,6 +6,14 @@ import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { pathToFileURL } from "node:url"
 
+import {
+  formatCommitMessage,
+  parseLatestReference,
+  syncVersionFiles,
+} from "./versioning.js"
+
+export { formatCommitMessage, parseLatestReference } from "./versioning.js"
+
 const execFileAsync = promisify(execFile)
 
 export type GitStatusSummary = {
@@ -110,43 +118,6 @@ export function inferPushTarget(
   }
 
   return ["push", "-u", remoteName, branch]
-}
-
-export function parseLatestReference(changelogContent: string): ChangelogReference {
-  const match = changelogContent.match(
-    /### \[#(\d+)\]\s+\d{4}-\d{2}-\d{2}\s+-\s+(.+)/
-  )
-
-  const latestReference = match?.[1]
-  const latestTitle = match?.[2]?.trim()
-
-  if (!latestReference || !latestTitle) {
-    throw new Error("Could not determine the latest changelog reference entry.")
-  }
-
-  const parsedReference = Number.parseInt(latestReference, 10)
-
-  if (!Number.isFinite(parsedReference) || parsedReference <= 0) {
-    throw new Error("The changelog reference number is invalid.")
-  }
-
-  return {
-    number: parsedReference,
-    title: latestTitle,
-  }
-}
-
-export function formatCommitMessage(referenceNumber: number, message: string): string {
-  const normalizedMessage = message
-    .trim()
-    .replace(/^#\d+\s*-\s*/, "")
-    .replace(/^#\d+\s+/, "")
-
-  if (!normalizedMessage) {
-    throw new Error("Commit message body is required.")
-  }
-
-  return `#${referenceNumber} - ${normalizedMessage}`
 }
 
 export function parseCliOptions(argv: string[]): GitHubHelperOptions {
@@ -430,6 +401,7 @@ async function createCommitIfNeeded(
   }
 
   const reference = getCurrentReference(state.rootDir)
+  const syncedVersion = syncVersionFiles(state.rootDir, reference.number)
   const messageBody = await promptWithDefault(
     rl,
     `Commit message body for #${reference.number} -`,
@@ -438,6 +410,7 @@ async function createCommitIfNeeded(
   )
   const message = formatCommitMessage(reference.number, messageBody)
 
+  output.write(`Version synced: ${syncedVersion.label}\n`)
   output.write(`Commit subject: ${message}\n`)
 
   await runGit(["add", "-A"], state.rootDir)

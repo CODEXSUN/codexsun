@@ -3,6 +3,7 @@ import { defineAppWorkspace } from "../src/application/app-workspace.js"
 export const frameworkAppWorkspace = defineAppWorkspace("framework", "Framework")
 export * from "./activity-log.js"
 export * from "./app-settings.js"
+export * from "./application-version.js"
 export * from "./database-operations.js"
 export * from "./mail-settings.js"
 export * from "./media.js"

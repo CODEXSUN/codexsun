@@ -67,13 +67,21 @@ When the user asks to call the git helper:
 
 1. collect the completed task details from `ASSIST/Execution/TASK.md` and related planning notes
 2. create the matching changelog entry in `ASSIST/Documentation/CHANGELOG.md`
-3. use the repository git helper workflow to prepare the commit
-4. commit all intended changes
-5. push all intended changes
+3. sync package, lockfile, shared runtime, and changelog version state to the latest logged task version with `npm run version:sync` or let the git helper do it automatically
+4. use the repository git helper workflow to prepare the commit
+5. commit all intended changes
+6. push all intended changes
+
+Version format:
+
+- task `#172` maps to installed version `1.0.172`
+- changelog labels use `v 1.0.172`
+- release tags use `v-1.0.172`
 
 Git helper location and command:
 
 - source file: `apps/cli/src/github-helper.ts`
+- version sync command: `npm run version:sync`
 - interactive command: `npm run github`
 - non-interactive command: `npm run github:now`
 

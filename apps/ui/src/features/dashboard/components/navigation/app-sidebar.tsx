@@ -24,6 +24,7 @@ import {
   storefrontSettingsWorkflowStatusSchema,
   type StorefrontMenuSurfaceDesign,
 } from "@ecommerce/shared"
+import { applicationVersion } from "../../../../../../framework/shared/index.js"
 import {
   Collapsible,
   CollapsibleContent,
@@ -51,6 +52,7 @@ import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import { NavUser } from "@/features/dashboard/components/navigation/nav-user"
 import type { DashboardAppDefinition } from "@/features/dashboard/types"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
+import { useRuntimeAppSettings } from "@cxapp/web/src/features/runtime-app-settings/runtime-app-settings-provider"
 import { queryKeys } from "@cxapp/web/src/query/query-keys"
 
 function isRouteActive(pathname: string, route: string) {
@@ -603,6 +605,7 @@ function UtilityNavigationMenu({
 export function AppSidebar() {
   const { brand, currentApp, links, user } = useDashboardShell()
   const { brand: runtimeBrand } = useRuntimeBrand()
+  const { settings } = useRuntimeAppSettings()
   const location = useLocation()
   const { open } = useSidebar()
   const isDashboardRoot = location.pathname === links.dashboard
@@ -715,6 +718,11 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        {open ? (
+          <div className="px-2 pb-2 text-[11px] leading-4 text-sidebar-foreground/55">
+            {settings?.applicationVersion.label ?? applicationVersion.label}
+          </div>
+        ) : null}
         <NavUser
           user={{
             name: user.displayName,

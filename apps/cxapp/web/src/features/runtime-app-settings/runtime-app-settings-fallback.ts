@@ -2,6 +2,7 @@ import type {
   AppSettingOption,
   AppSettingsSnapshot,
 } from "../../../../../framework/shared/index.js"
+import { applicationVersion } from "../../../../../framework/shared/index.js"
 
 function defineOption(input: AppSettingOption): AppSettingOption {
   return input
@@ -79,6 +80,7 @@ const resources = [
 
 export const fallbackRuntimeAppSettings: AppSettingsSnapshot = {
   loadedAt: "fallback",
+  applicationVersion,
   authMetadata: {
     actorTypes: actorTypes.map(([key, label, summary]) =>
       defineOption({

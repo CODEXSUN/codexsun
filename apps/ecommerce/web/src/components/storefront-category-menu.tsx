@@ -90,8 +90,8 @@ function CategoryPill({
                 ? "-translate-y-0.5 scale-100 text-[13px] font-semibold tracking-[0.01em] text-[#241913] sm:text-[13.5px]"
                 : "-translate-y-0.5 text-[13px] tracking-[0.01em] text-[#5a4639] group-hover:scale-[1.02] sm:text-[13.5px]"
               : isActive
-                ? "text-[11px] text-[#241913] sm:text-xs"
-                : "text-[11px] text-[#4e3b2e] sm:text-xs"
+                ? "min-h-[2.5rem] text-[11px] text-[#241913] sm:text-xs"
+                : "min-h-[2.5rem] text-[11px] text-[#4e3b2e] sm:text-xs"
           )}
         >
           {label}
@@ -189,7 +189,7 @@ export function StorefrontCategoryMenu({
         >
           <div
             className={cn(
-              "mx-auto flex min-w-max items-end transition-[gap] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              "mx-auto flex min-w-max items-start transition-[gap] ease-[cubic-bezier(0.22,1,0.36,1)]",
               isScrolled ? "duration-[420ms]" : "duration-[620ms]",
               isScrolled
                 ? "justify-center gap-4 px-5 sm:gap-5 lg:gap-6"
