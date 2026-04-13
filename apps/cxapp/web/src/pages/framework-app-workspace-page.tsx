@@ -150,6 +150,7 @@ export function FrameworkAppWorkspacePage({
   contactId,
   customerId,
   productId,
+  purchaseReceiptId,
   ledgerId,
   voucherId,
   sectionId: forcedSectionId,
@@ -160,6 +161,7 @@ export function FrameworkAppWorkspacePage({
   contactId?: string
   customerId?: string
   productId?: string
+  purchaseReceiptId?: string
   ledgerId?: string
   voucherId?: string
   sectionId?: string
@@ -251,6 +253,7 @@ export function FrameworkAppWorkspacePage({
       <EcommerceWorkspaceSection
         customerId={customerId}
         productId={productId}
+        purchaseReceiptId={purchaseReceiptId}
         sectionId={sectionId}
       />
     ) : null
@@ -347,6 +350,8 @@ export function FrameworkAppWorkspacePage({
         "orders",
         "stock-operations",
         "stock-purchase-receipts",
+        "stock-purchase-receipts-show",
+        "stock-purchase-receipts-upsert",
         "stock-goods-inward",
         "stock-barcodes",
         "stock-outward",

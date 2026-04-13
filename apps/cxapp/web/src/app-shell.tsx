@@ -151,6 +151,10 @@ const EcommerceProductDetailPage = lazyNamed(
   () => import("./pages/ecommerce-product-detail-page"),
   "EcommerceProductDetailPage",
 );
+const EcommercePurchaseReceiptDetailPage = lazyNamed(
+  () => import("./pages/ecommerce-purchase-receipt-detail-page"),
+  "EcommercePurchaseReceiptDetailPage",
+);
 const EcommerceCustomerDetailPage = lazyNamed(
   () => import("./pages/ecommerce-customer-detail-page"),
   "EcommerceCustomerDetailPage",
@@ -162,6 +166,10 @@ const EcommerceCustomerFormPage = lazyNamed(
 const EcommerceProductFormPage = lazyNamed(
   () => import("./pages/ecommerce-product-form-page"),
   "EcommerceProductFormPage",
+);
+const EcommercePurchaseReceiptFormPage = lazyNamed(
+  () => import("./pages/ecommerce-purchase-receipt-form-page"),
+  "EcommercePurchaseReceiptFormPage",
 );
 const BillingCategoryFormPage = lazyNamed(
   () => import("./pages/billing-category-form-page"),
@@ -1941,6 +1949,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <EcommerceProductFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/stock-purchase-receipts/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommercePurchaseReceiptFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/stock-purchase-receipts/:purchaseReceiptId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommercePurchaseReceiptDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/ecommerce/stock-purchase-receipts/:purchaseReceiptId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <EcommercePurchaseReceiptFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

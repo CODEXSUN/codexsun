@@ -498,6 +498,14 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
         route: item.route,
         summary: item.summary,
         icon: ecommerceWorkspaceIconMap[item.id] ?? Blocks,
+        matchRoutes:
+          item.id === "stock-purchase-receipts"
+            ? [
+                `/dashboard/apps/${app.id}/stock-purchase-receipts/new`,
+                `/dashboard/apps/${app.id}/stock-purchase-receipts/:purchaseReceiptId`,
+                `/dashboard/apps/${app.id}/stock-purchase-receipts/:purchaseReceiptId/edit`,
+              ]
+            : undefined,
       })),
       ...ecommerceProductCommonModules,
       ...createTechnicalWorkspaceModules(app, root),

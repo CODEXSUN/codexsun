@@ -2,6 +2,17 @@
 
 ## Active Batch
 
+- [x] `#188` Split ecommerce purchase receipts into dedicated list, show, and upsert pages
+  - [x] Phase 1: align route and workspace shell
+    - [x] 1.1 add dedicated ecommerce purchase receipt list, detail, and form routes
+    - [x] 1.2 keep desk navigation and workspace hero behavior aligned with the new split pages
+  - [x] Phase 2: align UI tone with product pages
+    - [x] 2.1 rebuild the purchase receipt list with the same product-style section intro and master list shell
+    - [x] 2.2 add a purchase receipt detail page with summary cards and line review
+    - [x] 2.3 keep the purchase receipt upsert form table-based for line editing
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused type validation for the affected ecommerce and cxapp surfaces
+
 - [ ] `#187` Rebuild `apps/crm` into a full CRM platform
   - [ ] Phase 1: architecture and scope reset
     - [x] 1.1 remove the previous completed execution backlog and keep only the active CRM batch

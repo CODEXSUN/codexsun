@@ -2,6 +2,21 @@
 
 ## Active Batch
 
+- `#188` Split ecommerce purchase receipts into dedicated list, show, and upsert pages
+  - Goal: move ecommerce purchase receipts onto the same split-page record pattern already used by products, while preserving the inline editable table in the upsert experience.
+  - Current reality:
+    - the ecommerce workspace already splits product management into dedicated list, detail, and form routes
+    - purchase receipts still render through the older stock-operations module instead of a record-specific surface
+  - Implementation plan:
+    - add dedicated ecommerce purchase receipt list, detail, and form sections under the ecommerce workspace boundary
+    - add cxapp route wrappers for `/dashboard/apps/ecommerce/stock-purchase-receipts/new`, `/:purchaseReceiptId`, and `/:purchaseReceiptId/edit`
+    - update workspace and desk route matching so the purchase receipt menu item stays active across the new pages
+    - keep the existing inline receipt line table inside the upsert screen instead of replacing it with a card-only layout
+  - Validation target:
+    - the new purchase receipt pages should compile cleanly and match the existing product-shell tone without breaking stock entry, barcode, or outward pages
+  - Validation completed:
+    - `npm run typecheck`
+
 - `#184` Rebuild `apps/crm` into a full CRM platform
   - Goal: evolve the current CRM baseline from simple leads and interactions into a complete operator-facing and manager-facing CRM platform with intake, assignment, tasks, reminders, campaign follow-up, analytics, audit visibility, and customer-centric relationship tracking.
   - Current reality:

@@ -47,6 +47,11 @@ import { StorefrontOrdersSection } from "./features/storefront-admin/storefront-
 import { StorefrontPaymentsSection } from "./features/storefront-admin/storefront-payments-section"
 import { StorefrontSupportSection } from "./features/storefront-admin/storefront-support-section"
 import { StorefrontStockOperationsSection } from "./features/storefront-admin/storefront-stock-operations-section"
+import {
+  StorefrontPurchaseReceiptShowSection,
+  StorefrontPurchaseReceiptsSection,
+  StorefrontPurchaseReceiptUpsertSection,
+} from "./features/storefront-admin/storefront-purchase-receipts-section"
 import { StorefrontTrendingSectionSection } from "./features/storefront-admin/storefront-trending-section"
 import { useStorefrontDesignerAccess } from "./features/storefront-admin/storefront-designer-access"
 import { ShippingSettingsSection } from "./features/storefront-admin/shipping-settings-section"
@@ -904,7 +909,19 @@ function PaymentsSection() {
 }
 
 function PurchaseReceiptSection() {
-  return <StorefrontStockOperationsSection mode="purchase" />
+  return <StorefrontPurchaseReceiptsSection />
+}
+
+function StockOperationsSection() {
+  return <StorefrontStockOperationsSection mode="all" />
+}
+
+function PurchaseReceiptShowSection({ receiptId }: { receiptId: string }) {
+  return <StorefrontPurchaseReceiptShowSection receiptId={receiptId} />
+}
+
+function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
+  return <StorefrontPurchaseReceiptUpsertSection receiptId={receiptId} />
 }
 
 function StockEntrySection() {
@@ -960,10 +977,12 @@ function SettingsSection() {
 export function EcommerceWorkspaceSection({
   customerId,
   productId,
+  purchaseReceiptId,
   sectionId,
 }: {
   customerId?: string
   productId?: string
+  purchaseReceiptId?: string
   sectionId?: string
 }) {
   const commonModuleMenuItem = sectionId ? getCoreCommonModuleMenuItem(sectionId) : null
@@ -1008,9 +1027,13 @@ export function EcommerceWorkspaceSection({
     case "payments":
       return <PaymentsSection />
     case "stock-operations":
-      return <PurchaseReceiptSection />
+      return <StockOperationsSection />
     case "stock-purchase-receipts":
       return <PurchaseReceiptSection />
+    case "stock-purchase-receipts-show":
+      return purchaseReceiptId ? <PurchaseReceiptShowSection receiptId={purchaseReceiptId} /> : null
+    case "stock-purchase-receipts-upsert":
+      return <PurchaseReceiptUpsertSection receiptId={purchaseReceiptId} />
     case "stock-goods-inward":
       return <StockEntrySection />
     case "stock-barcodes":

@@ -4,7 +4,7 @@
 
 - Current package version: `1.0.188`
 - Current release tag: `v-1.0.188`
-- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
+- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
 
 ## v-1.0.188
 
