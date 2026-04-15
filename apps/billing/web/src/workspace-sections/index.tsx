@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
 import {
+  ArrowLeftIcon,
   CheckIcon,
   ChevronsUpDownIcon,
   MoreHorizontalIcon,
@@ -68,7 +69,9 @@ import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-pr
 import { ActivityStatusBadge } from "@/features/status/activity-status"
 import { Textarea } from "@/components/ui/textarea"
 import { CommonList, MasterList } from "@/components/blocks/master-list"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
+import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
 
 import { BillingAuditTrailSection } from "./audit-section"
 import { OverviewSection, StockSection } from "./overview-stock-sections"
@@ -2672,27 +2675,513 @@ function SalesVoucherUpsertSection({
   voucherTypes: BillingVoucherMasterType[]
 }) {
   return (
-    <div className="space-y-4">
-      <SalesInvoiceEditor
-        form={form}
-        formError={formError}
-        isSaving={isSaving}
-        ledgers={ledgers}
-        onChange={onChange}
-        onDelete={onDelete}
-        onDocumentAction={onDocumentAction}
-        onReset={onReset}
-        onReview={onReview}
-        onSave={onSave}
-        onSalesItemProductChange={onSalesItemProductChange}
-        onSalesItemChange={onSalesItemChange}
-        onSalesItemCreate={onSalesItemCreate}
-        onSalesItemRemove={onSalesItemRemove}
-        products={products}
-        selectedVoucher={selectedVoucher}
-        voucherTypes={voucherTypes}
-      />
-      {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+    <SalesInvoiceTabbedEditor
+      form={form}
+      formError={formError}
+      isSaving={isSaving}
+      ledgers={ledgers}
+      onChange={onChange}
+      onDelete={onDelete}
+      onDocumentAction={onDocumentAction}
+      onReset={onReset}
+      onReview={onReview}
+      onSave={onSave}
+      onSalesItemProductChange={onSalesItemProductChange}
+      onSalesItemChange={onSalesItemChange}
+      onSalesItemCreate={onSalesItemCreate}
+      onSalesItemRemove={onSalesItemRemove}
+      products={products}
+      selectedVoucher={selectedVoucher}
+      voucherTypes={voucherTypes}
+    />
+  )
+}
+
+function SalesInvoiceTabbedEditor({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onChange,
+  onDelete,
+  onDocumentAction,
+  onReset,
+  onReview,
+  onSave,
+  onSalesItemProductChange,
+  onSalesItemChange,
+  onSalesItemCreate,
+  onSalesItemRemove,
+  products,
+  selectedVoucher,
+  voucherTypes,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
+  onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
+  onSave: () => void
+  onSalesItemProductChange: (index: number, productId: string) => void
+  onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
+  onSalesItemCreate: () => void
+  onSalesItemRemove: (index: number) => void
+  products: ProductListResponse["items"]
+  selectedVoucher: BillingVoucher | null
+  voucherTypes: BillingVoucherMasterType[]
+}) {
+  const navigate = useNavigate()
+  const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
+  const salesVoucherTypes = voucherTypes.filter(
+    (voucherType) => voucherType.postingType === "sales" && voucherType.deletedAt === null
+  )
+  const salesSummary = getSalesSummary(form.sales)
+  const activeProducts = products.filter((product) => product.isActive)
+  const productOptions = activeProducts.map((product) => ({
+    value: product.id,
+    label: `${product.name} (${product.code})`,
+  }))
+  const selectedCustomerLedger =
+    ledgers.find((ledger) => ledger.id === form.sales.customerLedgerId) ?? null
+  const title = selectedVoucher
+    ? isMutableVoucher
+      ? "Edit sales invoice"
+      : "View sales invoice"
+    : "Create sales invoice"
+  const invoiceLabel = form.voucherNumber.trim() || title
+
+  const tabs = useMemo<AnimatedContentTab[]>(
+    () => [
+      {
+        label: "Details",
+        value: "details",
+        content: (
+          <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground" htmlFor="sales-bill-to-name-tabbed">
+                    Bill to name
+                  </label>
+                  <Input
+                    id="sales-bill-to-name-tabbed"
+                    value={form.sales.billToName}
+                    onChange={(event) => onChange("salesBillToName", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground" htmlFor="sales-party-gstin-tabbed">
+                    Customer GSTIN
+                  </label>
+                  <Input
+                    id="sales-party-gstin-tabbed"
+                    value={form.sales.partyGstin}
+                    onChange={(event) => onChange("salesPartyGstin", event.target.value)}
+                    placeholder="29ABCDE1234F1Z5"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground" htmlFor="sales-voucher-number-tabbed">
+                    Invoice number
+                  </label>
+                  <Input
+                    id="sales-voucher-number-tabbed"
+                    value={form.voucherNumber}
+                    onChange={(event) => onChange("voucherNumber", event.target.value)}
+                    placeholder="Leave blank for FY auto numbering"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground" htmlFor="sales-date-tabbed">
+                    Invoice date
+                  </label>
+                  <Input
+                    id="sales-date-tabbed"
+                    type="date"
+                    value={form.date}
+                    onChange={(event) => onChange("date", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Voucher type</label>
+                  <AutocompleteLookupField
+                    emptyLabel="Select sales type"
+                    onChange={(nextValue) => onChange("salesVoucherTypeId", nextValue)}
+                    options={salesVoucherTypes.map((voucherType) => ({
+                      value: voucherType.id,
+                      label: voucherType.name,
+                    }))}
+                    searchPlaceholder="Search sales voucher type"
+                    value={form.sales.voucherTypeId}
+                  />
+                </div>
+              </div>
+            </div>
+            <VoucherInlineEditableTable
+              title="Sales items"
+              description="Add invoice lines as sale sub-items. Tax and posting totals are derived from this table."
+              addLabel="Add item"
+              fitToContainer
+              rows={form.sales.items}
+              onAddRow={onSalesItemCreate}
+              onRemoveRow={onSalesItemRemove}
+              removeButtonLabel="Remove"
+              getRowKey={(item, index) => `sales-item:${index}:${item.itemName}`}
+              columns={[
+                {
+                  id: "itemName",
+                  header: "Product",
+                  headerClassName: "min-w-60",
+                  renderCell: (item, index) => {
+                    const rowOptions =
+                      item.productId || !item.itemName
+                        ? productOptions
+                        : [{ value: `manual:${index}`, label: item.itemName }, ...productOptions]
+
+                    return (
+                      <AutocompleteLookupField
+                        emptyLabel="Select product"
+                        onChange={(nextValue) =>
+                          nextValue.startsWith("manual:")
+                            ? undefined
+                            : onSalesItemProductChange(index, nextValue)
+                        }
+                        options={rowOptions}
+                        searchPlaceholder="Search product"
+                        triggerClassName="h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                        value={item.productId || (item.itemName ? `manual:${index}` : "")}
+                      />
+                    )
+                  },
+                },
+                {
+                  id: "description",
+                  header: "Description",
+                  headerClassName: "w-[34%]",
+                  renderCell: (item, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={item.description}
+                      onChange={(event) =>
+                        onSalesItemChange(index, "description", event.target.value)
+                      }
+                      placeholder="Item description"
+                    />
+                  ),
+                },
+                {
+                  id: "quantity",
+                  header: "Qty",
+                  headerClassName: "w-[12%]",
+                  cellClassName: "w-[12%]",
+                  renderCell: (item, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.quantity}
+                      onChange={(event) => onSalesItemChange(index, "quantity", event.target.value)}
+                    />
+                  ),
+                },
+                {
+                  id: "rate",
+                  header: "Rate",
+                  headerClassName: "w-[14%]",
+                  cellClassName: "w-[14%]",
+                  renderCell: (item, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.rate}
+                      onChange={(event) => onSalesItemChange(index, "rate", event.target.value)}
+                    />
+                  ),
+                },
+                {
+                  id: "amount",
+                  header: "Amount",
+                  headerClassName: "w-[14%] text-right",
+                  cellClassName: "w-[14%] text-right font-medium text-foreground",
+                  renderCell: (item) => formatAmount(getSalesItemAmount(item)),
+                },
+              ]}
+            />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Quantity</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">{salesSummary.totalQuantity.toFixed(2)}</p>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Subtotal</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">{formatAmount(salesSummary.subtotal)}</p>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">GST total</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">{formatAmount(salesSummary.taxAmount)}</p>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Invoice total</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">{formatAmount(salesSummary.grandTotal)}</p>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Address & Tax",
+        value: "address-tax",
+        content: (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="sales-place-of-supply-tabbed">
+                Place of supply
+              </label>
+              <Input
+                id="sales-place-of-supply-tabbed"
+                value={form.sales.placeOfSupply}
+                onChange={(event) => onChange("salesPlaceOfSupply", event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Supply type</label>
+              <RadioGroup
+                value={form.sales.supplyType}
+                onValueChange={(nextValue) => onChange("salesSupplyType", nextValue)}
+                className="flex h-10 items-center gap-6 rounded-md border border-input bg-background px-3"
+              >
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <RadioGroupItem value="intra" />
+                  Intra-state
+                </label>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <RadioGroupItem value="inter" />
+                  Inter-state
+                </label>
+              </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="sales-tax-rate-tabbed">
+                GST rate %
+              </label>
+              <Input
+                id="sales-tax-rate-tabbed"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.sales.taxRate}
+                onChange={(event) => onChange("salesTaxRate", event.target.value)}
+              />
+            </div>
+            <div className="rounded-[1rem] border border-border/70 bg-background/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Tax posture
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {form.sales.supplyType === "inter" ? "Inter-state GST" : "Intra-state GST"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                GST postings continue to derive from the configured tax rate and item totals.
+              </p>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="sales-bill-to-address-tabbed">
+                Bill to address
+              </label>
+              <Textarea
+                id="sales-bill-to-address-tabbed"
+                value={form.sales.billToAddress}
+                onChange={(event) => onChange("salesBillToAddress", event.target.value)}
+                placeholder="Customer billing address"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="sales-ship-to-address-tabbed">
+                Ship to address
+              </label>
+              <Textarea
+                id="sales-ship-to-address-tabbed"
+                value={form.sales.shipToAddress}
+                onChange={(event) => onChange("salesShipToAddress", event.target.value)}
+                placeholder="Dispatch or delivery address"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 xl:col-span-4">
+              <label className="text-sm font-medium text-foreground" htmlFor="sales-narration-tabbed">
+                Narration
+              </label>
+              <Textarea
+                id="sales-narration-tabbed"
+                value={form.narration}
+                onChange={(event) => onChange("narration", event.target.value)}
+                placeholder="Optional invoice note"
+              />
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Compliance",
+        value: "compliance",
+        content: (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="flex items-center gap-2 rounded-[1rem] border border-border/70 bg-background/70 p-4 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={form.generateEInvoice}
+                  onChange={(event) =>
+                    onChange("generateEInvoice", event.target.checked ? "true" : "false")
+                  }
+                />
+                Generate e-invoice record
+              </label>
+              <label className="flex items-center gap-2 rounded-[1rem] border border-border/70 bg-background/70 p-4 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={form.generateEWayBill}
+                  onChange={(event) =>
+                    onChange("generateEWayBill", event.target.checked ? "true" : "false")
+                  }
+                />
+                Generate e-way bill record
+              </label>
+            </div>
+            {form.generateEWayBill ? (
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input
+                  type="number"
+                  min="1"
+                  value={form.transport.distanceKm}
+                  onChange={(event) => onChange("transportDistanceKm", event.target.value)}
+                  placeholder="Distance in KM"
+                />
+                <Input
+                  value={form.transport.vehicleNumber}
+                  onChange={(event) => onChange("transportVehicleNumber", event.target.value)}
+                  placeholder="Vehicle number"
+                />
+                <Input
+                  value={form.transport.transporterId}
+                  onChange={(event) => onChange("transportTransporterId", event.target.value)}
+                  placeholder="Transporter id"
+                />
+              </div>
+            ) : null}
+            {formError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
+            {selectedVoucher && !isMutableVoucher ? (
+              <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {toVoucherLifecycleLabel(selectedVoucher.status)} invoices are read-only. Keep an invoice in draft for direct editing.
+              </div>
+            ) : null}
+            {selectedVoucher ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-border/70 bg-background/70 p-4">
+                <Badge variant={getVoucherReviewBadgeVariant(selectedVoucher.review.status)}>
+                  {toVoucherReviewLabel(selectedVoucher.review.status)}
+                </Badge>
+                {selectedVoucher.review.requiredReason ? (
+                  <p className="text-sm text-muted-foreground">{selectedVoucher.review.requiredReason}</p>
+                ) : null}
+              </div>
+            ) : null}
+            {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+          </div>
+        ),
+      },
+    ],
+    [
+      form,
+      formError,
+      isMutableVoucher,
+      ledgers,
+      onChange,
+      onSalesItemChange,
+      onSalesItemCreate,
+      onSalesItemProductChange,
+      onSalesItemRemove,
+      productOptions,
+      salesSummary.grandTotal,
+      salesSummary.subtotal,
+      salesSummary.taxAmount,
+      salesSummary.totalQuantity,
+      salesVoucherTypes,
+      selectedCustomerLedger,
+      selectedVoucher,
+    ]
+  )
+
+  return (
+    <div className="space-y-6" data-technical-name="page.billing.sales-upsert">
+      <div className="relative overflow-visible rounded-[1.5rem] border border-border/70 bg-background/90 p-5 shadow-sm">
+        <TechnicalNameBadge name="page.billing.sales-upsert" className="absolute -top-3 right-4 z-20" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-3 w-fit"
+              onClick={() => void navigate("/dashboard/billing/sales-vouchers")}
+            >
+              <ArrowLeftIcon className="size-4" />
+              Back to sales
+            </Button>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">{invoiceLabel}</h1>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                Capture customer invoice details, select the sales voucher type, and post item-table totals into double-entry and GST automatically.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
+              {selectedVoucher ? "New invoice" : "Reset"}
+            </Button>
+            {selectedVoucher ? (
+              <>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>Print</Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "csv")}>Export CSV</Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "json")}>Export JSON</Button>
+              </>
+            ) : null}
+            <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
+              {isSaving ? "Saving..." : selectedVoucher ? "Update Invoice" : "Create Invoice"}
+            </Button>
+          </div>
+        </div>
+      </div>
+      <AnimatedTabs defaultTabValue="details" tabs={tabs} />
+      <div className="flex flex-wrap gap-3">
+        {selectedVoucher?.review.status === "pending_review" ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => onReview(selectedVoucher.id, "approved")}>Approve</Button>
+            <Button type="button" variant="destructive" onClick={() => onReview(selectedVoucher.id, "rejected")}>Reject</Button>
+          </>
+        ) : null}
+        {selectedVoucher ? (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onDelete}
+            disabled={isSaving || !isMutableVoucher}
+          >
+            Delete invoice
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -2900,6 +3389,75 @@ function VoucherModuleUpsertSection({
   onSave: () => void
   selectedVoucher: BillingVoucher | null
 }) {
+  if (form.type === "purchase") {
+    return (
+      <PurchaseVoucherTabbedEditor
+        form={form}
+        formError={formError}
+        isSaving={isSaving}
+        ledgers={ledgers}
+        onChange={onChange}
+        onDelete={onDelete}
+        onDocumentAction={onDocumentAction}
+        onLineChange={onLineChange}
+        onLineCreate={onLineCreate}
+        onLineRemove={onLineRemove}
+        onReset={onReset}
+        onReview={onReview}
+        onSave={onSave}
+        selectedVoucher={selectedVoucher}
+      />
+    )
+  }
+
+  if (form.type === "payment") {
+    return (
+      <PaymentVoucherTabbedEditor
+        form={form}
+        formError={formError}
+        isSaving={isSaving}
+        ledgers={ledgers}
+        onBillAllocationChange={onBillAllocationChange}
+        onBillAllocationCreate={onBillAllocationCreate}
+        onBillAllocationRemove={onBillAllocationRemove}
+        onChange={onChange}
+        onDelete={onDelete}
+        onDocumentAction={onDocumentAction}
+        onLineChange={onLineChange}
+        onLineCreate={onLineCreate}
+        onLineRemove={onLineRemove}
+        onReset={onReset}
+        onReview={onReview}
+        onSave={onSave}
+        selectedVoucher={selectedVoucher}
+      />
+    )
+  }
+
+  if (form.type === "receipt") {
+    return (
+      <ReceiptVoucherTabbedEditor
+        form={form}
+        formError={formError}
+        isSaving={isSaving}
+        ledgers={ledgers}
+        onBillAllocationChange={onBillAllocationChange}
+        onBillAllocationCreate={onBillAllocationCreate}
+        onBillAllocationRemove={onBillAllocationRemove}
+        onChange={onChange}
+        onDelete={onDelete}
+        onDocumentAction={onDocumentAction}
+        onLineChange={onLineChange}
+        onLineCreate={onLineCreate}
+        onLineRemove={onLineRemove}
+        onReset={onReset}
+        onReview={onReview}
+        onSave={onSave}
+        selectedVoucher={selectedVoucher}
+      />
+    )
+  }
+
   return (
     <div className="space-y-4">
       <VoucherEditor
@@ -2922,6 +3480,1611 @@ function VoucherModuleUpsertSection({
         selectedVoucher={selectedVoucher}
       />
       {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+    </div>
+  )
+}
+
+function ReceiptVoucherTabbedEditor({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onBillAllocationChange,
+  onBillAllocationCreate,
+  onBillAllocationRemove,
+  onChange,
+  onDelete,
+  onDocumentAction,
+  onLineChange,
+  onLineCreate,
+  onLineRemove,
+  onReset,
+  onReview,
+  onSave,
+  selectedVoucher,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onBillAllocationChange: (
+    index: number,
+    field: keyof VoucherBillAllocationForm,
+    value: string
+  ) => void
+  onBillAllocationCreate: () => void
+  onBillAllocationRemove: (index: number) => void
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
+  onLineChange: (
+    index: number,
+    field: keyof VoucherFormLine,
+    value: string
+  ) => void
+  onLineCreate: () => void
+  onLineRemove: (index: number) => void
+  onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
+  onSave: () => void
+  selectedVoucher: BillingVoucher | null
+}) {
+  const navigate = useNavigate()
+  const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
+  const provisionalVoucher = {
+    lines: form.lines.map((line) => ({
+      amount: Number(line.amount || 0),
+      side: line.side,
+    })),
+  } as Pick<BillingVoucher, "lines">
+  const totals = getVoucherTotals(provisionalVoucher)
+  const title = selectedVoucher
+    ? isMutableVoucher
+      ? "Edit receipt voucher"
+      : "View receipt voucher"
+    : "Create receipt voucher"
+  const voucherLabel = form.voucherNumber.trim() || title
+
+  const tabs = useMemo<AnimatedContentTab[]>(
+    () => [
+      {
+        label: "Details",
+        value: "details",
+        content: (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="receipt-voucher-number">
+                Voucher number
+              </label>
+              <Input
+                id="receipt-voucher-number"
+                value={form.voucherNumber}
+                onChange={(event) => onChange("voucherNumber", event.target.value)}
+                placeholder="Leave blank for FY auto numbering"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="receipt-voucher-date">
+                Date
+              </label>
+              <Input
+                id="receipt-voucher-date"
+                type="date"
+                value={form.date}
+                onChange={(event) => onChange("date", event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="receipt-voucher-lifecycle">
+                Lifecycle
+              </label>
+              <select
+                id="receipt-voucher-lifecycle"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.status}
+                onChange={(event) => onChange("status", event.target.value)}
+              >
+                {(["draft", "posted", "cancelled", "reversed"] as BillingVoucherLifecycleStatus[]).map((status) => (
+                  <option key={status} value={status}>
+                    {toVoucherLifecycleLabel(status)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="receipt-counterparty">
+                Counterparty
+              </label>
+              <Input
+                id="receipt-counterparty"
+                value={form.counterparty}
+                onChange={(event) => onChange("counterparty", event.target.value)}
+                placeholder="Customer / bank / party"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 xl:col-span-4">
+              <label className="text-sm font-medium text-foreground" htmlFor="receipt-narration">
+                Narration
+              </label>
+              <Textarea
+                id="receipt-narration"
+                value={form.narration}
+                onChange={(event) => onChange("narration", event.target.value)}
+                placeholder="Optional receipt note"
+              />
+            </div>
+            <div className="rounded-[1rem] border border-border/70 bg-background/70 p-4 md:col-span-2 xl:col-span-4">
+              {selectedVoucher ? (
+                <p className="text-sm text-muted-foreground">
+                  Lifecycle <span className="font-medium text-foreground">{toVoucherLifecycleLabel(selectedVoucher.status)}</span> in financial year <span className="font-medium text-foreground">{selectedVoucher.financialYear.label}</span> with sequence{" "}
+                  <span className="font-medium text-foreground">
+                    {selectedVoucher.financialYear.prefix}-{String(selectedVoucher.financialYear.sequenceNumber).padStart(3, "0")}
+                  </span>.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Receipt voucher number and financial-year sequence will be generated automatically from the posting date if left blank.
+                </p>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Adjustments",
+        value: "adjustments",
+        content: (
+          <div className="space-y-4">
+            <VoucherInlineEditableTable
+              title="Bill-wise adjustments"
+              description="Match receipt vouchers against bill references the way Tally operators expect."
+              addLabel="Add bill ref"
+              rows={form.billAllocations}
+              onAddRow={onBillAllocationCreate}
+              onRemoveRow={onBillAllocationRemove}
+              removeButtonLabel="Remove"
+              getRowKey={(allocation, index) => `${allocation.referenceNumber || "bill-ref"}:${index}`}
+              emptyMessage="No bill-wise adjustments added yet."
+              columns={[
+                {
+                  id: "referenceType",
+                  header: "Reference type",
+                  headerClassName: "w-36 min-w-36",
+                  cellClassName: "w-36 min-w-36",
+                  renderCell: (allocation, index) => (
+                    <select
+                      className={voucherInlineSelectClassName}
+                      value={allocation.referenceType}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "referenceType", event.target.value)
+                      }
+                    >
+                      <option value="against_ref">Against ref</option>
+                      <option value="new_ref">New ref</option>
+                      <option value="on_account">On account</option>
+                    </select>
+                  ),
+                },
+                {
+                  id: "referenceNumber",
+                  header: "Reference number",
+                  headerClassName: "min-w-40",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={allocation.referenceNumber}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "referenceNumber", event.target.value)
+                      }
+                      placeholder="Reference number"
+                    />
+                  ),
+                },
+                {
+                  id: "referenceDate",
+                  header: "Reference date",
+                  headerClassName: "w-36 min-w-36",
+                  cellClassName: "w-36 min-w-36",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="date"
+                      value={allocation.referenceDate}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "referenceDate", event.target.value)
+                      }
+                    />
+                  ),
+                },
+                {
+                  id: "dueDate",
+                  header: "Due date",
+                  headerClassName: "w-36 min-w-36",
+                  cellClassName: "w-36 min-w-36",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="date"
+                      value={allocation.dueDate}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "dueDate", event.target.value)
+                      }
+                    />
+                  ),
+                },
+                {
+                  id: "amount",
+                  header: "Amount",
+                  headerClassName: "w-32 min-w-32",
+                  cellClassName: "w-32 min-w-32",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={allocation.amount}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "amount", event.target.value)
+                      }
+                      placeholder="Amount"
+                    />
+                  ),
+                },
+                {
+                  id: "note",
+                  header: "Note",
+                  headerClassName: "min-w-48",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={allocation.note}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "note", event.target.value)
+                      }
+                      placeholder="Adjustment note"
+                    />
+                  ),
+                },
+              ]}
+            />
+          </div>
+        ),
+      },
+      {
+        label: "Accounting",
+        value: "accounting",
+        content: (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Accounting dimensions</p>
+                <p className="text-xs text-muted-foreground">
+                  Optional branch, project, and cost-center tracking for reporting and controls.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  value={form.dimensions.branch}
+                  onChange={(event) => onChange("dimensionBranch", event.target.value)}
+                  placeholder="Branch"
+                />
+                <Input
+                  value={form.dimensions.project}
+                  onChange={(event) => onChange("dimensionProject", event.target.value)}
+                  placeholder="Project"
+                />
+                <Input
+                  value={form.dimensions.costCenter}
+                  onChange={(event) => onChange("dimensionCostCenter", event.target.value)}
+                  placeholder="Cost center"
+                />
+              </div>
+            </div>
+            <VoucherInlineEditableTable
+              title="Ledger lines"
+              description="Every receipt voucher must contain balanced debit and credit lines."
+              addLabel="Add line"
+              rows={form.lines}
+              onAddRow={onLineCreate}
+              onRemoveRow={(index) => {
+                if (form.lines.length > 2) {
+                  onLineRemove(index)
+                }
+              }}
+              removeButtonLabel={form.lines.length <= 2 ? "Locked" : "Remove"}
+              getRowKey={(line, index) => `${index}:${line.ledgerId}:${line.side}`}
+              columns={[
+                {
+                  id: "ledger",
+                  header: "Ledger",
+                  headerClassName: "min-w-60",
+                  renderCell: (line, index) => (
+                    <AutocompleteLookupField
+                      emptyLabel="Select ledger"
+                      onChange={(nextValue) => onLineChange(index, "ledgerId", nextValue)}
+                      options={ledgers.map((ledger) => ({
+                        value: ledger.id,
+                        label: ledger.name,
+                      }))}
+                      searchPlaceholder="Search ledger"
+                      value={line.ledgerId}
+                    />
+                  ),
+                },
+                {
+                  id: "side",
+                  header: "Side",
+                  headerClassName: "w-32 min-w-32",
+                  cellClassName: "w-32 min-w-32",
+                  renderCell: (line, index) => (
+                    <select
+                      className={voucherInlineSelectClassName}
+                      value={line.side}
+                      onChange={(event) => onLineChange(index, "side", event.target.value)}
+                    >
+                      <option value="debit">Debit</option>
+                      <option value="credit">Credit</option>
+                    </select>
+                  ),
+                },
+                {
+                  id: "amount",
+                  header: "Amount",
+                  headerClassName: "w-32 min-w-32",
+                  cellClassName: "w-32 min-w-32",
+                  renderCell: (line, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.amount}
+                      onChange={(event) => onLineChange(index, "amount", event.target.value)}
+                    />
+                  ),
+                },
+                {
+                  id: "note",
+                  header: "Note",
+                  headerClassName: "min-w-56",
+                  renderCell: (line, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={line.note}
+                      onChange={(event) => onLineChange(index, "note", event.target.value)}
+                      placeholder="Posting note"
+                    />
+                  ),
+                },
+              ]}
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Debit total
+                </p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  {formatAmount(totals.debit)}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Credit total
+                </p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  {formatAmount(totals.credit)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Review",
+        value: "review",
+        content: (
+          <div className="space-y-4">
+            {selectedVoucher ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-border/70 bg-background/70 p-4">
+                <Badge variant={getVoucherReviewBadgeVariant(selectedVoucher.review.status)}>
+                  {toVoucherReviewLabel(selectedVoucher.review.status)}
+                </Badge>
+                {selectedVoucher.review.requiredReason ? (
+                  <p className="text-sm text-muted-foreground">
+                    {selectedVoucher.review.requiredReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {selectedVoucher && !isMutableVoucher ? (
+              <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {toVoucherLifecycleLabel(selectedVoucher.status)} vouchers are read-only. Keep a voucher in draft for direct editing.
+              </div>
+            ) : null}
+            {formError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
+            {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+          </div>
+        ),
+      },
+    ],
+    [
+      form,
+      formError,
+      isMutableVoucher,
+      ledgers,
+      onBillAllocationChange,
+      onBillAllocationCreate,
+      onBillAllocationRemove,
+      onChange,
+      onLineChange,
+      onLineCreate,
+      onLineRemove,
+      selectedVoucher,
+      totals.credit,
+      totals.debit,
+    ]
+  )
+
+  return (
+    <div className="space-y-6" data-technical-name="page.billing.receipt-upsert">
+      <div className="relative overflow-visible rounded-[1.5rem] border border-border/70 bg-background/90 p-5 shadow-sm">
+        <TechnicalNameBadge
+          name="page.billing.receipt-upsert"
+          className="absolute -top-3 right-4 z-20"
+        />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-3 w-fit"
+              onClick={() => void navigate("/dashboard/billing/receipt-vouchers")}
+            >
+              <ArrowLeftIcon className="size-4" />
+              Back to receipt
+            </Button>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                {voucherLabel}
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                Capture incoming receipt details, allocate bill references, and keep receipt postings balanced through the billing books.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
+              {selectedVoucher ? "New voucher" : "Reset"}
+            </Button>
+            {selectedVoucher ? (
+              <>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>
+                  Print
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "csv")}>
+                  Export CSV
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "json")}>
+                  Export JSON
+                </Button>
+              </>
+            ) : null}
+            <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
+              {isSaving ? "Saving..." : selectedVoucher ? "Update Voucher" : "Create Voucher"}
+            </Button>
+          </div>
+        </div>
+      </div>
+      <AnimatedTabs defaultTabValue="details" tabs={tabs} />
+      <div className="flex flex-wrap gap-3">
+        {selectedVoucher?.review.status === "pending_review" ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => onReview(selectedVoucher.id, "approved")}>
+              Approve
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => onReview(selectedVoucher.id, "rejected")}>
+              Reject
+            </Button>
+          </>
+        ) : null}
+        {selectedVoucher ? (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onDelete}
+            disabled={isSaving || !isMutableVoucher}
+          >
+            Delete voucher
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function PaymentVoucherTabbedEditor({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onBillAllocationChange,
+  onBillAllocationCreate,
+  onBillAllocationRemove,
+  onChange,
+  onDelete,
+  onDocumentAction,
+  onLineChange,
+  onLineCreate,
+  onLineRemove,
+  onReset,
+  onReview,
+  onSave,
+  selectedVoucher,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onBillAllocationChange: (
+    index: number,
+    field: keyof VoucherBillAllocationForm,
+    value: string
+  ) => void
+  onBillAllocationCreate: () => void
+  onBillAllocationRemove: (index: number) => void
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
+  onLineChange: (
+    index: number,
+    field: keyof VoucherFormLine,
+    value: string
+  ) => void
+  onLineCreate: () => void
+  onLineRemove: (index: number) => void
+  onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
+  onSave: () => void
+  selectedVoucher: BillingVoucher | null
+}) {
+  const navigate = useNavigate()
+  const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
+  const provisionalVoucher = {
+    lines: form.lines.map((line) => ({
+      amount: Number(line.amount || 0),
+      side: line.side,
+    })),
+  } as Pick<BillingVoucher, "lines">
+  const totals = getVoucherTotals(provisionalVoucher)
+  const title = selectedVoucher
+    ? isMutableVoucher
+      ? "Edit payment voucher"
+      : "View payment voucher"
+    : "Create payment voucher"
+  const voucherLabel = form.voucherNumber.trim() || title
+
+  const tabs = useMemo<AnimatedContentTab[]>(
+    () => [
+      {
+        label: "Details",
+        value: "details",
+        content: (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="payment-voucher-number">
+                Voucher number
+              </label>
+              <Input
+                id="payment-voucher-number"
+                value={form.voucherNumber}
+                onChange={(event) => onChange("voucherNumber", event.target.value)}
+                placeholder="Leave blank for FY auto numbering"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="payment-voucher-date">
+                Date
+              </label>
+              <Input
+                id="payment-voucher-date"
+                type="date"
+                value={form.date}
+                onChange={(event) => onChange("date", event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="payment-voucher-lifecycle">
+                Lifecycle
+              </label>
+              <select
+                id="payment-voucher-lifecycle"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.status}
+                onChange={(event) => onChange("status", event.target.value)}
+              >
+                {(["draft", "posted", "cancelled", "reversed"] as BillingVoucherLifecycleStatus[]).map((status) => (
+                  <option key={status} value={status}>
+                    {toVoucherLifecycleLabel(status)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="payment-counterparty">
+                Counterparty
+              </label>
+              <Input
+                id="payment-counterparty"
+                value={form.counterparty}
+                onChange={(event) => onChange("counterparty", event.target.value)}
+                placeholder="Supplier / bank / party"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 xl:col-span-4">
+              <label className="text-sm font-medium text-foreground" htmlFor="payment-narration">
+                Narration
+              </label>
+              <Textarea
+                id="payment-narration"
+                value={form.narration}
+                onChange={(event) => onChange("narration", event.target.value)}
+                placeholder="Optional payment note"
+              />
+            </div>
+            <div className="rounded-[1rem] border border-border/70 bg-background/70 p-4 md:col-span-2 xl:col-span-4">
+              {selectedVoucher ? (
+                <p className="text-sm text-muted-foreground">
+                  Lifecycle <span className="font-medium text-foreground">{toVoucherLifecycleLabel(selectedVoucher.status)}</span> in financial year <span className="font-medium text-foreground">{selectedVoucher.financialYear.label}</span> with sequence{" "}
+                  <span className="font-medium text-foreground">
+                    {selectedVoucher.financialYear.prefix}-{String(selectedVoucher.financialYear.sequenceNumber).padStart(3, "0")}
+                  </span>.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Payment voucher number and financial-year sequence will be generated automatically from the posting date if left blank.
+                </p>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Adjustments",
+        value: "adjustments",
+        content: (
+          <div className="space-y-4">
+            <VoucherInlineEditableTable
+              title="Bill-wise adjustments"
+              description="Match payment vouchers against bill references the way Tally operators expect."
+              addLabel="Add bill ref"
+              rows={form.billAllocations}
+              onAddRow={onBillAllocationCreate}
+              onRemoveRow={onBillAllocationRemove}
+              removeButtonLabel="Remove"
+              getRowKey={(allocation, index) => `${allocation.referenceNumber || "bill-ref"}:${index}`}
+              emptyMessage="No bill-wise adjustments added yet."
+              columns={[
+                {
+                  id: "referenceType",
+                  header: "Reference type",
+                  headerClassName: "w-36 min-w-36",
+                  cellClassName: "w-36 min-w-36",
+                  renderCell: (allocation, index) => (
+                    <select
+                      className={voucherInlineSelectClassName}
+                      value={allocation.referenceType}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "referenceType", event.target.value)
+                      }
+                    >
+                      <option value="against_ref">Against ref</option>
+                      <option value="new_ref">New ref</option>
+                      <option value="on_account">On account</option>
+                    </select>
+                  ),
+                },
+                {
+                  id: "referenceNumber",
+                  header: "Reference number",
+                  headerClassName: "min-w-40",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={allocation.referenceNumber}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "referenceNumber", event.target.value)
+                      }
+                      placeholder="Reference number"
+                    />
+                  ),
+                },
+                {
+                  id: "referenceDate",
+                  header: "Reference date",
+                  headerClassName: "w-36 min-w-36",
+                  cellClassName: "w-36 min-w-36",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="date"
+                      value={allocation.referenceDate}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "referenceDate", event.target.value)
+                      }
+                    />
+                  ),
+                },
+                {
+                  id: "dueDate",
+                  header: "Due date",
+                  headerClassName: "w-36 min-w-36",
+                  cellClassName: "w-36 min-w-36",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="date"
+                      value={allocation.dueDate}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "dueDate", event.target.value)
+                      }
+                    />
+                  ),
+                },
+                {
+                  id: "amount",
+                  header: "Amount",
+                  headerClassName: "w-32 min-w-32",
+                  cellClassName: "w-32 min-w-32",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={allocation.amount}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "amount", event.target.value)
+                      }
+                      placeholder="Amount"
+                    />
+                  ),
+                },
+                {
+                  id: "note",
+                  header: "Note",
+                  headerClassName: "min-w-48",
+                  renderCell: (allocation, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={allocation.note}
+                      onChange={(event) =>
+                        onBillAllocationChange(index, "note", event.target.value)
+                      }
+                      placeholder="Adjustment note"
+                    />
+                  ),
+                },
+              ]}
+            />
+          </div>
+        ),
+      },
+      {
+        label: "Accounting",
+        value: "accounting",
+        content: (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Accounting dimensions</p>
+                <p className="text-xs text-muted-foreground">
+                  Optional branch, project, and cost-center tracking for reporting and controls.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  value={form.dimensions.branch}
+                  onChange={(event) => onChange("dimensionBranch", event.target.value)}
+                  placeholder="Branch"
+                />
+                <Input
+                  value={form.dimensions.project}
+                  onChange={(event) => onChange("dimensionProject", event.target.value)}
+                  placeholder="Project"
+                />
+                <Input
+                  value={form.dimensions.costCenter}
+                  onChange={(event) => onChange("dimensionCostCenter", event.target.value)}
+                  placeholder="Cost center"
+                />
+              </div>
+            </div>
+            <VoucherInlineEditableTable
+              title="Ledger lines"
+              description="Every payment voucher must contain balanced debit and credit lines."
+              addLabel="Add line"
+              rows={form.lines}
+              onAddRow={onLineCreate}
+              onRemoveRow={(index) => {
+                if (form.lines.length > 2) {
+                  onLineRemove(index)
+                }
+              }}
+              removeButtonLabel={form.lines.length <= 2 ? "Locked" : "Remove"}
+              getRowKey={(line, index) => `${index}:${line.ledgerId}:${line.side}`}
+              columns={[
+                {
+                  id: "ledger",
+                  header: "Ledger",
+                  headerClassName: "min-w-60",
+                  renderCell: (line, index) => (
+                    <AutocompleteLookupField
+                      emptyLabel="Select ledger"
+                      onChange={(nextValue) => onLineChange(index, "ledgerId", nextValue)}
+                      options={ledgers.map((ledger) => ({
+                        value: ledger.id,
+                        label: ledger.name,
+                      }))}
+                      searchPlaceholder="Search ledger"
+                      value={line.ledgerId}
+                    />
+                  ),
+                },
+                {
+                  id: "side",
+                  header: "Side",
+                  headerClassName: "w-32 min-w-32",
+                  cellClassName: "w-32 min-w-32",
+                  renderCell: (line, index) => (
+                    <select
+                      className={voucherInlineSelectClassName}
+                      value={line.side}
+                      onChange={(event) => onLineChange(index, "side", event.target.value)}
+                    >
+                      <option value="debit">Debit</option>
+                      <option value="credit">Credit</option>
+                    </select>
+                  ),
+                },
+                {
+                  id: "amount",
+                  header: "Amount",
+                  headerClassName: "w-32 min-w-32",
+                  cellClassName: "w-32 min-w-32",
+                  renderCell: (line, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.amount}
+                      onChange={(event) => onLineChange(index, "amount", event.target.value)}
+                    />
+                  ),
+                },
+                {
+                  id: "note",
+                  header: "Note",
+                  headerClassName: "min-w-56",
+                  renderCell: (line, index) => (
+                    <Input
+                      className={voucherInlineInputClassName}
+                      value={line.note}
+                      onChange={(event) => onLineChange(index, "note", event.target.value)}
+                      placeholder="Posting note"
+                    />
+                  ),
+                },
+              ]}
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Debit total
+                </p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  {formatAmount(totals.debit)}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Credit total
+                </p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  {formatAmount(totals.credit)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Review",
+        value: "review",
+        content: (
+          <div className="space-y-4">
+            {selectedVoucher ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-border/70 bg-background/70 p-4">
+                <Badge variant={getVoucherReviewBadgeVariant(selectedVoucher.review.status)}>
+                  {toVoucherReviewLabel(selectedVoucher.review.status)}
+                </Badge>
+                {selectedVoucher.review.requiredReason ? (
+                  <p className="text-sm text-muted-foreground">
+                    {selectedVoucher.review.requiredReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {selectedVoucher && !isMutableVoucher ? (
+              <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {toVoucherLifecycleLabel(selectedVoucher.status)} vouchers are read-only. Keep a voucher in draft for direct editing.
+              </div>
+            ) : null}
+            {formError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
+            {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+          </div>
+        ),
+      },
+    ],
+    [
+      form,
+      formError,
+      isMutableVoucher,
+      ledgers,
+      onBillAllocationChange,
+      onBillAllocationCreate,
+      onBillAllocationRemove,
+      onChange,
+      onLineChange,
+      onLineCreate,
+      onLineRemove,
+      selectedVoucher,
+      totals.credit,
+      totals.debit,
+    ]
+  )
+
+  return (
+    <div className="space-y-6" data-technical-name="page.billing.payment-upsert">
+      <div className="relative overflow-visible rounded-[1.5rem] border border-border/70 bg-background/90 p-5 shadow-sm">
+        <TechnicalNameBadge
+          name="page.billing.payment-upsert"
+          className="absolute -top-3 right-4 z-20"
+        />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-3 w-fit"
+              onClick={() => void navigate("/dashboard/billing/payment-vouchers")}
+            >
+              <ArrowLeftIcon className="size-4" />
+              Back to payment
+            </Button>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                {voucherLabel}
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                Capture outgoing payment details, allocate bill references, and keep payment postings balanced through the billing books.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
+              {selectedVoucher ? "New voucher" : "Reset"}
+            </Button>
+            {selectedVoucher ? (
+              <>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>
+                  Print
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "csv")}>
+                  Export CSV
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "json")}>
+                  Export JSON
+                </Button>
+              </>
+            ) : null}
+            <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
+              {isSaving ? "Saving..." : selectedVoucher ? "Update Voucher" : "Create Voucher"}
+            </Button>
+          </div>
+        </div>
+      </div>
+      <AnimatedTabs defaultTabValue="details" tabs={tabs} />
+      <div className="flex flex-wrap gap-3">
+        {selectedVoucher?.review.status === "pending_review" ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => onReview(selectedVoucher.id, "approved")}>
+              Approve
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => onReview(selectedVoucher.id, "rejected")}>
+              Reject
+            </Button>
+          </>
+        ) : null}
+        {selectedVoucher ? (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onDelete}
+            disabled={isSaving || !isMutableVoucher}
+          >
+            Delete voucher
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function PurchaseVoucherTabbedEditor({
+  form,
+  formError,
+  isSaving,
+  ledgers,
+  onChange,
+  onDelete,
+  onDocumentAction,
+  onLineChange,
+  onLineCreate,
+  onLineRemove,
+  onReset,
+  onReview,
+  onSave,
+  selectedVoucher,
+}: {
+  form: VoucherFormState
+  formError: string | null
+  isSaving: boolean
+  ledgers: BillingLedger[]
+  onChange: (field: string, value: string) => void
+  onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
+  onLineChange: (
+    index: number,
+    field: keyof VoucherFormLine,
+    value: string
+  ) => void
+  onLineCreate: () => void
+  onLineRemove: (index: number) => void
+  onReset: () => void
+  onReview: (voucherId: string, status: "approved" | "rejected") => void
+  onSave: () => void
+  selectedVoucher: BillingVoucher | null
+}) {
+  const navigate = useNavigate()
+  const isMutableVoucher = selectedVoucher === null || selectedVoucher.status === "draft"
+  const provisionalVoucher = {
+    lines: form.gst.enabled ? [] : form.lines.map((line) => ({
+      amount: Number(line.amount || 0),
+      side: line.side,
+    })),
+  } as Pick<BillingVoucher, "lines">
+  const totals = getVoucherTotals(provisionalVoucher)
+  const gstTaxableAmount = Number(form.gst.taxableAmount || 0)
+  const gstRate = Number(form.gst.taxRate || 0)
+  const gstTotalTax = Number(((gstTaxableAmount * gstRate) / 100).toFixed(2))
+  const gstCgst = form.gst.supplyType === "intra" ? Number((gstTotalTax / 2).toFixed(2)) : 0
+  const gstSgst = form.gst.supplyType === "intra" ? Number((gstTotalTax / 2).toFixed(2)) : 0
+  const gstIgst = form.gst.supplyType === "inter" ? gstTotalTax : 0
+  const gstInvoiceAmount = Number((gstTaxableAmount + gstTotalTax).toFixed(2))
+  const gstModeEnabled = form.gst.enabled
+  const title = selectedVoucher
+    ? isMutableVoucher
+      ? "Edit purchase voucher"
+      : "View purchase voucher"
+    : "Create purchase voucher"
+  const voucherLabel = form.voucherNumber.trim() || title
+
+  const tabs = useMemo<AnimatedContentTab[]>(
+    () => [
+      {
+        label: "Details",
+        value: "details",
+        content: (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="purchase-voucher-number">
+                Voucher number
+              </label>
+              <Input
+                id="purchase-voucher-number"
+                value={form.voucherNumber}
+                onChange={(event) => onChange("voucherNumber", event.target.value)}
+                placeholder="Leave blank for FY auto numbering"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="purchase-voucher-date">
+                Date
+              </label>
+              <Input
+                id="purchase-voucher-date"
+                type="date"
+                value={form.date}
+                onChange={(event) => onChange("date", event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="purchase-voucher-lifecycle">
+                Lifecycle
+              </label>
+              <select
+                id="purchase-voucher-lifecycle"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.status}
+                onChange={(event) => onChange("status", event.target.value)}
+              >
+                {(["draft", "posted", "cancelled", "reversed"] as BillingVoucherLifecycleStatus[]).map((status) => (
+                  <option key={status} value={status}>
+                    {toVoucherLifecycleLabel(status)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground" htmlFor="purchase-counterparty">
+                Counterparty
+              </label>
+              <Input
+                id="purchase-counterparty"
+                value={form.counterparty}
+                onChange={(event) => onChange("counterparty", event.target.value)}
+                placeholder="Supplier name"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 xl:col-span-4">
+              <label className="text-sm font-medium text-foreground" htmlFor="purchase-narration">
+                Narration
+              </label>
+              <Textarea
+                id="purchase-narration"
+                value={form.narration}
+                onChange={(event) => onChange("narration", event.target.value)}
+                placeholder="Optional purchase note"
+              />
+            </div>
+            <div className="rounded-[1rem] border border-border/70 bg-background/70 p-4 md:col-span-2 xl:col-span-4">
+              {selectedVoucher ? (
+                <p className="text-sm text-muted-foreground">
+                  Lifecycle <span className="font-medium text-foreground">{toVoucherLifecycleLabel(selectedVoucher.status)}</span> in financial year <span className="font-medium text-foreground">{selectedVoucher.financialYear.label}</span> with sequence{" "}
+                  <span className="font-medium text-foreground">
+                    {selectedVoucher.financialYear.prefix}-{String(selectedVoucher.financialYear.sequenceNumber).padStart(3, "0")}
+                  </span>.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Purchase voucher number and financial-year sequence will be generated automatically from the posting date if left blank.
+                </p>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "GST & Transport",
+        value: "gst-transport",
+        content: (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-[1rem] border border-border/70 bg-background/70 p-4">
+              <div>
+                <p className="font-semibold text-foreground">GST posting</p>
+                <p className="text-sm text-muted-foreground">
+                  Enable GST mode to auto-post tax ledgers for purchase vouchers.
+                </p>
+              </div>
+              <select
+                className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.gst.enabled ? "enabled" : "disabled"}
+                onChange={(event) =>
+                  onChange("gst", event.target.value === "enabled" ? "enabled" : "disabled")
+                }
+              >
+                <option value="disabled">Manual</option>
+                <option value="enabled">GST auto-post</option>
+              </select>
+            </div>
+            {gstModeEnabled ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <Input
+                    value={form.gst.hsnOrSac}
+                    onChange={(event) => onChange("gstHsnOrSac", event.target.value)}
+                    placeholder="HSN / SAC"
+                  />
+                  <AutocompleteLookupField
+                    emptyLabel="Select party ledger"
+                    onChange={(nextValue) => onChange("gstPartyLedgerId", nextValue)}
+                    options={ledgers.map((ledger) => ({ value: ledger.id, label: ledger.name }))}
+                    searchPlaceholder="Search party ledger"
+                    value={form.gst.partyLedgerId}
+                  />
+                  <AutocompleteLookupField
+                    emptyLabel="Select taxable ledger"
+                    onChange={(nextValue) => onChange("gstTaxableLedgerId", nextValue)}
+                    options={ledgers.map((ledger) => ({ value: ledger.id, label: ledger.name }))}
+                    searchPlaceholder="Search taxable ledger"
+                    value={form.gst.taxableLedgerId}
+                  />
+                  <Input
+                    value={form.gst.partyGstin}
+                    onChange={(event) => onChange("gstPartyGstin", event.target.value)}
+                    placeholder="Party GSTIN"
+                  />
+                  <Input
+                    value={form.gst.placeOfSupply}
+                    onChange={(event) => onChange("gstPlaceOfSupply", event.target.value)}
+                    placeholder="Place of supply"
+                  />
+                  <select
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={form.gst.supplyType}
+                    onChange={(event) => onChange("gstSupplyType", event.target.value)}
+                  >
+                    <option value="intra">Intra-state</option>
+                    <option value="inter">Inter-state</option>
+                  </select>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.gst.taxableAmount}
+                    onChange={(event) => onChange("gstTaxableAmount", event.target.value)}
+                    placeholder="Taxable amount"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.gst.taxRate}
+                    onChange={(event) => onChange("gstTaxRate", event.target.value)}
+                    placeholder="GST rate"
+                  />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Taxable</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{formatAmount(gstTaxableAmount)}</p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">CGST</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{formatAmount(gstCgst)}</p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">SGST / IGST</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{formatAmount(form.gst.supplyType === "intra" ? gstSgst : gstIgst)}</p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Invoice total</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{formatAmount(gstInvoiceAmount)}</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="flex items-center gap-2 rounded-[1rem] border border-border/70 bg-background/70 p-4 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={form.generateEInvoice}
+                      onChange={(event) =>
+                        onChange("generateEInvoice", event.target.checked ? "true" : "false")
+                      }
+                    />
+                    Generate e-invoice record
+                  </label>
+                  <label className="flex items-center gap-2 rounded-[1rem] border border-border/70 bg-background/70 p-4 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={form.generateEWayBill}
+                      onChange={(event) =>
+                        onChange("generateEWayBill", event.target.checked ? "true" : "false")
+                      }
+                    />
+                    Generate e-way bill record
+                  </label>
+                </div>
+                {form.generateEWayBill ? (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={form.transport.distanceKm}
+                      onChange={(event) => onChange("transportDistanceKm", event.target.value)}
+                      placeholder="Distance in KM"
+                    />
+                    <Input
+                      value={form.transport.vehicleNumber}
+                      onChange={(event) => onChange("transportVehicleNumber", event.target.value)}
+                      placeholder="Vehicle number"
+                    />
+                    <Input
+                      value={form.transport.transporterId}
+                      onChange={(event) => onChange("transportTransporterId", event.target.value)}
+                      placeholder="Transporter id"
+                    />
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="rounded-[1rem] border border-border/70 bg-background/70 p-4 text-sm text-muted-foreground">
+                GST auto-post is disabled. Use the accounting tab to maintain direct ledger lines.
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        label: "Accounting",
+        value: "accounting",
+        content: (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Accounting dimensions</p>
+                <p className="text-xs text-muted-foreground">
+                  Optional branch, project, and cost-center tracking for reporting and controls.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  value={form.dimensions.branch}
+                  onChange={(event) => onChange("dimensionBranch", event.target.value)}
+                  placeholder="Branch"
+                />
+                <Input
+                  value={form.dimensions.project}
+                  onChange={(event) => onChange("dimensionProject", event.target.value)}
+                  placeholder="Project"
+                />
+                <Input
+                  value={form.dimensions.costCenter}
+                  onChange={(event) => onChange("dimensionCostCenter", event.target.value)}
+                  placeholder="Cost center"
+                />
+              </div>
+            </div>
+            {!gstModeEnabled ? (
+              <VoucherInlineEditableTable
+                title="Ledger lines"
+                description="Every purchase voucher must contain balanced debit and credit lines."
+                addLabel="Add line"
+                rows={form.lines}
+                onAddRow={onLineCreate}
+                onRemoveRow={(index) => {
+                  if (form.lines.length > 2) {
+                    onLineRemove(index)
+                  }
+                }}
+                removeButtonLabel={form.lines.length <= 2 ? "Locked" : "Remove"}
+                getRowKey={(line, index) => `${index}:${line.ledgerId}:${line.side}`}
+                columns={[
+                  {
+                    id: "ledger",
+                    header: "Ledger",
+                    headerClassName: "min-w-60",
+                    renderCell: (line, index) => (
+                      <AutocompleteLookupField
+                        emptyLabel="Select ledger"
+                        onChange={(nextValue) => onLineChange(index, "ledgerId", nextValue)}
+                        options={ledgers.map((ledger) => ({
+                          value: ledger.id,
+                          label: ledger.name,
+                        }))}
+                        searchPlaceholder="Search ledger"
+                        value={line.ledgerId}
+                      />
+                    ),
+                  },
+                  {
+                    id: "side",
+                    header: "Side",
+                    headerClassName: "w-32 min-w-32",
+                    cellClassName: "w-32 min-w-32",
+                    renderCell: (line, index) => (
+                      <select
+                        className={voucherInlineSelectClassName}
+                        value={line.side}
+                        onChange={(event) => onLineChange(index, "side", event.target.value)}
+                      >
+                        <option value="debit">Debit</option>
+                        <option value="credit">Credit</option>
+                      </select>
+                    ),
+                  },
+                  {
+                    id: "amount",
+                    header: "Amount",
+                    headerClassName: "w-32 min-w-32",
+                    cellClassName: "w-32 min-w-32",
+                    renderCell: (line, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.amount}
+                        onChange={(event) => onLineChange(index, "amount", event.target.value)}
+                      />
+                    ),
+                  },
+                  {
+                    id: "note",
+                    header: "Note",
+                    headerClassName: "min-w-56",
+                    renderCell: (line, index) => (
+                      <Input
+                        className={voucherInlineInputClassName}
+                        value={line.note}
+                        onChange={(event) => onLineChange(index, "note", event.target.value)}
+                        placeholder="Posting note"
+                      />
+                    ),
+                  },
+                ]}
+              />
+            ) : null}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {gstModeEnabled ? "GST invoice total" : "Debit total"}
+                </p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  {formatAmount(gstModeEnabled ? gstInvoiceAmount : totals.debit)}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {gstModeEnabled ? "GST tax total" : "Credit total"}
+                </p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  {formatAmount(gstModeEnabled ? gstTotalTax : totals.credit)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        label: "Review",
+        value: "review",
+        content: (
+          <div className="space-y-4">
+            {selectedVoucher ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-[1rem] border border-border/70 bg-background/70 p-4">
+                <Badge variant={getVoucherReviewBadgeVariant(selectedVoucher.review.status)}>
+                  {toVoucherReviewLabel(selectedVoucher.review.status)}
+                </Badge>
+                {selectedVoucher.review.requiredReason ? (
+                  <p className="text-sm text-muted-foreground">
+                    {selectedVoucher.review.requiredReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {selectedVoucher && !isMutableVoucher ? (
+              <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {toVoucherLifecycleLabel(selectedVoucher.status)} vouchers are read-only. Keep a voucher in draft for direct editing.
+              </div>
+            ) : null}
+            {formError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
+            {selectedVoucher ? <VoucherComplianceCard voucher={selectedVoucher} /> : null}
+          </div>
+        ),
+      },
+    ],
+    [
+      form,
+      formError,
+      gstCgst,
+      gstIgst,
+      gstInvoiceAmount,
+      gstModeEnabled,
+      gstSgst,
+      gstTaxableAmount,
+      gstTotalTax,
+      isMutableVoucher,
+      ledgers,
+      onChange,
+      onLineChange,
+      onLineCreate,
+      onLineRemove,
+      selectedVoucher,
+      totals.credit,
+      totals.debit,
+    ]
+  )
+
+  return (
+    <div className="space-y-6" data-technical-name="page.billing.purchase-upsert">
+      <div className="relative overflow-visible rounded-[1.5rem] border border-border/70 bg-background/90 p-5 shadow-sm">
+        <TechnicalNameBadge
+          name="page.billing.purchase-upsert"
+          className="absolute -top-3 right-4 z-20"
+        />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-3 w-fit"
+              onClick={() => void navigate("/dashboard/billing/purchase-vouchers")}
+            >
+              <ArrowLeftIcon className="size-4" />
+              Back to purchase
+            </Button>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                {voucherLabel}
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                Capture supplier voucher details, configure GST posture, and post balanced purchase entries through the billing books.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={onReset} disabled={isSaving}>
+              {selectedVoucher ? "New voucher" : "Reset"}
+            </Button>
+            {selectedVoucher ? (
+              <>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>
+                  Print
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "csv")}>
+                  Export CSV
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onDocumentAction(selectedVoucher.id, "json")}>
+                  Export JSON
+                </Button>
+              </>
+            ) : null}
+            <Button type="button" onClick={onSave} disabled={isSaving || !isMutableVoucher}>
+              {isSaving ? "Saving..." : selectedVoucher ? "Update Voucher" : "Create Voucher"}
+            </Button>
+          </div>
+        </div>
+      </div>
+      <AnimatedTabs defaultTabValue="details" tabs={tabs} />
+      <div className="flex flex-wrap gap-3">
+        {selectedVoucher?.review.status === "pending_review" ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => onReview(selectedVoucher.id, "approved")}>
+              Approve
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => onReview(selectedVoucher.id, "rejected")}>
+              Reject
+            </Button>
+          </>
+        ) : null}
+        {selectedVoucher ? (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onDelete}
+            disabled={isSaving || !isMutableVoucher}
+          >
+            Delete voucher
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }
