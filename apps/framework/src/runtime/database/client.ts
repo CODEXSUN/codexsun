@@ -6,11 +6,9 @@ import type { ServerConfig } from "../config/index.js"
 
 export type RuntimeDatabases = {
   primary: Kysely<unknown>
-  offline?: Kysely<unknown>
   analytics?: Kysely<unknown>
   metadata: {
     primaryDriver: ServerConfig["database"]["driver"]
-    offlineEnabled: boolean
     analyticsEnabled: boolean
   }
   destroy: () => Promise<void>
@@ -79,16 +77,13 @@ function createAnalyticsDatabase(config: ServerConfig) {
 
 export function createRuntimeDatabases(config: ServerConfig): RuntimeDatabases {
   const primary = createPrimaryDatabase(config)
-  const offline: Kysely<unknown> | undefined = undefined
   const analytics = createAnalyticsDatabase(config)
 
   return {
     primary,
-    offline,
     analytics,
     metadata: {
       primaryDriver: config.database.driver,
-      offlineEnabled: false,
       analyticsEnabled: config.analytics.enabled,
     },
     destroy: async () => {

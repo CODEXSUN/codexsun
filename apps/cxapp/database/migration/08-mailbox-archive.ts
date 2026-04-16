@@ -15,16 +15,10 @@ export const coreMailboxArchiveMigration = defineDatabaseMigration({
         .execute()
     } catch (error) {
       const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
-      const code =
-        typeof error === "object" && error !== null && "code" in error
-          ? String(error.code).toLowerCase()
-          : ""
-
       if (
         message.includes("duplicate column") ||
         message.includes("duplicate column name") ||
-        message.includes("already exists") ||
-        code === "sqlite_error"
+        message.includes("already exists")
       ) {
         return
       }

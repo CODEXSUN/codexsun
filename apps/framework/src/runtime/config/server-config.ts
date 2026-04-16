@@ -2,7 +2,7 @@ import path from "node:path"
 
 import { readBoolean, readNumber, resolveEnv } from "./env.js"
 
-export type DatabaseDriver = "mariadb" | "postgres" | "sqlite"
+export type DatabaseDriver = "mariadb" | "postgres"
 export type RuntimeEnvironment = "development" | "staging" | "production"
 export type FrontendTarget = "site" | "shop" | "app"
 export type ToastPosition =
@@ -71,6 +71,20 @@ function readRuntimeEnvironment(value: string | undefined): RuntimeEnvironment {
   }
 }
 
+function readDatabaseDriver(value: string | undefined): DatabaseDriver {
+  const normalizedValue = (value ?? "").trim().toLowerCase()
+
+  if (!normalizedValue) {
+    return "mariadb"
+  }
+
+  if (normalizedValue === "mariadb" || normalizedValue === "postgres") {
+    return normalizedValue
+  }
+
+  throw new Error("DB_DRIVER must be either mariadb or postgres.")
+}
+
 function readStringList(value: string | undefined) {
   return Array.from(
     new Set(
@@ -107,11 +121,6 @@ export type ServerConfig = {
     user?: string
     password?: string
     ssl: boolean
-    sqliteFile: string
-  }
-  offline: {
-    enabled: boolean
-    sqliteFile: string
   }
   analytics: {
     enabled: boolean
@@ -267,18 +276,6 @@ export type ServerConfig = {
 }
 
 function validateServerConfig(config: ServerConfig) {
-  if (config.database.driver === "sqlite") {
-    throw new Error(
-      "SQLite runtime support has been removed. Use MariaDB for the primary database."
-    )
-  }
-
-  if (config.offline.enabled) {
-    throw new Error(
-      "Offline SQLite support has been removed from the runtime."
-    )
-  }
-
   if (config.environment === "development") {
     return config
   }
@@ -347,7 +344,6 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
     env.RAZORPAY_ENABLED != null
       ? readBoolean(env.RAZORPAY_ENABLED, false)
       : Boolean(razorpayKeyId && razorpayKeySecret && !legacyPaymentTest)
-  const sqliteFile = path.resolve(cwd, env.SQLITE_FILE ?? "storage/desktop/codexsun.sqlite")
   const analyticsEnabled = readBoolean(env.ANALYTICS_DB_ENABLED, false)
   const superAdminEmails = readStringList(env.SUPER_ADMIN_EMAILS).map((entry) =>
     entry.toLowerCase()
@@ -378,18 +374,13 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
       : undefined,
     cloudflareEnabled: readBoolean(env.CLOUDFLARE_ENABLED, false),
     database: {
-      driver: (env.DB_DRIVER as DatabaseDriver | undefined) ?? "mariadb",
+      driver: readDatabaseDriver(env.DB_DRIVER),
       host: env.DB_HOST,
       port: env.DB_PORT ? readNumber(env.DB_PORT, 3306, "DB_PORT") : undefined,
       name: env.DB_NAME,
       user: env.DB_USER,
       password: env.DB_PASSWORD,
       ssl: readBoolean(env.DB_SSL, false),
-      sqliteFile,
-    },
-    offline: {
-      enabled: readBoolean(env.OFFLINE_SUPPORT_ENABLED, false),
-      sqliteFile,
     },
     analytics: {
       enabled: analyticsEnabled,

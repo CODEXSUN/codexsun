@@ -223,7 +223,6 @@ BUILD_ON_START="${BUILD_ON_START:-false}"
 RUNTIME_FRONTEND_TARGET="${RUNTIME_FRONTEND_TARGET:-shop}"
 RUNTIME_DB_BACKUP_ENABLED="${RUNTIME_DB_BACKUP_ENABLED:-false}"
 RUNTIME_SECRETS_LAST_ROTATED_AT="${RUNTIME_SECRETS_LAST_ROTATED_AT:-$(date -u +%F)}"
-RUNTIME_SQLITE_FILE="${RUNTIME_SQLITE_FILE:-storage/desktop/codexsun.sqlite}"
 
 if [ "$TARGET_ENV" = "local" ]; then
   DEFAULT_RUNTIME_APP_ENV="development"
@@ -243,6 +242,13 @@ RUNTIME_CLOUDFLARE_ENABLED="${RUNTIME_CLOUDFLARE_ENABLED:-$DEFAULT_RUNTIME_CLOUD
 RUNTIME_DB_DRIVER="${RUNTIME_DB_DRIVER:-$DEFAULT_RUNTIME_DB_DRIVER}"
 RUNTIME_TLS_ENABLED="${RUNTIME_TLS_ENABLED:-false}"
 GLOBAL_RUNTIME_PUBLIC_PORT="${RUNTIME_PUBLIC_PORT:-}"
+
+case "$RUNTIME_DB_DRIVER" in
+  mariadb|postgres) ;;
+  *)
+    die "RUNTIME_DB_DRIVER must be 'mariadb' or 'postgres'."
+    ;;
+esac
 
 DB_HOST_DEFAULT="${DB_HOST_DEFAULT:-mariadb}"
 DB_PORT_DEFAULT="${DB_PORT_DEFAULT:-3306}"
@@ -796,7 +802,6 @@ configure_runtime_env() {
     printf 'CODEXSUN_API_URL=%s\n' "$public_base_url"
     printf 'CODEXSUN_WEB_URL=%s\n' "$public_base_url"
     printf 'PORT=%s\n' "4000"
-    printf 'SQLITE_FILE=%s\n' "$RUNTIME_SQLITE_FILE"
   } > "$updates_file"
 
   if [ -n "$jwt_secret" ]; then
@@ -807,25 +812,14 @@ configure_runtime_env() {
     printf 'SUPER_ADMIN_EMAILS=%s\n' "$super_admin_emails" >> "$updates_file"
   fi
 
-  if [ "$RUNTIME_DB_DRIVER" = "sqlite" ]; then
-    {
-      printf 'DB_HOST=\n'
-      printf 'DB_PORT=\n'
-      printf 'DB_USER=\n'
-      printf 'DB_PASSWORD=\n'
-      printf 'DB_NAME=\n'
-      printf 'DB_SSL=%s\n' "false"
-    } >> "$updates_file"
-  else
-    {
-      printf 'DB_HOST=%s\n' "$db_host"
-      printf 'DB_PORT=%s\n' "$db_port"
-      printf 'DB_USER=%s\n' "$db_user"
-      printf 'DB_PASSWORD=%s\n' "$db_password"
-      printf 'DB_NAME=%s\n' "$db_name"
-      printf 'DB_SSL=%s\n' "false"
-    } >> "$updates_file"
-  fi
+  {
+    printf 'DB_HOST=%s\n' "$db_host"
+    printf 'DB_PORT=%s\n' "$db_port"
+    printf 'DB_USER=%s\n' "$db_user"
+    printf 'DB_PASSWORD=%s\n' "$db_password"
+    printf 'DB_NAME=%s\n' "$db_name"
+    printf 'DB_SSL=%s\n' "false"
+  } >> "$updates_file"
   {
     printf 'DB_BACKUP_ENABLED=%s\n' "$RUNTIME_DB_BACKUP_ENABLED"
     printf 'AUTH_OTP_DEBUG=%s\n' "false"

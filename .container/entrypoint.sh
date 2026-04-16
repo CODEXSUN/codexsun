@@ -65,12 +65,77 @@ resolve_startup_value() {
   read_runtime_env_value "$key" "$fallback"
 }
 
+resolve_process_value() {
+  key="$1"
+  fallback="${2:-}"
+  eval "current_value=\${$key:-}"
+
+  if [ -n "$current_value" ]; then
+    printf '%s' "$current_value"
+    return
+  fi
+
+  printf '%s' "$fallback"
+}
+
 ensure_runtime_env_file() {
   mkdir -p "$RUNTIME_ROOT"
 
   if [ ! -f "$RUNTIME_ENV_FILE" ]; then
     cp "$IMAGE_APP_ROOT/.env.sample" "$RUNTIME_ENV_FILE"
   fi
+}
+
+set_runtime_env_value() {
+  key="$1"
+  value="$2"
+  temp_file="$(mktemp)"
+
+  if awk -F= -v key="$key" -v value="$value" '
+    BEGIN { found=0 }
+    /^[[:space:]]*#/ { print; next }
+    NF >= 2 {
+      current=$1
+      sub(/^[[:space:]]+/, "", current)
+      sub(/[[:space:]]+$/, "", current)
+      if (current == key) {
+        print key "=" value
+        found=1
+        next
+      }
+    }
+    { print }
+    END {
+      if (found == 0) {
+        print key "=" value
+      }
+    }
+  ' "$RUNTIME_ENV_FILE" > "$temp_file"; then
+    mv "$temp_file" "$RUNTIME_ENV_FILE"
+  else
+    rm -f "$temp_file"
+    log "Failed to update $key in $RUNTIME_ENV_FILE"
+    exit 1
+  fi
+}
+
+repair_unsupported_runtime_env() {
+  db_driver="$(read_runtime_env_value "DB_DRIVER" "mariadb")"
+
+  case "$db_driver" in
+    ""|mariadb|postgres)
+      return
+      ;;
+  esac
+
+  log "Runtime env uses unsupported DB_DRIVER=$db_driver; switching to MariaDB defaults."
+  set_runtime_env_value "DB_DRIVER" "mariadb"
+  set_runtime_env_value "DB_HOST" "$(resolve_process_value "DB_HOST" "mariadb")"
+  set_runtime_env_value "DB_PORT" "$(resolve_process_value "DB_PORT" "3306")"
+  set_runtime_env_value "DB_USER" "$(resolve_process_value "DB_USER" "root")"
+  set_runtime_env_value "DB_PASSWORD" "$(resolve_process_value "DB_PASSWORD" "DbPass1@@")"
+  set_runtime_env_value "DB_NAME" "$(resolve_process_value "DB_NAME" "codexsun_db")"
+  set_runtime_env_value "DB_SSL" "$(resolve_process_value "DB_SSL" "false")"
 }
 
 ensure_runtime_git_excludes() {
@@ -233,6 +298,7 @@ prepare_runtime_layout() {
 }
 
 ensure_runtime_env_file
+repair_unsupported_runtime_env
 
 ACTIVE_APP_ROOT="$IMAGE_APP_ROOT"
 if is_truthy "$(resolve_startup_value "GIT_SYNC_ENABLED" "false")"; then

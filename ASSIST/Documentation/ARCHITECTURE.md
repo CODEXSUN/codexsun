@@ -408,8 +408,8 @@ Every manifest carries workspace metadata so framework and CxApp can inspect app
 Current database direction:
 
 1. MariaDB is the primary live transactional database
-2. SQLite is the offline and desktop option
-3. PostgreSQL is reserved for optional analytics workloads
+2. PostgreSQL is reserved for approved runtime deployments and optional analytics workloads
+3. local, cloud, and container startup paths use managed network database services
 
 Rules:
 
@@ -459,7 +459,7 @@ Implemented now:
 3. normalized app folder shape across all framework-composed suite apps
 4. manifest-level suite registration with workspace metadata
 5. internal and external API route split
-6. MariaDB / SQLite / PostgreSQL runtime switching
+6. MariaDB primary runtime switching with PostgreSQL support
 7. shared desk shell and grouped app navigation from `apps/ui`
 8. shared auth layouts and auth page presentation through `apps/ui`
 9. shared design-system docs and routeable component catalog in the `ui` app

@@ -2,9 +2,18 @@
 
 ## Version State
 
-- Current package version: `1.0.191`
-- Current release tag: `v-1.0.191`
+- Current package version: `1.0.192`
+- Current release tag: `v-1.0.192`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.192
+
+### [v 1.0.192] 2026-04-16 - Remove SQLite runtime configuration from startup paths
+
+- removed SQLite and offline database fields from the active server runtime config contract so the backend only accepts MariaDB or PostgreSQL driver values
+- removed SQLite environment defaults from container setup and Playwright startup configs, keeping MariaDB as the default startup database
+- updated runtime settings, desk metadata, and architecture docs so operators no longer see SQLite as a supported or planned runtime database option
+- repaired the live `codexsun-app` runtime volume from stale SQLite values to MariaDB values, rebuilt `codexsun-app:v1`, recreated the container, and verified `/health` reports `database.primaryDriver` as `mariadb`
 
 ## v-1.0.191
 

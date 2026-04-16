@@ -345,7 +345,7 @@ export const runtimeSettingGroups: readonly RuntimeSettingGroupDefinition[] = [
   {
     id: "database",
     label: "Database",
-    summary: "Primary runtime storage including MariaDB, PostgreSQL, or SQLite fallback.",
+    summary: "Primary runtime storage using MariaDB by default, with PostgreSQL available for supported deployments.",
     fields: [
       {
         key: "DB_DRIVER",

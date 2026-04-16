@@ -26,8 +26,8 @@ The repository currently runs with this model:
 9. `apps/mobile` is a companion Expo client package outside the framework-composed suite
 10. active build outputs target `build/app/cxapp/web` and `build/app/cxapp/server`
 11. MariaDB is the current live primary database target
-12. SQLite is reserved for offline and future desktop paths
-13. PostgreSQL remains an optional analytics path
+12. PostgreSQL remains available for approved runtime deployments and optional analytics paths
+13. local and container startup must use managed network database services
 
 ## Workspace Shape
 

@@ -107,7 +107,7 @@ const frameworkServices: DeskServiceDefinition[] = [
   {
     id: "database",
     name: "Database",
-    summary: "Driver switching for MariaDB, SQLite, and analytics PostgreSQL.",
+    summary: "Primary MariaDB storage with PostgreSQL support for approved runtime deployments.",
     readiness: "active",
     icon: Database,
   },
