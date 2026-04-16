@@ -15,6 +15,8 @@ import {
   updateCrmReminder,
   updateCrmTaskStatus,
 } from "../../apps/crm/src/services/crm-follow-up-service.js"
+import { getCrmCustomer360Board } from "../../apps/crm/src/services/crm-customer-360-service.js"
+import { getCrmScoreboard } from "../../apps/crm/src/services/crm-scoreboard-service.js"
 import { createLead, registerInteraction } from "../../apps/crm/src/services/crm-repository.js"
 import { getServerConfig } from "../../apps/framework/src/runtime/config/index.js"
 import {
@@ -49,6 +51,8 @@ test("CRM follow-up workflow persists assignment history, reminder lifecycle, co
         summary: "Customer requested a product callback and pricing note.",
         requires_followup: true,
       })
+      const dueAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+      const reminderAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
 
       const taskResult = await createCrmFollowUpTask(runtime.primary, {
         leadId,
@@ -56,8 +60,8 @@ test("CRM follow-up workflow persists assignment history, reminder lifecycle, co
         title: "Call customer back with pricing details",
         assigneeUserId: "user-crm-agent",
         assigneeName: "CRM Agent",
-        dueAt: "2026-04-14T09:00:00.000Z",
-        reminderAt: "2026-04-14T08:30:00.000Z",
+        dueAt,
+        reminderAt,
         createdByUserId: "user-admin",
         actor: {
           userId: "user-admin",
@@ -115,6 +119,12 @@ test("CRM follow-up workflow persists assignment history, reminder lifecycle, co
       reminders = await listCrmReminders(runtime.primary, { leadId })
       auditEvents = await listCrmAuditEvents(runtime.primary, { leadId })
       const finalMetrics = await getCrmOverviewMetrics(runtime.primary)
+      const customer360 = await getCrmCustomer360Board(runtime.primary, { leadId })
+      const scoreboard = await getCrmScoreboard(runtime.primary)
+      const leadScore = scoreboard.leadScores.find((item) => item.leadId === leadId)
+      const managerScore = scoreboard.ownerLeaderboard.find(
+        (item) => item.ownerKey === "user-crm-manager"
+      )
 
       assert.equal(tasks[0]?.status, "completed")
       assert.equal(tasks[0]?.assignee_user_id, "user-crm-manager")
@@ -125,6 +135,20 @@ test("CRM follow-up workflow persists assignment history, reminder lifecycle, co
       assert.equal(auditEvents.some((item) => item.action === "crm_task_reassigned"), true)
       assert.equal(auditEvents.some((item) => item.action === "crm_task_completed"), true)
       assert.equal(finalMetrics.completedTasks >= 1, true)
+      assert.equal(customer360.selectedLead?.lead_id, leadId)
+      assert.equal(customer360.interactions.length, 1)
+      assert.equal(customer360.followUpTasks.length, 1)
+      assert.equal(customer360.assignments.length, 2)
+      assert.equal(customer360.metrics.completedTaskCount, 1)
+      assert.equal(customer360.metrics.interactionCount, 1)
+      assert.ok(leadScore)
+      assert.equal(leadScore.interactionCount, 1)
+      assert.equal(leadScore.completedTaskCount, 1)
+      assert.equal(leadScore.overdueReminderCount, 0)
+      assert.equal(leadScore.reasons.some((item) => item.includes("Pipeline status")), true)
+      assert.ok(managerScore)
+      assert.equal(managerScore.completedTaskCount >= 1, true)
+      assert.equal(scoreboard.summary.rankedLeadCount >= 1, true)
     } finally {
       await runtime.destroy()
     }

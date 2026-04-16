@@ -6,7 +6,7 @@ import test from "node:test"
 
 import { createInternalApiRoutes } from "../../../apps/api/src/internal/routes.js"
 import { createCrmFollowUpTask, listCrmTaskAssignments } from "../../../apps/crm/src/services/crm-follow-up-service.js"
-import { createLead } from "../../../apps/crm/src/services/crm-repository.js"
+import { createLead, registerInteraction } from "../../../apps/crm/src/services/crm-repository.js"
 import { createAuthService } from "../../../apps/cxapp/src/services/service-factory.js"
 import { createAppSuite } from "../../../apps/framework/src/application/app-suite.js"
 import { getServerConfig } from "../../../apps/framework/src/runtime/config/index.js"
@@ -85,6 +85,8 @@ test("internal route registry includes the CRM intake, follow-up, reminder, and 
   const routePaths = routes.map((route) => `${route.method} ${route.path}`)
 
   assert.ok(routePaths.includes("GET /internal/v1/crm/overview"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/customer-360"))
+  assert.ok(routePaths.includes("GET /internal/v1/crm/scoreboard"))
   assert.ok(routePaths.includes("GET /internal/v1/crm/leads"))
   assert.ok(routePaths.includes("POST /internal/v1/crm/leads"))
   assert.ok(routePaths.includes("PATCH /internal/v1/crm/leads/status"))
@@ -97,6 +99,215 @@ test("internal route registry includes the CRM intake, follow-up, reminder, and 
   assert.ok(routePaths.includes("GET /internal/v1/crm/reminders"))
   assert.ok(routePaths.includes("PATCH /internal/v1/crm/reminder"))
   assert.ok(routePaths.includes("GET /internal/v1/crm/audit"))
+})
+
+test("CRM customer 360 route returns lead, interaction, task, and audit context", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-crm-customer-360-route-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const leadId = await createLead(runtime.primary, {
+        company_name: "Customer Board Labs",
+        contact_name: "Meera Shah",
+        phone: "+91 7777777777",
+        source: "Referral",
+      })
+      const interactionId = await registerInteraction(runtime.primary, {
+        lead_id: leadId,
+        type: "Meeting",
+        summary: "Customer asked for a customer 360 review before proposal.",
+        requires_followup: true,
+      })
+      await createCrmFollowUpTask(runtime.primary, {
+        leadId,
+        interactionId,
+        title: "Prepare proposal after customer 360 review",
+        assigneeUserId: "user-crm-agent",
+        assigneeName: "CRM Agent",
+        createdByUserId: "user-admin",
+      })
+
+      const customer360Route = routes.find(
+        (candidate) =>
+          candidate.method === "GET" && candidate.path === "/internal/v1/crm/customer-360"
+      )
+
+      assert.ok(customer360Route)
+
+      const response = await customer360Route.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/crm/customer-360",
+          url: new URL(`http://localhost/internal/v1/crm/customer-360?leadId=${leadId}`),
+          headers,
+          bodyText: "",
+          jsonBody: null,
+        },
+        route: {
+          auth: customer360Route.auth,
+          path: customer360Route.path,
+          surface: customer360Route.surface,
+          version: customer360Route.version,
+        },
+      })
+
+      const payload = JSON.parse(response.body) as {
+        item: {
+          selectedLead: { lead_id: string } | null
+          interactions: unknown[]
+          followUpTasks: unknown[]
+          auditEvents: unknown[]
+          metrics: { interactionCount: number; openTaskCount: number }
+        }
+      }
+
+      assert.equal(response.statusCode, 200)
+      assert.equal(payload.item.selectedLead?.lead_id, leadId)
+      assert.equal(payload.item.interactions.length, 1)
+      assert.equal(payload.item.followUpTasks.length, 1)
+      assert.equal(payload.item.auditEvents.length >= 1, true)
+      assert.equal(payload.item.metrics.interactionCount, 1)
+      assert.equal(payload.item.metrics.openTaskCount, 1)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("CRM scoreboard route returns deterministic lead scores and owner leaderboard rows", async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-crm-scoreboard-route-"))
+
+  try {
+    const config = getServerConfig(tempRoot)
+    config.database.driver = "sqlite"
+    config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
+    config.offline.enabled = false
+
+    const runtime = createRuntimeDatabases(config)
+
+    try {
+      await prepareApplicationDatabase(runtime)
+
+      const appSuite = createAppSuite()
+      const routes = createInternalApiRoutes(appSuite)
+      const authService = createAuthService(runtime.primary, config)
+      const adminLogin = await authService.login(
+        {
+          email: "sundar@sundar.com",
+          password: "Kalarani1@@",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+      const headers = {
+        authorization: `Bearer ${adminLogin.accessToken}`,
+      }
+
+      const leadId = await createLead(runtime.primary, {
+        company_name: "Scoreboard Route Labs",
+        contact_name: "Kavya Menon",
+        phone: "+91 6666666666",
+        source: "Website",
+      })
+      const interactionId = await registerInteraction(runtime.primary, {
+        lead_id: leadId,
+        type: "Reply",
+        summary: "Customer replied with purchase timing and manager contact.",
+        requires_followup: true,
+      })
+      await createCrmFollowUpTask(runtime.primary, {
+        leadId,
+        interactionId,
+        title: "Send follow-up quote",
+        assigneeUserId: "user-crm-agent",
+        assigneeName: "CRM Agent",
+        createdByUserId: "user-admin",
+      })
+
+      const scoreboardRoute = routes.find(
+        (candidate) => candidate.method === "GET" && candidate.path === "/internal/v1/crm/scoreboard"
+      )
+
+      assert.ok(scoreboardRoute)
+
+      const response = await scoreboardRoute.handler({
+        appSuite,
+        config,
+        databases: runtime,
+        request: {
+          method: "GET",
+          pathname: "/internal/v1/crm/scoreboard",
+          url: new URL("http://localhost/internal/v1/crm/scoreboard"),
+          headers,
+          bodyText: "",
+          jsonBody: null,
+        },
+        route: {
+          auth: scoreboardRoute.auth,
+          path: scoreboardRoute.path,
+          surface: scoreboardRoute.surface,
+          version: scoreboardRoute.version,
+        },
+      })
+
+      const payload = JSON.parse(response.body) as {
+        item: {
+          summary: { rankedLeadCount: number; ownerCount: number }
+          leadScores: Array<{ leadId: string; interactionCount: number; openTaskCount: number }>
+          ownerLeaderboard: Array<{ ownerKey: string; assignedTaskCount: number }>
+        }
+      }
+      const leadScore = payload.item.leadScores.find((item) => item.leadId === leadId)
+      const ownerRow = payload.item.ownerLeaderboard.find(
+        (item) => item.ownerKey === "user-crm-agent"
+      )
+
+      assert.equal(response.statusCode, 200)
+      assert.equal(payload.item.summary.rankedLeadCount >= 1, true)
+      assert.ok(leadScore)
+      assert.equal(leadScore.interactionCount, 1)
+      assert.equal(leadScore.openTaskCount, 1)
+      assert.ok(ownerRow)
+      assert.equal(ownerRow.assignedTaskCount >= 1, true)
+    } finally {
+      await runtime.destroy()
+    }
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true })
+  }
 })
 
 test("CRM assignment route reassigns a follow-up task and records assignment history", async () => {

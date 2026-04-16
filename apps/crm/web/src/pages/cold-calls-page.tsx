@@ -183,7 +183,7 @@ export function ColdCallsPage() {
         <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">CRM</p>
-            <h2 className="text-sm font-bold text-foreground">Cold Calls & Leads</h2>
+            <h2 className="text-sm font-bold text-foreground">Call Logs & Leads</h2>
           </div>
           <button
             onClick={() => setShowNewLeadForm(true)}

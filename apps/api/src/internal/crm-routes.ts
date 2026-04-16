@@ -1,6 +1,8 @@
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 
+import { getCrmCustomer360Board } from "../../../crm/src/services/crm-customer-360-service.js"
+import { getCrmScoreboard } from "../../../crm/src/services/crm-scoreboard-service.js"
 import {
   assignCrmTask,
   createCrmFollowUpTask,
@@ -31,6 +33,31 @@ export function createCrmInternalRoutes(): HttpRouteDefinition[] {
         await requireAuthenticatedUser(context)
         return jsonResponse({
           item: await getCrmOverviewMetrics(context.databases.primary),
+        })
+      },
+    }),
+
+    defineInternalRoute("/crm/customer-360", {
+      summary: "Read a lead-centric CRM customer 360 board",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+        const url = new URL(context.request.url)
+
+        return jsonResponse({
+          item: await getCrmCustomer360Board(context.databases.primary, {
+            leadId: url.searchParams.get("leadId") ?? undefined,
+          }),
+        })
+      },
+    }),
+
+    defineInternalRoute("/crm/scoreboard", {
+      summary: "Read deterministic CRM scoring and owner leaderboard metrics",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context)
+
+        return jsonResponse({
+          item: await getCrmScoreboard(context.databases.primary),
         })
       },
     }),

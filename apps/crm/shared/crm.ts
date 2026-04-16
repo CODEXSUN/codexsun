@@ -108,3 +108,94 @@ export type CrmOverviewMetrics = {
   overdueReminders: number
   completedTasks: number
 }
+
+export type CrmLeadHeader = {
+  lead_id: string
+  company_name: string
+  contact_name: string
+  email: string | null
+  phone: string | null
+  source: string | null
+  status: CrmLeadStatus | string
+  owner_id: string | null
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CrmInteractionHeader = {
+  interaction_id: string
+  lead_id: string
+  type: CrmInteractionType | string
+  summary: string | null
+  sentiment: string | null
+  requires_followup: number
+  linked_task_id: string | null
+  interaction_date: string
+  created_at: string
+}
+
+export type CrmCustomer360Metrics = {
+  interactionCount: number
+  openTaskCount: number
+  overdueReminderCount: number
+  completedTaskCount: number
+  latestInteractionAt: string | null
+  lastAuditAt: string | null
+}
+
+export type CrmCustomer360Board = {
+  leads: CrmLeadHeader[]
+  selectedLead: CrmLeadHeader | null
+  interactions: CrmInteractionHeader[]
+  followUpTasks: CrmFollowUpTask[]
+  reminders: CrmReminder[]
+  assignments: CrmTaskAssignment[]
+  auditEvents: CrmAuditEvent[]
+  metrics: CrmCustomer360Metrics
+}
+
+export type CrmLeadScore = {
+  leadId: string
+  companyName: string
+  contactName: string
+  status: string
+  source: string | null
+  leadScore: number
+  engagementScore: number
+  riskScore: number
+  interactionCount: number
+  openTaskCount: number
+  completedTaskCount: number
+  overdueReminderCount: number
+  latestInteractionAt: string | null
+  reasons: string[]
+}
+
+export type CrmOwnerLeaderboardRow = {
+  ownerKey: string
+  ownerName: string
+  assignedTaskCount: number
+  openTaskCount: number
+  completedTaskCount: number
+  overdueReminderCount: number
+  reassignmentCount: number
+  auditEventCount: number
+  outputScore: number
+}
+
+export type CrmScoreboardSummary = {
+  rankedLeadCount: number
+  highIntentLeadCount: number
+  atRiskLeadCount: number
+  ownerCount: number
+  averageLeadScore: number
+  averageEngagementScore: number
+}
+
+export type CrmScoreboard = {
+  summary: CrmScoreboardSummary
+  leadScores: CrmLeadScore[]
+  ownerLeaderboard: CrmOwnerLeaderboardRow[]
+  generatedAt: string
+}

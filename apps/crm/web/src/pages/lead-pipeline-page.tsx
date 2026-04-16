@@ -158,7 +158,7 @@ export function LeadPipelinePage() {
           <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">CRM</p>
           <p className="text-sm font-medium text-foreground">No leads in the pipeline</p>
           <p className="text-xs text-muted-foreground">
-            Go to Cold Calls to register your first contact.
+            Go to Call Logs to register your first contact.
           </p>
         </div>
       )}

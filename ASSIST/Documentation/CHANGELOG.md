@@ -2,9 +2,32 @@
 
 ## Version State
 
-- Current package version: `1.0.188`
-- Current release tag: `v-1.0.188`
-- Reference format: `v 1.0.<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>` linked to task `#<number>`
+- Current package version: `1.0.191`
+- Current release tag: `v-1.0.191`
+- Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.191
+
+### [v 1.0.191] 2026-04-15 - Rename CRM cold-call menu label to Call Logs
+
+- renamed the CRM workspace side-menu item from `Cold Calls` to `Call Logs` while preserving the existing `cold-calls` route id and URL
+- aligned nearby CRM page copy so operators are directed to `Call Logs` for first-contact registration
+
+## v-1.0.190
+
+### [v 1.0.190] 2026-04-15 - CRM scoring and owner leaderboard
+
+- added a CRM-owned deterministic scoreboard service that ranks leads by local pipeline status, interaction count, follow-up work, overdue reminders, and completed tasks
+- exposed `GET /internal/v1/crm/scoreboard` with focused service and internal route coverage for lead scoring and owner leaderboard output
+- added a CRM Scoreboard workspace page with local lead, engagement, risk, and owner-output metrics without implying predictive AI or external marketing integrations
+
+## v-1.0.189
+
+### [v 1.0.189] 2026-04-15 - CRM customer 360 board
+
+- added a CRM-owned customer 360 read model that aggregates lead profile, interaction history, follow-up tasks, reminders, assignment history, audit evidence, and relationship metrics from persisted CRM records
+- exposed `GET /internal/v1/crm/customer-360` and added focused service plus internal route coverage for the response
+- added a Customer 360 workspace item and CRM-owned page with a technical-name badge, keeping the slice lead-centric until richer account and contact stores are added
 
 ## v-1.0.188
 
