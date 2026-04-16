@@ -50,6 +50,7 @@ import { ecommerceWorkspaceItems } from "@ecommerce/shared"
 import { frappeWorkspaceItems } from "@frappe/shared"
 import { taskWorkspaceItems } from "@task/shared"
 import { crmWorkspaceItems } from "@crm/shared"
+import { stockWorkspaceItems } from "../../../../stock/shared/index.js"
 import { docsCategories } from "@/registry/data/catalog"
 import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
@@ -78,6 +79,7 @@ const appIconMap: Record<string, LucideIcon> = {
   tally: Database,
   task: Workflow,
   crm: Users,
+  stock: Warehouse,
   ui: Blocks,
 }
 
@@ -93,6 +95,7 @@ const appAccentClassMap: Record<string, string> = {
   site: "from-violet-500/18 via-indigo-500/10 to-transparent",
   tally: "from-lime-500/18 via-emerald-500/10 to-transparent",
   task: "from-fuchsia-500/18 via-pink-500/10 to-transparent",
+  stock: "from-teal-500/18 via-cyan-500/10 to-transparent",
   ui: "from-stone-500/18 via-zinc-500/10 to-transparent",
 }
 
@@ -123,6 +126,7 @@ const frameworkServices: DeskServiceDefinition[] = [
 const appPriorityOrder = [
   "ecommerce",
   "billing",
+  "stock",
   "frappe",
   "site",
   "demo",
@@ -579,6 +583,49 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     ]
   }
 
+  if (app.id === "stock") {
+    const stockWorkspaceIconMap: Record<string, LucideIcon> = {
+      overview: LayoutDashboard,
+      "purchase-receipts": ReceiptText,
+      "goods-inward": PackageCheck,
+      "stock-units": Package,
+      barcodes: Scale,
+      "sticker-batches": ClipboardList,
+      "sale-allocations": ShoppingBag,
+      movements: Workflow,
+      availability: LineChart,
+      reconciliation: Scale,
+      transfers: Truck,
+      reservations: Wallet,
+      verifications: ShieldCheck,
+    }
+
+    return [
+      ...stockWorkspaceItems.map((item) => ({
+        id: `${app.id}-${item.id}`,
+        name: item.name,
+        route: item.route,
+        summary: item.summary,
+        icon: stockWorkspaceIconMap[item.id] ?? Blocks,
+        matchRoutes:
+          item.id === "purchase-receipts"
+            ? [
+                `/dashboard/apps/${app.id}/purchase-receipts/new`,
+                `/dashboard/apps/${app.id}/purchase-receipts/:purchaseReceiptId`,
+                `/dashboard/apps/${app.id}/purchase-receipts/:purchaseReceiptId/edit`,
+              ]
+            : item.id === "goods-inward"
+              ? [
+                  `/dashboard/apps/${app.id}/goods-inward/new`,
+                  `/dashboard/apps/${app.id}/goods-inward/:goodsInwardId`,
+                  `/dashboard/apps/${app.id}/goods-inward/:goodsInwardId/edit`,
+                ]
+              : undefined,
+      })),
+      ...createTechnicalWorkspaceModules(app, root),
+    ]
+  }
+
   return [
     {
       id: `${app.id}-overview`,
@@ -975,6 +1022,63 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/leads`,
                   `/dashboard/apps/${app.id}/cold-calls`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-workspace`,
+              label: "Workspace",
+              shared: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/backend`,
+                  `/dashboard/apps/${app.id}/structure`,
+                  `/dashboard/apps/${app.id}/web`,
+                  `/dashboard/apps/${app.id}/api`,
+                  `/dashboard/apps/${app.id}/database`,
+                ].includes(item.route)
+              ),
+            },
+          ]
+      : app.id === "stock"
+        ? [
+            {
+              id: `${app.id}-overview`,
+              label: "Overview",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-inward`,
+              label: "Inward",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/purchase-receipts`,
+                  `/dashboard/apps/${app.id}/goods-inward`,
+                  `/dashboard/apps/${app.id}/stock-units`,
+                  `/dashboard/apps/${app.id}/barcodes`,
+                  `/dashboard/apps/${app.id}/sticker-batches`,
+                  `/dashboard/apps/${app.id}/verifications`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-operations`,
+              label: "Operations",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/sale-allocations`,
+                  `/dashboard/apps/${app.id}/movements`,
+                  `/dashboard/apps/${app.id}/availability`,
+                  `/dashboard/apps/${app.id}/reconciliation`,
+                  `/dashboard/apps/${app.id}/transfers`,
+                  `/dashboard/apps/${app.id}/reservations`,
                 ].includes(item.route)
               ),
             },

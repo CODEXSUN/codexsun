@@ -4,8 +4,10 @@ import type { Kysely } from "kysely"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { listCompanies } from "../../../cxapp/src/services/company-service.js"
+import { resolveCxappTenantContext } from "../../../cxapp/src/services/tenant-context-service.js"
 import { coreTableNames } from "../../../core/database/table-names.js"
 import { productSchema, type Product } from "../../../core/shared/index.js"
+import { createInventoryEngineRuntimeServices } from "../../../../framework/engines/inventory-engine/runtime-services.js"
 import {
   listJsonStorePayloads,
   replaceJsonStoreRecords,
@@ -39,6 +41,10 @@ import {
 import { billingTableNames } from "../../database/table-names.js"
 
 import { assertBillingViewer } from "./access.js"
+import {
+  syncBillingGoodsInwardToInventoryEngine,
+  syncBillingSalesIssueToInventoryEngine,
+} from "./inventory-engine-sync-service.js"
 import { getStorePayloadById, listStorePayloads, replaceStorePayloads } from "./store.js"
 
 function roundQuantity(value: number) {
@@ -771,6 +777,21 @@ export async function postBillingGoodsInwardToInventory(
   await writePurchaseReceipts(database, nextPurchaseReceipts)
   await writeProducts(database, [...updatedProducts.values()])
 
+  const inventoryEngineServices = createInventoryEngineRuntimeServices(database)
+  const tenantContext = await resolveCxappTenantContext(database)
+
+  await syncBillingGoodsInwardToInventoryEngine(
+    {
+      tenantId: tenantContext.tenantId,
+      companyId: tenantContext.companyId,
+    },
+    nextInward,
+    {
+      movementService: inventoryEngineServices.movementService,
+      putawayService: inventoryEngineServices.putawayService,
+    }
+  )
+
   return billingGoodsInwardPostingResponseSchema.parse({
     item: nextInward,
     unitsCreated: newUnits.length,
@@ -1021,6 +1042,17 @@ export async function createBillingStockSaleAllocation(
 
   if (parsedPayload.markAsSold) {
     await writeProducts(database, nextProducts)
+  }
+
+  if (parsedPayload.markAsSold) {
+    const inventoryEngineServices = createInventoryEngineRuntimeServices(database)
+    const tenantContext = await resolveCxappTenantContext(database)
+
+    await syncBillingSalesIssueToInventoryEngine(
+      tenantContext.tenantId,
+      allocation,
+      inventoryEngineServices.movementService
+    )
   }
 
   return billingStockSaleAllocationResponseSchema.parse({

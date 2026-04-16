@@ -4,6 +4,7 @@ import { coreDatabaseModule } from "../../../../../core/src/database-module.js"
 import { cxappDatabaseModule } from "../../../../../cxapp/src/database-module.js"
 import { ecommerceDatabaseModule } from "../../../../../ecommerce/src/database-module.js"
 import { frappeDatabaseModule } from "../../../../../frappe/src/database-module.js"
+import { stockDatabaseModule } from "../../../../../stock/src/database-module.js"
 
 import { frameworkDatabaseMigrations } from "./migrations/index.js"
 import {
@@ -28,6 +29,7 @@ export const registeredDatabaseModules: AppDatabaseModule[] = [
   billingDatabaseModule,
   crmDatabaseModule,
   ecommerceDatabaseModule,
+  stockDatabaseModule,
   frappeDatabaseModule,
 ].sort((left, right) => left.order - right.order || left.appId.localeCompare(right.appId))
 

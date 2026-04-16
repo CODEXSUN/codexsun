@@ -171,6 +171,22 @@ const EcommercePurchaseReceiptFormPage = lazyNamed(
   () => import("./pages/ecommerce-purchase-receipt-form-page"),
   "EcommercePurchaseReceiptFormPage",
 );
+const StockPurchaseReceiptDetailPage = lazyNamed(
+  () => import("./pages/stock-purchase-receipt-detail-page"),
+  "StockPurchaseReceiptDetailPage",
+);
+const StockPurchaseReceiptFormPage = lazyNamed(
+  () => import("./pages/stock-purchase-receipt-form-page"),
+  "StockPurchaseReceiptFormPage",
+);
+const StockGoodsInwardDetailPage = lazyNamed(
+  () => import("./pages/stock-goods-inward-detail-page"),
+  "StockGoodsInwardDetailPage",
+);
+const StockGoodsInwardFormPage = lazyNamed(
+  () => import("./pages/stock-goods-inward-form-page"),
+  "StockGoodsInwardFormPage",
+);
 const BillingCategoryFormPage = lazyNamed(
   () => import("./pages/billing-category-form-page"),
   "BillingCategoryFormPage",
@@ -1999,6 +2015,66 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <EcommerceCustomerFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/purchase-receipts/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockPurchaseReceiptFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/purchase-receipts/:purchaseReceiptId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockPurchaseReceiptDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/purchase-receipts/:purchaseReceiptId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockPurchaseReceiptFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/goods-inward/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockGoodsInwardFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/goods-inward/:goodsInwardId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockGoodsInwardDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/goods-inward/:goodsInwardId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockGoodsInwardFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

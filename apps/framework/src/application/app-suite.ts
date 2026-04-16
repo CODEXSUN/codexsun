@@ -11,6 +11,7 @@ import { tallyAppManifest } from "../../../tally/src/app-manifest.js"
 import { taskAppManifest } from "../../../task/src/app-manifest.js"
 import { crmAppManifest } from "../../../crm/src/app-manifest.js"
 import { uiAppManifest } from "../../../ui/src/app-manifest.js"
+import { stockAppManifest } from "../../../stock/src/app-manifest.js"
 import { frameworkAppManifest } from "../app-manifest.js"
 
 import type { AppSuite } from "./app-manifest.js"
@@ -28,6 +29,7 @@ export function createAppSuite(): AppSuite {
       ecommerceAppManifest,
       demoAppManifest,
       taskAppManifest,
+      stockAppManifest,
       crmAppManifest,
       frappeAppManifest,
       tallyAppManifest,

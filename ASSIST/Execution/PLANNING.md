@@ -2,26 +2,64 @@
 
 ## Active Batch
 
-- `#192` Remove SQLite runtime configuration and verify startup build
-  - Goal: eliminate SQLite from active runtime and container startup paths so stale SQLite defaults cannot block application boot.
-  - Current reality:
-    - server config still carries a `sqlite` driver type, `SQLITE_FILE`, and offline SQLite fields even though validation rejects them
-    - Playwright startup configs and container setup scripts still write SQLite-related environment values
-    - active runtime setting and architecture copy still mention SQLite as a supported or future database mode
-  - Implementation plan:
-    - narrow `DatabaseDriver` to MariaDB/PostgreSQL and remove SQLite/offline fields from `ServerConfig`
-    - keep MariaDB as the default primary database for app and container startup
-    - remove SQLite environment writes from setup scripts and Playwright web-server envs
-    - revise active docs and desk/runtime-setting copy so operators only see MariaDB/PostgreSQL
-  - Validation target:
-    - `npm run build` completes and the container config/startup checks no longer find active SQLite defaults
+- `#193` Create the dedicated `apps/stock` operational workspace and wire the stock engine end to end
+  - Goal:
+    - create `apps/stock` as the operational stock application boundary
+    - keep billing as the owner of purchase and sales documents
+    - expose stock execution through one app for inward, movement, reservation, transfer, verification, and reconciliation
+  - Why this slice now:
+    - stock operations have outgrown `apps/billing`
+    - the inventory engine and tenant engine already exist, but there is no dedicated operational stock app over them
+    - warehouse users need one workspace for list, show, and upsert flows instead of split billing and engine diagnostics surfaces
+  - Current repository reality:
+    - purchase receipt, goods inward, stock units, stickers, and sale allocation logic still live in `apps/billing`
+    - inventory-engine runtime, diagnostics, and contracts live under `framework/engines/inventory-engine`
+    - tenant context resolution now exists through `apps/cxapp` and `framework/engines/tenant-engine`
+    - the desk and route shell already support app-specific workspace sections and custom pages
+  - Architecture posture for this batch:
+    - `apps/stock`
+      - owns the operational stock workspace
+      - owns stock-specific internal routes and stock-facing service orchestration
+      - may compose billing services and inventory-engine runtime services
+    - `apps/billing`
+      - continues owning billing purchase and sales documents
+      - continues owning current stock document persistence until later extraction
+    - `framework/engines/inventory-engine`
+      - remains the reusable stock movement, reservation, transfer, and availability foundation
+  - Scope in this batch:
+    - stock app manifest, schemas, and workspace items
+    - stock manager service façade
+    - stock internal API routes
+    - framework registration and desk integration
+    - stock workspace frontend for:
+      - purchase receipts
+      - goods inward
+      - stock units
+      - barcode verification
+      - sticker batches
+      - sale allocations
+      - movements
+      - availability
+      - reconciliation
+      - transfers
+      - reservations
+      - periodic verification
+  - Constraints:
+    - do not disturb the current live billing stock logic
+    - do not move engine code back into apps
+    - do not pretend the repo is type-clean while the existing `framework/*` under `rootDir` issue remains
+    - prefer practical operational UI over decorative dashboards
+  - Acceptance criteria:
+    - `apps/stock` is registered as a real app
+    - internal stock routes exist and are reachable through the API app
+    - `cxapp` desk exposes a stock workspace with meaningful stock modules
+    - purchase receipts and goods inward have list, show, and upsert flows
+    - transfer, reservation, verification, reconciliation, and real-time stock views are available from the stock workspace
   - Validation completed:
-    - `npm run typecheck`
-    - `npm run build`
-    - container shell syntax checks for `.container/entrypoint.sh`, `.container/bash-sh/setup.sh`, and `.container/bash-sh/setup-local.sh`
-    - `docker compose -f .container/clients/codexsun/docker-compose.yml config --quiet`
-    - `docker compose -f .container/database/mariadb.yml config --quiet`
-    - built server startup health check on `APP_HTTP_PORT=4010` against MariaDB on host port `3307`
-    - live container repair: patched `codexsun_codexsun_runtime` database env values to MariaDB, rebuilt `codexsun-app:v1`, recreated `codexsun-app`, and verified `http://127.0.0.1:4000/health`
-
-- No active execution batch.
+    - file-level implementation landed for backend, routing, registration, and frontend workspace surfaces
+    - `cmd /c npm run typecheck` still fails primarily on the existing repo-wide `rootDir` issue for `framework/*` imports from `apps/*`
+    - typecheck also surfaced a few stock-app-local cleanup items, and part of that cleanup was already applied by switching the new app to explicit relative imports
+  - Residual risk:
+    - the repo still needs a real TypeScript strategy for shared top-level `framework/` imports
+    - some stock-app-local typings may still need cleanup after the `rootDir` problem is addressed or isolated
+    - the current stock app is an operational façade over billing-owned persistence, not yet a full persistence extraction

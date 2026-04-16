@@ -15,6 +15,12 @@
 - updated runtime settings, desk metadata, and architecture docs so operators no longer see SQLite as a supported or planned runtime database option
 - repaired the live `codexsun-app` runtime volume from stale SQLite values to MariaDB values, rebuilt `codexsun-app:v1`, recreated the container, and verified `/health` reports `database.primaryDriver` as `mariadb`
 
+### [v 1.0.192] 2026-04-16 - Add dedicated stock app workspace over inventory and tenant engines
+
+- created a first-class `apps/stock` app boundary with shared schemas, workspace items, stock manager services, and internal `/stock/*` routes for purchase receipts, goods inward, stock units, barcode verification, sticker batches, sale allocations, movements, availability, reconciliation, transfers, reservations, and verification
+- registered the stock app into the framework suite and cxapp desk, then added dedicated stock workspace routes for purchase receipt and goods inward list, show, and upsert flows
+- kept billing as the current document owner while wiring the stock app operationally over the existing billing stock lifecycle services plus inventory-engine and tenant-engine runtime reads and writes
+
 ## v-1.0.191
 
 ### [v 1.0.191] 2026-04-15 - Rename CRM cold-call menu label to Call Logs

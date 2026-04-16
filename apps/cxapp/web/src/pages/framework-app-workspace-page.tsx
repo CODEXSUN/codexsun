@@ -25,6 +25,7 @@ import { BillingWorkspaceSection } from "@billing/web/src/workspace-sections"
 import { FrappeWorkspaceSection } from "@frappe/web/src/workspace-sections"
 import { TaskWorkspaceSection } from "@task/web/src/workspace-sections"
 import { CrmWorkspaceSection } from "@crm/web/src/workspace-sections"
+import { StockWorkspaceSection } from "../../../../stock/web/src/workspace-sections.js"
 import { getCoreCommonModuleMenuItem } from "@core/shared"
 
 import { matchesDeskRoute } from "../desk/desk-registry"
@@ -151,6 +152,7 @@ export function FrameworkAppWorkspacePage({
   customerId,
   productId,
   purchaseReceiptId,
+  goodsInwardId,
   ledgerId,
   voucherId,
   sectionId: forcedSectionId,
@@ -162,6 +164,7 @@ export function FrameworkAppWorkspacePage({
   customerId?: string
   productId?: string
   purchaseReceiptId?: string
+  goodsInwardId?: string
   ledgerId?: string
   voucherId?: string
   sectionId?: string
@@ -265,11 +268,20 @@ export function FrameworkAppWorkspacePage({
     app.id === "task" ? <TaskWorkspaceSection sectionId={sectionId} /> : null
   const crmWorkspaceContent =
     app.id === "crm" ? <CrmWorkspaceSection sectionId={sectionId} /> : null
+  const stockWorkspaceContent =
+    app.id === "stock" ? (
+      <StockWorkspaceSection
+        purchaseReceiptId={purchaseReceiptId}
+        goodsInwardId={goodsInwardId}
+        sectionId={sectionId}
+      />
+    ) : null
   const customWorkspaceContent =
     coreWorkspaceContent ??
     billingWorkspaceContent ??
     demoWorkspaceContent ??
     ecommerceWorkspaceContent ??
+    stockWorkspaceContent ??
     frappeWorkspaceContent ??
     taskWorkspaceContent ??
     crmWorkspaceContent
@@ -335,6 +347,28 @@ export function FrameworkAppWorkspacePage({
         "purchase-return-upsert",
         "debit-note",
         "debit-note-upsert",
+      ].includes(sectionId ?? "overview")
+    ) ||
+    (
+      app.id === "stock" &&
+      [
+        "overview",
+        "purchase-receipts",
+        "purchase-receipts-show",
+        "purchase-receipts-upsert",
+        "goods-inward",
+        "goods-inward-show",
+        "goods-inward-upsert",
+        "stock-units",
+        "barcodes",
+        "sticker-batches",
+        "sale-allocations",
+        "movements",
+        "availability",
+        "reconciliation",
+        "transfers",
+        "reservations",
+        "verifications",
       ].includes(sectionId ?? "overview")
     ) ||
     (
