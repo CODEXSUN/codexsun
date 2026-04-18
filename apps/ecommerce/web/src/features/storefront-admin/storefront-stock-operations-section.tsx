@@ -23,6 +23,7 @@ import type {
   BillingStockUnit,
   BillingStockUnitListResponse,
 } from "@billing/shared"
+import type { ProductListResponse } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { formatHttpErrorMessage } from "@cxapp/web/src/lib/http-error"
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { AnimatedTabs, type AnimatedContentTab } from "@/registry/concerns/navigation/animated-tabs"
 
@@ -53,7 +55,7 @@ type StockOperationsMode =
   | "outward"
 
 const voucherInlineInputClassName =
-  "h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+  "h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
 
 type PurchaseReceiptLineForm = {
   productId: string
@@ -104,6 +106,12 @@ type GoodsInwardForm = {
   status: "draft" | "pending_verification" | "verified"
   note: string
   lines: GoodsInwardLineForm[]
+}
+
+type ProductLookupItem = ProductListResponse["items"][number]
+type ProductLookupOption = {
+  label: string
+  value: string
 }
 
 function createPurchaseReceiptLineForm(
@@ -209,6 +217,62 @@ function formatMoney(value: number | null) {
   }).format(value)
 }
 
+function getGoodsInwardExceptionQuantity(line: GoodsInwardLineForm) {
+  return Number(line.rejectedQuantity || 0) + Number(line.damagedQuantity || 0)
+}
+
+function getProductLookupOptions(products: ProductLookupItem[]): ProductLookupOption[] {
+  return products
+    .filter((product) => product.isActive)
+    .map((product) => ({
+      value: product.id,
+      label: `${product.name} (${product.code})`,
+    }))
+}
+
+function getPurchaseReceiptLineProductOptions(
+  line: PurchaseReceiptLineForm,
+  productOptions: ProductLookupOption[],
+  index: number
+) {
+  if (line.productId && !productOptions.some((option) => option.value === line.productId)) {
+    return [
+      {
+        value: line.productId,
+        label: line.productName ? `${line.productName} (${line.productId})` : line.productId,
+      },
+      ...productOptions,
+    ]
+  }
+
+  if (!line.productId && line.productName) {
+    return [
+      {
+        value: `manual:${index}`,
+        label: line.productName,
+      },
+      ...productOptions,
+    ]
+  }
+
+  return productOptions
+}
+
+function createPurchaseReceiptProductPatch(
+  product: ProductLookupItem,
+  line: PurchaseReceiptLineForm
+): Partial<PurchaseReceiptLineForm> {
+  return {
+    productId: product.id,
+    productName: product.name,
+    unitCost: product.costPrice > 0 ? String(product.costPrice) : line.unitCost,
+  }
+}
+
+function normalizeInlineItemNote(note: string | null | undefined) {
+  return note === "Expected inward quantity." ? "" : note ?? ""
+}
+
 function statusBadge(status: string) {
   return status === "posted" || status === "verified" || status === "available"
     ? "secondary"
@@ -275,6 +339,7 @@ export function StorefrontStockOperationsSection({
   mode?: StockOperationsMode
 }) {
   const [purchaseReceipts, setPurchaseReceipts] = useState<BillingPurchaseReceipt[]>([])
+  const [products, setProducts] = useState<ProductListResponse["items"]>([])
   const [goodsInwards, setGoodsInwards] = useState<BillingGoodsInward[]>([])
   const [stockUnits, setStockUnits] = useState<BillingStockUnit[]>([])
   const [saleAllocations, setSaleAllocations] = useState<BillingStockSaleAllocationListResponse["items"]>([])
@@ -303,19 +368,28 @@ export function StorefrontStockOperationsSection({
     () => stockUnits.filter((item) => item.status === "available"),
     [stockUnits]
   )
+  const productOptions = useMemo(() => getProductLookupOptions(products), [products])
 
   async function loadData() {
     setIsLoading(true)
     setError(null)
     try {
-      const [purchaseReceiptResponse, goodsInwardResponse, stockUnitResponse, allocationResponse] =
+      const [
+        purchaseReceiptResponse,
+        goodsInwardResponse,
+        stockUnitResponse,
+        allocationResponse,
+        productResponse,
+      ] =
         await Promise.all([
           requestJson<BillingPurchaseReceiptListResponse>("/internal/v1/billing/purchase-receipts"),
           requestJson<BillingGoodsInwardListResponse>("/internal/v1/billing/goods-inward-notes"),
           requestJson<BillingStockUnitListResponse>("/internal/v1/billing/stock-units"),
           requestJson<BillingStockSaleAllocationListResponse>("/internal/v1/billing/stock/sale-allocations"),
+          requestJson<ProductListResponse>("/internal/v1/core/products"),
         ])
       setPurchaseReceipts(purchaseReceiptResponse.items)
+      setProducts(productResponse.items)
       setGoodsInwards(goodsInwardResponse.items)
       setStockUnits(stockUnitResponse.items)
       setSaleAllocations(allocationResponse.items)
@@ -355,8 +429,48 @@ export function StorefrontStockOperationsSection({
         damagedQuantity: "0",
         manufacturerBarcode: "",
         manufacturerSerial: "",
-        note: line.note,
+        note: normalizeInlineItemNote(line.note),
       })),
+    }))
+  }
+
+  function updatePurchaseReceiptLine(
+    index: number,
+    patch: Partial<PurchaseReceiptLineForm>
+  ) {
+    setPurchaseReceiptForm((current) => ({
+      ...current,
+      lines: current.lines.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item
+      ),
+    }))
+  }
+
+  function selectPurchaseReceiptProduct(index: number, productId: string) {
+    const selectedProduct = products.find((product) => product.id === productId)
+    if (!selectedProduct) {
+      return
+    }
+
+    setPurchaseReceiptForm((current) => ({
+      ...current,
+      lines: current.lines.map((line, lineIndex) =>
+        lineIndex === index
+          ? { ...line, ...createPurchaseReceiptProductPatch(selectedProduct, line) }
+          : line
+      ),
+    }))
+  }
+
+  function updateGoodsInwardLine(
+    index: number,
+    patch: Partial<GoodsInwardLineForm>
+  ) {
+    setGoodsInwardForm((current) => ({
+      ...current,
+      lines: current.lines.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item
+      ),
     }))
   }
 
@@ -648,63 +762,63 @@ export function StorefrontStockOperationsSection({
                 getRowKey={(item, index) => `purchase-item:${index}:${item.productId}:${item.productName}`}
                 columns={[
                   {
-                    id: "productId",
-                    header: "Product ID",
-                    headerClassName: "min-w-40",
-                    renderCell: (item, index) => (
-                      <Input
-                        className={voucherInlineInputClassName}
-                        value={item.productId}
-                        onChange={(event) =>
-                          setPurchaseReceiptForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((line, lineIndex) =>
-                              lineIndex === index ? { ...line, productId: event.target.value } : line
-                            ),
-                          }))
-                        }
-                        placeholder="Product ID"
-                      />
-                    ),
-                  },
-                  {
-                    id: "productName",
+                    id: "product",
                     header: "Product",
-                    headerClassName: "min-w-60",
-                    renderCell: (item, index) => (
-                      <Input
-                        className={voucherInlineInputClassName}
-                        value={item.productName}
-                        onChange={(event) =>
-                          setPurchaseReceiptForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((line, lineIndex) =>
-                              lineIndex === index ? { ...line, productName: event.target.value } : line
-                            ),
-                          }))
-                        }
-                        placeholder="Product name"
-                      />
-                    ),
+                    headerClassName: "w-[34%] min-w-80",
+                    cellClassName: "w-[34%]",
+                    renderCell: (item, index) => {
+                      const rowOptions = getPurchaseReceiptLineProductOptions(
+                        item,
+                        productOptions,
+                        index
+                      )
+
+                      return (
+                        <div className="space-y-0.5">
+                          <SearchableLookupField
+                            emptyOptionLabel="Select product"
+                            noResultsMessage="No products found."
+                            onValueChange={(nextValue) => {
+                              if (!nextValue || nextValue.startsWith("manual:")) {
+                                return
+                              }
+
+                              selectPurchaseReceiptProduct(index, nextValue)
+                            }}
+                            options={rowOptions}
+                            placeholder={isLoading ? "Loading products..." : "Select product"}
+                            searchPlaceholder="Search product"
+                            triggerClassName="h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                            value={item.productId || (item.productName ? `manual:${index}` : "")}
+                          />
+                        </div>
+                      )
+                    },
                   },
                   {
-                    id: "variant",
-                    header: "Variant",
-                    headerClassName: "w-[20%]",
+                    id: "description",
+                    header: "Description",
+                    headerClassName: "w-[28%]",
+                    cellClassName: "w-[28%] max-w-0",
                     renderCell: (item, index) => (
-                      <Input
-                        className={voucherInlineInputClassName}
-                        value={item.variantName}
-                        onChange={(event) =>
-                          setPurchaseReceiptForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((line, lineIndex) =>
-                              lineIndex === index ? { ...line, variantName: event.target.value } : line
-                            ),
-                          }))
-                        }
-                        placeholder="Variant"
-                      />
+                      <div className="min-w-0 space-y-0.5">
+                        <Input
+                          aria-label="Description"
+                          className={`${voucherInlineInputClassName} truncate`}
+                          value={item.variantName}
+                          onChange={(event) =>
+                            updatePurchaseReceiptLine(index, { variantName: event.target.value })
+                          }
+                        />
+                        <Input
+                          aria-label="Line note"
+                          value={item.note}
+                          onChange={(event) =>
+                            updatePurchaseReceiptLine(index, { note: event.target.value })
+                          }
+                          className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        />
+                      </div>
                     ),
                   },
                   {
@@ -872,7 +986,7 @@ export function StorefrontStockOperationsSection({
                 </div>
               </div>
               <VoucherInlineEditableTable
-                title="Stock entry items"
+                title="Inward items"
                 description="Record accepted, rejected, damaged, and manufacturer identity values before posting stock."
                 addLabel="Add line"
                 onAddRow={() =>
@@ -894,92 +1008,77 @@ export function StorefrontStockOperationsSection({
                 }
                 columns={[
                   {
-                    id: "purchaseReceiptLineId",
-                    header: "Receipt Line ID",
-                    renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.purchaseReceiptLineId}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, purchaseReceiptLineId: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
-                    ),
-                  },
-                  {
-                    id: "productId",
-                    header: "Product ID",
-                    renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.productId}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, productId: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
-                    ),
-                  },
-                  {
-                    id: "productName",
+                    id: "product",
                     header: "Product",
+                    headerClassName: "min-w-60",
                     renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.productName}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, productName: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
+                      <div className="space-y-0.5">
+                        <Input
+                          value={line.productName}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { productName: event.target.value })
+                          }
+                          placeholder="Product name"
+                          className={voucherInlineInputClassName}
+                        />
+                        <Input
+                          value={line.productId}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { productId: event.target.value })
+                          }
+                          placeholder="Product id"
+                          className="h-6 rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        />
+                      </div>
                     ),
                   },
                   {
-                    id: "variantName",
-                    header: "Variant",
+                    id: "description",
+                    header: "Description",
+                    headerClassName: "min-w-72",
+                    cellClassName: "max-w-0",
                     renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.variantName}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, variantName: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
+                      <div className="min-w-0 space-y-0.5">
+                        <Input
+                          aria-label="Description"
+                          value={line.variantName}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { variantName: event.target.value })
+                          }
+                          className={`${voucherInlineInputClassName} truncate`}
+                        />
+                        <Input
+                          aria-label="Purchase receipt line id"
+                          value={line.purchaseReceiptLineId}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { purchaseReceiptLineId: event.target.value })
+                          }
+                          className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        />
+                        <Input
+                          aria-label="Line note"
+                          value={line.note}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { note: event.target.value })
+                          }
+                          className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        />
+                      </div>
                     ),
                   },
                   {
                     id: "expectedQuantity",
                     header: "Expected",
-                    headerClassName: "text-right",
-                    cellClassName: "text-right",
+                    headerClassName: "w-[10%] text-right",
+                    cellClassName: "w-[10%] text-right",
                     renderCell: (line: GoodsInwardLineForm, index: number) => (
                       <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
                         value={line.expectedQuantity}
                         onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, expectedQuantity: event.target.value } : item
-                            ),
-                          }))
+                          updateGoodsInwardLine(index, { expectedQuantity: event.target.value })
                         }
                         className={voucherInlineInputClassName}
                       />
@@ -988,97 +1087,76 @@ export function StorefrontStockOperationsSection({
                   {
                     id: "acceptedQuantity",
                     header: "Accepted",
-                    headerClassName: "text-right",
-                    cellClassName: "text-right",
+                    headerClassName: "w-[10%] text-right",
+                    cellClassName: "w-[10%] text-right",
                     renderCell: (line: GoodsInwardLineForm, index: number) => (
                       <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
                         value={line.acceptedQuantity}
                         onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, acceptedQuantity: event.target.value } : item
-                            ),
-                          }))
+                          updateGoodsInwardLine(index, { acceptedQuantity: event.target.value })
                         }
                         className={voucherInlineInputClassName}
                       />
                     ),
                   },
                   {
-                    id: "manufacturerSerial",
-                    header: "Manufacturer Serial",
-                    renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.manufacturerSerial}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, manufacturerSerial: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
-                    ),
-                  },
-                  {
-                    id: "manufacturerBarcode",
-                    header: "Manufacturer Barcode",
-                    renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.manufacturerBarcode}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, manufacturerBarcode: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
-                    ),
-                  },
-                  {
-                    id: "rejectedQuantity",
-                    header: "Rejected",
-                    headerClassName: "text-right",
+                    id: "exception",
+                    header: "Exception",
+                    headerClassName: "min-w-32 text-right",
                     cellClassName: "text-right",
                     renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.rejectedQuantity}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, rejectedQuantity: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
+                      <div className="space-y-0.5">
+                        <Input
+                          aria-label="Rejected quantity"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={line.rejectedQuantity}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { rejectedQuantity: event.target.value })
+                          }
+                          className={voucherInlineInputClassName}
+                        />
+                        <Input
+                          aria-label="Damaged quantity"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={line.damagedQuantity}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { damagedQuantity: event.target.value })
+                          }
+                          className="h-6 rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        />
+                      </div>
                     ),
                   },
                   {
-                    id: "damagedQuantity",
-                    header: "Damaged",
-                    headerClassName: "text-right",
-                    cellClassName: "text-right",
+                    id: "identity",
+                    header: "Identity",
+                    headerClassName: "min-w-48",
                     renderCell: (line: GoodsInwardLineForm, index: number) => (
-                      <Input
-                        value={line.damagedQuantity}
-                        onChange={(event) =>
-                          setGoodsInwardForm((current) => ({
-                            ...current,
-                            lines: current.lines.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, damagedQuantity: event.target.value } : item
-                            ),
-                          }))
-                        }
-                        className={voucherInlineInputClassName}
-                      />
+                      <div className="space-y-0.5">
+                        <Input
+                          value={line.manufacturerSerial}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { manufacturerSerial: event.target.value })
+                          }
+                          placeholder="Manufacturer serial"
+                          className={voucherInlineInputClassName}
+                        />
+                        <Input
+                          value={line.manufacturerBarcode}
+                          onChange={(event) =>
+                            updateGoodsInwardLine(index, { manufacturerBarcode: event.target.value })
+                          }
+                          placeholder="Manufacturer barcode"
+                          className="h-6 rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        />
+                      </div>
                     ),
                   },
                 ]}
@@ -1097,9 +1175,10 @@ export function StorefrontStockOperationsSection({
                       <p className="mt-2 text-lg font-semibold text-foreground">{goodsInwardForm.lines.reduce((sum, item) => sum + Number(item.acceptedQuantity || 0), 0)}</p>
                     </div>
                     <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse</p>
-                      <p className="mt-2 text-sm font-medium text-foreground">{goodsInwardForm.warehouseName || "Not set"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{goodsInwardForm.purchaseReceiptNumber || "Bind a purchase receipt before posting."}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Exception total</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">
+                        {goodsInwardForm.lines.reduce((sum, item) => sum + getGoodsInwardExceptionQuantity(item), 0)}
+                      </p>
                     </div>
                   </>
                 }

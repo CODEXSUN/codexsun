@@ -9,6 +9,7 @@ import type {
   BillingPurchaseReceipt,
   BillingStockUnit,
 } from "@billing/shared"
+import type { ProductListResponse } from "@core/shared"
 import type {
   StockAvailability,
   StockReconciliationResponse,
@@ -16,6 +17,7 @@ import type {
   StockTransfer,
   StockVerificationSummary,
 } from "../../shared/index.js"
+import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import { Input } from "@/components/ui/input"
 
 type ResourceState<T> = {
@@ -123,6 +126,42 @@ type LookupsResponse = {
     stockUnitCount: number
   }>
 }
+
+type PurchaseReceiptLineForm = {
+  productId: string
+  productName: string
+  variantId: string
+  variantName: string
+  warehouseId: string
+  quantity: string
+  unit: string
+  unitCost: string
+  note: string
+}
+
+type GoodsInwardLineForm = {
+  purchaseReceiptLineId: string
+  productId: string
+  productName: string
+  variantId: string
+  variantName: string
+  expectedQuantity: string
+  acceptedQuantity: string
+  rejectedQuantity: string
+  damagedQuantity: string
+  manufacturerBarcode: string
+  manufacturerSerial: string
+  note: string
+}
+
+type ProductLookupItem = ProductListResponse["items"][number]
+type ProductLookupOption = {
+  label: string
+  value: string
+}
+
+const voucherInlineInputClassName =
+  "h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const accessToken = getStoredAccessToken()
@@ -265,6 +304,74 @@ function DataTable({
       </table>
     </div>
   )
+}
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function getPurchaseReceiptLineAmount(line: PurchaseReceiptLineForm) {
+  return Number(line.quantity || 0) * Number(line.unitCost || 0)
+}
+
+function getGoodsInwardExceptionQuantity(line: GoodsInwardLineForm) {
+  return Number(line.rejectedQuantity || 0) + Number(line.damagedQuantity || 0)
+}
+
+function getProductLookupOptions(products: ProductLookupItem[]): ProductLookupOption[] {
+  return products
+    .filter((product) => product.isActive)
+    .map((product) => ({
+      value: product.id,
+      label: `${product.name} (${product.code})`,
+    }))
+}
+
+function getPurchaseReceiptLineProductOptions(
+  line: PurchaseReceiptLineForm,
+  productOptions: ProductLookupOption[],
+  index: number
+) {
+  if (line.productId && !productOptions.some((option) => option.value === line.productId)) {
+    return [
+      {
+        value: line.productId,
+        label: line.productName ? `${line.productName} (${line.productId})` : line.productId,
+      },
+      ...productOptions,
+    ]
+  }
+
+  if (!line.productId && line.productName) {
+    return [
+      {
+        value: `manual:${index}`,
+        label: line.productName,
+      },
+      ...productOptions,
+    ]
+  }
+
+  return productOptions
+}
+
+function createPurchaseReceiptProductPatch(
+  product: ProductLookupItem,
+  line: PurchaseReceiptLineForm
+): Partial<PurchaseReceiptLineForm> {
+  return {
+    productId: product.id,
+    productName: product.name,
+    unitCost: product.costPrice > 0 ? String(product.costPrice) : line.unitCost,
+  }
+}
+
+function normalizeInlineItemNote(note: string | null | undefined) {
+  return note === "Expected inward quantity." ? "" : note ?? ""
 }
 
 function FormGrid({ children }: { children: ReactNode }) {
@@ -425,14 +532,21 @@ function PurchaseReceiptShowSection({ receiptId }: { receiptId: string }) {
         }
       />
       <DataTable
-        headers={["Product", "Variant", "Qty", "Received", "Unit", "Cost"]}
+        headers={["Product", "Description", "Qty", "Rate", "Amount"]}
         rows={item.lines.map((line) => [
-          line.productName,
-          line.variantName ?? "-",
-          String(line.quantity),
-          String(line.receivedQuantity),
-          line.unit,
-          line.unitCost.toFixed(2),
+          <div key={`${line.id}:product`}>
+            <p className="font-medium text-foreground">{line.productName}</p>
+            <p className="text-xs text-muted-foreground">{line.productId}</p>
+          </div>,
+          <div key={`${line.id}:description`}>
+            <p>{line.variantName ?? "-"}</p>
+            <p className="text-xs text-muted-foreground">
+              Received {line.receivedQuantity.toFixed(2)} · {line.warehouseId}
+            </p>
+          </div>,
+          `${line.quantity.toFixed(2)} ${line.unit}`,
+          formatMoney(line.unitCost),
+          formatMoney(line.quantity * line.unitCost),
         ])}
       />
     </div>
@@ -443,7 +557,7 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [lines, setLines] = useState([
+  const [lines, setLines] = useState<PurchaseReceiptLineForm[]>([
     {
       productId: "",
       productName: "",
@@ -453,6 +567,7 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
       quantity: "1",
       unit: "Nos",
       unitCost: "0",
+      note: "",
     },
   ])
   const [form, setForm] = useState({
@@ -471,6 +586,11 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
   const detail = useJsonResource<PurchaseReceiptResponse>(
     receiptId ? `/internal/v1/stock/purchase-receipt?id=${encodeURIComponent(receiptId)}` : "",
     [receiptId]
+  )
+  const productLookup = useJsonResource<ProductListResponse>("/internal/v1/core/products")
+  const productOptions = useMemo(
+    () => getProductLookupOptions(productLookup.data?.items ?? []),
+    [productLookup.data]
   )
 
   useEffect(() => {
@@ -500,9 +620,34 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
         quantity: String(line.quantity),
         unit: line.unit,
         unitCost: String(line.unitCost),
+        note: normalizeInlineItemNote(line.note),
       }))
     )
   }, [detail.data, receiptId])
+
+  function updatePurchaseReceiptLine(
+    index: number,
+    patch: Partial<PurchaseReceiptLineForm>
+  ) {
+    setLines((current) =>
+      current.map((item, lineIndex) => (lineIndex === index ? { ...item, ...patch } : item))
+    )
+  }
+
+  function selectPurchaseReceiptProduct(index: number, productId: string) {
+    const selectedProduct = productLookup.data?.items.find((product) => product.id === productId)
+    if (!selectedProduct) {
+      return
+    }
+
+    setLines((current) =>
+      current.map((line, lineIndex) =>
+        lineIndex === index
+          ? { ...line, ...createPurchaseReceiptProductPatch(selectedProduct, line) }
+          : line
+      )
+    )
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -531,7 +676,7 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
               quantity: Number(line.quantity),
               unit: line.unit,
               unitCost: Number(line.unitCost),
-              note: null,
+              note: line.note,
             })),
           }),
         }
@@ -568,24 +713,190 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
               <Field label="Warehouse id"><Input value={form.warehouseId} onChange={(event) => setForm({ ...form, warehouseId: event.target.value })} required /></Field>
               <Field label="Warehouse name"><Input value={form.warehouseName} onChange={(event) => setForm({ ...form, warehouseName: event.target.value })} required /></Field>
             </FormGrid>
-            <Card className="border-border/70">
-              <CardHeader><CardTitle className="text-base">Receipt lines</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {lines.map((line, index) => (
-                  <div key={index} className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-3">
-                    <Input placeholder="Product id" value={line.productId} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, productId: event.target.value } : item))} required />
-                    <Input placeholder="Product name" value={line.productName} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, productName: event.target.value } : item))} required />
-                    <Input placeholder="Variant name" value={line.variantName} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, variantName: event.target.value } : item))} />
-                    <Input placeholder="Qty" type="number" min="0" step="0.01" value={line.quantity} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, quantity: event.target.value } : item))} required />
-                    <Input placeholder="Unit" value={line.unit} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, unit: event.target.value } : item))} required />
-                    <Input placeholder="Unit cost" type="number" min="0" step="0.01" value={line.unitCost} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, unitCost: event.target.value } : item))} required />
+            <VoucherInlineEditableTable
+              title="Purchase items"
+              description="Add receipt lines as purchase sub-items. Quantity and estimated value are derived from this table."
+              addLabel="Add item"
+              fitToContainer
+              rows={lines}
+              onAddRow={() =>
+                setLines((current) => [
+                  ...current,
+                  {
+                    productId: "",
+                    productName: "",
+                    variantId: "",
+                    variantName: "",
+                    warehouseId: form.warehouseId,
+                    quantity: "1",
+                    unit: "Nos",
+                    unitCost: "0",
+                    note: "",
+                  },
+                ])
+              }
+              onRemoveRow={(index) =>
+                setLines((current) =>
+                  current.length === 1
+                    ? current
+                    : current.filter((_, lineIndex) => lineIndex !== index)
+                )
+              }
+              removeButtonLabel="Remove"
+              getRowKey={(line, index) =>
+                `stock-purchase-receipt-line:${index}:${line.productId}:${line.productName}`
+              }
+              columns={[
+                {
+                  id: "product",
+                  header: "Product",
+                  headerClassName: "w-[34%] min-w-80",
+                  cellClassName: "w-[34%]",
+                  renderCell: (line, index) => {
+                    const rowOptions = getPurchaseReceiptLineProductOptions(
+                      line,
+                      productOptions,
+                      index
+                    )
+
+                    return (
+                      <div className="space-y-0.5">
+                        <SearchableLookupField
+                          emptyOptionLabel="Select product"
+                          noResultsMessage="No products found."
+                          onValueChange={(nextValue) => {
+                            if (!nextValue || nextValue.startsWith("manual:")) {
+                              return
+                            }
+
+                            selectPurchaseReceiptProduct(index, nextValue)
+                          }}
+                          options={rowOptions}
+                          placeholder={productLookup.isLoading ? "Loading products..." : "Select product"}
+                          searchPlaceholder="Search product"
+                          triggerClassName="h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                          value={line.productId || (line.productName ? `manual:${index}` : "")}
+                        />
+                      </div>
+                    )
+                  },
+                },
+                {
+                  id: "description",
+                  header: "Description",
+                  headerClassName: "w-[28%]",
+                  cellClassName: "w-[28%] max-w-0",
+                  renderCell: (line, index) => (
+                    <div className="min-w-0 space-y-0.5">
+                      <Input
+                        aria-label="Description"
+                        value={line.variantName}
+                        onChange={(event) =>
+                          updatePurchaseReceiptLine(index, { variantName: event.target.value })
+                        }
+                        className={`${voucherInlineInputClassName} truncate`}
+                      />
+                      <Input
+                        aria-label="Line note"
+                        value={line.note}
+                        onChange={(event) =>
+                          updatePurchaseReceiptLine(index, { note: event.target.value })
+                        }
+                        className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  id: "quantity",
+                  header: "Qty",
+                  headerClassName: "w-[12%]",
+                  cellClassName: "w-[12%]",
+                  renderCell: (line, index) => (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.quantity}
+                      onChange={(event) =>
+                        updatePurchaseReceiptLine(index, { quantity: event.target.value })
+                      }
+                      className={voucherInlineInputClassName}
+                      required
+                    />
+                  ),
+                },
+                {
+                  id: "rate",
+                  header: "Rate",
+                  headerClassName: "w-[14%]",
+                  cellClassName: "w-[14%]",
+                  renderCell: (line, index) => (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.unitCost}
+                      onChange={(event) =>
+                        updatePurchaseReceiptLine(index, { unitCost: event.target.value })
+                      }
+                      className={voucherInlineInputClassName}
+                      required
+                    />
+                  ),
+                },
+                {
+                  id: "amount",
+                  header: "Amount",
+                  headerClassName: "w-[14%] text-right",
+                  cellClassName: "w-[14%] text-right font-medium text-foreground",
+                  renderCell: (line) => formatMoney(getPurchaseReceiptLineAmount(line)),
+                },
+              ]}
+              footer={
+                <>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Quantity
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-foreground">
+                      {lines
+                        .reduce((sum, line) => sum + Number(line.quantity || 0), 0)
+                        .toFixed(2)}
+                    </p>
                   </div>
-                ))}
-                <Button type="button" variant="outline" onClick={() => setLines([...lines, { productId: "", productName: "", variantId: "", variantName: "", warehouseId: "", quantity: "1", unit: "Nos", unitCost: "0" }])}>
-                  Add line
-                </Button>
-              </CardContent>
-            </Card>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Subtotal
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-foreground">
+                      {formatMoney(
+                        lines.reduce((sum, line) => sum + getPurchaseReceiptLineAmount(line), 0)
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Lines
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-foreground">
+                      {lines.length}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Warehouse
+                    </p>
+                    <p className="mt-2 break-words text-sm font-medium text-foreground">
+                      {form.warehouseName || "Not set"}
+                    </p>
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
+                      {form.warehouseId || "Enter the warehouse id for inward posting."}
+                    </p>
+                  </div>
+                </>
+              }
+            />
             {error ? <StateCard message={error} /> : null}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save receipt"}</Button>
@@ -683,14 +994,28 @@ function GoodsInwardShowSection({ goodsInwardId }: { goodsInwardId: string }) {
       />
       {postingMessage ? <StateCard message={postingMessage} /> : null}
       <DataTable
-        headers={["Product", "Expected", "Accepted", "Rejected", "Damaged", "Manufacturer code"]}
+        headers={["Product", "Description", "Expected", "Accepted", "Exception", "Identity"]}
         rows={item.lines.map((line) => [
-          line.productName,
+          <div key={`${line.id}:product`}>
+            <p className="font-medium text-foreground">{line.productName}</p>
+            <p className="text-xs text-muted-foreground">{line.productId}</p>
+          </div>,
+          <div key={`${line.id}:description`}>
+            <p>{line.variantName || "No variant"}</p>
+            <p className="text-xs text-muted-foreground">
+              {normalizeInlineItemNote(line.note) || `Receipt line ${line.purchaseReceiptLineId}`}
+            </p>
+          </div>,
           String(line.expectedQuantity),
           String(line.acceptedQuantity),
-          String(line.rejectedQuantity),
-          String(line.damagedQuantity),
-          line.manufacturerBarcode ?? line.manufacturerSerial ?? "-",
+          <div key={`${line.id}:exception`}>
+            <p>Rejected {line.rejectedQuantity}</p>
+            <p className="text-xs text-muted-foreground">Damaged {line.damagedQuantity}</p>
+          </div>,
+          <div key={`${line.id}:identity`}>
+            <p>{line.manufacturerBarcode || "No barcode"}</p>
+            <p className="text-xs text-muted-foreground">{line.manufacturerSerial || "No serial"}</p>
+          </div>,
         ])}
       />
       <Button variant="outline" onClick={() => void navigate("/dashboard/apps/stock/goods-inward")}>Back to inward list</Button>
@@ -718,7 +1043,7 @@ function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: string })
     status: "draft",
     note: "",
   })
-  const [lines, setLines] = useState<Array<Record<string, string>>>([])
+  const [lines, setLines] = useState<GoodsInwardLineForm[]>([])
 
   useEffect(() => {
     if (goodsInwardId && detail.data) {
@@ -746,6 +1071,7 @@ function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: string })
           damagedQuantity: String(line.damagedQuantity),
           manufacturerBarcode: line.manufacturerBarcode ?? "",
           manufacturerSerial: line.manufacturerSerial ?? "",
+          note: normalizeInlineItemNote(line.note),
         }))
       )
       return
@@ -773,6 +1099,7 @@ function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: string })
           damagedQuantity: "0",
           manufacturerBarcode: "",
           manufacturerSerial: "",
+          note: "",
         }))
       )
     }
@@ -804,7 +1131,17 @@ function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: string })
         damagedQuantity: "0",
         manufacturerBarcode: "",
         manufacturerSerial: "",
+        note: "",
       }))
+    )
+  }
+
+  function updateGoodsInwardLine(
+    index: number,
+    patch: Partial<GoodsInwardLineForm>
+  ) {
+    setLines((current) =>
+      current.map((item, lineIndex) => (lineIndex === index ? { ...item, ...patch } : item))
     )
   }
 
@@ -835,7 +1172,7 @@ function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: string })
               damagedQuantity: Number(line.damagedQuantity),
               manufacturerBarcode: line.manufacturerBarcode || null,
               manufacturerSerial: line.manufacturerSerial || null,
-              note: null,
+              note: line.note,
             })),
           }),
         }
@@ -881,21 +1218,229 @@ function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: string })
                 </select>
               </Field>
             </FormGrid>
-            <Card className="border-border/70">
-              <CardHeader><CardTitle className="text-base">Inward lines</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {lines.map((line, index) => (
-                  <div key={index} className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-3">
-                    <Input placeholder="Product" value={line.productName} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, productName: event.target.value } : item))} required />
-                    <Input placeholder="Expected" type="number" step="0.01" value={line.expectedQuantity} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, expectedQuantity: event.target.value } : item))} required />
-                    <Input placeholder="Accepted" type="number" step="0.01" value={line.acceptedQuantity} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, acceptedQuantity: event.target.value } : item))} required />
-                    <Input placeholder="Rejected" type="number" step="0.01" value={line.rejectedQuantity} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, rejectedQuantity: event.target.value } : item))} required />
-                    <Input placeholder="Damaged" type="number" step="0.01" value={line.damagedQuantity} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, damagedQuantity: event.target.value } : item))} required />
-                    <Input placeholder="Manufacturer barcode" value={line.manufacturerBarcode} onChange={(event) => setLines(lines.map((item, lineIndex) => lineIndex === index ? { ...item, manufacturerBarcode: event.target.value } : item))} />
+            <VoucherInlineEditableTable
+              title="Inward items"
+              description="Verify each purchase receipt line with expected, accepted, exception, and manufacturer identity values."
+              addLabel="Add item"
+              rows={lines}
+              onAddRow={() =>
+                setLines((current) => [
+                  ...current,
+                  {
+                    purchaseReceiptLineId: "",
+                    productId: "",
+                    productName: "",
+                    variantId: "",
+                    variantName: "",
+                    expectedQuantity: "1",
+                    acceptedQuantity: "0",
+                    rejectedQuantity: "0",
+                    damagedQuantity: "0",
+                    manufacturerBarcode: "",
+                    manufacturerSerial: "",
+                    note: "",
+                  },
+                ])
+              }
+              onRemoveRow={(index) =>
+                setLines((current) =>
+                  current.length === 1
+                    ? current
+                    : current.filter((_, lineIndex) => lineIndex !== index)
+                )
+              }
+              removeButtonLabel="Remove"
+              getRowKey={(line, index) =>
+                `stock-goods-inward-line:${index}:${line.purchaseReceiptLineId}:${line.productId}`
+              }
+              columns={[
+                {
+                  id: "product",
+                  header: "Product",
+                  headerClassName: "min-w-60",
+                  renderCell: (line, index) => (
+                    <div className="space-y-0.5">
+                      <Input
+                        placeholder="Product name"
+                        value={line.productName}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { productName: event.target.value })
+                        }
+                        className={voucherInlineInputClassName}
+                        required
+                      />
+                      <Input
+                        placeholder="Product id"
+                        value={line.productId}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { productId: event.target.value })
+                        }
+                        className="h-6 rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        required
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  id: "description",
+                  header: "Description",
+                  headerClassName: "min-w-72",
+                  cellClassName: "max-w-0",
+                  renderCell: (line, index) => (
+                    <div className="min-w-0 space-y-0.5">
+                      <Input
+                        aria-label="Description"
+                        value={line.variantName}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { variantName: event.target.value })
+                        }
+                        className={`${voucherInlineInputClassName} truncate`}
+                      />
+                      <Input
+                        aria-label="Purchase receipt line id"
+                        value={line.purchaseReceiptLineId}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { purchaseReceiptLineId: event.target.value })
+                        }
+                        className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        required
+                      />
+                      <Input
+                        aria-label="Line note"
+                        value={line.note}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { note: event.target.value })
+                        }
+                        className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  id: "expectedQuantity",
+                  header: "Expected",
+                  headerClassName: "w-[10%] text-right",
+                  cellClassName: "w-[10%] text-right",
+                  renderCell: (line, index) => (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.expectedQuantity}
+                      onChange={(event) =>
+                        updateGoodsInwardLine(index, { expectedQuantity: event.target.value })
+                      }
+                      className={voucherInlineInputClassName}
+                      required
+                    />
+                  ),
+                },
+                {
+                  id: "acceptedQuantity",
+                  header: "Accepted",
+                  headerClassName: "w-[10%] text-right",
+                  cellClassName: "w-[10%] text-right",
+                  renderCell: (line, index) => (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.acceptedQuantity}
+                      onChange={(event) =>
+                        updateGoodsInwardLine(index, { acceptedQuantity: event.target.value })
+                      }
+                      className={voucherInlineInputClassName}
+                      required
+                    />
+                  ),
+                },
+                {
+                  id: "exception",
+                  header: "Exception",
+                  headerClassName: "min-w-32 text-right",
+                  cellClassName: "text-right",
+                  renderCell: (line, index) => (
+                    <div className="space-y-0.5">
+                      <Input
+                        aria-label="Rejected quantity"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.rejectedQuantity}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { rejectedQuantity: event.target.value })
+                        }
+                        className={voucherInlineInputClassName}
+                        required
+                      />
+                      <Input
+                        aria-label="Damaged quantity"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.damagedQuantity}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { damagedQuantity: event.target.value })
+                        }
+                        className="h-6 rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                        required
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  id: "identity",
+                  header: "Identity",
+                  headerClassName: "min-w-48",
+                  renderCell: (line, index) => (
+                    <div className="space-y-0.5">
+                      <Input
+                        placeholder="Manufacturer serial"
+                        value={line.manufacturerSerial}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { manufacturerSerial: event.target.value })
+                        }
+                        className={voucherInlineInputClassName}
+                      />
+                      <Input
+                        placeholder="Manufacturer barcode"
+                        value={line.manufacturerBarcode}
+                        onChange={(event) =>
+                          updateGoodsInwardLine(index, { manufacturerBarcode: event.target.value })
+                        }
+                        className="h-6 rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                      />
+                    </div>
+                  ),
+                },
+              ]}
+              footer={
+                <>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Line count</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{lines.length}</p>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Expected total</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">
+                      {lines.reduce((sum, line) => sum + Number(line.expectedQuantity || 0), 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Accepted total</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">
+                      {lines.reduce((sum, line) => sum + Number(line.acceptedQuantity || 0), 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Exception total</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">
+                      {lines.reduce((sum, line) => sum + getGoodsInwardExceptionQuantity(line), 0).toFixed(2)}
+                    </p>
+                  </div>
+                </>
+              }
+            />
             {error ? <StateCard message={error} /> : null}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save inward"}</Button>

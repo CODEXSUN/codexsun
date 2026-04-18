@@ -9,6 +9,7 @@ import type {
   BillingPurchaseReceiptStatus,
   BillingPurchaseReceiptUpsertPayload,
 } from "@billing/shared"
+import type { ProductListResponse } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { formatHttpErrorMessage } from "@cxapp/web/src/lib/http-error"
 import { MasterList } from "@/components/blocks/master-list"
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 
 type PurchaseReceiptLineForm = {
@@ -63,10 +65,15 @@ type PurchaseReceiptForm = {
 }
 
 type StatusFilterValue = "all" | BillingPurchaseReceiptStatus
+type ProductLookupItem = ProductListResponse["items"][number]
+type ProductLookupOption = {
+  label: string
+  value: string
+}
 
 const routeBase = "/dashboard/apps/ecommerce/stock-purchase-receipts"
 const voucherInlineInputClassName =
-  "h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+  "h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
 const purchaseReceiptStatusOptions: BillingPurchaseReceiptStatus[] = [
   "draft",
   "open",
@@ -126,7 +133,7 @@ function toPurchaseReceiptForm(item: BillingPurchaseReceipt): PurchaseReceiptFor
       quantity: String(line.quantity),
       unit: line.unit,
       unitCost: String(line.unitCost),
-      note: line.note,
+      note: normalizeInlineItemNote(line.note),
     })),
   }
 }
@@ -202,6 +209,62 @@ function formatMoney(value: number) {
     currency: "INR",
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+function getPurchaseReceiptLineAmount(line: PurchaseReceiptLineForm) {
+  return Number(line.quantity || 0) * Number(line.unitCost || 0)
+}
+
+function getProductLookupOptions(products: ProductLookupItem[]): ProductLookupOption[] {
+  return products
+    .filter((product) => product.isActive)
+    .map((product) => ({
+      value: product.id,
+      label: `${product.name} (${product.code})`,
+    }))
+}
+
+function getPurchaseReceiptLineProductOptions(
+  line: PurchaseReceiptLineForm,
+  productOptions: ProductLookupOption[],
+  index: number
+) {
+  if (line.productId && !productOptions.some((option) => option.value === line.productId)) {
+    return [
+      {
+        value: line.productId,
+        label: line.productName ? `${line.productName} (${line.productId})` : line.productId,
+      },
+      ...productOptions,
+    ]
+  }
+
+  if (!line.productId && line.productName) {
+    return [
+      {
+        value: `manual:${index}`,
+        label: line.productName,
+      },
+      ...productOptions,
+    ]
+  }
+
+  return productOptions
+}
+
+function createPurchaseReceiptProductPatch(
+  product: ProductLookupItem,
+  line: PurchaseReceiptLineForm
+): Partial<PurchaseReceiptLineForm> {
+  return {
+    productId: product.id,
+    productName: product.name,
+    unitCost: product.costPrice > 0 ? String(product.costPrice) : line.unitCost,
+  }
+}
+
+function normalizeInlineItemNote(note: string | null | undefined) {
+  return note === "Expected inward quantity." ? "" : note ?? ""
 }
 
 function statusBadgeVariant(status: BillingPurchaseReceiptStatus) {
@@ -837,9 +900,9 @@ export function StorefrontPurchaseReceiptShowSection({
       </Card>
       <Card className="rounded-[1.4rem] border-border/70 py-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Receipt lines</CardTitle>
+          <CardTitle>Purchase items</CardTitle>
           <CardDescription>
-            Line-level quantity, received posture, and unit-cost breakdown for inward operations.
+            Product, description, quantity, rate, and amount for this purchase receipt.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -847,12 +910,10 @@ export function StorefrontPurchaseReceiptShowSection({
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
-                <TableHead>Variant</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead className="text-right">Ordered</TableHead>
-                <TableHead className="text-right">Received</TableHead>
-                <TableHead className="text-right">Unit Cost</TableHead>
-                <TableHead className="text-right">Line Value</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Rate</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -864,10 +925,17 @@ export function StorefrontPurchaseReceiptShowSection({
                       <p className="text-xs text-muted-foreground">{line.productId}</p>
                     </div>
                   </TableCell>
-                  <TableCell>{line.variantName ?? "-"}</TableCell>
-                  <TableCell>{line.warehouseId}</TableCell>
-                  <TableCell className="text-right">{line.quantity.toFixed(2)} {line.unit}</TableCell>
-                  <TableCell className="text-right">{line.receivedQuantity.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="text-sm text-foreground">{line.variantName ?? "-"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Received {line.receivedQuantity.toFixed(2)} · {line.warehouseId}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {line.quantity.toFixed(2)} {line.unit}
+                  </TableCell>
                   <TableCell className="text-right">{formatMoney(line.unitCost)}</TableCell>
                   <TableCell className="text-right">
                     {formatMoney(line.quantity * line.unitCost)}
@@ -890,11 +958,45 @@ export function StorefrontPurchaseReceiptUpsertSection({
   const navigate = useNavigate()
   const isEditing = Boolean(receiptId)
   const [form, setForm] = useState<PurchaseReceiptForm>(createPurchaseReceiptForm())
+  const [products, setProducts] = useState<ProductListResponse["items"]>([])
+  const [isProductLookupLoading, setIsProductLookupLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
-  useGlobalLoading(isLoading || isSaving)
+  useGlobalLoading(isLoading || isSaving || isProductLookupLoading)
+
+  const productOptions = useMemo(() => getProductLookupOptions(products), [products])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadProducts() {
+      setIsProductLookupLoading(true)
+      try {
+        const response = await requestJson<ProductListResponse>("/internal/v1/core/products")
+        if (!cancelled) {
+          setProducts(response.items)
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setFormError(
+            loadError instanceof Error ? loadError.message : "Failed to load product lookup."
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProductLookupLoading(false)
+        }
+      }
+    }
+
+    void loadProducts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!receiptId) {
@@ -974,9 +1076,37 @@ export function StorefrontPurchaseReceiptUpsertSection({
   const lineCount = form.lines.length
   const totalQuantity = form.lines.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
   const totalValue = form.lines.reduce(
-    (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitCost || 0),
+    (sum, item) => sum + getPurchaseReceiptLineAmount(item),
     0
   )
+
+  function updatePurchaseReceiptLine(
+    index: number,
+    patch: Partial<PurchaseReceiptLineForm>
+  ) {
+    setForm((current) => ({
+      ...current,
+      lines: current.lines.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item
+      ),
+    }))
+  }
+
+  function selectPurchaseReceiptProduct(index: number, productId: string) {
+    const selectedProduct = products.find((product) => product.id === productId)
+    if (!selectedProduct) {
+      return
+    }
+
+    setForm((current) => ({
+      ...current,
+      lines: current.lines.map((line, lineIndex) =>
+        lineIndex === index
+          ? { ...line, ...createPurchaseReceiptProductPatch(selectedProduct, line) }
+          : line
+      ),
+    }))
+  }
 
   if (isLoading) {
     return <LoadingStateCard message="Loading purchase receipt form..." />
@@ -1164,8 +1294,10 @@ export function StorefrontPurchaseReceiptUpsertSection({
             </div>
           </div>
           <VoucherInlineEditableTable
-            title="Receipt line items"
-            description="Keep this inline table for purchase-receipt editing. Totals and downstream goods-inward verification continue to derive from these rows."
+            title="Purchase items"
+            description="Add receipt lines as purchase sub-items. Quantity and estimated value are derived from this table."
+            addLabel="Add item"
+            fitToContainer
             rows={form.lines}
             onAddRow={() =>
               setForm((current) => ({
@@ -1182,169 +1314,145 @@ export function StorefrontPurchaseReceiptUpsertSection({
                     : current.lines.filter((_, itemIndex) => itemIndex !== index),
               }))
             }
+            removeButtonLabel="Remove"
+            getRowKey={(line, index) =>
+              `purchase-receipt-line:${index}:${line.productId}:${line.productName}`
+            }
             columns={[
               {
-                id: "productId",
-                header: "Product Id",
-                renderCell: (line: PurchaseReceiptLineForm, index: number) => (
-                  <Input
-                    value={line.productId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, productId: event.target.value } : item
-                        ),
-                      }))
-                    }
-                    className={voucherInlineInputClassName}
-                  />
-                ),
+                id: "product",
+                header: "Product",
+                headerClassName: "w-[34%] min-w-80",
+                cellClassName: "w-[34%]",
+                renderCell: (line: PurchaseReceiptLineForm, index: number) => {
+                  const rowOptions = getPurchaseReceiptLineProductOptions(
+                    line,
+                    productOptions,
+                    index
+                  )
+
+                  return (
+                    <div className="space-y-0.5">
+                      <SearchableLookupField
+                        emptyOptionLabel="Select product"
+                        noResultsMessage="No products found."
+                        onValueChange={(nextValue) => {
+                          if (!nextValue || nextValue.startsWith("manual:")) {
+                            return
+                          }
+
+                          selectPurchaseReceiptProduct(index, nextValue)
+                        }}
+                        options={rowOptions}
+                        placeholder={isProductLookupLoading ? "Loading products..." : "Select product"}
+                        searchPlaceholder="Search product"
+                        triggerClassName="h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                        value={line.productId || (line.productName ? `manual:${index}` : "")}
+                      />
+                    </div>
+                  )
+                },
               },
               {
-                id: "productName",
-                header: "Product Name",
+                id: "description",
+                header: "Description",
+                headerClassName: "w-[28%]",
+                cellClassName: "w-[28%] max-w-0",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => (
-                  <Input
-                    value={line.productName}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, productName: event.target.value } : item
-                        ),
-                      }))
-                    }
-                    className={voucherInlineInputClassName}
-                  />
-                ),
-              },
-              {
-                id: "variantName",
-                header: "Variant",
-                renderCell: (line: PurchaseReceiptLineForm, index: number) => (
-                  <Input
-                    value={line.variantName}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? { ...item, variantName: event.target.value }
-                            : item
-                        ),
-                      }))
-                    }
-                    className={voucherInlineInputClassName}
-                  />
+                  <div className="min-w-0 space-y-0.5">
+                    <Input
+                      aria-label="Description"
+                      value={line.variantName}
+                      onChange={(event) =>
+                        updatePurchaseReceiptLine(index, { variantName: event.target.value })
+                      }
+                      className={`${voucherInlineInputClassName} truncate`}
+                    />
+                    <Input
+                      aria-label="Line note"
+                      value={line.note}
+                      onChange={(event) =>
+                        updatePurchaseReceiptLine(index, { note: event.target.value })
+                      }
+                      className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                    />
+                  </div>
                 ),
               },
               {
                 id: "quantity",
-                header: "Quantity",
-                headerClassName: "text-right",
-                cellClassName: "text-right",
+                header: "Qty",
+                headerClassName: "w-[12%]",
+                cellClassName: "w-[12%]",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => (
                   <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
                     value={line.quantity}
                     onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, quantity: event.target.value } : item
-                        ),
-                      }))
+                      updatePurchaseReceiptLine(index, { quantity: event.target.value })
                     }
                     className={voucherInlineInputClassName}
                   />
                 ),
               },
               {
-                id: "unit",
-                header: "Unit",
+                id: "rate",
+                header: "Rate",
+                headerClassName: "w-[14%]",
+                cellClassName: "w-[14%]",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => (
                   <Input
-                    value={line.unit}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, unit: event.target.value } : item
-                        ),
-                      }))
-                    }
-                    className={voucherInlineInputClassName}
-                  />
-                ),
-              },
-              {
-                id: "unitCost",
-                header: "Unit Cost",
-                headerClassName: "text-right",
-                cellClassName: "text-right",
-                renderCell: (line: PurchaseReceiptLineForm, index: number) => (
-                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
                     value={line.unitCost}
                     onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, unitCost: event.target.value } : item
-                        ),
-                      }))
+                      updatePurchaseReceiptLine(index, { unitCost: event.target.value })
                     }
                     className={voucherInlineInputClassName}
                   />
                 ),
               },
               {
-                id: "note",
-                header: "Note",
-                renderCell: (line: PurchaseReceiptLineForm, index: number) => (
-                  <Input
-                    value={line.note}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        lines: current.lines.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, note: event.target.value } : item
-                        ),
-                      }))
-                    }
-                    className={voucherInlineInputClassName}
-                  />
-                ),
+                id: "amount",
+                header: "Amount",
+                headerClassName: "w-[14%] text-right",
+                cellClassName: "w-[14%] text-right font-medium text-foreground",
+                renderCell: (line: PurchaseReceiptLineForm) =>
+                  formatMoney(getPurchaseReceiptLineAmount(line)),
               },
             ]}
             footer={
               <>
                 <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Line count
+                    Quantity
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">{lineCount}</p>
-                </div>
-                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Planned quantity
-                  </p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">
+                  <p className="mt-2 text-xl font-semibold text-foreground">
                     {totalQuantity.toFixed(2)}
                   </p>
                 </div>
                 <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Estimated value
+                    Subtotal
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-foreground">
+                  <p className="mt-2 text-xl font-semibold text-foreground">
                     {formatMoney(totalValue)}
                   </p>
                 </div>
                 <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Lines
+                  </p>
+                  <p className="mt-2 text-xl font-semibold text-foreground">{lineCount}</p>
+                </div>
+                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Warehouse
                   </p>
-                  <p className="mt-2 text-sm font-medium text-foreground">
+                  <p className="mt-2 text-xl font-semibold text-foreground">
                     {form.warehouseName || "Not set"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">

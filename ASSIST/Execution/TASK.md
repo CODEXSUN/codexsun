@@ -35,3 +35,10 @@
     - [x] 8.1 fix stock-app relative imports and local module registration issues found during verification
     - [ ] 8.2 clean remaining stock-app type issues that are independent of the repo-wide `rootDir` constraint
     - [ ] 8.3 decide whether to add a dedicated stock alias/path mapping or keep explicit relative imports for the new app boundary
+    - [x] 8.4 rework purchase receipt item tables to match the sales invoice item-table tone
+    - [x] 8.5 rework goods inward item entry into the same inline item-table tone
+    - [x] 8.6 add inline product autocomplete lookup selection to purchase receipt item tables
+    - [x] 8.7 remove visible description placeholders and truncate long inline item-cell text
+    - [x] 8.8 hide the boilerplate expected-inward note from inline item descriptions
+    - [x] 8.9 simplify purchase receipt rate cells by removing the visible unit sub-field
+    - [x] 8.10 tighten inline item table row padding and control heights

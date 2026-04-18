@@ -20,6 +20,13 @@
 - created a first-class `apps/stock` app boundary with shared schemas, workspace items, stock manager services, and internal `/stock/*` routes for purchase receipts, goods inward, stock units, barcode verification, sticker batches, sale allocations, movements, availability, reconciliation, transfers, reservations, and verification
 - registered the stock app into the framework suite and cxapp desk, then added dedicated stock workspace routes for purchase receipt and goods inward list, show, and upsert flows
 - kept billing as the current document owner while wiring the stock app operationally over the existing billing stock lifecycle services plus inventory-engine and tenant-engine runtime reads and writes
+- reworked stock-facing purchase receipt item tables to follow the sales invoice item-table format with Product, Description, Qty, Rate, Amount, and derived quantity/subtotal summary tiles
+- reworked goods inward item entry into the same inline item-table pattern, preserving accepted, rejected, damaged, manufacturer barcode, manufacturer serial, and note capture
+- added inline core-product autocomplete lookup selection to purchase receipt item tables, carrying selected product id, product name, and product cost into the receipt line while keeping raw product ids out of the visible cell
+- removed visible description placeholders from inline item tables and constrained long description values to truncate inside the cell
+- filtered the boilerplate `Expected inward quantity.` note out of inline item description displays
+- simplified purchase receipt rate cells by removing the visible unit sub-field while preserving line units in saved payloads
+- tightened inline item table rows with reduced padding, compact row actions, and shorter in-cell controls
 
 ## v-1.0.191
 

@@ -57,6 +57,14 @@
     - transfer, reservation, verification, reconciliation, and real-time stock views are available from the stock workspace
   - Validation completed:
     - file-level implementation landed for backend, routing, registration, and frontend workspace surfaces
+    - purchase receipt item tables now use the same five-column voucher-line rhythm as the billing sales invoice item table
+    - goods inward item entry now uses the shared inline item table, preserving expected, accepted, rejected, damaged, manufacturer identity, and note fields
+    - purchase receipt item tables now select products through inline searchable core-product lookups, default rates from product cost price, hide raw product ids in the cell, and give the product column more width
+    - inline item description cells no longer show visible placeholder text and now truncate long values inside the cell
+    - the boilerplate `Expected inward quantity.` note is filtered out of inline item description displays
+    - purchase receipt rate cells now show only the numeric rate, with line units kept internal for payload compatibility
+    - inline item tables now use tighter row padding, shorter row actions, and compact in-cell controls
+    - `npx tsc --noEmit`
     - `cmd /c npm run typecheck` still fails primarily on the existing repo-wide `rootDir` issue for `framework/*` imports from `apps/*`
     - typecheck also surfaced a few stock-app-local cleanup items, and part of that cleanup was already applied by switching the new app to explicit relative imports
   - Residual risk:

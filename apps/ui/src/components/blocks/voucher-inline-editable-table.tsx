@@ -79,7 +79,7 @@ export function VoucherInlineEditableTable<Row>({
       >
         <Table className={cn(fitToContainer ? "w-full table-fixed" : "min-w-[960px]")}>
           <TableHeader>
-            <TableRow className="h-10 border-border/60 bg-muted/30 hover:bg-muted/30">
+            <TableRow className="h-9 border-border/60 bg-muted/30 hover:bg-muted/30">
               <TableHead className="w-14 min-w-14 border-r border-border/60 px-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 #
               </TableHead>
@@ -116,7 +116,7 @@ export function VoucherInlineEditableTable<Row>({
               rows.map((row, rowIndex) => (
                 <TableRow
                   key={getRowKey ? getRowKey(row, rowIndex) : `voucher-inline-row:${rowIndex}`}
-                  className="h-11 border-border/50 align-top hover:bg-transparent"
+                  className="h-10 border-border/50 align-top hover:bg-transparent"
                 >
                   <TableCell className="border-r border-border/50 px-2 text-center text-sm text-muted-foreground">
                     {rowIndex + 1}
@@ -125,7 +125,7 @@ export function VoucherInlineEditableTable<Row>({
                     <TableCell
                       key={column.id}
                       className={cn(
-                        "border-r border-border/50 px-2 py-1.5 align-top last:border-r-0",
+                        "border-r border-border/50 px-2 py-1 align-top last:border-r-0",
                         column.cellClassName,
                         onRemoveRow && column.id === columns[columns.length - 1]?.id ? "border-r" : ""
                       )}
@@ -134,12 +134,12 @@ export function VoucherInlineEditableTable<Row>({
                     </TableCell>
                   ))}
                   {onRemoveRow ? (
-                    <TableCell className="px-1 py-1.5 text-center align-top">
+                    <TableCell className="px-1 py-1 text-center align-top">
                       <Button
                         type="button"
                         variant="ghost"
                         size={removeButtonMode === "compact" ? "icon" : "sm"}
-                        className={removeButtonMode === "compact" ? "size-8 rounded-full" : undefined}
+                        className={removeButtonMode === "compact" ? "size-7 rounded-full" : undefined}
                         onClick={() => onRemoveRow(rowIndex)}
                       >
                         <Trash2 className={removeButtonMode === "compact" ? "size-4" : "mr-2 size-4"} />
