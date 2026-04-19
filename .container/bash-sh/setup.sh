@@ -395,6 +395,7 @@ set_compose_runtime_vars() {
   export APP_BIND_IP="${CURRENT_APP_BIND_IP:-}"
   export APP_HTTP_HOST_PORT="${CURRENT_APP_HTTP_HOST_PORT:-}"
   export APP_ALT_HTTP_HOST_PORT="${CURRENT_APP_ALT_HTTP_HOST_PORT:-}"
+  export CLIENT_BOOTSTRAP_DB_NAME="${CURRENT_DB_NAME:-}"
 }
 
 validate_cloud_runtime() {

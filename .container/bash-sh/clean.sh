@@ -3,55 +3,99 @@ set -euo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONTAINER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CLIENTS_DIR="$CONTAINER_ROOT/clients"
+CLIENT_LIST_FILE="$CONTAINER_ROOT/client-list.md"
 
 log() {
   printf '%s\n' "$*"
 }
 
+die() {
+  log "$*"
+  exit 1
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    log "Missing required command: $1"
-    exit 1
+    die "Missing required command: $1"
   fi
 }
 
-require_cmd docker
+discover_clients() {
+  AVAILABLE_CLIENTS=()
 
-COMPOSE_CMD=()
-if docker compose version >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker-compose)
-else
-  log "Docker Compose is not available."
-  exit 1
-fi
+  if [ -f "$CLIENT_LIST_FILE" ]; then
+    while IFS= read -r listed_client; do
+      [ -n "$listed_client" ] || continue
+      [ -d "$CLIENTS_DIR/$listed_client" ] || die "Client '$listed_client' is listed in $CLIENT_LIST_FILE but missing under $CLIENTS_DIR"
+      [ -f "$CLIENTS_DIR/$listed_client/docker-compose.yml" ] || die "Client '$listed_client' is listed in $CLIENT_LIST_FILE but missing docker-compose.yml"
+      AVAILABLE_CLIENTS+=("$listed_client")
+    done < <(
+      awk -F'|' '
+        /^\|/ {
+          client_id=$2
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", client_id)
+          if (client_id != "" && client_id != "client_id" && client_id != "---") {
+            print client_id
+          }
+        }
+      ' "$CLIENT_LIST_FILE"
+    )
+  fi
 
-IMAGE_TAG="${IMAGE_TAG:-codexsun-app:v1}"
-CONFIRM_DESTRUCTIVE_CLEAN="${CONFIRM_DESTRUCTIVE_CLEAN:-}"
+  if [ "${#AVAILABLE_CLIENTS[@]}" -gt 0 ]; then
+    return
+  fi
 
-CODEXSUN_COMPOSE_FILE="${CODEXSUN_COMPOSE_FILE:-.container/clients/codexsun/docker-compose.yml}"
-TMNEXT_COMPOSE_FILE="${TMNEXT_COMPOSE_FILE:-.container/clients/tmnext_in/docker-compose.yml}"
-TIRUPUR_COMPOSE_FILE="${TIRUPUR_COMPOSE_FILE:-.container/clients/tirupur_direct/docker-compose.yml}"
-TECHMEDIA_COMPOSE_FILE="${TECHMEDIA_COMPOSE_FILE:-.container/clients/techmedia_in/docker-compose.yml}"
-NEOT_COMPOSE_FILE="${NEOT_COMPOSE_FILE:-.container/clients/neot_in/docker-compose.yml}"
+  local client_dir
+  for client_dir in "$CLIENTS_DIR"/*; do
+    [ -d "$client_dir" ] || continue
+    [ -f "$client_dir/docker-compose.yml" ] || continue
+    AVAILABLE_CLIENTS+=("$(basename "$client_dir")")
+  done
 
-CODEXSUN_CONTAINER="${CODEXSUN_CONTAINER:-codexsun-app}"
-TMNEXT_CONTAINER="${TMNEXT_CONTAINER:-tmnext-in-app}"
-TIRUPUR_CONTAINER="${TIRUPUR_CONTAINER:-tirupur-direct-app}"
-TECHMEDIA_CONTAINER="${TECHMEDIA_CONTAINER:-techmedia-in-app}"
-NEOT_CONTAINER="${NEOT_CONTAINER:-neot-in-app}"
+  [ "${#AVAILABLE_CLIENTS[@]}" -gt 0 ] || die "No client compose folders were found under $CLIENTS_DIR"
+}
 
-CODEXSUN_VOLUME="${CODEXSUN_VOLUME:-codexsun_codexsun_runtime}"
-TMNEXT_VOLUME="${TMNEXT_VOLUME:-tmnext-in_tmnext_in_runtime}"
-TIRUPUR_VOLUME="${TIRUPUR_VOLUME:-tirupur-direct_tirupur_direct_runtime}"
-TECHMEDIA_VOLUME="${TECHMEDIA_VOLUME:-techmedia-in_techmedia_in_runtime}"
-NEOT_VOLUME="${NEOT_VOLUME:-neot-in_neot_in_runtime}"
+parse_selected_clients() {
+  SELECTED_CLIENTS=()
+  local input="${CLIENTS:-all}"
+
+  if [ "$input" = "all" ]; then
+    SELECTED_CLIENTS=("${AVAILABLE_CLIENTS[@]}")
+    return
+  fi
+
+  local candidate found
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    found="false"
+    local known
+    for known in "${AVAILABLE_CLIENTS[@]}"; do
+      if [ "$known" = "$candidate" ]; then
+        found="true"
+        break
+      fi
+    done
+    [ "$found" = "true" ] || die "Unknown client: $candidate"
+    SELECTED_CLIENTS+=("$candidate")
+  done < <(printf '%s' "$input" | tr ',' '\n')
+
+  [ "${#SELECTED_CLIENTS[@]}" -gt 0 ] || die "No clients selected."
+}
+
+parse_compose_container_name() {
+  local compose_file="$1"
+  awk '/^[[:space:]]*container_name:[[:space:]]*/ { print $2; exit }' "$compose_file"
+}
 
 stop_container() {
   local label="$1"
   local container_name="$2"
+
+  [ -n "$container_name" ] || return
 
   if ! docker ps -a --format '{{.Names}}' | grep -Fxq "$container_name"; then
     log "Skipping ${label} container: ${container_name} not found"
@@ -69,46 +113,47 @@ stop_stack() {
   local label="$1"
   local compose_file="$2"
 
-  if [ ! -f "$REPO_ROOT/$compose_file" ]; then
+  if [ ! -f "$compose_file" ]; then
     log "Skipping ${label}: missing $compose_file"
     return
   fi
 
   log "Stopping ${label}..."
-  "${COMPOSE_CMD[@]}" -f "$REPO_ROOT/$compose_file" down --remove-orphans -v || true
+  "${COMPOSE_CMD[@]}" -f "$compose_file" down --remove-orphans -v || true
 }
 
-remove_volume() {
-  local volume_name="$1"
-  log "Removing volume ${volume_name}..."
-  docker volume rm "$volume_name" >/dev/null 2>&1 || true
-}
+require_cmd docker
+
+COMPOSE_CMD=()
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker-compose)
+else
+  die "Docker Compose is not available."
+fi
+
+IMAGE_TAG="${IMAGE_TAG:-codexsun-app:v1}"
+CONFIRM_DESTRUCTIVE_CLEAN="${CONFIRM_DESTRUCTIVE_CLEAN:-}"
 
 if [ "$CONFIRM_DESTRUCTIVE_CLEAN" != "YES" ]; then
   log "Refusing destructive cleanup."
-  log "Set CONFIRM_DESTRUCTIVE_CLEAN=YES to remove containers, volumes, image, and prune Docker resources."
+  log "Set CONFIRM_DESTRUCTIVE_CLEAN=YES to remove client containers, volumes, image, and prune Docker resources."
   exit 1
 fi
 
-log "Stopping Codexsun app containers, bringing stacks down, removing volumes, image, and unused Docker resources..."
+discover_clients
+parse_selected_clients
 
-stop_container "codexsun" "$CODEXSUN_CONTAINER"
-stop_container "tmnext.in" "$TMNEXT_CONTAINER"
-stop_container "tirupurdirect.in" "$TIRUPUR_CONTAINER"
-stop_container "techmedia.in" "$TECHMEDIA_CONTAINER"
-stop_container "neot.in" "$NEOT_CONTAINER"
+log "Stopping registered client stacks, removing runtime volumes through compose, deleting image ${IMAGE_TAG}, and pruning unused Docker resources..."
+log "Selected clients: $(printf '%s ' "${SELECTED_CLIENTS[@]}" | sed 's/[[:space:]]*$//')"
 
-stop_stack "codexsun" "$CODEXSUN_COMPOSE_FILE"
-stop_stack "tmnext.in" "$TMNEXT_COMPOSE_FILE"
-stop_stack "tirupurdirect.in" "$TIRUPUR_COMPOSE_FILE"
-stop_stack "techmedia.in" "$TECHMEDIA_COMPOSE_FILE"
-stop_stack "neot.in" "$NEOT_COMPOSE_FILE"
-
-remove_volume "$CODEXSUN_VOLUME"
-remove_volume "$TMNEXT_VOLUME"
-remove_volume "$TIRUPUR_VOLUME"
-remove_volume "$TECHMEDIA_VOLUME"
-remove_volume "$NEOT_VOLUME"
+for client_id in "${SELECTED_CLIENTS[@]}"; do
+  compose_file="$REPO_ROOT/.container/clients/$client_id/docker-compose.yml"
+  container_name="$(parse_compose_container_name "$compose_file")"
+  stop_container "$client_id" "$container_name"
+  stop_stack "$client_id" "$compose_file"
+done
 
 log "Removing image ${IMAGE_TAG}..."
 docker image rm "$IMAGE_TAG" >/dev/null 2>&1 || true

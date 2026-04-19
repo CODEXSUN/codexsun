@@ -20,6 +20,24 @@ export SUPER_ADMIN_EMAILS='admin@techmedia.in'
 TARGET_ENV=cloud TECHMEDIA_IN_DOMAIN=techmedia.in ./.container/clients/techmedia_in/setup.sh
 ```
 
+## Clean install
+
+```bash
+TARGET_ENV=cloud \
+TECHMEDIA_IN_DOMAIN=techmedia.in \
+JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters' \
+SECRET_OWNER_EMAIL='security@techmedia.in' \
+OPERATIONS_OWNER_EMAIL='ops@techmedia.in' \
+SUPER_ADMIN_EMAILS='admin@techmedia.in' \
+CLEAN_INSTALL=true \
+CONFIRM_CLEAN_INSTALL=YES \
+DROP_DATABASES=true \
+CONFIRM_DROP_DATABASES=YES \
+BUILD_IMAGE=true \
+CREATE_DATABASES=true \
+./.container/clients/techmedia_in/setup.sh
+```
+
 ## Defaults
 
 - Local URL: `http://127.0.0.1:4008`

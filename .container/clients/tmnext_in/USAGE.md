@@ -20,6 +20,24 @@ export SUPER_ADMIN_EMAILS='admin@tmnext.in'
 TARGET_ENV=cloud TMNEXT_IN_DOMAIN=tmnext.in ./.container/clients/tmnext_in/setup.sh
 ```
 
+## Clean install
+
+```bash
+TARGET_ENV=cloud \
+TMNEXT_IN_DOMAIN=tmnext.in \
+JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters' \
+SECRET_OWNER_EMAIL='security@tmnext.in' \
+OPERATIONS_OWNER_EMAIL='ops@tmnext.in' \
+SUPER_ADMIN_EMAILS='admin@tmnext.in' \
+CLEAN_INSTALL=true \
+CONFIRM_CLEAN_INSTALL=YES \
+DROP_DATABASES=true \
+CONFIRM_DROP_DATABASES=YES \
+BUILD_IMAGE=true \
+CREATE_DATABASES=true \
+./.container/clients/tmnext_in/setup.sh
+```
+
 ## Defaults
 
 - Local URL: `http://127.0.0.1:4007`

@@ -43,6 +43,32 @@ function toStoredValue(value: unknown) {
   return value ?? null
 }
 
+function getSeedColumnValue(
+  item: Record<string, unknown>,
+  column: {
+    key: string
+    type: "string" | "number" | "boolean"
+    nullable: boolean
+    numberMode?: "integer" | "decimal"
+  }
+) {
+  const rawValue = item[column.key]
+
+  if (rawValue !== undefined) {
+    return toStoredValue(rawValue)
+  }
+
+  if (column.type === "boolean" && !column.nullable) {
+    return 0
+  }
+
+  if (column.type === "number" && column.numberMode === "integer" && !column.nullable) {
+    return 0
+  }
+
+  return null
+}
+
 export const coreCommonModuleTableBackfillMigration = defineDatabaseMigration({
   id: "core:common-modules:09-common-module-table-backfill",
   appId: "core",
@@ -106,7 +132,7 @@ export const coreCommonModuleTableBackfillMigration = defineDatabaseMigration({
             }
 
             for (const column of definition.columns) {
-              row[column.key] = toStoredValue(item[column.key])
+              row[column.key] = getSeedColumnValue(item as Record<string, unknown>, column)
             }
 
             return row

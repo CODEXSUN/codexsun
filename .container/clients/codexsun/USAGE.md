@@ -24,6 +24,33 @@ export SUPER_ADMIN_EMAILS='admin@codexsun.com'
 TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setup.sh
 ```
 
+## Clean install
+
+Remove the old container, runtime volume, and target database, then build and install fresh:
+
+```bash
+TARGET_ENV=cloud \
+CODEXSUN_DOMAIN=codexsun.com \
+JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters' \
+SECRET_OWNER_EMAIL='security@codexsun.com' \
+OPERATIONS_OWNER_EMAIL='ops@codexsun.com' \
+SUPER_ADMIN_EMAILS='admin@codexsun.com' \
+CLEAN_INSTALL=true \
+CONFIRM_CLEAN_INSTALL=YES \
+DROP_DATABASES=true \
+CONFIRM_DROP_DATABASES=YES \
+BUILD_IMAGE=true \
+CREATE_DATABASES=true \
+./.container/clients/codexsun/setup.sh
+```
+
+CONFIRM_CLEAN_INSTALL=YES \
+DROP_DATABASES=true \
+CONFIRM_DROP_DATABASES=YES \
+CONFIRM_DESTRUCTIVE_CLEAN=YES \
+./.container/bash-sh/clean.sh
+
+
 ## What the setup script does
 
 - Builds the image with `docker compose build`

@@ -8,6 +8,20 @@
 
 ## v-1.0.192
 
+### [v 1.0.192] 2026-04-19 - Normalize multi-client Docker deployment and clean-install tooling
+
+- normalized all client compose files under `.container/clients/*` to the same runtime environment baseline and added complete deployment folders for `dealodeal_com`, `lifeshoppy_com`, `horseclub_in`, `aaranerp_com`, `spotmynumber_com`, and `thetirupurtextiles_com`
+- renamed the Tirupur client deployment folder from `tirupur_direct` to `tirupurdirect_com`, updated the client inventory and cleanup references, and normalized the Tirupur database naming to `tirupurdirect_com_db`
+- changed container bootstrap DB wiring so compose consumes the setup-selected client database instead of a hardcoded `DB_NAME`, fixing both local and cloud bootstrap mismatches for clients such as `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+- added one-by-one cloud clean-install tooling through `.container/bash-sh/cloud-clean-install-clients.sh`, added clean-install command sections to every client `USAGE.md`, and refactored `.container/bash-sh/clean.sh` to discover and clean all registered clients from `.container/client-list.md`
+- validated every client compose file with `docker compose config`, then revalidated live local and cloud deployments with healthy startup for `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+
+### [v 1.0.192] 2026-04-19 - Reconcile .env and .env.sample ordering and key coverage
+
+- reordered `.env` and `.env.sample` into the same section structure for application, frontend, security, operations, billing, container startup, and Frappe settings
+- added the missing shared keys in both directions so `.env` and `.env.sample` now expose the same environment-variable set without gaps
+- aligned newer runtime and deployment settings including scheduled git update flags, operator and secret-owner metadata, backup verification fields, webhook and billing integration placeholders, and ecommerce pricing percentage controls
+
 ### [v 1.0.192] 2026-04-19 - Start stock app ownership extraction without breaking deployment
 
 - moved the canonical stock operation contracts into `apps/stock/shared/schemas/stock-operations.ts` and turned the billing schema file into a compatibility re-export so stock-owned code can import from its own app boundary first

@@ -154,3 +154,46 @@
     - shared `framework/*` imports may still need a cleaner repo-wide TypeScript path strategy
     - extracting the full stock lifecycle implementation out of billing may reveal hidden coupling in purchase receipt and goods inward persistence
     - the current step moved canonical ownership boundaries first, but the deep lifecycle logic is still physically implemented under `apps/billing/src/services/stock-lifecycle-service.ts`
+- `#195` Normalize client Docker stacks and add the next client deployment set
+  - Goal:
+    - make every client compose file follow the same runtime baseline as `.container/clients/codexsun/docker-compose.yml`
+    - add the requested new client deployment folders under `.container/clients`
+    - rebuild and verify fresh deployments for `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+  - Why this slice now:
+    - the current client compose files are inconsistent and some omit the runtime database and git-sync environment block
+    - the next client domains need first-class deployment folders so they can be managed by the shared setup script
+    - the user explicitly wants a fresh Docker cleanup and revalidation of the active deployments
+  - Current repository reality:
+    - `.container/client-list.md` is the canonical deployment inventory
+    - `codexsun` is the only client currently using the full compose environment block
+    - `tirupurdirect_com`, `techmedia_in`, `neot_in`, and `tmnext_in` still use thinner compose files
+    - the shared setup flow is driven by `.container/bash-sh/setup.sh` plus per-client `client.conf.sh`
+  - Scope in this batch:
+    - update the canonical client list
+    - normalize all existing client compose files to the `codexsun` shape
+    - add `dealodeal_com`, `lifeshoppy_com`, `horseclub_in`, `aaranerp_com`, and `spotmynumber_com`
+    - run Docker cleanup excluding MariaDB
+    - rebuild and deploy `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+    - inspect startup status, logs, and health responses for deployment failures
+  - Constraints:
+    - do not remove or recreate the MariaDB container
+    - keep the shared external Docker network as `codexion-network`
+    - preserve the current shared image model based on `codexsun-app:v1`
+  - Planned validation:
+    - run `docker compose -f <client-compose> config` for each client
+    - run `docker ps -a` and `docker logs --tail 200 <container>` for the rebuilt deployments
+    - confirm the active containers reach the expected running state after restart
+  - Residual risk to watch:
+    - application readiness depends on the current database schema and runtime `.env` bootstrap inside the container
+    - a fresh image rebuild can surface unrelated app-level startup failures even when the compose files are correct
+  - Validation completed:
+    - `docker compose -f .container/clients/<client>/docker-compose.yml config` succeeded for every client folder under `.container/clients`
+    - all non-MariaDB app containers and the shared `codexsun-app:v1` image were removed before the fresh install
+    - fresh local deployment completed successfully for `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+    - `docker ps -a` shows `codexsun-app`, `tirupur-direct-app`, and `techmedia-in-app` running alongside the preserved `mariadb` container
+    - `GET http://127.0.0.1:4000/health`, `GET http://127.0.0.1:4005/health`, and `GET http://127.0.0.1:4008/health` all returned `status: ok` on April 19, 2026
+    - the first attempted deployment from PowerShell defaulted back to the script's cloud mode and all-clients selection; rerunning through `bash -lc` with inline env assignment fixed the targeting and exposed the Tirupur client DB-name mismatch that has since been normalized to `tirupurdirect_com_db`
+    - a cloud-mode deployment run on April 19, 2026 completed successfully for `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+    - live container env now shows `DB_NAME=codexsun_com_db` for `codexsun-app`, `DB_NAME=tirupurdirect_com_db` for `tirupur-direct-app`, and `DB_NAME=techmedia_in_db` for `techmedia-in-app`
+    - forwarded-HTTPS health checks against `codexsun.com`, `tirupurdirect.in`, and `techmedia.in` returned `status: ok`, `frontendHttpPort: 443`, and the expected cloud domains
+    - a reusable helper script now exists to run cloud clean installs one client at a time for either `all` clients or an explicit subset

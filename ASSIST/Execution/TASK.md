@@ -80,3 +80,23 @@
     - [x] 5.1 run `cmd /c npm run typecheck`
     - [x] 5.2 run `cmd /c npm run build`
     - [x] 5.3 update execution docs and changelog with the refactor and deployment-fix results
+- [ ] `#195` Normalize client Docker stacks and add the next client deployment set
+  - [x] Phase 1: deployment inventory and compose normalization
+    - [x] 1.1 audit the current `.container/clients/*` compose files and setup conventions
+    - [x] 1.2 align all existing client compose files to the `codexsun` runtime environment shape
+    - [x] 1.3 update the canonical client inventory with the new client entries
+  - [x] Phase 2: add new client deployment folders
+    - [x] 2.1 add `dealodeal_com` with compose, setup config, env example, nginx config, and usage docs
+    - [x] 2.2 add `lifeshoppy_com` with compose, setup config, env example, nginx config, and usage docs
+    - [x] 2.3 add `horseclub_in` with compose, setup config, env example, nginx config, and usage docs
+    - [x] 2.4 add `aaranerp_com` with compose, setup config, env example, nginx config, and usage docs
+    - [x] 2.5 add `spotmynumber_com` with compose, setup config, env example, nginx config, and usage docs
+  - [x] Phase 3: Docker cleanup, fresh install, and deployment verification
+    - [x] 3.1 validate all client compose files with `docker compose config`
+    - [x] 3.2 stop and remove non-MariaDB containers and non-MariaDB app images
+    - [x] 3.3 rebuild and start fresh for `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+    - [x] 3.4 inspect logs and health output for deployment errors
+    - [x] 3.5 validate cloud-mode deployment for `codexsun`, `tirupurdirect_com`, and `techmedia_in`
+  - [x] Phase 4: one-by-one clean install helper
+    - [x] 4.1 add a reusable cloud clean-install script for all clients
+    - [x] 4.2 update client usage docs with clean-install commands

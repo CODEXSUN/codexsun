@@ -10,17 +10,30 @@ services:
       args:
         VITE_FRONTEND_TARGET: shop
     container_name: tirupur-direct-app
+    environment:
+      GIT_SYNC_ENABLED: "false"
+      GIT_AUTO_UPDATE_ON_START: "false"
+      GIT_FORCE_UPDATE_ON_START: "false"
+      INSTALL_DEPS_ON_START: "false"
+      BUILD_ON_START: "false"
+      DB_DRIVER: "mariadb"
+      DB_HOST: "mariadb"
+      DB_PORT: "3306"
+      DB_NAME: "${CLIENT_BOOTSTRAP_DB_NAME:-tirupurdirect_com_db}"
+      DB_USER: "root"
+      DB_PASSWORD: "DbPass1@@"
+      DB_SSL: "false"
     ports:
       - "${APP_BIND_IP:-0.0.0.0}:${APP_HTTP_HOST_PORT:-4005}:4000"
       - "${APP_BIND_IP:-0.0.0.0}:${APP_ALT_HTTP_HOST_PORT:-5005}:4000"
     restart: unless-stopped
     volumes:
-      - tirupur_direct_runtime:/opt/codexsun/runtime
+      - tirupurdirect_com_runtime:/opt/codexsun/runtime
     networks:
       - codexion-network
 
 volumes:
-  tirupur_direct_runtime:
+  tirupurdirect_com_runtime:
 
 networks:
   codexion-network:

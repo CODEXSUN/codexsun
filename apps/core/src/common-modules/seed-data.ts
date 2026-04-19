@@ -80,6 +80,7 @@ const defaultCommonModuleRows: Record<
   warehouses: {
     code: "-",
     name: "-",
+    is_default_location: false,
     country_id: defaultRecordId,
     state_id: defaultRecordId,
     district_id: defaultRecordId,
