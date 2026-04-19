@@ -19,6 +19,7 @@ import {
   listContacts,
   updateContact,
 } from "../../../core/src/services/contact-service.js"
+import { getAvailableQuantityByProductIds } from "../../../stock/src/services/live-stock-service.js"
 import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
 import type { CommonModuleKey } from "../../../core/shared/index.js"
 import {
@@ -860,9 +861,16 @@ function upsertPortalRecord(
 }
 
 export async function listWelcomeMailProducts(database: Kysely<unknown>) {
-  const products = (await readProjectedStorefrontProducts(database))
-    .filter((item) => item.isActive)
-    .map((item) => toStorefrontProductCard(item))
+  const projectedProducts = (await readProjectedStorefrontProducts(database)).filter(
+    (item) => item.isActive
+  )
+  const availableQuantityByProductId = await getAvailableQuantityByProductIds(
+    database,
+    projectedProducts.map((item) => item.id)
+  )
+  const products = projectedProducts.map((item) =>
+    toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0)
+  )
 
   const newArrivals = products.filter((item) => item.isNewArrival)
   return (newArrivals.length > 0 ? newArrivals : products).slice(0, 4)

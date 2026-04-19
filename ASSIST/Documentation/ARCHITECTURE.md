@@ -137,19 +137,16 @@ Framework remains underneath CxApp as the reusable runtime.
 
 Inventory authority rule:
 
-1. `apps/core` is the current authoritative source for sellable storefront stock
-2. `apps/ecommerce` must read storefront availability from `core` stock rows and reserved quantities
-3. `apps/frappe` may project ERPNext stock into `core`, but storefront runtime and checkout must not depend on live ERP responses
-4. sellable quantity is `sum(active stock quantity - reservedQuantity)` and must never drop below zero in storefront reads
-5. low-stock state begins at sellable quantity `1` to `5`; sellable quantity `0` is out of stock
-6. cart and PDP quantities are advisory only until checkout confirms stock again and creates the reservation hold
-7. checkout creates a reservation hold when a new order enters `payment_pending`, and that hold stays attached to the order until cancellation, pending-payment failure, or expiry
-8. pending-payment reservation expiry follows the current `15` minute checkout-reuse window, and late payment capture must be rejected once the hold has been released
-9. storefront availability is currently aggregated across all active product stock rows; warehouse-level stock remains internal and is not exposed directly on customer-facing storefront surfaces
-10. store pickup currently uses the same shared sellable pool as delivery orders, so no pickup-only warehouse promise should be implied until warehouse-aware allocation exists
-11. current multi-warehouse readiness is operator-facing only: ecommerce may report warehouse spread and split-allocation posture from persisted stock rows and active reservations, but storefront runtime still must not expose warehouse choice or split-shipment promises
-12. current reservation allocation is first-fit across active stock rows, so readiness reporting may show split allocations even while the customer-facing storefront remains warehouse-agnostic
-13. the planned stock-operations expansion must follow [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md), where inward verification, batch or serial identity, sticker printing, scan verification, warehouse putaway, sales issue, and delivery traceability are layered under the current aggregate `core` stock rows instead of bypassing them
+1. `apps/stock` is the authoritative owner of live stock movements, live balance, and stock availability
+2. `apps/billing` may own purchase receipt, goods inward, stock unit, and sale-allocation source documents, but live stock balance must be written through stock-owned services and tables
+3. `apps/ecommerce` and other apps must consume stock availability from `apps/stock` service boundaries instead of reading `core` product stock rows as the source of truth
+4. `apps/core` product records may retain compatibility fields during migration, but they are no longer the live inventory authority
+5. live sellable quantity must be derived from stock-owned live balance as `balance_quantity - reserved_quantity` and must never drop below zero
+6. checkout creates a reservation hold when a new order enters `payment_pending`, and that hold stays attached to the order until cancellation, pending-payment failure, or expiry
+7. pending-payment reservation expiry follows the current `15` minute checkout-reuse window, and late payment capture must be rejected once the hold has been released
+8. storefront runtime may use stock-owned availability for validation, but customer-facing stock display should remain outside non-stock workspaces unless explicitly reintroduced
+9. warehouse-level stock remains an internal stock concern even when the stock app aggregates availability across warehouses for faster reads
+10. the stock-operations expansion must follow [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md), with inward verification, batch or serial identity, sticker printing, scan verification, warehouse putaway, sales issue, and delivery traceability updating stock-owned live balance programmatically instead of by re-reading full document history
 
 Pricing authority rule:
 

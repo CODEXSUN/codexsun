@@ -444,6 +444,7 @@ export const commonModuleMetadata: CommonModuleMetadata[] = [
   defineMetadata("warehouses", "Warehouses", "name", [
     stringColumn("code", "Warehouse code"),
     stringColumn("name", "Warehouse name"),
+    booleanColumn("is_default_location", "Default location"),
     stringColumn("city_id", "City", { referenceModule: "cities" }),
   ]),
   defineMetadata("destinations", "Destinations", "name", [

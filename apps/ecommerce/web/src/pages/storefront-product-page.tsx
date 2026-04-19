@@ -45,6 +45,7 @@ export function StorefrontProductPage() {
   const product = data?.item
   const gallery = product?.images.length ? product.images : []
   const isWishlisted = product ? customerPortal.isWishlisted(product.id) : false
+  const storefrontBadge = product?.badge ?? product?.department ?? null
   const focusTarget = (location.state as { focus?: string } | null)?.focus
   const shouldAutoFocusTop = focusTarget === "top"
   const shouldAutoFocusDetail =
@@ -153,9 +154,9 @@ export function StorefrontProductPage() {
                   <CardContent className="space-y-6 p-5 sm:p-6">
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-2">
-                        {product.badge ? (
+                        {storefrontBadge ? (
                           <Badge className="rounded-full border border-transparent bg-[#1f1813] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
-                            {product.badge}
+                            {storefrontBadge}
                           </Badge>
                         ) : null}
                         {product.department ? (
@@ -166,12 +167,6 @@ export function StorefrontProductPage() {
                             {product.department}
                           </Badge>
                         ) : null}
-                        <Badge
-                          variant="outline"
-                          className="rounded-full border-[#e1d5c8] bg-white/88 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6c5648]"
-                        >
-                          {product.availableQuantity > 0 ? "In stock" : "Out of stock"}
-                        </Badge>
                       </div>
                       <div className="space-y-3">
                         <p className="text-sm uppercase tracking-[0.18em] text-[#8a6e5b]">
@@ -278,11 +273,9 @@ export function StorefrontProductPage() {
                   <Card className="rounded-[1.55rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(251,247,242,0.92))] py-0 shadow-[0_18px_36px_-30px_rgba(48,31,19,0.18)]">
                     <CardContent className="space-y-3 p-5">
                       <ShieldCheck className="size-5 text-[#6d5140]" />
-                      <p className="text-sm font-semibold text-[#241913]">Availability</p>
+                      <p className="text-sm font-semibold text-[#241913]">Purchase</p>
                       <p className="text-sm leading-6 text-muted-foreground">
-                        {product.availableQuantity > 0
-                          ? `${product.availableQuantity} units ready to dispatch.`
-                          : "Currently unavailable."}
+                        Stock validation continues during purchase flow and order processing.
                       </p>
                     </CardContent>
                   </Card>

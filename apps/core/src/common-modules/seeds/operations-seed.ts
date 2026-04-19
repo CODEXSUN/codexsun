@@ -6,6 +6,7 @@ export const operationsSeed: SeedMap = {
     defineItem("warehouse:chennai-central", {
       code: "chennai-central",
       name: "Chennai Central Warehouse",
+      is_default_location: true,
       country_id: "country:india",
       state_id: "state:tamil-nadu",
       district_id: "district:chennai",
@@ -18,6 +19,7 @@ export const operationsSeed: SeedMap = {
     defineItem("warehouse:coimbatore-knits", {
       code: "coimbatore-knits",
       name: "Coimbatore Knits Warehouse",
+      is_default_location: false,
       country_id: "country:india",
       state_id: "state:tamil-nadu",
       district_id: "district:coimbatore",

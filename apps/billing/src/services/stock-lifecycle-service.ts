@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 
 import type { Kysely } from "kysely"
+import { z } from "zod"
 
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { listCompanies } from "../../../cxapp/src/services/company-service.js"
@@ -8,17 +9,22 @@ import { resolveCxappTenantContext } from "../../../cxapp/src/services/tenant-co
 import { coreTableNames } from "../../../core/database/table-names.js"
 import { productSchema, type Product } from "../../../core/shared/index.js"
 import { createInventoryEngineRuntimeServices } from "../../../../framework/engines/inventory-engine/runtime-services.js"
+import { applyLiveStockMovement } from "../../../stock/src/services/live-stock-service.js"
 import {
   listJsonStorePayloads,
-  replaceJsonStoreRecords,
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   billingBarcodeResolutionPayloadSchema,
   billingBarcodeResolutionResponseSchema,
+  billingStockAcceptancePayloadSchema,
+  billingStockAcceptanceResponseSchema,
+  billingStockAcceptanceVerificationListResponseSchema,
+  billingStockAcceptanceVerificationSchema,
   billingGoodsInwardPostingResponseSchema,
-  billingGoodsInwardResponseSchema,
   billingGoodsInwardSchema,
+  billingPurchaseReceiptBarcodeGenerationPayloadSchema,
+  billingPurchaseReceiptBarcodeGenerationResponseSchema,
   billingStickerPrintBatchPayloadSchema,
   billingStickerPrintBatchResponseSchema,
   billingStickerPrintBatchSchema,
@@ -34,6 +40,8 @@ import {
   billingPurchaseReceiptSchema,
   billingVoucherSchema,
   type BillingGoodsInward,
+  type BillingPurchaseReceipt,
+  type BillingStockAcceptanceVerification,
   type BillingStockBarcodeAlias,
   type BillingStockSaleAllocation,
   type BillingStockUnit,
@@ -42,17 +50,12 @@ import { billingTableNames } from "../../database/table-names.js"
 
 import { assertBillingViewer } from "./access.js"
 import {
-  syncBillingGoodsInwardToInventoryEngine,
   syncBillingSalesIssueToInventoryEngine,
 } from "./inventory-engine-sync-service.js"
 import { getStorePayloadById, listStorePayloads, replaceStorePayloads } from "./store.js"
 
 function roundQuantity(value: number) {
   return Number(value.toFixed(4))
-}
-
-function roundCurrency(value: number) {
-  return Number(value.toFixed(2))
 }
 
 function normalizeBarcodeValue(value: string) {
@@ -62,10 +65,6 @@ function normalizeBarcodeValue(value: string) {
 function sanitizeToken(value: string | null | undefined, fallback: string) {
   const base = (value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "")
   return base || fallback
-}
-
-function toTimestamp(date: string) {
-  return `${date}T00:00:00.000Z`
 }
 
 async function readGoodsInwardNotes(database: Kysely<unknown>) {
@@ -112,24 +111,17 @@ async function readSaleAllocations(database: Kysely<unknown>) {
   )
 }
 
+async function readStockAcceptanceVerifications(database: Kysely<unknown>) {
+  return listStorePayloads(
+    database,
+    billingTableNames.stockAcceptanceVerifications,
+    billingStockAcceptanceVerificationSchema
+  )
+}
+
 async function readProducts(database: Kysely<unknown>) {
   const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
   return items.map((item) => productSchema.parse(item))
-}
-
-async function writeProducts(database: Kysely<unknown>, items: Product[]) {
-  await replaceJsonStoreRecords(
-    database,
-    coreTableNames.products,
-    items.map((item, index) => ({
-      id: item.id,
-      moduleKey: "products",
-      sortOrder: index + 1,
-      payload: item,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    }))
-  )
 }
 
 async function readCompanies(database: Kysely<unknown>) {
@@ -227,10 +219,13 @@ function buildSerialNumber(
 
 function buildInternalBarcode(
   product: Product,
-  batchCode: string,
+  batchCode: string | null,
   serialNumber: string
 ) {
-  return sanitizeToken(`CS-${product.code}-${batchCode}-${serialNumber}`, `CS-${product.id}`)
+  const identityToken = batchCode?.trim()
+    ? `CS-${product.code}-${batchCode}-${serialNumber}`
+    : `CS-${product.code}-${serialNumber}`
+  return sanitizeToken(identityToken, `CS-${product.id}`)
 }
 
 function renderStickerHtml(
@@ -245,8 +240,9 @@ function renderStickerHtml(
     unit.variantSummary ? `<div class="line variant">${unit.variantSummary}</div>` : "",
     unit.attributeSummary ? `<div class="line attrs">${unit.attributeSummary}</div>` : "",
     `<div class="line barcode">${unit.barcodeValue}</div>`,
-    `<div class="line batch">Batch: ${unit.batchCode}</div>`,
+    unit.batchCode ? `<div class="line batch">Batch: ${unit.batchCode}</div>` : "",
     `<div class="line serial">Serial: ${unit.serialNumber}</div>`,
+    unit.expiresAt ? `<div class="line expiry">Expiry: ${unit.expiresAt}</div>` : "",
     unit.mrp != null ? `<div class="line price">MRP: ${unit.mrp.toFixed(2)}</div>` : "",
     companyEmail ? `<div class="line email">${companyEmail}</div>` : "",
     companyPhone ? `<div class="line phone">${companyPhone}</div>` : "",
@@ -258,15 +254,6 @@ function renderStickerHtml(
     ...details,
     `</article>`,
   ].join("")
-}
-
-function getStockItemIndex(product: Product, warehouseId: string, variantId: string | null) {
-  return product.stockItems.findIndex(
-    (item) =>
-      item.isActive &&
-      item.warehouseId === warehouseId &&
-      item.variantId === variantId
-  )
 }
 
 function ensureAvailableStockUnit(unit: BillingStockUnit) {
@@ -384,72 +371,6 @@ async function writeSaleAllocations(
   )
 }
 
-function updateProductInventoryFromMovement(
-  product: Product,
-  warehouseId: string,
-  variantId: string | null,
-  quantityDelta: number,
-  movementType: string,
-  referenceType: string,
-  referenceId: string,
-  movementAt: string
-) {
-  const timestamp = new Date().toISOString()
-  const stockItems: Product["stockItems"] = [...product.stockItems]
-  const stockItemIndex = getStockItemIndex(product, warehouseId, variantId)
-
-  if (stockItemIndex >= 0) {
-    const current = stockItems[stockItemIndex]!
-    stockItems[stockItemIndex] = {
-      ...current,
-      quantity: roundQuantity(current.quantity + quantityDelta),
-      updatedAt: timestamp,
-    }
-  } else {
-    stockItems.push({
-      id: `product-stock-item:${randomUUID()}`,
-      productId: product.id,
-      variantId,
-      warehouseId,
-      quantity: roundQuantity(quantityDelta),
-      reservedQuantity: 0,
-      isActive: true,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    })
-  }
-
-  const stockMovements = [
-    ...product.stockMovements,
-    {
-      id: `product-stock-movement:${randomUUID()}`,
-      productId: product.id,
-      variantId,
-      warehouseId,
-      movementType,
-      quantity: roundQuantity(quantityDelta),
-      referenceType,
-      referenceId,
-      movementAt,
-      isActive: true,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-  ]
-  const totalStockQuantity = roundQuantity(
-    stockItems.reduce((sum, item) => sum + item.quantity, 0) +
-      product.variants.reduce((sum, item) => sum + item.stockQuantity, 0)
-  )
-
-  return productSchema.parse({
-    ...product,
-    stockItems,
-    stockMovements,
-    totalStockQuantity,
-    updatedAt: timestamp,
-  })
-}
-
 function recalculateReceiptStatus(
   receipt: Awaited<ReturnType<typeof readPurchaseReceipts>>[number],
   goodsInwards: BillingGoodsInward[]
@@ -473,16 +394,15 @@ function recalculateReceiptStatus(
     }
   }
 
-  const lines = receipt.lines.map((line) => ({
-    ...line,
-    receivedQuantity: Math.min(
-      roundQuantity(receivedByLineId.get(line.id) ?? 0),
-      line.quantity
-    ),
-  }))
-
-  const totalOrdered = lines.reduce((sum, item) => sum + item.quantity, 0)
-  const totalReceived = lines.reduce((sum, item) => sum + item.receivedQuantity, 0)
+  const totalOrdered = receipt.lines.reduce(
+    (sum, item) => sum + roundQuantity(item.quantity ?? 0),
+    0
+  )
+  const totalReceived = receipt.lines.reduce(
+    (sum, item) =>
+      sum + Math.min(roundQuantity(receivedByLineId.get(item.id) ?? 0), roundQuantity(item.quantity ?? 0)),
+    0
+  )
   const status =
     totalReceived <= 0 ? "open"
     : totalReceived >= totalOrdered ? "fully_received"
@@ -490,7 +410,6 @@ function recalculateReceiptStatus(
 
   return billingPurchaseReceiptSchema.parse({
     ...receipt,
-    lines,
     status,
     updatedAt: new Date().toISOString(),
   })
@@ -500,6 +419,145 @@ function buildUnitCount(acceptedQuantity: number) {
   return Number.isInteger(acceptedQuantity) && acceptedQuantity > 0
     ? acceptedQuantity
     : 1
+}
+
+function buildInwardNumberForReceiptPosting(
+  receipt: BillingPurchaseReceipt,
+  goodsInwards: BillingGoodsInward[]
+) {
+  const sequence = goodsInwards.filter((item) => item.purchaseReceiptId === receipt.id).length + 1
+  return sanitizeToken(`REC-${receipt.entryNumber}-${sequence}`, `REC-${receipt.id}`)
+}
+
+function getReceivedQuantityForReceiptLine(
+  goodsInwards: BillingGoodsInward[],
+  receiptId: string,
+  lineId: string
+) {
+  return roundQuantity(
+    goodsInwards
+      .filter(
+        (item) =>
+          item.purchaseReceiptId === receiptId &&
+          item.stockPostingStatus === "posted" &&
+          item.status === "verified"
+      )
+      .reduce(
+        (sum, item) =>
+          sum +
+          item.lines
+            .filter((line) => line.purchaseReceiptLineId === lineId)
+            .reduce((lineSum, line) => lineSum + line.acceptedQuantity, 0),
+        0
+      )
+  )
+}
+
+async function writeStockAcceptanceVerifications(
+  database: Kysely<unknown>,
+  items: BillingStockAcceptanceVerification[]
+) {
+  await replaceStorePayloads(
+    database,
+    billingTableNames.stockAcceptanceVerifications,
+    items.map((item, index) => ({
+      id: item.id,
+      moduleKey: "stock-acceptance-verifications",
+      sortOrder: index + 1,
+      payload: item,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }))
+  )
+}
+
+function buildBatchCodeForReceiptPosting(
+  product: Product,
+  receipt: BillingPurchaseReceipt,
+  lineIndex: number,
+  providedBatchCode: string | null,
+  identityMode: "batch-and-serial" | "serial-only"
+) {
+  if (identityMode === "batch-and-serial" && providedBatchCode?.trim()) {
+    return sanitizeToken(providedBatchCode, `BATCH-${lineIndex + 1}`)
+  }
+
+  if (identityMode === "serial-only") {
+    return null
+  }
+
+  return sanitizeToken(
+    `${product.code}-${receipt.postingDate.replace(/-/g, "")}-${lineIndex + 1}`,
+    `BATCH-${lineIndex + 1}`
+  )
+}
+
+function buildSerialNumberForReceiptPosting(
+  receipt: BillingPurchaseReceipt,
+  lineIndex: number,
+  unitSequence: number,
+  serialPrefix: string | null
+) {
+  if (serialPrefix?.trim()) {
+    return sanitizeToken(`${serialPrefix}-${unitSequence}`, `SERIAL-${lineIndex + 1}-${unitSequence}`)
+  }
+
+  return sanitizeToken(
+    `${receipt.entryNumber}-${lineIndex + 1}-${unitSequence}`,
+    `SERIAL-${lineIndex + 1}-${unitSequence}`
+  )
+}
+
+function buildManufacturerBarcodeForReceiptPosting(
+  manufacturerBarcodePrefix: string | null,
+  unitSequence: number
+) {
+  if (!manufacturerBarcodePrefix?.trim()) {
+    return null
+  }
+
+  return normalizeBarcodeValue(`${manufacturerBarcodePrefix}-${unitSequence}`)
+}
+
+function createStickerBatchRecord(
+  inward: BillingGoodsInward,
+  units: BillingStockUnit[],
+  template: z.infer<typeof billingStickerPrintBatchPayloadSchema>["template"],
+  userId: string | null,
+  company: Awaited<ReturnType<typeof readCompanies>>[number] | null
+) {
+  const timestamp = new Date().toISOString()
+
+  return billingStickerPrintBatchSchema.parse({
+    id: `sticker-print-batch:${randomUUID()}`,
+    goodsInwardId: inward.id,
+    goodsInwardNumber: inward.inwardNumber,
+    template,
+    widthMm: 50,
+    heightMm: 25,
+    itemCount: units.length,
+    items: units.map((unit) => ({
+      stockUnitId: unit.id,
+      productId: unit.productId,
+      productName: unit.productName,
+      productCode: unit.productCode,
+      variantName: unit.variantName,
+      attributeSummary: unit.attributeSummary,
+      barcodeValue: unit.barcodeValue,
+      batchCode: unit.batchCode,
+      serialNumber: unit.serialNumber,
+      expiresAt: unit.expiresAt,
+      mrp: unit.mrp,
+      sellingPrice: unit.sellingPrice,
+      companyName: company?.name ?? "Company",
+      companyEmail: company?.primaryEmail ?? null,
+      companyPhone: company?.primaryPhone ?? null,
+      stickerHtml: renderStickerHtml(unit, company),
+    })),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    createdByUserId: userId,
+  })
 }
 
 export async function listBillingStockUnits(
@@ -533,6 +591,185 @@ export async function getBillingStockUnit(
   }
 
   return billingStockUnitResponseSchema.parse({ item })
+}
+
+export async function listBillingStockAcceptanceVerifications(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  filters?: {
+    purchaseReceiptId?: string
+    productId?: string
+  }
+) {
+  assertBillingViewer(user)
+
+  const items = await readStockAcceptanceVerifications(database)
+  const filteredItems = items.filter((item) => {
+    if (filters?.purchaseReceiptId && item.purchaseReceiptId !== filters.purchaseReceiptId) {
+      return false
+    }
+
+    if (filters?.productId && item.productId !== filters.productId) {
+      return false
+    }
+
+    return true
+  })
+
+  return billingStockAcceptanceVerificationListResponseSchema.parse({
+    items: filteredItems.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+  })
+}
+
+export async function acceptBillingStockUnitsToInventory(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  payload: unknown
+) {
+  assertBillingViewer(user)
+
+  const parsedPayload = billingStockAcceptancePayloadSchema.parse(payload)
+  const [stockUnits, verifications] = await Promise.all([
+    readStockUnits(database),
+    readStockAcceptanceVerifications(database),
+  ])
+  const timestamp = new Date().toISOString()
+  const scannedItemByUnitId = new Map(
+    parsedPayload.items.map((item) => [item.stockUnitId, item] as const)
+  )
+  const candidateUnits = stockUnits.filter(
+    (item) =>
+      item.purchaseReceiptId === parsedPayload.purchaseReceiptId &&
+      item.productId === parsedPayload.productId &&
+      item.status === "received"
+  )
+
+  if (candidateUnits.length === 0) {
+    throw new ApplicationError(
+      "No temporary stock units are pending acceptance for this purchase receipt and product.",
+      {
+        purchaseReceiptId: parsedPayload.purchaseReceiptId,
+        productId: parsedPayload.productId,
+      },
+      404
+    )
+  }
+
+  const candidateUnitIds = new Set(candidateUnits.map((item) => item.id))
+
+  for (const item of parsedPayload.items) {
+    if (!candidateUnitIds.has(item.stockUnitId)) {
+      throw new ApplicationError(
+        "Acceptance payload includes a stock unit outside the current temporary receipt selection.",
+        {
+          purchaseReceiptId: parsedPayload.purchaseReceiptId,
+          productId: parsedPayload.productId,
+          stockUnitId: item.stockUnitId,
+        },
+        409
+      )
+    }
+  }
+
+  const verificationByUnitId = new Map(
+    verifications.map((item) => [item.stockUnitId, item] as const)
+  )
+  const acceptedUnitIds = new Set<string>()
+  const nextVerificationById = new Map(
+    verifications.map((item) => [item.id, item] as const)
+  )
+
+  for (const unit of candidateUnits) {
+    const scannedItem = scannedItemByUnitId.get(unit.id)
+
+    if (!scannedItem) {
+      continue
+    }
+
+    const scannedBarcodeValue = normalizeBarcodeValue(scannedItem.scannedBarcodeValue)
+    const status =
+      scannedBarcodeValue === normalizeBarcodeValue(unit.barcodeValue) ? "verified" : "mismatch"
+    const existingVerification = verificationByUnitId.get(unit.id)
+    const verification = billingStockAcceptanceVerificationSchema.parse({
+      id: existingVerification?.id ?? `stock-acceptance-verification:${randomUUID()}`,
+      purchaseReceiptId: unit.purchaseReceiptId,
+      goodsInwardId: unit.goodsInwardId,
+      productId: unit.productId,
+      productName: unit.productName,
+      productCode: unit.productCode,
+      warehouseId: unit.warehouseId,
+      warehouseName: unit.warehouseName,
+      stockUnitId: unit.id,
+      expectedBarcodeValue: unit.barcodeValue,
+      scannedBarcodeValue,
+      quantityAccepted: status === "verified" ? unit.quantity : 0,
+      status,
+      verifiedAt: status === "verified" ? timestamp : null,
+      createdAt: existingVerification?.createdAt ?? timestamp,
+      updatedAt: timestamp,
+      verifiedByUserId: user.id,
+    })
+
+    nextVerificationById.set(verification.id, verification)
+
+    if (status === "verified") {
+      acceptedUnitIds.add(unit.id)
+    }
+  }
+
+  const updatedUnits = stockUnits.map((item) => {
+    if (!acceptedUnitIds.has(item.id)) {
+      return item
+    }
+
+    return billingStockUnitSchema.parse({
+      ...item,
+      status: "available",
+      availableAt: timestamp,
+      updatedAt: timestamp,
+    })
+  })
+
+  await writeStockAcceptanceVerifications(
+    database,
+    Array.from(nextVerificationById.values()).sort(
+      (left, right) => right.updatedAt.localeCompare(left.updatedAt)
+    )
+  )
+  await writeStockUnits(database, updatedUnits)
+
+  const acceptedUnits = updatedUnits.filter((item) => acceptedUnitIds.has(item.id))
+  for (const unit of acceptedUnits) {
+    await applyLiveStockMovement(database, {
+      productId: unit.productId,
+      variantId: unit.variantId,
+      warehouseId: unit.warehouseId,
+      direction: "in",
+      quantity: unit.quantity,
+      referenceType: "billing_stock_acceptance",
+      referenceId: unit.id,
+      occurredAt: timestamp,
+    })
+  }
+
+  const acceptedQuantity = roundQuantity(
+    acceptedUnits.reduce((sum, item) => sum + item.quantity, 0)
+  )
+  const responseItems = Array.from(nextVerificationById.values())
+    .filter(
+      (item) =>
+        item.purchaseReceiptId === parsedPayload.purchaseReceiptId &&
+        item.productId === parsedPayload.productId
+    )
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+  return billingStockAcceptanceResponseSchema.parse({
+    acceptedCount: acceptedUnits.length,
+    acceptedQuantity,
+    mismatchCount: parsedPayload.items.length - acceptedUnits.length,
+    remainingCount: candidateUnits.length - acceptedUnits.length,
+    items: responseItems,
+  })
 }
 
 export async function postBillingGoodsInwardToInventory(
@@ -590,7 +827,6 @@ export async function postBillingGoodsInwardToInventory(
   const timestamp = new Date().toISOString()
   const newUnits: BillingStockUnit[] = []
   const newAliases: BillingStockBarcodeAlias[] = []
-  const updatedProducts = new Map(products.map((item) => [item.id, item]))
 
   inward.lines.forEach((line, lineIndex) => {
     if (line.acceptedQuantity <= 0) {
@@ -650,9 +886,9 @@ export async function postBillingGoodsInwardToInventory(
         variantSummary,
         mrp: pricing.mrp,
         sellingPrice: pricing.sellingPrice,
-        status: "available",
+        status: "received",
         receivedAt: timestamp,
-        availableAt: timestamp,
+        availableAt: null,
         allocatedAt: null,
         soldAt: null,
         soldVoucherId: null,
@@ -737,25 +973,6 @@ export async function postBillingGoodsInwardToInventory(
       }
     }
 
-    const currentProduct = updatedProducts.get(product.id)
-
-    if (!currentProduct) {
-      throw new ApplicationError("Core product inventory update could not be resolved.", { productId: product.id }, 404)
-    }
-
-    updatedProducts.set(
-      product.id,
-      updateProductInventoryFromMovement(
-        currentProduct,
-        inward.warehouseId,
-        line.variantId,
-        line.acceptedQuantity,
-        "billing_goods_inward_receipt",
-        "billing_goods_inward_note",
-        inward.id,
-        toTimestamp(inward.postingDate)
-      )
-    )
   })
 
   const nextInward = billingGoodsInwardSchema.parse({
@@ -775,22 +992,6 @@ export async function postBillingGoodsInwardToInventory(
   await writeStockUnits(database, [...stockUnits, ...newUnits])
   await writeBarcodeAliases(database, [...barcodeAliases, ...newAliases])
   await writePurchaseReceipts(database, nextPurchaseReceipts)
-  await writeProducts(database, [...updatedProducts.values()])
-
-  const inventoryEngineServices = createInventoryEngineRuntimeServices(database)
-  const tenantContext = await resolveCxappTenantContext(database)
-
-  await syncBillingGoodsInwardToInventoryEngine(
-    {
-      tenantId: tenantContext.tenantId,
-      companyId: tenantContext.companyId,
-    },
-    nextInward,
-    {
-      movementService: inventoryEngineServices.movementService,
-      putawayService: inventoryEngineServices.putawayService,
-    }
-  )
 
   return billingGoodsInwardPostingResponseSchema.parse({
     item: nextInward,
@@ -891,40 +1092,289 @@ export async function createBillingStickerPrintBatch(
   }
 
   const company = getPrimaryCompany(companies)
-  const timestamp = new Date().toISOString()
-  const batch = billingStickerPrintBatchSchema.parse({
-    id: `sticker-print-batch:${randomUUID()}`,
-    goodsInwardId: inward.id,
-    goodsInwardNumber: inward.inwardNumber,
-    template: parsedPayload.template,
-    widthMm: 50,
-    heightMm: 25,
-    itemCount: units.length,
-    items: units.map((unit) => ({
-      stockUnitId: unit.id,
-      productId: unit.productId,
-      productName: unit.productName,
-      productCode: unit.productCode,
-      variantName: unit.variantName,
-      attributeSummary: unit.attributeSummary,
-      barcodeValue: unit.barcodeValue,
-      batchCode: unit.batchCode,
-      serialNumber: unit.serialNumber,
-      mrp: unit.mrp,
-      sellingPrice: unit.sellingPrice,
-      companyName: company?.name ?? "Company",
-      companyEmail: company?.primaryEmail ?? null,
-      companyPhone: company?.primaryPhone ?? null,
-      stickerHtml: renderStickerHtml(unit, company),
-    })),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    createdByUserId: user.id,
-  })
+  const batch = createStickerBatchRecord(inward, units, parsedPayload.template, user.id, company)
 
   await writeStickerPrintBatches(database, [batch, ...stickerBatches])
 
   return billingStickerPrintBatchResponseSchema.parse({ item: batch })
+}
+
+export async function createBillingPurchaseReceiptBarcodeBatch(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  receiptId: string,
+  payload: unknown
+) {
+  assertBillingViewer(user)
+
+  const parsedPayload = billingPurchaseReceiptBarcodeGenerationPayloadSchema.parse(payload)
+  const [purchaseReceipts, goodsInwards, stockUnits, barcodeAliases, stickerBatches, companies, products] =
+    await Promise.all([
+      readPurchaseReceipts(database),
+      readGoodsInwardNotes(database),
+      readStockUnits(database),
+      readBarcodeAliases(database),
+      readStickerPrintBatches(database),
+      readCompanies(database),
+      readProducts(database),
+    ])
+
+  const receipt = purchaseReceipts.find((item) => item.id === receiptId)
+
+  if (!receipt) {
+    throw new ApplicationError("Billing purchase receipt could not be found.", { receiptId }, 404)
+  }
+
+  const productMap = new Map(products.map((item) => [item.id, item]))
+  const lineMap = new Map(receipt.lines.map((line) => [line.id, line]))
+  const timestamp = new Date().toISOString()
+  const inwardNumber = buildInwardNumberForReceiptPosting(receipt, goodsInwards)
+  const createdLineIds: string[] = []
+  const newUnits: BillingStockUnit[] = []
+  const newAliases: BillingStockBarcodeAlias[] = []
+
+  const inwardLines = parsedPayload.lines.map((lineConfig, lineIndex) => {
+    const receiptLine = lineMap.get(lineConfig.purchaseReceiptLineId)
+
+    if (!receiptLine) {
+      throw new ApplicationError(
+        "Receipt line could not be found for barcode generation.",
+        { receiptId, purchaseReceiptLineId: lineConfig.purchaseReceiptLineId },
+        404
+      )
+    }
+
+    const orderedQuantity = roundQuantity(receiptLine.quantity ?? 0)
+    const receivedQuantity = getReceivedQuantityForReceiptLine(
+      goodsInwards,
+      receipt.id,
+      lineConfig.purchaseReceiptLineId
+    )
+    const remainingQuantity = roundQuantity(Math.max(orderedQuantity - receivedQuantity, 0))
+
+    if (lineConfig.inwardQuantity > remainingQuantity) {
+      throw new ApplicationError(
+        "Inward quantity exceeds the remaining purchase receipt quantity.",
+        {
+          receiptId,
+          purchaseReceiptLineId: lineConfig.purchaseReceiptLineId,
+          inwardQuantity: lineConfig.inwardQuantity,
+          remainingQuantity,
+        },
+        409
+      )
+    }
+
+    if (lineConfig.barcodeQuantity > Math.ceil(lineConfig.inwardQuantity)) {
+      throw new ApplicationError(
+        "Barcode quantity cannot exceed the inward quantity.",
+        {
+          receiptId,
+          purchaseReceiptLineId: lineConfig.purchaseReceiptLineId,
+          barcodeQuantity: lineConfig.barcodeQuantity,
+          inwardQuantity: lineConfig.inwardQuantity,
+        },
+        409
+      )
+    }
+
+    const product = productMap.get(receiptLine.productId)
+
+    if (!product) {
+      throw new ApplicationError(
+        "Receipt line references a missing core product.",
+        { receiptId, productId: receiptLine.productId },
+        404
+      )
+    }
+
+    const createdLineId = `goods-inward-line:${randomUUID()}`
+    createdLineIds.push(createdLineId)
+    const unitCount = lineConfig.barcodeQuantity
+    const quantityPerUnit = roundQuantity(lineConfig.inwardQuantity / unitCount)
+    const batchCode = buildBatchCodeForReceiptPosting(
+      product,
+      receipt,
+      lineIndex,
+      lineConfig.batchCode,
+      lineConfig.identityMode
+    )
+    const variantSummary = getVariantSummary(product, null)
+    const attributeSummary = getAttributeSummary(product, null)
+    const pricing = getPricing(product, null)
+
+    for (let unitSequence = 1; unitSequence <= unitCount; unitSequence += 1) {
+      const serialNumber = buildSerialNumberForReceiptPosting(
+        receipt,
+        lineIndex,
+        unitSequence,
+        lineConfig.serialPrefix
+      )
+      const barcodeValue = buildInternalBarcode(product, batchCode, serialNumber)
+      const manufacturerBarcode = buildManufacturerBarcodeForReceiptPosting(
+        lineConfig.manufacturerBarcodePrefix,
+        unitSequence
+      )
+
+      const unit = billingStockUnitSchema.parse({
+        id: `stock-unit:${randomUUID()}`,
+        goodsInwardId: `goods-inward:${receipt.id}:${timestamp}`,
+        goodsInwardNumber: inwardNumber,
+        goodsInwardLineId: createdLineId,
+        purchaseReceiptId: receipt.id,
+        purchaseReceiptNumber: receipt.entryNumber,
+        productId: receiptLine.productId,
+        productName: receiptLine.productId,
+        productCode: product.code,
+        variantId: null,
+        variantName: receiptLine.description ?? null,
+        warehouseId: receipt.warehouseId,
+        warehouseName: receipt.warehouseId,
+        unitSequence,
+        quantity: quantityPerUnit,
+        batchCode,
+        serialNumber,
+        barcodeValue,
+        expiresAt: lineConfig.expiresAt,
+        manufacturerBarcode,
+        manufacturerSerial: null,
+        attributeSummary,
+        variantSummary,
+        mrp: pricing.mrp,
+        sellingPrice: pricing.sellingPrice,
+        status: "received",
+        receivedAt: timestamp,
+        availableAt: null,
+        allocatedAt: null,
+        soldAt: null,
+        soldVoucherId: null,
+        soldVoucherNumber: null,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      newUnits.push(unit)
+      newAliases.push(
+        billingStockBarcodeAliasSchema.parse({
+          id: `stock-barcode-alias:${randomUUID()}`,
+          stockUnitId: unit.id,
+          productId: unit.productId,
+          warehouseId: unit.warehouseId,
+          barcodeValue: unit.barcodeValue,
+          source: "internal_barcode",
+          isPrimary: true,
+          isActive: true,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }),
+        billingStockBarcodeAliasSchema.parse({
+          id: `stock-barcode-alias:${randomUUID()}`,
+          stockUnitId: unit.id,
+          productId: unit.productId,
+          warehouseId: unit.warehouseId,
+          barcodeValue: unit.serialNumber,
+          source: "serial_number",
+          isPrimary: false,
+          isActive: true,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })
+      )
+
+      if (unit.batchCode) {
+        newAliases.push(
+          billingStockBarcodeAliasSchema.parse({
+            id: `stock-barcode-alias:${randomUUID()}`,
+            stockUnitId: unit.id,
+            productId: unit.productId,
+            warehouseId: unit.warehouseId,
+            barcodeValue: unit.batchCode,
+            source: "batch_code",
+            isPrimary: false,
+            isActive: true,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          })
+        )
+      }
+
+      if (manufacturerBarcode) {
+        newAliases.push(
+          billingStockBarcodeAliasSchema.parse({
+            id: `stock-barcode-alias:${randomUUID()}`,
+            stockUnitId: unit.id,
+            productId: unit.productId,
+            warehouseId: unit.warehouseId,
+            barcodeValue: manufacturerBarcode,
+            source: "manufacturer_barcode",
+            isPrimary: false,
+            isActive: true,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          })
+        )
+      }
+    }
+
+    return billingGoodsInwardSchema.shape.lines.element.parse({
+      id: createdLineId,
+      purchaseReceiptLineId: receiptLine.id,
+      productId: receiptLine.productId,
+      productName: receiptLine.productId,
+      variantId: null,
+      variantName: receiptLine.description ?? null,
+      expectedQuantity: remainingQuantity,
+      acceptedQuantity: lineConfig.inwardQuantity,
+      rejectedQuantity: 0,
+      damagedQuantity: 0,
+      manufacturerBarcode: lineConfig.manufacturerBarcodePrefix,
+      manufacturerSerial: lineConfig.serialPrefix,
+      note: lineConfig.note,
+    })
+  })
+
+  const inwardId = `goods-inward:${receipt.id}:${timestamp}`
+  const inward = billingGoodsInwardSchema.parse({
+    id: inwardId,
+    inwardNumber,
+    purchaseReceiptId: receipt.id,
+    purchaseReceiptNumber: receipt.entryNumber,
+    supplierName: receipt.supplierId,
+    postingDate: parsedPayload.postingDate,
+    warehouseId: receipt.warehouseId,
+    warehouseName: receipt.warehouseId,
+    status: "verified",
+    stockPostingStatus: "posted",
+    lines: inwardLines,
+    note: parsedPayload.note,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    createdByUserId: user.id,
+    stockUnitIds: newUnits.map((item) => item.id),
+    postedAt: timestamp,
+    postedByUserId: user.id,
+  })
+
+  const nextGoodsInwards = [inward, ...goodsInwards]
+  const nextPurchaseReceipts = purchaseReceipts.map((item) =>
+    item.id === receipt.id ? recalculateReceiptStatus(item, nextGoodsInwards) : item
+  )
+
+  await writeGoodsInwardNotes(database, nextGoodsInwards)
+  await writeStockUnits(database, [...stockUnits, ...newUnits])
+  await writeBarcodeAliases(database, [...barcodeAliases, ...newAliases])
+  await writePurchaseReceipts(database, nextPurchaseReceipts)
+
+  const company = getPrimaryCompany(companies)
+  const batch = createStickerBatchRecord(inward, newUnits, parsedPayload.template, user.id, company)
+  await writeStickerPrintBatches(database, [batch, ...stickerBatches])
+
+  return billingPurchaseReceiptBarcodeGenerationResponseSchema.parse({
+    goodsInward: inward,
+    stickerBatch: batch,
+    unitsCreated: newUnits.length,
+  })
 }
 
 export async function listBillingStockSaleAllocations(
@@ -947,14 +1397,13 @@ export async function createBillingStockSaleAllocation(
   assertBillingViewer(user)
 
   const parsedPayload = billingStockSaleAllocationPayloadSchema.parse(payload)
-  const [resolution, allocations, units, products, vouchers] = await Promise.all([
+  const [resolution, allocations, units, vouchers] = await Promise.all([
     resolveBillingStockBarcode(database, user, {
       barcodeValue: parsedPayload.barcodeValue,
       expectedWarehouseId: parsedPayload.warehouseId,
     }),
     readSaleAllocations(database),
     readStockUnits(database),
-    readProducts(database),
     readVouchers(database),
   ])
   const unit = resolution.item.stockUnit
@@ -1022,26 +1471,20 @@ export async function createBillingStockSaleAllocation(
         })
       : item
   )
-  const nextProducts = products.map((product) =>
-    product.id !== unit.productId
-      ? product
-      : updateProductInventoryFromMovement(
-          product,
-          unit.warehouseId,
-          unit.variantId,
-          parsedPayload.markAsSold ? unit.quantity * -1 : 0,
-          "billing_sales_issue_scan",
-          "billing_stock_sale_allocation",
-          allocation.id,
-          timestamp
-        )
-  )
-
   await writeStockUnits(database, nextUnits)
   await writeSaleAllocations(database, [allocation, ...allocations])
 
   if (parsedPayload.markAsSold) {
-    await writeProducts(database, nextProducts)
+    await applyLiveStockMovement(database, {
+      productId: unit.productId,
+      variantId: unit.variantId,
+      warehouseId: unit.warehouseId,
+      direction: "out",
+      quantity: unit.quantity,
+      referenceType: "billing_stock_sale_allocation",
+      referenceId: allocation.id,
+      occurredAt: timestamp,
+    })
   }
 
   if (parsedPayload.markAsSold) {

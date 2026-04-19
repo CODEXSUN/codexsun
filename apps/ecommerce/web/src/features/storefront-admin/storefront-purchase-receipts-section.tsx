@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeftIcon, PencilLineIcon, ReceiptTextIcon } from "lucide-react"
+import { ArrowLeftIcon, EyeIcon, PencilLineIcon, ReceiptTextIcon } from "lucide-react"
 
 import type {
   BillingPurchaseReceipt,
@@ -9,12 +9,30 @@ import type {
   BillingPurchaseReceiptStatus,
   BillingPurchaseReceiptUpsertPayload,
 } from "@billing/shared"
-import type { ProductListResponse } from "@core/shared"
+import type {
+  ContactListResponse,
+  ContactResponse,
+  ContactSummary,
+  ContactUpsertPayload,
+  ProductListResponse,
+} from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { formatHttpErrorMessage } from "@cxapp/web/src/lib/http-error"
 import { MasterList } from "@/components/blocks/master-list"
+import { RecordActionMenu } from "@/components/blocks/record-action-menu"
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { showAppToast, showRecordToast } from "@/components/ui/app-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +42,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -51,9 +77,11 @@ type PurchaseReceiptLineForm = {
 }
 
 type PurchaseReceiptForm = {
+  registerEntryNumber: string
   receiptNumber: string
   supplierName: string
-  supplierLedgerId: string
+  supplierReferenceNumber: string
+  supplierReferenceDate: string
   postingDate: string
   warehouseId: string
   warehouseName: string
@@ -64,11 +92,37 @@ type PurchaseReceiptForm = {
   lines: PurchaseReceiptLineForm[]
 }
 
+type PurchaseReceiptView = {
+  id: string
+  registerEntryNumber: string
+  receiptNumber: string
+  supplierName: string
+  supplierReferenceNumber: string | null
+  supplierReferenceDate: string | null
+  postingDate: string
+  warehouseId: string
+  warehouseName: string
+  sourceVoucherId: string | null
+  sourceFrappeReceiptId: string | null
+  status: BillingPurchaseReceiptStatus
+  note: string
+  createdAt: string
+  updatedAt: string
+  createdByUserId: string | null
+  lines: PurchaseReceiptLineForm[]
+}
+
 type StatusFilterValue = "all" | BillingPurchaseReceiptStatus
 type ProductLookupItem = ProductListResponse["items"][number]
 type ProductLookupOption = {
   label: string
   value: string
+}
+type SupplierContactDraft = {
+  contactPerson: string
+  gstin: string
+  name: string
+  phone: string
 }
 
 const routeBase = "/dashboard/apps/ecommerce/stock-purchase-receipts"
@@ -98,9 +152,11 @@ function createPurchaseReceiptLineForm(warehouseId = "warehouse:default"): Purch
 
 function createPurchaseReceiptForm(): PurchaseReceiptForm {
   return {
+    registerEntryNumber: "",
     receiptNumber: "",
     supplierName: "",
-    supplierLedgerId: "",
+    supplierReferenceNumber: "",
+    supplierReferenceDate: "",
     postingDate: new Date().toISOString().slice(0, 10),
     warehouseId: "warehouse:default",
     warehouseName: "Default Warehouse",
@@ -113,53 +169,78 @@ function createPurchaseReceiptForm(): PurchaseReceiptForm {
 }
 
 function toPurchaseReceiptForm(item: BillingPurchaseReceipt): PurchaseReceiptForm {
+  const adapted = toPurchaseReceiptView(item)
   return {
-    receiptNumber: item.receiptNumber,
-    supplierName: item.supplierName,
-    supplierLedgerId: item.supplierLedgerId ?? "",
-    postingDate: item.postingDate,
-    warehouseId: item.warehouseId,
-    warehouseName: item.warehouseName,
-    sourceVoucherId: item.sourceVoucherId ?? "",
-    sourceFrappeReceiptId: item.sourceFrappeReceiptId ?? "",
-    status: item.status,
-    note: item.note,
-    lines: item.lines.map((line) => ({
+    registerEntryNumber: adapted.registerEntryNumber,
+    receiptNumber: adapted.receiptNumber,
+    supplierName: adapted.supplierName,
+    supplierReferenceNumber: adapted.supplierReferenceNumber ?? "",
+    supplierReferenceDate: adapted.supplierReferenceDate ?? "",
+    postingDate: adapted.postingDate,
+    warehouseId: adapted.warehouseId,
+    warehouseName: adapted.warehouseName,
+    sourceVoucherId: "",
+    sourceFrappeReceiptId: "",
+    status: adapted.status,
+    note: adapted.note,
+    lines: adapted.lines,
+  }
+}
+
+function toPurchaseReceiptPayload(
+  form: PurchaseReceiptForm,
+  fallbackRegisterEntryNumber: string
+): BillingPurchaseReceiptUpsertPayload {
+  const resolvedRegisterEntryNumber =
+    form.registerEntryNumber.trim() || fallbackRegisterEntryNumber
+
+  return {
+    entryNumber: resolvedRegisterEntryNumber,
+    supplierId: form.supplierName,
+    supplierReferenceNumber: form.supplierReferenceNumber.trim() || null,
+    supplierReferenceDate: form.supplierReferenceDate.trim() || null,
+    postingDate: form.postingDate,
+    warehouseId: form.warehouseId,
+    status: form.status,
+    lines: form.lines.map((line) => ({
       productId: line.productId,
-      productName: line.productName,
-      variantId: line.variantId ?? "",
-      variantName: line.variantName ?? "",
-      warehouseId: line.warehouseId,
-      quantity: String(line.quantity),
-      unit: line.unit,
-      unitCost: String(line.unitCost),
-      note: normalizeInlineItemNote(line.note),
+      description: line.variantName.trim() || null,
+      quantity: Number(line.quantity || 0),
+      rate: Number(line.unitCost || 0),
+      amount: Number((Number(line.quantity || 0) * Number(line.unitCost || 0)).toFixed(2)),
+      notes: line.note,
     })),
   }
 }
 
-function toPurchaseReceiptPayload(form: PurchaseReceiptForm): BillingPurchaseReceiptUpsertPayload {
+function toPurchaseReceiptView(item: BillingPurchaseReceipt): PurchaseReceiptView {
   return {
-    receiptNumber: form.receiptNumber,
-    supplierName: form.supplierName,
-    supplierLedgerId: form.supplierLedgerId.trim() || null,
-    postingDate: form.postingDate,
-    warehouseId: form.warehouseId,
-    warehouseName: form.warehouseName,
-    sourceVoucherId: form.sourceVoucherId.trim() || null,
-    sourceFrappeReceiptId: form.sourceFrappeReceiptId.trim() || null,
-    status: form.status,
-    note: form.note,
-    lines: form.lines.map((line) => ({
+    id: item.id,
+    registerEntryNumber: item.entryNumber,
+    receiptNumber: item.entryNumber,
+    supplierName: item.supplierId,
+    supplierReferenceNumber: item.supplierReferenceNumber ?? null,
+    supplierReferenceDate: item.supplierReferenceDate ?? null,
+    postingDate: item.postingDate,
+    warehouseId: item.warehouseId,
+    warehouseName: item.warehouseId,
+    sourceVoucherId: null,
+    sourceFrappeReceiptId: null,
+    status: item.status,
+    note: "",
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    createdByUserId: item.createdByUserId,
+    lines: item.lines.map((line) => ({
       productId: line.productId,
-      productName: line.productName,
-      variantId: line.variantId.trim() || null,
-      variantName: line.variantName.trim() || null,
-      warehouseId: line.warehouseId,
-      quantity: Number(line.quantity || 0),
-      unit: line.unit || "Nos",
-      unitCost: Number(line.unitCost || 0),
-      note: line.note,
+      productName: line.productId,
+      variantId: "",
+      variantName: line.description ?? "",
+      warehouseId: item.warehouseId,
+      quantity: String(line.quantity ?? 0),
+      unit: "Nos",
+      unitCost: String(line.rate ?? 0),
+      note: line.notes ?? "",
     })),
   }
 }
@@ -209,6 +290,117 @@ function formatMoney(value: number) {
     currency: "INR",
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+function formatQuantity(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+const purchaseReceiptRegisterEntryPattern = /^(\d+)$/
+
+function getNextRegisterEntryNumber(
+  items: BillingPurchaseReceipt[],
+  currentReceiptId?: string
+) {
+  const maxSequence = items.reduce((currentMax, item) => {
+    if (currentReceiptId && item.id === currentReceiptId) {
+      return currentMax
+    }
+
+    const normalizedValue = item.entryNumber?.trim()
+    if (!normalizedValue) {
+      return currentMax
+    }
+
+    const match = purchaseReceiptRegisterEntryPattern.exec(normalizedValue)
+    if (!match) {
+      return currentMax
+    }
+
+    const sequence = Number(match[1])
+    return Number.isFinite(sequence) ? Math.max(currentMax, sequence) : currentMax
+  }, 0)
+
+  return String(maxSequence + 1).padStart(2, "0")
+}
+
+function createSupplierContactDraft(name = ""): SupplierContactDraft {
+  return {
+    contactPerson: "",
+    gstin: "",
+    name,
+    phone: "",
+  }
+}
+
+function buildSupplierContactPayload(draft: SupplierContactDraft): ContactUpsertPayload {
+  const normalizedPhone = draft.phone.trim()
+  const normalizedGstin = draft.gstin.trim().toUpperCase()
+  const normalizedContactPerson = draft.contactPerson.trim()
+
+  return {
+    code: "",
+    contactTypeId: "contact-type:supplier",
+    ledgerId: null,
+    ledgerName: null,
+    name: draft.name.trim(),
+    legalName: "",
+    pan: "",
+    gstin: normalizedGstin || "",
+    msmeType: "-",
+    msmeNo: "",
+    openingBalance: 0,
+    balanceType: "-",
+    creditLimit: 0,
+    website: "",
+    description: normalizedContactPerson ? `Contact person: ${normalizedContactPerson}` : "",
+    isActive: true,
+    addresses: [],
+    emails: [],
+    phones: normalizedPhone
+      ? [{ phoneNumber: normalizedPhone, phoneType: "mobile", isPrimary: true }]
+      : [],
+    bankAccounts: [],
+    gstDetails: normalizedGstin ? [{ gstin: normalizedGstin, state: "-", isDefault: true }] : [],
+  }
+}
+
+function buildSupplierContactOptions(
+  contacts: ContactSummary[],
+  currentSupplierName: string
+): ProductLookupOption[] {
+  const options = contacts
+    .filter((contact) => contact.isActive)
+    .map((contact) => ({
+      value: contact.id,
+      label: contact.name,
+    }))
+
+  if (currentSupplierName.trim() && !options.some((option) => option.value === currentSupplierName.trim())) {
+    options.unshift({
+      value: `manual:${currentSupplierName.trim()}`,
+      label: currentSupplierName.trim(),
+    })
+  }
+
+  return options
+}
+
+function resolveSelectedSupplierContactValue(
+  contacts: ContactSummary[],
+  supplierName: string
+) {
+  const normalizedName = supplierName.trim()
+  const selectedContact = contacts.find((contact) => contact.id === normalizedName)
+
+  if (selectedContact) {
+    return selectedContact.id
+  }
+
+  return supplierName.trim() ? `manual:${supplierName.trim()}` : ""
 }
 
 function getPurchaseReceiptLineAmount(line: PurchaseReceiptLineForm) {
@@ -261,10 +453,6 @@ function createPurchaseReceiptProductPatch(
     productName: product.name,
     unitCost: product.costPrice > 0 ? String(product.costPrice) : line.unitCost,
   }
-}
-
-function normalizeInlineItemNote(note: string | null | undefined) {
-  return note === "Expected inward quantity." ? "" : note ?? ""
 }
 
 function statusBadgeVariant(status: BillingPurchaseReceiptStatus) {
@@ -421,7 +609,7 @@ function MetricCard({
 }
 
 function usePurchaseReceiptList() {
-  const [items, setItems] = useState<BillingPurchaseReceipt[]>([])
+  const [items, setItems] = useState<PurchaseReceiptView[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   useGlobalLoading(isLoading)
@@ -439,7 +627,7 @@ function usePurchaseReceiptList() {
         )
 
         if (!cancelled) {
-          setItems(response.items)
+          setItems(response.items.map(toPurchaseReceiptView))
           setIsLoading(false)
         }
       } catch (loadError) {
@@ -459,16 +647,18 @@ function usePurchaseReceiptList() {
     }
   }, [])
 
-  return { error, isLoading, items }
+  return { error, isLoading, items, setItems }
 }
 
 export function StorefrontPurchaseReceiptsSection() {
   const navigate = useNavigate()
-  const { error, isLoading, items } = usePurchaseReceiptList()
+  const { error, isLoading, items, setItems } = usePurchaseReceiptList()
   const [searchValue, setSearchValue] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<PurchaseReceiptView | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchValue.trim().toLowerCase()
@@ -500,9 +690,42 @@ export function StorefrontPurchaseReceiptsSection() {
   const openReceipts = items.filter((item) => item.status === "open").length
   const receivedReceipts = items.filter((item) => item.status === "fully_received").length
   const totalUnits = items.reduce(
-    (sum, item) => sum + item.lines.reduce((lineSum, line) => lineSum + line.quantity, 0),
+    (sum, item) =>
+      sum + item.lines.reduce((lineSum, line) => lineSum + Number(line.quantity || 0), 0),
     0
   )
+
+  async function handleDeleteReceipt() {
+    if (!pendingDeleteItem) {
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      await requestJson<{ deleted: true; id: string }>(
+        `/internal/v1/billing/purchase-receipt?id=${encodeURIComponent(pendingDeleteItem.id)}`,
+        { method: "DELETE" }
+      )
+
+      setItems((current) => current.filter((item) => item.id !== pendingDeleteItem.id))
+      showRecordToast({
+        entity: "Purchase receipt",
+        action: "deleted",
+        recordName: pendingDeleteItem.receiptNumber,
+      })
+      setPendingDeleteItem(null)
+    } catch (deleteError) {
+      showAppToast({
+        variant: "error",
+        title: "Purchase receipt delete failed.",
+        description:
+          deleteError instanceof Error ? deleteError.message : "Failed to delete purchase receipt.",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (isLoading) {
     return <LoadingStateCard message="Loading purchase receipt records..." />
@@ -544,7 +767,7 @@ export function StorefrontPurchaseReceiptsSection() {
         header={{
           pageTitle: "Purchase Receipts",
           pageDescription:
-            "Track local billing-owned purchase receipt documents that feed ecommerce stock entry and downstream inward posting.",
+            "Track local billing-owned purchase receipt documents that cover receipt verification and downstream inventory posting.",
           technicalName: "page.ecommerce.stock-purchase-receipts.list",
           addLabel: "New Purchase Receipt",
           onAddClick: () => {
@@ -557,7 +780,7 @@ export function StorefrontPurchaseReceiptsSection() {
             setSearchValue(value)
             setCurrentPage(1)
           },
-          placeholder: "Search receipt number, supplier, warehouse, or source ids",
+          placeholder: "Search entry number, supplier, warehouse, or supplier ref",
         }}
         filters={{
           ...buildStatusFilters(statusFilter, (value) => {
@@ -575,7 +798,8 @@ export function StorefrontPurchaseReceiptsSection() {
               id: "receipt",
               header: "Receipt",
               sortable: true,
-              accessor: (item) => `${item.receiptNumber} ${item.supplierName}`,
+              accessor: (item) =>
+                `${item.receiptNumber} ${item.registerEntryNumber ?? ""} ${item.supplierName} ${item.supplierReferenceNumber ?? ""}`,
               cell: (item) => (
                 <button
                   type="button"
@@ -587,7 +811,9 @@ export function StorefrontPurchaseReceiptsSection() {
                   <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
                     {item.receiptNumber}
                   </p>
-                  <p className="text-xs text-muted-foreground">{item.supplierName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Register {item.registerEntryNumber ?? "Not assigned"}
+                  </p>
                 </button>
               ),
             },
@@ -619,27 +845,34 @@ export function StorefrontPurchaseReceiptsSection() {
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p>{item.lines.length} line(s)</p>
                   <p>
-                    {item.lines.reduce((sum, line) => sum + line.quantity, 0).toFixed(2)} qty planned
+                    {formatQuantity(
+                      item.lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0)
+                    )} qty planned
                   </p>
                 </div>
               ),
             },
             {
-              id: "received",
-              header: "Received",
+              id: "value",
+              header: "Value",
               sortable: true,
               accessor: (item) =>
-                item.lines.reduce((sum, line) => sum + line.receivedQuantity, 0),
+                item.lines.reduce(
+                  (sum, line) => sum + Number(line.quantity || 0) * Number(line.unitCost || 0),
+                  0
+                ),
               cell: (item) => (
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p>
-                    {item.lines.reduce((sum, line) => sum + line.receivedQuantity, 0).toFixed(2)} qty
-                  </p>
-                  <p>
                     {formatMoney(
-                      item.lines.reduce((sum, line) => sum + line.quantity * line.unitCost, 0)
+                      item.lines.reduce(
+                        (sum, line) =>
+                          sum + Number(line.quantity || 0) * Number(line.unitCost || 0),
+                        0
+                      )
                     )}
                   </p>
+                  <p>{item.supplierReferenceNumber ?? "-"}</p>
                 </div>
               ),
             },
@@ -658,29 +891,29 @@ export function StorefrontPurchaseReceiptsSection() {
               id: "actions",
               header: "Actions",
               cell: (item) => (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-8 rounded-full px-3 text-xs"
-                    onClick={() => {
-                      void navigate(`${routeBase}/${encodeURIComponent(item.id)}`)
-                    }}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-8 rounded-full px-3 text-xs"
-                    onClick={() => {
-                      void navigate(`${routeBase}/${encodeURIComponent(item.id)}/edit`)
-                    }}
-                  >
-                    Edit
-                  </Button>
-                </div>
+                <RecordActionMenu
+                  itemLabel={item.receiptNumber}
+                  editLabel="Edit purchase receipt"
+                  customItems={[
+                    {
+                      key: "view",
+                      label: "View purchase receipt",
+                      icon: <EyeIcon className="size-4" />,
+                      onSelect: () => {
+                        void navigate(`${routeBase}/${encodeURIComponent(item.id)}`)
+                      },
+                    },
+                  ]}
+                  onEdit={() => {
+                    void navigate(`${routeBase}/${encodeURIComponent(item.id)}/edit`)
+                  }}
+                  onDelete={() => {
+                    setPendingDeleteItem(item)
+                  }}
+                />
               ),
+              className: "w-20 min-w-20 text-right",
+              headerClassName: "w-20 min-w-20 text-right",
             },
           ],
           data: paginatedItems,
@@ -712,6 +945,37 @@ export function StorefrontPurchaseReceiptsSection() {
           pageSizeOptions: [10, 20, 50, 100, 200],
         }}
       />
+      <AlertDialog
+        open={pendingDeleteItem !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isDeleting) {
+            setPendingDeleteItem(null)
+          }
+        }}
+      >
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Delete purchase receipt?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeleteItem
+                ? `This will permanently remove purchase receipt ${pendingDeleteItem.receiptNumber}.`
+                : "This will permanently remove the selected purchase receipt."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="border-destructive/15 bg-destructive/5">
+            <AlertDialogCancel disabled={isDeleting}>Keep receipt</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={() => void handleDeleteReceipt()}
+            >
+              {isDeleting ? "Deleting..." : "Delete receipt"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -722,7 +986,7 @@ export function StorefrontPurchaseReceiptShowSection({
   receiptId: string
 }) {
   const navigate = useNavigate()
-  const [item, setItem] = useState<BillingPurchaseReceipt | null>(null)
+  const [item, setItem] = useState<PurchaseReceiptView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   useGlobalLoading(isLoading)
@@ -740,7 +1004,7 @@ export function StorefrontPurchaseReceiptShowSection({
         )
 
         if (!cancelled) {
-          setItem(response.item)
+          setItem(toPurchaseReceiptView(response.item))
           setIsLoading(false)
         }
       } catch (loadError) {
@@ -768,9 +1032,11 @@ export function StorefrontPurchaseReceiptShowSection({
     return <StateCard message={error ?? "Purchase receipt detail is unavailable."} tone="error" />
   }
 
-  const plannedQuantity = item.lines.reduce((sum, line) => sum + line.quantity, 0)
-  const receivedQuantity = item.lines.reduce((sum, line) => sum + line.receivedQuantity, 0)
-  const totalValue = item.lines.reduce((sum, line) => sum + line.quantity * line.unitCost, 0)
+  const plannedQuantity = item.lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0)
+  const totalValue = item.lines.reduce(
+    (sum, line) => sum + Number(line.quantity || 0) * Number(line.unitCost || 0),
+    0
+  )
 
   return (
     <div className="space-y-4">
@@ -796,15 +1062,6 @@ export function StorefrontPurchaseReceiptShowSection({
         <div className="flex flex-wrap gap-3">
           <Button
             type="button"
-            variant="outline"
-            onClick={() => {
-              void navigate("/dashboard/apps/ecommerce/stock-goods-inward")
-            }}
-          >
-            Open stock entry
-          </Button>
-          <Button
-            type="button"
             onClick={() => {
               void navigate(`${routeBase}/${encodeURIComponent(item.id)}/edit`)
             }}
@@ -818,7 +1075,7 @@ export function StorefrontPurchaseReceiptShowSection({
         <MetricCard
           label="Supplier"
           value={item.supplierName}
-          summary="Supplier name captured on the receipt document."
+          summary="Supplier id captured on the receipt document."
           technicalName="card.ecommerce.stock-purchase-receipts.show.supplier"
         />
         <MetricCard
@@ -828,10 +1085,10 @@ export function StorefrontPurchaseReceiptShowSection({
           technicalName="card.ecommerce.stock-purchase-receipts.show.planned"
         />
         <MetricCard
-          label="Received quantity"
-          value={receivedQuantity.toFixed(2)}
-          summary="Quantity already converted into stock entry acceptance."
-          technicalName="card.ecommerce.stock-purchase-receipts.show.received"
+          label="Status"
+          value={item.status.replace(/_/g, " ")}
+          summary="Current receipt lifecycle state."
+          technicalName="card.ecommerce.stock-purchase-receipts.show.status"
         />
         <MetricCard
           label="Document value"
@@ -844,7 +1101,7 @@ export function StorefrontPurchaseReceiptShowSection({
         <CardHeader>
           <CardTitle>Receipt summary</CardTitle>
           <CardDescription>
-            Document, source, and audit fields for this purchase receipt record.
+            Document and audit fields for this purchase receipt record.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -863,25 +1120,33 @@ export function StorefrontPurchaseReceiptShowSection({
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Supplier ledger
+              Register entry
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
-              {item.supplierLedgerId ?? "-"}
+              {item.registerEntryNumber ?? "-"}
             </p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Source voucher
+              Supplier ref no
             </p>
-            <p className="mt-2 text-sm font-medium text-foreground">{item.sourceVoucherId ?? "-"}</p>
+            <p className="mt-2 text-sm font-medium text-foreground">
+              {item.supplierReferenceNumber ?? "-"}
+            </p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Frappe receipt
+              Supplier ref date
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
-              {item.sourceFrappeReceiptId ?? "-"}
+              {item.supplierReferenceDate ? formatDate(item.supplierReferenceDate) : "-"}
             </p>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Entry number
+            </p>
+            <p className="mt-2 text-sm font-medium text-foreground">{item.receiptNumber}</p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -889,12 +1154,6 @@ export function StorefrontPurchaseReceiptShowSection({
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">{formatDateTime(item.updatedAt)}</p>
             <p className="mt-1 text-xs text-muted-foreground">{item.createdByUserId ?? "System"}</p>
-          </div>
-          <div className="rounded-2xl border border-border/70 bg-card/70 p-4 md:col-span-2 xl:col-span-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Note
-            </p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.note || "No note added."}</p>
           </div>
         </CardContent>
       </Card>
@@ -917,8 +1176,8 @@ export function StorefrontPurchaseReceiptShowSection({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {item.lines.map((line) => (
-                <TableRow key={line.id}>
+              {item.lines.map((line, index) => (
+                <TableRow key={`${line.productId}:${index}`}>
                   <TableCell>
                     <div>
                       <p className="font-medium text-foreground">{line.productName}</p>
@@ -929,16 +1188,16 @@ export function StorefrontPurchaseReceiptShowSection({
                     <div>
                       <p className="text-sm text-foreground">{line.variantName ?? "-"}</p>
                       <p className="text-xs text-muted-foreground">
-                        Received {line.receivedQuantity.toFixed(2)} · {line.warehouseId}
+                        {line.note || "-"}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {line.quantity.toFixed(2)} {line.unit}
+                    {formatQuantity(Number(line.quantity || 0))}
                   </TableCell>
-                  <TableCell className="text-right">{formatMoney(line.unitCost)}</TableCell>
+                  <TableCell className="text-right">{formatMoney(Number(line.unitCost || 0))}</TableCell>
                   <TableCell className="text-right">
-                    {formatMoney(line.quantity * line.unitCost)}
+                    {formatMoney(Number(line.quantity || 0) * Number(line.unitCost || 0))}
                   </TableCell>
                 </TableRow>
               ))}
@@ -958,25 +1217,69 @@ export function StorefrontPurchaseReceiptUpsertSection({
   const navigate = useNavigate()
   const isEditing = Boolean(receiptId)
   const [form, setForm] = useState<PurchaseReceiptForm>(createPurchaseReceiptForm())
+  const [purchaseReceipts, setPurchaseReceipts] = useState<BillingPurchaseReceipt[]>([])
   const [products, setProducts] = useState<ProductListResponse["items"]>([])
+  const [contacts, setContacts] = useState<ContactSummary[]>([])
+  const [createdContacts, setCreatedContacts] = useState<ContactSummary[]>([])
   const [isProductLookupLoading, setIsProductLookupLoading] = useState(false)
+  const [isContactLookupLoading, setIsContactLookupLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
-  useGlobalLoading(isLoading || isSaving || isProductLookupLoading)
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
+  const [supplierDraft, setSupplierDraft] = useState<SupplierContactDraft>(createSupplierContactDraft())
+  const [supplierCreateError, setSupplierCreateError] = useState<string | null>(null)
+  const [supplierCreateSaving, setSupplierCreateSaving] = useState(false)
+  useGlobalLoading(
+    isLoading ||
+      isSaving ||
+      isProductLookupLoading ||
+      isContactLookupLoading ||
+      supplierCreateSaving
+  )
 
   const productOptions = useMemo(() => getProductLookupOptions(products), [products])
+  const supplierContacts = useMemo(() => {
+    const seen = new Set<string>()
+    return [...createdContacts, ...contacts].filter((contact) => {
+      if (seen.has(contact.id)) {
+        return false
+      }
+
+      seen.add(contact.id)
+      return true
+    })
+  }, [contacts, createdContacts])
+  const supplierOptions = useMemo(
+    () => buildSupplierContactOptions(supplierContacts, form.supplierName),
+    [form.supplierName, supplierContacts]
+  )
+  const selectedSupplierValue = useMemo(
+    () => resolveSelectedSupplierContactValue(supplierContacts, form.supplierName),
+    [form.supplierName, supplierContacts]
+  )
+  const nextRegisterEntryNumber = useMemo(
+    () => getNextRegisterEntryNumber(purchaseReceipts, receiptId),
+    [purchaseReceipts, receiptId]
+  )
 
   useEffect(() => {
     let cancelled = false
 
-    async function loadProducts() {
+    async function loadLookups() {
       setIsProductLookupLoading(true)
+      setIsContactLookupLoading(true)
       try {
-        const response = await requestJson<ProductListResponse>("/internal/v1/core/products")
+        const [productResponse, contactResponse, receiptResponse] = await Promise.all([
+          requestJson<ProductListResponse>("/internal/v1/core/products"),
+          requestJson<ContactListResponse>("/internal/v1/core/contacts"),
+          requestJson<BillingPurchaseReceiptListResponse>("/internal/v1/billing/purchase-receipts"),
+        ])
         if (!cancelled) {
-          setProducts(response.items)
+          setProducts(productResponse.items)
+          setContacts(contactResponse.items)
+          setPurchaseReceipts(receiptResponse.items)
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -987,11 +1290,12 @@ export function StorefrontPurchaseReceiptUpsertSection({
       } finally {
         if (!cancelled) {
           setIsProductLookupLoading(false)
+          setIsContactLookupLoading(false)
         }
       }
     }
 
-    void loadProducts()
+    void loadLookups()
 
     return () => {
       cancelled = true
@@ -1044,7 +1348,7 @@ export function StorefrontPurchaseReceiptUpsertSection({
     setFormSuccess(null)
 
     try {
-      const payload = toPurchaseReceiptPayload(form)
+      const payload = toPurchaseReceiptPayload(form, nextRegisterEntryNumber)
 
       if (receiptId) {
         const resolvedReceiptId = receiptId
@@ -1073,7 +1377,6 @@ export function StorefrontPurchaseReceiptUpsertSection({
     }
   }
 
-  const lineCount = form.lines.length
   const totalQuantity = form.lines.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
   const totalValue = form.lines.reduce(
     (sum, item) => sum + getPurchaseReceiptLineAmount(item),
@@ -1108,6 +1411,60 @@ export function StorefrontPurchaseReceiptUpsertSection({
     }))
   }
 
+  function applySupplierContact(contact: ContactSummary) {
+    setForm((current) => ({
+      ...current,
+      supplierName: contact.id,
+    }))
+  }
+
+  function handleSupplierValueChange(nextValue: string) {
+    if (!nextValue || nextValue.startsWith("manual:")) {
+      return
+    }
+
+    const selectedContact = supplierContacts.find((contact) => contact.id === nextValue)
+    if (!selectedContact) {
+      return
+    }
+
+    applySupplierContact(selectedContact)
+  }
+
+  function handleOpenCreateSupplier(query: string) {
+    setSupplierCreateError(null)
+    setSupplierDraft(createSupplierContactDraft(query))
+    setSupplierDialogOpen(true)
+  }
+
+  async function handleCreateSupplierContact() {
+    if (supplierDraft.name.trim().length < 2) {
+      setSupplierCreateError("Supplier name must be at least 2 characters.")
+      return
+    }
+
+    setSupplierCreateSaving(true)
+    setSupplierCreateError(null)
+
+    try {
+      const response = await requestJson<ContactResponse>("/internal/v1/core/contacts", {
+        method: "POST",
+        body: JSON.stringify(buildSupplierContactPayload(supplierDraft)),
+      })
+
+      setCreatedContacts((current) => [response.item, ...current.filter((item) => item.id !== response.item.id)])
+      applySupplierContact(response.item)
+      setSupplierDialogOpen(false)
+      setSupplierDraft(createSupplierContactDraft())
+    } catch (createError) {
+      setSupplierCreateError(
+        createError instanceof Error ? createError.message : "Failed to create supplier contact."
+      )
+    } finally {
+      setSupplierCreateSaving(false)
+    }
+  }
+
   if (isLoading) {
     return <LoadingStateCard message="Loading purchase receipt form..." />
   }
@@ -1129,7 +1486,7 @@ export function StorefrontPurchaseReceiptUpsertSection({
             </Link>
           </Button>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-            {isEditing ? form.receiptNumber || "Update Purchase Receipt" : "Create Purchase Receipt"}
+            {isEditing ? form.registerEntryNumber || "Update Purchase Receipt" : "Create Purchase Receipt"}
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -1168,28 +1525,25 @@ export function StorefrontPurchaseReceiptUpsertSection({
             Purchase receipt document
           </CardTitle>
           <CardDescription>
-            Maintain supplier, warehouse, source references, and document status before goods inward.
+            Maintain the receipt number, supplier id, warehouse id, and status before inventory posting.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Receipt Number</Label>
-              <Input
-                value={form.receiptNumber}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, receiptNumber: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Supplier Name</Label>
-              <Input
-                value={form.supplierName}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, supplierName: event.target.value }))
-                }
-              />
+              <Label>Register Entry Number</Label>
+              <div className="space-y-2">
+                <Input
+                  value={form.registerEntryNumber}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, registerEntryNumber: event.target.value }))
+                  }
+                  placeholder={nextRegisterEntryNumber}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank to auto assign the next number: {nextRegisterEntryNumber}
+                </p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Posting Date</Label>
@@ -1202,61 +1556,51 @@ export function StorefrontPurchaseReceiptUpsertSection({
               />
             </div>
             <div className="space-y-2">
-              <Label>Supplier Ledger Id</Label>
-              <Input
-                value={form.supplierLedgerId}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, supplierLedgerId: event.target.value }))
-                }
-                placeholder="Optional ledger id"
+              <Label>Supplier</Label>
+              <SearchableLookupField
+                createActionLabel="Create contact"
+                error={formError ?? null}
+                noResultsMessage="No contacts found."
+                onCreateNew={handleOpenCreateSupplier}
+                onValueChange={handleSupplierValueChange}
+                options={supplierOptions}
+                placeholder={isContactLookupLoading ? "Loading..." : "Select supplier"}
+                searchPlaceholder="Search contact"
+                triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                value={selectedSupplierValue}
               />
             </div>
             <div className="space-y-2">
-              <Label>Warehouse Id</Label>
+              <Label>Supplier Ref No</Label>
               <Input
-                value={form.warehouseId}
+                value={form.supplierReferenceNumber}
                 onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    warehouseId: event.target.value,
-                    lines: current.lines.map((line) => ({
-                      ...line,
-                      warehouseId: event.target.value,
-                    })),
-                  }))
+                  setForm((current) => ({ ...current, supplierReferenceNumber: event.target.value }))
+                }
+                placeholder="Supplier document number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Supplier Ref Date</Label>
+              <Input
+                type="date"
+                value={form.supplierReferenceDate}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, supplierReferenceDate: event.target.value }))
                 }
               />
             </div>
+            <div />
             <div className="space-y-2">
               <Label>Warehouse Name</Label>
               <Input
                 value={form.warehouseName}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, warehouseName: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Source Voucher Id</Label>
-              <Input
-                value={form.sourceVoucherId}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, sourceVoucherId: event.target.value }))
-                }
-                placeholder="Optional source voucher id"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Source Frappe Receipt Id</Label>
-              <Input
-                value={form.sourceFrappeReceiptId}
-                onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    sourceFrappeReceiptId: event.target.value,
+                    warehouseId: event.target.value,
                   }))
                 }
-                placeholder="Optional ERP receipt id"
               />
             </div>
             <div className="space-y-2">
@@ -1282,6 +1626,29 @@ export function StorefrontPurchaseReceiptUpsertSection({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Source Voucher Id</Label>
+              <Input
+                value={form.sourceVoucherId}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, sourceVoucherId: event.target.value }))
+                }
+                placeholder="Optional source voucher id"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Source Frappe Receipt Id</Label>
+              <Input
+                value={form.sourceFrappeReceiptId}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    sourceFrappeReceiptId: event.target.value,
+                  }))
+                }
+                placeholder="Optional ERP receipt id"
+              />
+            </div>
             <div className="space-y-2 md:col-span-2 xl:col-span-3">
               <Label>Note</Label>
               <Textarea
@@ -1295,7 +1662,6 @@ export function StorefrontPurchaseReceiptUpsertSection({
           </div>
           <VoucherInlineEditableTable
             title="Purchase items"
-            description="Add receipt lines as purchase sub-items. Quantity and estimated value are derived from this table."
             addLabel="Add item"
             fitToContainer
             rows={form.lines}
@@ -1322,8 +1688,8 @@ export function StorefrontPurchaseReceiptUpsertSection({
               {
                 id: "product",
                 header: "Product",
-                headerClassName: "w-[34%] min-w-80",
-                cellClassName: "w-[34%]",
+                width: "34%",
+                headerClassName: "min-w-80",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => {
                   const rowOptions = getPurchaseReceiptLineProductOptions(
                     line,
@@ -1344,8 +1710,8 @@ export function StorefrontPurchaseReceiptUpsertSection({
                           selectPurchaseReceiptProduct(index, nextValue)
                         }}
                         options={rowOptions}
-                        placeholder={isProductLookupLoading ? "Loading products..." : "Select product"}
-                        searchPlaceholder="Search product"
+                        placeholder={isProductLookupLoading ? "Loading..." : "Select"}
+                        searchPlaceholder="Search"
                         triggerClassName="h-8 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
                         value={line.productId || (line.productName ? `manual:${index}` : "")}
                       />
@@ -1356,34 +1722,25 @@ export function StorefrontPurchaseReceiptUpsertSection({
               {
                 id: "description",
                 header: "Description",
-                headerClassName: "w-[28%]",
-                cellClassName: "w-[28%] max-w-0",
+                width: "28%",
+                cellClassName: "max-w-0",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => (
-                  <div className="min-w-0 space-y-0.5">
-                    <Input
-                      aria-label="Description"
-                      value={line.variantName}
-                      onChange={(event) =>
-                        updatePurchaseReceiptLine(index, { variantName: event.target.value })
-                      }
-                      className={`${voucherInlineInputClassName} truncate`}
-                    />
-                    <Input
-                      aria-label="Line note"
-                      value={line.note}
-                      onChange={(event) =>
-                        updatePurchaseReceiptLine(index, { note: event.target.value })
-                      }
-                      className="h-6 truncate rounded-none border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
-                    />
-                  </div>
+                  <Input
+                    aria-label="Description"
+                    value={line.variantName}
+                    onChange={(event) =>
+                      updatePurchaseReceiptLine(index, { variantName: event.target.value })
+                    }
+                    className={voucherInlineInputClassName}
+                  />
                 ),
               },
               {
                 id: "quantity",
                 header: "Qty",
-                headerClassName: "w-[12%]",
-                cellClassName: "w-[12%]",
+                width: "12%",
+                headerClassName: "text-center",
+                cellClassName: "text-center",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => (
                   <Input
                     type="number"
@@ -1393,15 +1750,16 @@ export function StorefrontPurchaseReceiptUpsertSection({
                     onChange={(event) =>
                       updatePurchaseReceiptLine(index, { quantity: event.target.value })
                     }
-                    className={voucherInlineInputClassName}
+                    className={`${voucherInlineInputClassName} text-center`}
                   />
                 ),
               },
               {
                 id: "rate",
                 header: "Rate",
-                headerClassName: "w-[14%]",
-                cellClassName: "w-[14%]",
+                width: "14%",
+                headerClassName: "text-center",
+                cellClassName: "text-center",
                 renderCell: (line: PurchaseReceiptLineForm, index: number) => (
                   <Input
                     type="number"
@@ -1411,59 +1769,124 @@ export function StorefrontPurchaseReceiptUpsertSection({
                     onChange={(event) =>
                       updatePurchaseReceiptLine(index, { unitCost: event.target.value })
                     }
-                    className={voucherInlineInputClassName}
+                    className={`${voucherInlineInputClassName} text-center`}
                   />
                 ),
               },
               {
                 id: "amount",
                 header: "Amount",
-                headerClassName: "w-[14%] text-right",
-                cellClassName: "w-[14%] text-right font-medium text-foreground",
+                width: "14%",
+                headerClassName: "text-right",
+                cellClassName: "text-right font-medium text-foreground",
                 renderCell: (line: PurchaseReceiptLineForm) =>
                   formatMoney(getPurchaseReceiptLineAmount(line)),
               },
             ]}
-            footer={
-              <>
-                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Quantity
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">
-                    {totalQuantity.toFixed(2)}
-                  </p>
-                </div>
-                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Subtotal
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">
+            summaryRow={
+              <TableRow className="border-border/60 bg-muted/20 hover:bg-muted/20">
+                <TableCell className="border-r border-border/50 px-1 py-0.5" />
+                <TableCell
+                  colSpan={2}
+                  className="border-r border-border/50 px-1.5 py-0.5 text-right font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+                >
+                  Total
+                </TableCell>
+                <TableCell className="border-r border-border/50 px-0 py-0.5 text-center font-semibold text-foreground">
+                  <div className="flex h-6 items-center justify-center">
+                    {formatQuantity(totalQuantity)}
+                  </div>
+                </TableCell>
+                <TableCell className="border-r border-border/50 px-0 py-0.5">
+                  <div className="h-6" />
+                </TableCell>
+                <TableCell className="border-r border-border/50 px-0 py-0.5 text-right font-semibold text-foreground">
+                  <div className="flex h-6 items-center justify-end px-1.5">
                     {formatMoney(totalValue)}
-                  </p>
-                </div>
-                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Lines
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">{lineCount}</p>
-                </div>
-                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Warehouse
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">
-                    {form.warehouseName || "Not set"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {form.warehouseId || "Enter the warehouse id for inward posting."}
-                  </p>
-                </div>
-              </>
+                  </div>
+                </TableCell>
+                <TableCell className="px-0 py-0.5">
+                  <div className="h-6" />
+                </TableCell>
+              </TableRow>
             }
           />
+          <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
+            <DialogContent className="max-w-md p-4">
+              <DialogHeader>
+                <DialogTitle>Create supplier contact</DialogTitle>
+                <DialogDescription>
+                  Capture only the supplier essentials now. Remaining contact details can be filled later.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-3">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={supplierDraft.name}
+                    onChange={(event) =>
+                      setSupplierDraft((current) => ({ ...current, name: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input
+                    value={supplierDraft.phone}
+                    onChange={(event) =>
+                      setSupplierDraft((current) => ({ ...current, phone: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact Person</Label>
+                  <Input
+                    value={supplierDraft.contactPerson}
+                    onChange={(event) =>
+                      setSupplierDraft((current) => ({
+                        ...current,
+                        contactPerson: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>GST Number</Label>
+                  <Input
+                    value={supplierDraft.gstin}
+                    onChange={(event) =>
+                      setSupplierDraft((current) => ({ ...current, gstin: event.target.value }))
+                    }
+                  />
+                </div>
+                {supplierCreateError ? (
+                  <p className="text-sm text-destructive">{supplierCreateError}</p>
+                ) : null}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSupplierDialogOpen(false)}
+                  disabled={supplierCreateSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void handleCreateSupplierContact()}
+                  disabled={supplierCreateSaving}
+                >
+                  {supplierCreateSaving ? "Saving..." : "Save contact"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
   )
 }
+
+

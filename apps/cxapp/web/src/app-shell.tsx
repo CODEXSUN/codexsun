@@ -187,6 +187,10 @@ const StockGoodsInwardFormPage = lazyNamed(
   () => import("./pages/stock-goods-inward-form-page"),
   "StockGoodsInwardFormPage",
 );
+const StockLedgerDetailPage = lazyNamed(
+  () => import("./pages/stock-ledger-detail-page"),
+  "StockLedgerDetailPage",
+);
 const BillingCategoryFormPage = lazyNamed(
   () => import("./pages/billing-category-form-page"),
   "BillingCategoryFormPage",
@@ -2075,6 +2079,16 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <StockGoodsInwardFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/stock-ledger/:productId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockLedgerDetailPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

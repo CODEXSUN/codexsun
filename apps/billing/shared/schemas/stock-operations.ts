@@ -38,37 +38,40 @@ export const billingBarcodeAliasSourceSchema = z.enum([
   "manufacturer_serial",
 ])
 
+export const billingStockAcceptanceVerificationStatusSchema = z.enum([
+  "verified",
+  "mismatch",
+])
+
 export const billingStickerTemplateSchema = z.enum([
   "inventory-sticker-25x50mm",
+])
+
+export const billingPurchaseReceiptSerializationModeSchema = z.enum([
+  "batch-and-serial",
+  "serial-only",
 ])
 
 export const billingPurchaseReceiptLineSchema = z.object({
   id: z.string().trim().min(1),
   productId: z.string().trim().min(1),
-  productName: z.string().trim().min(1),
-  variantId: z.string().trim().min(1).nullable().default(null),
-  variantName: z.string().trim().min(1).nullable().default(null),
-  warehouseId: z.string().trim().min(1),
-  quantity: z.number().positive(),
-  receivedQuantity: z.number().nonnegative(),
-  unit: z.string().trim().min(1),
-  unitCost: z.number().nonnegative(),
-  note: z.string().trim().default(""),
+  description: z.string().trim().nullable().default(null),
+  quantity: z.number().nonnegative().nullable().default(null),
+  rate: z.number().nonnegative().nullable().default(null),
+  amount: z.number().nonnegative().nullable().default(null),
+  notes: z.string().trim().default(""),
 })
 
 export const billingPurchaseReceiptSchema = z.object({
   id: z.string().trim().min(1),
-  receiptNumber: z.string().trim().min(1),
-  supplierName: z.string().trim().min(1),
-  supplierLedgerId: z.string().trim().min(1).nullable().default(null),
+  entryNumber: z.string().trim().min(1),
+  supplierId: z.string().trim().min(1),
+  supplierReferenceNumber: z.string().trim().min(1).nullable().default(null),
+  supplierReferenceDate: z.string().trim().min(1).nullable().default(null),
   postingDate: z.string().trim().min(1),
   warehouseId: z.string().trim().min(1),
-  warehouseName: z.string().trim().min(1),
-  sourceVoucherId: z.string().trim().min(1).nullable().default(null),
-  sourceFrappeReceiptId: z.string().trim().min(1).nullable().default(null),
   status: billingPurchaseReceiptStatusSchema,
   lines: z.array(billingPurchaseReceiptLineSchema).min(1),
-  note: z.string().trim().default(""),
   createdAt: z.string().trim().min(1),
   updatedAt: z.string().trim().min(1),
   createdByUserId: z.string().trim().min(1).nullable().default(null),
@@ -127,9 +130,10 @@ export const billingStockUnitSchema = z.object({
   warehouseName: z.string().trim().min(1),
   unitSequence: z.number().int().positive(),
   quantity: z.number().positive().default(1),
-  batchCode: z.string().trim().min(1),
+  batchCode: z.string().trim().min(1).nullable().default(null),
   serialNumber: z.string().trim().min(1),
   barcodeValue: z.string().trim().min(1),
+  expiresAt: z.string().trim().min(1).nullable().default(null),
   manufacturerBarcode: z.string().trim().min(1).nullable().default(null),
   manufacturerSerial: z.string().trim().min(1).nullable().default(null),
   attributeSummary: z.string().trim().min(1).nullable().default(null),
@@ -169,8 +173,9 @@ export const billingStickerPrintItemSchema = z.object({
   variantName: z.string().trim().min(1).nullable().default(null),
   attributeSummary: z.string().trim().min(1).nullable().default(null),
   barcodeValue: z.string().trim().min(1),
-  batchCode: z.string().trim().min(1),
+  batchCode: z.string().trim().min(1).nullable().default(null),
   serialNumber: z.string().trim().min(1),
+  expiresAt: z.string().trim().min(1).nullable().default(null),
   mrp: z.number().nonnegative().nullable().default(null),
   sellingPrice: z.number().nonnegative().nullable().default(null),
   companyName: z.string().trim().min(1),
@@ -193,6 +198,31 @@ export const billingStickerPrintBatchSchema = z.object({
   createdByUserId: z.string().trim().min(1).nullable().default(null),
 })
 
+export const billingPurchaseReceiptBarcodeGenerationLineSchema = z.object({
+  purchaseReceiptLineId: z.string().trim().min(1),
+  inwardQuantity: z.number().positive(),
+  barcodeQuantity: z.number().int().positive(),
+  identityMode: billingPurchaseReceiptSerializationModeSchema.default("batch-and-serial"),
+  batchCode: z.string().trim().nullable().default(null),
+  serialPrefix: z.string().trim().nullable().default(null),
+  manufacturerBarcodePrefix: z.string().trim().nullable().default(null),
+  expiresAt: z.string().trim().nullable().default(null),
+  note: z.string().trim().default(""),
+})
+
+export const billingPurchaseReceiptBarcodeGenerationPayloadSchema = z.object({
+  postingDate: z.string().trim().min(1),
+  note: z.string().trim().default(""),
+  template: billingStickerTemplateSchema.default("inventory-sticker-25x50mm"),
+  lines: z.array(billingPurchaseReceiptBarcodeGenerationLineSchema).min(1),
+})
+
+export const billingPurchaseReceiptBarcodeGenerationResponseSchema = z.object({
+  goodsInward: billingGoodsInwardSchema,
+  stickerBatch: billingStickerPrintBatchSchema,
+  unitsCreated: z.number().int().nonnegative(),
+})
+
 export const billingStockScanVerificationSchema = z.object({
   barcodeValue: z.string().trim().min(1),
   resolved: z.boolean(),
@@ -201,6 +231,49 @@ export const billingStockScanVerificationSchema = z.object({
   expectedWarehouseId: z.string().trim().min(1).nullable().default(null),
   stockUnit: billingStockUnitSchema.nullable().default(null),
   warning: z.string().trim().min(1).nullable().default(null),
+})
+
+export const billingStockAcceptanceVerificationSchema = z.object({
+  id: z.string().trim().min(1),
+  purchaseReceiptId: z.string().trim().min(1),
+  goodsInwardId: z.string().trim().min(1),
+  productId: z.string().trim().min(1),
+  productName: z.string().trim().min(1),
+  productCode: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  stockUnitId: z.string().trim().min(1),
+  expectedBarcodeValue: z.string().trim().min(1),
+  scannedBarcodeValue: z.string().trim().min(1),
+  quantityAccepted: z.number().nonnegative(),
+  status: billingStockAcceptanceVerificationStatusSchema,
+  verifiedAt: z.string().trim().min(1).nullable().default(null),
+  createdAt: z.string().trim().min(1),
+  updatedAt: z.string().trim().min(1),
+  verifiedByUserId: z.string().trim().min(1).nullable().default(null),
+})
+
+export const billingStockAcceptanceVerificationListResponseSchema = z.object({
+  items: z.array(billingStockAcceptanceVerificationSchema),
+})
+
+export const billingStockAcceptanceItemPayloadSchema = z.object({
+  stockUnitId: z.string().trim().min(1),
+  scannedBarcodeValue: z.string().trim().min(1),
+})
+
+export const billingStockAcceptancePayloadSchema = z.object({
+  purchaseReceiptId: z.string().trim().min(1),
+  productId: z.string().trim().min(1),
+  items: z.array(billingStockAcceptanceItemPayloadSchema).min(1),
+})
+
+export const billingStockAcceptanceResponseSchema = z.object({
+  acceptedCount: z.number().int().nonnegative(),
+  acceptedQuantity: z.number().nonnegative(),
+  mismatchCount: z.number().int().nonnegative(),
+  remainingCount: z.number().int().nonnegative(),
+  items: z.array(billingStockAcceptanceVerificationSchema),
 })
 
 export const billingStockSaleAllocationSchema = z.object({
@@ -222,28 +295,22 @@ export const billingStockSaleAllocationSchema = z.object({
 
 export const billingPurchaseReceiptLineInputSchema = z.object({
   productId: z.string().trim().min(1),
-  productName: z.string().trim().min(1),
-  variantId: z.string().trim().min(1).nullable().default(null),
-  variantName: z.string().trim().nullable().default(null),
-  warehouseId: z.string().trim().min(1),
-  quantity: z.number().positive(),
-  unit: z.string().trim().min(1).default("Nos"),
-  unitCost: z.number().nonnegative().default(0),
-  note: z.string().trim().default(""),
+  description: z.string().trim().nullable().default(null),
+  quantity: z.number().nonnegative().nullable().default(null),
+  rate: z.number().nonnegative().nullable().default(null),
+  amount: z.number().nonnegative().nullable().default(null),
+  notes: z.string().trim().default(""),
 })
 
 export const billingPurchaseReceiptUpsertPayloadSchema = z.object({
-  receiptNumber: z.string().trim().min(1),
-  supplierName: z.string().trim().min(1),
-  supplierLedgerId: z.string().trim().min(1).nullable().default(null),
+  entryNumber: z.string().trim().min(1).nullable().default(null),
+  supplierId: z.string().trim().min(1),
+  supplierReferenceNumber: z.string().trim().min(1).nullable().default(null),
+  supplierReferenceDate: z.string().trim().min(1).nullable().default(null),
   postingDate: z.string().trim().min(1),
   warehouseId: z.string().trim().min(1),
-  warehouseName: z.string().trim().min(1),
-  sourceVoucherId: z.string().trim().min(1).nullable().default(null),
-  sourceFrappeReceiptId: z.string().trim().min(1).nullable().default(null),
   status: billingPurchaseReceiptStatusSchema.default("draft"),
   lines: z.array(billingPurchaseReceiptLineInputSchema).min(1),
-  note: z.string().trim().default(""),
 })
 
 export const billingGoodsInwardLineInputSchema = z.object({
@@ -359,7 +426,13 @@ export type BillingStockUnitStatus = z.infer<typeof billingStockUnitStatusSchema
 export type BillingBarcodeAliasSource = z.infer<
   typeof billingBarcodeAliasSourceSchema
 >
+export type BillingStockAcceptanceVerificationStatus = z.infer<
+  typeof billingStockAcceptanceVerificationStatusSchema
+>
 export type BillingStickerTemplate = z.infer<typeof billingStickerTemplateSchema>
+export type BillingPurchaseReceiptSerializationMode = z.infer<
+  typeof billingPurchaseReceiptSerializationModeSchema
+>
 export type BillingStockUnit = z.infer<typeof billingStockUnitSchema>
 export type BillingStockBarcodeAlias = z.infer<
   typeof billingStockBarcodeAliasSchema
@@ -370,8 +443,14 @@ export type BillingStickerPrintItem = z.infer<
 export type BillingStickerPrintBatch = z.infer<
   typeof billingStickerPrintBatchSchema
 >
+export type BillingPurchaseReceiptBarcodeGenerationLine = z.infer<
+  typeof billingPurchaseReceiptBarcodeGenerationLineSchema
+>
 export type BillingStockScanVerification = z.infer<
   typeof billingStockScanVerificationSchema
+>
+export type BillingStockAcceptanceVerification = z.infer<
+  typeof billingStockAcceptanceVerificationSchema
 >
 export type BillingStockSaleAllocation = z.infer<
   typeof billingStockSaleAllocationSchema
@@ -418,6 +497,9 @@ export type BillingStockSaleAllocationResponse = z.infer<
 export type BillingStockSaleAllocationListResponse = z.infer<
   typeof billingStockSaleAllocationListResponseSchema
 >
+export type BillingStockAcceptanceVerificationListResponse = z.infer<
+  typeof billingStockAcceptanceVerificationListResponseSchema
+>
 export type BillingGoodsInwardPostingResponse = z.infer<
   typeof billingGoodsInwardPostingResponseSchema
 >
@@ -427,6 +509,18 @@ export type BillingBarcodeResolutionPayload = z.infer<
 export type BillingStickerPrintBatchPayload = z.infer<
   typeof billingStickerPrintBatchPayloadSchema
 >
+export type BillingPurchaseReceiptBarcodeGenerationPayload = z.infer<
+  typeof billingPurchaseReceiptBarcodeGenerationPayloadSchema
+>
+export type BillingPurchaseReceiptBarcodeGenerationResponse = z.infer<
+  typeof billingPurchaseReceiptBarcodeGenerationResponseSchema
+>
 export type BillingStockSaleAllocationPayload = z.infer<
   typeof billingStockSaleAllocationPayloadSchema
+>
+export type BillingStockAcceptancePayload = z.infer<
+  typeof billingStockAcceptancePayloadSchema
+>
+export type BillingStockAcceptanceResponse = z.infer<
+  typeof billingStockAcceptanceResponseSchema
 >

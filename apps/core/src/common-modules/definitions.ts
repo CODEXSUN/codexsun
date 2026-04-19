@@ -283,6 +283,7 @@ export const commonModuleDefinitions = [
     columns: [
       { key: "code", label: "Code", type: "string", required: true, nullable: false },
       { key: "name", label: "Name", type: "string", required: true, nullable: false },
+      { key: "is_default_location", label: "Default Location", type: "boolean", required: false, nullable: false },
       { key: "country_id", label: "Country", type: "string", required: false, nullable: true, referenceModule: "countries" },
       { key: "state_id", label: "State", type: "string", required: false, nullable: true, referenceModule: "states" },
       { key: "district_id", label: "District", type: "string", required: false, nullable: true, referenceModule: "districts" },

@@ -1,4 +1,4 @@
-import type { Kysely } from "kysely"
+import { sql, type Kysely } from "kysely"
 
 export type JsonStoreSeedRecord = {
   id: string
@@ -40,6 +40,15 @@ export async function ensureJsonStoreTable(
     .addColumn("created_at", "varchar(40)", (column) => column.notNull())
     .addColumn("updated_at", "varchar(40)", (column) => column.notNull())
     .execute()
+
+  try {
+    await sql
+      .raw(`ALTER TABLE \`${tableName}\` MODIFY COLUMN \`payload\` LONGTEXT NOT NULL`)
+      .execute(database)
+  } catch {
+    // PostgreSQL already treats text as effectively unbounded and older installs
+    // may not support this MariaDB-specific alter statement.
+  }
 }
 
 export async function replaceJsonStoreRecords(

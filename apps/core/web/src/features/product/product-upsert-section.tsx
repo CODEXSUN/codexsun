@@ -27,7 +27,6 @@ import {
   createEmptyProductAttributeValue,
   createEmptyProductImage,
   createEmptyProductPrice,
-  createEmptyProductStockItem,
   createEmptyProductTag,
   createEmptyProductVariant,
   createEmptyProductVariantAttribute,
@@ -64,7 +63,6 @@ const lookupModules: ProductLookupModuleKey[] = [
   "hsnCodes",
   "taxes",
   "styles",
-  "warehouses",
 ]
 
 const storefrontProductImageHelperText =
@@ -105,6 +103,49 @@ function updateCollectionItem<T>(items: T[], index: number, recipe: (item: T) =>
   return items.map((item, itemIndex) => (itemIndex === index ? recipe(item) : item))
 }
 
+function getCommonModulePrimaryText(item: CommonModuleItem | null | undefined) {
+  return (
+    [item?.name, item?.title, item?.code]
+      .find((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+      ?.trim() ?? ""
+  )
+}
+
+function buildInlineCommonModuleCode(value: string) {
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+
+  return normalized.length > 0 ? normalized.slice(0, 20) : "NEW"
+}
+
+function formatPricingPreview(value: number) {
+  return Number.isFinite(value) ? value.toFixed(2) : "0.00"
+}
+
+function getNextCommonModulePosition(items: CommonModuleItem[]) {
+  return items.reduce((maxValue, item) => {
+    const currentValue =
+      typeof item.position_order === "number"
+        ? item.position_order
+        : Number(item.position_order ?? 0)
+
+    return Number.isFinite(currentValue) ? Math.max(maxValue, currentValue) : maxValue
+  }, 0) + 1
+}
+
+async function createLookupItemWithPayload(
+  path: string,
+  payload: Record<string, string | number | boolean | null>
+) {
+  return requestJson<{ item: CommonModuleItem }>(path, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
 function VariantScopeField({
   label,
   value,
@@ -135,11 +176,9 @@ function VariantScopeField({
 }
 
 export function ProductUpsertSection({
-  commonRouteBase = "/dashboard/apps/core",
   productId,
   routeBase = "/dashboard/apps/core/products",
 }: {
-  commonRouteBase?: string
   productId?: string
   routeBase?: string
 }) {
@@ -180,34 +219,6 @@ export function ProductUpsertSection({
 
     return isEditing ? "Update Product" : "Create Product"
   }, [form.code, form.name, isEditing])
-
-  const resolvedStorefrontProductGroupId = useMemo(() => {
-    if (form.productGroupId) {
-      return form.productGroupId
-    }
-
-    const storefrontDepartment =
-      form.storefront?.department?.trim() || form.storefrontDepartment?.trim() || ""
-
-    if (!storefrontDepartment) {
-      return ""
-    }
-
-    const matchedGroup = lookupState.productGroups.find((item) => {
-      const candidates = [item.name, item.title, item.code]
-        .filter((entry): entry is string => typeof entry === "string")
-        .map((entry) => entry.trim().toLowerCase())
-
-      return candidates.includes(storefrontDepartment.toLowerCase())
-    })
-
-    return matchedGroup?.id ?? ""
-  }, [
-    form.productGroupId,
-    form.storefront?.department,
-    form.storefrontDepartment,
-    lookupState.productGroups,
-  ])
 
   async function handleGenerateSlug() {
     if (form.name.trim().length === 0) {
@@ -281,6 +292,296 @@ export function ProductUpsertSection({
     } finally {
       setActiveSeoField(null)
     }
+  }
+
+  function handleGenerateItemBadgeFromStyle() {
+    const selectedStyle = lookupState.styles.find((item) => item.id === form.styleId)
+    const styleLabel = getCommonModulePrimaryText(selectedStyle)
+
+    if (styleLabel.length === 0) {
+      setFormError("Select a style before generating an item badge.")
+      return
+    }
+
+    setForm((current) => ({
+      ...current,
+      storefront: {
+        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+        catalogBadge: styleLabel,
+      },
+    }))
+    setFormError((current) =>
+      current === "Select a style before generating an item badge." ? null : current
+    )
+  }
+
+  async function createProductGroupLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.productGroups.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await requestJson<{ item: CommonModuleItem; module: "productGroups" }>(
+      "/internal/v1/core/common-modules/items?module=productGroups",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          code: buildInlineCommonModuleCode(normalizedQuery),
+          name: normalizedQuery,
+          description: "-",
+          isActive: true,
+        }),
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      productGroups: [...current.productGroups, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createProductCategoryLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.productCategories.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await requestJson<{ item: CommonModuleItem; module: "productCategories" }>(
+      "/internal/v1/core/common-modules/items?module=productCategories",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          code: buildInlineCommonModuleCode(normalizedQuery),
+          name: normalizedQuery,
+          description: "-",
+          image: null,
+          position_order: getNextCommonModulePosition(lookupState.productCategories),
+          show_on_storefront_top_menu: false,
+          show_on_storefront_catalog: true,
+          isActive: true,
+        }),
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      productCategories: [...current.productCategories, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createBrandLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.brands.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await createLookupItemWithPayload(
+      "/internal/v1/core/common-modules/items?module=brands",
+      {
+        code: buildInlineCommonModuleCode(normalizedQuery),
+        name: normalizedQuery,
+        description: "-",
+        isActive: true,
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      brands: [...current.brands, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createProductTypeLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.productTypes.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await createLookupItemWithPayload(
+      "/internal/v1/core/common-modules/items?module=productTypes",
+      {
+        code: buildInlineCommonModuleCode(normalizedQuery),
+        name: normalizedQuery,
+        description: "-",
+        isActive: true,
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      productTypes: [...current.productTypes, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createUnitLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.units.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await createLookupItemWithPayload(
+      "/internal/v1/core/common-modules/items?module=units",
+      {
+        code: buildInlineCommonModuleCode(normalizedQuery),
+        name: normalizedQuery,
+        symbol: null,
+        description: "-",
+        isActive: true,
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      units: [...current.units, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createHsnCodeLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.hsnCodes.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await createLookupItemWithPayload(
+      "/internal/v1/core/common-modules/items?module=hsnCodes",
+      {
+        code: buildInlineCommonModuleCode(normalizedQuery),
+        name: normalizedQuery,
+        description: normalizedQuery,
+        isActive: true,
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      hsnCodes: [...current.hsnCodes, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createTaxLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.taxes.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await createLookupItemWithPayload(
+      "/internal/v1/core/common-modules/items?module=taxes",
+      {
+        code: buildInlineCommonModuleCode(normalizedQuery),
+        name: normalizedQuery,
+        tax_type: "gst",
+        rate_percent: 0,
+        description: "-",
+        isActive: true,
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      taxes: [...current.taxes, response.item],
+    }))
+
+    return response.item
+  }
+
+  async function createStyleLookupItem(query: string) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      return null
+    }
+
+    const existingItem = lookupState.styles.find(
+      (item) => getCommonModulePrimaryText(item).toLowerCase() === normalizedQuery.toLowerCase()
+    )
+
+    if (existingItem) {
+      return existingItem
+    }
+
+    const response = await createLookupItemWithPayload(
+      "/internal/v1/core/common-modules/items?module=styles",
+      {
+        code: buildInlineCommonModuleCode(normalizedQuery),
+        name: normalizedQuery,
+        description: "-",
+        isActive: true,
+      }
+    )
+
+    setLookupState((current) => ({
+      ...current,
+      styles: [...current.styles, response.item],
+    }))
+
+    return response.item
   }
 
   useEffect(() => {
@@ -476,108 +777,214 @@ export function ProductUpsertSection({
                 label="Product Group"
                 items={lookupState.productGroups}
                 value={form.productGroupId ?? ""}
-                onValueChange={(value) =>
-                  setForm((current) => ({ ...current, productGroupId: value }))
-                }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-productGroups`)}
-                createActionLabel='Create new "Product Group"'
+                onValueChange={(value) => {
+                  const selectedGroup = lookupState.productGroups.find((item) => item.id === value)
+                  const selectedGroupName = getCommonModulePrimaryText(selectedGroup)
+
+                  setForm((current) => ({
+                    ...current,
+                    productGroupId: value || null,
+                    productGroupName: selectedGroupName,
+                  }))
+                }}
+                onCreateNew={(query) => {
+                  void createProductGroupLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      productGroupId: item.id,
+                      productGroupName: getCommonModulePrimaryText(item),
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="Category"
                 items={lookupState.productCategories}
                 value={form.categoryId ?? ""}
-                onValueChange={(value) =>
-                  setForm((current) => ({ ...current, categoryId: value }))
-                }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-productCategories`)}
-                createActionLabel='Create new "Category"'
+                onValueChange={(value) => {
+                  const selectedCategory = lookupState.productCategories.find(
+                    (item) => item.id === value
+                  )
+                  const selectedCategoryName = getCommonModulePrimaryText(selectedCategory)
+
+                  setForm((current) => ({
+                    ...current,
+                    categoryId: value || null,
+                    categoryName: selectedCategoryName,
+                  }))
+                }}
+                onCreateNew={(query) => {
+                  void createProductCategoryLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      categoryId: item.id,
+                      categoryName: getCommonModulePrimaryText(item),
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="Brand"
                 items={lookupState.brands}
                 value={form.brandId ?? ""}
-                onValueChange={(value) =>
-                  setForm((current) => ({ ...current, brandId: value }))
-                }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-brands`)}
-                createActionLabel='Create new "Brand"'
+                onValueChange={(value) => {
+                  const selectedBrand = lookupState.brands.find((item) => item.id === value)
+                  const selectedBrandName = getCommonModulePrimaryText(selectedBrand)
+
+                  setForm((current) => ({
+                    ...current,
+                    brandId: value || null,
+                    brandName: selectedBrandName,
+                  }))
+                }}
+                onCreateNew={(query) => {
+                  void createBrandLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      brandId: item.id,
+                      brandName: getCommonModulePrimaryText(item),
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="Product Type"
                 items={lookupState.productTypes}
                 value={form.productTypeId ?? ""}
-                onValueChange={(value) =>
-                  setForm((current) => ({ ...current, productTypeId: value }))
-                }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-productTypes`)}
-                createActionLabel='Create new "Product Type"'
+                onValueChange={(value) => {
+                  const selectedProductType = lookupState.productTypes.find(
+                    (item) => item.id === value
+                  )
+                  const selectedProductTypeName = getCommonModulePrimaryText(selectedProductType)
+
+                  setForm((current) => ({
+                    ...current,
+                    productTypeId: value || null,
+                    productTypeName: selectedProductTypeName,
+                  }))
+                }}
+                onCreateNew={(query) => {
+                  void createProductTypeLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      productTypeId: item.id,
+                      productTypeName: getCommonModulePrimaryText(item),
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="Unit"
                 items={lookupState.units}
                 value={form.unitId ?? ""}
                 onValueChange={(value) =>
-                  setForm((current) => ({ ...current, unitId: value }))
+                  setForm((current) => ({ ...current, unitId: value || null }))
                 }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-units`)}
-                createActionLabel='Create new "Unit"'
+                onCreateNew={(query) => {
+                  void createUnitLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      unitId: item.id,
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="HSN Code"
                 items={lookupState.hsnCodes}
                 value={form.hsnCodeId ?? ""}
                 onValueChange={(value) =>
-                  setForm((current) => ({ ...current, hsnCodeId: value }))
+                  setForm((current) => ({ ...current, hsnCodeId: value || null }))
                 }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-hsnCodes`)}
-                createActionLabel='Create new "HSN Code"'
+                onCreateNew={(query) => {
+                  void createHsnCodeLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      hsnCodeId: item.id,
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="Tax"
                 items={lookupState.taxes}
                 value={form.taxId ?? ""}
                 onValueChange={(value) =>
-                  setForm((current) => ({ ...current, taxId: value }))
+                  setForm((current) => ({ ...current, taxId: value || null }))
                 }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-taxes`)}
-                createActionLabel='Create new "Tax"'
+                onCreateNew={(query) => {
+                  void createTaxLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      taxId: item.id,
+                    }))
+                  })
+                }}
               />
               <ProductLookupField
                 label="Style"
                 items={lookupState.styles}
                 value={form.styleId ?? ""}
-                onValueChange={(value) =>
-                  setForm((current) => ({ ...current, styleId: value }))
-                }
-                onCreateNew={() => void navigate(`${commonRouteBase}/common-styles`)}
-                createActionLabel='Create new "Style"'
+                onValueChange={(value) => {
+                  const selectedStyle = lookupState.styles.find((item) => item.id === value)
+                  const selectedStyleName = getCommonModulePrimaryText(selectedStyle)
+
+                  setForm((current) => ({
+                    ...current,
+                    styleId: value || null,
+                    storefrontDepartment: selectedStyleName || null,
+                    storefront: {
+                      ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                      department: selectedStyleName || null,
+                    },
+                  }))
+                }}
+                onCreateNew={(query) => {
+                  void createStyleLookupItem(query).then((item) => {
+                    if (!item) {
+                      return
+                    }
+
+                    setForm((current) => ({
+                      ...current,
+                      styleId: item.id,
+                      storefrontDepartment: getCommonModulePrimaryText(item) || null,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        department: getCommonModulePrimaryText(item) || null,
+                      },
+                    }))
+                  })
+                }}
               />
-              <ProductField label="Selling Price">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.basePrice}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      basePrice: Number(event.target.value || 0),
-                    }))
-                  }
-                />
-              </ProductField>
-              <ProductField label="Purchase Price">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.costPrice}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      costPrice: Number(event.target.value || 0),
-                    }))
-                  }
-                />
-              </ProductField>
               <ProductCheckboxField
                 checked={form.hasVariants}
                 label="This product has variants"
@@ -853,38 +1260,6 @@ export function ProductUpsertSection({
                         }
                       />
                     </ProductField>
-                    <ProductField label="Opening Stock">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={variant.openingStock}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            variants: updateCollectionItem(current.variants, index, (item) => ({
-                              ...item,
-                              openingStock: Number(event.target.value || 0),
-                            })),
-                          }))
-                        }
-                      />
-                    </ProductField>
-                    <ProductField label="Stock Quantity">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={variant.stockQuantity}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            variants: updateCollectionItem(current.variants, index, (item) => ({
-                              ...item,
-                              stockQuantity: Number(event.target.value || 0),
-                            })),
-                          }))
-                        }
-                      />
-                    </ProductField>
                     <div className="md:col-span-2">
                       <ProductCheckboxField
                         checked={variant.isActive}
@@ -1147,23 +1522,43 @@ export function ProductUpsertSection({
         content: (
           <div className="space-y-5">
             <ProductFormSectionCard
-              title="Apply Pricing"
-              description="Enter purchase price and percentages once, then calculate product and variant selling or MRP values together."
+              title="Base Pricing"
+              description="Primary product selling and purchase price before variant-level overrides."
             >
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <ProductField label="Purchase Price">
+              <div className="grid gap-4 md:grid-cols-2">
+                <ProductField label="Selling Price">
                   <Input
                     type="number"
                     step="0.01"
-                    value={pricingDraft.purchase}
+                    value={form.basePrice}
                     onChange={(event) =>
-                      setPricingDraft((current) => ({
+                      setForm((current) => ({
                         ...current,
-                        purchase: Number(event.target.value || 0),
+                        basePrice: Number(event.target.value || 0),
                       }))
                     }
                   />
                 </ProductField>
+                <ProductField label="Purchase Price">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.costPrice}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        costPrice: Number(event.target.value || 0),
+                      }))
+                    }
+                  />
+                </ProductField>
+              </div>
+            </ProductFormSectionCard>
+            <ProductFormSectionCard
+              title="Apply Pricing"
+              description="Use the base purchase price with editable selling and MRP percentages to calculate product and variant pricing together."
+            >
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <ProductField label="Selling %">
                   <Input
                     type="number"
@@ -1201,20 +1596,24 @@ export function ProductUpsertSection({
                 </div>
               </div>
               <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                Example: purchase 100 with {pricingDraft.sellPercent}% selling and{" "}
+                Base purchase {formatPricingPreview(form.costPrice)} with {pricingDraft.sellPercent}% selling and{" "}
                 {pricingDraft.mrpPercent}% MRP gives{" "}
                 {
-                  calculatePricingFromPurchase(100, {
-                    purchaseToSellPercent: pricingDraft.sellPercent,
-                    purchaseToMrpPercent: pricingDraft.mrpPercent,
-                  }).sellingPrice
+                  formatPricingPreview(
+                    calculatePricingFromPurchase(form.costPrice, {
+                      purchaseToSellPercent: pricingDraft.sellPercent,
+                      purchaseToMrpPercent: pricingDraft.mrpPercent,
+                    }).sellingPrice
+                  )
                 }{" "}
                 selling and{" "}
                 {
-                  calculatePricingFromPurchase(100, {
-                    purchaseToSellPercent: pricingDraft.sellPercent,
-                    purchaseToMrpPercent: pricingDraft.mrpPercent,
-                  }).mrp
+                  formatPricingPreview(
+                    calculatePricingFromPurchase(form.costPrice, {
+                      purchaseToSellPercent: pricingDraft.sellPercent,
+                      purchaseToMrpPercent: pricingDraft.mrpPercent,
+                    }).mrp
+                  )
                 }{" "}
                 MRP. Variant rows use their own purchase price when available, otherwise the main purchase price.
               </div>
@@ -1306,145 +1705,7 @@ export function ProductUpsertSection({
                 </ProductCollectionRow>
               ))}
             </ProductFormSectionCard>
-            <ProductFormSectionCard
-              title="Tags"
-              description="Shared product tags."
-              onAdd={() =>
-                setForm((current) => ({
-                  ...current,
-                  tags: [...current.tags, createEmptyProductTag()],
-                }))
-              }
-            >
-              {form.tags.map((tag, index) => (
-                <ProductCollectionRow
-                  key={`tag-${index}`}
-                  onRemove={() =>
-                    setForm((current) => ({
-                      ...current,
-                      tags: current.tags.filter((_, itemIndex) => itemIndex !== index),
-                    }))
-                  }
-                >
-                  <ProductField label="Tag Name">
-                    <ProductTextField
-                      value={tag.name}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          tags: updateCollectionItem(current.tags, index, (item) => ({
-                            ...item,
-                            name: event.target.value,
-                          })),
-                        }))
-                      }
-                    />
-                  </ProductField>
-                </ProductCollectionRow>
-              ))}
-            </ProductFormSectionCard>
           </div>
-        ),
-      },
-      {
-        label: "Inventory",
-        value: "inventory",
-        content: (
-          <ProductFormSectionCard
-            title="Stock Items"
-            description="Warehouse-wise availability."
-            onAdd={() =>
-              setForm((current) => ({
-                ...current,
-                stockItems: [...current.stockItems, createEmptyProductStockItem()],
-              }))
-            }
-          >
-            {form.stockItems.map((stockItem, index) => (
-              <ProductCollectionRow
-                key={`stock-${index}`}
-                onRemove={() =>
-                  setForm((current) => ({
-                    ...current,
-                    stockItems: current.stockItems.filter((_, itemIndex) => itemIndex !== index),
-                  }))
-                }
-              >
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <VariantScopeField
-                    label="Variant Scope"
-                    value={stockItem.variantClientKey}
-                    variants={form.variants}
-                    onChange={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        stockItems: updateCollectionItem(current.stockItems, index, (item) => ({
-                          ...item,
-                          variantClientKey: value,
-                        })),
-                      }))
-                    }
-                  />
-                  <ProductLookupField
-                    label="Warehouse"
-                    items={lookupState.warehouses}
-                    value={stockItem.warehouseId}
-                    onValueChange={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        stockItems: updateCollectionItem(current.stockItems, index, (item) => ({
-                          ...item,
-                          warehouseId: value,
-                        })),
-                      }))
-                    }
-                    onCreateNew={() => void navigate(`${commonRouteBase}/common-warehouses`)}
-                    createActionLabel='Create new "Warehouse"'
-                  />
-                  <ProductField label="Quantity">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={stockItem.quantity}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          stockItems: updateCollectionItem(
-                            current.stockItems,
-                            index,
-                            (item) => ({
-                              ...item,
-                              quantity: Number(event.target.value || 0),
-                            })
-                          ),
-                        }))
-                      }
-                    />
-                  </ProductField>
-                  <ProductField label="Reserved Quantity">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={stockItem.reservedQuantity}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          stockItems: updateCollectionItem(
-                            current.stockItems,
-                            index,
-                            (item) => ({
-                              ...item,
-                              reservedQuantity: Number(event.target.value || 0),
-                            })
-                          ),
-                        }))
-                      }
-                    />
-                  </ProductField>
-                </div>
-              </ProductCollectionRow>
-            ))}
-          </ProductFormSectionCard>
         ),
       },
       {
@@ -1454,39 +1715,26 @@ export function ProductUpsertSection({
           <div className="space-y-5">
             <ProductFormSectionCard
               title="Storefront Profile"
-              description="Flags consumed by ecommerce and storefront."
             >
               <div className="grid gap-4 md:grid-cols-2">
-                <ProductLookupField
-                  label="Department"
-                  items={lookupState.productGroups}
-                  value={resolvedStorefrontProductGroupId}
-                  onValueChange={(value) => {
-                    const selectedGroup = lookupState.productGroups.find((item) => item.id === value)
-                    const selectedGroupName =
-                      [selectedGroup?.name, selectedGroup?.title, selectedGroup?.code]
-                        .find(
-                          (entry): entry is string =>
-                            typeof entry === "string" && entry.trim().length > 0
-                        )
-                        ?.trim() ?? ""
-
-                    setForm((current) => ({
-                      ...current,
-                      productGroupId: value || null,
-                      productGroupName: selectedGroupName,
-                      storefrontDepartment: selectedGroupName || null,
-                      storefront: {
-                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                        department: selectedGroupName || null,
-                      },
-                    }))
-                  }}
-                  onCreateNew={() => void navigate(`${commonRouteBase}/common-productGroups`)}
-                  createActionLabel='Create new "Product Group"'
-                  placeholder="Select department"
-                />
-                <ProductField label="Catalog Badge">
+                <ProductField
+                  label={
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Item Badge</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 rounded-md"
+                        onClick={handleGenerateItemBadgeFromStyle}
+                        title="Generate item badge from style"
+                        aria-label="Generate item badge from style"
+                      >
+                        <SparklesIcon className="size-3.5" />
+                      </Button>
+                    </div>
+                  }
+                >
                   <ProductTextField
                     value={form.storefront?.catalogBadge ?? ""}
                     onChange={(event) =>
@@ -1495,115 +1743,6 @@ export function ProductUpsertSection({
                         storefront: {
                           ...(current.storefront ?? createDefaultProductFormValues().storefront!),
                           catalogBadge: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Fabric">
-                  <ProductTextField
-                    value={form.storefront?.fabric ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          fabric: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Fit">
-                  <ProductTextField
-                    value={form.storefront?.fit ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          fit: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Sleeve">
-                  <ProductTextField
-                    value={form.storefront?.sleeve ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          sleeve: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Occasion">
-                  <ProductTextField
-                    value={form.storefront?.occasion ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          occasion: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Shipping Note" className="md:col-span-2">
-                  <Textarea
-                    rows={3}
-                    value={form.storefront?.shippingNote ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          shippingNote: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Shipping Charge">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.storefront?.shippingCharge ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          shippingCharge:
-                            event.target.value.trim().length > 0
-                              ? Number(event.target.value)
-                              : null,
-                        },
-                      }))
-                    }
-                  />
-                </ProductField>
-                <ProductField label="Handling Charge">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.storefront?.handlingCharge ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        storefront: {
-                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
-                          handlingCharge:
-                            event.target.value.trim().length > 0
-                              ? Number(event.target.value)
-                              : null,
                         },
                       }))
                     }
@@ -1681,7 +1820,109 @@ export function ProductUpsertSection({
                 />
               </div>
             </ProductFormSectionCard>
+            <ProductFormSectionCard
+              title="Storefront Tags"
+              onAdd={() =>
+                setForm((current) => ({
+                  ...current,
+                  tags: [...current.tags, createEmptyProductTag()],
+                }))
+              }
+            >
+              {form.tags.map((tag, index) => (
+                <ProductCollectionRow
+                  key={`tag-${index}`}
+                  onRemove={() =>
+                    setForm((current) => ({
+                      ...current,
+                      tags: current.tags.filter((_, itemIndex) => itemIndex !== index),
+                    }))
+                  }
+                >
+                  <ProductField label="Tag Name">
+                    <ProductTextField
+                      value={tag.name}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          tags: updateCollectionItem(current.tags, index, (item) => ({
+                            ...item,
+                            name: event.target.value,
+                          })),
+                        }))
+                      }
+                    />
+                  </ProductField>
+                </ProductCollectionRow>
+              ))}
+            </ProductFormSectionCard>
           </div>
+        ),
+      },
+      {
+        label: "Shipping",
+        value: "shipping",
+        content: (
+          <ProductFormSectionCard
+            title="Shipping"
+            description="Delivery note and product-level shipping or handling overrides."
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <ProductField label="Shipping Note" className="md:col-span-2">
+                <Textarea
+                  rows={3}
+                  value={form.storefront?.shippingNote ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        shippingNote: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField label="Shipping Charge">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={form.storefront?.shippingCharge ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        shippingCharge:
+                          event.target.value.trim().length > 0
+                            ? Number(event.target.value)
+                            : null,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+              <ProductField label="Handling Charge">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={form.storefront?.handlingCharge ?? ""}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        handlingCharge:
+                          event.target.value.trim().length > 0
+                            ? Number(event.target.value)
+                            : null,
+                      },
+                    }))
+                  }
+                />
+              </ProductField>
+            </div>
+          </ProductFormSectionCard>
         ),
       },
       {
@@ -1909,7 +2150,16 @@ export function ProductUpsertSection({
         ),
       },
     ],
-    [activeSeoField, fieldErrors.name, fieldErrors.sku, form, isSlugGenerating, lookupState, navigate]
+    [
+      activeSeoField,
+      fieldErrors.name,
+      fieldErrors.sku,
+      form,
+      isSlugGenerating,
+      lookupState,
+      navigate,
+      pricingDraft,
+    ]
   )
 
   async function handleSave() {

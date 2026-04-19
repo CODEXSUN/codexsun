@@ -6,6 +6,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -18,6 +19,7 @@ export type VoucherInlineEditableTableColumn<Row> = {
   headerClassName?: string
   id: string
   renderCell: (row: Row, rowIndex: number) => ReactNode
+  width?: number | string
 }
 
 export type VoucherInlineEditableTableProps<Row> = {
@@ -35,6 +37,7 @@ export type VoucherInlineEditableTableProps<Row> = {
   removeButtonLabel?: string
   removeButtonMode?: "compact" | "full"
   rows: Row[]
+  summaryRow?: ReactNode
   title: ReactNode
 }
 
@@ -51,19 +54,40 @@ export function VoucherInlineEditableTable<Row>({
   removeButtonLabel = "Remove",
   removeButtonMode = "compact",
   rows,
+  summaryRow,
   title,
   fitToContainer = false,
   containerClassName,
 }: VoucherInlineEditableTableProps<Row>) {
+  const compactIndexColumnWidth = 18
+  const compactActionColumnWidth = 28
+  const compactIndexColumnStyle = { width: compactIndexColumnWidth, minWidth: compactIndexColumnWidth, maxWidth: compactIndexColumnWidth }
+  const compactActionColumnStyle = { width: compactActionColumnWidth, minWidth: compactActionColumnWidth, maxWidth: compactActionColumnWidth }
+
   return (
-    <section className={cn("space-y-3 rounded-[1rem] border border-border/70 bg-card/70 p-4", className)}>
-      <div className="flex items-center justify-between gap-3">
+    <section
+      className={cn(
+        "space-y-3 rounded-[1rem] border border-border/70 bg-card/70",
+        fitToContainer ? "p-3" : "p-4",
+        className
+      )}
+    >
+      <div className={cn("flex items-center justify-between gap-3", fitToContainer && "gap-2")}>
         <div>
           <p className="font-semibold text-foreground">{title}</p>
-          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+          {description ? (
+            <p className={cn("text-sm text-muted-foreground", fitToContainer && "text-xs")}>
+              {description}
+            </p>
+          ) : null}
         </div>
         {onAddRow ? (
-          <Button type="button" variant="outline" onClick={onAddRow}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onAddRow}
+            size={fitToContainer ? "sm" : "default"}
+          >
             <Plus className="mr-2 size-4" />
             {addLabel}
           </Button>
@@ -72,22 +96,46 @@ export function VoucherInlineEditableTable<Row>({
 
       <div
         className={cn(
-          "rounded-[0.9rem] border border-border/70 bg-background/95",
+          "rounded-md border border-border/70 bg-background/95",
           fitToContainer ? "overflow-hidden" : "overflow-x-auto",
           containerClassName
         )}
       >
-        <Table className={cn(fitToContainer ? "w-full table-fixed" : "min-w-[960px]")}>
+        <Table className={cn(fitToContainer ? "w-full table-fixed" : "min-w-240")}>
+          {fitToContainer ? (
+            <colgroup>
+              <col style={{ width: `${compactIndexColumnWidth}px` }} />
+              {columns.map((column) => (
+                <col
+                  key={column.id}
+                  style={column.width !== undefined ? { width: column.width } : undefined}
+                />
+              ))}
+              {onRemoveRow ? <col style={{ width: `${compactActionColumnWidth}px` }} /> : null}
+            </colgroup>
+          ) : null}
           <TableHeader>
-            <TableRow className="h-9 border-border/60 bg-muted/30 hover:bg-muted/30">
-              <TableHead className="w-14 min-w-14 border-r border-border/60 px-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <TableRow
+              className={cn(
+                "border-border/60 bg-muted/30 hover:bg-muted/30",
+                fitToContainer ? "h-8" : "h-9"
+              )}
+            >
+              <TableHead
+                style={fitToContainer ? compactIndexColumnStyle : undefined}
+                className={cn(
+                  "border-r border-border/60 text-center font-semibold uppercase tracking-[0.14em] text-muted-foreground whitespace-nowrap",
+                  fitToContainer ? "px-1 text-[10px]" : "w-14 min-w-14 px-2 text-[11px]"
+                )}
+              >
                 #
               </TableHead>
               {columns.map((column) => (
                 <TableHead
                   key={column.id}
                   className={cn(
-                    "border-r border-border/60 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground last:border-r-0",
+                    "border-r border-border/60 font-semibold uppercase tracking-[0.14em] text-muted-foreground last:border-r-0",
+                    fitToContainer ? "px-1.5 text-[10px]" : "px-2 text-[11px]",
                     column.headerClassName,
                     onRemoveRow && column.id === columns[columns.length - 1]?.id ? "border-r" : ""
                   )}
@@ -96,7 +144,13 @@ export function VoucherInlineEditableTable<Row>({
                 </TableHead>
               ))}
               {onRemoveRow ? (
-                <TableHead className="w-12 min-w-12 px-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <TableHead
+                  style={fitToContainer ? compactActionColumnStyle : undefined}
+                  className={cn(
+                    "text-center font-semibold uppercase tracking-[0.14em] text-muted-foreground whitespace-nowrap",
+                    fitToContainer ? "px-1 text-[8px]" : "w-12 min-w-12 px-2 text-[11px]"
+                  )}
+                >
                   Action
                 </TableHead>
               ) : null}
@@ -107,7 +161,10 @@ export function VoucherInlineEditableTable<Row>({
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={columns.length + (onRemoveRow ? 2 : 1)}
-                  className="px-4 py-6 text-center text-sm text-muted-foreground"
+                  className={cn(
+                    "text-center text-muted-foreground",
+                    fitToContainer ? "px-3 py-5 text-xs" : "px-4 py-6 text-sm"
+                  )}
                 >
                   {emptyMessage}
                 </TableCell>
@@ -116,16 +173,26 @@ export function VoucherInlineEditableTable<Row>({
               rows.map((row, rowIndex) => (
                 <TableRow
                   key={getRowKey ? getRowKey(row, rowIndex) : `voucher-inline-row:${rowIndex}`}
-                  className="h-10 border-border/50 align-top hover:bg-transparent"
+                  className={cn(
+                    "border-border/50 align-middle hover:bg-transparent",
+                    fitToContainer ? "h-9" : "h-10"
+                  )}
                 >
-                  <TableCell className="border-r border-border/50 px-2 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    style={fitToContainer ? compactIndexColumnStyle : undefined}
+                    className={cn(
+                      "border-r border-border/50 text-center text-muted-foreground whitespace-nowrap",
+                      fitToContainer ? "px-1 text-[11px]" : "px-2 text-sm"
+                    )}
+                  >
                     {rowIndex + 1}
                   </TableCell>
                   {columns.map((column) => (
                     <TableCell
                       key={column.id}
                       className={cn(
-                        "border-r border-border/50 px-2 py-1 align-top last:border-r-0",
+                        "border-r border-border/50 align-middle last:border-r-0",
+                        fitToContainer ? "px-1.5 py-0.5" : "px-2 py-1",
                         column.cellClassName,
                         onRemoveRow && column.id === columns[columns.length - 1]?.id ? "border-r" : ""
                       )}
@@ -134,12 +201,24 @@ export function VoucherInlineEditableTable<Row>({
                     </TableCell>
                   ))}
                   {onRemoveRow ? (
-                    <TableCell className="px-1 py-1 text-center align-top">
+                    <TableCell
+                      style={fitToContainer ? compactActionColumnStyle : undefined}
+                      className={cn(
+                        "text-center align-middle whitespace-nowrap",
+                        fitToContainer ? "px-1 py-0.5" : "px-1 py-1"
+                      )}
+                    >
                       <Button
                         type="button"
                         variant="ghost"
                         size={removeButtonMode === "compact" ? "icon" : "sm"}
-                        className={removeButtonMode === "compact" ? "size-7 rounded-full" : undefined}
+                        className={
+                          removeButtonMode === "compact"
+                            ? fitToContainer
+                              ? "size-6 rounded-full"
+                              : "size-7 rounded-full"
+                            : undefined
+                        }
                         onClick={() => onRemoveRow(rowIndex)}
                       >
                         <Trash2 className={removeButtonMode === "compact" ? "size-4" : "mr-2 size-4"} />
@@ -153,6 +232,7 @@ export function VoucherInlineEditableTable<Row>({
               ))
             )}
           </TableBody>
+          {summaryRow ? <TableFooter>{summaryRow}</TableFooter> : null}
         </Table>
       </div>
 

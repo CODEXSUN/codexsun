@@ -873,7 +873,6 @@ function ProductShowSection({ productId }: { productId: string }) {
 function ProductUpsertSection({ productId }: { productId?: string }) {
   return (
     <CoreProductUpsertSection
-      commonRouteBase="/dashboard/apps/ecommerce"
       productId={productId}
       routeBase="/dashboard/apps/ecommerce/products"
     />
@@ -924,7 +923,7 @@ function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string }) {
   return <StorefrontPurchaseReceiptUpsertSection receiptId={receiptId} />
 }
 
-function StockEntrySection() {
+export function StockEntrySection() {
   return <StorefrontStockOperationsSection mode="inward" />
 }
 
@@ -1035,7 +1034,7 @@ export function EcommerceWorkspaceSection({
     case "stock-purchase-receipts-upsert":
       return <PurchaseReceiptUpsertSection receiptId={purchaseReceiptId} />
     case "stock-goods-inward":
-      return <StockEntrySection />
+      return <PurchaseReceiptSection />
     case "stock-barcodes":
       return <StockBarcodeSection />
     case "stock-outward":

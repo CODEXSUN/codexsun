@@ -6,15 +6,22 @@
 
 When the user says `Read ASSIST/README.md`, treat that as an instruction to load the current ASSIST guidance first, retain it for the rest of the task, and only then begin implementation work.
 
+This file is the entry point. `ASSIST/AI_RULES.md` and `ASSIST/Documentation/ARCHITECTURE.md` remain the authoritative rule and structure sources when details here are summarized.
+
 ## Start Rule
 
 Before writing code, changing files, or proposing implementation:
 
 1. read `ASSIST/README.md`
 2. read `ASSIST/AI_RULES.md`
-3. go through all current files inside `ASSIST/`
-4. internalize the active rules, ownership boundaries, workflow constraints, and documentation discipline
-5. start development only after that reading pass is complete
+3. read `ASSIST/Documentation/ARCHITECTURE.md`
+4. read `ASSIST/Documentation/PROJECT_OVERVIEW.md`
+5. read `ASSIST/Documentation/SETUP_AND_RUN.md`
+6. read `ASSIST/Documentation/SUPPORT_ASSISTANT_BOUNDARY.md`
+7. read current files under `ASSIST/Documentation` and `ASSIST/Discipline` as needed for the task
+8. read `ASSIST/Execution/TASK.md` and `ASSIST/Execution/PLANNING.md` when the batch is being tracked as active execution work
+9. read `apps/ui/src/design-system/data/project-defaults.ts` before shared UI changes and then inspect `apps/ui/src/registry`, `apps/ui/src/registry/blocks`, and `apps/ui/src/components/blocks` when reusable UI composition is involved
+10. internalize the active rules, ownership boundaries, workflow constraints, and documentation discipline before implementation
 
 Do not begin development from partial ASSIST context.
 
@@ -25,11 +32,15 @@ Read all current files in `ASSIST/`, with this order first:
 1. `ASSIST/README.md`
 2. `ASSIST/AI_RULES.md`
 3. `ASSIST/APP_OWNED_MODULES.md`
-4. every file under `ASSIST/Documentation`
-5. every file under `ASSIST/Discipline`
-6. `ASSIST/Execution/TASK.md` and `ASSIST/Execution/PLANNING.md` when the batch is being tracked as active execution work
+4. `ASSIST/Documentation/ARCHITECTURE.md`
+5. `ASSIST/Documentation/PROJECT_OVERVIEW.md`
+6. `ASSIST/Documentation/SETUP_AND_RUN.md`
+7. `ASSIST/Documentation/SUPPORT_ASSISTANT_BOUNDARY.md`
+8. task-relevant files under `ASSIST/Documentation`
+9. task-relevant files under `ASSIST/Discipline`
+10. `ASSIST/Execution/TASK.md` and `ASSIST/Execution/PLANNING.md` when the batch is being tracked as active execution work
 
-If a file exists in `ASSIST/`, it is part of the active local guidance unless it is clearly historical changelog content.
+Treat current ASSIST files as active local guidance unless they are clearly historical changelog content or obviously stale compared with `ASSIST/Documentation/ARCHITECTURE.md`.
 
 ## Development Expectation
 
@@ -119,6 +130,55 @@ After the changelog entry is created for finished work:
 - `Documentation/`: architecture, setup, support boundary, testing, changelog, and contribution workflow
 - `Discipline/`: coding, testing, review, branching, and release rules
 - `Execution/`: active task and planning docs for the current tracked batch
+
+## Repository Structure
+
+Current repository roots are not limited to `apps/`.
+
+- `apps/` holds the framework-composed suite apps plus companion app packages
+- `clients/` holds client-overlay or tenant-facing workspace roots; `clients/default` currently exists
+- `build/` holds generated app and module outputs
+- legacy top-level directories such as `framework/` and `cxapp/` may still exist during migration work, but active suite ownership lives under `apps/`
+
+## Current App Structure
+
+Active app roots currently present under `apps/`:
+
+1. `framework`
+2. `cxapp`
+3. `core`
+4. `api`
+5. `site`
+6. `ui`
+7. `billing`
+8. `ecommerce`
+9. `demo`
+10. `task`
+11. `crm`
+12. `frappe`
+13. `tally`
+14. `cli`
+15. `mobile`
+16. `stock`
+
+Structure notes:
+
+1. every framework-composed app except `apps/mobile` keeps the baseline `src`, `web`, `database/migration`, `database/seeder`, `helper`, and `shared` shape
+2. `apps/mobile` remains the Expo-native exception and does not follow the suite `src/web/database/helper/shared` shape
+3. `apps/stock` is now a live operational stock workspace and follows the standard app shape
+4. `apps/demo` currently has `shared`, `src`, and `web`, but does not currently carry the full `database/helper` folders in the same way as the other standard app roots
+5. `apps/zetro` is not part of the active suite model in this workspace and should not be treated as a live registered app unless architecture docs are updated to restore it
+
+## Ownership Reminder
+
+Use the current app model when documenting or implementing changes:
+
+1. `framework` owns runtime and composition primitives only
+2. `cxapp` owns the active suite shell, auth domain, and browser session system
+3. `ui` owns the shared design system and neutral reusable blocks
+4. `stock` owns the operational stock workspace boundary, while billing still retains the current stock document persistence called out in execution docs
+5. `mobile` is a companion client package, not a framework-composed suite app
+6. `clients/*` is separate from `apps/*` and should not be documented as app-suite ownership
 
 ## UI Source Of Truth
 

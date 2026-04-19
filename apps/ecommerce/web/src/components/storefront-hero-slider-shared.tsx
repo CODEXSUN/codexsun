@@ -71,7 +71,7 @@ export function useStorefrontHeroSliderModel(landing: StorefrontLandingResponse)
     const activeBadge =
       activeItem.promoSliderEnabled && activeItem.promoBadge
         ? activeItem.promoBadge
-        : activeItem.badge ?? activeItem.categoryName ?? landing.settings.hero.eyebrow
+        : activeItem.badge ?? activeItem.department ?? landing.settings.hero.eyebrow
     const activeTitle =
       activeItem.promoSliderEnabled && activeItem.promoTitle
         ? activeItem.promoTitle

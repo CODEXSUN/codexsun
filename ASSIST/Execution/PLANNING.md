@@ -28,7 +28,7 @@
       - remains the reusable stock movement, reservation, transfer, and availability foundation
   - Scope in this batch:
     - stock app manifest, schemas, and workspace items
-    - stock manager service façade
+    - stock manager service facade
     - stock internal API routes
     - framework registration and desk integration
     - stock workspace frontend for:
@@ -36,7 +36,6 @@
       - goods inward
       - stock units
       - barcode verification
-      - sticker batches
       - sale allocations
       - movements
       - availability
@@ -44,6 +43,8 @@
       - transfers
       - reservations
       - periodic verification
+      - stock ledger
+      - stock reports and print flows
   - Constraints:
     - do not disturb the current live billing stock logic
     - do not move engine code back into apps
@@ -55,6 +56,7 @@
     - `cxapp` desk exposes a stock workspace with meaningful stock modules
     - purchase receipts and goods inward have list, show, and upsert flows
     - transfer, reservation, verification, reconciliation, and real-time stock views are available from the stock workspace
+    - stock ledger, periodic verification, and stock print surfaces support real operator workflows
   - Validation completed:
     - file-level implementation landed for backend, routing, registration, and frontend workspace surfaces
     - purchase receipt item tables now use the same five-column voucher-line rhythm as the billing sales invoice item table
@@ -64,10 +66,24 @@
     - the boilerplate `Expected inward quantity.` note is filtered out of inline item description displays
     - purchase receipt rate cells now show only the numeric rate, with line units kept internal for payload compatibility
     - inline item tables now use tighter row padding, shorter row actions, and compact in-cell controls
+    - purchase receipts now store an internal `registerEntryNumber` with backend auto numbering and optional manual override, so operators no longer rely on raw document ids for register visibility
+    - supplier ledger id was removed from purchase receipt capture and display surfaces, replaced by supplier reference number and supplier reference date fields for supplier-side document tracking
+    - stock and ecommerce purchase receipt pages now show register entry numbers in list and detail surfaces, and create forms show the next register number that will be assigned when the override is left blank
+    - stock units created from goods inward and purchase-receipt sticker preparation now remain in temporary `received` state until manual barcode acceptance is confirmed from the stock entry surface
+    - stock entry now persists acceptance verification records by stock unit and posts only the verified subset into the live stock ledger, allowing partial acceptance of a receipt product
+    - the stock entry workspace now refreshes remaining temporary units after each partial acceptance and shows a persisted accepted-records table for the selected purchase receipt and product
+    - the stock workspace now includes a dedicated stock ledger page with grouped product summary, warehouse filtering, product drill-down, consolidated print output, and product-name resolution from the product master
+    - periodic verification now operates on live stock only, with product summary, random barcode scan confirmation, scan-to-next row movement inside the audit table, and session-level batch-save staging
+    - the stock-side sticker-batches concept was removed from the stock workspace and related stock-side menu and route wiring
+    - purchase receipts now support direct printing from the show page and the list action menu through a hidden-iframe print flow, avoiding popup-window blocking
+    - stock entry now exposes a direct print surface for the selected receipt and product verification state, and stock ledger summary now exposes a consolidated print action
+    - a dedicated stock reports page now covers purchase receipt challan, stock entry verification, consolidated stock ledger, and today verified-duty output from current verification records
     - `npx tsc --noEmit`
     - `cmd /c npm run typecheck` still fails primarily on the existing repo-wide `rootDir` issue for `framework/*` imports from `apps/*`
-    - typecheck also surfaced a few stock-app-local cleanup items, and part of that cleanup was already applied by switching the new app to explicit relative imports
+    - the stock app no longer shows remaining type issues that are independent of that `rootDir` constraint
+    - the stock boundary keeps explicit relative imports for now; adding a dedicated `@stock/*` path alias would not address the current server-side `rootDir` failure and would add another alias surface to maintain
   - Residual risk:
     - the repo still needs a real TypeScript strategy for shared top-level `framework/` imports
-    - some stock-app-local typings may still need cleanup after the `rootDir` problem is addressed or isolated
-    - the current stock app is an operational façade over billing-owned persistence, not yet a full persistence extraction
+    - the current stock app is an operational facade over billing-owned persistence, not yet a full persistence extraction
+    - periodic verification batch-save remains session/UI-level and does not yet persist its own dedicated audit records separate from stock acceptance verifications
+    - stock reports and print flows currently use frontend-composed printable documents rather than server-generated report definitions

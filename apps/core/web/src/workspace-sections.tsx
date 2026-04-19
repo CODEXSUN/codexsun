@@ -2328,11 +2328,6 @@ export function ProductShowSection({
                 helper={`Cost ${formatCurrencyDetail(product.costPrice)}`}
               />
               <HighlightMetricCard
-                label="Stock on hand"
-                value={formatNumberDetail(product.totalStockQuantity)}
-                helper={`${formatNumberDetail(product.stockItems.length)} stock rows`}
-              />
-              <HighlightMetricCard
                 label="Variants"
                 value={formatNumberDetail(product.variantCount)}
                 helper={`${formatNumberDetail(product.attributeCount)} attributes configured`}
@@ -2378,11 +2373,7 @@ export function ProductShowSection({
             <DetailField label="Home Slider Order" value={formatNumberDetail(product.storefront?.homeSliderOrder ?? 0)} />
             <DetailField label="Promo Slider Order" value={formatNumberDetail(product.storefront?.promoSliderOrder ?? 0)} />
             <DetailField label="Feature Section Order" value={formatNumberDetail(product.storefront?.featureSectionOrder ?? 0)} />
-            <DetailField label="Catalog Badge" value={formatNullableDetail(product.storefront?.catalogBadge)} />
-            <DetailField label="Fabric" value={formatNullableDetail(product.storefront?.fabric)} />
-            <DetailField label="Fit" value={formatNullableDetail(product.storefront?.fit)} />
-            <DetailField label="Sleeve" value={formatNullableDetail(product.storefront?.sleeve)} />
-            <DetailField label="Occasion" value={formatNullableDetail(product.storefront?.occasion)} />
+            <DetailField label="Style" value={formatNullableDetail(product.storefrontDepartment)} />
           </div>
         </CardContent>
       </Card>
@@ -2442,11 +2433,10 @@ export function ProductShowSection({
               <div className="grid gap-3">
                 {product.variants.map((variant) => (
                   <div key={variant.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       <DetailField label="Variant" value={variant.variantName} />
                       <DetailField label="SKU" value={variant.sku} />
                       <DetailField label="Selling Price" value={formatCurrencyDetail(variant.price)} />
-                      <DetailField label="Stock" value={formatNumberDetail(variant.stockQuantity)} />
                       <DetailField label="Status" value={variant.isActive ? "Active" : "Inactive"} />
                     </div>
                   </div>
@@ -2547,42 +2537,6 @@ export function ProductShowSection({
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Inventory</CardTitle>
-          <CardDescription>Warehouse stock and variant availability.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 p-5">
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <DetailField label="Primary Image" value={formatNullableDetail(product.primaryImageUrl)} />
-            <DetailField label="Storefront Department" value={formatNullableDetail(product.storefrontDepartment)} />
-          </div>
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Stock Items
-            </p>
-            {product.stockItems.length > 0 ? (
-              <div className="grid gap-3">
-                {product.stockItems.map((stockItem) => (
-                  <div key={stockItem.id} className="rounded-2xl border border-border/70 bg-card/60 p-4">
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                      <DetailField label="Warehouse Id" value={stockItem.warehouseId} />
-                      <DetailField label="Quantity" value={formatNumberDetail(stockItem.quantity)} />
-                      <DetailField
-                        label="Reserved Quantity"
-                        value={formatNumberDetail(stockItem.reservedQuantity)}
-                      />
-                      <DetailField label="Status" value={stockItem.isActive ? "Active" : "Inactive"} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">-</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
           <CardTitle>Storefront</CardTitle>
           <CardDescription>Storefront flags, merchandising settings, and SEO.</CardDescription>
         </CardHeader>
@@ -2598,12 +2552,7 @@ export function ProductShowSection({
           {product.storefront ? (
             <div className="rounded-2xl border border-border/70 bg-card/60 p-4">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <DetailField label="Department" value={formatNullableDetail(product.storefront.department)} />
-                <DetailField label="Catalog Badge" value={formatNullableDetail(product.storefront.catalogBadge)} />
-                <DetailField label="Fabric" value={formatNullableDetail(product.storefront.fabric)} />
-                <DetailField label="Fit" value={formatNullableDetail(product.storefront.fit)} />
-                <DetailField label="Sleeve" value={formatNullableDetail(product.storefront.sleeve)} />
-                <DetailField label="Occasion" value={formatNullableDetail(product.storefront.occasion)} />
+                <DetailField label="Style" value={formatNullableDetail(product.storefront.department)} />
                 <DetailField label="Shipping Note" value={formatNullableDetail(product.storefront.shippingNote)} />
                 <DetailField label="Status" value={product.storefront.isActive ? "Active" : "Inactive"} />
               </div>
@@ -2690,7 +2639,6 @@ export function ProductsSection({
   const [storefrontFilter, setStorefrontFilter] = useState("all")
   const [attributeFilter, setAttributeFilter] = useState<"all" | "yes" | "no">("all")
   const [contentFilter, setContentFilter] = useState<"all" | "yes" | "no">("all")
-  const [stockFilter, setStockFilter] = useState<"all" | "yes" | "no">("all")
   const [promoFilter, setPromoFilter] = useState<"all" | "yes" | "no">("all")
   const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -2964,7 +2912,6 @@ export function ProductsSection({
       contentFilter,
       Boolean(product.description || product.shortDescription)
     )
-    const matchesStock = matchesPresenceFilter(stockFilter, product.totalStockQuantity > 0)
     const matchesPromo = matchesPresenceFilter(promoFilter, product.promoSliderEnabled)
 
     return (
@@ -2975,7 +2922,6 @@ export function ProductsSection({
       matchesStorefront &&
       matchesAttributes &&
       matchesContent &&
-      matchesStock &&
       matchesPromo
     )
   })
@@ -3004,7 +2950,7 @@ export function ProductsSection({
             <div className="space-y-1">
               <CardTitle className="text-base">Product Filters</CardTitle>
               <CardDescription>
-                Filter products by category, brand, storefront publishing, content readiness, stock, and promo state.
+                Filter products by category, brand, storefront publishing, content readiness, and promo state.
               </CardDescription>
             </div>
             <label
@@ -3114,27 +3060,6 @@ export function ProductsSection({
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">In Stock</label>
-              <Select
-                value={stockFilter}
-                onValueChange={(value) => {
-                  setStockFilter(value as "all" | "yes" | "no")
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Stock" />
-                </SelectTrigger>
-                <SelectContent>
-                  {presenceFilterOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Promo Enabled</label>
               <Select
                 value={promoFilter}
@@ -3166,7 +3091,6 @@ export function ProductsSection({
                   setStorefrontFilter("all")
                   setAttributeFilter("all")
                   setContentFilter("all")
-                  setStockFilter("all")
                   setPromoFilter("all")
                   setStatusFilter("all")
                   setCurrentPage(1)
@@ -3182,7 +3106,7 @@ export function ProductsSection({
         header={{
           pageTitle: "Products",
           pageDescription:
-            "Create and manage shared product masters with variants, pricing, and stock.",
+            "Create and manage shared product masters with variants, pricing, and storefront-ready content.",
           technicalName: "page.core.products",
           actions: (
             <Button

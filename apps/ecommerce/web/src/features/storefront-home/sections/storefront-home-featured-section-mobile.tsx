@@ -43,7 +43,7 @@ export function StorefrontHomeFeaturedSectionMobile({
             href: `/products/${item.slug}`,
             name: item.name,
             imageUrl: item.primaryImageUrl,
-            badge: item.badge ?? item.categoryName,
+            badge: item.badge ?? item.department,
             brandName: item.brandName,
             categoryName: item.categoryName,
             shortDescription: item.shortDescription,

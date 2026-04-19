@@ -15,6 +15,9 @@ import {
   billingStickerPrintBatchResponseSchema,
   billingStickerPrintBatchSchema,
   billingStockBarcodeAliasSchema,
+  billingStockAcceptancePayloadSchema,
+  billingStockAcceptanceResponseSchema,
+  billingStockAcceptanceVerificationListResponseSchema,
   billingStockSaleAllocationListResponseSchema,
   billingStockSaleAllocationPayloadSchema,
   billingStockSaleAllocationResponseSchema,
@@ -22,6 +25,8 @@ import {
   billingStockUnitListResponseSchema,
   billingStockUnitResponseSchema,
   type BillingBarcodeResolutionPayload,
+  type BillingStockAcceptancePayload,
+  type BillingStockAcceptanceResponse,
   type BillingGoodsInward,
   type BillingGoodsInwardUpsertPayload,
   type BillingPurchaseReceipt,
@@ -127,6 +132,8 @@ export type StockPurchaseReceiptUpsertPayload = BillingPurchaseReceiptUpsertPayl
 export type StockGoodsInward = BillingGoodsInward
 export type StockGoodsInwardUpsertPayload = BillingGoodsInwardUpsertPayload
 export type StockBarcodeResolutionPayload = BillingBarcodeResolutionPayload
+export type StockAcceptancePayload = BillingStockAcceptancePayload
+export type StockAcceptanceResponse = BillingStockAcceptanceResponse
 export type StockTransferUpsertPayload = z.infer<typeof stockTransferUpsertPayloadSchema>
 export type StockReservationUpsertPayload = z.infer<typeof stockReservationUpsertPayloadSchema>
 export type StockAvailabilityRequest = z.infer<typeof stockAvailabilityRequestSchema>
@@ -152,6 +159,9 @@ export {
   billingStickerPrintBatchResponseSchema,
   billingStickerPrintBatchSchema,
   billingStockBarcodeAliasSchema,
+  billingStockAcceptancePayloadSchema,
+  billingStockAcceptanceResponseSchema,
+  billingStockAcceptanceVerificationListResponseSchema,
   billingStockSaleAllocationListResponseSchema,
   billingStockSaleAllocationPayloadSchema,
   billingStockSaleAllocationResponseSchema,

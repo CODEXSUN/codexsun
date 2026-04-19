@@ -21,6 +21,7 @@ export const billingTableNames = {
   stockBarcodeAliases: "billing_stock_barcode_aliases",
   stickerPrintBatches: "billing_sticker_print_batches",
   stockSaleAllocations: "billing_stock_sale_allocations",
+  stockAcceptanceVerifications: "billing_stock_acceptance_verifications",
 
   // ── Split voucher-type detail tables (reference billing_voucher_headers) ──
   salesVouchers: "billing_sales_vouchers",

@@ -8,6 +8,13 @@
 
 ## v-1.0.192
 
+### [v 1.0.192] 2026-04-19 - Expand stock operations with ledger, verification, reporting, and print flows
+
+- added a dedicated stock ledger workspace page with grouped product summary, warehouse filtering, drill-down detail, consolidated print output, and product-name resolution from the product master instead of raw stock-unit ids
+- reworked periodic verification into a live-stock barcode audit flow with product summary, random scan confirmation, scan-to-next row movement inside the audit table, and session-level batch-save staging
+- removed the stock-side sticker-batches concept from the stock workspace and simplified the stock menu and route wiring around stock entry, stock ledger, verification, and print flows
+- added stock-facing report and print surfaces for purchase receipt, stock entry, consolidated stock ledger, purchase receipt challan, stock entry verification, and today verified-duty output using hidden-iframe browser print handling
+
 ### [v 1.0.192] 2026-04-16 - Remove SQLite runtime configuration from startup paths
 
 - removed SQLite and offline database fields from the active server runtime config contract so the backend only accepts MariaDB or PostgreSQL driver values

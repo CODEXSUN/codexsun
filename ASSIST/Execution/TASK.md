@@ -31,10 +31,10 @@
     - [x] 7.1 add stock-specific desk registry modules and menu groups
     - [x] 7.2 wire `FrameworkAppWorkspacePage` to render the stock workspace
     - [x] 7.3 add dedicated cxapp routes for stock purchase-receipt and goods-inward list/show/upsert pages
-  - [ ] Phase 8: cleanup and hardening
+  - [x] Phase 8: cleanup and hardening
     - [x] 8.1 fix stock-app relative imports and local module registration issues found during verification
-    - [ ] 8.2 clean remaining stock-app type issues that are independent of the repo-wide `rootDir` constraint
-    - [ ] 8.3 decide whether to add a dedicated stock alias/path mapping or keep explicit relative imports for the new app boundary
+    - [x] 8.2 clean remaining stock-app type issues that are independent of the repo-wide `rootDir` constraint
+    - [x] 8.3 decide whether to add a dedicated stock alias/path mapping or keep explicit relative imports for the new app boundary
     - [x] 8.4 rework purchase receipt item tables to match the sales invoice item-table tone
     - [x] 8.5 rework goods inward item entry into the same inline item-table tone
     - [x] 8.6 add inline product autocomplete lookup selection to purchase receipt item tables
@@ -42,3 +42,15 @@
     - [x] 8.8 hide the boilerplate expected-inward note from inline item descriptions
     - [x] 8.9 simplify purchase receipt rate cells by removing the visible unit sub-field
     - [x] 8.10 tighten inline item table row padding and control heights
+    - [x] 8.11 remove supplier ledger id from purchase receipt capture and display surfaces
+    - [x] 8.12 add auto-numbered purchase receipt register entry numbers with manual override support
+    - [x] 8.13 show register entry numbers on purchase receipt list and detail surfaces instead of raw ids
+    - [x] 8.14 add supplier reference number and supplier reference date fields to purchase receipts
+    - [x] 8.15 keep sticker-generated stock units in temporary `received` state until manual barcode acceptance
+    - [x] 8.16 add partial stock acceptance records and post only verified quantity into the live stock ledger
+    - [x] 8.17 wire the stock entry workspace to scan remaining barcodes and list accepted verification records
+    - [x] 8.18 add a dedicated stock ledger page with grouped summary, detail drill-down, and warehouse filtering
+    - [x] 8.19 rework periodic verification into a live-stock barcode audit flow with random scan support and batch-save staging
+    - [x] 8.20 remove the stock workspace sticker-batches concept and simplify stock-side menu wiring
+    - [x] 8.21 add stock printing surfaces for purchase receipt, stock entry, and consolidated stock ledger
+    - [x] 8.22 add a stock reports page covering receipt challan, stock entry verification, consolidated ledger, and today verification output

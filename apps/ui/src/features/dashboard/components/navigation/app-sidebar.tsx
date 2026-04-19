@@ -213,6 +213,10 @@ function getUtilityGroupsForCurrentApp(
     return visibleGroups.filter((group) => group.id === "media") as readonly FrameworkUtilityGroup[]
   }
 
+  if (app?.id === "stock") {
+    return []
+  }
+
   return visibleGroups as readonly FrameworkUtilityGroup[]
 }
 

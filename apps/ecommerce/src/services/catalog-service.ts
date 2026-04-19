@@ -5,6 +5,7 @@ import {
 } from "../../../framework/src/runtime/database/process/json-store.js"
 import { listCommonModuleItems } from "../../../core/src/services/common-module-service.js"
 import { type Product } from "../../../core/shared/index.js"
+import { getAvailableQuantityByProductIds } from "../../../stock/src/services/live-stock-service.js"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import {
   storefrontCatalogQuerySchema,
@@ -50,16 +51,9 @@ export function resolveProductPrice(product: {
   return { sellingPrice, mrp, discountPercent }
 }
 
-export function resolveAvailableQuantity(product: {
-  stockItems: { quantity: number; reservedQuantity: number; isActive: boolean }[]
-}) {
-  return product.stockItems
-    .filter((item) => item.isActive)
-    .reduce((sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity), 0)
-}
-
 export function toStorefrontProductCard(
-  product: Product
+  product: Product,
+  availableQuantity: number
 ): StorefrontProductCard {
   const { sellingPrice, mrp, discountPercent } = resolveProductPrice(product)
 
@@ -86,9 +80,16 @@ export function toStorefrontProductCard(
     isFeaturedLabel: product.isFeaturedLabel,
     shippingCharge: product.storefront?.shippingCharge ?? null,
     handlingCharge: product.storefront?.handlingCharge ?? null,
-    availableQuantity: resolveAvailableQuantity(product),
+    availableQuantity,
     tagNames: product.tagNames,
   }
+}
+
+async function buildAvailableQuantityMap(database: Kysely<unknown>, products: Product[]) {
+  return getAvailableQuantityByProductIds(
+    database,
+    products.map((item) => item.id)
+  )
 }
 
 function tokenizeSearchInput(value: string) {
@@ -159,6 +160,7 @@ function buildRecommendationCandidates(
     baseProduct?: Product | null
     search?: string | null
     limit: number
+    availableQuantityByProductId: Map<string, number>
   }
 ): StorefrontRecommendationItem[] {
   const base = input.baseProduct ?? null
@@ -169,7 +171,10 @@ function buildRecommendationCandidates(
     .filter((item) => item.isActive)
     .filter((item) => (base ? item.id !== base.id : true))
     .map((product) => {
-      const card = toStorefrontProductCard(product)
+      const card = toStorefrontProductCard(
+        product,
+        input.availableQuantityByProductId.get(product.id) ?? 0
+      )
       let reason: StorefrontRecommendationReason = "best_seller"
       let score = 0
 
@@ -294,7 +299,7 @@ function buildStorefrontProductSpecifications(
   const pricingGroup = createSpecificationGroup(
     "pricing",
     "Pricing and fulfilment",
-    "Commercial values, stock posture, and shipping notes.",
+    "Commercial values and shipping notes.",
     [
       { label: "Selling price", value: `INR ${detailCard.sellingPrice.toFixed(2)}` },
       { label: "MRP", value: `INR ${detailCard.mrp.toFixed(2)}` },
@@ -302,7 +307,6 @@ function buildStorefrontProductSpecifications(
         label: "Discount",
         value: detailCard.discountPercent > 0 ? `${detailCard.discountPercent}%` : null,
       },
-      { label: "Available quantity", value: String(detailCard.availableQuantity) },
       {
         label: "Shipping charge",
         value:
@@ -318,10 +322,6 @@ function buildStorefrontProductSpecifications(
             : "None",
       },
       { label: "Shipping note", value: product.storefront?.shippingNote },
-      {
-        label: "Stock state",
-        value: detailCard.availableQuantity > 0 ? "In stock" : "Out of stock",
-      },
       {
         label: "Review snapshot",
         value:
@@ -355,14 +355,9 @@ function buildStorefrontProductSpecifications(
       .filter((item) => item.isActive)
       .map((variant) => ({
         label: variant.variantName,
-        value: [
-          variant.attributes
-            .map((attribute) => `${attribute.attributeName}: ${attribute.attributeValue}`)
-            .join(", "),
-          variant.stockQuantity > 0 ? `Stock ${variant.stockQuantity}` : "Out of stock",
-        ]
-          .filter((value) => value.length > 0)
-          .join(" | "),
+        value: variant.attributes
+          .map((attribute) => `${attribute.attributeName}: ${attribute.attributeValue}`)
+          .join(", "),
       }))
   )
 
@@ -477,9 +472,10 @@ function listStorefrontBrands(products: Product[]): StorefrontBrandDiscoveryCard
 export async function getStorefrontLanding(database: Kysely<unknown>) {
   const settings = await getStorefrontSettings(database)
   const products = await readProjectedStorefrontProducts(database)
+  const availableQuantityByProductId = await buildAvailableQuantityMap(database, products)
   const items = products
     .filter((item) => item.isActive)
-    .map(toStorefrontProductCard)
+    .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
   const featuredItemCount = Math.max(
     1,
     (settings.sections.featured.cardsPerRow ?? 3) *
@@ -504,7 +500,7 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
           (right.storefront?.homeSliderOrder ?? 0) ||
         left.name.localeCompare(right.name)
     )
-    .map(toStorefrontProductCard)
+    .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
     .slice(0, Math.max(settings.homeSlider.slides.length, 1))
   const featured = items
     .filter((item) => item.isFeaturedLabel)
@@ -559,11 +555,16 @@ export async function getStorefrontCatalog(database: Kysely<unknown>, query: unk
   const settings = await getStorefrontSettings(database)
   const filters = storefrontCatalogQuerySchema.parse(query ?? {})
   const products = await readProjectedStorefrontProducts(database)
+  const availableQuantityByProductId = await buildAvailableQuantityMap(database, products)
   const categories = await listStorefrontCategories(
     database,
-    products.filter((item) => item.isActive).map(toStorefrontProductCard)
+    products
+      .filter((item) => item.isActive)
+      .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
   )
-  let items = products.filter((item) => item.isActive).map(toStorefrontProductCard)
+  let items = products
+    .filter((item) => item.isActive)
+    .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
 
   if (filters.search) {
     const search = filters.search.toLowerCase()
@@ -636,6 +637,7 @@ export async function getStorefrontCatalog(database: Kysely<unknown>, query: unk
     recommendationRail: buildRecommendationCandidates(products, {
       search: filters.search ?? null,
       limit: 6,
+      availableQuantityByProductId,
     }),
     availableCategories: categories.filter((item) => item.productCount > 0),
     availableDepartments: Array.from(
@@ -663,6 +665,7 @@ export async function getStorefrontProduct(
   const settings = await getStorefrontSettings(database)
   const products = await readProjectedStorefrontProducts(database)
   const product = await getProjectedStorefrontProduct(database, query)
+  const availableQuantityByProductId = await buildAvailableQuantityMap(database, products)
 
   const relatedItems = products
     .filter(
@@ -674,13 +677,14 @@ export async function getStorefrontProduct(
           item.storefrontDepartment === product.storefrontDepartment)
     )
     .slice(0, 4)
-    .map(toStorefrontProductCard)
+    .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
   const recommendedItems = buildRecommendationCandidates(products, {
     baseProduct: product,
     limit: 4,
+    availableQuantityByProductId,
   })
 
-  const card = toStorefrontProductCard(product)
+  const card = toStorefrontProductCard(product, availableQuantityByProductId.get(product.id) ?? 0)
   const detail = {
     ...card,
     description: product.description,
@@ -722,19 +726,23 @@ export async function getStorefrontRecommendationReport(
 ): Promise<StorefrontRecommendationReport> {
   const products = await readProjectedStorefrontProducts(database)
   const activeProducts = products.filter((item) => item.isActive)
+  const availableQuantityByProductId = await buildAvailableQuantityMap(database, activeProducts)
 
   return storefrontRecommendationReportSchema.parse({
     generatedAt: new Date().toISOString(),
     searchPreview: buildRecommendationCandidates(activeProducts, {
       search: activeProducts[0]?.brandName ?? activeProducts[0]?.name ?? "catalog",
       limit: 5,
+      availableQuantityByProductId,
     }),
     productPreview: buildRecommendationCandidates(activeProducts, {
       baseProduct: activeProducts[0] ?? null,
       limit: 5,
+      availableQuantityByProductId,
     }),
     trendingPreview: buildRecommendationCandidates(activeProducts, {
       limit: 5,
+      availableQuantityByProductId,
     }),
   })
 }
@@ -748,9 +756,13 @@ export async function getStorefrontMerchandisingAutomationReport(
     getStorefrontSettings(database),
   ])
   const activeProducts = products.filter((item) => item.isActive)
-  const productCards = activeProducts.map(toStorefrontProductCard)
+  const availableQuantityByProductId = await buildAvailableQuantityMap(database, activeProducts)
+  const productCards = activeProducts.map((item) =>
+    toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0)
+  )
   const featuredCandidates = buildRecommendationCandidates(activeProducts, {
     limit: 6,
+    availableQuantityByProductId,
   })
   const lowStockFeaturedItems = productCards.filter(
     (item) => item.isFeaturedLabel && item.availableQuantity > 0 && item.availableQuantity <= 5

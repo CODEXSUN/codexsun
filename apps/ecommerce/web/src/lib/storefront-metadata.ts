@@ -34,7 +34,7 @@ const storefrontMetadataEntries: Array<{
     metadata: {
       title: "Product details",
       description:
-        "Review product details, specifications, pricing, availability, and purchase actions for the selected storefront item.",
+        "Review product details, specifications, pricing, and purchase actions for the selected storefront item.",
       robots: "index,follow",
       openGraphImagePath: "/logo.svg",
     },

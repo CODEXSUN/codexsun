@@ -81,7 +81,7 @@ The planned stock and warehouse operating flow is defined in:
 
 1. [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md)
 
-The runtime now covers local billing purchase receipt and goods inward documents, verified inward posting into aggregate `core` stock, stock-unit identity with batch or serial and internal barcode mappings, sticker-print payload generation, and scan-based sales allocation records. Warehouse UI, putaway, and delivery workspace flows remain later phases.
+The runtime now covers local billing purchase receipt and goods inward documents, verified inward posting into stock-owned live balance, stock-unit identity with batch or serial and internal barcode mappings, sticker-print payload generation, and scan-based sales allocation records. Warehouse UI, putaway, and delivery workspace flows remain later phases.
 
 ## Delivery Discipline
 

@@ -10,8 +10,12 @@ import {
   getContact,
   listContacts,
 } from "../../../core/src/services/contact-service.js"
-import { coreTableNames } from "../../../core/database/table-names.js"
 import { type Product } from "../../../core/shared/index.js"
+import {
+  getAvailableQuantityByProductIds,
+  releaseLiveStockReservation,
+  reserveLiveStock,
+} from "../../../stock/src/services/live-stock-service.js"
 import type {
   FrappeSalesOrderSyncRecord,
   FrappeDeliveryNoteSyncRecord,
@@ -781,21 +785,6 @@ async function writeOrders(database: Kysely<unknown>, items: StorefrontOrder[]) 
   )
 }
 
-async function writeCoreProducts(database: Kysely<unknown>, products: Product[]) {
-  await replaceJsonStoreRecords(
-    database,
-    coreTableNames.products,
-    products.map((product, index) => ({
-      id: product.id,
-      moduleKey: "products",
-      sortOrder: index + 1,
-      payload: product,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    }))
-  )
-}
-
 function orderBelongsToCustomer(order: StorefrontOrder, customer: CustomerAccount) {
   if (order.customerAccountId === customer.id) {
     return true
@@ -867,85 +856,21 @@ function buildRefundRecord(
   }
 }
 
-function resolveSellableQuantity(product: Product) {
-  return product.stockItems
-    .filter((item) => item.isActive)
-    .reduce((sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity), 0)
-}
-
-function applyReservationToProducts(
-  products: Product[],
+async function applyReservationToProducts(
+  database: Kysely<unknown>,
   orderItems: StorefrontOrder["items"],
   timestamp: string
 ) {
-  const nextProducts = products.map((product) => ({
-    ...product,
-    stockItems: product.stockItems.map((item) => ({ ...item })),
-  }))
-  const reservationItems: StorefrontStockReservation["items"] = []
-
-  for (const orderItem of orderItems) {
-    const product = nextProducts.find((item) => item.id === orderItem.productId && item.isActive)
-
-    if (!product) {
-      throw new ApplicationError(
-        "A reserved checkout item could not be found in the storefront catalog.",
-        { productId: orderItem.productId },
-        404
-      )
-    }
-
-    let remainingQuantity = orderItem.quantity
-
-    for (const stockItem of product.stockItems) {
-      if (!stockItem.isActive) {
-        continue
-      }
-
-      const availableQuantity = Math.max(0, stockItem.quantity - stockItem.reservedQuantity)
-
-      if (availableQuantity <= 0) {
-        continue
-      }
-
-      const allocatedQuantity = Math.min(remainingQuantity, availableQuantity)
-
-      if (allocatedQuantity <= 0) {
-        continue
-      }
-
-      stockItem.reservedQuantity += allocatedQuantity
-      stockItem.updatedAt = timestamp
-      reservationItems.push({
-        productId: product.id,
-        stockItemId: stockItem.id,
-        warehouseId: stockItem.warehouseId,
-        quantity: allocatedQuantity,
-      })
-      remainingQuantity -= allocatedQuantity
-
-      if (remainingQuantity <= 0) {
-        break
-      }
-    }
-
-    if (remainingQuantity > 0) {
-      throw new ApplicationError(
-        "Requested quantity is not available for checkout.",
-        {
-          productId: product.id,
-          requestedQuantity: orderItem.quantity,
-          availableQuantity: resolveSellableQuantity(product),
-        },
-        409
-      )
-    }
-
-    product.updatedAt = timestamp
-  }
+  const reservationItems = await reserveLiveStock(
+    database,
+    orderItems.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    })),
+    timestamp
+  )
 
   return {
-    products: nextProducts,
     reservation:
       reservationItems.length > 0
         ? ({
@@ -959,35 +884,12 @@ function applyReservationToProducts(
   }
 }
 
-function releaseReservationFromProducts(
-  products: Product[],
+async function releaseReservationFromProducts(
+  database: Kysely<unknown>,
   reservation: NonNullable<StorefrontOrder["stockReservation"]>,
   timestamp: string
 ) {
-  const nextProducts = products.map((product) => ({
-    ...product,
-    stockItems: product.stockItems.map((item) => ({ ...item })),
-  }))
-
-  for (const reservedItem of reservation.items) {
-    const product = nextProducts.find((item) => item.id === reservedItem.productId)
-
-    if (!product) {
-      continue
-    }
-
-    const stockItem = product.stockItems.find((item) => item.id === reservedItem.stockItemId)
-
-    if (!stockItem) {
-      continue
-    }
-
-    stockItem.reservedQuantity = Math.max(0, stockItem.reservedQuantity - reservedItem.quantity)
-    stockItem.updatedAt = timestamp
-    product.updatedAt = timestamp
-  }
-
-  return nextProducts
+  await releaseLiveStockReservation(database, reservation.items, timestamp)
 }
 
 async function releaseOrderReservation(
@@ -1000,9 +902,7 @@ async function releaseOrderReservation(
     return order
   }
 
-  const products = await readProjectedStorefrontProducts(database)
-  const nextProducts = releaseReservationFromProducts(products, order.stockReservation, timestamp)
-  await writeCoreProducts(database, nextProducts)
+  await releaseReservationFromProducts(database, order.stockReservation, timestamp)
 
   return storefrontOrderSchema.parse({
     ...order,
@@ -1075,7 +975,6 @@ async function expireStalePendingReservations(
   }
 
   const timestamp = new Date().toISOString()
-  let products = await readProjectedStorefrontProducts(database)
   const customerAccounts = await readCustomerAccounts(database)
   const staleOrderIds = new Set(staleOrders.map((order) => order.id))
   const nextOrders = await Promise.all(orders.map(async (order) => {
@@ -1083,7 +982,7 @@ async function expireStalePendingReservations(
       return order
     }
 
-    products = releaseReservationFromProducts(products, order.stockReservation, timestamp)
+    await releaseReservationFromProducts(database, order.stockReservation, timestamp)
     const account =
       order.customerAccountId
         ? customerAccounts.find((item) => item.id === order.customerAccountId) ?? null
@@ -1121,7 +1020,6 @@ async function expireStalePendingReservations(
     })
   }))
 
-  await writeCoreProducts(database, products)
   await writeOrders(database, nextOrders)
 
   return nextOrders
@@ -1367,7 +1265,8 @@ async function resolveCheckoutContactId(
 }
 
 function resolveProductPricing(
-  product: Product
+  product: Product,
+  availableQuantity: number
 ) {
   const activePrice = product.prices.find((item) => item.isActive) ?? product.prices[0]
 
@@ -1376,7 +1275,7 @@ function resolveProductPricing(
     mrp:
       activePrice?.mrp ??
       Math.max(product.basePrice, activePrice?.sellingPrice ?? product.basePrice),
-    availableQuantity: resolveSellableQuantity(product),
+    availableQuantity,
   }
 }
 
@@ -1662,6 +1561,10 @@ export async function createCheckoutOrder(
     const existingOrders = await expireStalePendingReservations(database, await readOrders(database))
     const catalog = await readProjectedStorefrontProducts(database)
     const now = new Date().toISOString()
+    const availableQuantityByProductId = await getAvailableQuantityByProductIds(
+      database,
+      parsed.items.map((item) => item.productId)
+    )
 
     const chargeInputs: Array<{
       quantity: number
@@ -1680,7 +1583,10 @@ export async function createCheckoutOrder(
         )
       }
 
-      const pricing = resolveProductPricing(product)
+      const pricing = resolveProductPricing(
+        product,
+        availableQuantityByProductId.get(product.id) ?? 0
+      )
 
       if (input.quantity > pricing.availableQuantity) {
         throw new ApplicationError(
@@ -1936,13 +1842,12 @@ export async function createCheckoutOrder(
       updatedAt: now,
     })
     const order = transitionOrderStatus(createdOrder, "payment_pending")
-    const reservationResult = applyReservationToProducts(catalog, order.items, now)
+    const reservationResult = await applyReservationToProducts(database, order.items, now)
 
     if (!reservationResult.reservation) {
       throw new ApplicationError("Stock reservation could not be created for checkout.", {}, 409)
     }
 
-    await writeCoreProducts(database, reservationResult.products)
     reservedOrderStock = {
       orderId,
       releaseReason: "checkout_setup_failed",
@@ -2069,13 +1974,11 @@ export async function createCheckoutOrder(
           )
         }
       } else {
-        const products = await readProjectedStorefrontProducts(database)
-        const nextProducts = releaseReservationFromProducts(
-          products,
+        await releaseReservationFromProducts(
+          database,
           reservationRollback.reservation,
           new Date().toISOString()
         )
-        await writeCoreProducts(database, nextProducts)
       }
     }
     if (reservedOrderCoupon) {

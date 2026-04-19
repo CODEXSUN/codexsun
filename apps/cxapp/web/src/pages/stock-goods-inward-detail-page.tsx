@@ -1,15 +1,5 @@
-import { useParams } from "react-router-dom"
-
-import { FrameworkAppWorkspacePage } from "./framework-app-workspace-page"
+import { Navigate } from "react-router-dom"
 
 export function StockGoodsInwardDetailPage() {
-  const params = useParams()
-
-  return (
-    <FrameworkAppWorkspacePage
-      appId="stock"
-      sectionId="goods-inward-show"
-      goodsInwardId={params.goodsInwardId}
-    />
-  )
+  return <Navigate to="/dashboard/apps/stock/purchase-receipts" replace />
 }

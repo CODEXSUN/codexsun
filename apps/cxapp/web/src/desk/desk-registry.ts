@@ -587,10 +587,10 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     const stockWorkspaceIconMap: Record<string, LucideIcon> = {
       overview: LayoutDashboard,
       "purchase-receipts": ReceiptText,
-      "goods-inward": PackageCheck,
-      "stock-units": Package,
-      barcodes: Scale,
-      "sticker-batches": ClipboardList,
+      "stock-entry": PackageCheck,
+      "stock-ledger": ClipboardList,
+      reports: ClipboardList,
+      "print-designer": Ruler,
       "sale-allocations": ShoppingBag,
       movements: Workflow,
       availability: LineChart,
@@ -614,15 +614,12 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
                 `/dashboard/apps/${app.id}/purchase-receipts/:purchaseReceiptId`,
                 `/dashboard/apps/${app.id}/purchase-receipts/:purchaseReceiptId/edit`,
               ]
-            : item.id === "goods-inward"
+            : item.id === "stock-ledger"
               ? [
-                  `/dashboard/apps/${app.id}/goods-inward/new`,
-                  `/dashboard/apps/${app.id}/goods-inward/:goodsInwardId`,
-                  `/dashboard/apps/${app.id}/goods-inward/:goodsInwardId/edit`,
+                  `/dashboard/apps/${app.id}/stock-ledger/:productId`,
                 ]
               : undefined,
       })),
-      ...createTechnicalWorkspaceModules(app, root),
     ]
   }
 
@@ -844,6 +841,16 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               ),
             },
             {
+              id: `${app.id}-reports`,
+              label: "Reports",
+              shared: false,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/reports`,
+                ].includes(item.route)
+              ),
+            },
+            {
               id: `${app.id}-operations`,
               label: "Operations",
               shared: false,
@@ -1059,11 +1066,11 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
               items: modules.filter((item) =>
                 [
                   `/dashboard/apps/${app.id}/purchase-receipts`,
+                  `/dashboard/apps/${app.id}/stock-entry`,
+                  `/dashboard/apps/${app.id}/stock-ledger`,
                   `/dashboard/apps/${app.id}/goods-inward`,
-                  `/dashboard/apps/${app.id}/stock-units`,
-                  `/dashboard/apps/${app.id}/barcodes`,
-                  `/dashboard/apps/${app.id}/sticker-batches`,
                   `/dashboard/apps/${app.id}/verifications`,
+                  `/dashboard/apps/${app.id}/print-designer`,
                 ].includes(item.route)
               ),
             },
@@ -1079,20 +1086,6 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/reconciliation`,
                   `/dashboard/apps/${app.id}/transfers`,
                   `/dashboard/apps/${app.id}/reservations`,
-                ].includes(item.route)
-              ),
-            },
-            {
-              id: `${app.id}-workspace`,
-              label: "Workspace",
-              shared: true,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/apps/${app.id}/backend`,
-                  `/dashboard/apps/${app.id}/structure`,
-                  `/dashboard/apps/${app.id}/web`,
-                  `/dashboard/apps/${app.id}/api`,
-                  `/dashboard/apps/${app.id}/database`,
                 ].includes(item.route)
               ),
             },

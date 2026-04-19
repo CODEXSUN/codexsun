@@ -152,7 +152,6 @@ export function FrameworkAppWorkspacePage({
   customerId,
   productId,
   purchaseReceiptId,
-  goodsInwardId,
   ledgerId,
   voucherId,
   sectionId: forcedSectionId,
@@ -164,7 +163,6 @@ export function FrameworkAppWorkspacePage({
   customerId?: string
   productId?: string
   purchaseReceiptId?: string
-  goodsInwardId?: string
   ledgerId?: string
   voucherId?: string
   sectionId?: string
@@ -271,8 +269,8 @@ export function FrameworkAppWorkspacePage({
   const stockWorkspaceContent =
     app.id === "stock" ? (
       <StockWorkspaceSection
+        productId={productId}
         purchaseReceiptId={purchaseReceiptId}
-        goodsInwardId={goodsInwardId}
         sectionId={sectionId}
       />
     ) : null
@@ -354,14 +352,15 @@ export function FrameworkAppWorkspacePage({
       [
         "overview",
         "purchase-receipts",
+        "stock-entry",
+        "stock-ledger",
+        "stock-ledger-show",
         "purchase-receipts-show",
         "purchase-receipts-upsert",
         "goods-inward",
         "goods-inward-show",
         "goods-inward-upsert",
-        "stock-units",
-        "barcodes",
-        "sticker-batches",
+        "print-designer",
         "sale-allocations",
         "movements",
         "availability",

@@ -363,11 +363,6 @@ function CardDesignToggleGrid({
       description: "Show the category label in meta.",
     },
     {
-      key: "showStockMeta",
-      label: "Stock",
-      description: "Show stock status in meta.",
-    },
-    {
       key: "showDescription",
       label: "Description",
       description: "Show the short description text.",
@@ -576,7 +571,7 @@ function ProductLanePreview({
                 href: storefrontPaths.product(item.slug),
                 name: item.name,
                 imageUrl: item.primaryImageUrl,
-                badge: item.badge ?? item.categoryName,
+                badge: item.badge ?? item.department,
                 brandName: item.brandName,
                 categoryName: item.categoryName,
                 shortDescription: item.shortDescription,
@@ -660,7 +655,7 @@ function SingleFeaturedCardPreview({
             href={storefrontPaths.product(item.slug)}
             name={item.name}
             imageUrl={item.primaryImageUrl}
-            badge={item.badge ?? item.categoryName}
+            badge={item.badge ?? item.department}
             brandName={item.brandName}
             categoryName={item.categoryName}
             shortDescription={item.shortDescription}

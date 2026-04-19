@@ -2,22 +2,25 @@ import { ApplicationError } from "../../../framework/src/runtime/errors/applicat
 import { defineInternalRoute } from "../../../framework/src/runtime/http/index.js"
 import type { HttpRouteDefinition } from "../../../framework/src/runtime/http/index.js"
 import {
+  billingStockAcceptancePayloadSchema,
   stockAvailabilityRequestSchema,
   stockReservationUpsertPayloadSchema,
   stockTransferUpsertPayloadSchema,
 } from "../../../stock/shared/index.js"
 import {
+  acceptStockUnitsToInventory,
   createStockGoodsInward,
   createStockPurchaseReceipt,
+  createStockPurchaseReceiptBarcodeBatch,
+  deleteStockPurchaseReceipt,
   createStockSaleAllocation,
-  createStockStickerBatch,
   getStockBarcodeAlias,
   getStockGoodsInward,
   getStockPurchaseReceipt,
   getStockPurchaseReceiptLookups,
   getStockReconciliation,
-  getStockStickerBatch,
   getStockUnit,
+  listStockAcceptanceVerifications,
   getStockVerificationSummary,
   listStockAvailability,
   listStockBarcodeAliases,
@@ -26,7 +29,6 @@ import {
   listStockPurchaseReceipts,
   listStockReservations,
   listStockSaleAllocations,
-  listStockStickerBatches,
   listStockTransfers,
   listStockUnits,
   postStockGoodsInward,
@@ -116,6 +118,43 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/stock/purchase-receipt/barcodes", {
+      method: "POST",
+      summary: "Generate serialized stock units and barcode stickers from a purchase receipt.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        const receiptId = context.request.url.searchParams.get("id")
+
+        if (!receiptId) {
+          throw new ApplicationError("Stock purchase receipt id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await createStockPurchaseReceiptBarcodeBatch(
+            context.databases.primary,
+            user,
+            receiptId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/stock/purchase-receipt", {
+      method: "DELETE",
+      summary: "Delete a stock purchase receipt.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        const receiptId = context.request.url.searchParams.get("id")
+
+        if (!receiptId) {
+          throw new ApplicationError("Stock purchase receipt id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteStockPurchaseReceipt(context.databases.primary, user, receiptId)
+        )
+      },
+    }),
     defineInternalRoute("/stock/goods-inward", {
       summary: "List stock goods inward records.",
       handler: async (context) => {
@@ -197,6 +236,32 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
         return jsonResponse(await listStockUnits(context.databases.primary, user))
       },
     }),
+    defineInternalRoute("/stock/stock-acceptance-verifications", {
+      summary: "List stock acceptance verification records.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceView(context)
+        return jsonResponse(
+          await listStockAcceptanceVerifications(context.databases.primary, user, {
+            purchaseReceiptId: context.request.url.searchParams.get("purchaseReceiptId") ?? undefined,
+            productId: context.request.url.searchParams.get("productId") ?? undefined,
+          })
+        )
+      },
+    }),
+    defineInternalRoute("/stock/stock-acceptance", {
+      method: "POST",
+      summary: "Accept verified temporary stock units into live stock.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        return jsonResponse(
+          await acceptStockUnitsToInventory(
+            context.databases.primary,
+            user,
+            billingStockAcceptancePayloadSchema.parse(context.request.jsonBody)
+          )
+        )
+      },
+    }),
     defineInternalRoute("/stock/stock-unit", {
       summary: "Read one stock unit by id.",
       handler: async (context) => {
@@ -237,41 +302,6 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
         const { user } = await requireStockWorkspaceView(context)
         return jsonResponse(
           await resolveStockBarcode(context.databases.primary, user, context.request.jsonBody)
-        )
-      },
-    }),
-    defineInternalRoute("/stock/sticker-batches", {
-      summary: "List stock sticker batches.",
-      handler: async (context) => {
-        await requireStockWorkspaceView(context)
-        return jsonResponse(await listStockStickerBatches(context.databases.primary))
-      },
-    }),
-    defineInternalRoute("/stock/sticker-batch", {
-      summary: "Read one stock sticker batch by id.",
-      handler: async (context) => {
-        await requireStockWorkspaceView(context)
-        const batchId = context.request.url.searchParams.get("id")
-
-        if (!batchId) {
-          throw new ApplicationError("Stock sticker batch id is required.", {}, 400)
-        }
-
-        return jsonResponse(await getStockStickerBatch(context.databases.primary, batchId))
-      },
-    }),
-    defineInternalRoute("/stock/sticker-batches", {
-      method: "POST",
-      summary: "Create a stock sticker batch.",
-      handler: async (context) => {
-        const { user } = await requireStockWorkspaceManage(context)
-        return jsonResponse(
-          await createStockStickerBatch(
-            context.databases.primary,
-            user,
-            context.request.jsonBody
-          ),
-          201
         )
       },
     }),

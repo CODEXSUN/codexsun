@@ -43,9 +43,8 @@ export function StorefrontProductCard({
 }) {
   const isCompact = density === "compact"
   const isOutOfStock = item.availableQuantity <= 0
-  const badgeLabel = item.badge ?? item.categoryName ?? "Catalog"
+  const badgeLabel = item.badge ?? item.department ?? "Catalog"
   const brandLabel = item.brandName ?? item.department ?? "Catalog"
-  const stockLabel = isOutOfStock ? "Out of stock" : `${item.availableQuantity} in stock`
   const compareAtAmount = item.mrp > item.sellingPrice ? item.mrp : null
   const hasDiscount = Boolean(compareAtAmount)
   const secondaryActions = [
@@ -153,9 +152,6 @@ export function StorefrontProductCard({
             >
               {brandLabel}
             </span>
-            <span className={cn("text-[11px]", isCompact ? "text-[#a0826c]" : "text-[#9a8170]")}>
-              {stockLabel}
-            </span>
           </div>
           <Link
             to={detailLink}
@@ -225,7 +221,7 @@ export function StorefrontProductCard({
           onClick={onAddToCart}
         >
           <ShoppingCart className="size-4" />
-          {isOutOfStock ? "Out of stock" : "Buy Now"}
+          Buy Now
         </Button>
         <div className="flex items-center gap-2">
           {secondaryActions.map((action) => {

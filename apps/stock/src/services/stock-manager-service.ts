@@ -8,14 +8,17 @@ import {
 } from "../../../billing/src/services/goods-inward-service.js"
 import {
   createBillingPurchaseReceipt,
+  deleteBillingPurchaseReceipt,
   getBillingPurchaseReceipt,
   listBillingPurchaseReceipts,
   updateBillingPurchaseReceipt,
 } from "../../../billing/src/services/purchase-receipt-service.js"
 import {
-  createBillingStickerPrintBatch,
+  acceptBillingStockUnitsToInventory,
+  createBillingPurchaseReceiptBarcodeBatch,
   createBillingStockSaleAllocation,
   getBillingStockUnit,
+  listBillingStockAcceptanceVerifications,
   listBillingStockSaleAllocations,
   listBillingStockUnits,
   postBillingGoodsInwardToInventory,
@@ -33,14 +36,10 @@ import type {
   InventoryStockReservation,
   InventoryStockTransfer,
 } from "../../../../framework/engines/inventory-engine/contracts/index.js"
-import { coreTableNames } from "../../../core/database/table-names.js"
-import { productSchema, type Product } from "../../../core/shared/index.js"
-import { listJsonStorePayloads } from "../../../framework/src/runtime/database/process/json-store.js"
 import {
   billingGoodsInwardSchema,
   billingPurchaseReceiptSchema,
   billingStockBarcodeAliasSchema,
-  billingStickerPrintBatchSchema,
   type StockAvailabilityRequest,
   type StockReconciliationResponse,
   type StockReservationUpsertPayload,
@@ -50,11 +49,17 @@ import {
 import type {
   BillingGoodsInward,
   BillingPurchaseReceipt,
-  BillingStickerPrintBatch,
   BillingStockBarcodeAlias,
+  BillingStockUnit,
 } from "../../../billing/shared/index.js"
+import { billingStockUnitSchema } from "../../../billing/shared/index.js"
 import { billingTableNames } from "../../../billing/database/table-names.js"
 import { getStorePayloadById, listStorePayloads } from "../../../billing/src/services/store.js"
+import {
+  listLiveStockAvailability,
+  listLiveStockBalances,
+  listLiveStockMovements,
+} from "./live-stock-service.js"
 
 function toTransferRecord(
   tenantId: string,
@@ -101,11 +106,6 @@ function toReservationRecord(
   }
 }
 
-async function readProducts(database: Kysely<unknown>) {
-  const items = await listJsonStorePayloads<Product>(database, coreTableNames.products)
-  return items.map((item) => productSchema.parse(item))
-}
-
 export async function listStockPurchaseReceipts(database: Kysely<unknown>, user: AuthUser) {
   return listBillingPurchaseReceipts(database, user)
 }
@@ -133,6 +133,23 @@ export async function updateStockPurchaseReceipt(
   payload: unknown
 ) {
   return updateBillingPurchaseReceipt(database, user, receiptId, payload)
+}
+
+export async function deleteStockPurchaseReceipt(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  receiptId: string
+) {
+  return deleteBillingPurchaseReceipt(database, user, receiptId)
+}
+
+export async function createStockPurchaseReceiptBarcodeBatch(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  receiptId: string,
+  payload: unknown
+) {
+  return createBillingPurchaseReceiptBarcodeBatch(database, user, receiptId, payload)
 }
 
 export async function listStockGoodsInward(database: Kysely<unknown>, user: AuthUser) {
@@ -176,6 +193,25 @@ export async function listStockUnits(database: Kysely<unknown>, user: AuthUser) 
   return listBillingStockUnits(database, user)
 }
 
+export async function listStockAcceptanceVerifications(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  filters?: {
+    purchaseReceiptId?: string
+    productId?: string
+  }
+) {
+  return listBillingStockAcceptanceVerifications(database, user, filters)
+}
+
+export async function acceptStockUnitsToInventory(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  payload: unknown
+) {
+  return acceptBillingStockUnitsToInventory(database, user, payload)
+}
+
 export async function getStockUnit(
   database: Kysely<unknown>,
   user: AuthUser,
@@ -214,36 +250,6 @@ export async function getStockBarcodeAlias(database: Kysely<unknown>, barcodeAli
   return { item }
 }
 
-export async function createStockStickerBatch(
-  database: Kysely<unknown>,
-  user: AuthUser,
-  payload: unknown
-) {
-  return createBillingStickerPrintBatch(database, user, payload)
-}
-
-export async function listStockStickerBatches(database: Kysely<unknown>) {
-  const items = (await listStorePayloads(
-    database,
-    billingTableNames.stickerPrintBatches,
-    billingStickerPrintBatchSchema
-  )) as BillingStickerPrintBatch[]
-  return {
-    items: items.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
-  }
-}
-
-export async function getStockStickerBatch(database: Kysely<unknown>, batchId: string) {
-  const item = await getStorePayloadById(
-    database,
-    billingTableNames.stickerPrintBatches,
-    batchId,
-    billingStickerPrintBatchSchema
-  )
-
-  return { item }
-}
-
 export async function listStockSaleAllocations(database: Kysely<unknown>, user: AuthUser) {
   return listBillingStockSaleAllocations(database, user)
 }
@@ -257,11 +263,8 @@ export async function createStockSaleAllocation(
 }
 
 export async function listStockMovements(database: Kysely<unknown>) {
-  const tenantContext = await resolveCxappTenantContext(database)
-  const diagnostics = createInventoryEngineRuntimeDiagnostics(database)
-
   return {
-    items: await diagnostics.listMovements({ tenantId: tenantContext.tenantId }),
+    items: await listLiveStockMovements(database),
   }
 }
 
@@ -282,18 +285,18 @@ export async function getStockPurchaseReceiptLookups(database: Kysely<unknown>) 
   return {
     purchaseReceiptOptions: purchaseReceipts.map((item) => ({
       id: item.id,
-      label: [item.receiptNumber, item.supplierName].join(" - "),
+      label: [item.entryNumber, item.supplierId].join(" - "),
       warehouseId: item.warehouseId,
-      warehouseName: item.warehouseName,
+      warehouseName: item.warehouseId,
       status: item.status,
       lines: item.lines.map((line: BillingPurchaseReceipt["lines"][number]) => ({
         id: line.id,
         productId: line.productId,
-        productName: line.productName,
-        variantId: line.variantId,
-        variantName: line.variantName,
-        quantity: line.quantity,
-        receivedQuantity: line.receivedQuantity,
+        productName: line.productId,
+        variantId: null,
+        variantName: line.description,
+        quantity: line.quantity ?? 0,
+        receivedQuantity: 0,
       })),
     })),
     goodsInwardOptions: goodsInward.map((item) => ({
@@ -310,12 +313,8 @@ export async function listStockAvailability(
   database: Kysely<unknown>,
   request: StockAvailabilityRequest
 ) {
-  const tenantContext = await resolveCxappTenantContext(database)
-  const diagnostics = createInventoryEngineRuntimeDiagnostics(database)
-
   return {
-    items: await diagnostics.projectAvailability({
-      tenantId: tenantContext.tenantId,
+    items: await listLiveStockAvailability(database, {
       warehouseIds: request.warehouseIds,
       productIds: request.productIds,
       variantIds: request.variantIds,
@@ -380,7 +379,9 @@ export async function getStockVerificationSummary(
   ])
 
   return {
-    pendingVerificationCount: goodsInward.items.filter((item) => item.status !== "verified").length,
+    pendingVerificationCount:
+      goodsInward.items.filter((item) => item.status !== "verified").length +
+      units.items.filter((item) => item.status === "received").length,
     postedInwardCount: goodsInward.items.filter((item) => item.stockPostingStatus === "posted").length,
     availableUnitCount: units.items.filter((item) => item.status === "available").length,
     allocatedUnitCount: units.items.filter((item) => item.status === "allocated").length,
@@ -392,38 +393,56 @@ export async function getStockVerificationSummary(
 export async function getStockReconciliation(
   database: Kysely<unknown>
 ): Promise<StockReconciliationResponse> {
-  const [availability, products] = await Promise.all([
-    listStockAvailability(database, {}),
-    readProducts(database),
+  const [availability, units] = await Promise.all([
+    listLiveStockBalances(database),
+    listStorePayloads(
+      database,
+      billingTableNames.stockUnits,
+      billingStockUnitSchema
+    ) as Promise<BillingStockUnit[]>,
   ])
 
-  const engineMap = new Map(
-    availability.items.map((item) => [
-      [item.warehouseId, item.productId, item.variantId ?? ""].join("::"),
+  const liveBalanceMap = new Map(
+    availability.map((item) => [
+      [item.warehouse_id, item.product_id, item.variant_id ?? ""].join("::"),
       item,
     ])
   )
 
   return {
-    items: products.flatMap((product) =>
-      product.stockItems
-        .filter((item) => item.isActive)
-        .map((stockItem) => {
-          const key = [stockItem.warehouseId, product.id, stockItem.variantId ?? ""].join("::")
-          const engine = engineMap.get(key)
-          const engineOnHandQuantity = engine?.onHandQuantity ?? 0
-          const coreOnHandQuantity = stockItem.quantity
+    items: Array.from(
+      units
+      .filter((item) => item.isActive)
+      .reduce((groups, item) => {
+        const key = [item.warehouseId, item.productId, item.variantId ?? ""].join("::")
+        const current = groups.get(key) ?? {
+          warehouseId: item.warehouseId,
+          productId: item.productId,
+          variantId: item.variantId,
+          stockUnitQuantity: 0,
+        }
+        current.stockUnitQuantity += item.status === "sold" ? 0 : item.quantity
+        groups.set(key, current)
+        return groups
+      }, new Map<string, { warehouseId: string; productId: string; variantId: string | null; stockUnitQuantity: number }>())
+      .values()
+    )
+      .map((item) => {
+        const key = [item.warehouseId, item.productId, item.variantId ?? ""].join("::")
+        const live = liveBalanceMap.get(key)
+        const engineOnHandQuantity = live?.balance_quantity ?? 0
+        const coreOnHandQuantity = Number(item.stockUnitQuantity.toFixed(4))
 
-          return {
-            warehouseId: stockItem.warehouseId,
-            productId: product.id,
-            variantId: stockItem.variantId,
-            engineOnHandQuantity,
-            coreOnHandQuantity,
-            mismatchQuantity: Number((engineOnHandQuantity - coreOnHandQuantity).toFixed(4)),
-          }
-        })
-    ).filter((item) => item.mismatchQuantity !== 0),
+        return {
+          warehouseId: item.warehouseId,
+          productId: item.productId,
+          variantId: item.variantId,
+          engineOnHandQuantity,
+          coreOnHandQuantity,
+          mismatchQuantity: Number((engineOnHandQuantity - coreOnHandQuantity).toFixed(4)),
+        }
+      })
+      .filter((item) => item.mismatchQuantity !== 0),
   }
 }
 

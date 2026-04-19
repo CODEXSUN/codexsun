@@ -85,9 +85,11 @@ type GoodsInwardLineForm = {
 }
 
 type PurchaseReceiptForm = {
+  registerEntryNumber: string
   receiptNumber: string
   supplierName: string
-  supplierLedgerId: string
+  supplierReferenceNumber: string
+  supplierReferenceDate: string
   postingDate: string
   warehouseId: string
   warehouseName: string
@@ -112,6 +114,27 @@ type ProductLookupItem = ProductListResponse["items"][number]
 type ProductLookupOption = {
   label: string
   value: string
+}
+
+const purchaseReceiptRegisterEntryPattern = /^(\d+)$/
+
+function getNextRegisterEntryNumber(items: BillingPurchaseReceipt[]) {
+  const maxSequence = items.reduce((currentMax, item) => {
+    const normalizedValue = item.entryNumber?.trim()
+    if (!normalizedValue) {
+      return currentMax
+    }
+
+    const match = purchaseReceiptRegisterEntryPattern.exec(normalizedValue)
+    if (!match) {
+      return currentMax
+    }
+
+    const sequence = Number(match[1])
+    return Number.isFinite(sequence) ? Math.max(currentMax, sequence) : currentMax
+  }, 0)
+
+  return String(maxSequence + 1).padStart(2, "0")
 }
 
 function createPurchaseReceiptLineForm(
@@ -149,9 +172,11 @@ function createGoodsInwardLineForm(): GoodsInwardLineForm {
 
 function createPurchaseReceiptForm(): PurchaseReceiptForm {
   return {
+    registerEntryNumber: "",
     receiptNumber: "",
     supplierName: "",
-    supplierLedgerId: "",
+    supplierReferenceNumber: "",
+    supplierReferenceDate: "",
     postingDate: new Date().toISOString().slice(0, 10),
     warehouseId: "warehouse:default",
     warehouseName: "Default Warehouse",
@@ -269,10 +294,6 @@ function createPurchaseReceiptProductPatch(
   }
 }
 
-function normalizeInlineItemNote(note: string | null | undefined) {
-  return note === "Expected inward quantity." ? "" : note ?? ""
-}
-
 function statusBadge(status: string) {
   return status === "posted" || status === "verified" || status === "available"
     ? "secondary"
@@ -369,6 +390,10 @@ export function StorefrontStockOperationsSection({
     [stockUnits]
   )
   const productOptions = useMemo(() => getProductLookupOptions(products), [products])
+  const nextRegisterEntryNumber = useMemo(
+    () => getNextRegisterEntryNumber(purchaseReceipts),
+    [purchaseReceipts]
+  )
 
   async function loadData() {
     setIsLoading(true)
@@ -413,23 +438,23 @@ export function StorefrontStockOperationsSection({
     setGoodsInwardForm((current) => ({
       ...current,
       purchaseReceiptId: receipt.id,
-      purchaseReceiptNumber: receipt.receiptNumber,
-      supplierName: receipt.supplierName,
+      purchaseReceiptNumber: receipt.entryNumber,
+      supplierName: receipt.supplierId,
       warehouseId: receipt.warehouseId,
-      warehouseName: receipt.warehouseName,
+      warehouseName: receipt.warehouseId,
       lines: receipt.lines.map((line) => ({
         purchaseReceiptLineId: line.id,
         productId: line.productId,
-        productName: line.productName,
-        variantId: line.variantId ?? "",
-        variantName: line.variantName ?? "",
-        expectedQuantity: String(line.quantity),
-        acceptedQuantity: String(Math.max(line.quantity - line.receivedQuantity, 0)),
+        productName: line.productId,
+        variantId: "",
+        variantName: line.description ?? "",
+        expectedQuantity: String(line.quantity ?? 0),
+        acceptedQuantity: String(line.quantity ?? 0),
         rejectedQuantity: "0",
         damagedQuantity: "0",
         manufacturerBarcode: "",
         manufacturerSerial: "",
-        note: normalizeInlineItemNote(line.note),
+        note: line.notes ?? "",
       })),
     }))
   }
@@ -479,27 +504,26 @@ export function StorefrontStockOperationsSection({
     setError(null)
     setSuccess(null)
     try {
+      const resolvedRegisterEntryNumber =
+        purchaseReceiptForm.registerEntryNumber.trim() || nextRegisterEntryNumber
+
       await requestJson("/internal/v1/billing/purchase-receipts", {
         method: "POST",
         body: JSON.stringify({
-          receiptNumber: purchaseReceiptForm.receiptNumber,
-          supplierName: purchaseReceiptForm.supplierName,
-          supplierLedgerId: purchaseReceiptForm.supplierLedgerId || null,
+          entryNumber: resolvedRegisterEntryNumber,
+          supplierId: purchaseReceiptForm.supplierName,
+          supplierReferenceNumber: purchaseReceiptForm.supplierReferenceNumber || null,
+          supplierReferenceDate: purchaseReceiptForm.supplierReferenceDate || null,
           postingDate: purchaseReceiptForm.postingDate,
           warehouseId: purchaseReceiptForm.warehouseId,
-          warehouseName: purchaseReceiptForm.warehouseName,
           status: "open",
-          note: purchaseReceiptForm.note,
           lines: purchaseReceiptForm.lines.map((line) => ({
             productId: line.productId,
-            productName: line.productName,
-            variantId: line.variantId || null,
-            variantName: line.variantName || null,
-            warehouseId: line.warehouseId,
             quantity: Number(line.quantity || 0),
-            unit: line.unit || "Nos",
-            unitCost: Number(line.unitCost || 0),
-            note: line.note,
+            description: line.variantName || null,
+            rate: Number(line.unitCost || 0),
+            amount: Number((Number(line.quantity || 0) * Number(line.unitCost || 0)).toFixed(2)),
+            notes: line.note,
           })),
         }),
       })
@@ -703,36 +727,42 @@ export function StorefrontStockOperationsSection({
                 <ClipboardList className="size-3.5" />
                 Purchase receipt
               </div>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Receipt Number</Label>
-                  <Input value={purchaseReceiptForm.receiptNumber} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, receiptNumber: event.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Supplier Name</Label>
-                  <Input value={purchaseReceiptForm.supplierName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierName: event.target.value }))} />
+                  <Label>Register Entry Number</Label>
+                  <div className="space-y-2">
+                    <Input value={purchaseReceiptForm.registerEntryNumber} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, registerEntryNumber: event.target.value }))} placeholder={nextRegisterEntryNumber} />
+                    <p className="text-xs text-muted-foreground">
+                      Leave blank to auto assign the next number: {nextRegisterEntryNumber}
+                    </p>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Posting Date</Label>
                   <Input type="date" value={purchaseReceiptForm.postingDate} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, postingDate: event.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Supplier Ledger</Label>
-                  <Input value={purchaseReceiptForm.supplierLedgerId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierLedgerId: event.target.value }))} placeholder="Optional ledger id" />
+                  <Label>Supplier Name</Label>
+                  <Input value={purchaseReceiptForm.supplierName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierName: event.target.value }))} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Supplier Ref No</Label>
+                  <Input value={purchaseReceiptForm.supplierReferenceNumber} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierReferenceNumber: event.target.value }))} placeholder="Supplier document number" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Supplier Ref Date</Label>
+                  <Input type="date" value={purchaseReceiptForm.supplierReferenceDate} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, supplierReferenceDate: event.target.value }))} />
+                </div>
+                <div />
               </div>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse ID</p>
                   <Input className="mt-2" value={purchaseReceiptForm.warehouseId} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, warehouseId: event.target.value }))} />
                 </div>
                 <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse Name</p>
-                  <Input className="mt-2" value={purchaseReceiptForm.warehouseName} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, warehouseName: event.target.value }))} />
-                </div>
-                <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Receipt note</p>
-                  <Textarea className="mt-2 min-h-24" value={purchaseReceiptForm.note} onChange={(event) => setPurchaseReceiptForm((current) => ({ ...current, note: event.target.value }))} />
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Status</p>
+                  <Input className="mt-2" value="open" disabled />
                 </div>
               </div>
             </CardHeader>
@@ -901,7 +931,7 @@ export function StorefrontStockOperationsSection({
                     </div>
                     <div className="rounded-[1rem] border border-border/70 bg-card/70 p-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Warehouse</p>
-                      <p className="mt-2 text-sm font-medium text-foreground">{purchaseReceiptForm.warehouseName || "Not set"}</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">{purchaseReceiptForm.warehouseId || "Not set"}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{purchaseReceiptForm.warehouseId || "Enter the warehouse id for inward posting."}</p>
                     </div>
                   </>
@@ -919,9 +949,9 @@ export function StorefrontStockOperationsSection({
               <Table><TableHeader><TableRow><TableHead>Receipt</TableHead><TableHead>Supplier</TableHead><TableHead>Warehouse</TableHead><TableHead>Status</TableHead><TableHead>Lines</TableHead></TableRow></TableHeader><TableBody>
                 {purchaseReceipts.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell><div><p className="font-medium text-foreground">{item.receiptNumber}</p><p className="text-xs text-muted-foreground">{item.postingDate}</p></div></TableCell>
-                    <TableCell>{item.supplierName}</TableCell>
-                    <TableCell>{item.warehouseName}</TableCell>
+                    <TableCell><div><p className="font-medium text-foreground">{item.entryNumber}</p><p className="text-xs text-muted-foreground">{item.postingDate}</p></div></TableCell>
+                    <TableCell>{item.supplierId}</TableCell>
+                    <TableCell>{item.warehouseId}</TableCell>
                     <TableCell><Badge variant={statusBadge(item.status)}>{item.status}</Badge></TableCell>
                     <TableCell>{item.lines.length}</TableCell>
                   </TableRow>
@@ -953,7 +983,7 @@ export function StorefrontStockOperationsSection({
                     <Label>Purchase Receipt</Label>
                     <Select value={goodsInwardForm.purchaseReceiptId} onValueChange={(value) => applyReceiptToGoodsInward(value)}>
                       <SelectTrigger><SelectValue placeholder="Select receipt" /></SelectTrigger>
-                      <SelectContent>{purchaseReceipts.map((item) => <SelectItem key={item.id} value={item.id}>{item.receiptNumber}</SelectItem>)}</SelectContent>
+                      <SelectContent>{purchaseReceipts.map((item) => <SelectItem key={item.id} value={item.id}>{item.entryNumber}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
@@ -1247,7 +1277,7 @@ export function StorefrontStockOperationsSection({
                     <TableCell><div><p className="font-medium text-foreground">{item.productName}</p><p className="text-xs text-muted-foreground">{item.productCode}{item.variantName ? ` | ${item.variantName}` : ""}</p></div></TableCell>
                     <TableCell>{item.warehouseName}</TableCell>
                     <TableCell className="font-mono text-xs">{item.barcodeValue}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground"><div>{item.batchCode}</div><div>{item.serialNumber}</div></TableCell>
+                    <TableCell className="text-xs text-muted-foreground"><div>{item.batchCode ?? "No batch"}</div><div>{item.serialNumber}</div></TableCell>
                     <TableCell><div className="text-xs text-muted-foreground"><div>MRP: {formatMoney(item.mrp)}</div><div>Selling: {formatMoney(item.sellingPrice)}</div></div></TableCell>
                     <TableCell><Badge variant={statusBadge(item.status)}>{item.status}</Badge></TableCell>
                   </TableRow>

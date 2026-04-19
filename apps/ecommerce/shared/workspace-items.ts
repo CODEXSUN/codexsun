@@ -73,12 +73,6 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Create and review purchase receipts for inbound stock intake.",
   },
   {
-    id: "stock-goods-inward",
-    name: "Stock Entry",
-    route: "/dashboard/apps/ecommerce/stock-goods-inward",
-    summary: "Record stock entry, manufacturer identity, and posting readiness after receipt.",
-  },
-  {
     id: "stock-barcodes",
     name: "Generate Barcode",
     route: "/dashboard/apps/ecommerce/stock-barcodes",

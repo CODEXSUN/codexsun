@@ -278,7 +278,7 @@ export function createDefaultProductFormValues(): ProductFormValues {
     attributes: [],
     attributeValues: [],
     variantMap: [],
-    stockItems: [createEmptyProductStockItem()],
+    stockItems: [],
     stockMovements: [],
     seo: {
       metaTitle: "",
@@ -576,7 +576,7 @@ export function toProductFormValues(product: Product): ProductFormValues {
             reservedQuantity: item.reservedQuantity,
             isActive: item.isActive,
           }))
-        : [createEmptyProductStockItem()],
+        : [],
     stockMovements: product.stockMovements.map((item) => ({
       variantId: item.variantId,
       variantClientKey: item.variantId

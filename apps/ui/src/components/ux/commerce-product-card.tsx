@@ -87,12 +87,6 @@ export function CommerceProductCard({
       .filter(Boolean)
       .join(" ")
       .trim() || null
-  const stockLabel =
-    design?.showStockMeta !== false && typeof availableQuantity === "number"
-      ? availableQuantity > 0
-        ? `${availableQuantity} in stock`
-        : "Out of stock"
-      : null
   const imageFallbackLabel = badge ?? categoryName ?? name
   const cardRadiusClassName = isDense
     ? "rounded-[1.55rem]"
@@ -125,11 +119,6 @@ export function CommerceProductCard({
     }
     return href
   }, [href])
-  const inStock =
-    typeof availableQuantity === "number" ? availableQuantity > 0 : undefined
-  const stockBadgeStyle = inStock
-    ? { backgroundColor: "#e6f7ed", color: "#0f5d3d", borderColor: "#cfe8d9" }
-    : { backgroundColor: "#ffecec", color: "#a12c2c", borderColor: "#f5c3c3" }
   const handleWishlistToggle = () => {
     const nextState = !isWishlisted
     setIsWishlisted(nextState)
@@ -264,7 +253,7 @@ export function CommerceProductCard({
       <CardContent className={cn("flex flex-1 flex-col", contentGapClassName, contentPaddingClassName)}>
         <div className="flex flex-1 flex-col gap-3">
           <div className={cn(metaSpacingClassName)}>
-            {metaLabel || stockLabel ? (
+            {metaLabel ? (
               <div
                 className={cn(
                   "flex items-center justify-between gap-3",
@@ -277,15 +266,6 @@ export function CommerceProductCard({
                 >
                   {metaLabel ?? "-"}
                 </span>
-                {stockLabel ? (
-                  <Badge
-                    variant="ghost"
-                    className="text-[11px] font-semibold uppercase tracking-[0.2em]"
-                    style={stockBadgeStyle}
-                  >
-                    {stockLabel}
-                  </Badge>
-                ) : null}
               </div>
             ) : null}
             <div className={cn("space-y-1.5", isDense && "space-y-1")}>
@@ -377,7 +357,7 @@ export function CommerceProductCard({
                     disabled={isOutOfStock}
                     onClick={onAddToCart}
                   >
-                    {isOutOfStock ? "Out of stock" : "Add to cart"}
+                    Add to cart
                   </Button>
                 ) : null}
                 {design?.showPrimaryAction !== false ? (

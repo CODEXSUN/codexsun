@@ -14,6 +14,7 @@ import { executeBillingYearEndAdjustmentControl } from "../../../billing/src/ser
 import { executeBillingYearCloseWorkflow } from "../../../billing/src/services/year-close-service.js"
 import {
   createBillingPurchaseReceipt,
+  deleteBillingPurchaseReceipt,
   getBillingPurchaseReceipt,
   listBillingPurchaseReceipts,
   updateBillingPurchaseReceipt,
@@ -521,6 +522,22 @@ export function createBillingInternalRoutes(): HttpRouteDefinition[] {
             receiptId,
             context.request.jsonBody
           )
+        )
+      },
+    }),
+    defineInternalRoute("/billing/purchase-receipt", {
+      method: "DELETE",
+      summary: "Delete a local billing purchase receipt document.",
+      handler: async (context) => {
+        const { user } = await requireBillingVoucherManage(context)
+        const receiptId = context.request.url.searchParams.get("id")
+
+        if (!receiptId) {
+          throw new ApplicationError("Billing purchase receipt id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteBillingPurchaseReceipt(context.databases.primary, user, receiptId)
         )
       },
     }),

@@ -32,6 +32,7 @@ import { billingStockUnitsMigration } from "./28-stock-units.js"
 import { billingStockBarcodeAliasesMigration } from "./29-stock-barcode-aliases.js"
 import { billingStickerPrintBatchesMigration } from "./30-sticker-print-batches.js"
 import { billingStockSaleAllocationsMigration } from "./31-stock-sale-allocations.js"
+import { billingStockAcceptanceVerificationsMigration } from "./32-stock-acceptance-verifications.js"
 
 export const billingDatabaseMigrations = [
   // ── Foundation ────────────────────────────────────────────────────────────
@@ -70,4 +71,5 @@ export const billingDatabaseMigrations = [
   billingStockBarcodeAliasesMigration,
   billingStickerPrintBatchesMigration,
   billingStockSaleAllocationsMigration,
+  billingStockAcceptanceVerificationsMigration,
 ]
