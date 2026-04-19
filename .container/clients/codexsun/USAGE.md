@@ -18,9 +18,9 @@ Cloud:
 
 ```bash
 export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
-export SECRET_OWNER_EMAIL='security@codexsun.com'
-export OPERATIONS_OWNER_EMAIL='ops@codexsun.com'
-export SUPER_ADMIN_EMAILS='admin@codexsun.com'
+export SECRET_OWNER_EMAIL='security@sundar.com'
+export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
+export SUPER_ADMIN_EMAILS='sundar@sundar.com'
 TARGET_ENV=cloud CODEXSUN_DOMAIN=codexsun.com ./.container/clients/codexsun/setup.sh
 ```
 
