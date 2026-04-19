@@ -54,3 +54,29 @@
     - [x] 8.20 remove the stock workspace sticker-batches concept and simplify stock-side menu wiring
     - [x] 8.21 add stock printing surfaces for purchase receipt, stock entry, and consolidated stock ledger
     - [x] 8.22 add a stock reports page covering receipt challan, stock entry verification, consolidated ledger, and today verification output
+
+## Next Batch
+
+- [ ] `#194` Refactor stock into a proper app-owned boundary and fix cloud deployment build failures
+  - [ ] Phase 1: stock ownership audit and extraction boundary
+    - [x] 1.1 classify stock code that must remain in `apps/api`, `apps/cxapp`, and `apps/framework` as integration-only surfaces
+    - [x] 1.2 identify stock-owned schemas, migrations, services, and helpers that still incorrectly live in `apps/billing`
+    - [x] 1.3 define the target ownership split between `apps/stock` and `apps/billing`
+  - [ ] Phase 2: app-owned stock backend extraction
+    - [x] 2.1 move stock schemas and stock workflow contracts into `apps/stock/shared`
+    - [x] 2.2 move stock table names and stock migrations into `apps/stock/database`
+    - [x] 2.3 establish a stock-owned lifecycle service entrypoint in `apps/stock/src/services` while billing remains the compatibility implementation layer for now
+    - [ ] 2.4 keep only billing voucher and accounting integration concerns in `apps/billing`
+  - [ ] Phase 3: frontend and shared stock cleanup
+    - [ ] 3.1 split oversized stock frontend files into smaller app-owned modules where the ownership is clear
+    - [ ] 3.2 remove stock-specific dependencies on billing-owned frontend helpers where they can be owned by `apps/stock`
+    - [ ] 3.3 keep cxapp page wrappers and desk registration as shell-only integration surfaces
+  - [ ] Phase 4: cloud deployment build fixes
+    - [ ] 4.1 fix broken stock shared imports that fail inside Docker and cloud builds
+    - [ ] 4.2 restore missing stock type imports and helper imports in purchase receipt and stock workspace files
+    - [ ] 4.3 fix implicit `any` errors and incompatible preview object typing in the stock frontend
+    - [ ] 4.4 make `npm run typecheck` and `npm run build` pass in the container build path
+  - [ ] Phase 5: validation and release safety
+    - [x] 5.1 run `cmd /c npm run typecheck`
+    - [x] 5.2 run `cmd /c npm run build`
+    - [x] 5.3 update execution docs and changelog with the refactor and deployment-fix results

@@ -8,6 +8,26 @@
 
 ## v-1.0.192
 
+### [v 1.0.192] 2026-04-19 - Start stock app ownership extraction without breaking deployment
+
+- moved the canonical stock operation contracts into `apps/stock/shared/schemas/stock-operations.ts` and turned the billing schema file into a compatibility re-export so stock-owned code can import from its own app boundary first
+- moved canonical stock operation table names into `apps/stock/database/table-names.ts`, then updated billing to consume those names instead of owning duplicate literals
+- added a stock-owned lifecycle service entrypoint at `apps/stock/src/services/stock-lifecycle-service.ts` and switched stock-side service orchestration and live-stock migration reads to the stock-owned contract and table-name modules
+- revalidated the deployment path after the extraction slice by running `cmd /c npm run typecheck` and `cmd /c npm run build` successfully
+
+### [v 1.0.192] 2026-04-19 - Fix container compose build path for stock framework imports
+
+- fixed the compose image build failure from `apps/stock/shared/schemas.ts` not resolving `framework/engines/inventory-engine/contracts/index.ts` inside Docker
+- updated [.container/Dockerfile](/E:/Workspace/codexsun/.container/Dockerfile) to copy the missing `framework/` tree into the build context before `npm run build`
+- revalidated the real container path with `docker compose -f .container/clients/codexsun/docker-compose.yml build`, `docker compose -f .container/database/mariadb.yml up -d`, and `docker compose -f .container/clients/codexsun/docker-compose.yml up -d`
+- confirmed the remaining stock TypeScript errors from the user log are not active in the current local workspace: `cmd /c npm run typecheck` passes, and the runtime clone only reintroduces them because it resets to `origin/main`
+
+### [v 1.0.192] 2026-04-19 - Fix stock cloud build failures and harden stock print flows
+
+- fixed the stock app TypeScript and build blockers that were breaking cloud container deployment, including broken stock shared import paths, missing stock UI type imports, invalid purchase-receipt supplier lookup usage, the barcode-designer preview stock-unit shape, and the billing goods-inward purchase receipt number check
+- updated the TypeScript project configuration so `framework/engines/*` imports participate correctly in the server build path, allowing `cmd /c npm run typecheck` and `cmd /c npm run build` to pass end to end
+- kept the new stock print flows for purchase receipt, stock entry, and consolidated stock ledger on the hidden-iframe print path so browser popup blocking does not break operator printing
+
 ### [v 1.0.192] 2026-04-19 - Expand stock operations with ledger, verification, reporting, and print flows
 
 - added a dedicated stock ledger workspace page with grouped product summary, warehouse filtering, drill-down detail, consolidated print output, and product-name resolution from the product master instead of raw stock-unit ids

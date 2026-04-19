@@ -1,12 +1,23 @@
 ## MariaDb Installation
 
-### 1. create container for mariadb
+### Clone the repository
+```
+git clone https://github.com/aaran-software/cloudxis.git
+```
+
+### create network for codexion
+
+```
+docker network create codexion-network
+```
+
+### create container for mariadb
 
 ```
 docker compose -f .container/database/mariadb.yml up -d
 ```
 
-### 2. Check mariadb is installed
+### Check mariadb is installed
 
 ```
 docker exec -it mariadb mariadb -u root -p

@@ -87,3 +87,70 @@
     - the current stock app is an operational facade over billing-owned persistence, not yet a full persistence extraction
     - periodic verification batch-save remains session/UI-level and does not yet persist its own dedicated audit records separate from stock acceptance verifications
     - stock reports and print flows currently use frontend-composed printable documents rather than server-generated report definitions
+
+## Next Batch
+
+- `#194` Refactor stock into a proper app-owned boundary and fix cloud deployment build failures
+  - Goal:
+    - move stock-owned backend contracts, persistence, and lifecycle logic into `apps/stock`
+    - reduce billing to document ownership plus accounting integration only
+    - make the cloud container build pass with `npm run build`
+  - Why this slice now:
+    - the operational stock app exists, but real stock ownership is still split between `apps/stock` and `apps/billing`
+    - the cloud Docker build currently fails during `npm run build`, blocking deployment
+    - the remaining stock frontend files still contain missing imports, implicit `any` errors, and oversized mixed-responsibility surfaces
+  - Current repository reality:
+    - `apps/api`, `apps/cxapp`, and `apps/framework` correctly contain stock integration surfaces and should not absorb stock business logic
+    - `apps/billing` still owns stock schemas, stock table names, stock migrations, and the main stock lifecycle service
+    - `apps/stock` currently acts as the operational facade and UI owner but not yet the full stock-domain owner
+  - Cloud build failures to address from the current deploy log:
+    - `apps/stock/shared/schemas.ts(39,8)` cannot resolve `../../../framework/engines/inventory-engine/contracts/index.js`
+    - `apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx(694,61)` uses `supplierContacts` on `LookupsResponse` even though that field does not exist
+    - `apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx` is missing `BillingPurchaseReceiptSerializationMode`, `ContactSummary`, and `SupplierContactDraft`
+    - `apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx` still has several implicit `any` callback parameters
+    - `apps/stock/web/src/workspace/stock-workspace-shared.tsx(26,8)` cannot resolve `../../shared/index.js`
+    - `apps/stock/web/src/workspace/stock-workspace-support-sections.tsx` is missing `normalizeInlineItemNote`, `GoodsInwardLineForm`, `VoucherInlineEditableTable`, `voucherInlineInputClassName`, and `getGoodsInwardExceptionQuantity`
+    - `apps/stock/web/src/workspace/stock-workspace-support-sections.tsx(1442,35)` uses an invalid preview stock-unit object shape
+    - `apps/stock/web/src/workspace/stock-workspace-support-sections.tsx(2141,108)` still has an implicit `any` callback parameter
+  - Architecture posture for this batch:
+    - `apps/stock`
+      - should own stock-specific schemas, migrations, table names, lifecycle services, and stock frontend helpers
+      - should expose app-owned shared contracts to `apps/api` and shell-facing consumers
+    - `apps/billing`
+      - should retain purchase and sales document ownership
+      - should call into stock services when voucher or document behavior affects inventory
+    - `apps/api`
+      - should remain the route transport layer only
+    - `apps/cxapp`
+      - should remain route-shell, desk, and page-wrapper integration only
+    - `apps/framework`
+      - should remain runtime registration and infrastructure only
+  - Scope in this batch:
+    - extract stock-owned backend code from `apps/billing` into `apps/stock`
+    - clean app-owned stock frontend imports and helper ownership
+    - fix all currently reported cloud build errors in the stock app path
+    - verify the Docker-facing build commands succeed locally
+  - Progress update:
+    - stock contracts now have a canonical app-owned file at `apps/stock/shared/schemas/stock-operations.ts`
+    - `apps/billing/shared/schemas/stock-operations.ts` now acts as a compatibility re-export to the stock-owned schema module
+    - stock operation table names now have a canonical owner in `apps/stock/database/table-names.ts`, with billing consuming those names through a compatibility import
+    - stock-owned code paths such as `apps/stock/shared/schemas.ts`, `apps/stock/src/services/stock-manager-service.ts`, and `apps/stock/database/migration/01-live-stock.ts` now consume stock-local contracts and table names
+    - `apps/stock/src/services/stock-lifecycle-service.ts` now exists as the stock-owned lifecycle service entrypoint, while the full lifecycle implementation still remains billing-backed for this slice
+    - the deployment gate remains green after the extraction boundary step: `cmd /c npm run typecheck` and `cmd /c npm run build` both pass
+  - Constraints:
+    - do not move legitimate API transport, cxapp shell routing, or framework runtime registration into `apps/stock`
+    - do not break billing document ownership while extracting stock-owned behavior
+    - prefer focused file extraction over expanding the already large stock frontend files further
+  - Acceptance criteria:
+    - stock-owned schemas, migrations, and lifecycle services live under `apps/stock`
+    - billing no longer owns stock runtime logic beyond document/accounting integration concerns
+    - `cmd /c npm run typecheck` passes for the repository state needed by the stock build
+    - `cmd /c npm run build` succeeds in the same way required by the cloud container build
+  - Planned validation:
+    - run `cmd /c npm run typecheck`
+    - run `cmd /c npm run build`
+    - if needed, run the same Docker build stage locally to confirm the cloud path is unblocked
+  - Residual risk to watch:
+    - shared `framework/*` imports may still need a cleaner repo-wide TypeScript path strategy
+    - extracting the full stock lifecycle implementation out of billing may reveal hidden coupling in purchase receipt and goods inward persistence
+    - the current step moved canonical ownership boundaries first, but the deep lifecycle logic is still physically implemented under `apps/billing/src/services/stock-lifecycle-service.ts`

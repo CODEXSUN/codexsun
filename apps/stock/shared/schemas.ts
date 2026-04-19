@@ -31,12 +31,12 @@ import {
   type BillingGoodsInwardUpsertPayload,
   type BillingPurchaseReceipt,
   type BillingPurchaseReceiptUpsertPayload,
-} from "../../billing/shared/index.js"
+} from "./schemas/stock-operations.js"
 import type {
   InventoryAvailability,
   InventoryStockReservation,
   InventoryStockTransfer,
-} from "../../../framework/engines/inventory-engine/contracts/index.js"
+} from "../../../framework/engines/inventory-engine/contracts/index.ts"
 
 export const stockTransferLineInputSchema = z.object({
   id: z.string().trim().min(1),

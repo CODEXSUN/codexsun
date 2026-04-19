@@ -45,6 +45,7 @@
     "apps/framework/src/di/browser-container.ts",
     "apps/framework/src/di/service-container.ts",
     "apps/framework/src/di/tokens.ts",
+    "framework/**/*.ts",
     "apps/*/web/**/*.ts",
     "apps/*/web/**/*.tsx",
     "apps/*/src/app-manifest.ts",

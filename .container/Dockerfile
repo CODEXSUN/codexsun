@@ -12,6 +12,11 @@ COPY package.json package-lock.json ./
 RUN npm ci --include=dev
 
 COPY apps ./apps
+COPY clients ./clients
+COPY cxapp ./cxapp
+COPY docs ./docs
+COPY framework ./framework
+COPY industry ./industry
 COPY public ./public
 COPY .container ./.container
 COPY components.json ./

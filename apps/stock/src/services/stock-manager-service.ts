@@ -23,7 +23,7 @@ import {
   listBillingStockUnits,
   postBillingGoodsInwardToInventory,
   resolveBillingStockBarcode,
-} from "../../../billing/src/services/stock-lifecycle-service.js"
+} from "./stock-lifecycle-service.js"
 import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { resolveCxappTenantContext } from "../../../cxapp/src/services/tenant-context-service.js"
 import {
@@ -46,14 +46,14 @@ import {
   type StockTransferUpsertPayload,
   type StockVerificationSummary,
 } from "../../shared/index.js"
-import type {
-  BillingGoodsInward,
-  BillingPurchaseReceipt,
-  BillingStockBarcodeAlias,
-  BillingStockUnit,
-} from "../../../billing/shared/index.js"
-import { billingStockUnitSchema } from "../../../billing/shared/index.js"
-import { billingTableNames } from "../../../billing/database/table-names.js"
+import {
+  billingStockUnitSchema,
+  type BillingGoodsInward,
+  type BillingPurchaseReceipt,
+  type BillingStockBarcodeAlias,
+  type BillingStockUnit,
+} from "../../shared/schemas/stock-operations.js"
+import { stockOperationsTableNames } from "../../database/table-names.js"
 import { getStorePayloadById, listStorePayloads } from "../../../billing/src/services/store.js"
 import {
   listLiveStockAvailability,
@@ -231,7 +231,7 @@ export async function resolveStockBarcode(
 export async function listStockBarcodeAliases(database: Kysely<unknown>) {
   const items = (await listStorePayloads(
     database,
-    billingTableNames.stockBarcodeAliases,
+    stockOperationsTableNames.stockBarcodeAliases,
     billingStockBarcodeAliasSchema
   )) as BillingStockBarcodeAlias[]
   return {
@@ -242,7 +242,7 @@ export async function listStockBarcodeAliases(database: Kysely<unknown>) {
 export async function getStockBarcodeAlias(database: Kysely<unknown>, barcodeAliasId: string) {
   const item = await getStorePayloadById(
     database,
-    billingTableNames.stockBarcodeAliases,
+    stockOperationsTableNames.stockBarcodeAliases,
     barcodeAliasId,
     billingStockBarcodeAliasSchema
   )
@@ -272,12 +272,12 @@ export async function getStockPurchaseReceiptLookups(database: Kysely<unknown>) 
   const [purchaseReceipts, goodsInward] = (await Promise.all([
     listStorePayloads(
       database,
-      billingTableNames.purchaseReceipts,
+      stockOperationsTableNames.purchaseReceipts,
       billingPurchaseReceiptSchema
     ),
     listStorePayloads(
       database,
-      billingTableNames.goodsInwardNotes,
+      stockOperationsTableNames.goodsInwardNotes,
       billingGoodsInwardSchema
     ),
   ])) as [BillingPurchaseReceipt[], BillingGoodsInward[]]
@@ -397,7 +397,7 @@ export async function getStockReconciliation(
     listLiveStockBalances(database),
     listStorePayloads(
       database,
-      billingTableNames.stockUnits,
+      stockOperationsTableNames.stockUnits,
       billingStockUnitSchema
     ) as Promise<BillingStockUnit[]>,
   ])

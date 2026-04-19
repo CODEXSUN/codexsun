@@ -116,13 +116,13 @@ async function buildGoodsInwardRecord(
     postedByUserId: existing?.postedByUserId ?? null,
   })
 
-  if (record.purchaseReceiptNumber !== purchaseReceipt.receiptNumber) {
+  if (record.purchaseReceiptNumber !== purchaseReceipt.entryNumber) {
     throw new ApplicationError(
       "Goods inward purchase receipt number must match the linked purchase receipt.",
       {
         purchaseReceiptId: record.purchaseReceiptId,
         purchaseReceiptNumber: record.purchaseReceiptNumber,
-        expectedReceiptNumber: purchaseReceipt.receiptNumber,
+        expectedReceiptNumber: purchaseReceipt.entryNumber,
       },
       409
     )

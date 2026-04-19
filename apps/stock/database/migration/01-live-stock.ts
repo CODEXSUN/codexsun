@@ -1,14 +1,13 @@
 import type { Kysely } from "kysely"
 
-import { billingTableNames } from "../../../billing/database/table-names.js"
 import {
   billingGoodsInwardSchema,
   billingStockSaleAllocationSchema,
   billingStockUnitSchema,
-} from "../../../billing/shared/index.js"
+} from "../../shared/schemas/stock-operations.js"
 import { listStorePayloads } from "../../../billing/src/services/store.js"
 import { defineDatabaseMigration } from "../../../framework/src/runtime/database/process/types.js"
-import { stockTableNames } from "../table-names.js"
+import { stockOperationsTableNames, stockTableNames } from "../table-names.js"
 import { applyLiveStockMovement } from "../../src/services/live-stock-service.js"
 
 type DynamicDatabase = Record<string, Record<string, unknown>>
@@ -101,13 +100,13 @@ export const stockLiveStockMigration = defineDatabaseMigration({
     }
 
     const [goodsInwards, saleAllocations, stockUnits] = await Promise.all([
-      listStorePayloads(database, billingTableNames.goodsInwardNotes, billingGoodsInwardSchema),
+      listStorePayloads(database, stockOperationsTableNames.goodsInwardNotes, billingGoodsInwardSchema),
       listStorePayloads(
         database,
-        billingTableNames.stockSaleAllocations,
+        stockOperationsTableNames.stockSaleAllocations,
         billingStockSaleAllocationSchema
       ),
-      listStorePayloads(database, billingTableNames.stockUnits, billingStockUnitSchema),
+      listStorePayloads(database, stockOperationsTableNames.stockUnits, billingStockUnitSchema),
     ])
 
     for (const inward of goodsInwards) {

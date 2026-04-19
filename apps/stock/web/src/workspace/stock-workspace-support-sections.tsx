@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import { PrinterIcon } from "lucide-react"
 
 import type { CommonModuleListResponse, ProductListResponse } from "@core/shared"
+import type { BillingStockUnit } from "@billing/shared"
+import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,11 +19,14 @@ import {
   FormGrid,
   buildWarehouseOptions,
   formatQuantity,
+  getGoodsInwardExceptionQuantity,
+  normalizeInlineItemNote,
   printStockUnitBarcodes,
   requestJson,
   SectionIntro,
   StateCard,
   useJsonResource,
+  voucherInlineInputClassName,
 } from "./stock-workspace-shared"
 import {
   createCustomBarcodePrintDesignerPreset,
@@ -42,6 +47,7 @@ import type {
   GoodsInwardListResponse,
   GoodsInwardPostingResponse,
   GoodsInwardResponse,
+  GoodsInwardLineForm,
   LookupsResponse,
   MovementListResponse,
   PurchaseReceiptListResponse,
@@ -1331,8 +1337,9 @@ export function BarcodeSection() {
   )
 }
 
-const barcodeDesignerPreviewUnit = {
+const barcodeDesignerPreviewUnit: BillingStockUnit = {
   id: "preview-stock-unit",
+  goodsInwardLineId: "goods-inward-line:preview",
   barcodeValue: "AST-KRT-01-0001",
   batchCode: "BATCH-APR-2026",
   serialNumber: "AST-KRT-01-0001",
@@ -1340,12 +1347,30 @@ const barcodeDesignerPreviewUnit = {
   productId: "product:preview",
   productCode: "AST-KRT-01",
   productName: "Aster Cotton Kurta",
+  variantId: null,
+  variantName: null,
   warehouseId: "warehouse:preview",
   warehouseName: "Main Warehouse",
   purchaseReceiptId: "purchase-receipt:preview",
+  purchaseReceiptNumber: "PR-0001",
   goodsInwardId: "goods-inward:preview",
   goodsInwardNumber: "GIN-0001",
+  unitSequence: 1,
+  quantity: 1,
+  manufacturerBarcode: null,
+  manufacturerSerial: null,
+  attributeSummary: null,
+  variantSummary: null,
+  mrp: null,
+  sellingPrice: null,
   status: "available",
+  receivedAt: new Date().toISOString(),
+  availableAt: new Date().toISOString(),
+  allocatedAt: null,
+  soldAt: null,
+  soldVoucherId: null,
+  soldVoucherNumber: null,
+  isActive: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 }

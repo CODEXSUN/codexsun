@@ -3,12 +3,14 @@ import { EyeIcon, PrinterIcon, SparklesIcon } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 import type {
+  BillingPurchaseReceiptSerializationMode,
   BillingPurchaseReceipt,
   BillingPurchaseReceiptBarcodeGenerationResponse,
 } from "@billing/shared"
 import type {
   ContactListResponse,
   ContactResponse,
+  ContactSummary,
   CommonModuleListResponse,
   ProductListResponse,
 } from "@core/shared"
@@ -87,6 +89,7 @@ import type {
   PurchaseReceiptListResponse,
   PurchaseReceiptResponse,
   PurchaseReceiptSerializationLineForm,
+  SupplierContactDraft,
   StockUnitListResponse,
   StockVerificationSummary,
 } from "./stock-workspace-shared"
@@ -590,6 +593,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     "/internal/v1/stock/purchase-receipts",
     [refreshNonce]
   )
+  const contactLookup = useJsonResource<ContactListResponse>("/internal/v1/core/contacts", [refreshNonce])
   const productLookup = useJsonResource<ProductListResponse>("/internal/v1/core/products", [refreshNonce])
   const stockUnits = useJsonResource<StockUnitListResponse>("/internal/v1/stock/stock-units", [refreshNonce])
   const [postingDate, setPostingDate] = useState(new Date().toISOString().slice(0, 10))
@@ -608,6 +612,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     detail.isLoading ||
       lookups.isLoading ||
       receiptList.isLoading ||
+      contactLookup.isLoading ||
       productLookup.isLoading ||
       stockUnits.isLoading ||
       isGenerating ||
@@ -658,6 +663,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     detail.isLoading ||
     lookups.isLoading ||
     receiptList.isLoading ||
+    contactLookup.isLoading ||
     productLookup.isLoading ||
     stockUnits.isLoading
   ) {
@@ -668,12 +674,13 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     return <StateCard message={detail.error ?? "Purchase receipt detail is unavailable."} />
   }
 
-  if (lookups.error || receiptList.error || productLookup.error || stockUnits.error) {
+  if (lookups.error || receiptList.error || contactLookup.error || productLookup.error || stockUnits.error) {
     return (
       <StateCard
         message={
           lookups.error ??
           receiptList.error ??
+          contactLookup.error ??
           productLookup.error ??
           stockUnits.error ??
           "Purchase receipt lookups are unavailable."
@@ -684,6 +691,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
 
   const item = detail.data.item
   const receiptItems = receiptList.data?.items ?? []
+  const supplierContacts = contactLookup.data?.items ?? []
   const products = productLookup.data?.items ?? []
   const receiptStockUnits = (stockUnits.data?.items ?? []).filter(
     (stockUnit) => stockUnit.purchaseReceiptId === item.id
@@ -691,7 +699,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
   const isInwardStarted = receiptStockUnits.length > 0
   const productNameById = new Map(products.map((product) => [product.id, product.name]))
   const productCodeById = new Map(products.map((product) => [product.id, product.code]))
-  const supplierName = getSupplierDisplayName(lookups.data?.supplierContacts ?? [], item.supplierId)
+  const supplierName = getSupplierDisplayName(supplierContacts, item.supplierId)
   const warehouseName = item.warehouseId
   const currentReceiptIndex = receiptItems.findIndex((entry) => entry.id === item.id)
   const nextReceipt = currentReceiptIndex >= 0 ? receiptItems[currentReceiptIndex + 1] : null

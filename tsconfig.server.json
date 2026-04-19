@@ -28,11 +28,12 @@
       "@cli/*": ["./apps/cli/*"]
     },
     "outDir": "./build/app/cxapp/server",
-    "rootDir": "./apps",
+    "rootDir": ".",
     "sourceMap": true
   },
   "include": [
     "apps/framework/src/**/*.ts",
+    "framework/**/*.ts",
     "apps/*/src/**/*.ts",
     "apps/*/database/**/*.ts",
     "apps/*/helper/**/*.ts",

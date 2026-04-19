@@ -23,7 +23,7 @@ import type {
   StockReservation,
   StockTransfer,
   StockVerificationSummary,
-} from "../../shared/index.js"
+} from "../../../shared/index.ts"
 import { loadBarcodePrintDesignerSettings } from "./stock-print-designer"
 import { showAppToast } from "@/components/ui/app-toast"
 import { Badge } from "@/components/ui/badge"
