@@ -90,6 +90,81 @@
 
 ## Next Batch
 
+- `#198` Fix shared `Button` `asChild` prop forwarding for campaign designer colors
+  - Goal:
+    - make campaign CTA colors from the designer actually render on the live preview and storefront card
+    - fix the real shared render bug instead of compensating in campaign-specific code
+  - Why this slice now:
+    - the backend and admin state now return the same campaign design values, but the rendered buttons still do not match the controls
+    - the remaining mismatch indicates a component render-path bug rather than a settings persistence issue
+  - Current repository reality:
+    - the campaign block passes inline `style` props into shared `Button` instances
+    - those buttons use `asChild` with a `Link`
+    - the shared `Button` component currently merges only `className` in the `asChild` branch and drops `style` plus other forwarded props
+  - Architecture posture for this batch:
+    - keep the fix in the shared `apps/ui` button primitive because this is a generic prop-forwarding defect
+    - do not add campaign-specific workarounds for a shared primitive bug
+  - Validation completed:
+    - confirmed the `Button` `asChild` branch dropped inline styles passed from the campaign block
+    - updated the shared button primitive to forward props alongside merged classes in the `asChild` render path
+    - confirmed the campaign designer/backend mismatch was not caused by campaign settings persistence after the backend normalization landed
+    - logged the concrete render-path correction in `apps/ui/src/components/ui/button.tsx`, where `asChild` now forwards `style` and other passthrough props to the child `Link`
+- `#197` Refine storefront campaign card alignment and secondary CTA color
+  - Goal:
+    - center the eyebrow text in the storefront campaign card
+    - keep the secondary campaign CTA on a brand-matched base tone instead of a washed-out white button
+  - Why this slice now:
+    - the live storefront campaign card shows left-biased eyebrow text inside an otherwise centered composition
+    - the secondary CTA currently appears too light against the dark campaign panel and does not match the card base well
+  - Current repository reality:
+    - the storefront home campaign section renders through the shared `apps/ui/src/components/blocks/campaign-trust-section.tsx` block
+    - the block currently left-aligns the eyebrow line and directly trusts the configured secondary button color
+    - if the configured secondary button background is near-white, the CTA can lose contrast and visual hierarchy on the dark panel
+  - Architecture posture for this batch:
+    - keep the fix in the shared block because both storefront mobile and desktop consume the same component
+    - avoid route-local overrides for a shared visual defect
+  - Scope in this batch:
+    - update eyebrow alignment in the shared campaign block
+    - add a safe warm-neutral fallback palette when the configured secondary button background is excessively light
+  - Constraints:
+    - preserve existing designer-configurable campaign colors for normal valid darker palettes
+    - keep the change limited to the campaign card surface
+  - Validation completed:
+    - updated the shared campaign card block only
+    - centered the eyebrow text in the card content flow
+    - added a light-color guard so near-white secondary CTA backgrounds fall back to a warmer base-matched palette with darker text
+- `#196` Remove the duplicate storefront vertical scrollbar gutter
+  - Goal:
+    - remove the extra visible vertical scrollbar or gutter shown on long storefront pages
+    - keep the storefront shell on the normal document scroll path instead of introducing nested page scrolling
+  - Why this slice now:
+    - the storefront homepage currently shows a second vertical scrollbar or gutter beside the browser scrollbar
+    - the issue is a UX regression on the public commerce surface and should be corrected without layout churn
+  - Current repository reality:
+    - the storefront layout wrappers do not define a dedicated page-height `overflow-y-auto` container
+    - the shared UI base CSS applies scrollbar styling and `scrollbar-gutter: stable` to both `html` and `body`
+    - on long storefront pages, styling both roots as scroll hosts can produce the duplicate right-edge scrollbar or gutter effect
+  - Architecture posture for this batch:
+    - keep the fix in the shared UI stylesheet, because the issue originates from root scroll-host styling rather than an ecommerce-owned content block
+    - do not add storefront-only hacks unless the shared root-style correction proves insufficient
+  - Scope in this batch:
+    - update the shared base CSS files used by the web shell
+    - leave storefront layout structure and section composition unchanged
+  - Constraints:
+    - preserve horizontal overflow clipping already relied on by storefront hero and rail sections
+    - avoid introducing a second route-specific scroll model
+  - Acceptance criteria:
+    - only one root scroll container owns the stable scrollbar gutter styling
+    - storefront pages no longer show the duplicate right-edge scrollbar effect
+  - Planned validation:
+    - inspect the shared CSS diff to confirm only root scrollbar hosting changed
+    - if time permits, run a lightweight frontend validation command
+  - Residual risk to watch:
+    - if a browser-specific scrollbar quirk still remains after the root-style fix, the next step would be route-level repro and targeted shell diagnostics
+  - Validation completed:
+    - confirmed the storefront layout wrappers do not introduce a dedicated vertical `overflow-y-auto` page container
+    - narrowed the issue to shared root scroll-host styling in `apps/ui/src/assets/css/index.css` and `apps/ui/src/assets/css/app.css`
+    - updated both shared stylesheets so `html` remains the single scrollbar host while `body` keeps only horizontal overflow clipping
 - `#194` Refactor stock into a proper app-owned boundary and fix cloud deployment build failures
   - Goal:
     - move stock-owned backend contracts, persistence, and lifecycle logic into `apps/stock`

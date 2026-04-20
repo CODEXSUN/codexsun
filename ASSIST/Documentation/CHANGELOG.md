@@ -8,6 +8,12 @@
 
 ## v-1.0.192
 
+### [v 1.0.192] 2026-04-20 - Fix storefront campaign designer CTA color sync
+
+- centered the campaign-card eyebrow in the shared campaign block and tightened the secondary CTA fallback palette so washed-out near-white values resolve to a warmer base-matched tone
+- moved campaign button-color normalization into shared ecommerce code, then applied it across backend settings reads, campaign save responses, admin designer state, and the storefront campaign card renderer so all layers resolve the same campaign design values
+- fixed the actual render-path bug in `apps/ui/src/components/ui/button.tsx` by forwarding `style` and other passthrough props in the shared `Button` `asChild` branch, allowing designer-backed CTA colors to reach the child `Link` element that renders the storefront campaign buttons
+
 ### [v 1.0.192] 2026-04-19 - Normalize multi-client Docker deployment and clean-install tooling
 
 - normalized all client compose files under `.container/clients/*` to the same runtime environment baseline and added complete deployment folders for `dealodeal_com`, `lifeshoppy_com`, `horseclub_in`, `aaranerp_com`, `spotmynumber_com`, and `thetirupurtextiles_com`

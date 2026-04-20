@@ -1,7 +1,10 @@
 import { Plus, Save, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import type { StorefrontCampaignSection } from "@ecommerce/shared"
+import {
+  normalizeStorefrontCampaignDesign,
+  type StorefrontCampaignSection,
+} from "@ecommerce/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { CampaignTrustSection } from "@/components/blocks/campaign-trust-section"
 import { Button } from "@/components/ui/button"
@@ -88,6 +91,15 @@ export function StorefrontCampaignSection() {
   const hasValidationIssues = validationIssues.length > 0
   useGlobalLoading(isLoading || isSaving)
 
+  function normalizeCampaignDraft(
+    value: StorefrontCampaignSection
+  ): StorefrontCampaignSection {
+    return {
+      ...value,
+      design: normalizeStorefrontCampaignDesign(value.design),
+    }
+  }
+
   useEffect(() => {
     let cancelled = false
 
@@ -103,7 +115,7 @@ export function StorefrontCampaignSection() {
 
         const nextConfig = await storefrontApi.getStorefrontCampaign(accessToken)
         if (!cancelled) {
-          setDraft(nextConfig)
+          setDraft(normalizeCampaignDraft(nextConfig))
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -146,7 +158,7 @@ export function StorefrontCampaignSection() {
       }
 
       const saved = await storefrontApi.updateStorefrontCampaign(accessToken, draft)
-      setDraft(saved)
+      setDraft(normalizeCampaignDraft(saved))
       invalidateStorefrontShellData()
       showRecordToast({
         entity: "Campaign",
@@ -424,12 +436,12 @@ export function StorefrontCampaignSection() {
                     <ColorField label="Eyebrow text color" value={draft.design.campaignEyebrowColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, campaignEyebrowColor: value } })} />
                     <ColorField label="Heading text color" value={draft.design.campaignTitleColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, campaignTitleColor: value } })} />
                     <ColorField label="Description text color" value={draft.design.campaignSummaryColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, campaignSummaryColor: value } })} />
-                    <ColorField label="Primary button bg" value={draft.design.primaryButtonBackgroundColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, primaryButtonBackgroundColor: value } })} />
-                    <ColorField label="Primary button text" value={draft.design.primaryButtonTextColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, primaryButtonTextColor: value } })} />
-                    <ColorField label="Primary button border" value={draft.design.primaryButtonBorderColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, primaryButtonBorderColor: value } })} />
-                    <ColorField label="Secondary button bg" value={draft.design.secondaryButtonBackgroundColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, secondaryButtonBackgroundColor: value } })} />
-                    <ColorField label="Secondary button text" value={draft.design.secondaryButtonTextColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, secondaryButtonTextColor: value } })} />
-                    <ColorField label="Secondary button border" value={draft.design.secondaryButtonBorderColor} onChange={(value) => setDraft({ ...draft, design: { ...draft.design, secondaryButtonBorderColor: value } })} />
+                    <ColorField label="Primary button bg" value={draft.design.primaryButtonBackgroundColor} onChange={(value) => setDraft(normalizeCampaignDraft({ ...draft, design: { ...draft.design, primaryButtonBackgroundColor: value } }))} />
+                    <ColorField label="Primary button text" value={draft.design.primaryButtonTextColor} onChange={(value) => setDraft(normalizeCampaignDraft({ ...draft, design: { ...draft.design, primaryButtonTextColor: value } }))} />
+                    <ColorField label="Primary button border" value={draft.design.primaryButtonBorderColor} onChange={(value) => setDraft(normalizeCampaignDraft({ ...draft, design: { ...draft.design, primaryButtonBorderColor: value } }))} />
+                    <ColorField label="Secondary button bg" value={draft.design.secondaryButtonBackgroundColor} onChange={(value) => setDraft(normalizeCampaignDraft({ ...draft, design: { ...draft.design, secondaryButtonBackgroundColor: value } }))} />
+                    <ColorField label="Secondary button text" value={draft.design.secondaryButtonTextColor} onChange={(value) => setDraft(normalizeCampaignDraft({ ...draft, design: { ...draft.design, secondaryButtonTextColor: value } }))} />
+                    <ColorField label="Secondary button border" value={draft.design.secondaryButtonBorderColor} onChange={(value) => setDraft(normalizeCampaignDraft({ ...draft, design: { ...draft.design, secondaryButtonBorderColor: value } }))} />
                   </div>
                 </div>
 

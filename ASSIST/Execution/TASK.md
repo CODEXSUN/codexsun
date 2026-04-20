@@ -57,6 +57,36 @@
 
 ## Next Batch
 
+- [x] `#198` Fix shared `Button` `asChild` prop forwarding for campaign designer colors
+  - [x] Phase 1: render-path audit
+    - [x] 1.1 trace the campaign CTA styling from designer state into the shared button component
+    - [x] 1.2 confirm whether `Button` forwards inline style props when `asChild` is used
+  - [x] Phase 2: shared button fix
+    - [x] 2.1 forward `style` and other passthrough props in the shared `Button` `asChild` branch
+    - [x] 2.2 keep existing child class merging intact
+  - [x] Phase 3: verification
+    - [x] 3.1 confirm the campaign card CTA colors are now controlled by the designer-backed inline styles
+    - [x] 3.2 keep the fix shared so all `asChild` button surfaces benefit
+- [x] `#197` Refine storefront campaign card alignment and secondary CTA color
+  - [x] Phase 1: campaign card source audit
+    - [x] 1.1 locate the shared campaign card block used by the storefront home campaign section
+    - [x] 1.2 confirm whether the eyebrow alignment and secondary CTA color are controlled in the shared block
+  - [x] Phase 2: shared block update
+    - [x] 2.1 center the campaign eyebrow text within the card shell
+    - [x] 2.2 replace washed-out secondary CTA rendering with a base-matched warm neutral fallback palette
+  - [x] Phase 3: verification
+    - [x] 3.1 keep the change limited to the campaign card block used by both desktop and mobile storefront sections
+    - [x] 3.2 update execution notes with the rendering rule for overly light secondary CTA colors
+- [x] `#196` Remove the duplicate storefront vertical scrollbar gutter
+  - [x] Phase 1: overflow-host audit
+    - [x] 1.1 confirm whether the duplicate scrollbar comes from shared shell styles or storefront-local layout wrappers
+    - [x] 1.2 identify the minimal boundary-correct fix without changing storefront section composition
+  - [x] Phase 2: shared CSS correction
+    - [x] 2.1 update the shared web stylesheet so only one root scroll container owns the stable scrollbar gutter
+    - [x] 2.2 keep horizontal overflow clipping intact for the storefront shell
+  - [x] Phase 3: verification
+    - [x] 3.1 verify the shared style diff only affects scrollbar hosting, not storefront layout spacing
+    - [x] 3.2 update execution notes with the cause and residual risk
 - [ ] `#194` Refactor stock into a proper app-owned boundary and fix cloud deployment build failures
   - [ ] Phase 1: stock ownership audit and extraction boundary
     - [x] 1.1 classify stock code that must remain in `apps/api`, `apps/cxapp`, and `apps/framework` as integration-only surfaces

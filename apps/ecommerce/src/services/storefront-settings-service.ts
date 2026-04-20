@@ -31,6 +31,8 @@ import {
   type StorefrontSettingsVersionHistoryEntry,
   type StorefrontSettingsVersionHistoryResponse,
   type StorefrontSettingsWorkflowStatus,
+  normalizeStorefrontCampaignDesign,
+  normalizeStorefrontSettingsCampaignDesign,
 } from "../../shared/index.js"
 import { ecommerceTableNames } from "../../database/table-names.js"
 import { defaultStorefrontSettings } from "../data/storefront-seed.js"
@@ -427,12 +429,14 @@ function buildMergedStorefrontSettings(
             : base.brandShowcase.cards,
         }
       : base.brandShowcase,
-    campaignDesign: campaignDesignRecord
-      ? {
-          ...base.campaignDesign,
-          ...campaignDesignRecord,
-        }
-      : base.campaignDesign,
+    campaignDesign: normalizeStorefrontCampaignDesign(
+      campaignDesignRecord
+        ? {
+            ...base.campaignDesign,
+            ...campaignDesignRecord,
+          }
+        : base.campaignDesign
+    ),
     legalPages: legalPagesRecord
       ? {
           shipping: asRecord(legalPagesRecord.shipping)
@@ -697,7 +701,9 @@ export async function getStorefrontSettings(
     ecommerceTableNames.storefrontSettings
   )
 
-  return buildMergedStorefrontSettings(defaultStorefrontSettings, stored ?? {})
+  return normalizeStorefrontSettingsCampaignDesign(
+    buildMergedStorefrontSettings(defaultStorefrontSettings, stored ?? {})
+  )
 }
 
 export async function saveStorefrontSettings(
@@ -958,7 +964,7 @@ export async function getStorefrontCampaign(
     },
     campaign: settings.sections.cta,
     trustNotes: settings.trustNotes,
-    design: settings.campaignDesign,
+    design: normalizeStorefrontCampaignDesign(settings.campaignDesign),
   })
 }
 
@@ -1003,6 +1009,6 @@ export async function saveStorefrontCampaign(
     },
     campaign: nextSettings.sections.cta,
     trustNotes: nextSettings.trustNotes,
-    design: nextSettings.campaignDesign,
+    design: normalizeStorefrontCampaignDesign(nextSettings.campaignDesign),
   })
 }

@@ -1,6 +1,7 @@
 import { ArrowRight, ShieldCheck, Sparkles, Truck } from "lucide-react"
 import { Link } from "react-router-dom"
 
+import { normalizeStorefrontCampaignDesign } from "@ecommerce/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -80,6 +81,21 @@ export function CampaignTrustSection({
       hasContent(campaign.primaryCtaLabel) ||
       hasContent(campaign.secondaryCtaLabel))
   const hasTrust = visibility?.trust !== false && trustNotes.length > 0
+  const normalizedDesign = design
+    ? normalizeStorefrontCampaignDesign(design)
+    : undefined
+  const primaryButtonBackgroundColor =
+    normalizedDesign?.primaryButtonBackgroundColor ?? "#fffaf5"
+  const primaryButtonTextColor =
+    normalizedDesign?.primaryButtonTextColor ?? "#241913"
+  const primaryButtonBorderColor =
+    normalizedDesign?.primaryButtonBorderColor ?? "#ffffff"
+  const secondaryButtonBackgroundColor =
+    normalizedDesign?.secondaryButtonBackgroundColor ?? "#543724"
+  const secondaryButtonTextColor =
+    normalizedDesign?.secondaryButtonTextColor ?? "#fff4e8"
+  const secondaryButtonBorderColor =
+    normalizedDesign?.secondaryButtonBorderColor ?? "#b89473"
 
   if (!hasCampaign && !hasTrust) {
     return null
@@ -98,7 +114,7 @@ export function CampaignTrustSection({
           <CardContent className="flex h-full flex-col items-center justify-center gap-5 p-7 text-center">
             {hasContent(campaign.eyebrow) ? (
               <p
-                className="w-full text-left text-xs font-semibold uppercase tracking-[0.22em]"
+                className="w-full text-center text-xs font-semibold uppercase tracking-[0.22em]"
                 style={{ color: design?.campaignEyebrowColor ?? "#f2c48a" }}
               >
                 {campaign.eyebrow}
@@ -128,9 +144,9 @@ export function CampaignTrustSection({
                   asChild
                   className="h-11 w-full rounded-full border px-5 shadow-[0_16px_34px_-20px_rgba(10,6,3,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-22px_rgba(10,6,3,0.62)] sm:w-auto"
                   style={{
-                    backgroundColor: design?.primaryButtonBackgroundColor ?? "#fffaf5",
-                    color: design?.primaryButtonTextColor ?? "#241913",
-                    borderColor: design?.primaryButtonBorderColor ?? "#ffffff",
+                    backgroundColor: primaryButtonBackgroundColor,
+                    color: primaryButtonTextColor,
+                    borderColor: primaryButtonBorderColor,
                   }}
                 >
                   <Link
@@ -148,9 +164,9 @@ export function CampaignTrustSection({
                   variant="outline"
                   className="h-11 w-full rounded-full border px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_34px_-22px_rgba(0,0,0,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_40px_-24px_rgba(0,0,0,0.62)] sm:w-auto"
                   style={{
-                    backgroundColor: design?.secondaryButtonBackgroundColor ?? "#543724",
-                    color: design?.secondaryButtonTextColor ?? "#fff4e8",
-                    borderColor: design?.secondaryButtonBorderColor ?? "#b89473",
+                    backgroundColor: secondaryButtonBackgroundColor,
+                    color: secondaryButtonTextColor,
+                    borderColor: secondaryButtonBorderColor,
                   }}
                 >
                   <Link

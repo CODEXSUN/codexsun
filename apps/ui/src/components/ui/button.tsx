@@ -82,7 +82,9 @@ function Button({
     const child = children as React.ReactElement<{ className?: string }>
 
     return React.cloneElement(child, {
+      "data-slot": "button",
       className: cn(resolvedClassName, child.props.className),
+      ...props,
     })
   }
 
