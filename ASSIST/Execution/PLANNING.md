@@ -90,6 +90,19 @@
 
 ## Next Batch
 
+- `#205` Fix mail settings save payload coercion
+  - Goal:
+    - restore the mail settings admin save path by making the shared request contract accept the value shapes the form can realistically send
+  - Why this slice now:
+    - the mail settings page currently fails save with `Invalid request payload`
+    - that means the request is reaching the route but being rejected by the Zod payload schema before the runtime `.env` save logic runs
+  - Current repository reality:
+    - the mail settings screen reuses the generic runtime settings form and posts a `values` object to `/internal/v1/cxapp/mail-settings`
+    - the backend mail settings contract expected strict booleans and strings only, which is brittle when UI transport can send boolean-like strings or number-like inputs
+  - Validation completed:
+    - updated `apps/framework/shared/mail-settings.ts` so the shared mail settings schema coerces string and number-like inputs to strings
+    - updated the same schema to coerce common boolean string values such as `true`, `false`, `1`, and `0` into booleans for `SMTP_SECURE` and `AUTH_OTP_DEBUG`
+    - `npm run typecheck`
 - `#204` Prevent the Frappe workspace from collapsing into a raw internal server error
   - Goal:
     - keep the default Frappe workspace usable even when connector env settings are invalid or one ancillary backend panel fails

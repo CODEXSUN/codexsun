@@ -57,6 +57,15 @@
 
 ## Next Batch
 
+- [x] `#205` Fix mail settings save payload coercion
+  - [x] Phase 1: save-path audit
+    - [x] 1.1 trace the mail settings admin screen payload into the backend save schema
+    - [x] 1.2 confirm that the request contract is rejecting form-style value transport with `Invalid request payload`
+  - [x] Phase 2: payload compatibility fix
+    - [x] 2.1 make the shared mail settings save schema coerce string/number-like values into strings
+    - [x] 2.2 make the shared mail settings save schema coerce common boolean strings into booleans
+  - [x] Phase 3: validation
+    - [x] 3.1 run `npm run typecheck`
 - [x] `#204` Prevent the Frappe workspace from collapsing into a raw internal server error
   - [x] Phase 1: failure-path audit
     - [x] 1.1 inspect the Frappe overview and connector read paths that can fail on first workspace load

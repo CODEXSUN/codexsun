@@ -8,6 +8,11 @@
 
 ## v-1.0.194
 
+### [v 1.0.194] 2026-04-20 - Fix mail settings save payload coercion
+
+- fixed `apps/framework/shared/mail-settings.ts` so the mail settings save contract accepts form-style transport values by coercing string and number-like inputs to strings and common boolean strings to booleans
+- restored compatibility for admin saves of `SMTP_SECURE` and `AUTH_OTP_DEBUG`, preventing the mail settings page from failing with `Invalid request payload` before the runtime `.env` save logic runs
+
 ### [v 1.0.194] 2026-04-20 - Harden Frappe workspace reads against invalid connector state and legacy observability rows
 
 - fixed the Frappe settings read path so invalid `FRAPPE_*` env configuration returns a readable connector snapshot with `isConfigured=false` instead of crashing the workspace with a raw internal server error

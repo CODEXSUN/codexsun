@@ -22,7 +22,7 @@ export SECRET_OWNER_EMAIL='security@sundar.com'
 export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
 export SUPER_ADMIN_EMAILS='sundar@sundar.com'
 
-TARGET_ENV=local \
+TARGET_ENV=cloud \
 CLIENTS=techmedia_in \
 TECHMEDIA_IN_DOMAIN=techmedia.in \
 CLEAN_INSTALL=true \

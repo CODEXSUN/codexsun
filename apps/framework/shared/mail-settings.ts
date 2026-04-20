@@ -1,15 +1,43 @@
 import { z } from "zod"
 
+const mailSettingsStringSchema = z.preprocess((value) => {
+  if (value == null) {
+    return ""
+  }
+
+  return String(value)
+}, z.string())
+
+const mailSettingsBooleanSchema = z.preprocess((value) => {
+  if (typeof value === "boolean") {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+
+    if (["1", "true", "yes", "on"].includes(normalized)) {
+      return true
+    }
+
+    if (["0", "false", "no", "off"].includes(normalized)) {
+      return false
+    }
+  }
+
+  return value
+}, z.boolean())
+
 export const mailSettingsValuesSchema = z.object({
-  SMTP_HOST: z.string(),
-  SMTP_PORT: z.string(),
-  SMTP_SECURE: z.boolean(),
-  SMTP_USER: z.string(),
-  SMTP_PASS: z.string(),
-  SMTP_FROM_EMAIL: z.string(),
-  SMTP_FROM_NAME: z.string(),
-  AUTH_OTP_DEBUG: z.boolean(),
-  AUTH_OTP_EXPIRY_MINUTES: z.string(),
+  SMTP_HOST: mailSettingsStringSchema,
+  SMTP_PORT: mailSettingsStringSchema,
+  SMTP_SECURE: mailSettingsBooleanSchema,
+  SMTP_USER: mailSettingsStringSchema,
+  SMTP_PASS: mailSettingsStringSchema,
+  SMTP_FROM_EMAIL: mailSettingsStringSchema,
+  SMTP_FROM_NAME: mailSettingsStringSchema,
+  AUTH_OTP_DEBUG: mailSettingsBooleanSchema,
+  AUTH_OTP_EXPIRY_MINUTES: mailSettingsStringSchema,
 })
 
 export const mailSettingsSnapshotSchema = z.object({
