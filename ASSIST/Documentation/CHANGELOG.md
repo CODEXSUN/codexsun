@@ -2,9 +2,17 @@
 
 ## Version State
 
-- Current package version: `1.0.192`
-- Current release tag: `v-1.0.192`
+- Current package version: `1.0.193`
+- Current release tag: `v-1.0.193`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.193
+
+### [v 1.0.193] 2026-04-20 - Record techmedia cloud clean-install build failure from stale server code
+
+- logged that the reported `techmedia_in` cloud clean-install failed during Docker `npm run build` because the server is still building an older repository state
+- recorded that the failing server code is missing the already-fixed duplicate export correction in `apps/ecommerce/shared/index.ts` and the shared `Button` `cloneElement` typing correction in `apps/ui/src/components/ui/button.tsx`
+- documented the required verification path on the server before rerunning setup: inspect `git status`, recent commits, and the live file contents to confirm the server has pulled the corrected repository state
 
 ## v-1.0.192
 

@@ -39,13 +39,11 @@ export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
 export SUPER_ADMIN_EMAILS='sundar@sundar.com'
 
 TARGET_ENV=cloud \
+CLIENTS=tmnext_in \
 TMNEXT_IN_DOMAIN=tmnext_in \
 CLEAN_INSTALL=true \
 CONFIRM_CLEAN_INSTALL=YES \
-DROP_DATABASES=true \
-CONFIRM_DROP_DATABASES=YES \
 BUILD_IMAGE=true \
-CREATE_DATABASES=true \
 bash ./.container/bash-sh/setup.sh tmnext_in
 ```
 
@@ -56,49 +54,14 @@ export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
 export SUPER_ADMIN_EMAILS='sundar@sundar.com'
 
 TARGET_ENV=cloud \
+CLIENTS=tirupurdirect_com \
 TIRUPURDIRECT_COM_DOMAIN=tirupurdirect.com \
 CLEAN_INSTALL=true \
 CONFIRM_CLEAN_INSTALL=YES \
-DROP_DATABASES=true \
-CONFIRM_DROP_DATABASES=YES \
 BUILD_IMAGE=true \
-CREATE_DATABASES=true \
-bash ./.container/bash-sh/setup.sh tirupurdirect_com
+bash ./.container/bash-sh/setup.sh 
 ```
 
-```
-export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
-export SECRET_OWNER_EMAIL='security@sundar.com'
-export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
-export SUPER_ADMIN_EMAILS='sundar@sundar.com'
-
-TARGET_ENV=cloud \
-CODEXSUN_DOMAIN=neot.in \
-CLEAN_INSTALL=true \
-CONFIRM_CLEAN_INSTALL=YES \
-DROP_DATABASES=true \
-CONFIRM_DROP_DATABASES=YES \
-BUILD_IMAGE=true \
-CREATE_DATABASES=true \
-bash ./.container/bash-sh/setup.sh neot_in
-```
-
-```
-export JWT_SECRET='replace-with-a-real-secret-of-at-least-16-characters'
-export SECRET_OWNER_EMAIL='security@sundar.com'
-export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
-export SUPER_ADMIN_EMAILS='sundar@sundar.com'
-
-TARGET_ENV=cloud \
-CODEXSUN_DOMAIN=aaranerp.com \
-CLEAN_INSTALL=true \
-CONFIRM_CLEAN_INSTALL=YES \
-DROP_DATABASES=true \
-CONFIRM_DROP_DATABASES=YES \
-BUILD_IMAGE=true \
-CREATE_DATABASES=true \
-bash ./.container/bash-sh/setup.sh aaranerp_com
-```
 
 
 cp /home/codexsun/.container/clients/codexsun/nginx/codexsun.com.https.conf /etc/nginx/sites-available/codexsun.com

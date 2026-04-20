@@ -57,6 +57,10 @@
 
 ## Next Batch
 
+- [x] `#202` Log the techmedia cloud clean-install build failure caused by server code lag
+  - [x] Phase 1: deployment failure capture
+    - [x] 1.1 record the reported Docker build failure during `npm run build` on the server
+    - [x] 1.2 record that the server repo is missing the already-fixed `apps/ecommerce/shared/index.ts` export correction and `apps/ui/src/components/ui/button.tsx` clone typing correction
 - [x] `#201` Make local Docker system-update runtime git sync boot from saved runtime settings and current workspace state
   - [x] Phase 1: live runtime diagnosis
     - [x] 1.1 inspect the running `codexsun-app` container env and runtime volume to confirm why `GIT_SYNC_ENABLED=true` in runtime settings still reports inactive

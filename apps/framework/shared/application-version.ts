@@ -6,8 +6,8 @@ export type ApplicationVersion = {
 }
 
 export const applicationVersion: ApplicationVersion = {
-  referenceNumber: 192,
-  version: "1.0.192",
-  label: "v 1.0.192",
-  releaseTag: "v-1.0.192",
+  referenceNumber: 193,
+  version: "1.0.193",
+  label: "v 1.0.193",
+  releaseTag: "v-1.0.193",
 }

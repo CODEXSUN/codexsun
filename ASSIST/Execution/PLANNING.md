@@ -90,6 +90,21 @@
 
 ## Next Batch
 
+- `#202` Log the techmedia cloud clean-install build failure caused by server code lag
+  - Goal:
+    - capture the current cloud clean-install failure clearly so the deployment state is documented before the server repo is corrected
+  - Why this slice now:
+    - the reported `techmedia_in` cloud clean-install failed at Docker build step `RUN npm run build`
+    - the failure matches an older repository state that does not include the already-fixed shared export and `Button` typing corrections
+  - Current repository reality:
+    - the local workspace already passes `npm run typecheck` and local Docker build after fixing:
+      - `apps/ecommerce/shared/index.ts` duplicate `StorefrontCampaignDesign` barrel export
+      - `apps/ui/src/components/ui/button.tsx` `cloneElement` prop typing for forwarded `data-slot` and style props
+    - the server log still shows the pre-fix errors, so the server is building stale code or an unpulled branch state
+  - Validation completed:
+    - recorded the server-side Docker build failure output from April 20, 2026
+    - confirmed the failure signature exactly matches the pre-fix compile errors already resolved in the local workspace
+    - advised verifying server repo state with `git status`, `git log --oneline -5`, and direct file inspection before rerunning the cloud setup
 - `#201` Make local Docker system-update runtime git sync boot from saved runtime settings and current workspace state
   - Goal:
     - make the local Docker system-update path actually enter runtime git-sync mode after `GIT_SYNC_ENABLED` is saved in runtime settings
