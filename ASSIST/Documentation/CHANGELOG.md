@@ -8,6 +8,11 @@
 
 ## v-1.0.193
 
+### [v 1.0.193] 2026-04-20 - Fix stale System Update preview after remote fetch
+
+- fixed `apps/framework/src/runtime/system-update/system-update-service.ts` so `Check for Updates` resolves a fresh runtime git status after `git fetch --prune` before deciding whether pending commits exist
+- changed the incoming commit preview range to use the refreshed post-fetch current and remote commit state, preventing false `No new commits found` results when the runtime repo started from stale branch metadata
+
 ### [v 1.0.193] 2026-04-20 - Record techmedia cloud clean-install build failure from stale server code
 
 - logged that the reported `techmedia_in` cloud clean-install failed during Docker `npm run build` because the server is still building an older repository state

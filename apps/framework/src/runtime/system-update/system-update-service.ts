@@ -459,10 +459,13 @@ export async function getSystemUpdatePreview(
 
   await ensureRuntimeGitRemote(cwd, target, commandRunner)
   await commandRunner("git", ["fetch", "--prune", target.remoteName], cwd)
+  const refreshedStatus = await resolveGitStatus(cwd, commandRunner)
 
-  if (!status.remoteCommit || status.remoteCommit === status.currentCommit) {
-    const refreshedStatus = await resolveGitStatus(cwd, commandRunner)
-
+  if (
+    !refreshedStatus.remoteCommit ||
+    refreshedStatus.currentCommit === "(unavailable)" ||
+    refreshedStatus.remoteCommit === refreshedStatus.currentCommit
+  ) {
     return systemUpdatePreviewSchema.parse({
       status: refreshedStatus,
       items: [],
@@ -474,7 +477,7 @@ export async function getSystemUpdatePreview(
     [
       "log",
       "--format=%H%x1f%s%x1f%an%x1f%cI",
-      `${status.currentCommit}..${target.remoteRef}`,
+      `${refreshedStatus.currentCommit}..${target.remoteRef}`,
     ],
     cwd,
     true
@@ -497,8 +500,6 @@ export async function getSystemUpdatePreview(
         })
         .filter((item) => item.commit && item.summary && item.authorName && item.committedAt)
     : []
-
-  const refreshedStatus = await resolveGitStatus(cwd, commandRunner)
 
   return systemUpdatePreviewSchema.parse({
     status: refreshedStatus,

@@ -57,6 +57,15 @@
 
 ## Next Batch
 
+- [x] `#203` Fix System Update preview so fresh remote commits are detected after fetch
+  - [x] Phase 1: update-path audit
+    - [x] 1.1 trace why `Check for Updates` can still say no commits after the configured branch advanced remotely
+    - [x] 1.2 confirm whether preview compares against pre-fetch runtime status instead of post-fetch state
+  - [x] Phase 2: preview-state correction
+    - [x] 2.1 refresh runtime git status after `git fetch --prune`
+    - [x] 2.2 build the incoming commit preview from the refreshed current and remote commit state
+  - [x] Phase 3: validation
+    - [x] 3.1 run `npm run typecheck`
 - [x] `#202` Log the techmedia cloud clean-install build failure caused by server code lag
   - [x] Phase 1: deployment failure capture
     - [x] 1.1 record the reported Docker build failure during `npm run build` on the server

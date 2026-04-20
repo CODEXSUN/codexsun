@@ -90,6 +90,19 @@
 
 ## Next Batch
 
+- `#203` Fix System Update preview so fresh remote commits are detected after fetch
+  - Goal:
+    - make `Check for Updates` behave like a fresh branch check instead of reusing stale pre-fetch commit comparison state
+  - Why this slice now:
+    - the System Update screen can show `No new commits found` even when the configured remote branch already advanced beyond the current runtime commit
+    - this blocks operators from using the intended update flow and makes the screen appear out of sync with Git
+  - Current repository reality:
+    - `getSystemUpdatePreview` fetched the remote first, but it still decided whether commits existed by comparing `status.remoteCommit` and `status.currentCommit` from the pre-fetch status snapshot
+    - only after deciding there were no updates did it refresh status, which is too late for the preview decision
+  - Validation completed:
+    - updated the preview flow to resolve a fresh runtime git status after `git fetch --prune`
+    - changed the no-update decision and commit-log range generation to use the refreshed post-fetch status
+    - `npm run typecheck`
 - `#202` Log the techmedia cloud clean-install build failure caused by server code lag
   - Goal:
     - capture the current cloud clean-install failure clearly so the deployment state is documented before the server repo is corrected
