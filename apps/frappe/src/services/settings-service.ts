@@ -1,3 +1,5 @@
+import path from "node:path"
+
 import type { Kysely } from "kysely"
 import { z } from "zod"
 
@@ -12,10 +14,12 @@ import {
 
 import { frappeTableNames } from "../../database/table-names.js"
 import {
+  frappeEnvKeys,
   readFrappeEnvConfig,
   type FrappeEnvConfig as RuntimeFrappeEnvConfig,
   writeFrappeEnvConfig,
 } from "../config/frappe.js"
+import { parseEnvFile } from "../../../framework/src/runtime/config/env.js"
 import { assertSuperAdmin } from "./access.js"
 import {
   createFrappeConnection,
@@ -53,6 +57,28 @@ type FrappeSettingsServiceOptions = {
 
 function resolveConfig(options?: FrappeSettingsServiceOptions) {
   return options?.config ?? readFrappeEnvConfig(options?.cwd)
+}
+
+function readRawFrappeEnvValues(cwd = process.cwd()) {
+  const env = parseEnvFile(path.resolve(cwd, ".env"))
+
+  return Object.fromEntries(
+    frappeEnvKeys.map((key) => [key, env[key]?.trim() ?? ""])
+  ) as Record<(typeof frappeEnvKeys)[number], string>
+}
+
+function parseLooseBoolean(value: string) {
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase())
+}
+
+function parseTimeoutFallback(value: string) {
+  const parsed = Number.parseInt(value.trim(), 10)
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 30
+  }
+
+  return Math.min(parsed, 120)
 }
 
 function normalizeStoredVerificationState(payload: unknown) {
@@ -155,6 +181,36 @@ function toFrappeSettings(
   })
 }
 
+function toInvalidFrappeSettings(
+  verificationState: FrappeVerificationState,
+  error: unknown,
+  cwd?: string
+): FrappeSettings {
+  const rawValues = readRawFrappeEnvValues(cwd)
+  const detail = error instanceof Error ? error.message : "Unknown Frappe env config error."
+
+  return frappeSettingsSchema.parse({
+    enabled: parseLooseBoolean(rawValues.FRAPPE_ENABLED),
+    baseUrl: rawValues.FRAPPE_BASE_URL,
+    siteName: rawValues.FRAPPE_SITE_NAME,
+    apiKey: rawValues.FRAPPE_API_KEY,
+    apiSecret: rawValues.FRAPPE_API_SECRET,
+    hasApiKey: rawValues.FRAPPE_API_KEY.length > 0,
+    hasApiSecret: rawValues.FRAPPE_API_SECRET.length > 0,
+    timeoutSeconds: parseTimeoutFallback(rawValues.FRAPPE_TIMEOUT_SECONDS),
+    defaultCompany: rawValues.FRAPPE_DEFAULT_COMPANY,
+    defaultWarehouse: rawValues.FRAPPE_DEFAULT_WAREHOUSE,
+    isConfigured: false,
+    configSource: "env",
+    lastVerifiedAt: verificationState.lastVerifiedAt,
+    lastVerificationStatus: "failed",
+    lastVerificationMessage: "Frappe env configuration is invalid.",
+    lastVerificationDetail: detail,
+    lastVerifiedUser: verificationState.lastVerifiedUser,
+    lastVerifiedLatencyMs: verificationState.lastVerifiedLatencyMs,
+  })
+}
+
 async function recordInvalidConfig(
   database: Kysely<unknown>,
   user: AuthUser,
@@ -176,12 +232,15 @@ export async function readStoredFrappeSettings(
   database: Kysely<unknown>,
   options?: FrappeSettingsServiceOptions
 ) {
-  const [config, verificationState] = await Promise.all([
-    Promise.resolve(resolveConfig(options)),
-    readStoredVerificationState(database),
-  ])
+  const verificationState = await readStoredVerificationState(database)
 
-  return toFrappeSettings(config, verificationState)
+  try {
+    const config = resolveConfig(options)
+
+    return toFrappeSettings(config, verificationState)
+  } catch (error) {
+    return toInvalidFrappeSettings(verificationState, error, options?.cwd)
+  }
 }
 
 export async function readFrappeSettings(

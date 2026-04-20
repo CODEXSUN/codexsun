@@ -57,6 +57,16 @@
 
 ## Next Batch
 
+- [x] `#204` Prevent the Frappe workspace from collapsing into a raw internal server error
+  - [x] Phase 1: failure-path audit
+    - [x] 1.1 inspect the Frappe overview and connector read paths that can fail on first workspace load
+    - [x] 1.2 identify unhandled failure modes from invalid `FRAPPE_*` env config and malformed legacy monitoring/activity rows
+  - [x] Phase 2: resilience hardening
+    - [x] 2.1 return a readable invalid-config connector snapshot instead of throwing a raw server error from Frappe settings reads
+    - [x] 2.2 skip malformed legacy activity-log and monitoring rows instead of failing the whole observability response
+    - [x] 2.3 make the Frappe overview load partial data with per-panel fallbacks instead of failing the whole page on one rejected request
+  - [x] Phase 3: validation
+    - [x] 3.1 run `npm run typecheck`
 - [x] `#203` Fix System Update preview so fresh remote commits are detected after fetch
   - [x] Phase 1: update-path audit
     - [x] 1.1 trace why `Check for Updates` can still say no commits after the configured branch advanced remotely

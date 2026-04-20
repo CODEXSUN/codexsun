@@ -121,7 +121,6 @@ async function createVerifiedItemConnection(
   options?: FrappeItemServiceOptions
 ) {
   const settings = await readStoredDefaults(database, options)
-  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
 
   if (!settings.enabled || !settings.isConfigured) {
     throw new ApplicationError("ERPNext connector must be enabled and configured before item pull.", {}, 409)
@@ -130,6 +129,8 @@ async function createVerifiedItemConnection(
   if (settings.lastVerificationStatus !== "passed") {
     throw new ApplicationError("ERPNext connector must be verified successfully before item pull.", {}, 409)
   }
+
+  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
 
   return createFrappeConnection(config)
 }

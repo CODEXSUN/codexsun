@@ -318,11 +318,7 @@ async function readTodoUserReferences(
   database: Kysely<unknown>,
   options?: FrappeTodoServiceOptions
 ) {
-  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
-  const settings = await readStoredFrappeSettings(database, {
-    ...options,
-    config,
-  })
+  const settings = await readStoredFrappeSettings(database, options)
 
   if (!settings.enabled || !settings.isConfigured) {
     return []
@@ -331,6 +327,8 @@ async function readTodoUserReferences(
   if (settings.lastVerificationStatus !== "passed") {
     return []
   }
+
+  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
 
   return readRemoteUsers(createFrappeConnection(config))
 }
@@ -339,11 +337,7 @@ async function createVerifiedTodoConnection(
   database: Kysely<unknown>,
   options?: FrappeTodoServiceOptions
 ) {
-  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
-  const settings = await readStoredFrappeSettings(database, {
-    ...options,
-    config,
-  })
+  const settings = await readStoredFrappeSettings(database, options)
 
   if (!settings.enabled || !settings.isConfigured) {
     throw new ApplicationError("ERPNext connector must be enabled and configured before ToDo sync checks.", {}, 409)
@@ -352,6 +346,8 @@ async function createVerifiedTodoConnection(
   if (settings.lastVerificationStatus !== "passed") {
     throw new ApplicationError("ERPNext connector must be verified successfully before ToDo sync checks.", {}, 409)
   }
+
+  const config = options?.config ?? readFrappeEnvConfig(options?.cwd)
 
   return createFrappeConnection(config)
 }

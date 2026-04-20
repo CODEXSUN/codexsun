@@ -36,8 +36,8 @@ function parseContextJson(value: unknown) {
   }
 }
 
-function mapMonitoringRow(row: Record<string, unknown>): MonitoringEvent {
-  return monitoringEventSchema.parse({
+function mapMonitoringRow(row: Record<string, unknown>): MonitoringEvent | null {
+  const parsed = monitoringEventSchema.safeParse({
     id: String(row.id ?? ""),
     sourceApp: String(row.source_app ?? ""),
     operation: String(row.operation ?? "checkout"),
@@ -49,6 +49,8 @@ function mapMonitoringRow(row: Record<string, unknown>): MonitoringEvent {
     context: parseContextJson(row.context_json),
     createdAt: String(row.created_at ?? ""),
   })
+
+  return parsed.success ? parsed.data : null
 }
 
 function getThresholds(config: ServerConfig): MonitoringThresholdMap {
@@ -103,7 +105,13 @@ export async function recordMonitoringEvent(
     .values(item)
     .execute()
 
-  return mapMonitoringRow(item)
+  const mappedItem = mapMonitoringRow(item)
+
+  if (!mappedItem) {
+    throw new Error("Monitoring row could not be normalized after write.")
+  }
+
+  return mappedItem
 }
 
 export async function getMonitoringDashboard(
@@ -121,7 +129,9 @@ export async function getMonitoringDashboard(
     .orderBy("created_at", "desc")
     .execute()
 
-  const events = rows.map((row) => mapMonitoringRow(row))
+  const events = rows
+    .map((row) => mapMonitoringRow(row))
+    .filter((item): item is MonitoringEvent => Boolean(item))
   const thresholds = getThresholds(config)
   const operations = Object.keys(thresholds) as MonitoringOperation[]
   const summaries = operations.map((operation) => {

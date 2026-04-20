@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 
 import {
+  activityLogItemSchema,
   activityLogListResponseSchema,
   activityLogWritePayloadSchema,
   activityLogWriteResponseSchema,
@@ -33,8 +34,8 @@ function parseContextJson(value: unknown) {
   }
 }
 
-function mapActivityLogRow(row: Record<string, unknown>): ActivityLogItem {
-  return {
+function mapActivityLogRow(row: Record<string, unknown>): ActivityLogItem | null {
+  const parsed = activityLogItemSchema.safeParse({
     id: String(row.id ?? ""),
     category: String(row.category ?? ""),
     action: String(row.action ?? ""),
@@ -47,7 +48,9 @@ function mapActivityLogRow(row: Record<string, unknown>): ActivityLogItem {
     routePath: asNullableString(row.route_path),
     context: parseContextJson(row.context_json),
     createdAt: String(row.created_at ?? ""),
-  }
+  })
+
+  return parsed.success ? parsed.data : null
 }
 
 export async function listActivityLogs(
@@ -76,7 +79,9 @@ export async function listActivityLogs(
     .execute()
 
   return activityLogListResponseSchema.parse({
-    items: rows.map((row) => mapActivityLogRow(row)),
+    items: rows
+      .map((row) => mapActivityLogRow(row))
+      .filter((item): item is ActivityLogItem => Boolean(item)),
   })
 }
 
@@ -105,8 +110,14 @@ export async function writeActivityLog(
     .values(item)
     .execute()
 
+  const mappedItem = mapActivityLogRow(item)
+
+  if (!mappedItem) {
+    throw new Error("Activity log row could not be normalized after write.")
+  }
+
   return activityLogWriteResponseSchema.parse({
-    item: mapActivityLogRow(item),
+    item: mappedItem,
   })
 }
 

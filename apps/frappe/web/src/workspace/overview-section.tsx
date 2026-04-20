@@ -53,33 +53,58 @@ export function FrappeOverviewSection() {
 
       try {
         const [
-          todoResponse,
-          itemResponse,
-          receiptResponse,
-          settingsResponse,
-          syncPolicyResponse,
-          observabilityResponse,
-        ] =
-          await Promise.all([
-            listFrappeTodos(),
-            listFrappeItems(),
-            listFrappePurchaseReceipts(),
-            user.isSuperAdmin
-              ? getFrappeSettings().catch(() => null)
-              : Promise.resolve(null),
-            getFrappeSyncPolicy(),
-            getFrappeObservabilityReport(),
-          ])
+          todoResult,
+          itemResult,
+          receiptResult,
+          settingsResult,
+          syncPolicyResult,
+          observabilityResult,
+        ] = await Promise.allSettled([
+          listFrappeTodos(),
+          listFrappeItems(),
+          listFrappePurchaseReceipts(),
+          user.isSuperAdmin ? getFrappeSettings() : Promise.resolve(null),
+          getFrappeSyncPolicy(),
+          getFrappeObservabilityReport(),
+        ])
+
+        const warnings = [
+          todoResult.status === "rejected" ? toErrorMessage(todoResult.reason) : null,
+          itemResult.status === "rejected" ? toErrorMessage(itemResult.reason) : null,
+          receiptResult.status === "rejected" ? toErrorMessage(receiptResult.reason) : null,
+          settingsResult.status === "rejected" ? toErrorMessage(settingsResult.reason) : null,
+          syncPolicyResult.status === "rejected" ? toErrorMessage(syncPolicyResult.reason) : null,
+          observabilityResult.status === "rejected"
+            ? toErrorMessage(observabilityResult.reason)
+            : null,
+        ].filter(Boolean)
 
         if (!cancelled) {
           setState({
-            settings: settingsResponse?.settings ?? null,
-            syncPolicy: syncPolicyResponse.policy,
-            observability: observabilityResponse.report,
-            todos: todoResponse.todos.items,
-            items: itemResponse.manager.items,
-            receipts: receiptResponse.manager.items,
-            error: null,
+            settings:
+              settingsResult.status === "fulfilled"
+                ? settingsResult.value?.settings ?? null
+                : null,
+            syncPolicy:
+              syncPolicyResult.status === "fulfilled"
+                ? syncPolicyResult.value.policy
+                : null,
+            observability:
+              observabilityResult.status === "fulfilled"
+                ? observabilityResult.value.report
+                : null,
+            todos:
+              todoResult.status === "fulfilled" ? todoResult.value.todos.items : [],
+            items:
+              itemResult.status === "fulfilled" ? itemResult.value.manager.items : [],
+            receipts:
+              receiptResult.status === "fulfilled"
+                ? receiptResult.value.manager.items
+                : [],
+            error:
+              warnings.length > 0
+                ? `Some Frappe panels are unavailable right now: ${warnings.join(" | ")}`
+                : null,
             isLoading: false,
           })
         }

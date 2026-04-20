@@ -2,9 +2,18 @@
 
 ## Version State
 
-- Current package version: `1.0.193`
-- Current release tag: `v-1.0.193`
+- Current package version: `1.0.194`
+- Current release tag: `v-1.0.194`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.194
+
+### [v 1.0.194] 2026-04-20 - Harden Frappe workspace reads against invalid connector state and legacy observability rows
+
+- fixed the Frappe settings read path so invalid `FRAPPE_*` env configuration returns a readable connector snapshot with `isConfigured=false` instead of crashing the workspace with a raw internal server error
+- updated Frappe item and ToDo live-connection helpers to check stored connector readiness before re-reading the strict runtime env config, keeping disabled or invalid connector state on the expected guarded path
+- hardened framework activity-log and monitoring readers to skip malformed legacy rows rather than failing the entire Frappe observability response
+- changed the default Frappe overview page to use partial-result loading so one failed backend panel no longer collapses the whole workspace into a single `Internal server error` card
 
 ## v-1.0.193
 

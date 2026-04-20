@@ -90,6 +90,23 @@
 
 ## Next Batch
 
+- `#204` Prevent the Frappe workspace from collapsing into a raw internal server error
+  - Goal:
+    - keep the default Frappe workspace usable even when connector env settings are invalid or one ancillary backend panel fails
+  - Why this slice now:
+    - the user reports that opening the Frappe app shows `Internal server error`
+    - the current overview route fan-out and connector settings read path are brittle enough that one bad env value or one malformed historical observability row can take down the whole workspace
+  - Current repository reality:
+    - `readStoredFrappeSettings` threw when `FRAPPE_*` env values were missing or invalid, which surfaced as a raw server error on read-only Frappe screens
+    - the Frappe overview used `Promise.all`, so any single failing call such as observability or sync policy caused the whole page to render only an error card
+    - framework activity-log and monitoring readers trusted every stored row to match the latest strict schemas, so malformed legacy rows could explode the Frappe observability panel
+  - Validation completed:
+    - relaxed the Frappe settings read schema enough to represent invalid connector state without lying that the connector is configured
+    - added an invalid-config fallback snapshot in `apps/frappe/src/services/settings-service.ts`
+    - moved item and ToDo live-connection creation to check stored connector readiness before re-reading the strict runtime env config
+    - hardened activity-log and monitoring row mapping to skip malformed legacy rows
+    - changed the Frappe overview section to use `Promise.allSettled` and render partial data with a non-fatal warning when one or more panels fail
+    - `npm run typecheck`
 - `#203` Fix System Update preview so fresh remote commits are detected after fetch
   - Goal:
     - make `Check for Updates` behave like a fresh branch check instead of reusing stale pre-fetch commit comparison state

@@ -2,10 +2,10 @@ import { z } from "zod"
 
 export const frappeSettingsSchema = z.object({
   enabled: z.boolean(),
-  baseUrl: z.string().trim().min(1),
+  baseUrl: z.string().trim(),
   siteName: z.string().trim(),
-  apiKey: z.string().trim().min(1),
-  apiSecret: z.string().trim().min(1),
+  apiKey: z.string().trim(),
+  apiSecret: z.string().trim(),
   hasApiKey: z.boolean(),
   hasApiSecret: z.boolean(),
   timeoutSeconds: z.number().int().min(1).max(120),
