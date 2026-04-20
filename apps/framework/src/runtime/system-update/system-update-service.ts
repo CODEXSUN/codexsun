@@ -35,6 +35,10 @@ import type { RuntimeScheduledTask } from "../jobs/interval-task-scheduler.js"
 const execFileAsync = promisify(execFile)
 const schedulerActor = "system:scheduler"
 const defaultScheduledUpdateCadenceMinutes = 30
+const runtimeGitSyncInactiveIssue =
+  "Runtime git sync is not active for this deployment. Enable GIT_SYNC_ENABLED to use live update."
+const runtimeGitSyncBootstrapPendingIssue =
+  "Runtime git sync is enabled in runtime settings, but this deployment has not restarted into the runtime Git repository yet. Restart the container or use Save & Restart."
 
 type CommandResult = {
   ok: boolean
@@ -354,24 +358,27 @@ async function resolveGitStatus(
   cwd: string,
   commandRunner: CommandRunner
 ): Promise<SystemUpdateStatus> {
+  const env = parseEnvFile(path.join(cwd, ".env"))
   const gitVersionResult = await commandRunner("git", ["--version"], cwd, true)
   const npmVersionResult = await commandRunner(npmCommand(), ["--version"], cwd, true)
   const preflight = resolvePreflight(cwd, gitVersionResult, npmVersionResult)
   const repositoryAvailable =
     preflight.gitAvailable && (await checkRepositoryAvailability(cwd, commandRunner))
+  const gitSyncEnabled = env.GIT_SYNC_ENABLED === "true"
 
   if (!preflight.gitAvailable || !repositoryAvailable) {
-    const resolvedPreflight = !repositoryAvailable
-      ? withPreflightIssue(
-          preflight,
-          "Runtime git sync is not active for this deployment. Enable GIT_SYNC_ENABLED to use live update."
-        )
-      : preflight
+    const resolvedPreflight =
+      !repositoryAvailable && gitSyncEnabled
+        ? withPreflightIssue(preflight, runtimeGitSyncBootstrapPendingIssue)
+        : !repositoryAvailable
+          ? withPreflightIssue(preflight, runtimeGitSyncInactiveIssue)
+          : preflight
+    const target = gitSyncEnabled ? resolveRuntimeGitTarget(cwd) : null
 
     return systemUpdateStatusSchema.parse({
       rootPath: cwd,
-      branch: "(unavailable)",
-      upstream: null,
+      branch: target?.branch ?? "(unavailable)",
+      upstream: target?.remoteRef ?? null,
       currentCommit: "(unavailable)",
       currentRevision: null,
       remoteCommit: null,

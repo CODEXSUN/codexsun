@@ -57,6 +57,30 @@
 
 ## Next Batch
 
+- [x] `#201` Make local Docker system-update runtime git sync boot from saved runtime settings and current workspace state
+  - [x] Phase 1: live runtime diagnosis
+    - [x] 1.1 inspect the running `codexsun-app` container env and runtime volume to confirm why `GIT_SYNC_ENABLED=true` in runtime settings still reports inactive
+    - [x] 1.2 confirm whether container startup prefers stale Docker env values over `/opt/codexsun/runtime/.env`
+  - [x] Phase 2: startup process fix
+    - [x] 2.1 make runtime git-sync startup values read the persisted runtime `.env` first so `Save & Restart` can activate git sync without editing compose env
+    - [x] 2.2 make local/development runtime git sync overlay the current image snapshot into the runtime repo so local Docker tests build the current workspace state instead of stale remote `main`
+  - [x] Phase 3: live local Docker verification
+    - [x] 3.1 rebuild and recreate `codexsun-app:v1`
+    - [x] 3.2 rerun the local client setup with `GIT_SYNC_ENABLED=true` and verify `/health` returns `status: ok`
+- [x] `#200` Make frontend runtime app settings resync from live `.env`-backed app settings in production
+  - [x] Phase 1: runtime-settings frontend audit
+    - [x] 1.1 trace how the frontend loads `/public/v1/app-settings`
+    - [x] 1.2 confirm whether the browser keeps a one-time boot snapshot instead of re-reading live runtime settings
+  - [x] Phase 2: query behavior fix
+    - [x] 2.1 use `window.__CODEXSUN_APP_SETTINGS__` only as initial data, not as a permanent short-circuit
+    - [x] 2.2 add live refetch behavior so production frontend state resyncs from the `.env`-backed endpoint
+- [x] `#199` Clarify live-update preflight when git sync is enabled but restart is still pending
+  - [x] Phase 1: runtime update-state audit
+    - [x] 1.1 trace how the system-update page decides that runtime git sync is inactive
+    - [x] 1.2 confirm whether the same preflight issue is reused for both disabled git sync and pending runtime-repo bootstrap
+  - [x] Phase 2: status and guidance fix
+    - [x] 2.1 return a distinct backend preflight issue when `GIT_SYNC_ENABLED=true` but the runtime repository is not active yet
+    - [x] 2.2 update the system-update UI to show restart-required guidance instead of telling the user to enable the flag again
 - [x] `#198` Fix shared `Button` `asChild` prop forwarding for campaign designer colors
   - [x] Phase 1: render-path audit
     - [x] 1.1 trace the campaign CTA styling from designer state into the shared button component

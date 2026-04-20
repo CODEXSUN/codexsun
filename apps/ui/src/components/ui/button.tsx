@@ -61,11 +61,11 @@ function Button({
   const resolvedClassName = cn(buttonVariants({ variant, size, className }))
 
   if (React.isValidElement(render)) {
-    const renderedChild = render as React.ReactElement<{
-      className?: string
-      children?: React.ReactNode
-      "data-slot"?: string
-    }>
+    const renderedChild = render as React.ReactElement<
+      React.HTMLAttributes<HTMLElement> & {
+        children?: React.ReactNode
+      }
+    >
 
     return React.cloneElement(
       renderedChild,
@@ -73,19 +73,19 @@ function Button({
         "data-slot": "button",
         className: cn(resolvedClassName, renderedChild.props.className),
         ...props,
-      },
+      } as Partial<typeof renderedChild.props>,
       children ?? renderedChild.props.children
     )
   }
 
   if (asChild && React.isValidElement(children)) {
-    const child = children as React.ReactElement<{ className?: string }>
+    const child = children as React.ReactElement<React.HTMLAttributes<HTMLElement>>
 
     return React.cloneElement(child, {
       "data-slot": "button",
       className: cn(resolvedClassName, child.props.className),
       ...props,
-    })
+    } as Partial<typeof child.props>)
   }
 
   return (

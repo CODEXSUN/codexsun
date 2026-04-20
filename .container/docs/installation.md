@@ -23,14 +23,13 @@ export OPERATIONS_OWNER_EMAIL='devops@sundar.com'
 export SUPER_ADMIN_EMAILS='sundar@sundar.com'
 
 TARGET_ENV=cloud \
+CLIENTS=techmedia_in \
 TECHMEDIA_IN_DOMAIN=techmedia.in \
 CLEAN_INSTALL=true \
 CONFIRM_CLEAN_INSTALL=YES \
-DROP_DATABASES=true \
-CONFIRM_DROP_DATABASES=YES \
 BUILD_IMAGE=true \
 CREATE_DATABASES=true \
-bash ./.container/bash-sh/setup.sh techmedia_in
+bash ./.container/bash-sh/setup.sh
 ```
 
 ```

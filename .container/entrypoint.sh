@@ -65,6 +65,19 @@ resolve_startup_value() {
   read_runtime_env_value "$key" "$fallback"
 }
 
+resolve_runtime_first_startup_value() {
+  key="$1"
+  fallback="${2:-}"
+  runtime_value="$(read_runtime_env_value "$key" "")"
+
+  if [ -n "$runtime_value" ]; then
+    printf '%s' "$runtime_value"
+    return
+  fi
+
+  resolve_process_value "$key" "$fallback"
+}
+
 resolve_process_value() {
   key="$1"
   fallback="${2:-}"
@@ -188,6 +201,19 @@ overlay_image_snapshot_into_runtime_repo() {
   done
 }
 
+should_overlay_local_image_snapshot() {
+  app_env="$(resolve_runtime_first_startup_value "APP_ENV" "production")"
+
+  case "$(printf '%s' "$app_env" | tr '[:upper:]' '[:lower:]')" in
+    development|local)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 checkout_runtime_branch() {
   repo_root="$1"
   branch="$2"
@@ -210,12 +236,12 @@ checkout_runtime_branch() {
 }
 
 sync_runtime_repository() {
-  repo_url="$(resolve_startup_value "GIT_REPOSITORY_URL" "https://github.com/CODEXSUN/codexsun.git")"
-  branch="$(resolve_startup_value "GIT_BRANCH" "main")"
-  auto_update="$(resolve_startup_value "GIT_AUTO_UPDATE_ON_START" "false")"
-  force_update="$(resolve_startup_value "GIT_FORCE_UPDATE_ON_START" "false")"
-  install_deps="$(resolve_startup_value "INSTALL_DEPS_ON_START" "false")"
-  build_on_start="$(resolve_startup_value "BUILD_ON_START" "false")"
+  repo_url="$(resolve_runtime_first_startup_value "GIT_REPOSITORY_URL" "https://github.com/CODEXSUN/codexsun.git")"
+  branch="$(resolve_runtime_first_startup_value "GIT_BRANCH" "main")"
+  auto_update="$(resolve_runtime_first_startup_value "GIT_AUTO_UPDATE_ON_START" "false")"
+  force_update="$(resolve_runtime_first_startup_value "GIT_FORCE_UPDATE_ON_START" "false")"
+  install_deps="$(resolve_runtime_first_startup_value "INSTALL_DEPS_ON_START" "false")"
+  build_on_start="$(resolve_runtime_first_startup_value "BUILD_ON_START" "false")"
   repo_bootstrapped="false"
   repo_updated="false"
   force_requested="false"
@@ -266,6 +292,11 @@ sync_runtime_repository() {
 
   ensure_runtime_git_excludes "$RUNTIME_REPO_ROOT"
 
+  if should_overlay_local_image_snapshot; then
+    overlay_image_snapshot_into_runtime_repo
+    repo_updated="true"
+  fi
+
   if [ ! -d "$RUNTIME_REPO_ROOT/node_modules" ] || [ "$repo_bootstrapped" = "true" ] || [ "$repo_updated" = "true" ] || [ "$force_requested" = "true" ] || is_truthy "$install_deps"; then
     log "Installing runtime dependencies..."
     (cd "$RUNTIME_REPO_ROOT" && npm ci --include=dev)
@@ -301,7 +332,7 @@ ensure_runtime_env_file
 repair_unsupported_runtime_env
 
 ACTIVE_APP_ROOT="$IMAGE_APP_ROOT"
-if is_truthy "$(resolve_startup_value "GIT_SYNC_ENABLED" "false")"; then
+if is_truthy "$(resolve_runtime_first_startup_value "GIT_SYNC_ENABLED" "false")"; then
   sync_runtime_repository
   ACTIVE_APP_ROOT="$RUNTIME_REPO_ROOT"
 fi

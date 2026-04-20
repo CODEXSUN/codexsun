@@ -36,6 +36,8 @@ import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-pr
 const pendingRestartStorageKey = "codexsun-system-update-pending"
 const runtimeGitSyncInactiveIssue =
   "Runtime git sync is not active for this deployment. Enable GIT_SYNC_ENABLED to use live update."
+const runtimeGitSyncBootstrapPendingIssue =
+  "Runtime git sync is enabled in runtime settings, but this deployment has not restarted into the runtime Git repository yet. Restart the container or use Save & Restart."
 const unavailableValue = "(unavailable)"
 const systemUpdateShellTechnicalName = "shell.framework.system-update"
 const runtimeReloadQueryKey = "runtimeReload"
@@ -384,6 +386,10 @@ export function FrameworkSystemUpdateSection() {
   const isGitSyncInactive =
     status?.currentCommit === unavailableValue &&
     (status?.preflight.issues.includes(runtimeGitSyncInactiveIssue) ?? false)
+  const isGitSyncBootstrapPending =
+    status?.currentCommit === unavailableValue &&
+    (status?.preflight.issues.includes(runtimeGitSyncBootstrapPendingIssue) ?? false)
+  const isLiveUpdateUnavailable = isGitSyncInactive || isGitSyncBootstrapPending
 
   return (
     <div
@@ -524,12 +530,14 @@ export function FrameworkSystemUpdateSection() {
           label="Remote Commit"
           value={formatCardValue(status?.remoteCommit)}
         />
-        <CommitCard
+          <CommitCard
           icon={status?.canAutoUpdate ? RefreshCcwIcon : ShieldAlertIcon}
           label="Mode"
           value={
             isGitSyncInactive
               ? "Git sync inactive"
+              : isGitSyncBootstrapPending
+                ? "Restart required"
               : status?.canAutoUpdate
                 ? "One-way sync ready"
                 : "Update blocked"
@@ -537,7 +545,7 @@ export function FrameworkSystemUpdateSection() {
         />
       </div>
 
-      {isGitSyncInactive ? (
+      {isLiveUpdateUnavailable ? (
         <Card
           className="relative rounded-[1.5rem] border-border/70 bg-card/80 shadow-sm"
           data-technical-name="block.framework.system-update.live-mode"
@@ -546,12 +554,15 @@ export function FrameworkSystemUpdateSection() {
           <CardHeader>
             <CardTitle>Live Update Mode</CardTitle>
             <CardDescription className="text-xs">
-              This deployment is currently running from the embedded app image, not the runtime Git
-              repository.
+              {isGitSyncBootstrapPending
+                ? "Runtime Git sync is enabled, but this deployment has not restarted into the runtime repository yet."
+                : "This deployment is currently running from the embedded app image, not the runtime Git repository."}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Enable runtime Git sync for the cloud deployment before using the live update workflow.
+            {isGitSyncBootstrapPending
+              ? "Use Save & Restart from Core Settings, or restart the container, so the entrypoint can bootstrap the runtime repository."
+              : "Enable runtime Git sync for the cloud deployment before using the live update workflow."}
           </CardContent>
         </Card>
       ) : null}

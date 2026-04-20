@@ -105,10 +105,6 @@ export function useRuntimeAppSettingsQuery() {
   return useQuery({
     queryKey: queryKeys.runtimeAppSettings,
     queryFn: async () => {
-      if (window.__CODEXSUN_APP_SETTINGS__) {
-        return applyAppSettingsOverrides(window.__CODEXSUN_APP_SETTINGS__) ?? null
-      }
-
       try {
         const payload = await requestJson<AppSettingsSnapshot>("/public/v1/app-settings")
         const settings = applyAppSettingsOverrides(payload.item ?? fallbackRuntimeAppSettings)
@@ -116,16 +112,20 @@ export function useRuntimeAppSettingsQuery() {
 
         return settings
       } catch {
-        const settings = applyAppSettingsOverrides(fallbackRuntimeAppSettings)
+        const settings = applyAppSettingsOverrides(
+          window.__CODEXSUN_APP_SETTINGS__ ?? fallbackRuntimeAppSettings
+        )
         window.__CODEXSUN_APP_SETTINGS__ = settings
         return settings
       }
-
     },
     initialData: () =>
       window.__CODEXSUN_APP_SETTINGS__
         ? applyAppSettingsOverrides(window.__CODEXSUN_APP_SETTINGS__)
-        : undefined,
+        : applyAppSettingsOverrides(fallbackRuntimeAppSettings),
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
     retry: false,
   })
 }

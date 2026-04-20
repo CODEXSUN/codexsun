@@ -8,6 +8,12 @@
 
 ## v-1.0.192
 
+### [v 1.0.192] 2026-04-20 - Fix local Docker system-update runtime git sync startup
+
+- fixed `.container/entrypoint.sh` so runtime git-sync startup values such as `GIT_SYNC_ENABLED`, branch, repository URL, and build/install flags read the persisted runtime `.env` before stale Docker compose env defaults, allowing `Save & Restart` and local client setup to activate runtime git sync without rewriting compose files
+- enabled the existing local image snapshot overlay for development/local runtime git-sync boots so the cloned runtime repository keeps Git metadata for System Update while rebuilding from the current image workspace snapshot instead of stale remote `main`
+- live-tested the corrected local Docker path by rebuilding `codexsun-app:v1`, rerunning `GIT_SYNC_ENABLED=true ./.container/clients/codexsun/setup.sh`, and verifying `http://127.0.0.1:4000/health` returned `status: ok` with `APP_ENV=development`, `GIT_SYNC_ENABLED=true`, and a bootstrapped `/opt/codexsun/runtime/repository`
+
 ### [v 1.0.192] 2026-04-20 - Fix storefront campaign designer CTA color sync
 
 - centered the campaign-card eyebrow in the shared campaign block and tightened the secondary CTA fallback palette so washed-out near-white values resolve to a warmer base-matched tone

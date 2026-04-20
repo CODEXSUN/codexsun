@@ -90,6 +90,52 @@
 
 ## Next Batch
 
+- `#201` Make local Docker system-update runtime git sync boot from saved runtime settings and current workspace state
+  - Goal:
+    - make the local Docker system-update path actually enter runtime git-sync mode after `GIT_SYNC_ENABLED` is saved in runtime settings
+    - keep local git-sync builds aligned with the current workspace/image state instead of failing against stale remote `main`
+  - Why this slice now:
+    - the local `codexsun-app` container kept starting with `GIT_SYNC_ENABLED=false` from Docker env even after runtime settings saved `true`
+    - once runtime git sync was forced on, the container cloned GitHub `main` and rebuilt that older repo state, which reintroduced already-fixed local compile errors and prevented the app from coming back
+  - Current repository reality:
+    - `.container/entrypoint.sh` resolved startup values from process env before `/opt/codexsun/runtime/.env`
+    - client compose files still inject static git-sync env defaults such as `GIT_SYNC_ENABLED=false`
+    - the entrypoint already had an unused `overlay_image_snapshot_into_runtime_repo` helper that can keep a cloned runtime repo aligned with the current image contents
+  - Validation completed:
+    - confirmed live container env still injected `GIT_SYNC_ENABLED=false` while `/opt/codexsun/runtime/.env` had `GIT_SYNC_ENABLED=true`
+    - updated the entrypoint so mutable runtime git-sync startup settings read the persisted runtime `.env` first
+    - activated the local image snapshot overlay for `APP_ENV=development` and `APP_ENV=local` runtime git-sync startups
+    - rebuilt `codexsun-app:v1`, reran `bash -lc "GIT_SYNC_ENABLED=true ./.container/clients/codexsun/setup.sh"`, and verified `http://127.0.0.1:4000/health` returned `status: ok` on April 20, 2026
+    - verified the runtime volume now shows `APP_ENV=development`, `GIT_SYNC_ENABLED=true`, and a bootstrapped `/opt/codexsun/runtime/repository/.git`
+    - confirmed the runtime git-sync boot foundation now works, but a full end-to-end remote commit fetch and apply through the System Update action is still pending separate live validation
+- `#200` Make frontend runtime app settings resync from live `.env`-backed app settings in production
+  - Goal:
+    - keep frontend runtime settings such as toast controls and developer visibility aligned with the active `.env`-backed server settings in production
+    - stop the browser from holding onto a stale one-time boot snapshot for the whole session
+  - Why this slice now:
+    - the current frontend query uses `window.__CODEXSUN_APP_SETTINGS__` as a permanent short-circuit, so production clients can miss later `.env`-backed setting changes served by the live API
+    - the public app-settings endpoint already exists, so the missing piece is frontend refresh behavior
+  - Current repository reality:
+    - `/public/v1/app-settings` is served from live server-side config on each request
+    - the browser query stores that payload in `window.__CODEXSUN_APP_SETTINGS__` and then stops fetching again
+    - this prevents runtime `.env` updates from reaching the already-open frontend session
+  - Validation completed:
+    - updated the runtime app-settings query to treat the window bootstrap payload as initial data only
+    - enabled periodic live refetch and window-focus refetch against `/public/v1/app-settings`, while still preserving the local technical-name override behavior
+- `#199` Clarify live-update preflight when git sync is enabled but restart is still pending
+  - Goal:
+    - stop the system-update page from incorrectly telling operators to enable `GIT_SYNC_ENABLED` when that flag is already saved
+    - show the real next step when the runtime repository has not been bootstrapped yet
+  - Why this slice now:
+    - the cloud system-update screen can still show `Enable GIT_SYNC_ENABLED` even after the setting is enabled in Core Settings
+    - that message hides the actual state transition: the deployment still needs a restart so the container entrypoint can switch into runtime-repository mode
+  - Current repository reality:
+    - the backend system-update service used the same preflight issue string whenever the repository was unavailable
+    - that collapsed two different states into one message: `git sync disabled` and `git sync enabled but restart/bootstrap pending`
+    - the frontend system-update page keyed its inactive-state messaging off that single issue string
+  - Validation completed:
+    - added a distinct backend issue for `git sync enabled but runtime repository not active yet`
+    - updated the frontend mode card and live-update guidance to show `Restart required` when the flag is already enabled but the runtime repo has not been bootstrapped
 - `#198` Fix shared `Button` `asChild` prop forwarding for campaign designer colors
   - Goal:
     - make campaign CTA colors from the designer actually render on the live preview and storefront card

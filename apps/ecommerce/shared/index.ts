@@ -6,5 +6,8 @@ export * from "./workspace-items.js"
 export * from "./schemas/catalog.js"
 export * from "./schemas/customer.js"
 export * from "./schemas/order.js"
-export * from "./storefront-campaign-design.js"
+export {
+  normalizeStorefrontCampaignDesign,
+  normalizeStorefrontSettingsCampaignDesign,
+} from "./storefront-campaign-design.js"
 export * from "./storefront-seo.js"
