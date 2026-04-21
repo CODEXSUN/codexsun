@@ -120,6 +120,46 @@ test("auth service supports seeded login, otp registration, password reset, reco
 
       assert.equal(updatedLogin.user.email, "new.user@example.com")
 
+      const directPasswordUpdate = await authService.updateAdminUser({
+        actingUser: adminLogin.user,
+        userId: updatedLogin.user.id,
+        payload: {
+          email: updatedLogin.user.email,
+          phoneNumber: updatedLogin.user.phoneNumber,
+          displayName: updatedLogin.user.displayName,
+          actorType: updatedLogin.user.actorType,
+          avatarUrl: updatedLogin.user.avatarUrl,
+          organizationName: updatedLogin.user.organizationName,
+          roleKeys: updatedLogin.user.roles.map((role) => role.key),
+          password: "SuperAdmin@123",
+          isActive: updatedLogin.user.isActive,
+          isSuperAdmin: updatedLogin.user.isSuperAdmin,
+        },
+      })
+
+      assert.equal(directPasswordUpdate.item.id, updatedLogin.user.id)
+
+      const superAdminUpdatedLogin = await authService.login(
+        {
+          email: "new.user@example.com",
+          password: "SuperAdmin@123",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
+      assert.equal(superAdminUpdatedLogin.user.id, updatedLogin.user.id)
+
+      const adminResetLink = await authService.sendAdminPasswordResetLink({
+        actingUser: adminLogin.user,
+        userId: updatedLogin.user.id,
+      })
+
+      assert.equal(adminResetLink.sent, true)
+      assert.ok(adminResetLink.debugUrl)
+
       const customerResetOtp = await authService.requestPasswordResetOtp({
         email: "customer@codexsun.local",
       })

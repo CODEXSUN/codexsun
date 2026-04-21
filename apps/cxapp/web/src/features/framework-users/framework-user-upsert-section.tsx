@@ -7,6 +7,7 @@ import type { ActorType, AuthRoleSummary, RoleKey } from "@cxapp/shared"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { showAppToast } from "@/components/ui/app-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -25,9 +26,11 @@ import {
   createFrameworkUser,
   getFrameworkUser,
   listFrameworkRoles,
+  sendFrameworkUserPasswordResetLink,
   updateFrameworkUser,
 } from "./user-api"
 import { SectionShell, StateCard } from "./user-shared"
+import { useAuth } from "../../auth/auth-context"
 import { useRuntimeAppSettings } from "../runtime-app-settings/runtime-app-settings-provider"
 
 type UserFormValues = {
@@ -42,7 +45,7 @@ type UserFormValues = {
   roleKeys: RoleKey[]
 }
 
-type UserFieldErrors = Partial<Record<keyof UserFormValues, string>>
+type UserFieldErrors = Partial<Record<keyof UserFormValues | "password", string>>
 
 function createDefaultUserFormValues(): UserFormValues {
   return {
@@ -144,18 +147,22 @@ function getAssignableRoles(roles: AuthRoleSummary[], actorType: ActorType) {
 }
 
 export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
+  const auth = useAuth()
   const navigate = useNavigate()
   const { settings } = useRuntimeAppSettings()
   const isEditing = Boolean(userId)
+  const canManagePasswords = isEditing && auth.user?.isSuperAdmin === true
   const [form, setForm] = useState<UserFormValues>(createDefaultUserFormValues())
   const [roles, setRoles] = useState<AuthRoleSummary[]>([])
+  const [passwordValue, setPasswordValue] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSendingPasswordLink, setIsSendingPasswordLink] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<UserFieldErrors>({})
   const [roleLookupValue, setRoleLookupValue] = useState("")
-  useGlobalLoading(isLoading || isSaving)
+  useGlobalLoading(isLoading || isSaving || isSendingPasswordLink)
 
   useEffect(() => {
     let cancelled = false
@@ -236,6 +243,12 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
 
   async function handleSave() {
     const nextFieldErrors = validateUserForm(form)
+    const normalizedPassword = passwordValue.trim()
+
+    if (canManagePasswords && normalizedPassword.length > 0 && normalizedPassword.length < 8) {
+      nextFieldErrors.password = "Replacement password must be at least 8 characters."
+    }
+
     setFieldErrors(nextFieldErrors)
     setFormError(null)
 
@@ -255,6 +268,7 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
         isActive: form.isActive,
         isSuperAdmin: form.isSuperAdmin,
         organizationName: form.organizationName.trim() || null,
+        password: canManagePasswords ? normalizedPassword || null : null,
         phoneNumber: form.phoneNumber.trim() || null,
         roleKeys: form.roleKeys,
       }
@@ -263,11 +277,44 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
         ? await updateFrameworkUser(userId, payload)
         : await createFrameworkUser(payload)
 
+      showAppToast({
+        variant: "success",
+        title: isEditing ? "User updated successfully." : "User created successfully.",
+        description: isEditing
+          ? `The user "${response.item.displayName}" is updated successfully.`
+          : `The user "${response.item.displayName}" is created successfully.`,
+      })
       void navigate(`/dashboard/settings/users/${encodeURIComponent(response.item.id)}`)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Failed to save user.")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleSendPasswordResetLink() {
+    if (!userId || !canManagePasswords) {
+      return
+    }
+
+    setFormError(null)
+    setIsSendingPasswordLink(true)
+
+    try {
+      const response = await sendFrameworkUserPasswordResetLink(userId)
+      showAppToast({
+        variant: "success",
+        title: "Password reset link sent.",
+        description: response.debugUrl
+          ? `Reset-link delivery succeeded. Debug link: ${response.debugUrl}`
+          : "The password reset link is sent to the user's email successfully.",
+      })
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to send the password reset link."
+      )
+    } finally {
+      setIsSendingPasswordLink(false)
     }
   }
 
@@ -389,10 +436,39 @@ export function FrameworkUserUpsertSection({ userId }: { userId?: string }) {
           >
             <div className="space-y-4">
               <div className="rounded-2xl border border-border/70 bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
-                {isEditing
-                  ? "Password changes happen through the email reset-link flow."
+                {canManagePasswords
+                  ? "Super admins can set a replacement password here or send the email reset link for the user."
+                  : isEditing
+                    ? "Password changes happen through the email reset-link flow."
                   : "Saving this user sends an email invite with a secure link to create the password."}
               </div>
+              {canManagePasswords ? (
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+                  <UserField label="Replacement Password" error={fieldErrors.password}>
+                    <Input
+                      type="password"
+                      value={passwordValue}
+                      onChange={(event) => {
+                        setPasswordValue(event.target.value)
+                        setFormError(null)
+                        setFieldErrors((current) => ({ ...current, password: undefined }))
+                      }}
+                      className={fieldErrors.password ? "border-destructive" : undefined}
+                      placeholder="Enter a new password"
+                    />
+                  </UserField>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleSendPasswordResetLink()}
+                      disabled={isSendingPasswordLink}
+                    >
+                      {isSendingPasswordLink ? "Sending..." : "Send Reset Link"}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-border/70 bg-muted/30 px-4 py-3">
                   <div className="space-y-1">

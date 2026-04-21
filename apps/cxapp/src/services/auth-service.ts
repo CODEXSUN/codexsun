@@ -246,7 +246,12 @@ export class AuthService {
     })
   }
 
-  async updateAdminUser(userId: string, payload: unknown) {
+  async updateAdminUser(input: {
+    actingUser: AuthUser
+    userId: string
+    payload: unknown
+  }) {
+    const { actingUser, userId, payload } = input
     const parsedPayload = authUserUpsertPayloadSchema.parse(payload)
     const storedUser = await this.repository.findById(userId)
 
@@ -275,6 +280,14 @@ export class AuthService {
         "Only admin users can be marked as super admin.",
         { actorType: parsedPayload.actorType },
         400
+      )
+    }
+
+    if (parsedPayload.password && !actingUser.isSuperAdmin) {
+      throw new ApplicationError(
+        "Only super admins can change another user's password directly.",
+        { actingUserId: actingUser.id, userId },
+        403
       )
     }
 
@@ -309,6 +322,29 @@ export class AuthService {
 
     return authUserResponseSchema.parse({
       item: this.applyConfiguredSuperAdminAccess(nextUser.user),
+    })
+  }
+
+  async sendAdminPasswordResetLink(input: {
+    actingUser: AuthUser
+    userId: string
+  }): Promise<AuthPasswordResetRequestResponse> {
+    if (!input.actingUser.isSuperAdmin) {
+      throw new ApplicationError(
+        "Only super admins can send password reset links for users.",
+        { actingUserId: input.actingUser.id, userId: input.userId },
+        403
+      )
+    }
+
+    const storedUser = await this.repository.findById(input.userId)
+
+    if (!storedUser) {
+      throw new ApplicationError("User could not be found.", { userId: input.userId }, 404)
+    }
+
+    return this.requestPasswordResetLink({
+      email: storedUser.user.email,
     })
   }
 

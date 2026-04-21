@@ -169,3 +169,12 @@ export {
   billingStockUnitListResponseSchema,
   billingStockUnitResponseSchema,
 }
+
+export type {
+  BillingGoodsInward,
+  BillingPurchaseReceipt,
+  BillingPurchaseReceiptBarcodeGenerationResponse,
+  BillingPurchaseReceiptSerializationMode,
+  BillingStockAcceptanceVerification,
+  BillingStockUnit,
+} from "./schemas/stock-operations.js"

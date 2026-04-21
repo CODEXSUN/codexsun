@@ -90,7 +90,35 @@ export function createCxappAuthInternalRoutes(): HttpRouteDefinition[] {
           await createAuthService(
             context.databases.primary,
             context.config
-          ).updateAdminUser(userId, context.request.jsonBody)
+          ).updateAdminUser({
+            actingUser: user,
+            userId,
+            payload: context.request.jsonBody,
+          })
+        )
+      },
+    }),
+    defineInternalRoute("/cxapp/auth/user/password-reset-link", {
+      method: "POST",
+      summary: "Send a password reset link for one user from the admin workspace.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+        const userId = context.request.url.searchParams.get("id")
+
+        if (!userId) {
+          throw new ApplicationError("User id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await createAuthService(
+            context.databases.primary,
+            context.config
+          ).sendAdminPasswordResetLink({
+            actingUser: user,
+            userId,
+          })
         )
       },
     }),

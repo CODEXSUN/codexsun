@@ -1,4 +1,5 @@
 import type {
+  AuthPasswordResetRequestResponse,
   AuthPermissionListResponse,
   AuthPermissionResponse,
   AuthRoleListResponse,
@@ -114,6 +115,15 @@ export async function updateFrameworkUser(userId: string, payload: unknown) {
     {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }
+  )
+}
+
+export async function sendFrameworkUserPasswordResetLink(userId: string) {
+  return requestJson<AuthPasswordResetRequestResponse>(
+    `/internal/v1/cxapp/auth/user/password-reset-link?id=${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
     }
   )
 }

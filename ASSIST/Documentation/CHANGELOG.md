@@ -8,6 +8,13 @@
 
 ## v-1.0.194
 
+### [v 1.0.194] 2026-04-21 - Split stock workspace helpers into stock-owned frontend modules
+
+- split the oversized stock workspace helper surface into `apps/stock/web/src/workspace/stock-workspace-types.ts`, `stock-workspace-api.tsx`, and `stock-workspace-helpers.tsx`, leaving `stock-workspace-shared.tsx` as a compatibility barrel instead of the primary implementation file
+- updated `apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx` and `stock-workspace-support-sections.tsx` to consume stock-owned workspace modules and stock app shared types rather than importing stock UI domain types from `@billing/shared`
+- expanded `apps/stock/shared/schemas.ts` to re-export the stock operation types required by the stock web layer so the app can consume its own shared contract surface cleanly
+- revalidated the stock cleanup slice with `cmd /c npm run typecheck` and `cmd /c npm run build`
+
 ### [v 1.0.194] 2026-04-20 - Fix mail settings save payload coercion
 
 - fixed `apps/framework/shared/mail-settings.ts` so the mail settings save contract accepts form-style transport values by coercing string and number-like inputs to strings and common boolean strings to booleans

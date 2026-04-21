@@ -6,7 +6,7 @@ import type {
   BillingPurchaseReceiptSerializationMode,
   BillingPurchaseReceipt,
   BillingPurchaseReceiptBarcodeGenerationResponse,
-} from "@billing/shared"
+} from "../../../shared/index.ts"
 import type {
   ContactListResponse,
   ContactResponse,
@@ -14,6 +14,7 @@ import type {
   CommonModuleListResponse,
   ProductListResponse,
 } from "@core/shared"
+import { requestJson, useJsonResource } from "./stock-workspace-api"
 import { MasterList } from "@/components/blocks/master-list"
 import { RecordActionMenu } from "@/components/blocks/record-action-menu"
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
@@ -72,16 +73,14 @@ import {
   LoadingCard,
   MetricCards,
   printStockUnitBarcodes,
-  requestJson,
   resolveSelectedSupplierContactValue,
   resolveSupplierContactId,
   resolveWarehouseId,
   SectionIntro,
   StateCard,
   toPurchaseReceiptView,
-  useJsonResource,
   voucherInlineInputClassName,
-} from "./stock-workspace-shared"
+} from "./stock-workspace-helpers"
 import type {
   LookupsResponse,
   MovementListResponse,
@@ -92,7 +91,7 @@ import type {
   SupplierContactDraft,
   StockUnitListResponse,
   StockVerificationSummary,
-} from "./stock-workspace-shared"
+} from "./stock-workspace-types"
 
 function escapeReceiptPrintHtml(value: string) {
   return value

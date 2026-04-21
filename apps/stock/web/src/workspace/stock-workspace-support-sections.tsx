@@ -3,7 +3,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import { PrinterIcon } from "lucide-react"
 
 import type { CommonModuleListResponse, ProductListResponse } from "@core/shared"
-import type { BillingStockUnit } from "@billing/shared"
+import type { BillingStockUnit } from "../../../shared/index.ts"
+import {
+  createReservationForm,
+  createTransferForm,
+  requestJson,
+  useJsonResource,
+} from "./stock-workspace-api"
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,8 +18,6 @@ import { Input } from "@/components/ui/input"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import {
-  createReservationForm,
-  createTransferForm,
   DataTable,
   Field,
   FormGrid,
@@ -22,12 +26,10 @@ import {
   getGoodsInwardExceptionQuantity,
   normalizeInlineItemNote,
   printStockUnitBarcodes,
-  requestJson,
   SectionIntro,
   StateCard,
-  useJsonResource,
   voucherInlineInputClassName,
-} from "./stock-workspace-shared"
+} from "./stock-workspace-helpers"
 import {
   createCustomBarcodePrintDesignerPreset,
   defaultBarcodePrintDesignerSettings,
@@ -61,7 +63,7 @@ import type {
   StockTransfer,
   StockUnitListResponse,
   TransferListResponse,
-} from "./stock-workspace-shared"
+} from "./stock-workspace-types"
 
 function escapeStockReportHtml(value: string) {
   return value
