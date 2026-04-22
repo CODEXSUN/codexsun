@@ -13,18 +13,11 @@ import {
   type LazyExoticComponent,
 } from "react";
 
-import type { AppSuite } from "@framework/application/app-manifest";
-import { createFrameworkBrowserContainer } from "@framework/di/browser-container";
-import { FRAMEWORK_TOKENS } from "@framework/di/tokens";
 import type { AuthUser } from "@cxapp/shared";
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader";
 import { RuntimeBrandProvider } from "@/features/branding/runtime-brand-provider";
 import { TechnicalNameOverlayProvider } from "@/components/system/technical-name-overlay-provider";
-import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider";
-import { Toaster } from "@/components/ui/sonner";
 import type { DashboardUser } from "@/features/dashboard/types";
-import { StorefrontCartProvider } from "@ecommerce/web/src/cart/storefront-cart";
-import { StorefrontRouteMetadata } from "@ecommerce/web/src/components/storefront-route-metadata";
 import {
   clearStorefrontPostAuthRedirect,
   consumeStorefrontPostAuthRedirect,
@@ -45,10 +38,8 @@ import {
   isAppFrontendSurface,
   isShopFrontendSurface,
 } from "./config/frontend-surface";
-import { DeskProvider } from "./desk/desk-provider";
 import {
   RuntimeAppSettingsProvider,
-  useRuntimeAppSettings,
 } from "./features/runtime-app-settings/runtime-app-settings-provider";
 import { AppQueryProvider } from "./query/query-provider";
 import { useAppSessionStore } from "./state/app-session-store";
@@ -69,12 +60,23 @@ function lazyNamed<
   });
 }
 
-const SiteHomePage = lazy(() => import("@site/web/src/pages/home"));
+const SiteHomeRoute = lazyNamed(
+  () => import("./routes/site-home-route"),
+  "SiteHomeRoute",
+);
+const ShopRuntimeShell = lazyNamed(
+  () => import("./shop-runtime-shell"),
+  "ShopRuntimeShell",
+);
+const AppToastLayer = lazyNamed(
+  () => import("./app-toast-layer"),
+  "AppToastLayer",
+);
 const DashboardPage = lazyNamed(
   () => import("@/features/dashboard/pages/dashboard-page"),
   "DashboardPage",
 );
-const BaseAdminLayout = lazy(() => import("@/layouts/AdminLayout"));
+const AdminShell = lazyNamed(() => import("./routes/admin-shell"), "AdminShell");
 const StorefrontAccountOrderPage = lazyNamed(
   () => import("@ecommerce/web/src/pages/storefront-account-order-page"),
   "StorefrontAccountOrderPage",
@@ -349,8 +351,6 @@ const WebUserDashboardPage = lazyNamed(
   "WebUserDashboardPage",
 );
 
-const container = createFrameworkBrowserContainer();
-const appSuite = container.resolve<AppSuite>(FRAMEWORK_TOKENS.appSuite);
 const adminDashboardPath = "/admin/dashboard";
 const guestUser: DashboardUser = {
   displayName: "Guest Operator",
@@ -597,16 +597,18 @@ function LoginRouteMiddleware() {
 }
 
 function AppProviders({ children }: { children: React.ReactNode }) {
+  const appContent = isShopFrontendSurface ? (
+    <ShopRuntimeShell>{children}</ShopRuntimeShell>
+  ) : (
+    children
+  );
+
   return (
     <RuntimeBrandProvider>
       <RuntimeAppSettingsProvider>
         <TechnicalNameOverlayProvider>
-          <ProjectDefaultsProvider>
-            <StorefrontCartProvider>
-              <AppToastLayer />
-              {children}
-            </StorefrontCartProvider>
-          </ProjectDefaultsProvider>
+          <AppToastLayer />
+          {appContent}
         </TechnicalNameOverlayProvider>
       </RuntimeAppSettingsProvider>
     </RuntimeBrandProvider>
@@ -617,15 +619,14 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
 
   return (
-    <DeskProvider
-      appSuite={appSuite}
+    <AdminShell
       user={toDashboardUser(auth.user)}
       onLogout={() => {
         void auth.logout();
       }}
     >
-      <BaseAdminLayout>{children}</BaseAdminLayout>
-    </DeskProvider>
+      {children}
+    </AdminShell>
   );
 }
 
@@ -634,7 +635,6 @@ function AuthenticatedAppShell() {
 
   return (
     <AppProviders>
-      <StorefrontRouteMetadata />
       <Suspense fallback={<GlobalLoader size="md" />}>
         <Routes>
           <Route
@@ -645,7 +645,7 @@ function AuthenticatedAppShell() {
               ) : isAppFrontendSurface ? (
                 <Navigate to="/login" replace />
               ) : (
-                <SiteHomePage appSuite={appSuite} />
+                <SiteHomeRoute />
               )
             }
           />
@@ -2107,18 +2107,6 @@ function AuthenticatedAppShell() {
         </Routes>
       </Suspense>
     </AppProviders>
-  );
-}
-
-function AppToastLayer() {
-  const { settings } = useRuntimeAppSettings();
-
-  return (
-    <Toaster
-      position={settings?.uiFeedback.toast.position ?? "top-right"}
-      tone={settings?.uiFeedback.toast.tone ?? "soft"}
-      closeButton
-    />
   );
 }
 

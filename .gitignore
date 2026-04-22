@@ -32,3 +32,7 @@ dist-ssr
 apps/mobile/.expo/
 apps/mobile/.expo-web-export/
 apps/mobile/.expo-export/
+
+# AI Memory and Cache (Zetro)
+.ai/
+

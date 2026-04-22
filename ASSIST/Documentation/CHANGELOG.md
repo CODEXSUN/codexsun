@@ -2,9 +2,20 @@
 
 ## Version State
 
-- Current package version: `1.0.194`
-- Current release tag: `v-1.0.194`
+- Current package version: `1.0.207`
+- Current release tag: `v-1.0.207`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.207
+
+### [v 1.0.207] 2026-04-21 - Add root-level standalone cxmedia storage and CDN service
+
+- added `cxmedia/` as a root-level standalone service with its own config, JWT admin auth, rate limiting, multipart upload handling, S3-compatible storage adapter, and standalone HTTP server
+- implemented standalone media routes for admin login, authenticated origin reads, multipart upload, prefix-based listing, deletion, signed upload and download URLs, public `/f/*` delivery, private `/p/*` delivery, and Thumbor-oriented resize and crop redirect paths
+- added a standalone file-manager UI served directly from `cxmedia/public` for login, upload, prefix browsing, URL copy, signed-link generation, and delete actions
+- added self-host deployment assets for Garage, Thumbor, and NGINX-based CDN proxy delivery under `cxmedia/deploy`
+- updated repository docs so `cxmedia/` is documented as a root-level standalone service outside the framework-composed suite
+- validated the standalone service with `npm run typecheck:cxmedia` and `npm run build:cxmedia`
 
 ## v-1.0.194
 

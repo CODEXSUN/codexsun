@@ -60,38 +60,6 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             const normalizedId = id.replaceAll('\\', '/')
 
-            if (
-              normalizedId.includes('/apps/ui/src/registry/') ||
-              normalizedId.includes('/apps/ui/src/docs/data/')
-            ) {
-              return 'ui-catalog'
-            }
-
-            if (normalizedId.includes('/apps/cxapp/web/src/desk/')) {
-              return 'desk-core'
-            }
-
-            if (
-              normalizedId.includes('/apps/ui/src/features/dashboard/pages/') ||
-              normalizedId.includes('/apps/ui/src/features/dashboard/dashboard-shell.tsx')
-            ) {
-              return 'dashboard-pages'
-            }
-
-            if (normalizedId.includes('/apps/ui/src/features/dashboard/')) {
-              return 'dashboard-core'
-            }
-
-            if (
-              normalizedId.endsWith('/app-manifest.ts') ||
-              normalizedId.endsWith('/workspace-items.ts') ||
-              normalizedId.endsWith('/common-module-navigation.ts') ||
-              normalizedId.endsWith('/module-registry.ts') ||
-              normalizedId.includes('/apps/framework/src/application/')
-            ) {
-              return 'app-suite'
-            }
-
             if (!normalizedId.includes('/node_modules/')) {
               return undefined
             }

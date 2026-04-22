@@ -28,6 +28,14 @@ The repository currently runs with this model:
 11. MariaDB is the current live primary database target
 12. PostgreSQL remains available for approved runtime deployments and optional analytics paths
 13. local and container startup must use managed network database services
+14. `cxmedia/` is a root-level standalone service for self-hosted media storage, CDN-style image delivery, signed URLs, and file-manager operations outside the main suite shell
+
+Architecture maturity note:
+
+1. the repo is moving toward a modular monolith, but does not yet fully meet strong modular-monolith criteria
+2. DDD is an approved target, but it is not yet the dominant structure across the current apps
+3. event-driven design is also an approved target, but current runtime flows are still primarily direct composition and direct-call based
+4. hexagonal backend structure is also an approved target, but it should be introduced pragmatically through ports and adapters where complexity justifies it rather than through repo-wide ceremony
 
 ## Workspace Shape
 
@@ -49,6 +57,10 @@ Current app roots:
 14. `cli`
 15. `mobile`
 
+Current root-level standalone service roots:
+
+1. `cxmedia`
+
 ## Platform Principles
 
 1. framework stays reusable beneath any one product shell
@@ -59,6 +71,10 @@ Current app roots:
 6. apps stay isolated even when composed together
 7. companion clients such as `apps/mobile` must be documented explicitly instead of being forced into the suite-app shape
 8. documentation and planning must track the real repository state
+9. architecture evolution must happen in safe staged refactors that keep working legacy paths alive while boundaries are improved
+10. DDD is applied first in stable bounded contexts, not as blanket folder ceremony
+11. event-driven behavior begins with typed in-process events and grows into durable delivery only where the operational need is real
+12. hexagonal structure is applied pragmatically: boundary hardening and public contracts come first, while ports, adapters, repositories, and richer domain modeling are added where they reduce coupling and review risk
 
 ## Long-Term Direction
 
@@ -68,6 +84,20 @@ The approved future direction is:
 2. keep all app communication flowing through API, framework, core, UI, or explicit shared contracts instead of direct cross-app coupling
 3. support many clients and industries from one platform through feature enablement, workspace resolution, and client overlays rather than repeated forks
 4. evolve Codexsun itself into the internal control plane for deployment, monitoring, support, maintenance, and cross-client operations
+
+Near-to-mid-term transition order:
+
+1. strengthen modular-monolith boundaries first
+2. introduce application-domain-infrastructure separation and ports-and-adapters where complexity justifies them
+3. introduce DDD incrementally inside one stable domain at a time
+4. introduce event-driven cross-module reactions in-process first, then make them durable only where justified
+
+Pragmatic adoption rule:
+
+1. mandatory first: explicit ownership, thin transport, public module contracts, and reduced cross-app private imports
+2. introduce when complexity exists: application services, ports, adapters, repositories, and frontend feature folders
+3. introduce only in stable, complex domains: aggregates, value objects, domain events, command-query splits, and richer event handler flows
+4. do not create target-state folders everywhere just because the blueprint mentions them; create them only when the use case needs them
 
 The detailed target model is defined in [MODULAR_ERP_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/MODULAR_ERP_BLUEPRINT.md).
 The planned workspace, permission, and feature-resolution follow-up contracts are defined in:

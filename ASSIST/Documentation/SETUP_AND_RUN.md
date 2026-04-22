@@ -67,16 +67,24 @@ Important keys:
 38. `SMTP_PASS`
 39. `SMTP_FROM_EMAIL`
 40. `SMTP_FROM_NAME`
+41. `CXAPP_MEDIA_CXMEDIA_ENABLED`
+42. `CXAPP_MEDIA_CXMEDIA_BASE_URL`
+43. `CXAPP_MEDIA_CXMEDIA_EMAIL`
+44. `CXAPP_MEDIA_CXMEDIA_PASSWORD`
+45. `CXAPP_MEDIA_CXMEDIA_SYNC_SECRET`
+46. `CXAPP_MEDIA_CXMEDIA_HANDOFF_SECRET`
 
 ## Main Commands
 
 ```bash
 npm run dev
-npm run dev:server
-npm run dev:mobile
-npm run dev:mobile:tunnel
+npm run server:dev
+npm run cxmedia:dev
+npm run mobile:dev:full
+npm run mobile:dev:full:tunnel
 npm run mobile:typecheck
 npm run typecheck
+npm run cxmedia:typecheck
 npm run lint
 npm run test
 npm run db:prepare
@@ -84,7 +92,9 @@ npm run db:migrate
 npm run db:seed
 npm run db:status
 npm run build
+npm run cxmedia:build
 npm run start
+npm run cxmedia:start
 npm run github
 npm run github:now
 ``` 
@@ -125,3 +135,9 @@ Current useful host endpoints:
 12. the app-owned `crm` workspace is available in the shared desk under `/dashboard/apps/crm`
 13. production Docker deployment should use a prebuilt image plus persistent runtime `.env`, persistent media storage, and external MariaDB instead of runtime git sync and live server rebuilds
 14. `apps/mobile` is run through its Expo scripts and is not part of the framework-composed web build output
+15. `cxmedia` is a separate root-level service; run it with `npm run cxmedia:dev`, build it with `npm run cxmedia:build`, and configure its own `cxmedia/.env` for Garage or other S3-compatible storage
+16. the framework media manager in `cxapp` can optionally store media binaries in `cxmedia` while keeping folders and metadata in the suite database
+17. to enable that bridge, set `CXAPP_MEDIA_CXMEDIA_ENABLED=true` plus `CXAPP_MEDIA_CXMEDIA_BASE_URL`, `CXAPP_MEDIA_CXMEDIA_EMAIL`, and `CXAPP_MEDIA_CXMEDIA_PASSWORD` in the suite `.env`
+18. to let `cxapp` create and maintain matching `cxmedia` users automatically, set the same shared secret in `CXAPP_MEDIA_CXMEDIA_SYNC_SECRET` and `CXMEDIA_SYNC_SECRET`
+19. to let signed-in suite users open standalone `cxmedia` without a second login, set the same shared secret in `CXAPP_MEDIA_CXMEDIA_HANDOFF_SECRET` and `CXMEDIA_HANDOFF_SECRET`
+20. when the bridge, sync, and handoff are enabled, framework media still uses the existing `/internal/v1/framework/media*` routes and `cxapp` media browser UI, but uploaded file bytes are stored through `cxmedia`, regular `cxapp` users can be provisioned into standalone `cxmedia` without manual user creation, and the media manager can open `cxmedia` with trusted sign-in

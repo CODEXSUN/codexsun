@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { randomUUID } from "node:crypto"
 import { mkdtempSync, rmSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -16,16 +17,56 @@ import {
 } from "../../apps/framework/src/runtime/database/index.js"
 import { ApplicationError } from "../../apps/framework/src/runtime/errors/application-error.js"
 import { listActivityLogs } from "../../apps/framework/src/runtime/activity-log/activity-log-service.js"
+import { hashPassword } from "../../apps/framework/src/runtime/security/password.js"
 
-test("auth service supports seeded login, otp registration, password reset, recovery, and session revocation", async () => {
+function disableOfflineIfPresent(config: Record<string, unknown>) {
+  const offline = config.offline as { enabled?: boolean } | undefined
+
+  if (offline) {
+    offline.enabled = false
+  }
+}
+
+function disableNotificationsIfPresent(config: Record<string, unknown>) {
+  const notifications = config.notifications as
+    | {
+        email?: {
+          enabled?: boolean
+        }
+      }
+    | undefined
+
+  if (notifications?.email) {
+    notifications.email.enabled = false
+  }
+}
+
+function readPasswordLinkPayload(debugUrl: string) {
+  const url = new URL(debugUrl)
+  const verificationId = url.searchParams.get("verificationId")
+  const token = url.searchParams.get("token")
+
+  assert.ok(verificationId)
+  assert.ok(token)
+
+  return {
+    verificationId,
+    token,
+  }
+}
+
+test(
+  "auth service supports seeded login, otp registration, password reset, recovery, and session revocation",
+  { concurrency: false },
+  async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-auth-service-"))
 
   try {
     const config = getServerConfig(tempRoot)
     config.database.driver = "sqlite"
     config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
-    config.offline.enabled = false
-    config.notifications.email.enabled = false
+    disableOfflineIfPresent(config as unknown as Record<string, unknown>)
+    disableNotificationsIfPresent(config as unknown as Record<string, unknown>)
     config.auth.otpDebug = true
 
     const runtime = createRuntimeDatabases(config)
@@ -36,39 +77,29 @@ test("auth service supports seeded login, otp registration, password reset, reco
       const authService = createAuthService(runtime.primary, config)
       const mailboxService = createMailboxService(runtime.primary, config)
       const authRepository = new AuthRepository(runtime.primary)
+      const superAdmin = await authRepository.findById("auth-user:platform-admin")
+      const userEmail = `new.user+${randomUUID()}@example.com`
+      const customerEmail = `customer+${randomUUID()}@codexsun.local`
 
-      const adminLogin = await authService.login(
-        {
-          email: "sundar@sundar.com",
-          password: "Kalarani1@@",
-        },
-        {
-          ipAddress: "127.0.0.1",
-          userAgent: "node:test",
-        }
-      )
+      assert.ok(superAdmin)
 
-      assert.equal(adminLogin.user.actorType, "admin")
-      assert.equal(adminLogin.user.isSuperAdmin, true)
-      assert.ok(adminLogin.accessToken.length > 20)
-      assert.equal(
-        (await authService.getAuthenticatedUser(adminLogin.accessToken)).email,
-        "sundar@sundar.com"
-      )
-
-      await authService.logout(adminLogin.accessToken)
-
-      await assert.rejects(
-        () => authService.getAuthenticatedUser(adminLogin.accessToken),
-        (error: unknown) =>
-          error instanceof ApplicationError &&
-          error.statusCode === 401 &&
-          error.message.includes("revoked")
-      )
+      await authRepository.create({
+        id: `auth-user:test-customer:${randomUUID()}`,
+        email: customerEmail,
+        phoneNumber: "+919876543212",
+        displayName: "Customer Demo",
+        actorType: "customer",
+        avatarUrl: null,
+        passwordHash: await hashPassword("Customer@12345"),
+        organizationName: "Loomline Retail",
+        roleKeys: ["customer_portal"],
+        isSuperAdmin: false,
+        isActive: true,
+      })
 
       const registerOtp = await authService.requestRegisterOtp({
         channel: "email",
-        destination: "new.user@example.com",
+        destination: userEmail,
       })
 
       assert.ok(registerOtp.debugOtp)
@@ -80,28 +111,28 @@ test("auth service supports seeded login, otp registration, password reset, reco
 
       assert.equal(verifyOtp.verified, true)
 
-      const registration = await authService.register({
-        email: "new.user@example.com",
+      const registration = await authService.createAdminUser({
+        email: userEmail,
         phoneNumber: "9876543210",
-        password: "Signup@12345",
         displayName: "New User",
         actorType: "staff",
-        emailVerificationId: registerOtp.verificationId,
         organizationName: "codexsun",
+        avatarUrl: null,
+        roleKeys: ["staff_operator"],
+        isActive: true,
+        isSuperAdmin: false,
       })
 
-      assert.equal(registration.user.actorType, "staff")
+      assert.equal(registration.item.actorType, "staff")
 
-      const resetOtp = await authService.requestPasswordResetOtp({
-        email: "new.user@example.com",
+      const resetLink = await authService.requestPasswordResetLink({
+        email: userEmail,
       })
+      const resetPayload = readPasswordLinkPayload(resetLink.debugUrl!)
 
-      assert.ok(resetOtp.debugOtp)
-
-      const resetConfirmation = await authService.confirmPasswordReset({
-        email: "new.user@example.com",
-        verificationId: resetOtp.verificationId,
-        otp: resetOtp.debugOtp!,
+      const resetConfirmation = await authService.completePasswordLink({
+        verificationId: resetPayload.verificationId,
+        token: resetPayload.token,
         newPassword: "Updated@12345",
       })
 
@@ -109,7 +140,7 @@ test("auth service supports seeded login, otp registration, password reset, reco
 
       const updatedLogin = await authService.login(
         {
-          email: "new.user@example.com",
+          email: userEmail,
           password: "Updated@12345",
         },
         {
@@ -118,10 +149,10 @@ test("auth service supports seeded login, otp registration, password reset, reco
         }
       )
 
-      assert.equal(updatedLogin.user.email, "new.user@example.com")
+      assert.equal(updatedLogin.user.email, userEmail)
 
       const directPasswordUpdate = await authService.updateAdminUser({
-        actingUser: adminLogin.user,
+        actingUser: superAdmin.user,
         userId: updatedLogin.user.id,
         payload: {
           email: updatedLogin.user.email,
@@ -141,7 +172,7 @@ test("auth service supports seeded login, otp registration, password reset, reco
 
       const superAdminUpdatedLogin = await authService.login(
         {
-          email: "new.user@example.com",
+          email: userEmail,
           password: "SuperAdmin@123",
         },
         {
@@ -152,19 +183,55 @@ test("auth service supports seeded login, otp registration, password reset, reco
 
       assert.equal(superAdminUpdatedLogin.user.id, updatedLogin.user.id)
 
+      await assert.rejects(
+        () =>
+          authService.updateAdminUser({
+            actingUser: superAdminUpdatedLogin.user,
+            userId: updatedLogin.user.id,
+            payload: {
+              email: updatedLogin.user.email,
+              phoneNumber: updatedLogin.user.phoneNumber,
+              displayName: updatedLogin.user.displayName,
+              actorType: updatedLogin.user.actorType,
+              avatarUrl: updatedLogin.user.avatarUrl,
+              organizationName: updatedLogin.user.organizationName,
+              roleKeys: updatedLogin.user.roles.map((role) => role.key),
+              password: "Blocked@123",
+              isActive: updatedLogin.user.isActive,
+              isSuperAdmin: updatedLogin.user.isSuperAdmin,
+            },
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 403 &&
+          error.message.includes("Only super admins can change another user's password directly")
+      )
+
       const adminResetLink = await authService.sendAdminPasswordResetLink({
-        actingUser: adminLogin.user,
+        actingUser: superAdmin.user,
         userId: updatedLogin.user.id,
       })
 
       assert.equal(adminResetLink.sent, true)
       assert.ok(adminResetLink.debugUrl)
 
-      const customerResetOtp = await authService.requestPasswordResetOtp({
-        email: "customer@codexsun.local",
+      await assert.rejects(
+        () =>
+          authService.sendAdminPasswordResetLink({
+            actingUser: superAdminUpdatedLogin.user,
+            userId: updatedLogin.user.id,
+          }),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 403 &&
+          error.message.includes("Only super admins can send password reset links for users")
+      )
+
+      const customerResetLink = await authService.requestPasswordResetLink({
+        email: customerEmail,
       })
       const customerResetVerification = await authRepository.getContactVerification(
-        customerResetOtp.verificationId
+        readPasswordLinkPayload(customerResetLink.debugUrl!).verificationId
       )
 
       assert.equal(customerResetVerification?.actorType, "customer")
@@ -172,18 +239,46 @@ test("auth service supports seeded login, otp registration, password reset, reco
       await authRepository.setUserActiveState(updatedLogin.user.id, false)
 
       const recoveryOtp = await authService.requestAccountRecoveryOtp({
-        email: "new.user@example.com",
+        email: userEmail,
       })
 
       assert.ok(recoveryOtp.debugOtp)
 
       const recovery = await authService.restoreAccount({
-        email: "new.user@example.com",
+        email: userEmail,
         verificationId: recoveryOtp.verificationId,
         otp: recoveryOtp.debugOtp!,
       })
 
       assert.equal(recovery.restored, true)
+
+      const restoredLogin = await authService.login(
+        {
+          email: userEmail,
+          password: "SuperAdmin@123",
+        },
+        {
+          ipAddress: "127.0.0.1",
+          userAgent: "node:test",
+        }
+      )
+
+      assert.equal(restoredLogin.user.actorType, "staff")
+      assert.ok(restoredLogin.accessToken.length > 20)
+      assert.equal(
+        (await authService.getAuthenticatedUser(restoredLogin.accessToken)).email,
+        userEmail
+      )
+
+      await authService.logout(restoredLogin.accessToken)
+
+      await assert.rejects(
+        () => authService.getAuthenticatedUser(restoredLogin.accessToken),
+        (error: unknown) =>
+          error instanceof ApplicationError &&
+          error.statusCode === 401 &&
+          error.message.includes("revoked")
+      )
 
       const mailboxMessages = await mailboxService.listMessages()
       assert.ok(mailboxMessages.items.length >= 3)
@@ -195,15 +290,18 @@ test("auth service supports seeded login, otp registration, password reset, reco
   }
 })
 
-test("auth service locks accounts after repeated failed logins and audits the lockout", async () => {
+test(
+  "auth service locks accounts after repeated failed logins and audits the lockout",
+  { concurrency: false },
+  async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-auth-lockout-"))
 
   try {
     const config = getServerConfig(tempRoot)
     config.database.driver = "sqlite"
     config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
-    config.offline.enabled = false
-    config.notifications.email.enabled = false
+    disableOfflineIfPresent(config as unknown as Record<string, unknown>)
+    disableNotificationsIfPresent(config as unknown as Record<string, unknown>)
     config.security.authMaxLoginAttempts = 2
     config.security.authLockoutMinutes = 5
     config.operations.audit.adminAuditEnabled = true
@@ -214,12 +312,30 @@ test("auth service locks accounts after repeated failed logins and audits the lo
       await prepareApplicationDatabase(runtime)
 
       const authService = createAuthService(runtime.primary, config)
+      const authRepository = new AuthRepository(runtime.primary)
+      const lockoutUserId = `auth-user:test-lockout:${randomUUID()}`
+      const lockoutEmail = `lockout.user+${randomUUID()}@example.com`
+      const lockoutPassword = "Lockout@12345"
+
+      await authRepository.create({
+        id: lockoutUserId,
+        email: lockoutEmail,
+        phoneNumber: "+919876543210",
+        displayName: "Lockout User",
+        actorType: "staff",
+        avatarUrl: null,
+        passwordHash: await hashPassword(lockoutPassword),
+        organizationName: "codexsun",
+        roleKeys: ["staff_operator"],
+        isSuperAdmin: false,
+        isActive: true,
+      })
 
       await assert.rejects(
         () =>
           authService.login(
             {
-              email: "sundar@sundar.com",
+              email: lockoutEmail,
               password: "wrong-password",
             },
             {
@@ -237,7 +353,7 @@ test("auth service locks accounts after repeated failed logins and audits the lo
         () =>
           authService.login(
             {
-              email: "sundar@sundar.com",
+              email: lockoutEmail,
               password: "wrong-password",
             },
             {
@@ -255,8 +371,8 @@ test("auth service locks accounts after repeated failed logins and audits the lo
         () =>
           authService.login(
             {
-              email: "sundar@sundar.com",
-              password: "Kalarani1@@",
+              email: lockoutEmail,
+              password: lockoutPassword,
             },
             {
               ipAddress: "127.0.0.1",
@@ -291,14 +407,18 @@ test("auth service locks accounts after repeated failed logins and audits the lo
   }
 })
 
-test("auth service revokes stale admin sessions and records an audit event", async () => {
+test(
+  "auth service revokes stale admin sessions and records an audit event",
+  { concurrency: false },
+  async () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "codexsun-auth-idle-session-"))
 
   try {
     const config = getServerConfig(tempRoot)
     config.database.driver = "sqlite"
     config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
-    config.offline.enabled = false
+    disableOfflineIfPresent(config as unknown as Record<string, unknown>)
+    disableNotificationsIfPresent(config as unknown as Record<string, unknown>)
     config.security.adminSessionIdleMinutes = 1
     config.operations.audit.adminAuditEnabled = true
 
@@ -309,11 +429,24 @@ test("auth service revokes stale admin sessions and records an audit event", asy
 
       const authService = createAuthService(runtime.primary, config)
       const authRepository = new AuthRepository(runtime.primary)
+      const sessionUser = await authRepository.create({
+        id: `auth-user:test-idle-session:${randomUUID()}`,
+        email: `idle.session+${randomUUID()}@example.com`,
+        phoneNumber: "+919876543211",
+        displayName: "Idle Session User",
+        actorType: "staff",
+        avatarUrl: null,
+        passwordHash: await hashPassword("Idle@12345"),
+        organizationName: "codexsun",
+        roleKeys: ["staff_operator"],
+        isSuperAdmin: false,
+        isActive: true,
+      })
 
       const login = await authService.login(
         {
-          email: "sundar@sundar.com",
-          password: "Kalarani1@@",
+          email: sessionUser.email,
+          password: "Idle@12345",
         },
         {
           ipAddress: "127.0.0.1",

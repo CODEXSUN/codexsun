@@ -48,6 +48,10 @@ import {
   moveMediaBinaryBetweenScopes,
   publicMediaFileUrl,
 } from "./media-storage.js"
+import {
+  readFrameworkMediaFromCxmedia,
+  uploadFrameworkMediaToCxmedia,
+} from "./cxmedia-client.js"
 
 function normalizeOptionalString(value: string | null | undefined) {
   if (value == null) {
@@ -169,10 +173,17 @@ function toMediaSummary(item: Media, folders: MediaFolder[]): MediaSummary {
 }
 
 function buildMediaFileUrl(
+  config: ServerConfig,
   itemId: string,
   scope: "public" | "private",
   backendKey: string
 ) {
+  if (config.media.cxmedia.enabled) {
+    return scope === "public"
+      ? `/public/v1/framework/media-file?id=${encodeURIComponent(itemId)}`
+      : `/internal/v1/framework/media-file?id=${encodeURIComponent(itemId)}`
+  }
+
   return scope === "public"
     ? publicMediaFileUrl(backendKey)
     : `/internal/v1/framework/media-file?id=${encodeURIComponent(itemId)}`
@@ -301,14 +312,24 @@ export async function uploadMediaImage(
     ? `${randomUUID()}-${sanitizeFileStem(parsedPayload.fileName)}.${extension}`
     : `${randomUUID()}-${sanitizeFileStem(parsedPayload.fileName)}`
   const relativePath = path.join(year, month, relativeFileName)
-  const backendKey = relativePath.replace(/\\/g, "/")
-  const absolutePath = mediaAbsolutePath(config, parsedPayload.storageScope, relativePath)
+  let backendKey = relativePath.replace(/\\/g, "/")
 
-  await mkdir(path.dirname(absolutePath), { recursive: true })
-  await writeFile(absolutePath, buffer)
+  if (config.media.cxmedia.enabled) {
+    const upload = await uploadFrameworkMediaToCxmedia(config, {
+      buffer,
+      contentType: mimeType,
+      originalName: parsedPayload.originalName,
+    })
+    backendKey = upload.item.path
+  } else {
+    const absolutePath = mediaAbsolutePath(config, parsedPayload.storageScope, relativePath)
 
-  if (parsedPayload.storageScope === "public") {
-    await ensurePublicMediaSymlink(config)
+    await mkdir(path.dirname(absolutePath), { recursive: true })
+    await writeFile(absolutePath, buffer)
+
+    if (parsedPayload.storageScope === "public") {
+      await ensurePublicMediaSymlink(config)
+    }
   }
 
   const timestamp = new Date().toISOString()
@@ -319,7 +340,7 @@ export async function uploadMediaImage(
     title: normalizeOptionalString(parsedPayload.title),
     altText: normalizeOptionalString(parsedPayload.altText),
     description: normalizeOptionalString(parsedPayload.description),
-    provider: "local",
+    provider: config.media.cxmedia.enabled ? "cdn" : "local",
     storageScope: parsedPayload.storageScope,
     fileType: fileTypeFromMimeType(mimeType),
     mimeType,
@@ -332,11 +353,13 @@ export async function uploadMediaImage(
     tags: parsedPayload.tags,
     width: null,
     height: null,
-    fileUrl: buildMediaFileUrl(mediaId, parsedPayload.storageScope, backendKey),
+    fileUrl: buildMediaFileUrl(config, mediaId, parsedPayload.storageScope, backendKey),
     thumbnailUrl: null,
     backendKey,
-    disk: parsedPayload.storageScope,
-    root: mediaRootDirectory(config),
+    disk: config.media.cxmedia.enabled ? "cxmedia" : parsedPayload.storageScope,
+    root: config.media.cxmedia.enabled
+      ? config.media.cxmedia.baseUrl ?? "cxmedia"
+      : mediaRootDirectory(config),
     extension,
     isActive: parsedPayload.isActive,
     createdAt: timestamp,
@@ -369,18 +392,20 @@ export async function updateMedia(
     description: normalizeOptionalString(parsedPayload.description),
     folderId: normalizeOptionalString(parsedPayload.folderId),
     storageScope: parsedPayload.storageScope,
-    fileUrl: buildMediaFileUrl(mediaId, parsedPayload.storageScope, existing.backendKey),
+    fileUrl: buildMediaFileUrl(config, mediaId, parsedPayload.storageScope, existing.backendKey),
     tags: parsedPayload.tags,
     isActive: parsedPayload.isActive,
     updatedAt: new Date().toISOString(),
   })
 
-  await moveMediaBinaryBetweenScopes(
-    config,
-    existing.backendKey,
-    existing.storageScope,
-    parsedPayload.storageScope
-  )
+  if (!config.media.cxmedia.enabled) {
+    await moveMediaBinaryBetweenScopes(
+      config,
+      existing.backendKey,
+      existing.storageScope,
+      parsedPayload.storageScope
+    )
+  }
 
   await writeFiles(
     database,
@@ -426,8 +451,9 @@ export async function readMediaContent(
     throw new ApplicationError("Media asset could not be found.", { mediaId }, 404)
   }
 
-  const absolutePath = mediaAbsolutePath(config, item.storageScope, item.backendKey)
-  const content = await readFile(absolutePath)
+  const content = config.media.cxmedia.enabled
+    ? (await readFrameworkMediaFromCxmedia(config, item.backendKey)).body
+    : await readFile(mediaAbsolutePath(config, item.storageScope, item.backendKey))
 
   return {
     item,
@@ -438,6 +464,20 @@ export async function readMediaContent(
 export async function getMediaSymlinkStatus(
   config: ServerConfig
 ): Promise<MediaSymlinkResponse> {
+  if (config.media.cxmedia.enabled) {
+    return mediaSymlinkResponseSchema.parse({
+      item: {
+        mountPath: "cxmedia://framework-media",
+        targetPath: config.media.cxmedia.baseUrl ?? "cxmedia",
+        resolvedTargetPath: config.media.cxmedia.baseUrl ?? "cxmedia",
+        exists: true,
+        isSymbolicLink: false,
+        status: "healthy",
+        detail: "Framework media storage is handled by cxmedia.",
+      },
+    })
+  }
+
   return mediaSymlinkResponseSchema.parse({
     item: await inspectPublicMediaSymlink(config),
   })
@@ -447,6 +487,10 @@ export async function manageMediaSymlink(
   config: ServerConfig,
   payload: unknown
 ): Promise<MediaSymlinkResponse> {
+  if (config.media.cxmedia.enabled) {
+    return getMediaSymlinkStatus(config)
+  }
+
   const parsedPayload = mediaSymlinkActionPayloadSchema.parse(
     payload
   ) as MediaSymlinkActionPayload

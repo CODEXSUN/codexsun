@@ -61,6 +61,10 @@ import {
   type ContactVerificationRecord,
   type StoredAuthUser,
 } from "../repositories/auth-repository.js"
+import {
+  deleteUserFromCxmedia,
+  syncUserToCxmedia,
+} from "./cxmedia-user-sync-service.js"
 import { MailboxService } from "./mailbox-service.js"
 
 type TokenClaims = {
@@ -71,6 +75,13 @@ type TokenClaims = {
   sub: string
   exp: number
   iat: number
+}
+
+type CxmediaHandoffClaims = {
+  email: string
+  name: string
+  role: string
+  type: "cxmedia-handoff"
 }
 
 type PasswordLinkPurpose = "password_reset" | "password_setup"
@@ -211,6 +222,7 @@ export class AuthService {
     }
 
     const temporaryPassword = randomUUID()
+    const temporaryPasswordHash = await hashPassword(temporaryPassword)
     const user = await this.repository.create({
       id: randomUUID(),
       email: normalizedEmail,
@@ -220,7 +232,7 @@ export class AuthService {
       avatarUrl:
         parsedPayload.avatarUrl ??
         `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedPayload.displayName.trim())}&background=1f2937&color=ffffff`,
-      passwordHash: await hashPassword(temporaryPassword),
+      passwordHash: temporaryPasswordHash,
       organizationName: parsedPayload.organizationName,
       roleKeys,
       isSuperAdmin: parsedPayload.isSuperAdmin,
@@ -235,6 +247,10 @@ export class AuthService {
         purpose: "password_setup",
         templateCode: "workspace_password_setup_link",
         intent: "invite",
+      })
+      await syncUserToCxmedia(this.config, {
+        passwordHash: temporaryPasswordHash,
+        user: this.applyConfiguredSuperAdminAccess(user),
       })
     } catch (error) {
       await this.repository.deleteUser(user.id)
@@ -291,6 +307,10 @@ export class AuthService {
       )
     }
 
+    const nextPasswordHash = parsedPayload.password
+      ? await hashPassword(parsedPayload.password)
+      : storedUser.passwordHash
+
     await this.repository.updateUser({
       id: userId,
       email: normalizedEmail,
@@ -305,24 +325,32 @@ export class AuthService {
       isActive: parsedPayload.isActive,
     })
 
-    if (parsedPayload.password) {
-      await this.repository.updatePasswordHash(
-        userId,
-        await hashPassword(parsedPayload.password)
-      )
+    try {
+      if (parsedPayload.password) {
+        await this.repository.updatePasswordHash(userId, nextPasswordHash)
+      }
+
+      await this.repository.replaceUserRoles(userId, roleKeys)
+
+      const nextUser = await this.repository.findById(userId)
+
+      if (!nextUser) {
+        throw new ApplicationError("Updated user could not be found.", { userId }, 500)
+      }
+
+      await syncUserToCxmedia(this.config, {
+        passwordHash: nextPasswordHash,
+        previousEmail: storedUser.user.email,
+        user: this.applyConfiguredSuperAdminAccess(nextUser.user),
+      })
+
+      return authUserResponseSchema.parse({
+        item: this.applyConfiguredSuperAdminAccess(nextUser.user),
+      })
+    } catch (error) {
+      await this.restoreUserSnapshot(storedUser)
+      throw error
     }
-
-    await this.repository.replaceUserRoles(userId, roleKeys)
-
-    const nextUser = await this.repository.findById(userId)
-
-    if (!nextUser) {
-      throw new ApplicationError("Updated user could not be found.", { userId }, 500)
-    }
-
-    return authUserResponseSchema.parse({
-      item: this.applyConfiguredSuperAdminAccess(nextUser.user),
-    })
   }
 
   async sendAdminPasswordResetLink(input: {
@@ -382,10 +410,47 @@ export class AuthService {
       )
     }
 
+    await deleteUserFromCxmedia(this.config, storedUser.user.email)
     await this.repository.deleteUser(input.userId)
 
     return {
       deleted: true as const,
+    }
+  }
+
+  async createCxmediaLaunchUrl(user: AuthUser) {
+    const settings = this.config.media.cxmedia
+
+    if (!settings.enabled || !settings.baseUrl || !settings.handoffSecret) {
+      throw new ApplicationError("cxmedia trusted handoff is not configured.", {}, 400)
+    }
+
+    const storedUser = await this.repository.findById(user.id)
+
+    if (!storedUser) {
+      throw new ApplicationError("User could not be found.", { userId: user.id }, 404)
+    }
+
+    const normalizedUser = this.applyConfiguredSuperAdminAccess(storedUser.user)
+    const handoffToken = signJwt<CxmediaHandoffClaims>(
+      {
+        email: normalizedUser.email,
+        name: normalizedUser.displayName,
+        role: normalizedUser.actorType,
+        type: "cxmedia-handoff",
+      },
+      {
+        secret: settings.handoffSecret,
+        subject: normalizedUser.id,
+        expiresInSeconds: 60,
+      }
+    )
+
+    return {
+      url: new URL(
+        `/?handoff=${encodeURIComponent(handoffToken)}`,
+        settings.baseUrl
+      ).toString(),
     }
   }
 
@@ -669,18 +734,30 @@ export class AuthService {
       )
     }
 
-    return this.repository.create({
+    const passwordHash = await hashPassword(input.password)
+    const user = await this.repository.create({
       id: randomUUID(),
       email: normalizedEmail,
       phoneNumber: this.normalizePhoneNumber(input.phoneNumber),
       displayName: input.displayName.trim(),
       actorType: input.actorType,
       avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(input.displayName.trim())}&background=1f2937&color=ffffff`,
-      passwordHash: await hashPassword(input.password),
+      passwordHash,
       organizationName: input.organizationName?.trim() || null,
       roleKeys: [this.resolveDefaultPortalRoleKey(input.actorType)],
       isSuperAdmin: false,
     })
+
+    try {
+      await syncUserToCxmedia(this.config, {
+        passwordHash,
+        user: this.applyConfiguredSuperAdminAccess(user),
+      })
+      return user
+    } catch (error) {
+      await this.repository.deleteUser(user.id)
+      throw error
+    }
   }
 
   async assertVerifiedRegistrationEmail(verificationId: string, email: string) {
@@ -939,10 +1016,20 @@ export class AuthService {
       )
     }
 
-    await this.repository.updatePasswordHash(
-      storedUser.user.id,
-      await hashPassword(parsedPayload.newPassword)
-    )
+    const nextPasswordHash = await hashPassword(parsedPayload.newPassword)
+
+    await this.repository.updatePasswordHash(storedUser.user.id, nextPasswordHash)
+
+    try {
+      await syncUserToCxmedia(this.config, {
+        passwordHash: nextPasswordHash,
+        user: this.applyConfiguredSuperAdminAccess(storedUser.user),
+      })
+    } catch (error) {
+      await this.repository.updatePasswordHash(storedUser.user.id, storedUser.passwordHash)
+      throw error
+    }
+
     await this.repository.markContactVerificationVerified(verification!.id)
     await this.repository.consumeContactVerification(verification!.id)
 
@@ -1010,6 +1097,19 @@ export class AuthService {
     await this.repository.markContactVerificationVerified(verification!.id)
     await this.repository.consumeContactVerification(verification!.id)
     await this.repository.setUserActiveState(storedUser.user.id, true)
+
+    try {
+      await syncUserToCxmedia(this.config, {
+        passwordHash: storedUser.passwordHash,
+        user: this.applyConfiguredSuperAdminAccess({
+          ...storedUser.user,
+          isActive: true,
+        }),
+      })
+    } catch (error) {
+      await this.repository.setUserActiveState(storedUser.user.id, false)
+      throw error
+    }
 
     return authAccountRecoveryRestoreResponseSchema.parse({
       restored: true,
@@ -1413,6 +1513,25 @@ export class AuthService {
     }
 
     return selectedPermissions.map((permission) => permission.key)
+  }
+
+  private async restoreUserSnapshot(storedUser: StoredAuthUser) {
+    await this.repository.updateUser({
+      id: storedUser.user.id,
+      email: storedUser.user.email,
+      phoneNumber: storedUser.user.phoneNumber,
+      displayName: storedUser.user.displayName,
+      actorType: storedUser.user.actorType,
+      avatarUrl: storedUser.user.avatarUrl,
+      organizationName: storedUser.user.organizationName,
+      isSuperAdmin: storedUser.user.isSuperAdmin,
+      isActive: storedUser.user.isActive,
+    })
+    await this.repository.updatePasswordHash(storedUser.user.id, storedUser.passwordHash)
+    await this.repository.replaceUserRoles(
+      storedUser.user.id,
+      storedUser.user.roles.map((role) => role.key)
+    )
   }
 
   private createRoleKey(name: string) {

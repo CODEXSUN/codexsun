@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { CheckCircle2Icon, LinkIcon, LoaderCircleIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react"
+import { CheckCircle2Icon, ExternalLinkIcon, LinkIcon, LoaderCircleIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react"
 
 import type { MediaSymlinkStatus } from "../../../../../framework/shared/media"
 
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { getFrameworkMediaSymlinkStatus, manageFrameworkMediaSymlink } from "./media-api"
+import { createCxmediaLaunchUrl, getFrameworkMediaSymlinkStatus, manageFrameworkMediaSymlink } from "./media-api"
 import { FrameworkMediaBrowser } from "./media-browser"
 
 export function FrameworkMediaManagerSection() {
@@ -15,6 +15,7 @@ export function FrameworkMediaManagerSection() {
   const [isLoadingSymlinkStatus, setIsLoadingSymlinkStatus] = useState(true)
   const [symlinkAction, setSymlinkAction] = useState<"verify" | "recreate" | null>(null)
   const [symlinkError, setSymlinkError] = useState<string | null>(null)
+  const [isOpeningCxmedia, setIsOpeningCxmedia] = useState(false)
 
   async function loadSymlinkStatus() {
     setIsLoadingSymlinkStatus(true)
@@ -52,6 +53,22 @@ export function FrameworkMediaManagerSection() {
     }
   }
 
+  async function handleOpenCxmedia() {
+    setIsOpeningCxmedia(true)
+    setSymlinkError(null)
+
+    try {
+      const response = await createCxmediaLaunchUrl()
+      window.open(response.url, "_blank", "noopener,noreferrer")
+    } catch (error) {
+      setSymlinkError(
+        error instanceof Error ? error.message : "Failed to create cxmedia launch URL."
+      )
+    } finally {
+      setIsOpeningCxmedia(false)
+    }
+  }
+
   const statusTone =
     symlinkStatus?.status === "healthy"
       ? "default"
@@ -81,6 +98,20 @@ export function FrameworkMediaManagerSection() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleOpenCxmedia()}
+                disabled={isOpeningCxmedia}
+              >
+                {isOpeningCxmedia ? (
+                  <LoaderCircleIcon className="size-4 animate-spin" />
+                ) : (
+                  <ExternalLinkIcon className="size-4" />
+                )}
+                Open Standalone cxmedia
+              </Button>
               <Button
                 type="button"
                 size="sm"

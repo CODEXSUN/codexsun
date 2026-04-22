@@ -2,6 +2,7 @@ import { Link, useLocation, useParams } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ProjectDefaultsProvider } from "@/design-system/context/project-defaults-provider"
 import { DocsEntryCard } from "@/docs/components/docs-entry-card"
 import { DocsPageHeader } from "@/docs/components/docs-page-header"
 import { useDashboardShell } from "@/features/dashboard/dashboard-shell"
@@ -422,7 +423,7 @@ export function FrameworkAppWorkspacePage({
   return (
     <div className="space-y-3">
       {isUiWorkspace ? (
-        <>
+        <ProjectDefaultsProvider>
           <DocsPageHeader
             title={uiTitle}
             description={uiDescription}
@@ -443,7 +444,7 @@ export function FrameworkAppWorkspacePage({
           ) : (
             <DocsBrowser basePath={app.route} showHeader={false} />
           )}
-        </>
+        </ProjectDefaultsProvider>
       ) : (
         <>
           {hideWorkspaceHero ? null : (

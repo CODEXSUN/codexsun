@@ -36,12 +36,45 @@
 2. Keep transport, application, domain, and persistence concerns separate.
 3. Financial writes must be atomic, balanced, traceable, and audit-safe.
 4. Never hard-delete financial or stock-affecting records.
+5. Follow a pragmatic hexagonal model for new backend work: business rules depend on ports and contracts, while transport, DB, payment, mail, ERP, and media concerns stay in adapters.
+6. Treat cross-app private imports as architectural violations; cross-app usage must go through app-owned `src/public` contracts.
+7. Prefer application services for use-case orchestration and keep framework or SDK details out of domain logic.
+8. Introduce repository interfaces, ports, and adapters where complexity justifies them; do not add ceremony without a real use case.
+9. Use DDD selectively in stable domains only; aggregates, value objects, and domain events are not mandatory for every module.
+10. Introduce typed in-process events only after state changes and only when real cross-module reactions exist.
 
 ## Frontend Rules
 
 1. React components should compose state and presentation, not own domain rules.
 2. App shells should not hide business decisions that belong in backend or domain code.
 3. Reusable UI primitives belong in `apps/ui`.
+4. New app-specific frontend work should prefer feature folders that separate page composition, data access, view mapping, and presentation.
+5. Do not bury API calls, domain decisions, and transformation logic directly inside routed page components when a feature module is warranted.
+
+## Pragmatic Adoption Levels
+
+1. Mandatory first:
+   - boundary hardening
+   - app-owned `src/public` entry points
+   - thin transport layers
+   - explicit ownership
+2. Introduce when complexity exists:
+   - application and domain separation
+   - ports and adapters
+   - repository interfaces
+   - feature-folder frontend structure
+3. Introduce only in stable, complex domains:
+   - aggregates
+   - value objects
+   - domain events
+   - command and query split
+   - event listeners and richer event workflows
+
+Rules:
+
+1. Do not create folders only because the target blueprint mentions them.
+2. Add structure only when the use case, boundary, or review burden justifies it.
+3. Prefer strangler-style refactors over broad delete-and-rebuild rewrites.
 
 ## Documentation Coupling
 

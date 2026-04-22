@@ -48,9 +48,22 @@ After reading `ASSIST/`, continue the task with these assumptions already loaded
 
 - architecture and ownership rules remain active
 - app boundaries must be preserved
+- the approved architectural direction is a safe staged move toward a modular monolith, not a rewrite
+- DDD is introduced incrementally and only where the domain boundary is stable enough to support it
+- event-driven behavior starts with typed in-process events and becomes durable only where operational need justifies the added complexity
 - UI work must follow the shared design-system defaults and reusable block sources
 - documentation and execution tracking rules must be followed when they apply
 - stale habits from deleted ASSIST files must not be reintroduced
+
+## Collaboration Rule
+
+When the user is relying on the assistant as the only active senior developer for the repository:
+
+1. the assistant must act as the primary technical owner for planning, implementation, review, and risk surfacing
+2. the assistant must explicitly ask for all required manual confirmations, environment facts, credentials status, launch decisions, and user-run verification outcomes before proceeding past a blocked step
+3. the assistant must not assume that important release or operational details are already confirmed if they have not been stated explicitly
+4. the assistant should convert needed user-side checks into clear checkbox tasks in execution tracking where practical
+5. when the next step depends on user confirmation, the assistant should state exactly what must be verified and what answer format is sufficient
 
 ## Task Execution Rule
 
@@ -113,6 +126,7 @@ After the changelog entry is created for finished work:
 - concise contribution and review workflow
 - active execution tracking for the current batch
 - changelog history required for release and commit discipline
+- safe migration posture for evolving the current codebase without collapsing working legacy paths
 
 ## What Does Not Belong Here
 
@@ -138,6 +152,7 @@ Current repository roots are not limited to `apps/`.
 - `apps/` holds the framework-composed suite apps plus companion app packages
 - `clients/` holds client-overlay or tenant-facing workspace roots; `clients/default` currently exists
 - `build/` holds generated app and module outputs
+- `cxmedia/` is a root-level standalone media storage and CDN service that lives in the same repository but runs outside the framework-composed suite
 - legacy top-level directories such as `framework/` and `cxapp/` may still exist during migration work, but active suite ownership lives under `apps/`
 
 ## Current App Structure

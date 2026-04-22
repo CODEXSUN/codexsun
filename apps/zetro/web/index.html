@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zetro IDE</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --panel: rgba(12, 19, 39, 0.88);
+        --panel-2: rgba(17, 26, 50, 0.92);
+        --border: rgba(148, 169, 255, 0.18);
+        --text: #e8ecff;
+        --muted: #94a3cf;
+        --accent: #7ee0ff;
+        --success: #7ce3b1;
+        --warning: #f1cf6d;
+        --danger: #ff8d8d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 360px;
+        background:
+          radial-gradient(circle at top left, rgba(126, 224, 255, 0.15), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(247, 178, 103, 0.12), transparent 24%),
+          linear-gradient(180deg, #090f1d 0%, #0d1324 100%);
+        color: var(--text);
+        font: 14px/1.45 "Segoe UI", "Helvetica Neue", sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 84px;
+      }
+
+      .panel {
+        min-height: 100vh;
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+      }
+
+      .sidebar,
+      .sidepane {
+        padding: 18px 16px;
+        border-right: 1px solid var(--border);
+      }
+
+      .sidepane {
+        border-right: 0;
+        border-left: 1px solid var(--border);
+      }
+
+      .main {
+        min-width: 0;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .surface {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, var(--panel-2), rgba(12, 19, 39, 0.98));
+        box-shadow: 0 24px 72px rgba(2, 6, 18, 0.4);
+      }
+
+      .section {
+        padding: 14px;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .subtitle,
+      .caption,
+      .meta-line,
+      .empty-state,
+      .palette-empty {
+        color: var(--muted);
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+      }
+
+      .scope-switch button,
+      .toolbar button,
+      .chat-input button,
+      .palette-header button {
+        padding: 9px 12px;
+      }
+
+      #files,
+      #open-editors,
+      #problems,
+      #history,
+      #palette-results {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .file,
+      .open-item,
+      .problem,
+      .palette-item {
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+      }
+
+      .open-item,
+      .problem,
+      .palette-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .open-item.active,
+      .palette-item.active {
+        border-color: rgba(126, 224, 255, 0.42);
+        background: rgba(126, 224, 255, 0.12);
+      }
+
+      .problem-error {
+        border-color: rgba(255, 141, 141, 0.28);
+      }
+
+      .problem-warning {
+        border-color: rgba(241, 207, 109, 0.28);
+      }
+
+      .editor-shell {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+
+      .editor-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px 0;
+      }
+
+      .file-meta {
+        min-width: 0;
+      }
+
+      #current-file {
+        display: block;
+        font-size: 18px;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      #tabs {
+        display: flex;
+        gap: 8px;
+        overflow: auto;
+        padding: 0 16px 6px;
+      }
+
+      .tab {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .tab.active {
+        border-color: rgba(126, 224, 255, 0.38);
+        background: rgba(126, 224, 255, 0.1);
+      }
+
+      .tab-switch,
+      .tab-close {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 8px 10px;
+      }
+
+      .tab-close {
+        color: var(--muted);
+      }
+
+      .tab-empty {
+        color: var(--muted);
+        padding: 9px 4px;
+      }
+
+      #editor {
+        min-height: 0;
+        height: 100%;
+        border-radius: 0 0 18px 18px;
+        overflow: hidden;
+      }
+
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+
+      .status-left,
+      .status-right {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .badge {
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      #status[data-tone="success"] {
+        color: var(--success);
+      }
+
+      #status[data-tone="warning"] {
+        color: var(--warning);
+      }
+
+      #status[data-tone="error"] {
+        color: var(--danger);
+      }
+
+      #lsp-status[data-state="ready"] {
+        color: var(--success);
+      }
+
+      #lsp-status[data-state="error"],
+      #lsp-status[data-state="closed"] {
+        color: var(--danger);
+      }
+
+      #history {
+        max-height: 280px;
+        overflow: auto;
+      }
+
+      .msg {
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+
+      .msg.user {
+        background: rgba(126, 224, 255, 0.1);
+      }
+
+      .msg.assistant {
+        background: rgba(247, 178, 103, 0.08);
+      }
+
+      #palette {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: start center;
+        padding-top: 8vh;
+        background: rgba(4, 8, 18, 0.52);
+        backdrop-filter: blur(12px);
+      }
+
+      .palette-card {
+        width: min(760px, calc(100vw - 32px));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(10, 16, 31, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .palette-header,
+      .palette-body {
+        padding: 14px 16px;
+      }
+
+      .palette-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .palette-body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      @media (max-width: 1180px) {
+        body {
+          grid-template-columns: 250px minmax(0, 1fr);
+        }
+
+        .sidepane {
+          grid-column: 1 / -1;
+          min-height: auto;
+          border-left: 0;
+          border-top: 1px solid var(--border);
+        }
+      }
+
+      @media (max-width: 860px) {
+        body {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .sidebar,
+        .sidepane,
+        .main {
+          min-height: auto;
+          border: 0;
+        }
+
+        #editor {
+          min-height: 52vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="panel sidebar stack">
+      <div>
+        <p class="eyebrow">Standalone IDE</p>
+        <h1 class="title">Zetro</h1>
+        <p class="subtitle">Explorer, Monaco editor, local chat, and LSP-backed document sync.</p>
+      </div>
+
+      <section class="surface section">
+        <div class="section-header">
+          <strong>Scope</strong>
+          <span class="caption" id="current-base">.</span>
+        </div>
+        <div class="row scope-switch">
+          <button id="btn-zetro">Zetro Root</button>
+          <button id="btn-workspace">Workspace</button>
+          <button id="btn-up">Up</button>
+          <button id="btn-refresh">Refresh</button>
+        </div>
+      </section>
+
+      <section class="surface section">
+        <div class="section-header">
+          <strong>Explorer</strong>
+          <span class="caption">tree.files</span>
+        </div>
+        <div id="files"></div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <section class="surface editor-shell">
+        <div class="editor-top">
+          <div class="file-meta">
+            <span class="eyebrow">editor.workspace</span>
+            <span id="current-file">No file</span>
+            <div class="meta-line" id="status">Ready</div>
+          </div>
+          <div class="toolbar">
+            <button id="btn-quick-open">Quick Open</button>
+            <button id="btn-command">Commands</button>
+            <button id="btn-save">Save</button>
+            <button id="btn-format">Format</button>
+            <button id="btn-find">Find</button>
+            <button id="btn-goto">Go To</button>
+          </div>
+        </div>
+        <div id="tabs"></div>
+        <div id="editor"></div>
+      </section>
+
+      <section class="surface status-bar">
+        <div class="status-left">
+          <span class="badge" id="file-language">plaintext</span>
+          <span class="badge" id="cursor-position">Ln 1, Col 1</span>
+          <span class="badge" id="problem-count">0 errors, 0 warnings</span>
+        </div>
+        <div class="status-right">
+          <span class="badge" id="lsp-status" data-state="closed">CLOSED</span>
+        </div>
+      </section>
+    </main>
+
+    <aside class="panel sidepane stack">
+      <section class="surface section">
+        <div class="section-header">
+          <strong>Open Editors</strong>
+          <span class="caption">view.open</span>
+        </div>
+        <div id="open-editors"></div>
+      </section>
+
+      <section class="surface section">
+        <div class="section-header">
+          <strong>Problems</strong>
+          <span class="caption">view.problems</span>
+        </div>
+        <div id="problems"></div>
+      </section>
+
+      <section class="surface section">
+        <div class="section-header">
+          <strong>Assistant</strong>
+          <span class="caption">panel.chat</span>
+        </div>
+        <div id="history"></div>
+        <div class="stack" style="margin-top: 12px">
+          <textarea id="msg" placeholder="Ask Zetro to inspect or change something"></textarea>
+          <div class="row chat-input">
+            <button id="send">Send</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <div id="palette" hidden>
+      <div class="palette-card">
+        <div class="palette-header">
+          <strong id="palette-title">Quick Open</strong>
+          <button id="palette-close">Close</button>
+        </div>
+        <div class="palette-body">
+          <input id="palette-input" autocomplete="off" />
+          <div id="palette-results"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

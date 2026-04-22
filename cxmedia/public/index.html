@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cxmedia</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="hero">
+        <p class="eyebrow">cxmedia</p>
+        <h1>Self-hosted image storage and CDN.</h1>
+        <p class="lede">
+          Standalone upload, folder navigation, signed delivery, and transform URL management for S3-compatible object storage.
+        </p>
+        <ul class="hero-list">
+          <li>Garage / MinIO / SeaweedFS compatible</li>
+          <li>Public and private delivery</li>
+          <li>Thumbor-ready transforms</li>
+        </ul>
+      </aside>
+      <main class="workspace">
+        <section class="panel" id="login-panel">
+          <div class="panel-head">
+            <p class="panel-kicker">Auth</p>
+            <h2>Admin Login</h2>
+          </div>
+          <form id="login-form" class="stack">
+            <label class="field">
+              <span>Email</span>
+              <input type="email" name="email" autocomplete="username" required />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input type="password" name="password" autocomplete="current-password" required />
+            </label>
+            <button class="button" type="submit">Sign In</button>
+          </form>
+        </section>
+
+        <section class="panel hidden" id="app-panel">
+          <div class="toolbar">
+            <div>
+              <p class="panel-kicker">File Manager</p>
+              <h2>Media Objects</h2>
+            </div>
+            <button class="button button-secondary" id="logout-button" type="button">Logout</button>
+          </div>
+
+          <form id="upload-form" class="upload-grid">
+            <label class="field">
+              <span>Prefix</span>
+              <input type="text" name="prefix" placeholder="user123/products/" />
+            </label>
+            <label class="field">
+              <span>Visibility</span>
+              <select name="visibility">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+            </label>
+            <label class="field field-file">
+              <span>Image</span>
+              <input type="file" name="file" accept="image/*" required />
+            </label>
+            <button class="button" type="submit">Upload</button>
+          </form>
+
+          <form id="filter-form" class="filter-row">
+            <label class="field field-inline">
+              <span>Browse Prefix</span>
+              <input type="text" id="prefix-filter" placeholder="user123/" />
+            </label>
+            <button class="button button-secondary" type="submit">Refresh</button>
+          </form>
+
+          <div id="status" class="status"></div>
+
+          <div class="table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th>Type</th>
+                  <th>Visibility</th>
+                  <th>URLs</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="file-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+  </html>

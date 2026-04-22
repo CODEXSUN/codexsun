@@ -33,6 +33,8 @@ Codexsun is a reusable ERP and business software platform that should support:
 
 Codexsun is currently a semi-modular suite under `apps/`.
 
+Alongside that suite, the repository also contains the root-level standalone service `cxmedia/` for self-hosted media storage, CDN-style delivery, and image transformation orchestration.
+
 The approved long-term target is:
 
 1. reusable neutral engines
@@ -47,6 +49,112 @@ Future dependency direction must converge toward:
 `client overlay -> industry pack -> app -> engine/shared`
 
 Current repository code is not fully in that final structure yet. Migration into that shape must happen in phases, not as one rewrite.
+
+## Approved Transition Posture
+
+The approved near-to-mid-term architecture posture is:
+
+1. modular monolith: yes, safely achievable from the current repository
+2. hexagonal architecture: yes, but introduced pragmatically through ports and adapters where it meaningfully reduces coupling
+3. DDD: yes, but only incrementally and only where a domain is stable enough to justify the structure
+4. event-driven architecture: yes, first as typed in-process events, then durable where operational need exists
+
+This posture is important because the current repository does not yet fully satisfy strong modular-monolith, hexagonal, DDD, or event-driven criteria.
+
+Rules:
+
+1. the current codebase must be evolved through safe staged refactors, not collapsed through a broad rewrite
+2. current working routes, app shells, and operational flows should remain intact while boundaries are tightened
+3. boundary cleanup comes before folder-ceremony cleanup
+4. boundary hardening and explicit public module contracts come before introducing richer layer or folder structure
+5. hexagonal ports and adapters should be added where they reduce coupling or isolate integrations, not as blanket ceremony
+6. DDD should be introduced first in stable business areas, not across every app or helper at once
+7. event-driven behavior should follow command boundaries and successful state change, not replace basic modular design
+8. target-state folders such as `aggregates`, `events`, `listeners`, or `commands` should appear when the use case needs them, not preemptively everywhere
+
+## Current Maturity Assessment
+
+Current repo posture is best described as:
+
+1. one deployable suite with visible app ownership under `apps/`
+2. partially modular, but still with significant centralized runtime composition and cross-app coupling
+3. not yet a consistently enforced modular monolith
+4. not yet consistently hexagonal or ports-and-adapters shaped
+5. not yet consistently DDD-shaped
+6. not yet meaningfully event-driven as the dominant integration style
+
+That means future work must keep current-state claims honest:
+
+1. app and feature separation already exists and should be preserved
+2. stronger module contracts, import discipline, and host composition are still in progress
+3. application and domain separation plus ports and adapters must be introduced where they pay off, not applied as blanket ceremony
+4. DDD patterns such as bounded contexts, repositories, aggregates, value objects, and domain services must be introduced where they pay off, not applied as blanket ceremony
+5. event handling should begin inside the monolith before durable delivery or worker-backed outbox flows are introduced
+
+## Safe Migration Pattern
+
+The approved migration method is a strangler-style transition inside the monolith.
+
+Meaning:
+
+1. keep one deployable system
+2. keep old code running while new module boundaries are introduced beside it
+3. add public module surfaces and adapters before deleting legacy callers
+4. move business logic before aggressively rewriting UI or route structure
+5. introduce domain events only after command ownership is clear
+
+Preferred migration order:
+
+1. modular-monolith boundary hardening
+   - central composition
+   - public module contracts
+   - reduced deep cross-app imports
+   - explicit ownership
+2. pragmatic hexagonal shaping where complexity justifies it
+   - application services
+   - ports and adapters
+   - explicit repository and integration boundaries
+3. DDD inside one stable domain at a time
+   - application services
+   - domain rules
+   - repositories and value objects where justified
+4. event-driven reactions between modules
+   - typed in-process events first
+   - durable delivery later only where retries, replay, or external delivery require it
+
+## Pragmatic Adoption Levels
+
+Use the target structure in levels, not as a repo-wide ceremony pass.
+
+### Level 1: mandatory first
+
+1. explicit app ownership
+2. thin transport layers
+3. app-owned `src/public` contracts for cross-app use
+4. reduced deep imports into another app's private internals
+5. clear separation between framework runtime and business logic
+
+### Level 2: introduce when complexity exists
+
+1. application services
+2. domain or policy modules
+3. ports and adapters
+4. repository interfaces where persistence complexity warrants them
+5. frontend feature folders that separate page composition, data access, and mapping
+
+### Level 3: introduce only in stable, complex domains
+
+1. aggregates
+2. value objects
+3. domain events
+4. command and query split
+5. explicit event listeners and richer event workflows
+
+Rules:
+
+1. do not create folders only because the target blueprint mentions them
+2. add structure only when the use case, boundary, or review burden justifies it
+3. prefer strangler-style replacement over broad delete-and-rebuild refactors
 
 ## App Roots
 
@@ -67,6 +175,20 @@ Current app roots under `apps/`:
 13. `tally`
 14. `cli`
 15. `mobile`
+
+## Root-Level Standalone Services
+
+The repository may also host standalone services outside `apps/` when they must run independently from the framework-composed suite.
+
+Current standalone service roots:
+
+1. `cxmedia`
+
+Rules:
+
+1. standalone roots must keep their own runtime, auth, deployment assets, and documentation boundaries
+2. standalone roots may live in the same repository, but they must not silently depend on the `cxapp` shell to function
+3. if a standalone service later integrates with the suite, the integration must stay explicit and must not erase the standalone ownership boundary
 
 ## Standard App Shape
 
@@ -92,6 +214,8 @@ Rules:
 5. `helper` is for app-local helper exports
 6. `shared` is for app-local shared contracts and workspace metadata
 7. `apps/mobile` is the current exception and follows an Expo-native layout because it is a companion client package rather than a framework-composed suite app
+
+Within `src`, apps may gradually introduce subfolders such as `public`, `application`, `domain`, `infrastructure`, or `composition` when the use case justifies them. Those subfolders are target-state options, not mandatory ceremony for every app immediately.
 
 ## Ownership Model
 
@@ -249,6 +373,7 @@ Rules:
 2. external routes live under `apps/api/src/external`
 3. transport ownership stays here; domain logic does not
 4. auth routes follow the same split: public login and recovery flows stay external, admin and operator auth management stays internal
+5. route handlers should call app-owned public contracts instead of importing another app's private service files directly when that boundary is available
 
 ### Site
 
@@ -499,3 +624,5 @@ Still future work:
 9. final release governance now uses three explicit repo-level gates before environment signoff: `npm.cmd run test:e2e:storefront-smoke`, `npm.cmd run test:e2e:ecommerce-admin-ops`, and `npm.cmd run test:release:security-ops`
 10. the storefront smoke gate covers the public homepage-to-paid-order-to-tracking journey, while the ecommerce admin operations gate covers storefront content, orders, payments, and support operator surfaces
 11. final ERP release signoff must choose explicitly between `deferred`, `master-sync only`, or `transactional bridge enabled`; the current repo state is the third option, with fail-closed connector writes and manual replay after transactional failure
+12. cross-app callers should consume app-owned `src/public` surfaces once those boundaries exist, instead of importing private `src/services/*`
+13. ports, repositories, adapters, aggregates, domain events, and event handlers should be introduced only where they reduce coupling or model real business complexity

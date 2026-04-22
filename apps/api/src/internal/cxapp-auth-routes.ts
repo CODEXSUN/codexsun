@@ -317,6 +317,21 @@ export function createCxappAuthInternalRoutes(): HttpRouteDefinition[] {
         )
       },
     }),
+    defineInternalRoute("/cxapp/media/cxmedia-launch", {
+      summary: "Create a trusted cxmedia launch URL for the signed-in user.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin", "staff", "employee", "partner", "supplier", "vendor", "customer"],
+        })
+
+        return jsonResponse(
+          await createAuthService(
+            context.databases.primary,
+            context.config
+          ).createCxmediaLaunchUrl(user)
+        )
+      },
+    }),
     defineInternalRoute("/cxapp/mailbox/templates", {
       summary: "List mailbox templates for cxapp.",
       handler: async (context) => {

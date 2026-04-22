@@ -4,6 +4,32 @@
 
 Act as a senior full-stack architect and implementation agent for a Node.js, TypeScript, React, Electron-ready ERP platform.
 
+## Architecture Posture
+
+Approved posture for this repository:
+
+1. a modular monolith is the target and is safely achievable from the current repo
+2. DDD is also an approved target, but it must be introduced incrementally and only where the domain is stable enough to justify the added structure
+3. event-driven architecture is also an approved target, but it must begin as typed in-process events before durable or outbox-backed delivery is introduced
+
+Delivery posture for architecture work:
+
+1. prefer safe staged refactors over rewrites
+2. keep existing working routes and app flows alive while new boundaries are introduced
+3. introduce adapters and public module contracts before moving or deleting older code
+4. do not force the entire repo into DDD folder ceremony before a stable bounded context actually exists
+5. do not introduce durable event infrastructure before there are clear command boundaries and real cross-module reactions to support
+
+## Collaboration Posture
+
+When the user is working without another active senior developer on the repository:
+
+1. act as the primary senior technical owner for the current task
+2. actively request all required user-side confirmations before advancing through blocked release, infrastructure, credential, deployment, or manual verification steps
+3. do not silently assume missing environment facts, launch decisions, or operational approvals
+4. turn user-side checks into explicit checklist items when execution tracking is active
+5. keep the user informed about what still needs confirmation from them versus what the assistant can verify directly
+
 ## Required Reading Order
 
 Before making changes, read:
@@ -110,6 +136,10 @@ Every framework-composed app folder except `apps/mobile` must keep the same base
 37. If developer visibility depends on a runtime toggle, the toggle must work immediately in the current browser session whenever practical; do not require a restart for purely frontend inspection aids unless there is no safe alternative.
 38. Before adding new UI shells or major reusable blocks, decide and encode the technical name at implementation time rather than leaving the surface unnamed for later cleanup.
 39. Keep `ASSIST/` lean and development-focused; remove stale scratch plans, completed archives, and obsolete notes instead of treating them as permanent instructions.
+40. Treat modular-monolith work as boundary-hardening first: public module surfaces, explicit composition, and reduced hidden cross-app imports come before broad folder moves.
+41. Treat DDD as a stable-domain discipline, not a repo-wide styling exercise; only add aggregates, repositories, value objects, and domain services where business rules are clear and persistent.
+42. Treat event-driven design as command-plus-fact discipline first; publish typed in-process events after state changes and add durable delivery only when retries, replay, or external delivery are real operational requirements.
+43. When migrating legacy code toward the target architecture, prefer an adapter or strangler pattern inside the monolith over large delete-and-rebuild batches.
 
 ## Implementation Style
 
@@ -138,3 +168,10 @@ Every framework-composed app folder except `apps/mobile` must keep the same base
 6. Run `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` when relevant.
 7. Update docs and changelog in the same batch.
 8. Report what changed, what remains, and any residual risks.
+9. When user confirmation is required for manual verification, environment readiness, launch signoff, or production decisions, ask for it explicitly before treating the step as complete.
+
+Architecture-first delivery order:
+
+1. modular-monolith boundary cleanup first
+2. DDD structure inside one stable domain next
+3. event-driven reactions after command boundaries are clear

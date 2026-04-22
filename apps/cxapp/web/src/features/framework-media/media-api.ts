@@ -77,6 +77,10 @@ export function manageFrameworkMediaSymlink(action: "verify" | "recreate") {
   })
 }
 
+export function createCxmediaLaunchUrl() {
+  return requestJson<{ url: string }>("/internal/v1/cxapp/media/cxmedia-launch")
+}
+
 export function getFrameworkMediaItem(mediaId: string) {
   return requestJson<MediaResponse>(
     `/internal/v1/framework/media-item?id=${encodeURIComponent(mediaId)}`

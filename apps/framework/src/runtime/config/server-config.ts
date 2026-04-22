@@ -273,6 +273,16 @@ export type ServerConfig = {
       themeColor?: string
     }
   }
+  media: {
+    cxmedia: {
+      enabled: boolean
+      baseUrl?: string
+      email?: string
+      password?: string
+      syncSecret?: string
+      handoffSecret?: string
+    }
+  }
 }
 
 function validateServerConfig(config: ServerConfig) {
@@ -624,6 +634,16 @@ export function getServerConfig(cwd = process.cwd()): ServerConfig {
         businessName: env.RAZORPAY_BUSINESS_NAME?.trim() || "Tirupur Direct",
         checkoutImage: env.RAZORPAY_CHECKOUT_IMAGE?.trim() || undefined,
         themeColor: env.RAZORPAY_THEME_COLOR?.trim() || undefined,
+      },
+    },
+    media: {
+      cxmedia: {
+        enabled: readBoolean(env.CXAPP_MEDIA_CXMEDIA_ENABLED, false),
+        baseUrl: env.CXAPP_MEDIA_CXMEDIA_BASE_URL?.trim() || undefined,
+        email: env.CXAPP_MEDIA_CXMEDIA_EMAIL?.trim().toLowerCase() || undefined,
+        password: env.CXAPP_MEDIA_CXMEDIA_PASSWORD?.trim() || undefined,
+        syncSecret: env.CXAPP_MEDIA_CXMEDIA_SYNC_SECRET?.trim() || undefined,
+        handoffSecret: env.CXAPP_MEDIA_CXMEDIA_HANDOFF_SECRET?.trim() || undefined,
       },
     },
   })
