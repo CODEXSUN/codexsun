@@ -16,7 +16,6 @@ import {
 import type { AuthUser } from "@cxapp/shared";
 import { GlobalLoader } from "@/registry/concerns/feedback/global-loader";
 import { RuntimeBrandProvider } from "@/features/branding/runtime-brand-provider";
-import { TechnicalNameOverlayProvider } from "@/components/system/technical-name-overlay-provider";
 import type { DashboardUser } from "@/features/dashboard/types";
 import {
   clearStorefrontPostAuthRedirect,
@@ -38,9 +37,6 @@ import {
   isAppFrontendSurface,
   isShopFrontendSurface,
 } from "./config/frontend-surface";
-import {
-  RuntimeAppSettingsProvider,
-} from "./features/runtime-app-settings/runtime-app-settings-provider";
 import { AppQueryProvider } from "./query/query-provider";
 import { useAppSessionStore } from "./state/app-session-store";
 
@@ -71,6 +67,10 @@ const ShopRuntimeShell = lazyNamed(
 const AppToastLayer = lazyNamed(
   () => import("./app-toast-layer"),
   "AppToastLayer",
+);
+const AppRuntimeProviders = lazyNamed(
+  () => import("./app-runtime-providers"),
+  "AppRuntimeProviders",
 );
 const DashboardPage = lazyNamed(
   () => import("@/features/dashboard/pages/dashboard-page"),
@@ -224,6 +224,10 @@ const BillingReceiptFormPage = lazyNamed(
 const BillingSalesFormPage = lazyNamed(
   () => import("./pages/billing-sales-form-page"),
   "BillingSalesFormPage",
+);
+const BillingSalesShowPage = lazyNamed(
+  () => import("./pages/billing-sales-show-page"),
+  "BillingSalesShowPage",
 );
 const BillingSalesReturnFormPage = lazyNamed(
   () => import("./pages/billing-sales-return-form-page"),
@@ -603,14 +607,16 @@ function AppProviders({ children }: { children: React.ReactNode }) {
     children
   );
 
+  const runtimeContent = isShopFrontendSurface ? (
+    appContent
+  ) : (
+    <AppRuntimeProviders>{appContent}</AppRuntimeProviders>
+  );
+
   return (
     <RuntimeBrandProvider>
-      <RuntimeAppSettingsProvider>
-        <TechnicalNameOverlayProvider>
-          <AppToastLayer />
-          {appContent}
-        </TechnicalNameOverlayProvider>
-      </RuntimeAppSettingsProvider>
+      <AppToastLayer />
+      {runtimeContent}
     </RuntimeBrandProvider>
   );
 }
@@ -1529,6 +1535,16 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <BillingSalesFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/billing/sales-vouchers/:voucherId/show"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BillingSalesShowPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -2,22 +2,20 @@
 
 ## Active
 
-- `#221` Fix storefront smoke product-path failure
+- `#223` Manual full-load storefront verification
   - Goal:
-    - restore the expected storefront smoke path around the seeded product route so the PDP, add-to-cart, and checkout smoke chain can run again
+    - verify the full storefront load and core commerce flow after the first-render optimization so the next slice is based on real user-visible behavior
   - Why this slice now:
-    - the current storefront smoke suite is failing primarily because `/products/aster-linen-shirt` does not resolve to the expected product flow
-    - homepage performance work is secondary until the smoke path is functionally stable
-  - Confirmed findings:
-    - `npm run test:e2e:storefront-smoke` currently fails with missing PDP content, missing add-to-cart controls, and checkout auth return mismatches
-    - `tests/e2e/storefront-order-flow.spec.ts`, `tests/e2e/storefront-accessibility.spec.ts`, and `tests/e2e/storefront-mobile-matrix.spec.ts` all expect `aster-linen-shirt`
-    - the performance suite also shows the product route entering a `Projected storefront product could not be found.` state
-  - Scope in this batch:
-    - inspect the seeded product, storefront product lookup, and slug resolution path
-    - identify whether the failure is seed drift, slug drift, route lookup drift, or catalog projection drift
-    - implement the smallest fix that restores the smoke path
+    - storefront smoke and automated performance checks are stable enough
+    - the next useful signal should come from manual full-load verification rather than more blind tuning
+  - Manual verification scope:
+    - homepage full load including hero, top menu, category menu, and footer
+    - homepage lower sections after full load and scroll
+    - catalog full load
+    - PDP full load
+    - cart, checkout, and tracking flow
+    - late render or layout jump confirmation
+    - local email expectation confirmation for launch
   - Constraints:
-    - keep focus on launch-critical storefront behavior
-    - do not broaden into unrelated repository lint cleanup or architecture refactor
-  - Planned validation:
-    - rerun the failing storefront smoke specs that cover PDP and checkout flow
+    - keep the active tracking aligned to the current manual verification task
+    - do not start the next preload or motion optimization slice until the manual storefront result is confirmed

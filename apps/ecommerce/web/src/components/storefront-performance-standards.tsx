@@ -46,6 +46,18 @@ export const storefrontHomepageSectionPerformance = {
     minHeightClassName: "min-h-[420px]",
     fallback: buildProductRailFallback(3),
   },
+  newArrivals: {
+    defer: true,
+    rootMargin: "340px 0px",
+    minHeightClassName: "min-h-[420px]",
+    fallback: buildProductRailFallback(3),
+  },
+  bestSellers: {
+    defer: true,
+    rootMargin: "360px 0px",
+    minHeightClassName: "min-h-[420px]",
+    fallback: buildProductRailFallback(3),
+  },
   categories: {
     defer: true,
     rootMargin: "320px 0px",

@@ -2,11 +2,33 @@
 
 ## Version State
 
-- Current package version: `1.0.207`
-- Current release tag: `v-1.0.207`
+- Current package version: `1.0.223`
+- Current release tag: `v-1.0.223`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
 
-## v-1.0.207
+## v-1.0.223
+
+### [v 1.0.223] 2026-04-23 - Queue manual full-load storefront verification
+
+- added `#223` in `ASSIST/Execution/TASK.md` for manual full-load storefront verification across homepage, catalog, PDP, cart, checkout, tracking, late-render checks, and local email expectation confirmation
+
+## v-1.0.222
+
+### [v 1.0.222] 2026-04-23 - Start public storefront first-render strategy
+
+- fixed `apps/ecommerce/web/src/features/storefront-home/shells/storefront-home-page-shell.tsx` so the homepage no longer force-enables every storefront section during normal public render
+- added defer rules for desktop `new arrivals` and `best sellers` rails in `apps/ecommerce/web/src/components/storefront-performance-standards.tsx` and `storefront-home-product-lane-section-desktop.tsx` so the homepage first render carries less below-the-fold product-card work
+- split app-only runtime providers into `apps/cxapp/web/src/app-runtime-providers.tsx` and stopped wrapping the shop surface with those providers during first public storefront render
+- revalidated the first-render slice with `npm run typecheck`, `npm run build`, and `npm run test:e2e:performance`
+
+## v-1.0.221
+
+### [v 1.0.221] 2026-04-22 - Restore storefront smoke runtime and seeded live stock
+
+- fixed `playwright.config.ts` so storefront smoke runs start the intended backend command after `db:prepare`, use dedicated local test ports, and stop reusing stale local servers
+- added `apps/stock/database/seeder/01-live-stock-from-core-products.ts` so active core product stock items are projected into `stock_live_balances` during database prepare, making seeded storefront products buyable in smoke runs
+- added `tests/stock/live-stock-seeder.test.ts` to validate the new stock seeder directly against a deterministic seeded core product record
+- revalidated the storefront slice with `npm run test:e2e:storefront-smoke`, `npx tsx --test tests/stock/live-stock-seeder.test.ts`, and `npm run typecheck`
 
 ### [v 1.0.207] 2026-04-21 - Add root-level standalone cxmedia storage and CDN service
 

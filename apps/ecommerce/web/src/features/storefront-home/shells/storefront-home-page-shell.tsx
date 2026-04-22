@@ -8,20 +8,6 @@ import { useStorefrontHomeModel } from "../hooks/use-storefront-home-model"
 import { StorefrontHomeErrorSection } from "../sections/storefront-home-error-section"
 import { StorefrontHomeModelProviderView } from "../views/storefront-home-page-view"
 
-const storefrontHomeSectionReviewVisibility = {
-  announcement: true,
-  bestSellers: true,
-  brandStories: true,
-  campaignTrust: true,
-  categories: true,
-  couponBanner: true,
-  featured: true,
-  giftCorner: true,
-  hero: true,
-  newArrivals: true,
-  trending: true,
-} as const
-
 function StorefrontHomePageLoadingState({
   showAnnouncement = false,
   showHero = true,
@@ -52,14 +38,6 @@ function StorefrontHomePageLoadingState({
 
 export function StorefrontHomePageShell() {
   const model = useStorefrontHomeModel()
-  const sectionVisibility = {
-    ...model.visibilityMap,
-    ...storefrontHomeSectionReviewVisibility,
-  }
-  const reviewModel = {
-    ...model,
-    visibilityMap: sectionVisibility,
-  }
   const hasBlockingError = Boolean(model.error) && !model.data
   const isInitialLoading = model.isLoading && !model.data && !hasBlockingError
 
@@ -74,15 +52,15 @@ export function StorefrontHomePageShell() {
       >
         {isInitialLoading ? (
           <StorefrontHomePageLoadingState
-            showAnnouncement={reviewModel.visibilityMap.announcement}
-            showHero={reviewModel.visibilityMap.hero}
+            showAnnouncement={model.visibilityMap.announcement}
+            showHero={model.visibilityMap.hero}
           />
         ) : null}
         {model.error ? <StorefrontHomeErrorSection error={model.error} /> : null}
         {!isInitialLoading && !hasBlockingError ? (
           <StorefrontHomeModelProviderView
             heroFallback={<StorefrontHeroSkeleton />}
-            model={reviewModel}
+            model={model}
           />
         ) : null}
       </div>

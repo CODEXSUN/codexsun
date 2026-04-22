@@ -336,6 +336,7 @@ export function FrameworkAppWorkspacePage({
         "receipt-vouchers-upsert",
         "sales-vouchers",
         "sales-vouchers-upsert",
+        "sales-vouchers-show",
         "sales-return",
         "sales-return-upsert",
         "credit-note",
