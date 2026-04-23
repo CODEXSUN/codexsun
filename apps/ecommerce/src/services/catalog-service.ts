@@ -478,8 +478,8 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
     .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
   const featuredItemCount = Math.max(
     1,
-    (settings.sections.featured.cardsPerRow ?? 3) *
-      (settings.sections.featured.rowsToShow ?? 1)
+    (settings.sections.featured.cardsPerRow ?? 4) *
+      (settings.sections.featured.rowsToShow ?? 2)
   )
   const newArrivalItemCount = Math.max(
     1,
@@ -501,7 +501,6 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
         left.name.localeCompare(right.name)
     )
     .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
-    .slice(0, Math.max(settings.homeSlider.slides.length, 1))
   const featured = items
     .filter((item) => item.isFeaturedLabel)
     .slice(0, featuredItemCount)

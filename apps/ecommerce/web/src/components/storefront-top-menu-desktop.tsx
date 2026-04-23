@@ -75,7 +75,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
         className="right-5 top-3"
       />
       <div
-        className={`hidden w-full min-w-0 px-4 transition-all duration-300 sm:px-6 lg:grid lg:grid-cols-[minmax(220px,1fr)_minmax(360px,1.25fr)_auto] lg:items-center lg:gap-4 lg:px-8 xl:grid-cols-[minmax(240px,1fr)_minmax(420px,820px)_auto] xl:gap-5 xl:px-10 ${
+        className={`hidden w-full min-w-0 px-4 transition-all duration-300 sm:px-6 lg:grid lg:grid-cols-[minmax(180px,0.92fr)_minmax(280px,1.08fr)_auto] lg:items-center lg:gap-3 lg:px-6 xl:grid-cols-[minmax(240px,1fr)_minmax(420px,820px)_auto] xl:gap-5 xl:px-10 ${
           isScrolled ? "py-1.5" : "py-2.5"
         }`}
       >
@@ -101,10 +101,10 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
               />
             </div>
             <div className="flex min-w-0 flex-col justify-center leading-none">
-              <p className="truncate text-[1.05rem] font-semibold uppercase tracking-[0.18em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] xl:text-[1.25rem]">
+              <p className="truncate text-[0.92rem] font-semibold uppercase tracking-[0.15em] text-[#181818] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] xl:text-[1.25rem]">
                 {brand?.brandName ?? "Codexsun Store"}
               </p>
-              <p className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-[0.16em] text-[#a39689] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)]">
+              <p className="mt-0.5 truncate text-[8px] font-medium uppercase tracking-[0.14em] text-[#a39689] transition-colors duration-200 group-hover:text-[var(--storefront-logo-hover-color)] xl:text-[9px]">
                 {brand?.tagline ?? "Smart IT. Trusted value."}
               </p>
             </div>
@@ -124,7 +124,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
           <div />
         )}
 
-        <div className="flex min-w-0 items-center justify-end gap-2 xl:gap-3">
+        <div className="flex min-w-0 items-center justify-end gap-1.5 xl:gap-3">
           <div className="flex items-center gap-1.5 rounded-full border border-[#ece3d9] bg-white/62 px-1.5 py-0.5 shadow-[0_16px_28px_-26px_rgba(58,34,18,0.35)]">
             <Button
               asChild
@@ -165,7 +165,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
             </Button>
           </div>
 
-          <div className="flex min-w-0 items-center gap-2 xl:gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 xl:gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

@@ -9,11 +9,11 @@ export type StorefrontProductLaneRowsToShow = 1 | 2 | 3
 
 function resolveGridClassName(cardsPerRow: StorefrontProductLaneCardsPerRow) {
   if (cardsPerRow === 4) {
-    return "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+    return "grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
   }
 
   if (cardsPerRow === 3) {
-    return "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+    return "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
   }
 
   if (cardsPerRow === 2) {
@@ -28,6 +28,8 @@ export function StorefrontProductCardGrid({
   cardsPerRow,
   rowsToShow = 1,
   className,
+  cardClassName,
+  densityOverride,
   isWishlisted,
   onToggleWishlist,
   onAddToCart,
@@ -36,22 +38,24 @@ export function StorefrontProductCardGrid({
   cardsPerRow: StorefrontProductLaneCardsPerRow
   rowsToShow?: StorefrontProductLaneRowsToShow
   className?: string
+  cardClassName?: string
+  densityOverride?: "default" | "compact" | "dense"
   isWishlisted?: (productId: string) => boolean
   onToggleWishlist?: (item: StorefrontProductCardType) => void
   onAddToCart?: (item: StorefrontProductCardType) => void
 }) {
   const visibleItems = items.slice(0, cardsPerRow * rowsToShow)
-  const density = cardsPerRow === 4 ? "compact" : "default"
+  const density = densityOverride ?? (cardsPerRow === 4 ? "compact" : "default")
 
   return (
-    <div className={cn("grid auto-rows-fr gap-3.5", resolveGridClassName(cardsPerRow), className)}>
+    <div className={cn("grid auto-rows-fr gap-4 lg:gap-5", resolveGridClassName(cardsPerRow), className)}>
       {visibleItems.map((item) => (
         <StorefrontProductCard
           key={item.id}
           item={item}
           href={storefrontPaths.product(item.slug)}
           density={density}
-          className="h-full"
+          className={cn("h-full", cardClassName)}
           isWishlisted={isWishlisted?.(item.id) ?? false}
           onToggleWishlist={onToggleWishlist ? () => onToggleWishlist(item) : undefined}
           onAddToCart={() => onAddToCart?.(item)}

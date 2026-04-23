@@ -28,6 +28,8 @@ import type {
   StorefrontPickupLocation,
   StorefrontCouponBanner,
   StorefrontGiftCorner,
+  StorefrontDiscoveryBoard,
+  StorefrontVisualStrip,
   StorefrontBrandShowcase,
   StorefrontCampaignSection,
   StorefrontAdminOrderOperationsReport,
@@ -406,6 +408,32 @@ export const storefrontApi = {
   },
   updateStorefrontTrendingSection(accessToken: string, payload: StorefrontTrendingSection) {
     return requestJson<StorefrontTrendingSection>("/internal/v1/ecommerce/storefront-trending-section", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontDiscoveryBoard(accessToken: string) {
+    return requestJson<StorefrontDiscoveryBoard>("/internal/v1/ecommerce/storefront-discovery-board", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontDiscoveryBoard(accessToken: string, payload: StorefrontDiscoveryBoard) {
+    return requestJson<StorefrontDiscoveryBoard>("/internal/v1/ecommerce/storefront-discovery-board", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontVisualStrip(accessToken: string) {
+    return requestJson<StorefrontVisualStrip>("/internal/v1/ecommerce/storefront-visual-strip", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontVisualStrip(accessToken: string, payload: StorefrontVisualStrip) {
+    return requestJson<StorefrontVisualStrip>("/internal/v1/ecommerce/storefront-visual-strip", {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),

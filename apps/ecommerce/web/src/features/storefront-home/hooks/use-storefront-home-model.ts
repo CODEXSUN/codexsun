@@ -34,6 +34,8 @@ export function useStorefrontHomeModel() {
     const trustNotes = settings?.trustNotes ?? []
     const couponBanner = settings?.couponBanner ?? null
     const giftCorner = settings?.giftCorner ?? null
+    const discoveryBoard = settings?.discoveryBoard ?? null
+    const visualStrip = settings?.visualStrip ?? null
     const trendingSection = settings?.trendingSection ?? null
     const brandShowcase = settings?.brandShowcase ?? null
     const brandStories = brandShowcase?.cards ?? data?.brands ?? []
@@ -77,6 +79,16 @@ export function useStorefrontHomeModel() {
         (hasContent(giftCorner?.title) ||
           hasContent(giftCorner?.summary) ||
           hasContent(giftCorner?.imageUrl)),
+      discoveryBoard:
+        Boolean(discoveryBoard?.enabled) &&
+        Array.isArray(discoveryBoard?.cards) &&
+        discoveryBoard.cards.length > 0 &&
+        hasContent(discoveryBoard?.title),
+      visualStrip:
+        Boolean(visualStrip?.enabled) &&
+        Array.isArray(visualStrip?.cards) &&
+        visualStrip.cards.length > 0 &&
+        hasContent(visualStrip?.title),
       trending:
         Boolean(trendingSection?.enabled) &&
         Array.isArray(trendingSection?.cards) &&
@@ -100,6 +112,7 @@ export function useStorefrontHomeModel() {
       categoryItems,
       couponBanner,
       data,
+      discoveryBoard,
       error,
       featuredItems,
       giftCorner,
@@ -111,6 +124,7 @@ export function useStorefrontHomeModel() {
       trustNotes,
       visibility,
       visibilityMap,
+      visualStrip,
     }
   }, [data, error, isLoading])
 

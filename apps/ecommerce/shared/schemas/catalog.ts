@@ -206,7 +206,8 @@ export const storefrontCategoryCardDesignSchema = z.object({
 })
 
 export const storefrontFeaturedSectionSchema = storefrontSectionCopySchema.extend({
-  rowsToShow: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+  cardsPerRow: z.union([z.literal(3), z.literal(4), z.literal(5), z.literal(6)]).default(4),
+  rowsToShow: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
   cardDesign: storefrontFeaturedCardDesignSchema,
 })
 
@@ -482,6 +483,35 @@ export const storefrontTrendingSectionSchema = z.object({
   cards: z.array(storefrontTrendingCardSchema).min(1),
 })
 
+export const storefrontDiscoveryBoardCardSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  href: storefrontOptionalLinkSchema,
+  images: z.array(storefrontMediaReferenceSchema).min(4).max(4),
+})
+
+export const storefrontDiscoveryBoardSchema = z.object({
+  enabled: z.boolean().default(true),
+  title: z.string().min(1),
+  summary: z.string().min(1).nullable().default(null),
+  cards: z.array(storefrontDiscoveryBoardCardSchema).min(1).max(8),
+})
+
+export const storefrontVisualStripCardSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  href: storefrontOptionalLinkSchema,
+  imageUrl: storefrontMediaReferenceSchema,
+})
+
+export const storefrontVisualStripSchema = z.object({
+  enabled: z.boolean().default(true),
+  title: z.string().min(1),
+  ctaLabel: z.string().min(1).nullable().default(null),
+  ctaHref: storefrontOptionalLinkSchema,
+  cards: z.array(storefrontVisualStripCardSchema).min(1),
+})
+
 export const storefrontProductCardSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
@@ -619,6 +649,8 @@ export const storefrontSettingsSchema = z.object({
   couponBanner: storefrontCouponBannerSchema,
   giftCorner: storefrontGiftCornerSchema,
   trendingSection: storefrontTrendingSectionSchema,
+  discoveryBoard: storefrontDiscoveryBoardSchema,
+  visualStrip: storefrontVisualStripSchema,
   brandShowcase: storefrontBrandShowcaseSchema,
   campaignDesign: storefrontCampaignDesignSchema,
   legalPages: storefrontLegalPagesSchema,
@@ -815,6 +847,12 @@ export type StorefrontCouponBanner = z.infer<typeof storefrontCouponBannerSchema
 export type StorefrontGiftCorner = z.infer<typeof storefrontGiftCornerSchema>
 export type StorefrontTrendingCard = z.infer<typeof storefrontTrendingCardSchema>
 export type StorefrontTrendingSection = z.infer<typeof storefrontTrendingSectionSchema>
+export type StorefrontDiscoveryBoardCard = z.infer<
+  typeof storefrontDiscoveryBoardCardSchema
+>
+export type StorefrontDiscoveryBoard = z.infer<typeof storefrontDiscoveryBoardSchema>
+export type StorefrontVisualStripCard = z.infer<typeof storefrontVisualStripCardSchema>
+export type StorefrontVisualStrip = z.infer<typeof storefrontVisualStripSchema>
 export type StorefrontProductCard = z.infer<typeof storefrontProductCardSchema>
 export type StorefrontRecommendationReason = z.infer<
   typeof storefrontRecommendationReasonSchema

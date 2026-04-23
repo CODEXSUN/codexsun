@@ -76,7 +76,7 @@ export function StorefrontTopMenuMobile({ isScrolled }: StorefrontTopMenuProps) 
           name="shell.storefront.top-menu"
           className="right-4 top-3"
         />
-        <div className={`flex w-full min-w-0 flex-col gap-2.5 overflow-x-clip px-4 transition-all duration-300 sm:px-6 ${isScrolled ? "py-2" : "py-2.75"}`}>
+        <div className="flex w-full min-w-0 flex-col gap-2.5 overflow-x-clip px-4 py-2.5 transition-all duration-300 sm:px-6">
           <div className="flex min-w-0 items-center justify-between gap-3">
             <Link
               to="/"

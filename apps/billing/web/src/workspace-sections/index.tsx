@@ -2481,11 +2481,13 @@ function getVoucherModuleLabel(moduleId: BillingVoucherType) {
 function SalesVoucherSection({
   onCreate,
   onEdit,
+  onShow,
   onSelectVoucher,
   vouchers,
 }: {
   onCreate: () => void
   onEdit: (voucherId: string) => void
+  onShow: (voucherId: string) => void
   onSelectVoucher: (voucher: BillingVoucher) => void
   vouchers: BillingVoucher[]
 }) {
@@ -2549,7 +2551,9 @@ function SalesVoucherSection({
               accessor: (voucher) => voucher.voucherNumber,
               cell: (voucher) => (
                 <div>
-                  <p className="font-medium text-foreground">{voucher.voucherNumber}</p>
+                  <button type="button" onClick={() => onShow(voucher.id)} className="font-medium text-foreground hover:underline text-left cursor-pointer">
+                    {voucher.voucherNumber}
+                  </button>
                   <p className="text-xs text-muted-foreground">{voucher.date}</p>
                 </div>
               ),
@@ -6947,7 +6951,8 @@ export function BillingWorkspaceSection({
   }, [activeCategory, sectionId])
 
   useEffect(() => {
-    if ((sectionId ?? "overview") !== "sales-vouchers-upsert") {
+    const activeSection = sectionId ?? "overview"
+    if (activeSection !== "sales-vouchers-upsert" && activeSection !== "sales-vouchers-show") {
       return
     }
 
@@ -8453,7 +8458,28 @@ export function BillingWorkspaceSection({
           onEdit={(nextVoucherId) => {
             void navigate(`/dashboard/billing/sales-vouchers/${encodeURIComponent(nextVoucherId)}/edit`)
           }}
+          onShow={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/sales-vouchers/${encodeURIComponent(nextVoucherId)}/show`)
+          }}
           onSelectVoucher={handleSelectVoucher}
+          vouchers={state.vouchers}
+        />
+      )
+    case "sales-vouchers-show":
+      return (
+        <SalesVoucherShowSection
+          onEdit={(nextVoucherId) => {
+            void navigate(`/dashboard/billing/sales-vouchers/${encodeURIComponent(nextVoucherId)}/edit`)
+          }}
+          onDelete={handleDelete}
+          onDocumentAction={handleDocumentAction}
+          onBack={() => {
+            void navigate("/dashboard/billing/sales-vouchers")
+          }}
+          onNavigate={(targetId) => {
+            void navigate(`/dashboard/billing/sales-vouchers/${encodeURIComponent(targetId)}/show`)
+          }}
+          selectedVoucher={selectedVoucher}
           vouchers={state.vouchers}
         />
       )
@@ -8761,3 +8787,170 @@ export function BillingWorkspaceSection({
 
 
 
+
+function SalesVoucherShowSection({
+  onEdit,
+  onDelete,
+  onDocumentAction,
+  onBack,
+  onNavigate,
+  selectedVoucher,
+  vouchers,
+}: {
+  onEdit: (voucherId: string) => void
+  onDelete: () => void
+  onDocumentAction: (voucherId: string, format: "print" | "csv" | "json") => void
+  onBack: () => void
+  onNavigate: (targetId: string) => void
+  selectedVoucher: BillingVoucher | null
+  vouchers: BillingVoucher[]
+}) {
+  const salesVouchers = useMemo(() => {
+    return vouchers.filter(v => v.type === "sales").sort((a, b) => {
+       if (a.date !== b.date) return a.date > b.date ? -1 : 1
+       return a.voucherNumber > b.voucherNumber ? -1 : 1
+    })
+  }, [vouchers])
+
+  const currentIndex = selectedVoucher ? salesVouchers.findIndex(v => v.id === selectedVoucher.id) : -1
+  const prevVoucher = currentIndex > 0 ? salesVouchers[currentIndex - 1] : null
+  const nextVoucher = currentIndex !== -1 && currentIndex < salesVouchers.length - 1 ? salesVouchers[currentIndex + 1] : null
+
+  if (!selectedVoucher) return null 
+
+  const sales = selectedVoucher.sales
+  if (!sales) return null
+
+  return (
+    <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+      <div className="flex items-center justify-between print:hidden">
+         <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={onBack}>
+              <ArrowLeftIcon className="size-4" />
+            </Button>
+            <h1 className="text-xl font-semibold tracking-tight">Invoice {selectedVoucher.voucherNumber}</h1>
+         </div>
+         <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={!prevVoucher} onClick={() => prevVoucher ? onNavigate(prevVoucher.id) : undefined}>
+              &larr; Prev
+            </Button>
+            <Button variant="outline" size="sm" disabled={!nextVoucher} onClick={() => nextVoucher ? onNavigate(nextVoucher.id) : undefined}>
+              Next &rarr;
+            </Button>
+            <div className="w-px h-6 bg-border mx-2" />
+            <Button variant="outline" size="sm" onClick={() => onEdit(selectedVoucher.id)}>
+              Edit
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onDocumentAction(selectedVoucher.id, "print")}>
+              Print
+            </Button>
+            <Button variant="destructive" size="sm" onClick={onDelete}>
+              Delete
+            </Button>
+         </div>
+      </div>
+
+      <Card className="print:shadow-none print:border-none print:m-0">
+         <CardContent className="p-8">
+            <div className="flex justify-between items-start border-b border-border/50 pb-8">
+              <div>
+                <h2 className="text-2xl font-bold uppercase tracking-widest text-foreground">Tax Invoice</h2>
+                <p className="text-muted-foreground mt-1 text-sm">{sales.voucherTypeName}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-foreground">{selectedVoucher.companyId}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 py-8 border-b border-border/50">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">Bill To</p>
+                <p className="font-bold text-foreground text-lg">{sales.billToName || selectedVoucher.counterparty}</p>
+                {sales.partyGstin ? <p className="text-sm text-foreground mt-1">GSTIN: {sales.partyGstin}</p> : null}
+                {sales.shipToAddress && (
+                  <div className="mt-4">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">Ship To</p>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{sales.shipToAddress}</p>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-right">
+                <div>
+                   <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-1">Invoice Date</p>
+                   <p className="text-foreground font-medium">{selectedVoucher.date}</p>
+                </div>
+                <div>
+                   <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-1">Invoice No</p>
+                   <p className="text-foreground font-medium">{selectedVoucher.voucherNumber}</p>
+                </div>
+                {sales.referenceNumber && (
+                   <div>
+                     <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-1">Reference</p>
+                     <p className="text-foreground font-medium">{sales.referenceNumber}</p>
+                   </div>
+                )}
+                {sales.referenceDate && (
+                   <div>
+                     <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-1">Ref Date</p>
+                     <p className="text-foreground font-medium">{sales.referenceDate}</p>
+                   </div>
+                )}
+              </div>
+            </div>
+
+            <div className="py-8">
+               <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="pb-3 font-semibold text-muted-foreground">Item</th>
+                      <th className="pb-3 text-right font-semibold text-muted-foreground">Qty</th>
+                      <th className="pb-3 text-right font-semibold text-muted-foreground">Rate</th>
+                      <th className="pb-3 text-right font-semibold text-muted-foreground">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sales.items.map((item, idx) => (
+                      <tr key={idx} className="border-b border-border/20 last:border-0">
+                         <td className="py-4">
+                           <p className="font-medium text-foreground">{item.itemName}</p>
+                           {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+                         </td>
+                         <td className="py-4 text-right tabular-nums">{item.quantity}</td>
+                         <td className="py-4 text-right tabular-nums">{formatAmount(item.rate)}</td>
+                         <td className="py-4 text-right font-medium tabular-nums">{formatAmount(item.quantity * item.rate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+               </table>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-border/50">
+               <div className="w-64 space-y-3">
+                  <div className="flex justify-between text-sm">
+                     <span className="text-muted-foreground">Subtotal</span>
+                     <span className="font-medium tabular-nums">{formatAmount(sales.subtotal)}</span>
+                  </div>
+                  {sales.taxAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                       <span className="text-muted-foreground">Tax</span>
+                       <span className="font-medium tabular-nums">{formatAmount(sales.taxAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-base font-bold pt-3 border-t border-border/50">
+                     <span>Grand Total</span>
+                     <span className="tabular-nums">{formatAmount(sales.grandTotal)}</span>
+                  </div>
+               </div>
+            </div>
+
+            {selectedVoucher.narration && (
+              <div className="mt-12 pt-8 border-t border-border/20">
+                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">Remarks / Narration</p>
+                 <p className="text-sm text-foreground">{selectedVoucher.narration}</p>
+              </div>
+            )}
+         </CardContent>
+      </Card>
+    </div>
+  )
+}

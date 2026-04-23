@@ -25,12 +25,14 @@ export function FeaturedCardRowSurface({
   cardsPerRow,
   cardDesign,
   densityOverride,
+  cardClassName,
   previewLayout = false,
 }: {
   items: FeaturedCardRowItem[]
   cardsPerRow: FeaturedCardRowVariant
   cardDesign?: CommerceProductCardDesign
   densityOverride?: "default" | "compact" | "dense"
+  cardClassName?: string
   previewLayout?: boolean
 }) {
   const density =
@@ -72,6 +74,8 @@ export function FeaturedCardRowSurface({
             onAddToCart={item.onAddToCart}
             density={density}
             design={cardDesign}
+            actionLayout="featured-inline"
+            className={cardClassName}
           />
         ))}
       </div>

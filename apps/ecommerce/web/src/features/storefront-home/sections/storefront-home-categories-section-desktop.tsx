@@ -25,7 +25,7 @@ export function StorefrontHomeCategoriesSectionDesktop({
       minHeightClassName={storefrontHomepageSectionPerformance.categories.minHeightClassName}
       fallback={storefrontHomepageSectionPerformance.categories.fallback}
     >
-      <section className="relative space-y-5" data-technical-name="section.storefront.home.categories" data-shell-mode="desktop">
+      <section className="relative space-y-6 lg:space-y-7" data-technical-name="section.storefront.home.categories" data-shell-mode="desktop">
         <StorefrontTechnicalNameBadge
           name="section.storefront.home.categories"
           className="right-0 top-0"

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
+import { storefrontHomeSectionFrameClassName } from "@ecommerce/web/src/features/storefront-home/blocks/storefront-home-section-frame"
 import { cn } from "@/lib/utils"
 import { useHorizontalRailControls } from "./use-horizontal-rail-controls"
 
@@ -48,7 +49,7 @@ function TrendCard({
   const content = (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.45)] transition-transform duration-500 ease-out will-change-transform hover:-translate-y-2",
+        "group relative max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.45)] transition-transform duration-500 ease-out will-change-transform hover:-translate-y-2",
         tiltDirection === "left"
           ? "hover:rotate-[-2deg] hover:[transform:perspective(1400px)_rotateX(3deg)_rotateY(-7deg)_translateY(-0.35rem)]"
           : "hover:rotate-[2deg] hover:[transform:perspective(1400px)_rotateX(3deg)_rotateY(7deg)_translateY(-0.35rem)]",
@@ -118,7 +119,7 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
 
   const featureContent = (
     <article
-      className="relative w-[16rem] shrink-0 overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.5)] transition-transform duration-500 ease-out will-change-transform hover:[transform:perspective(1600px)_rotateX(3deg)_rotateY(-6deg)_translateY(-0.4rem)]"
+      className="relative w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0 overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.5)] transition-transform duration-500 ease-out will-change-transform hover:[transform:perspective(1600px)_rotateX(3deg)_rotateY(-6deg)_translateY(-0.4rem)]"
       style={{ backgroundColor: config.featureBackgroundColor }}
     >
       <img
@@ -130,7 +131,7 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
         sizes="(min-width: 1024px) 256px, 70vw"
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04)_0%,rgba(0,0,0,0.24)_100%)]" />
-      <div className="relative flex min-h-[23rem] flex-col justify-end p-5">
+      <div className="relative flex h-full min-h-[23rem] flex-col justify-end p-5">
         <div className="max-w-[11rem] space-y-1">
           <h2 className="font-heading text-[2.05rem] font-semibold leading-[0.92]" style={{ color: config.featureTextColor }}>
             {config.featureTitle}
@@ -144,8 +145,8 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
   )
 
   return (
-    <section className={cn("min-w-0 max-w-full space-y-4 overflow-hidden", className)}>
-      <div className="space-y-2">
+    <section className={cn("min-w-0 max-w-full space-y-4 overflow-x-hidden overflow-y-visible", className)}>
+      <div className={cn(storefrontHomeSectionFrameClassName, "space-y-2")}>
         <h2 className="font-heading text-3xl font-semibold tracking-tight text-[#1c1c1c]">
           {config.title}
         </h2>
@@ -153,12 +154,12 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
           {config.description}
         </p>
       </div>
-      <div className="group relative min-w-0 max-w-full overflow-hidden">
+      <div className={cn(storefrontHomeSectionFrameClassName, "group relative overflow-x-hidden overflow-y-visible")}>
         <div
           ref={scrollRef}
-          className="w-full max-w-full overflow-x-auto overflow-y-hidden pb-2 [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent"
+          className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent"
         >
-          <div className="flex min-w-max gap-3 pr-3">
+          <div className="inline-flex w-max min-w-0 max-w-none gap-3 pr-3">
             {hasContent(config.featureHref) ? (
               <Link to={config.featureHref ?? "/shop/catalog"} className="block shrink-0">
                 {featureContent}
@@ -170,7 +171,7 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
               <TrendCard
                 key={card.id}
                 card={card}
-                className="w-[16rem] shrink-0"
+                className="w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0"
                 tiltDirection={index % 2 === 0 ? "right" : "left"}
               />
             ))}

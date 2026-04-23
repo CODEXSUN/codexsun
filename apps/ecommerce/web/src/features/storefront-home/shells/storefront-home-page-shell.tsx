@@ -5,6 +5,7 @@ import {
   StorefrontSectionHeadingSkeleton,
 } from "../../../components/storefront-skeletons"
 import { useStorefrontHomeModel } from "../hooks/use-storefront-home-model"
+import { storefrontHomeSectionFrameClassName } from "../blocks/storefront-home-section-frame"
 import { StorefrontHomeErrorSection } from "../sections/storefront-home-error-section"
 import { StorefrontHomeModelProviderView } from "../views/storefront-home-page-view"
 
@@ -24,9 +25,9 @@ function StorefrontHomePageLoadingState({
         />
       ) : null}
       {showHero ? <StorefrontHeroSkeleton /> : null}
-      <section className="space-y-5">
+      <section className="space-y-6 lg:space-y-7">
         <StorefrontSectionHeadingSkeleton />
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <StorefrontProductCardSkeleton key={`featured-skeleton:${index}`} />
           ))}
@@ -47,7 +48,7 @@ export function StorefrontHomePageShell() {
       className="pb-0"
     >
       <div
-        className="mx-auto grid w-full max-w-[96rem] gap-10 px-4 pt-6 pb-14 sm:px-5 lg:gap-14 lg:px-8 lg:pt-10 lg:pb-18 xl:gap-16 2xl:px-10"
+        className={`${storefrontHomeSectionFrameClassName} grid gap-12 px-4 pt-6 pb-16 sm:px-5 md:gap-14 lg:px-7 lg:pt-8 lg:pb-20 xl:gap-16 xl:px-8 xl:pt-10 2xl:px-10`}
         data-technical-name="page.storefront.home"
       >
         {isInitialLoading ? (

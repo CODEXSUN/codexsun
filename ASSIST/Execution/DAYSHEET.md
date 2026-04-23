@@ -24,5 +24,5 @@
 
 ## Current Focus
 
-- [ ] `#223` Manual full-load storefront verification.
-- [ ] Next storefront performance slice after `#223`: shrink public entry preload and remove first-screen `motion` cost.
+- [ ] `#224` Fix storefront medium-screen responsiveness and section spacing.
+- [ ] Next storefront performance slice after `#224`: shrink public entry preload and remove first-screen `motion` cost.

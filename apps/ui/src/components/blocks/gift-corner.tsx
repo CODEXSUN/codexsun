@@ -46,27 +46,29 @@ export function GiftCorner({ className, config }: GiftCornerProps) {
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[2rem] px-6 py-6 shadow-[0_32px_80px_-48px_rgba(34,20,14,0.65)] lg:px-8 lg:py-7",
+        "relative isolate min-w-0 w-full max-w-full overflow-hidden rounded-[2rem] px-6 py-6 shadow-[0_32px_80px_-48px_rgba(34,20,14,0.65)] lg:px-8 lg:py-7",
         className
       )}
       style={{
         backgroundImage: `linear-gradient(120deg, ${config.backgroundFrom} 0%, ${config.backgroundTo} 100%)`,
       }}
     >
-      <div
-        className="pointer-events-none absolute -left-16 top-1/2 size-40 -translate-y-1/2 rounded-full blur-3xl"
-        style={{ backgroundColor: `${config.imageFrameAccentColor}44` }}
-      />
-      <div
-        className="pointer-events-none absolute -right-12 top-0 size-40 rounded-full blur-3xl"
-        style={{ backgroundColor: `${config.imageFrameAccentColor}55` }}
-      />
-      <div
-        className="pointer-events-none absolute bottom-0 left-[38%] h-px w-40"
-        style={{
-          backgroundImage: `linear-gradient(90deg, transparent, ${config.imageFrameAccentColor}, transparent)`,
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute left-6 top-1/2 size-32 -translate-y-1/2 rounded-full blur-3xl"
+          style={{ backgroundColor: `${config.imageFrameAccentColor}44` }}
+        />
+        <div
+          className="absolute right-6 top-6 size-32 rounded-full blur-3xl"
+          style={{ backgroundColor: `${config.imageFrameAccentColor}55` }}
+        />
+        <div
+          className="absolute bottom-0 left-1/2 h-px w-40 -translate-x-1/2"
+          style={{
+            backgroundImage: `linear-gradient(90deg, transparent, ${config.imageFrameAccentColor}, transparent)`,
+          }}
+        />
+      </div>
 
       <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-center">
         <div className="space-y-4 lg:max-w-2xl">

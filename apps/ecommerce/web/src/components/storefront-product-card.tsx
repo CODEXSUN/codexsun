@@ -38,10 +38,11 @@ export function StorefrontProductCard({
   onAddToCart: () => void
   isWishlisted?: boolean
   onToggleWishlist?: () => void
-  density?: "default" | "compact"
+  density?: "default" | "compact" | "dense"
   className?: string
 }) {
   const isCompact = density === "compact"
+  const isDense = density === "dense"
   const isOutOfStock = item.availableQuantity <= 0
   const badgeLabel = item.badge ?? item.department ?? "Catalog"
   const brandLabel = item.brandName ?? item.department ?? "Catalog"
@@ -61,7 +62,9 @@ export function StorefrontProductCard({
     <Card
       className={cn(
         "group flex h-full flex-col overflow-hidden border border-[#ece2d4] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,246,239,0.94)_100%)] py-0 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-24px_rgba(48,31,19,0.22)]",
-        isCompact
+        isDense
+          ? "rounded-[1.45rem] border-[#e6d5c1] bg-[linear-gradient(180deg,rgba(255,251,246,0.98)_0%,rgba(246,237,227,0.96)_54%,rgba(243,233,221,0.94)_100%)] shadow-[0_10px_26px_-24px_rgba(69,41,18,0.34)] hover:shadow-[0_18px_40px_-24px_rgba(69,41,18,0.36)]"
+          : isCompact
           ? "rounded-[1.65rem] border-[#e7d7c5] bg-[linear-gradient(180deg,rgba(255,251,246,0.98)_0%,rgba(247,239,229,0.96)_48%,rgba(244,235,224,0.94)_100%)] shadow-[0_12px_30px_-24px_rgba(69,41,18,0.38)] hover:shadow-[0_22px_48px_-26px_rgba(69,41,18,0.42)]"
           : "rounded-[2rem]",
         className
@@ -72,7 +75,9 @@ export function StorefrontProductCard({
         state={{ focus: "product-detail" }}
         className={cn(
           "relative block overflow-hidden bg-[linear-gradient(135deg,#f3eadf,#fbf7f2)]",
-          isCompact
+          isDense
+            ? "aspect-[4/3.66] bg-[linear-gradient(135deg,#eedecb,#faf2e8)]"
+            : isCompact
             ? "aspect-[4/4.02] bg-[linear-gradient(135deg,#eee0cf,#fbf5ed)]"
             : "aspect-[4/4.35]"
         )}
@@ -84,7 +89,7 @@ export function StorefrontProductCard({
             alt={item.name}
             width={800}
             height={870}
-            className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
+            className="absolute inset-0 block h-full w-full object-cover object-center transition duration-700 group-hover:scale-[1.05]"
             loading="lazy"
             decoding="async"
           />
@@ -96,7 +101,7 @@ export function StorefrontProductCard({
         <div
           className={cn(
             "pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between",
-            isCompact ? "p-3" : "p-4"
+            isDense ? "p-2.5" : isCompact ? "p-3" : "p-4"
           )}
         >
           <div className="flex items-start gap-2">
@@ -104,7 +109,9 @@ export function StorefrontProductCard({
               variant="outline"
               className={cn(
                 "text-[10px] font-medium uppercase tracking-[0.16em] shadow-sm backdrop-blur",
-                isCompact
+                isDense
+                  ? "border-[#f5e8d9] bg-[#fff8f1]/92 text-[#7f5539]"
+                  : isCompact
                   ? "border-[#f7ecde] bg-[#fff8f1]/92 text-[#7f5539]"
                   : "border-white/70 bg-white/85 text-foreground"
               )}
@@ -115,7 +122,7 @@ export function StorefrontProductCard({
               <div
                 className={cn(
                   "rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white",
-                  isCompact ? "bg-[#8d5f3b]" : "bg-foreground"
+                  isDense || isCompact ? "bg-[#8d5f3b]" : "bg-foreground"
                 )}
               >
                 Sale
@@ -137,17 +144,17 @@ export function StorefrontProductCard({
             <Heart className={cn("size-4", isWishlisted ? "fill-current text-rose-600" : undefined)} />
           </Button>
         </div>
-        {isCompact ? (
+        {isDense || isCompact ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#2d1708]/18 via-transparent to-transparent" />
         ) : null}
       </Link>
-      <CardContent className={cn("flex flex-1 flex-col", isCompact ? "space-y-2.5 p-4" : "space-y-3 p-5")}>
-        <div className={cn("flex flex-1 flex-col", isCompact ? "space-y-2" : "space-y-2.5")}>
+      <CardContent className={cn("flex flex-1 flex-col", isDense ? "space-y-2 p-3.5" : isCompact ? "space-y-2.5 p-4" : "space-y-3 p-5")}>
+        <div className={cn("flex flex-1 flex-col", isDense ? "space-y-1.5" : isCompact ? "space-y-2" : "space-y-2.5")}>
           <div className="flex items-center justify-between gap-3">
             <span
               className={cn(
                 "truncate text-[11px] font-medium uppercase tracking-[0.18em]",
-                isCompact ? "text-[#9a6a4a]" : "text-[#8b715d]"
+                isDense || isCompact ? "text-[#9a6a4a]" : "text-[#8b715d]"
               )}
             >
               {brandLabel}
@@ -158,7 +165,7 @@ export function StorefrontProductCard({
             state={{ focus: "product-detail" }}
             className={cn(
               "line-clamp-2 font-bold leading-[1.2] tracking-tight text-foreground transition group-hover:text-foreground/85",
-              isCompact ? "text-[1rem]" : "text-[1.2rem]"
+              isDense ? "text-[0.95rem]" : isCompact ? "text-[1rem]" : "text-[1.2rem]"
             )}
           >
             {item.name}
@@ -167,7 +174,9 @@ export function StorefrontProductCard({
             <p
               className={cn(
                 "line-clamp-2",
-                isCompact
+                isDense
+                  ? "text-[12px] leading-[1.05rem] text-[#8c6c57]"
+                  : isCompact
                   ? "text-[13px] leading-5 text-[#8c6c57]"
                   : "text-sm leading-[1.4rem] text-[#7f695a]"
               )}
@@ -182,7 +191,7 @@ export function StorefrontProductCard({
               <span
                 className={cn(
                   "font-bold tracking-tight",
-                  isCompact ? "text-[1.05rem] text-[#2f1e12]" : "text-[1.25rem] text-foreground"
+                  isDense ? "text-[1rem] text-[#2f1e12]" : isCompact ? "text-[1.05rem] text-[#2f1e12]" : "text-[1.25rem] text-foreground"
                 )}
               >
                 {formatCurrency(item.sellingPrice)}
@@ -191,7 +200,7 @@ export function StorefrontProductCard({
                 <span
                   className={cn(
                     "line-through text-[#9a8170]",
-                    isCompact ? "text-xs" : "text-sm"
+                    isDense || isCompact ? "text-xs" : "text-sm"
                   )}
                 >
                   {formatCurrency(compareAtAmount)}
@@ -209,13 +218,17 @@ export function StorefrontProductCard({
       <div
         className={cn(
           "mt-auto grid grid-cols-[1fr_auto] items-center gap-3 pt-0",
-          isCompact ? "px-4 pb-4" : "px-5 pb-5"
+          isDense ? "px-3.5 pb-3.5" : isCompact ? "px-4 pb-4" : "px-5 pb-5"
         )}
       >
         <Button
           className={cn(
             "w-full rounded-full bg-foreground text-background transition duration-200 hover:-translate-y-0.5 hover:bg-foreground/90",
-            isCompact ? "h-10 bg-[#2d1708] text-xs shadow-[0_12px_24px_-16px_rgba(45,23,8,0.6)]" : "h-11"
+            isDense
+              ? "h-9 bg-[#2d1708] px-3 text-[11px] shadow-[0_10px_20px_-16px_rgba(45,23,8,0.54)]"
+              : isCompact
+                ? "h-10 bg-[#2d1708] text-xs shadow-[0_12px_24px_-16px_rgba(45,23,8,0.6)]"
+                : "h-11"
           )}
           disabled={isOutOfStock}
           onClick={onAddToCart}
@@ -233,7 +246,7 @@ export function StorefrontProductCard({
                 type="button"
                 variant="outline"
                 size="icon"
-                className={cn(navIconButtonClassName, "shrink-0")}
+                className={cn(navIconButtonClassName, isDense && "size-9", "shrink-0")}
                 aria-label={action.label}
               >
                 <Icon className="size-4" />

@@ -18,7 +18,7 @@ export function StorefrontLayoutDesktop({
 
   return (
     <div
-      className="relative min-h-screen bg-[linear-gradient(180deg,#f7f1ea_0%,#f3ede6_18%,#f7f3ee_100%)] text-foreground"
+      className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f7f1ea_0%,#f3ede6_18%,#f7f3ee_100%)] text-foreground [scrollbar-gutter:stable_both-edges]"
       data-technical-name="shell.storefront.layout"
       data-shell-mode="desktop"
     >
@@ -40,8 +40,8 @@ export function StorefrontLayoutDesktop({
         id="storefront-main-content"
         tabIndex={-1}
         className={cn(
-          "overflow-x-clip pb-16",
-          showCategoryMenu ? "pt-[13rem] lg:pt-[16rem]" : "pt-[6rem] lg:pt-[6.5rem]",
+          "overflow-x-hidden pb-16",
+          showCategoryMenu ? "pt-[12.25rem] lg:pt-[14.5rem] xl:pt-[16rem]" : "pt-[5.75rem] lg:pt-[6.25rem]",
           className
         )}
       >

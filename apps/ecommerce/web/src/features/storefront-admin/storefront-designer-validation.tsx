@@ -5,6 +5,8 @@ import type {
   StorefrontCampaignSection,
   StorefrontCouponBanner,
   StorefrontGiftCorner,
+  StorefrontDiscoveryBoard,
+  StorefrontVisualStrip,
   StorefrontHomeSlider,
   StorefrontSettings,
   StorefrontTrendingSection,
@@ -181,6 +183,57 @@ export function validateTrendingDesigner(
     const label = `Trend card ${index + 1}`
     validateRequiredText(issues, `${prefix}.title`, card.title, `${label} title`)
     validateRequiredText(issues, `${prefix}.caption`, card.caption, `${label} caption`)
+    validateRequiredMedia(issues, `${prefix}.imageUrl`, card.imageUrl, `${label} image`)
+    validateOptionalLink(issues, `${prefix}.href`, card.href, `${label} link`)
+  })
+
+  return issues
+}
+
+export function validateDiscoveryBoardDesigner(
+  value: StorefrontDiscoveryBoard
+): StorefrontDesignerValidationIssue[] {
+  const issues: StorefrontDesignerValidationIssue[] = []
+
+  validateRequiredText(issues, "title", value.title, "Section title")
+
+  value.cards.forEach((card, index) => {
+    const prefix = `cards.${index}`
+    const label = `Board card ${index + 1}`
+    validateRequiredText(issues, `${prefix}.title`, card.title, `${label} title`)
+    validateOptionalLink(issues, `${prefix}.href`, card.href, `${label} link`)
+
+    card.images.forEach((imageUrl, imageIndex) => {
+      validateRequiredMedia(
+        issues,
+        `${prefix}.images.${imageIndex}`,
+        imageUrl,
+        `${label} image ${imageIndex + 1}`
+      )
+    })
+  })
+
+  return issues
+}
+
+export function validateVisualStripDesigner(
+  value: StorefrontVisualStrip
+): StorefrontDesignerValidationIssue[] {
+  const issues: StorefrontDesignerValidationIssue[] = []
+
+  validateRequiredText(issues, "title", value.title, "Section title")
+  validateSectionCtaPair(
+    issues,
+    "visualStrip",
+    value.ctaLabel,
+    value.ctaHref,
+    "Strip CTA"
+  )
+
+  value.cards.forEach((card, index) => {
+    const prefix = `cards.${index}`
+    const label = `Strip card ${index + 1}`
+    validateRequiredText(issues, `${prefix}.label`, card.label, `${label} label`)
     validateRequiredMedia(issues, `${prefix}.imageUrl`, card.imageUrl, `${label} image`)
     validateOptionalLink(issues, `${prefix}.href`, card.href, `${label} link`)
   })

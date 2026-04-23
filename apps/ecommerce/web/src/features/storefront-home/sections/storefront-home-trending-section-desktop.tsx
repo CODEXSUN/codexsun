@@ -5,6 +5,7 @@ import type { StorefrontLandingResponse } from "@ecommerce/shared"
 import { StorefrontDeferredSection } from "../../../components/storefront-deferred-section"
 import { storefrontHomepageSectionPerformance } from "../../../components/storefront-performance-standards"
 import { StorefrontTechnicalNameBadge } from "../../../components/storefront-technical-name-badge"
+import { StorefrontHomeSectionFrame } from "../blocks/storefront-home-section-frame"
 
 const TrendingSection = lazy(async () =>
   import("@/components/blocks/trending-section").then((module) => ({
@@ -32,12 +33,14 @@ export function StorefrontHomeTrendingSectionDesktop({
           name="section.storefront.home.trending"
           className="right-0 top-0"
         />
-        <Suspense fallback={null}>
-          <TrendingSection
-            className="min-w-0 max-w-full overflow-hidden"
-            config={landing.settings.trendingSection}
-          />
-        </Suspense>
+        <StorefrontHomeSectionFrame>
+          <Suspense fallback={null}>
+            <TrendingSection
+              className="min-w-0 max-w-full overflow-hidden"
+              config={landing.settings.trendingSection}
+            />
+          </Suspense>
+        </StorefrontHomeSectionFrame>
       </section>
     </StorefrontDeferredSection>
   )

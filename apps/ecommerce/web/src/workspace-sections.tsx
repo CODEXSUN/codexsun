@@ -35,6 +35,8 @@ import { StorefrontFloatingContactSection } from "./features/storefront-admin/st
 import { StorefrontMenuEditorSection } from "./features/storefront-admin/storefront-menu-editor-section"
 import { StorefrontPickupSection } from "./features/storefront-admin/storefront-pickup-section"
 import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefront-gift-corner-section"
+import { StorefrontDiscoveryBoardSection } from "./features/storefront-admin/storefront-discovery-board-section"
+import { StorefrontVisualStripSection } from "./features/storefront-admin/storefront-visual-strip-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
 import { StorefrontHistorySection } from "./features/storefront-admin/storefront-history-section"
@@ -471,6 +473,14 @@ function MenuEditorDesignerSection() {
 
 function TrendingSectionDesignerSection() {
   return <StorefrontTrendingSectionSection />
+}
+
+function DiscoveryBoardDesignerSection() {
+  return <StorefrontDiscoveryBoardSection />
+}
+
+function VisualStripDesignerSection() {
+  return <StorefrontVisualStripSection />
 }
 
 function BrandShowcaseDesignerSection() {
@@ -1001,6 +1011,10 @@ export function EcommerceWorkspaceSection({
       return <GiftCornerDesignerSection />
     case "trending":
       return <TrendingSectionDesignerSection />
+    case "discovery-board":
+      return <DiscoveryBoardDesignerSection />
+    case "visual-strip":
+      return <VisualStripDesignerSection />
     case "branding":
       return <BrandShowcaseDesignerSection />
     case "products":

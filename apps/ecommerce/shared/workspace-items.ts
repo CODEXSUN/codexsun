@@ -145,6 +145,18 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Standalone trending-section designer for a lead card and linked trend cards with image and color styling.",
   },
   {
+    id: "discovery-board",
+    name: "Discovery Board",
+    route: "/dashboard/apps/ecommerce/discovery-board",
+    summary: "Standalone discovery-board designer for a four-card editorial collage row with image-only cards.",
+  },
+  {
+    id: "visual-strip",
+    name: "Visual Strip",
+    route: "/dashboard/apps/ecommerce/visual-strip",
+    summary: "Standalone visual-strip designer for a compact image rail with small cards and optional heading CTA.",
+  },
+  {
     id: "branding",
     name: "Branding",
     route: "/dashboard/apps/ecommerce/branding",

@@ -9,7 +9,9 @@ import { StorefrontHomeProductLaneSection } from "../sections/storefront-home-pr
 import { StorefrontHomeTrendingSection } from "../sections/storefront-home-trending-section"
 import {
   StorefrontHomeCouponBannerSection,
+  StorefrontHomeDiscoveryBoardSection,
   StorefrontHomeGiftCornerSection,
+  StorefrontHomeVisualStripSection,
 } from "../sections/storefront-home-simple-block-sections"
 
 export function StorefrontHomeModelProviderView({
@@ -19,6 +21,9 @@ export function StorefrontHomeModelProviderView({
   heroFallback: React.ReactNode
   model: ReturnType<typeof import("../hooks/use-storefront-home-model").useStorefrontHomeModel>
 }) {
+  const showTrendingForDebug = true
+  const showBrandStoriesForDebug = true
+
   if (!model.data || !model.settings || !model.visibility) {
     return model.isLoading ? (
       <div className="relative" data-technical-name="section.storefront.home.hero">
@@ -48,8 +53,8 @@ export function StorefrontHomeModelProviderView({
           landing={model.data}
           items={model.featuredItems.slice(
             0,
-            (model.settings.sections.featured.cardsPerRow ?? 3) *
-              (model.settings.sections.featured.rowsToShow ?? 1)
+            (model.settings.sections.featured.cardsPerRow ?? 4) *
+              (model.settings.sections.featured.rowsToShow ?? 2)
           )}
           ctaHref={model.normalizeHref(model.settings.sections.featured.ctaHref, model.storefrontPaths.catalog())}
           onAddToCart={model.addCatalogItemToCart}
@@ -98,8 +103,14 @@ export function StorefrontHomeModelProviderView({
         />
       ) : null}
       {model.visibilityMap.giftCorner ? <StorefrontHomeGiftCornerSection landing={model.data} /> : null}
-      {model.visibilityMap.trending ? <StorefrontHomeTrendingSection landing={model.data} /> : null}
-      {model.visibilityMap.brandStories ? <StorefrontHomeBrandStoriesSection landing={model.data} /> : null}
+      {model.visibilityMap.discoveryBoard ? (
+        <StorefrontHomeDiscoveryBoardSection landing={model.data} />
+      ) : null}
+      {model.visibilityMap.visualStrip ? (
+        <StorefrontHomeVisualStripSection landing={model.data} />
+      ) : null}
+      {model.visibilityMap.trending && showTrendingForDebug ? <StorefrontHomeTrendingSection landing={model.data} /> : null}
+      {model.visibilityMap.brandStories && showBrandStoriesForDebug ? <StorefrontHomeBrandStoriesSection landing={model.data} /> : null}
       {model.visibilityMap.campaignTrust ? (
         <StorefrontHomeCampaignTrustSection
           landing={model.data}

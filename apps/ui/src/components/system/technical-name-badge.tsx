@@ -40,7 +40,7 @@ export function TechnicalNameBadge({
       role="button"
       tabIndex={0}
       className={cn(
-        "cursor-copy rounded-full border border-violet-300/80 bg-violet-600/95 font-mono text-[10px] tracking-normal text-violet-50 shadow-sm shadow-violet-950/20 transition hover:bg-violet-500/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/80",
+        "max-w-full cursor-copy overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-violet-300/80 bg-violet-600/95 font-mono text-[10px] tracking-normal text-violet-50 shadow-sm shadow-violet-950/20 transition hover:bg-violet-500/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/80",
         className
       )}
       onClick={() => void handleCopy()}

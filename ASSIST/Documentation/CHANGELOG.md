@@ -2,9 +2,31 @@
 
 ## Version State
 
-- Current package version: `1.0.223`
-- Current release tag: `v-1.0.223`
+- Current package version: `1.0.229`
+- Current release tag: `v-1.0.229`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.229
+
+### [v 1.0.229] 2026-04-23 - Finalize storefront home merchandising and overflow hardening
+
+- added standalone ecommerce-admin-backed `Discovery Board` and `Visual Strip` home sections with shared storefront schema, seed, API, workspace, and renderer wiring
+- converted the storefront brand-showcase area into a marquee-based brand slider using a shared marquee utility and shared CSS animation support
+- tightened the storefront home runtime with smaller first-render work, lighter above-the-fold behavior, updated featured defaults, hero and lane tuning, and medium/mobile layout fixes across the storefront home surface
+- standardized storefront home section framing around a shared container-width frame and narrowed the coupon-banner and gift-corner decorative layers so below-fold sections stay inside the storefront width
+- hardened the remaining gift-area scroll path by switching storefront shell guards to `overflow-x-hidden`, delaying rail and marquee mount timing, and adding marquee containment at the component and root levels
+- validated the storefront slice with repeated `npx vite build`; global `npm run typecheck` remains blocked by unrelated existing billing type errors
+
+## v-1.0.228
+
+### [v 1.0.228] 2026-04-23 - Add discovery board and visual strip storefront sections
+
+- added shared ecommerce storefront schemas, default seed content, and settings-service support for `discoveryBoard` and `visualStrip`
+- added dedicated ecommerce admin API endpoints, sidebar entries, workspace routes, validation, and standalone designer screens for both new sections
+- added shared UI blocks for a four-card image collage board and a compact image rail, then mounted both sections on the public storefront home page with deferred loading
+- converted the storefront brand-showcase rail into a marquee-based brand slider and added a shared marquee UI utility plus keyframes in the shared CSS theme layer
+- moved the shared storefront home frame to a Tailwind `container` width and clipped the coupon-banner and gift-corner decorative layers so below-fold sections stay inside the page width while mounting on scroll
+- validated the storefront slice with `npx vite build`; global `npm run typecheck` remains blocked by unrelated existing billing type errors
 
 ## v-1.0.223
 

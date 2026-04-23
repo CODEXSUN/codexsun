@@ -59,65 +59,59 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
   return (
     <section
       className={cn(
-        "relative isolate overflow-hidden px-6 py-6 shadow-[0_32px_70px_-42px_rgba(31,24,19,0.44)] lg:px-8 lg:py-7",
+        "relative isolate min-w-0 w-full max-w-full overflow-hidden px-6 py-6 shadow-[0_32px_70px_-42px_rgba(31,24,19,0.44)] lg:px-8 lg:py-7",
         className
       )}
       style={{
         backgroundColor: config.backgroundColor,
       }}
     >
-      {["top-[10%]", "top-[26%]", "top-[42%]", "top-[58%]", "top-[74%]", "top-[90%]"].map((position) => (
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {["top-[12%]", "top-[30%]", "top-[48%]", "top-[66%]", "top-[84%]"].map((position) => (
+          <div
+            key={`left-${position}`}
+            className={`absolute left-4 ${position} z-20 hidden size-6 -translate-y-1/2 rounded-full lg:block`}
+            style={{ backgroundColor: storefrontSurface }}
+          />
+        ))}
+        {["top-[12%]", "top-[30%]", "top-[48%]", "top-[66%]", "top-[84%]"].map((position) => (
+          <div
+            key={`right-${position}`}
+            className={`absolute right-4 ${position} z-20 hidden size-6 -translate-y-1/2 rounded-full lg:block`}
+            style={{ backgroundColor: storefrontSurface }}
+          />
+        ))}
         <div
-          key={`left-${position}`}
-          className={`pointer-events-none absolute left-0 ${position} z-20 hidden size-9 -translate-x-[58%] -translate-y-1/2 rounded-full lg:block`}
-          style={{ backgroundColor: storefrontSurface }}
+          className="absolute inset-y-5 right-[18.25rem] hidden w-px lg:block"
+          style={{
+            backgroundImage: `radial-gradient(circle, ${config.borderColor} 1.2px, transparent 1.35px)`,
+            backgroundPosition: "center top",
+            backgroundRepeat: "repeat-y",
+            backgroundSize: "2px 11px",
+            opacity: 0.9,
+          }}
         />
-      ))}
-      {["top-[10%]", "top-[26%]", "top-[42%]", "top-[58%]", "top-[74%]", "top-[90%]"].map((position) => (
         <div
-          key={`right-${position}`}
-          className={`pointer-events-none absolute right-0 ${position} z-20 hidden size-9 translate-x-[58%] -translate-y-1/2 rounded-full lg:block`}
-          style={{ backgroundColor: storefrontSurface }}
+          className="absolute inset-x-10 top-0 h-px opacity-60"
+          style={{ background: `linear-gradient(90deg, transparent, ${config.borderColor}, transparent)` }}
         />
-      ))}
-      <div
-        className="pointer-events-none absolute right-[20.5rem] top-0 z-20 hidden size-5 translate-x-1/2 -translate-y-1/2 rounded-full lg:block"
-        style={{ backgroundColor: storefrontSurface }}
-      />
-      <div
-        className="pointer-events-none absolute bottom-0 right-[20.5rem] z-20 hidden size-5 translate-x-1/2 translate-y-1/2 rounded-full lg:block"
-        style={{ backgroundColor: storefrontSurface }}
-      />
-      <div
-        className="pointer-events-none absolute inset-y-5 right-[20.5rem] hidden w-[4px] translate-x-1/2 lg:block"
-        style={{
-          backgroundImage: `radial-gradient(circle, ${config.borderColor} 1.8px, transparent 1.95px)`,
-          backgroundPosition: "center top",
-          backgroundRepeat: "repeat-y",
-          backgroundSize: "4px 12px",
-          opacity: 1,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-10 top-0 h-px opacity-60"
-        style={{ background: `linear-gradient(90deg, transparent, ${config.borderColor}, transparent)` }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-10 bottom-0 h-px opacity-60"
-        style={{ background: `linear-gradient(90deg, transparent, ${config.borderColor}, transparent)` }}
-      />
-      <div
-        className="pointer-events-none absolute -left-10 top-10 size-40 rounded-full opacity-55 blur-3xl"
-        style={{ backgroundColor: `${config.accentColor}22` }}
-      />
-      <div
-        className="pointer-events-none absolute -right-12 -top-12 size-36 rounded-full opacity-70 blur-2xl"
-        style={{ backgroundColor: `${config.accentColor}33` }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-14 right-14 size-40 rounded-full opacity-60 blur-3xl"
-        style={{ backgroundColor: `${config.accentColor}18` }}
-      />
+        <div
+          className="absolute inset-x-10 bottom-0 h-px opacity-60"
+          style={{ background: `linear-gradient(90deg, transparent, ${config.borderColor}, transparent)` }}
+        />
+        <div
+          className="absolute left-4 top-8 size-32 rounded-full opacity-45 blur-3xl"
+          style={{ backgroundColor: `${config.accentColor}22` }}
+        />
+        <div
+          className="absolute right-6 top-6 size-28 rounded-full opacity-55 blur-2xl"
+          style={{ backgroundColor: `${config.accentColor}33` }}
+        />
+        <div
+          className="absolute bottom-4 right-12 size-32 rounded-full opacity-45 blur-3xl"
+          style={{ backgroundColor: `${config.accentColor}18` }}
+        />
+      </div>
       <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.18fr)_18rem] lg:items-center">
         <div className="space-y-4 lg:pr-8">
           <div className="flex items-center gap-3">

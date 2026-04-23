@@ -4,6 +4,8 @@ import {
   getStorefrontPickupLocation,
   getStorefrontCouponBanner,
   getStorefrontGiftCorner,
+  getStorefrontDiscoveryBoard,
+  getStorefrontVisualStrip,
   getStorefrontBrandShowcase,
   getStorefrontCampaign,
   getStorefrontTrendingSection,
@@ -18,6 +20,8 @@ import {
   saveStorefrontPickupLocation,
   saveStorefrontCouponBanner,
   saveStorefrontGiftCorner,
+  saveStorefrontDiscoveryBoard,
+  saveStorefrontVisualStrip,
   saveStorefrontBrandShowcase,
   saveStorefrontCampaign,
   saveStorefrontTrendingSection,
@@ -402,6 +406,50 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await saveStorefrontTrendingSection(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-discovery-board", {
+      summary: "Read ecommerce-owned discovery-board settings for the admin editor.",
+      handler: async (context) => {
+        await requireStorefrontView(context)
+
+        return jsonResponse(await getStorefrontDiscoveryBoard(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-discovery-board", {
+      method: "PATCH",
+      summary: "Update ecommerce-owned discovery-board settings used by public storefront surfaces.",
+      handler: async (context) => {
+        await requireStorefrontManage(context)
+
+        return jsonResponse(
+          await saveStorefrontDiscoveryBoard(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-visual-strip", {
+      summary: "Read ecommerce-owned visual-strip settings for the admin editor.",
+      handler: async (context) => {
+        await requireStorefrontView(context)
+
+        return jsonResponse(await getStorefrontVisualStrip(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-visual-strip", {
+      method: "PATCH",
+      summary: "Update ecommerce-owned visual-strip settings used by public storefront surfaces.",
+      handler: async (context) => {
+        await requireStorefrontManage(context)
+
+        return jsonResponse(
+          await saveStorefrontVisualStrip(
             context.databases.primary,
             context.request.jsonBody
           )

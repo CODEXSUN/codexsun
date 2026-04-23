@@ -1,4 +1,4 @@
-import { ArrowRight, Copy, Heart, Share2 } from "lucide-react"
+import { ArrowRight, Copy, Heart, Share2, ShoppingCart } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useMemo, useState } from "react"
 
@@ -47,6 +47,7 @@ type CommerceProductCardProps = {
   design?: CommerceProductCardDesign
   onWishlistChange?: (isWishlisted: boolean) => void
   onShare?: (action: "copy" | "whatsapp", url: string) => void
+  actionLayout?: "default" | "featured-inline"
 }
 
 export function CommerceProductCard({
@@ -66,6 +67,7 @@ export function CommerceProductCard({
   design,
   onWishlistChange,
   onShare,
+  actionLayout = "default",
 }: CommerceProductCardProps) {
   const isCompact = density === "compact"
   const isDense = density === "dense"
@@ -96,11 +98,11 @@ export function CommerceProductCard({
   const imageAspectClassName = isDense
     ? "aspect-[4/4.45]"
     : isCompact
-      ? "aspect-[4/4.7]"
+      ? "aspect-[4/4.15]"
       : "aspect-[4/4.9]"
-  const contentPaddingClassName = isDense ? "p-4" : isCompact ? "p-4.5" : "p-5"
-  const contentGapClassName = isDense ? "gap-2.5" : "gap-3"
-  const metaSpacingClassName = isDense ? "space-y-2" : "space-y-2.5"
+  const contentPaddingClassName = isDense ? "p-4" : isCompact ? "px-4 py-3.5" : "p-5"
+  const contentGapClassName = isDense ? "gap-2.5" : isCompact ? "gap-2.5" : "gap-3"
+  const metaSpacingClassName = isDense ? "space-y-2" : isCompact ? "space-y-2" : "space-y-2.5"
   const priceRowGapClassName = isDense ? "gap-2" : "gap-2.5"
   const primaryButtonLabel = design?.primaryButtonLabel ?? "Buy Now"
   const showActions =
@@ -110,6 +112,7 @@ export function CommerceProductCard({
     design?.showSecondaryActions !== false &&
     onAddToCart &&
     design?.showPrimaryAction !== false
+  const useFeaturedInlineActions = actionLayout === "featured-inline"
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const featuredNavigationState = { focus: "top" as const }
@@ -148,10 +151,11 @@ export function CommerceProductCard({
       className={cn(
         "group relative flex h-full flex-col overflow-hidden border border-[#e9dccd] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,246,239,0.94)_100%)] py-0 shadow-[0_10px_26px_-22px_rgba(48,31,19,0.3)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_46px_-28px_rgba(48,31,19,0.24)]",
         cardRadiusClassName,
+        isCompact && !useFeaturedInlineActions && "mx-auto max-w-[21.875rem]",
         className
       )}
     >
-      <div className={cn(isDense ? "p-3 pb-0" : "p-3.5 pb-0", isCompact && "p-3 pb-0")}>
+      <div className={cn(isDense ? "p-3 pb-0" : "p-3.5 pb-0", isCompact && "p-2.5 pb-0")}>
         <div className="relative">
           <Link
             to={href}
@@ -165,7 +169,7 @@ export function CommerceProductCard({
               <Badge
                 className={cn(
                   "absolute left-4 top-4 z-10 rounded-full border border-[#e1d5c7] bg-white/92 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_8px_18px_-16px_rgba(48,31,19,0.5)] backdrop-blur",
-                  isDense ? "left-3 top-3 px-2.5 py-1" : isCompact ? "left-3.5 top-3.5 px-2.5 py-1" : "px-3 py-1"
+                  isDense ? "left-3 top-3 px-2.5 py-1" : isCompact ? "left-3 top-3 px-2 py-0.5" : "px-3 py-1"
                 )}
                 style={{
                   display: design?.showPrimaryBadge === false ? "none" : undefined,
@@ -180,7 +184,7 @@ export function CommerceProductCard({
               <Badge
                 className={cn(
                   "absolute right-4 top-4 z-10 rounded-full border border-transparent text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_12px_22px_-18px_rgba(19,12,8,0.65)]",
-                  isDense ? "right-3 top-3 px-2.5 py-1" : isCompact ? "right-3.5 top-3.5 px-2.5 py-1" : "px-3 py-1"
+                  isDense ? "right-3 top-3 px-2.5 py-1" : isCompact ? "right-3 top-3 px-2 py-0.5" : "px-3 py-1"
                 )}
                 style={{
                   backgroundColor: design.secondaryBadgeBackgroundColor || "#1f1813",
@@ -204,7 +208,10 @@ export function CommerceProductCard({
             )}
           </Link>
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-4 pb-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-4 pb-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100",
+              isCompact && "px-3 pb-2.5"
+            )}
             onMouseLeave={() => setShareMenuOpen(false)}
           >
             <button
@@ -236,14 +243,16 @@ export function CommerceProductCard({
                     <span className="font-semibold uppercase tracking-[0.2em]">Copy</span>
                     <Copy className="size-3" />
                   </button>
-                  <button
-                    type="button"
-                    className="mt-1 flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-[11px] text-[#1f1813] transition hover:bg-gray-100"
-                    onClick={handleShareWhatsApp}
-                  >
-                    <span className="font-semibold uppercase tracking-[0.2em]">WhatsApp</span>
-                    <Share2 className="size-3" />
-                  </button>
+                  {!useFeaturedInlineActions ? (
+                    <button
+                      type="button"
+                      className="mt-1 flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-[11px] text-[#1f1813] transition hover:bg-gray-100"
+                      onClick={handleShareWhatsApp}
+                    >
+                      <span className="font-semibold uppercase tracking-[0.2em]">WhatsApp</span>
+                      <Share2 className="size-3" />
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -274,10 +283,10 @@ export function CommerceProductCard({
                 state={featuredNavigationState}
                 className={cn(
                   "block font-semibold tracking-tight transition hover:opacity-85",
-                  isDense
-                    ? "line-clamp-2 text-[1.05rem] leading-5"
+                    isDense
+                      ? "line-clamp-2 text-[1.05rem] leading-5"
                     : isCompact
-                      ? "line-clamp-2 text-[1.1rem] leading-6"
+                      ? "line-clamp-2 text-[1.02rem] leading-5"
                       : "line-clamp-2 text-[1.25rem] leading-[1.2]"
                 )}
                 style={{ color: design?.titleColor ?? "#241913" }}
@@ -290,7 +299,7 @@ export function CommerceProductCard({
                     isDense
                       ? "line-clamp-2 text-[12px] leading-5"
                       : isCompact
-                        ? "line-clamp-2 text-[13px] leading-5"
+                        ? "line-clamp-2 text-[12px] leading-[1.15rem]"
                         : "line-clamp-2 text-sm leading-6"
                   )}
                   style={{ color: design?.descriptionColor ?? "#7f695a" }}
@@ -312,7 +321,7 @@ export function CommerceProductCard({
                 <span
                   className={cn(
                     "font-bold tracking-tight",
-                    isDense ? "text-[1.05rem]" : isCompact ? "text-[1.1rem]" : "text-[1.25rem]"
+                    isDense ? "text-[1.05rem]" : isCompact ? "text-[1.02rem]" : "text-[1.25rem]"
                   )}
                   style={{ color: design?.priceColor ?? "#241913" }}
                 >
@@ -331,7 +340,7 @@ export function CommerceProductCard({
                 <Badge
                   className={cn(
                     "rounded-full border border-transparent font-semibold tracking-[0.2em]",
-                    isDense ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]"
+                    isDense ? "px-2.5 py-1 text-[10px]" : isCompact ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]"
                   )}
                   style={{ backgroundColor: "#1f8a13", color: "#ffffff" }}
                 >
@@ -340,46 +349,93 @@ export function CommerceProductCard({
               ) : null}
             </div>
             {showActions ? (
-              <div
-                className={cn(
-                  "mt-auto flex w-full flex-wrap gap-2",
-                  hasBothActions ? "justify-between" : "justify-end"
-                )}
-              >
-                {design?.showSecondaryActions !== false && onAddToCart ? (
-                  <Button
-                    variant="outline"
-                    size={isDense ? "sm" : "default"}
-                    className={cn(
-                      "flex-1 justify-center rounded-full border-[#d9ccbe] bg-white/92 text-[#4f4339] shadow-[0_10px_20px_-18px_rgba(48,31,19,0.38)] hover:border-[#cbbbab] hover:bg-white",
-                      isDense ? "h-9 px-4 text-[12px]" : "h-10 px-5"
-                    )}
-                    disabled={isOutOfStock}
-                    onClick={onAddToCart}
-                  >
-                    Add to cart
-                  </Button>
-                ) : null}
-                {design?.showPrimaryAction !== false ? (
-                  <Button
-                    asChild
-                    size={isDense ? "sm" : "default"}
-                    className={cn(
-                      "flex-1 justify-center rounded-full bg-[#1f1813] text-white shadow-[0_14px_30px_-18px_rgba(31,24,19,0.62)] hover:bg-[#2b221c]",
-                      isDense ? "h-9 px-4 text-[12px]" : "h-10 px-5"
-                    )}
-                  >
-                    <Link
-                      to={href}
-                      state={featuredNavigationState}
-                      className="flex w-full items-center justify-center gap-2"
+              useFeaturedInlineActions ? (
+                <div className="mt-auto flex w-full items-center gap-2.5">
+                  {design?.showPrimaryAction !== false ? (
+                    <Button
+                      asChild
+                      size={isDense ? "sm" : "default"}
+                      className={cn(
+                        "h-10 flex-1 justify-center rounded-full border border-[#bca996] bg-[#aa9a8b] text-white shadow-[0_14px_24px_-20px_rgba(73,47,28,0.52)] hover:bg-[#9b8a7c]",
+                        isDense || isCompact ? "px-4 text-[12px]" : "px-5"
+                      )}
                     >
-                      {primaryButtonLabel}
-                      <ArrowRight className="size-4" />
-                    </Link>
+                      <Link
+                        to={href}
+                        state={featuredNavigationState}
+                        className="flex w-full items-center justify-center gap-2"
+                      >
+                        <ArrowRight className="size-4" />
+                        {primaryButtonLabel}
+                      </Link>
+                    </Button>
+                  ) : null}
+                  {design?.showSecondaryActions !== false && onAddToCart ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0 rounded-full border-[#d8caba] bg-white/96 text-[#6d5849] shadow-[0_10px_20px_-18px_rgba(48,31,19,0.35)] hover:border-[#cdbba7] hover:bg-white"
+                      disabled={isOutOfStock}
+                      onClick={onAddToCart}
+                      aria-label="Add to cart"
+                    >
+                      <ShoppingCart className="size-4" />
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0 rounded-full border-[#d8caba] bg-white/96 text-[#6d5849] shadow-[0_10px_20px_-18px_rgba(48,31,19,0.35)] hover:border-[#cdbba7] hover:bg-white"
+                    aria-label="Share"
+                    onClick={handleShareCopy}
+                  >
+                    <Share2 className="size-4" />
                   </Button>
-                ) : null}
-              </div>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "mt-auto flex w-full flex-wrap gap-2",
+                    hasBothActions ? "justify-between" : "justify-end"
+                  )}
+                >
+                  {design?.showSecondaryActions !== false && onAddToCart ? (
+                    <Button
+                      variant="outline"
+                      size={isDense ? "sm" : "default"}
+                      className={cn(
+                        "flex-1 justify-center rounded-full border-[#d9ccbe] bg-white/92 text-[#4f4339] shadow-[0_10px_20px_-18px_rgba(48,31,19,0.38)] hover:border-[#cbbbab] hover:bg-white",
+                        isDense ? "h-9 px-4 text-[12px]" : isCompact ? "h-9 px-4 text-[12px]" : "h-10 px-5"
+                      )}
+                      disabled={isOutOfStock}
+                      onClick={onAddToCart}
+                    >
+                      Add to cart
+                    </Button>
+                  ) : null}
+                  {design?.showPrimaryAction !== false ? (
+                    <Button
+                      asChild
+                      size={isDense ? "sm" : "default"}
+                      className={cn(
+                        "flex-1 justify-center rounded-full bg-[#1f1813] text-white shadow-[0_14px_30px_-18px_rgba(31,24,19,0.62)] hover:bg-[#2b221c]",
+                        isDense ? "h-9 px-4 text-[12px]" : isCompact ? "h-9 px-4 text-[12px]" : "h-10 px-5"
+                      )}
+                    >
+                      <Link
+                        to={href}
+                        state={featuredNavigationState}
+                        className="flex w-full items-center justify-center gap-2"
+                      >
+                        {primaryButtonLabel}
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
+              )
             ) : null}
           </div>
         </div>

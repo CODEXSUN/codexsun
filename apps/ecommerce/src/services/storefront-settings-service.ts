@@ -12,6 +12,8 @@ import {
   storefrontCouponBannerSchema,
   storefrontGiftCornerSchema,
   storefrontTrendingSectionSchema,
+  storefrontDiscoveryBoardSchema,
+  storefrontVisualStripSchema,
   storefrontBrandShowcaseSchema,
   storefrontCampaignSectionSchema,
   storefrontAnnouncementItemSchema,
@@ -218,6 +220,8 @@ function buildMergedStorefrontSettings(
   const couponBannerRecord = asRecord(payloadRecord.couponBanner)
   const giftCornerRecord = asRecord(payloadRecord.giftCorner)
   const trendingSectionRecord = asRecord(payloadRecord.trendingSection)
+  const discoveryBoardRecord = asRecord(payloadRecord.discoveryBoard)
+  const visualStripRecord = asRecord(payloadRecord.visualStrip)
   const brandShowcaseRecord = asRecord(payloadRecord.brandShowcase)
   const campaignDesignRecord = asRecord(payloadRecord.campaignDesign)
   const legalPagesRecord = asRecord(payloadRecord.legalPages)
@@ -420,6 +424,24 @@ function buildMergedStorefrontSettings(
             : base.trendingSection.cards,
         }
       : base.trendingSection,
+    discoveryBoard: discoveryBoardRecord
+      ? {
+          ...base.discoveryBoard,
+          ...discoveryBoardRecord,
+          cards: Array.isArray(discoveryBoardRecord.cards)
+            ? discoveryBoardRecord.cards
+            : base.discoveryBoard.cards,
+        }
+      : base.discoveryBoard,
+    visualStrip: visualStripRecord
+      ? {
+          ...base.visualStrip,
+          ...visualStripRecord,
+          cards: Array.isArray(visualStripRecord.cards)
+            ? visualStripRecord.cards
+            : base.visualStrip.cards,
+        }
+      : base.visualStrip,
     brandShowcase: brandShowcaseRecord
       ? {
           ...base.brandShowcase,
@@ -950,6 +972,56 @@ export async function saveStorefrontBrandShowcase(
   })
 
   return storefrontBrandShowcaseSchema.parse(nextSettings.brandShowcase)
+}
+
+export async function getStorefrontDiscoveryBoard(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontDesignerSettings(database)
+  return storefrontDiscoveryBoardSchema.parse(settings.discoveryBoard)
+}
+
+export async function saveStorefrontDiscoveryBoard(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontDesignerSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    discoveryBoard: storefrontDiscoveryBoardSchema.parse({
+      ...current.discoveryBoard,
+      ...(asRecord(payload) ?? {}),
+      cards: Array.isArray(asRecord(payload)?.cards)
+        ? asRecord(payload)?.cards
+        : current.discoveryBoard.cards,
+    }),
+  })
+
+  return storefrontDiscoveryBoardSchema.parse(nextSettings.discoveryBoard)
+}
+
+export async function getStorefrontVisualStrip(
+  database: Kysely<unknown>
+) {
+  const settings = await getStorefrontDesignerSettings(database)
+  return storefrontVisualStripSchema.parse(settings.visualStrip)
+}
+
+export async function saveStorefrontVisualStrip(
+  database: Kysely<unknown>,
+  payload: unknown
+) {
+  const current = await getStorefrontDesignerSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    visualStrip: storefrontVisualStripSchema.parse({
+      ...current.visualStrip,
+      ...(asRecord(payload) ?? {}),
+      cards: Array.isArray(asRecord(payload)?.cards)
+        ? asRecord(payload)?.cards
+        : current.visualStrip.cards,
+    }),
+  })
+
+  return storefrontVisualStripSchema.parse(nextSettings.visualStrip)
 }
 
 export async function getStorefrontCampaign(

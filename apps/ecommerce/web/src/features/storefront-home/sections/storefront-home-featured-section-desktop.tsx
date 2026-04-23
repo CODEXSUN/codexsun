@@ -29,7 +29,7 @@ export function StorefrontHomeFeaturedSectionDesktop({
       minHeightClassName={storefrontHomepageSectionPerformance.featured.minHeightClassName}
       fallback={storefrontHomepageSectionPerformance.featured.fallback}
     >
-      <section className="relative space-y-5" data-technical-name="section.storefront.home.featured" data-shell-mode="desktop">
+      <section className="relative space-y-6 lg:space-y-7" data-technical-name="section.storefront.home.featured" data-shell-mode="desktop">
         <StorefrontTechnicalNameBadge
           name="section.storefront.home.featured"
           className="right-0 top-0"
@@ -46,6 +46,7 @@ export function StorefrontHomeFeaturedSectionDesktop({
           <FeaturedCardRowSurface
             cardsPerRow={section.cardsPerRow ?? 3}
             cardDesign={section.cardDesign}
+            cardClassName="min-h-[33.75rem]"
             items={items.map((item) => ({
               id: item.id,
               href: `/products/${item.slug}`,

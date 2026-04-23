@@ -46,14 +46,15 @@ export const staggeredContentItem = {
 export function useStorefrontHeroSliderModel(landing: StorefrontLandingResponse) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [direction, setDirection] = useState(1)
+  const [isExpandedAfterStartup, setIsExpandedAfterStartup] = useState(false)
   const cart = useStorefrontCart()
 
   const model = useMemo(() => {
-    const featuredItems =
-      (landing.featured.length > 0 ? landing.featured : landing.newArrivals).slice(
-        0,
-        Math.max(landing.settings.homeSlider.slides.length, 1)
-      )
+    const allFeaturedItems =
+      landing.featured.length > 0 ? landing.featured : landing.newArrivals
+    const featuredItems = isExpandedAfterStartup
+      ? allFeaturedItems
+      : allFeaturedItems.slice(0, Math.min(3, allFeaturedItems.length))
     const activeItem = featuredItems[selectedIndex] ?? featuredItems[0] ?? null
 
     if (!activeItem) {
@@ -80,9 +81,11 @@ export function useStorefrontHeroSliderModel(landing: StorefrontLandingResponse)
       activeItem.promoSliderEnabled && activeItem.promoSubtitle
         ? activeItem.promoSubtitle
         : activeItem.shortDescription ?? landing.settings.hero.summary
+    const themeCount = landing.settings.homeSlider.slides.length
     const activeSliderTheme =
-      landing.settings.homeSlider.slides[selectedIndex]?.theme ??
-      landing.settings.homeSlider.slides[0]?.theme
+      (themeCount > 0
+        ? landing.settings.homeSlider.slides[selectedIndex % themeCount]?.theme
+        : null) ?? landing.settings.homeSlider.slides[0]?.theme
     const sliderStyles = resolveHomeSliderThemeStyles(
       activeSliderTheme ?? landing.settings.homeSlider.slides[0].theme
     )
@@ -100,7 +103,54 @@ export function useStorefrontHeroSliderModel(landing: StorefrontLandingResponse)
       featuredItems,
       sliderStyles,
     }
-  }, [landing, selectedIndex])
+  }, [isExpandedAfterStartup, landing, selectedIndex])
+
+  useEffect(() => {
+    setIsExpandedAfterStartup(false)
+
+    if ((landing.featured.length > 0 ? landing.featured.length : landing.newArrivals.length) <= 3) {
+      return
+    }
+
+    let timeoutId = 0
+
+    const scheduleExpand = () => {
+      timeoutId = window.setTimeout(() => {
+        setIsExpandedAfterStartup(true)
+      }, 1200)
+    }
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(() => {
+        scheduleExpand()
+      })
+
+      return () => {
+        window.cancelIdleCallback(idleId)
+        if (timeoutId) {
+          window.clearTimeout(timeoutId)
+        }
+      }
+    }
+
+    scheduleExpand()
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [landing])
+
+  useEffect(() => {
+    setSelectedIndex((current) => {
+      if (model.featuredItems.length === 0) {
+        return 0
+      }
+
+      return current >= model.featuredItems.length ? 0 : current
+    })
+  }, [model.featuredItems.length])
 
   useEffect(() => {
     if (model.featuredItems.length <= 1) {

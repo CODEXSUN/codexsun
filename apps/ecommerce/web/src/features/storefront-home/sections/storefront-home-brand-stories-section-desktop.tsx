@@ -5,6 +5,7 @@ import type { StorefrontLandingResponse } from "@ecommerce/shared"
 import { StorefrontDeferredSection } from "../../../components/storefront-deferred-section"
 import { storefrontHomepageSectionPerformance } from "../../../components/storefront-performance-standards"
 import { StorefrontTechnicalNameBadge } from "../../../components/storefront-technical-name-badge"
+import { StorefrontHomeSectionFrame } from "../blocks/storefront-home-section-frame"
 
 const BrandStoryRail = lazy(async () =>
   import("@/components/blocks/brand-story-rail").then((module) => ({
@@ -32,14 +33,16 @@ export function StorefrontHomeBrandStoriesSectionDesktop({
           name="section.storefront.home.brand-stories"
           className="right-0 top-0"
         />
-        <Suspense fallback={null}>
-          <BrandStoryRail
-            className="min-w-0 max-w-full overflow-hidden"
-            title={landing.settings.brandShowcase.title ?? "More Beauty To Love"}
-            description={landing.settings.brandShowcase.description}
-            cards={landing.settings.brandShowcase.cards ?? landing.brands}
-          />
-        </Suspense>
+        <StorefrontHomeSectionFrame>
+          <Suspense fallback={null}>
+            <BrandStoryRail
+              className="min-w-0 max-w-full overflow-hidden"
+              title={landing.settings.brandShowcase.title ?? "More Beauty To Love"}
+              description={landing.settings.brandShowcase.description}
+              cards={landing.settings.brandShowcase.cards ?? landing.brands}
+            />
+          </Suspense>
+        </StorefrontHomeSectionFrame>
       </section>
     </StorefrontDeferredSection>
   )

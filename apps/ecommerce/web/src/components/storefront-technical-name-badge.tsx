@@ -11,7 +11,7 @@ export function StorefrontTechnicalNameBadge({
   return (
     <TechnicalNameBadge
       name={name}
-      className={cn("absolute right-4 top-4 z-[70]", className)}
+      className={cn("absolute right-4 top-4 z-[70] max-w-[calc(100%-2rem)]", className)}
     />
   )
 }
