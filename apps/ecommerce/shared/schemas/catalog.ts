@@ -37,6 +37,10 @@ function isValidStorefrontMediaReference(value: string) {
     return true
   }
 
+  if (/^data:image\/(svg\+xml|png|jpe?g|webp|gif);/i.test(trimmed)) {
+    return true
+  }
+
   try {
     const parsed = new URL(trimmed)
     return parsed.protocol === "http:" || parsed.protocol === "https:"
@@ -60,7 +64,7 @@ const storefrontMediaReferenceSchema = z
   .trim()
   .min(1)
   .refine(isValidStorefrontMediaReference, {
-    message: "Media reference must be a root-relative asset path or valid http/https URL.",
+    message: "Media reference must be a root-relative asset path, image data URL, or valid http/https URL.",
   })
 
 export const storefrontHighlightSchema = z.object({
@@ -98,6 +102,18 @@ export const storefrontAnnouncementDesignSchema = z.object({
   iconColor: hexColorSchema,
   iconKey: z.enum(["sparkles", "truck", "shield"]),
   cornerStyle: z.enum(["pill", "rounded", "soft"]),
+})
+
+export const storefrontThemeSchema = z.object({
+  pageBackgroundFrom: hexColorSchema,
+  pageBackgroundVia: hexColorSchema,
+  pageBackgroundTo: hexColorSchema,
+  sectionBackgroundColor: hexColorSchema,
+  cardBackgroundColor: hexColorSchema,
+  cardMutedBackgroundColor: hexColorSchema,
+  cardBorderColor: hexColorSchema,
+  cardShadowColor: hexColorSchema,
+  cardShadowStrength: z.enum(["none", "soft", "medium", "deep"]).default("soft"),
 })
 
 export const storefrontAnnouncementItemSchema = z.object({
@@ -487,7 +503,12 @@ export const storefrontDiscoveryBoardCardSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   href: storefrontOptionalLinkSchema,
-  images: z.array(storefrontMediaReferenceSchema).min(4).max(4),
+  images: z
+    .array(z.union([storefrontMediaReferenceSchema, z.null()]))
+    .min(4)
+    .max(4),
+  imageLinks: z.array(storefrontOptionalLinkSchema).max(4).default([]),
+  imageTitles: z.array(z.string().nullable()).max(4).default([]),
 })
 
 export const storefrontDiscoveryBoardSchema = z.object({
@@ -630,6 +651,7 @@ export const storefrontSettingsSchema = z.object({
   hero: storefrontHeroSchema,
   homeSlider: storefrontHomeSliderSchema,
   search: storefrontSearchSchema,
+  theme: storefrontThemeSchema,
   announcementDesign: storefrontAnnouncementDesignSchema,
   announcementItems: z.array(storefrontAnnouncementItemSchema).min(1),
   sections: z.object({
@@ -706,6 +728,13 @@ export const storefrontSettingsVersionHistoryResponseSchema = z.object({
 
 export const storefrontLandingResponseSchema = z.object({
   settings: storefrontSettingsSchema,
+  merchandisingDebug: z.object({
+    discoveryBoardProductCount: z.number().int().min(0).default(0),
+    visualStripProductCount: z.number().int().min(0).default(0),
+  }).default({
+    discoveryBoardProductCount: 0,
+    visualStripProductCount: 0,
+  }),
   featured: z.array(storefrontProductCardSchema),
   newArrivals: z.array(storefrontProductCardSchema),
   bestSellers: z.array(storefrontProductCardSchema),
@@ -823,6 +852,7 @@ export type StorefrontAnnouncementItem = z.infer<typeof storefrontAnnouncementIt
 export type StorefrontSearch = z.infer<typeof storefrontSearchSchema>
 export type StorefrontSearchDepartment = z.infer<typeof storefrontSearchDepartmentSchema>
 export type StorefrontCatalogIntro = z.infer<typeof storefrontCatalogIntroSchema>
+export type StorefrontTheme = z.infer<typeof storefrontThemeSchema>
 export type StorefrontSectionCopy = z.infer<typeof storefrontSectionCopySchema>
 export type StorefrontFeaturedCardDesign = z.infer<typeof storefrontFeaturedCardDesignSchema>
 export type StorefrontFeaturedSection = z.infer<typeof storefrontFeaturedSectionSchema>

@@ -48,7 +48,7 @@ export function StorefrontHomePageShell() {
       className="pb-0"
     >
       <div
-        className={`${storefrontHomeSectionFrameClassName} grid gap-12 px-4 pt-6 pb-16 sm:px-5 md:gap-14 lg:px-7 lg:pt-8 lg:pb-20 xl:gap-16 xl:px-8 xl:pt-10 2xl:px-10`}
+        className={`${storefrontHomeSectionFrameClassName} grid gap-12 px-4 pt-6 pb-16 sm:px-6 md:gap-14 lg:px-10 lg:pt-8 lg:pb-20 xl:gap-16 xl:px-16 xl:pt-10 2xl:px-20`}
         data-technical-name="page.storefront.home"
       >
         {isInitialLoading ? (

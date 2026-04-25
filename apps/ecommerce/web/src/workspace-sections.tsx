@@ -38,6 +38,7 @@ import { StorefrontGiftCornerSection } from "./features/storefront-admin/storefr
 import { StorefrontDiscoveryBoardSection } from "./features/storefront-admin/storefront-discovery-board-section"
 import { StorefrontVisualStripSection } from "./features/storefront-admin/storefront-visual-strip-section"
 import { StorefrontBrandShowcaseSection } from "./features/storefront-admin/storefront-brand-showcase-section"
+import { StorefrontThemeSection } from "./features/storefront-admin/storefront-theme-section"
 import { StorefrontCommunicationsSection } from "./features/storefront-admin/storefront-communications-section"
 import { StorefrontHistorySection } from "./features/storefront-admin/storefront-history-section"
 import {
@@ -445,6 +446,10 @@ function StorefrontSection() {
 
 function HomeSliderDesignerSection() {
   return <HomeSliderSection />
+}
+
+function StorefrontThemeDesignerSection() {
+  return <StorefrontThemeSection />
 }
 
 function StorefrontHistoryDesignerSection() {
@@ -1003,6 +1008,8 @@ export function EcommerceWorkspaceSection({
       return <StorefrontHistoryDesignerSection />
     case "home-slider":
       return <HomeSliderDesignerSection />
+    case "theme-designer":
+      return <StorefrontThemeDesignerSection />
     case "campaign":
       return <CampaignDesignerSection />
     case "coupon-banner":

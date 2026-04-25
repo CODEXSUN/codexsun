@@ -9,7 +9,7 @@ export function StorefrontHomeBrandStoriesSectionMobile({
   landing: StorefrontLandingResponse
 }) {
   const section = landing.settings.brandShowcase
-  const cards = section.cards ?? landing.brands
+  const cards = section.cards
 
   if (section.enabled === false || cards.length === 0) {
     return null

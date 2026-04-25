@@ -11,6 +11,9 @@ export {
   type JsonStoreSeedRecord,
 } from "./process/json-store.js"
 export {
+  freshApplicationDatabase,
+} from "./process/fresh.js"
+export {
   prepareApplicationDatabase,
   runDatabaseMigrations,
   runDatabaseSeeders,
@@ -26,6 +29,7 @@ export {
 } from "./process/table-names.js"
 export type {
   AppDatabaseModule,
+  DatabaseFreshResult,
   DatabasePrepareResult,
   DatabaseProcessMigration,
   DatabaseProcessRunResult,

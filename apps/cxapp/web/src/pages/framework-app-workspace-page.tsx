@@ -377,6 +377,7 @@ export function FrameworkAppWorkspacePage({
       [
         "storefront",
         "home-slider",
+        "theme-designer",
         "products",
         "products-show",
         "products-upsert",

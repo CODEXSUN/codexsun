@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 
-export const storefrontHomeSectionFrameClassName = "container mx-auto min-w-0 w-full"
+export const storefrontHomeSectionFrameClassName = "min-w-0 w-full max-w-none"
 
 export function StorefrontHomeSectionFrame({
   children,

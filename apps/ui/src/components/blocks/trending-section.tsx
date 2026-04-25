@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { storefrontHomeSectionFrameClassName } from "@ecommerce/web/src/features/storefront-home/blocks/storefront-home-section-frame"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { cn } from "@/lib/utils"
 import { useHorizontalRailControls } from "./use-horizontal-rail-controls"
 
@@ -48,8 +49,9 @@ function TrendCard({
 }) {
   const content = (
     <article
+      data-technical-name="block.storefront.home.trending.card"
       className={cn(
-        "group relative max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.45)] transition-transform duration-500 ease-out will-change-transform hover:-translate-y-2",
+        "group relative h-[23rem] max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.45)] transition-transform duration-500 ease-out will-change-transform hover:-translate-y-2",
         tiltDirection === "left"
           ? "hover:rotate-[-2deg] hover:[transform:perspective(1400px)_rotateX(3deg)_rotateY(-7deg)_translateY(-0.35rem)]"
           : "hover:rotate-[2deg] hover:[transform:perspective(1400px)_rotateX(3deg)_rotateY(7deg)_translateY(-0.35rem)]",
@@ -57,8 +59,11 @@ function TrendCard({
       )}
       style={{ backgroundColor: card.backgroundColor }}
     >
-      <div className="flex h-full min-h-[23rem] flex-col justify-between">
-        <div className="relative min-h-[17rem] overflow-hidden px-4 pt-4">
+      <div className="flex h-full flex-col justify-between">
+        <div
+          data-technical-name="block.storefront.home.trending.card-media"
+          className="relative min-h-[17rem] overflow-hidden px-4 pt-4"
+        >
           <img
             src={card.imageUrl}
             alt={card.title}
@@ -69,6 +74,7 @@ function TrendCard({
           />
         </div>
         <div
+          data-technical-name="block.storefront.home.trending.card-caption"
           className="px-4 py-3 text-center text-[1.05rem] font-medium"
           style={{
             backgroundColor: card.captionBackgroundColor,
@@ -91,7 +97,7 @@ function TrendCard({
 
   if (hasContent(card.href)) {
     return (
-      <Link to={card.href ?? "/shop/catalog"} className="block">
+      <Link to={card.href ?? "/shop/catalog"} className="block h-[23rem]">
         {content}
       </Link>
     )
@@ -119,7 +125,8 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
 
   const featureContent = (
     <article
-      className="relative w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0 overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.5)] transition-transform duration-500 ease-out will-change-transform hover:[transform:perspective(1600px)_rotateX(3deg)_rotateY(-6deg)_translateY(-0.4rem)]"
+      data-technical-name="block.storefront.home.trending.feature-card"
+      className="relative h-[23rem] w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0 overflow-hidden rounded-[1.2rem] shadow-[0_26px_50px_-38px_rgba(30,23,19,0.5)] transition-transform duration-500 ease-out will-change-transform hover:[transform:perspective(1600px)_rotateX(3deg)_rotateY(-6deg)_translateY(-0.4rem)]"
       style={{ backgroundColor: config.featureBackgroundColor }}
     >
       <img
@@ -131,7 +138,7 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
         sizes="(min-width: 1024px) 256px, 70vw"
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04)_0%,rgba(0,0,0,0.24)_100%)]" />
-      <div className="relative flex h-full min-h-[23rem] flex-col justify-end p-5">
+      <div className="relative flex h-full flex-col justify-end p-5">
         <div className="max-w-[11rem] space-y-1">
           <h2 className="font-heading text-[2.05rem] font-semibold leading-[0.92]" style={{ color: config.featureTextColor }}>
             {config.featureTitle}
@@ -145,8 +152,19 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
   )
 
   return (
-    <section className={cn("min-w-0 max-w-full space-y-4 overflow-x-hidden overflow-y-visible", className)}>
-      <div className={cn(storefrontHomeSectionFrameClassName, "space-y-2")}>
+    <section
+      data-technical-name="block.storefront.home.trending"
+      className={cn("relative min-w-0 max-w-full space-y-4 overflow-x-clip overflow-y-visible", className)}
+    >
+      <TechnicalNameBadge
+        alwaysVisible
+        name="block.storefront.home.trending"
+        className="absolute right-3 top-0 z-20 max-w-[calc(100%-1.5rem)]"
+      />
+      <div
+        data-technical-name="block.storefront.home.trending.header"
+        className={cn(storefrontHomeSectionFrameClassName, "space-y-2")}
+      >
         <h2 className="font-heading text-3xl font-semibold tracking-tight text-[#1c1c1c]">
           {config.title}
         </h2>
@@ -154,14 +172,22 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
           {config.description}
         </p>
       </div>
-      <div className={cn(storefrontHomeSectionFrameClassName, "group relative overflow-x-hidden overflow-y-visible")}>
+      <div
+        data-technical-name="block.storefront.home.trending.rail-shell"
+        className={cn(storefrontHomeSectionFrameClassName, "group relative overflow-x-clip overflow-y-visible")}
+      >
         <div
+          data-technical-name="block.storefront.home.trending.rail"
           ref={scrollRef}
-          className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent"
+          className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="inline-flex w-max min-w-0 max-w-none gap-3 pr-3">
             {hasContent(config.featureHref) ? (
-              <Link to={config.featureHref ?? "/shop/catalog"} className="block shrink-0">
+              <Link
+                to={config.featureHref ?? "/shop/catalog"}
+                data-technical-name="block.storefront.home.trending.feature-link"
+                className="block h-[23rem] shrink-0"
+              >
                 {featureContent}
               </Link>
             ) : (
@@ -171,7 +197,7 @@ export function TrendingSection({ className, config }: TrendingSectionProps) {
               <TrendCard
                 key={card.id}
                 card={card}
-                className="w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0"
+                className="h-[23rem] w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0"
                 tiltDirection={index % 2 === 0 ? "right" : "left"}
               />
             ))}

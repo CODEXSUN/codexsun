@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { storefrontHomeSectionFrameClassName } from "@ecommerce/web/src/features/storefront-home/blocks/storefront-home-section-frame"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { cn } from "@/lib/utils"
 import { useHorizontalRailControls } from "./use-horizontal-rail-controls"
 
@@ -29,7 +30,10 @@ function hasContent(value: string | null | undefined) {
 
 function VisualStripCardView({ card }: { card: VisualStripCard }) {
   const content = (
-    <article className="overflow-hidden rounded-[0.35rem] border border-[#e1d8ce] bg-white shadow-[0_18px_34px_-28px_rgba(42,31,24,0.24)]">
+    <article
+      data-technical-name="block.storefront.home.visual-strip.card"
+      className="overflow-hidden rounded-[0.35rem] border bg-[var(--storefront-card-bg,#ffffff)] [border-color:var(--storefront-card-border,#e1d8ce)] [box-shadow:var(--storefront-card-shadow,0_18px_34px_-28px_rgba(42,31,24,0.24))]"
+    >
       <img
         src={card.imageUrl}
         alt={card.label}
@@ -66,8 +70,19 @@ export function VisualStrip({ className, config }: VisualStripProps) {
   }
 
   return (
-    <section className={cn("space-y-4", className)}>
-      <div className={cn(storefrontHomeSectionFrameClassName, "flex flex-wrap items-baseline justify-between gap-3")}>
+    <section
+      data-technical-name="block.storefront.home.visual-strip"
+      className={cn("relative space-y-4", className)}
+    >
+      <TechnicalNameBadge
+        alwaysVisible
+        name="block.storefront.home.visual-strip"
+        className="absolute right-3 top-0 z-20 max-w-[calc(100%-1.5rem)]"
+      />
+      <div
+        data-technical-name="block.storefront.home.visual-strip.header"
+        className={cn(storefrontHomeSectionFrameClassName, "flex flex-wrap items-baseline justify-between gap-3")}
+      >
         <h2 className="font-heading text-[1.85rem] font-semibold tracking-tight text-[#1f1813]">
           {config.title}
         </h2>
@@ -77,14 +92,22 @@ export function VisualStrip({ className, config }: VisualStripProps) {
           </Link>
         ) : null}
       </div>
-      <div className={cn(storefrontHomeSectionFrameClassName, "group relative overflow-x-hidden overflow-y-visible")}>
+      <div
+        data-technical-name="block.storefront.home.visual-strip.rail-shell"
+        className={cn(storefrontHomeSectionFrameClassName, "group relative overflow-x-clip overflow-y-visible")}
+      >
         <div
+          data-technical-name="block.storefront.home.visual-strip.rail"
           ref={scrollRef}
-          className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent"
+          className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="inline-flex w-max min-w-0 gap-3 pr-3">
             {config.cards.map((card) => (
-              <div key={card.id} className="w-[10.5rem] min-w-[10.5rem] shrink-0 md:w-[11.5rem] md:min-w-[11.5rem]">
+              <div
+                key={card.id}
+                data-technical-name="block.storefront.home.visual-strip.card-slot"
+                className="w-[10.5rem] min-w-[10.5rem] shrink-0 md:w-[11.5rem] md:min-w-[11.5rem]"
+              >
                 <VisualStripCardView card={card} />
               </div>
             ))}

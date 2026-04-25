@@ -46,6 +46,13 @@ export type DatabasePrepareResult = {
   seeders: DatabaseProcessRunResult
 }
 
+export type DatabaseFreshResult = DatabasePrepareResult & {
+  dropped: {
+    views: number
+    tables: number
+  }
+}
+
 export function defineDatabaseMigration(
   migration: DatabaseProcessMigration
 ): DatabaseProcessMigration {

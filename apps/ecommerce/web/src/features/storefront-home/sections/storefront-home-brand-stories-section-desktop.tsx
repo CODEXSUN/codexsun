@@ -25,7 +25,7 @@ export function StorefrontHomeBrandStoriesSectionDesktop({
       fallback={storefrontHomepageSectionPerformance.brandStories.fallback}
     >
       <section
-        className="relative min-w-0 max-w-full overflow-hidden"
+        className="relative min-w-0 max-w-full overflow-x-clip overflow-y-visible"
         data-technical-name="section.storefront.home.brand-stories"
         data-shell-mode="desktop"
       >
@@ -36,10 +36,10 @@ export function StorefrontHomeBrandStoriesSectionDesktop({
         <StorefrontHomeSectionFrame>
           <Suspense fallback={null}>
             <BrandStoryRail
-              className="min-w-0 max-w-full overflow-hidden"
+              className="min-w-0 max-w-full overflow-x-clip overflow-y-visible"
               title={landing.settings.brandShowcase.title ?? "More Beauty To Love"}
               description={landing.settings.brandShowcase.description}
-              cards={landing.settings.brandShowcase.cards ?? landing.brands}
+              cards={landing.settings.brandShowcase.cards}
             />
           </Suspense>
         </StorefrontHomeSectionFrame>

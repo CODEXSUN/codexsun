@@ -25,7 +25,7 @@ export function StorefrontHomeTrendingSectionDesktop({
       fallback={storefrontHomepageSectionPerformance.trending.fallback}
     >
       <section
-        className="relative min-w-0 max-w-full overflow-hidden"
+        className="relative min-w-0 max-w-full overflow-x-clip overflow-y-visible"
         data-technical-name="section.storefront.home.trending"
         data-shell-mode="desktop"
       >
@@ -36,7 +36,7 @@ export function StorefrontHomeTrendingSectionDesktop({
         <StorefrontHomeSectionFrame>
           <Suspense fallback={null}>
             <TrendingSection
-              className="min-w-0 max-w-full overflow-hidden"
+              className="min-w-0 max-w-full overflow-x-clip overflow-y-visible"
               config={landing.settings.trendingSection}
             />
           </Suspense>

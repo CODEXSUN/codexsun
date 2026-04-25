@@ -43,7 +43,10 @@ export function StorefrontDeferredSection({
   }, [isVisible, rootMargin])
 
   return (
-    <div ref={containerRef} className={isVisible ? undefined : minHeightClassName}>
+    <div
+      ref={containerRef}
+      className={`min-w-0 max-w-full overflow-x-clip ${isVisible ? "" : minHeightClassName}`}
+    >
       {isVisible ? children : fallback}
     </div>
   )

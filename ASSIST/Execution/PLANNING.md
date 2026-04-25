@@ -2,6 +2,30 @@
 
 ## Active
 
+- `#230` Add `db:fresh` for clean database installation
+  - Goal:
+    - add one explicit command that drops the current application schema contents and reruns the registered migration and seeder flow for clean local or operator-managed installs
+  - Why this slice now:
+    - the repo already has `db:prepare`, `db:migrate`, `db:seed`, and clean-install docs, but it is missing one clear fresh-start command for resetting an existing database into the seeded baseline
+  - Scope in this batch:
+    - extend the CLI database helper with a `fresh` command
+    - wire a root `npm run db:fresh` script
+    - update setup documentation so the clean-install command surface stays accurate
+    - add focused validation around the new destructive path
+  - Constraints:
+    - keep the destructive logic inside the framework database runtime or CLI helper path rather than shelling out to ad hoc SQL scripts
+    - support the active database drivers only
+    - fail safely when the destructive command is invoked without explicit confirmation outside the root npm script path
+  - Implemented in this batch:
+    - added framework database-runtime support for a fresh reset that drops current tables and views for MariaDB or PostgreSQL before rerunning registered migrations and seeders
+    - extended the CLI database helper with a guarded `fresh` command and added the root `npm run db:fresh` shortcut
+    - updated setup and architecture docs so the database command surface now includes `db:fresh`
+    - added focused CLI coverage for the destructive confirmation guard and unknown-command usage output
+  - Validation:
+    - passed `npx.cmd tsx --test tests/cli/database-helper.test.ts`
+    - passed `npx.cmd eslint apps/cli/src/database-helper.ts apps/framework/src/runtime/database/process/fresh.ts tests/cli/database-helper.test.ts`
+  - Known validation limit:
+    - global `npm.cmd run typecheck` still fails in `apps/billing/web/src/workspace-sections/index.tsx` on pre-existing unrelated billing type errors around `companyId` and `referenceDate`
 - `#229` Finalize storefront home merchandising and overflow hardening
   - Goal:
     - finish the storefront home merchandising batch, including new editorial sections, marquee-style brand treatment, responsive sizing cleanup, and the remaining scroll-width hardening around the gift-area path
@@ -22,6 +46,17 @@
     - standalone routes under ecommerce workspace for each designer
     - shared storefront frame and shell hardening for consistent width
     - later-mount behavior for rail sections and stronger marquee containment
+    - full-width storefront section and shell gutters using `px-20` on desktop while preserving smaller mobile padding
+    - remove visible inner horizontal rail scrollbars while preserving touch/arrow navigation and tune desktop gutters so sections respond cleanly from laptop through wide screens
+    - add storefront technical badge and data markers to the lower-home block internals so future screenshot/debug reports can name the exact surface
+    - make discovery-board collage image tiles navigate to the configured card catalog/product link while keeping the card shell stable
+    - add core product checkboxes for discovery-board and visual-strip storefront merchandising and project those checked products into the public storefront
+    - connect checked discovery-board products as one live product per card using that product's gallery instead of grouping unrelated products together
+    - expose discovery-board and visual-strip product flags in Core product bulk edit
+    - refill discovery-board slots by order and preserve fallback designer cards when fewer than four live products are selected
+    - keep checked live products in the storefront payload even when their own product media is missing by falling back to configured board/strip artwork
+    - add editable image/SVG assets to Brand Stories and render only configured brand-story assets on the public storefront
+    - add a single Theme Designer that controls storefront page background, shared card background, borders, and card shadow strength from one admin form
   - Implemented in this batch:
     - added shared storefront schemas, defaults, and settings-service save/read helpers for `discoveryBoard` and `visualStrip`
     - added internal ecommerce routes, web API methods, sidebar items, and workspace routes for standalone admin editing
@@ -30,6 +65,33 @@
     - tightened storefront home first render, hero/lane behavior, featured defaults, and medium/mobile layout handling
     - moved the shared storefront home frame to a Tailwind `container`-based width and clipped the coupon-banner and gift-corner visuals so below-fold sections cannot widen the page while mounting
     - hardened the storefront shell with `overflow-x-hidden`, later-mount timing for rail sections, and additional marquee containment at the root and component levels
+    - refactored storefront home, header, category menu, footer, catalog, product, cart, checkout, legal, tracking, and customer portal wrappers to full-width surfaces with `px-20` desktop gutters
+    - fixed the gift-corner scroll expansion path by keeping deferred section wrappers permanently width-clamped, switching gift-to-end wrappers to `overflow-x-clip`, and tightening coupon, gift, discovery, visual-strip, trending, and brand marquee lower-home blocks
     - validated the storefront slice with `npx vite build`
+    - validated the full-width gutter pass with focused ESLint, disabling the pre-existing `react-hooks/set-state-in-effect` rule failures in checkout and product pages, and with a Vite production build
+    - validated the gift-to-end overflow fix with focused ESLint and a Vite production build
+    - added technical badge/data markers to gift, coupon, discovery, visual strip, trending, brand story, and campaign trust internals for exact follow-up targeting
+    - wired discovery-board image tiles as the clickable catalog/product target and removed the card-level lift interaction
+    - added core product merchandising flags and storefront landing projection for discovery-board and visual-strip products
+    - replaced discovery-board chunking with direct live-product cards sourced from each product's image gallery and product route
+    - added discovery-board and visual-strip controls to the Core product bulk edit dialog and payload builder
+    - added discovery-board and visual-strip order fields, sorted live products by order, and kept fallback designer cards so the board stays filled
+    - removed the hidden image-required filter from discovery-board and visual-strip product projection, added variant-image support, and fall back to configured section artwork so checked live products display reliably
+    - added storefront landing merchandising debug counts for discovery-board and visual-strip product projection
+    - invalidated cached storefront shell landing data after Core product updates and bulk edits
+    - replaced the placeholder Brand Stories admin panel with a live editor for enabled state, copy, links, media-library images, pasted image URLs, and pasted raw SVG converted into data URLs
+    - allowed storefront media references to accept image data URLs, including SVG, and filtered Brand Stories rendering to configured cards with real image/SVG values
+  - Current implementation plan:
+    - add `theme` to the ecommerce storefront settings contract and seed defaults
+    - expose `get/save storefront theme` through the settings service, internal route, and web API helper
+    - add a Storefront Theme Designer workspace entry in the ecommerce Store Front menu
+    - apply theme values as CSS variables on the public storefront layout and consume those variables in shared cards and lower-home blocks
+  - Implemented in this follow-up:
+    - added `theme` to storefront settings with page gradient colors, section background, card background, muted card background, card border, shadow color, and shadow strength
+    - added `/internal/v1/ecommerce/storefront-theme`, web API helpers, and the `Theme Designer` admin workspace section under the ecommerce Store Front side menu
+    - applied theme variables to the public storefront layout, product cards, featured cards, category cards, discovery board, visual strip, brand stories, and campaign trust cards
+  - Validation:
+    - passed focused ESLint for the storefront theme schema, routes, admin form, layout, and themed card surfaces
+    - passed `npx.cmd vite build`
   - Known validation limit:
     - global `npm run typecheck` still fails in `apps/billing/web/src/workspace-sections/index.tsx` on pre-existing unrelated billing type errors

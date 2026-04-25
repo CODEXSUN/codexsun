@@ -31,6 +31,12 @@ export const ecommerceWorkspaceItems: EcommerceWorkspaceItem[] = [
     summary: "Hero-slider gradients, CTA tone, frame styling, and navigation treatment for the public storefront home page.",
   },
   {
+    id: "theme-designer",
+    name: "Theme Designer",
+    route: "/dashboard/apps/ecommerce/theme-designer",
+    summary: "One-form storefront theme designer for page background, shared card backgrounds, borders, and shadow strength.",
+  },
+  {
     id: "campaign",
     name: "Campaign",
     route: "/dashboard/apps/ecommerce/campaign",

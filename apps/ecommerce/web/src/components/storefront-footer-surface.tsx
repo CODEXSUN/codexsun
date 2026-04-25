@@ -92,10 +92,10 @@ export function StorefrontFooterSurface({
         color: design.bodyTextColor,
       }}
     >
-      <div className="w-full px-5 lg:px-8 xl:px-10">
+      <div className="w-full px-5 lg:px-10 xl:px-16 2xl:px-20">
         <div
           className={`grid grid-cols-1 gap-12 sm:grid-cols-2 lg:gap-8 ${
-            visibleGroups.length > 0 ? "lg:grid-cols-[1.55fr_repeat(4,minmax(0,1fr))]" : "lg:grid-cols-1"
+            visibleGroups.length > 0 ? "xl:grid-cols-[1.55fr_repeat(4,minmax(0,1fr))]" : "lg:grid-cols-1"
           }`}
         >
           <div className="space-y-6 lg:pr-8">
@@ -206,7 +206,7 @@ export function StorefrontFooterSurface({
       </div>
 
       <div className="mt-8 border-t" style={{ borderColor: design.borderColor }}>
-        <div className="flex w-full flex-col items-center justify-between gap-4 px-5 py-4 lg:flex-row lg:px-8 xl:px-10">
+        <div className="flex w-full flex-col items-center justify-between gap-4 px-5 py-4 lg:flex-row lg:px-10 xl:px-16 2xl:px-20">
           <div className="flex items-center gap-4">
             {footer.socialLinks.map((item) => {
               const Icon = getFooterSocialPlatformIcon(item.platform)

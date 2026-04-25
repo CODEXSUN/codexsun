@@ -100,9 +100,28 @@ export function CommerceProductCard({
     : isCompact
       ? "aspect-[4/4.15]"
       : "aspect-[4/4.9]"
-  const contentPaddingClassName = isDense ? "p-4" : isCompact ? "px-4 py-3.5" : "p-5"
-  const contentGapClassName = isDense ? "gap-2.5" : isCompact ? "gap-2.5" : "gap-3"
-  const metaSpacingClassName = isDense ? "space-y-2" : isCompact ? "space-y-2" : "space-y-2.5"
+  const isDenseFeaturedInline = isDense && actionLayout === "featured-inline"
+  const contentPaddingClassName = isDense
+    ? isDenseFeaturedInline
+      ? "px-3.5 pb-3 pt-3"
+      : "p-4"
+    : isCompact
+      ? "px-4 py-3.5"
+      : "p-5"
+  const contentGapClassName = isDense
+    ? isDenseFeaturedInline
+      ? "gap-2"
+      : "gap-2.5"
+    : isCompact
+      ? "gap-2.5"
+      : "gap-3"
+  const metaSpacingClassName = isDense
+    ? isDenseFeaturedInline
+      ? "space-y-1.5"
+      : "space-y-2"
+    : isCompact
+      ? "space-y-2"
+      : "space-y-2.5"
   const priceRowGapClassName = isDense ? "gap-2" : "gap-2.5"
   const primaryButtonLabel = design?.primaryButtonLabel ?? "Buy Now"
   const showActions =
@@ -149,13 +168,13 @@ export function CommerceProductCard({
   return (
     <Card
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border border-[#e9dccd] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,246,239,0.94)_100%)] py-0 shadow-[0_10px_26px_-22px_rgba(48,31,19,0.3)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_46px_-28px_rgba(48,31,19,0.24)]",
+        "group relative flex h-full flex-col overflow-hidden border bg-[var(--storefront-card-bg,#fffaf4)] py-0 [border-color:var(--storefront-card-border,#e9dccd)] [box-shadow:var(--storefront-card-shadow,0_10px_26px_-22px_rgba(48,31,19,0.3))] transition duration-300 hover:-translate-y-1 hover:[box-shadow:var(--storefront-card-shadow-hover,0_20px_46px_-28px_rgba(48,31,19,0.24))]",
         cardRadiusClassName,
         isCompact && !useFeaturedInlineActions && "mx-auto max-w-[21.875rem]",
         className
       )}
     >
-      <div className={cn(isDense ? "p-3 pb-0" : "p-3.5 pb-0", isCompact && "p-2.5 pb-0")}>
+      <div className={cn(isDense ? (isDenseFeaturedInline ? "p-2.5 pb-0" : "p-3 pb-0") : "p-3.5 pb-0", isCompact && "p-2.5 pb-0")}>
         <div className="relative">
           <Link
             to={href}
@@ -260,7 +279,7 @@ export function CommerceProductCard({
         </div>
       </div>
       <CardContent className={cn("flex flex-1 flex-col", contentGapClassName, contentPaddingClassName)}>
-        <div className="flex flex-1 flex-col gap-3">
+        <div className={cn("flex flex-1 flex-col", isDenseFeaturedInline ? "gap-2.5" : "gap-3")}>
           <div className={cn(metaSpacingClassName)}>
             {metaLabel ? (
               <div
@@ -309,7 +328,7 @@ export function CommerceProductCard({
               ) : null}
             </div>
           </div>
-          <div className="flex flex-1 flex-col gap-1.5">
+          <div className={cn("flex flex-1 flex-col", isDenseFeaturedInline ? "gap-1.25" : "gap-1.5")}>
             <div
               className={cn(
                 "flex w-full items-center justify-between",
@@ -350,7 +369,7 @@ export function CommerceProductCard({
             </div>
             {showActions ? (
               useFeaturedInlineActions ? (
-                <div className="mt-auto flex w-full items-center gap-2.5">
+                <div className={cn("mt-auto flex w-full items-center", isDenseFeaturedInline ? "gap-2" : "gap-2.5")}>
                   {design?.showPrimaryAction !== false ? (
                     <Button
                       asChild

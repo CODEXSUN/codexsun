@@ -24,7 +24,7 @@ export function Marquee({
     <div
       {...props}
       className={cn(
-        "group relative isolate flex w-full max-w-full gap-(--gap) overflow-hidden p-2 [--duration:40s] [--gap:1rem] [contain:layout_paint]",
+        "group relative isolate flex w-full max-w-full gap-(--gap) overflow-x-clip overflow-y-visible p-2 [--duration:40s] [--gap:1rem] [contain:layout_paint]",
         vertical ? "flex-col" : "flex-row",
         className
       )}

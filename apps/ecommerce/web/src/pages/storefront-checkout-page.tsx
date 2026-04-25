@@ -1740,7 +1740,7 @@ export function StorefrontCheckoutContent({
         })
 
     const successState = (
-      <div className="mx-auto grid w-full max-w-4xl gap-6 px-4 pt-10 pb-14 sm:px-6 lg:px-8">
+      <div className="grid w-full max-w-none gap-6 px-4 pt-10 pb-14 sm:px-6 lg:px-10 xl:px-16 2xl:px-20">
         <Card className="overflow-hidden rounded-[2.3rem] border border-emerald-200 bg-[linear-gradient(135deg,rgba(236,253,245,0.98),rgba(220,252,231,0.98)_52%,rgba(209,250,229,0.94))] py-0 shadow-[0_28px_70px_-40px_rgba(22,101,52,0.25)]">
           <CardContent className="space-y-6 p-6 sm:p-8">
             <div className="space-y-3">
@@ -1810,7 +1810,7 @@ export function StorefrontCheckoutContent({
 
   if (cart.items.length === 0) {
     const emptyState = (
-      <div className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 pt-8 pb-12 sm:px-6 lg:px-8 2xl:px-10">
+      <div className="grid w-full max-w-none gap-6 px-4 pt-8 pb-12 sm:px-6 lg:px-10 xl:px-16 2xl:px-20">
           <Card className="rounded-[2.1rem] border-[#dfd1c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,242,234,0.86))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
             <CardContent className="space-y-5 p-6 sm:p-8">
               <div className="space-y-3">
@@ -1847,7 +1847,7 @@ export function StorefrontCheckoutContent({
     <>
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top_left,rgba(225,203,178,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.78),transparent_28%),linear-gradient(180deg,rgba(249,245,239,0.72),transparent_70%)]" />
-        <div className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 pt-8 pb-14 sm:px-6 lg:px-8 2xl:px-10">
+        <div className="grid w-full max-w-none gap-6 px-4 pt-8 pb-14 sm:px-6 lg:px-10 xl:px-16 2xl:px-20">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
               Checkout
@@ -1891,7 +1891,7 @@ export function StorefrontCheckoutContent({
             </Alert>
           ) : null}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)] lg:items-start">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)] xl:items-start">
             <section className="space-y-5">
               <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(251,247,242,0.92))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
                 <CardContent className="space-y-5 p-5 sm:p-6">
@@ -2187,7 +2187,7 @@ export function StorefrontCheckoutContent({
               </Card>
             </section>
 
-            <aside className="lg:sticky lg:top-24">
+            <aside className="xl:sticky xl:top-24">
               <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,246,240,0.94))] py-0 shadow-[0_28px_70px_-46px_rgba(48,31,19,0.2)]">
                 <CardContent className="space-y-5 p-5 sm:p-6">
                   <div className="space-y-2">
@@ -2370,7 +2370,7 @@ export function StorefrontCheckoutContent({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          <div className="space-y-5 overflow-y-auto px-4 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] sm:px-6 sm:pb-6 [&::-webkit-scrollbar]:hidden">
             {addressDialogError ? (
               <div className="flex items-start gap-3 rounded-[1.25rem] border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-950">
                 <CircleAlert className="mt-0.5 size-4 shrink-0" />

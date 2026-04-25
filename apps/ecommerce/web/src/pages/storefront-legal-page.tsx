@@ -54,7 +54,7 @@ export function StorefrontLegalPage({ pageId }: StorefrontLegalPageProps) {
 
   return (
     <StorefrontLayout showCategoryMenu={false}>
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-5 pt-8 lg:px-8">
+      <div className="grid w-full max-w-none gap-6 px-5 pt-8 lg:px-10 xl:px-16 2xl:px-20">
         <section className="space-y-4">
           <Button asChild variant="outline" className="w-fit rounded-full">
             <Link to={storefrontPaths.catalog()}>
@@ -110,7 +110,7 @@ export function StorefrontLegalPage({ pageId }: StorefrontLegalPageProps) {
         ) : null}
 
         {page ? (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
             <div className="space-y-4">
               {page.supportLabel ? (
                 <Card className="rounded-[1.8rem] border-[#e7d8ca] bg-[linear-gradient(180deg,#fffdf9,#fbf6f0)] py-0 shadow-sm">
@@ -174,7 +174,7 @@ export function StorefrontLegalPage({ pageId }: StorefrontLegalPageProps) {
               ) : null}
             </div>
 
-            <div className="space-y-4 lg:sticky lg:top-28">
+            <div className="space-y-4 xl:sticky xl:top-28">
               <Card className="rounded-[1.8rem] border-[#e7d8ca] bg-[linear-gradient(180deg,#fffdf9,#fbf6f0)] py-0 shadow-sm">
                 <CardContent className="space-y-4 p-5">
                   <div className="space-y-1">

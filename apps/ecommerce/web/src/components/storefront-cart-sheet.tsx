@@ -44,7 +44,7 @@ export function StorefrontCartSheet() {
           </SheetDescription>
         </SheetHeader>
         <div className="flex h-full flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {cart.items.length === 0 ? (
               <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
                 Your cart is empty. Add a few products from the catalog to start checkout.

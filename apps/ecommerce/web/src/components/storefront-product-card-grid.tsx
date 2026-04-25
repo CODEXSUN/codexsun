@@ -29,6 +29,7 @@ export function StorefrontProductCardGrid({
   rowsToShow = 1,
   className,
   cardClassName,
+  imageAspectClassName,
   densityOverride,
   isWishlisted,
   onToggleWishlist,
@@ -39,6 +40,7 @@ export function StorefrontProductCardGrid({
   rowsToShow?: StorefrontProductLaneRowsToShow
   className?: string
   cardClassName?: string
+  imageAspectClassName?: string
   densityOverride?: "default" | "compact" | "dense"
   isWishlisted?: (productId: string) => boolean
   onToggleWishlist?: (item: StorefrontProductCardType) => void
@@ -55,6 +57,7 @@ export function StorefrontProductCardGrid({
           item={item}
           href={storefrontPaths.product(item.slug)}
           density={density}
+          imageAspectClassName={imageAspectClassName}
           className={cn("h-full", cardClassName)}
           isWishlisted={isWishlisted?.(item.id) ?? false}
           onToggleWishlist={onToggleWishlist ? () => onToggleWishlist(item) : undefined}

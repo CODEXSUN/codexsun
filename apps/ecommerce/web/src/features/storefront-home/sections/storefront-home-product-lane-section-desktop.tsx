@@ -27,11 +27,10 @@ export function StorefrontHomeProductLaneSectionDesktop({
   const isNewArrivalsLane = technicalName === "section.storefront.home.new-arrivals"
   const isBestSellersLane = technicalName === "section.storefront.home.best-sellers"
   const useTightLaneCards = isNewArrivalsLane || isBestSellersLane
-  const laneCardClassName = isNewArrivalsLane
-    ? "min-h-[38.75rem]"
-    : isBestSellersLane
-      ? "min-h-[40.625rem]"
-      : undefined
+  const laneCardClassName = useTightLaneCards ? "min-h-0" : undefined
+  const laneImageAspectClassName = useTightLaneCards
+    ? "aspect-[4/4.9] bg-[linear-gradient(135deg,#eedecb,#faf2e8)]"
+    : undefined
   const performanceRule =
     isNewArrivalsLane
       ? storefrontHomepageSectionPerformance.newArrivals
@@ -60,6 +59,7 @@ export function StorefrontHomeProductLaneSectionDesktop({
           rowsToShow={lane.rowsToShow ?? 1}
           densityOverride={useTightLaneCards ? "dense" : undefined}
           cardClassName={laneCardClassName}
+          imageAspectClassName={laneImageAspectClassName}
           isWishlisted={isWishlisted}
           onToggleWishlist={(item) => void onToggleWishlist(item)}
           onAddToCart={onAddToCart}

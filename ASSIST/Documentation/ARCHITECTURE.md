@@ -472,8 +472,9 @@ Current helper surface:
 3. built server-side GitHub helper: `npm run github:server`
 4. built non-interactive GitHub helper: `npm run github:server:now`
 5. database prepare command: `npm run db:prepare`
-6. database migrate command: `npm run db:migrate`
-7. database seed command: `npm run db:seed`
+6. database fresh command: `npm run db:fresh`
+7. database migrate command: `npm run db:migrate`
+8. database seed command: `npm run db:seed`
 
 ## Runtime Model
 

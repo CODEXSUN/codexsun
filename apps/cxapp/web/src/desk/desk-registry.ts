@@ -474,6 +474,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       overview: LayoutDashboard,
       storefront: MonitorSmartphone,
       "home-slider": Sparkles,
+      "theme-designer": Palette,
       campaign: Flag,
       footer: Blocks,
       "menu-editor": LayoutTemplate,
@@ -817,6 +818,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   [
                     `/dashboard/apps/${app.id}/storefront`,
                     `/dashboard/apps/${app.id}/home-slider`,
+                    `/dashboard/apps/${app.id}/theme-designer`,
                     `/dashboard/apps/${app.id}/campaign`,
                     `/dashboard/apps/${app.id}/footer`,
                     `/dashboard/apps/${app.id}/menu-editor`,
@@ -1574,6 +1576,7 @@ export function resolveDeskLocation(
   const isAppRoot = pathname === app.route || pathname === `${app.route}/`
   const designerRoutes = new Set([
     "/dashboard/apps/ecommerce/home-slider",
+    "/dashboard/apps/ecommerce/theme-designer",
       "/dashboard/apps/ecommerce/campaign",
       "/dashboard/apps/ecommerce/footer",
       "/dashboard/apps/ecommerce/menu-editor",

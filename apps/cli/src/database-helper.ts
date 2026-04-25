@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url"
 import { getServerConfig } from "../../framework/src/runtime/config/index.js"
 import {
   createRuntimeDatabases,
+  freshApplicationDatabase,
   listRegisteredDatabaseMigrations,
   listRegisteredDatabaseSeeders,
   prepareApplicationDatabase,
@@ -10,11 +11,12 @@ import {
   runDatabaseSeeders,
 } from "../../framework/src/runtime/database/index.js"
 
-type DatabaseCommand = "migrate" | "prepare" | "seed" | "status"
+type DatabaseCommand = "fresh" | "migrate" | "prepare" | "seed" | "status"
 
 function resolveCommand(value: string | undefined): DatabaseCommand | null {
   switch (value) {
     case undefined:
+    case "fresh":
     case "prepare":
     case "migrate":
     case "seed":
@@ -26,7 +28,13 @@ function resolveCommand(value: string | undefined): DatabaseCommand | null {
 }
 
 function printUsage() {
-  console.info("Usage: tsx apps/cli/src/database-helper.ts [prepare|migrate|seed|status]")
+  console.info(
+    "Usage: tsx apps/cli/src/database-helper.ts [prepare|migrate|seed|status|fresh] [--yes]"
+  )
+}
+
+function hasFreshConfirmation(args: string[]) {
+  return args.includes("--yes")
 }
 
 export async function runDatabaseHelper(
@@ -34,9 +42,18 @@ export async function runDatabaseHelper(
   args = process.argv.slice(2)
 ) {
   const command = resolveCommand(args[0])
+  const extraArgs = args.slice(1)
 
   if (!command) {
     printUsage()
+    process.exitCode = 1
+    return
+  }
+
+  if (command === "fresh" && !hasFreshConfirmation(extraArgs)) {
+    console.error(
+      "Refusing db:fresh without confirmation. Re-run with --yes or use npm run db:fresh."
+    )
     process.exitCode = 1
     return
   }
@@ -74,6 +91,19 @@ export async function runDatabaseHelper(
 
       console.info(
         `Seeders applied: ${result.applied.length}, skipped: ${result.skipped.length}. Migrations applied first: ${migrationResult.applied.length}`
+      )
+      return
+    }
+
+    if (command === "fresh") {
+      const result = await freshApplicationDatabase(databases, {
+        driver: config.database.driver,
+        databaseName: config.database.name,
+        logger: console,
+      })
+
+      console.info(
+        `Database refreshed. Dropped tables: ${result.dropped.tables}, dropped views: ${result.dropped.views}, migrations applied: ${result.migrations.applied.length}, seeders applied: ${result.seeders.applied.length}`
       )
       return
     }

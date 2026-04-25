@@ -120,7 +120,7 @@ export function StorefrontProductSpecifications({
             </div>
           </DrawerHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="sticky top-0 z-10 border-b border-[#eadfd4] bg-[#fffdfa] px-5 py-3">
               <div className="flex flex-wrap gap-2">
                 {groups.map((group) => (

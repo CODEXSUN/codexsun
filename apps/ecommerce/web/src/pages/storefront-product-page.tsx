@@ -85,7 +85,7 @@ export function StorefrontProductPage() {
 
   return (
     <StorefrontLayout showCategoryMenu={false}>
-      <div className="mx-auto grid w-full max-w-[96rem] gap-8 px-5 pt-8 lg:px-8 2xl:px-10">
+      <div className="grid w-full max-w-none gap-8 px-5 pt-8 lg:px-10 xl:px-16 2xl:px-20">
         {error ? (
           <Card className="border-destructive/20 bg-destructive/5">
             <CardContent className="p-6 text-sm text-destructive">
@@ -98,9 +98,9 @@ export function StorefrontProductPage() {
             <section
               id="product-detail"
               ref={detailSectionRef}
-              className="grid gap-6 lg:grid-cols-[minmax(0,0.94fr)_minmax(340px,0.82fr)] lg:items-start"
+              className="grid gap-6 xl:grid-cols-[minmax(0,0.94fr)_minmax(340px,0.82fr)] xl:items-start"
             >
-              <div className="lg:sticky lg:top-24">
+              <div className="xl:sticky xl:top-24">
                 <Card className="rounded-[2rem] border-[#e2d4c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(251,247,242,0.94))] py-0 shadow-[0_24px_60px_-44px_rgba(48,31,19,0.18)]">
                   <CardContent className="space-y-4 p-4 sm:p-5">
                     <div className="mx-auto max-w-[44rem] overflow-hidden rounded-[1.75rem] border border-[#e4d6c7] bg-[linear-gradient(180deg,#f7efe6,#fbf7f2)] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
@@ -296,7 +296,7 @@ export function StorefrontProductPage() {
                   <Link to={storefrontPaths.catalog()}>Back to catalog</Link>
                 </Button>
               </div>
-              <div className="grid gap-5 lg:grid-cols-3">
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {data.relatedItems.map((item) => (
                   <StorefrontProductCard
                     key={item.id}

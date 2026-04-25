@@ -34,7 +34,7 @@ export function CategoryCardSurface({
   const categoryNavigationState = { focus: "top" as const }
 
   return (
-    <Card className="min-w-0 overflow-hidden rounded-[1.8rem] border-[#e3d5c6] py-0 shadow-[0_22px_50px_-40px_rgba(48,31,19,0.24)]">
+    <Card className="min-w-0 overflow-hidden rounded-[1.8rem] border bg-[var(--storefront-card-bg,#ffffff)] py-0 [border-color:var(--storefront-card-border,#e3d5c6)] [box-shadow:var(--storefront-card-shadow,0_22px_50px_-40px_rgba(48,31,19,0.24))]">
       <CardContent className="space-y-4 p-0">
         <div className="aspect-[16/10] bg-[linear-gradient(135deg,#f1e6da,#fbf7f1)]">
           {item.imageUrl ? (

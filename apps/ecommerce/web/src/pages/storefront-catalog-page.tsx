@@ -54,7 +54,7 @@ export function StorefrontCatalogPage() {
 
   return (
     <StorefrontLayout>
-      <div className="mx-auto grid w-full max-w-[96rem] gap-8 px-5 pt-8 lg:px-8 2xl:px-10">
+      <div className="grid w-full max-w-none gap-8 px-5 pt-8 lg:px-10 xl:px-16 2xl:px-20">
         {showSearchSection ? (
           <>
             <section className="space-y-4">
@@ -77,7 +77,7 @@ export function StorefrontCatalogPage() {
                   departmentLabel={data?.settings.search.departmentLabel}
                   departments={data?.settings.search.departments}
                 />
-                <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]">
                   <Select
                     value={searchParams.get("category") ?? "__all__"}
                     onValueChange={(value) => {
@@ -209,7 +209,7 @@ export function StorefrontCatalogPage() {
             {isFetching ? (
               <div className="text-sm text-muted-foreground">Refreshing catalog…</div>
             ) : null}
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {(data?.items ?? []).map((item) => (
                 <StorefrontProductCard
                   key={item.id}

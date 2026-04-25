@@ -2,6 +2,7 @@ import { BadgePercent, Copy, TicketPercent } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -33,9 +34,29 @@ function hasContent(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0
 }
 
+function formatHelperText(helperText: string) {
+  const normalized = helperText
+    .replace(/\s+/g, " ")
+    .replace(/^use\b/i, "Apply")
+    .replace(/\bthis coupon code\b/i, "code")
+    .replace(/\bpromo code\b/i, "code")
+    .replace(/[.!,;:\s]+$/g, "")
+    .trim()
+
+  if (normalized.length <= 54) {
+    return normalized
+  }
+
+  const firstClause = normalized.split(/[.,;:]/)[0]?.trim() ?? normalized
+  if (firstClause.length >= 18 && firstClause.length <= 54) {
+    return firstClause
+  }
+
+  return `${normalized.slice(0, 51).trimEnd()}...`
+}
+
 export function CouponBanner({ className, config }: CouponBannerProps) {
   const [copied, setCopied] = useState(false)
-  const storefrontSurface = "#f7f3ee"
 
   if (
     config.enabled === false ||
@@ -58,29 +79,21 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
 
   return (
     <section
+      data-technical-name="block.storefront.home.coupon-banner"
       className={cn(
-        "relative isolate min-w-0 w-full max-w-full overflow-hidden px-6 py-6 shadow-[0_32px_70px_-42px_rgba(31,24,19,0.44)] lg:px-8 lg:py-7",
+        "relative isolate min-w-0 w-full max-w-full overflow-hidden px-5 py-4 shadow-[0_28px_60px_-42px_rgba(31,24,19,0.4)] sm:px-6 lg:px-7 lg:py-5",
         className
       )}
       style={{
         backgroundColor: config.backgroundColor,
       }}
     >
+      <TechnicalNameBadge
+        alwaysVisible
+        name="block.storefront.home.coupon-banner"
+        className="absolute right-3 top-3 z-30 max-w-[calc(100%-1.5rem)]"
+      />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {["top-[12%]", "top-[30%]", "top-[48%]", "top-[66%]", "top-[84%]"].map((position) => (
-          <div
-            key={`left-${position}`}
-            className={`absolute left-4 ${position} z-20 hidden size-6 -translate-y-1/2 rounded-full lg:block`}
-            style={{ backgroundColor: storefrontSurface }}
-          />
-        ))}
-        {["top-[12%]", "top-[30%]", "top-[48%]", "top-[66%]", "top-[84%]"].map((position) => (
-          <div
-            key={`right-${position}`}
-            className={`absolute right-4 ${position} z-20 hidden size-6 -translate-y-1/2 rounded-full lg:block`}
-            style={{ backgroundColor: storefrontSurface }}
-          />
-        ))}
         <div
           className="absolute inset-y-5 right-[18.25rem] hidden w-px lg:block"
           style={{
@@ -112,11 +125,17 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
           style={{ backgroundColor: `${config.accentColor}18` }}
         />
       </div>
-      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.18fr)_18rem] lg:items-center">
-        <div className="space-y-4 lg:pr-8">
-          <div className="flex items-center gap-3">
+      <div
+        data-technical-name="block.storefront.home.coupon-banner.layout"
+        className="relative grid min-w-0 max-w-full gap-4 xl:grid-cols-[minmax(0,1.15fr)_17rem] xl:items-center"
+      >
+        <div
+          data-technical-name="block.storefront.home.coupon-banner.copy"
+          className="min-w-0 space-y-3 xl:pr-6"
+        >
+          <div className="flex items-center gap-2.5">
             <div
-              className="flex size-11 items-center justify-center rounded-[1.15rem] border"
+              className="flex size-10 items-center justify-center rounded-[1rem] border"
               style={{ backgroundColor: `${config.accentColor}18`, color: config.accentColor }}
             >
               <TicketPercent className="size-5" />
@@ -131,38 +150,42 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
             ) : null}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <h2
-              className="max-w-3xl font-heading text-2xl font-semibold tracking-tight lg:text-[2.15rem] lg:leading-[1.05]"
+              className="max-w-3xl font-heading text-[1.7rem] font-semibold tracking-tight leading-[1.05] lg:text-[1.95rem]"
               style={{ color: config.titleColor }}
             >
               {config.title}
             </h2>
-            <p className="max-w-3xl text-sm leading-7 lg:text-[0.95rem]" style={{ color: config.summaryColor }}>
+            <p className="max-w-3xl text-sm leading-6 lg:text-[0.92rem]" style={{ color: config.summaryColor }}>
               {config.summary}
             </p>
           </div>
 
           {hasContent(config.helperText) ? (
             <div
-              className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.75rem] font-medium tracking-[0.08em]"
               style={{
                 color: config.summaryColor,
                 borderColor: `${config.borderColor}99`,
                 backgroundColor: `${config.accentColor}10`,
               }}
             >
-              <BadgePercent className="size-4" style={{ color: config.accentColor }} />
-              <span>{config.helperText}</span>
+              <BadgePercent className="size-3.5" style={{ color: config.accentColor }} />
+              <span>{formatHelperText(config.helperText)}</span>
             </div>
           ) : null}
         </div>
 
-        <div className="flex flex-col items-stretch gap-3 lg:items-stretch">
+        <div
+          data-technical-name="block.storefront.home.coupon-banner.actions"
+          className="flex flex-col items-stretch gap-2.5 lg:items-stretch"
+        >
           <button
             type="button"
+            data-technical-name="block.storefront.home.coupon-banner.code"
             onClick={() => void handleCopyCode()}
-            className="group relative flex w-full flex-col items-start gap-3 overflow-hidden rounded-[1.6rem] border px-4 py-4 text-left transition-transform hover:-translate-y-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+            className="group relative flex w-full flex-col items-start gap-2.5 overflow-hidden rounded-[1.35rem] border px-4 py-3 text-left transition-transform hover:-translate-y-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             style={{
               backgroundColor: config.codeBackgroundColor,
               borderColor: `${config.codeTextColor}22`,
@@ -177,7 +200,7 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] opacity-70">
                 Coupon code
               </p>
-              <p className="mt-1 text-xl font-semibold tracking-[0.24em]">
+              <p className="mt-0.5 text-[1.05rem] font-semibold tracking-[0.22em]">
                 {config.couponCode}
               </p>
             </div>
@@ -190,7 +213,7 @@ export function CouponBanner({ className, config }: CouponBannerProps) {
           {hasContent(config.buttonLabel) && hasContent(config.buttonHref) ? (
             <Button
               asChild
-              className="h-12 w-full rounded-full border px-6 shadow-[0_18px_34px_-20px_rgba(31,24,19,0.48)] transition-transform duration-300 hover:-translate-y-0.5 sm:w-auto"
+              className="h-10 w-full rounded-full border px-5 shadow-[0_16px_30px_-20px_rgba(31,24,19,0.44)] transition-transform duration-300 hover:-translate-y-0.5 sm:w-auto"
               style={{
                 backgroundColor: config.buttonBackgroundColor,
                 color: config.buttonTextColor,

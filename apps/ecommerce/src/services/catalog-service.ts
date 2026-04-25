@@ -469,6 +469,39 @@ function listStorefrontBrands(products: Product[]): StorefrontBrandDiscoveryCard
     )
 }
 
+function resolveStorefrontProductHref(product: Product) {
+  return `/shop/product/${encodeURIComponent(product.slug)}`
+}
+
+function resolveStorefrontProductImage(product: Product) {
+  return (
+    product.primaryImageUrl ??
+    product.images.find((image) => image.isActive)?.imageUrl ??
+    product.variants
+      .flatMap((variant) => variant.images)
+      .find((image) => image.isActive)?.imageUrl ??
+    null
+  )
+}
+
+function resolveStorefrontProductPlacementOrder(
+  product: Product,
+  key: "discoveryBoardOrder" | "visualStripOrder"
+) {
+  return product.storefront?.[key] ?? product[key] ?? 0
+}
+
+function isValidDiscoveryBoardSlot(order: number) {
+  return Number.isInteger(order) && order >= 1 && order <= 8
+}
+
+function isStorefrontProductPlacementEnabled(
+  product: Product,
+  key: "discoveryBoardEnabled" | "visualStripEnabled"
+) {
+  return Boolean(product.storefront?.[key] || product[key])
+}
+
 export async function getStorefrontLanding(database: Kysely<unknown>) {
   const settings = await getStorefrontSettings(database)
   const products = await readProjectedStorefrontProducts(database)
@@ -508,9 +541,104 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
   const bestSellers = items.filter((item) => item.isBestSeller).slice(0, bestSellerItemCount)
   const categories = await listStorefrontCategories(database, items)
   const brands = listStorefrontBrands(products)
+  const discoveryBoardProducts = products
+    .filter((product) =>
+      product.isActive &&
+      isStorefrontProductPlacementEnabled(product, "discoveryBoardEnabled") &&
+      Boolean(resolveStorefrontProductImage(product)) &&
+      isValidDiscoveryBoardSlot(
+        resolveStorefrontProductPlacementOrder(product, "discoveryBoardOrder")
+      )
+    )
+    .sort(
+      (left, right) =>
+        resolveStorefrontProductPlacementOrder(left, "discoveryBoardOrder") -
+          resolveStorefrontProductPlacementOrder(right, "discoveryBoardOrder") ||
+        left.name.localeCompare(right.name)
+    )
+  const visualStripProducts = products
+    .filter((product) =>
+      product.isActive &&
+      isStorefrontProductPlacementEnabled(product, "visualStripEnabled") &&
+      Boolean(resolveStorefrontProductImage(product))
+    )
+    .sort(
+      (left, right) =>
+        resolveStorefrontProductPlacementOrder(left, "visualStripOrder") -
+          resolveStorefrontProductPlacementOrder(right, "visualStripOrder") ||
+        left.name.localeCompare(right.name)
+    )
+  const discoveryBoardSlots = Array.from({ length: 8 }, () => null as null | {
+    title: string
+    href: string
+    imageUrl: string
+  })
+
+  for (const product of discoveryBoardProducts) {
+    const slotIndex = resolveStorefrontProductPlacementOrder(product, "discoveryBoardOrder") - 1
+
+    if (slotIndex < 0 || slotIndex >= discoveryBoardSlots.length || discoveryBoardSlots[slotIndex]) {
+      continue
+    }
+
+    const imageUrl = resolveStorefrontProductImage(product)
+    if (!imageUrl) {
+      continue
+    }
+
+    discoveryBoardSlots[slotIndex] = {
+      title: product.name,
+      href: resolveStorefrontProductHref(product),
+      imageUrl,
+    }
+  }
+
+  const highestUsedDiscoverySlotIndex = discoveryBoardSlots.reduce(
+    (highestIndex, slot, index) => (slot ? index : highestIndex),
+    -1
+  )
+  const discoveryBoardCardCount =
+    highestUsedDiscoverySlotIndex >= 4 ? 2 : highestUsedDiscoverySlotIndex >= 0 ? 1 : 0
+  const liveDiscoveryCards = Array.from({ length: discoveryBoardCardCount }, (_, cardIndex) => {
+    const slotOffset = cardIndex * 4
+    const cardSlots = discoveryBoardSlots.slice(slotOffset, slotOffset + 4)
+
+    return {
+      id: `discovery-board:card:${cardIndex + 1}`,
+      title: `Discovery board ${cardIndex + 1}`,
+      href: null,
+      images: cardSlots.map((slot) => slot?.imageUrl ?? null),
+      imageLinks: cardSlots.map((slot) => slot?.href ?? null),
+      imageTitles: cardSlots.map((slot) => slot?.title ?? null),
+    }
+  })
+  const derivedDiscoveryBoard = {
+    ...settings.discoveryBoard,
+    enabled: liveDiscoveryCards.length > 0,
+    cards: liveDiscoveryCards.length > 0 ? liveDiscoveryCards : settings.discoveryBoard.cards,
+  }
+  const liveVisualStripCards = visualStripProducts.map((product) => ({
+    id: `visual-strip:product:${product.id}`,
+    label: product.name,
+    href: resolveStorefrontProductHref(product),
+    imageUrl: resolveStorefrontProductImage(product) ?? "",
+  }))
+  const derivedVisualStrip = {
+    ...settings.visualStrip,
+    enabled: liveVisualStripCards.length > 0,
+    cards: liveVisualStripCards.length > 0 ? liveVisualStripCards : settings.visualStrip.cards,
+  }
 
   return storefrontLandingResponseSchema.parse({
-    settings,
+    settings: {
+      ...settings,
+      discoveryBoard: derivedDiscoveryBoard,
+      visualStrip: derivedVisualStrip,
+    },
+    merchandisingDebug: {
+      discoveryBoardProductCount: discoveryBoardProducts.length,
+      visualStripProductCount: visualStripProducts.length,
+    },
     featured:
       homeSliderItems.length > 0
         ? [

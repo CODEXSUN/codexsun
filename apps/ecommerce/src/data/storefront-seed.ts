@@ -125,6 +125,17 @@ export const defaultStorefrontSettings = storefrontSettingsSchema.parse({
       },
     ],
   },
+  theme: {
+    pageBackgroundFrom: "#f7f1ea",
+    pageBackgroundVia: "#f3ede6",
+    pageBackgroundTo: "#f7f3ee",
+    sectionBackgroundColor: "#f7f1ea",
+    cardBackgroundColor: "#fffaf4",
+    cardMutedBackgroundColor: "#f5efe7",
+    cardBorderColor: "#e4d8ca",
+    cardShadowColor: "#2a1f18",
+    cardShadowStrength: "soft",
+  },
   search: {
     catalogIntro: {
       eyebrow: "Catalog",

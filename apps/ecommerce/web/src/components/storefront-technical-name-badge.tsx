@@ -10,6 +10,7 @@ export function StorefrontTechnicalNameBadge({
 }) {
   return (
     <TechnicalNameBadge
+      alwaysVisible
       name={name}
       className={cn("absolute right-4 top-4 z-[70] max-w-[calc(100%-2rem)]", className)}
     />
@@ -37,7 +38,7 @@ export function StorefrontTechnicalNameBadgeRow({
       )}
     >
       {uniqueNames.map((name) => (
-        <TechnicalNameBadge key={name} name={name} />
+        <TechnicalNameBadge key={name} alwaysVisible name={name} />
       ))}
     </div>
   )

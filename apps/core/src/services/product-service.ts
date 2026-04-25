@@ -179,6 +179,10 @@ function toProductUpsertPayload(product: Product): ProductUpsertPayload {
     homeSliderEnabled: product.homeSliderEnabled,
     promoSliderEnabled: product.promoSliderEnabled,
     featureSectionEnabled: product.featureSectionEnabled,
+    discoveryBoardEnabled: product.discoveryBoardEnabled,
+    discoveryBoardOrder: product.storefront?.discoveryBoardOrder ?? 0,
+    visualStripEnabled: product.visualStripEnabled,
+    visualStripOrder: product.storefront?.visualStripOrder ?? 0,
     isNewArrival: product.isNewArrival,
     isBestSeller: product.isBestSeller,
     isFeaturedLabel: product.isFeaturedLabel,
@@ -289,6 +293,10 @@ function toProductUpsertPayload(product: Product): ProductUpsertPayload {
           promoSliderEnabled: product.storefront.promoSliderEnabled,
           promoSliderOrder: product.storefront.promoSliderOrder,
           featureSectionEnabled: product.storefront.featureSectionEnabled,
+          discoveryBoardEnabled: product.storefront.discoveryBoardEnabled,
+          discoveryBoardOrder: product.storefront.discoveryBoardOrder,
+          visualStripEnabled: product.storefront.visualStripEnabled,
+          visualStripOrder: product.storefront.visualStripOrder,
           featureSectionOrder: product.storefront.featureSectionOrder,
           isNewArrival: product.storefront.isNewArrival,
           isBestSeller: product.storefront.isBestSeller,
@@ -333,6 +341,10 @@ function ensureStorefrontRecord(product: Product, timestamp: string): ProductSto
       promoSliderEnabled: product.promoSliderEnabled,
       promoSliderOrder: 0,
       featureSectionEnabled: product.featureSectionEnabled,
+      discoveryBoardEnabled: product.discoveryBoardEnabled,
+      discoveryBoardOrder: product.storefront?.discoveryBoardOrder ?? 0,
+      visualStripEnabled: product.visualStripEnabled,
+      visualStripOrder: product.storefront?.visualStripOrder ?? 0,
       featureSectionOrder: 0,
       isNewArrival: product.isNewArrival,
       isBestSeller: product.isBestSeller,
@@ -365,6 +377,10 @@ function applyBulkProductChanges(product: Product, payload: ProductBulkEditPaylo
     payload.promoSliderEnabled !== undefined ||
     payload.promoSliderOrder !== undefined ||
     payload.featureSectionEnabled !== undefined ||
+    payload.discoveryBoardEnabled !== undefined ||
+    payload.discoveryBoardOrder !== undefined ||
+    payload.visualStripEnabled !== undefined ||
+    payload.visualStripOrder !== undefined ||
     payload.featureSectionOrder !== undefined ||
     payload.isNewArrival !== undefined ||
     payload.isBestSeller !== undefined ||
@@ -414,6 +430,24 @@ function applyBulkProductChanges(product: Product, payload: ProductBulkEditPaylo
     storefront.featureSectionEnabled = payload.featureSectionEnabled
   }
 
+  if (payload.discoveryBoardEnabled !== undefined && storefront) {
+    product.discoveryBoardEnabled = payload.discoveryBoardEnabled
+    storefront.discoveryBoardEnabled = payload.discoveryBoardEnabled
+  }
+
+  if (payload.discoveryBoardOrder !== undefined && storefront) {
+    storefront.discoveryBoardOrder = payload.discoveryBoardOrder
+  }
+
+  if (payload.visualStripEnabled !== undefined && storefront) {
+    product.visualStripEnabled = payload.visualStripEnabled
+    storefront.visualStripEnabled = payload.visualStripEnabled
+  }
+
+  if (payload.visualStripOrder !== undefined && storefront) {
+    storefront.visualStripOrder = payload.visualStripOrder
+  }
+
   if (payload.featureSectionOrder !== undefined && storefront) {
     storefront.featureSectionOrder = payload.featureSectionOrder
   }
@@ -458,6 +492,10 @@ function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
         promoSliderEnabled: payload.storefront.promoSliderEnabled,
         promoSliderOrder: payload.storefront.promoSliderOrder,
         featureSectionEnabled: payload.storefront.featureSectionEnabled,
+        discoveryBoardEnabled: payload.storefront.discoveryBoardEnabled,
+        discoveryBoardOrder: payload.storefront.discoveryBoardOrder,
+        visualStripEnabled: payload.storefront.visualStripEnabled,
+        visualStripOrder: payload.storefront.visualStripOrder,
         featureSectionOrder: payload.storefront.featureSectionOrder,
         isNewArrival: payload.storefront.isNewArrival,
         isBestSeller: payload.storefront.isBestSeller,
@@ -636,6 +674,11 @@ function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
     promoSliderEnabled: storefront?.promoSliderEnabled ?? payload.promoSliderEnabled,
     featureSectionEnabled:
       storefront?.featureSectionEnabled ?? payload.featureSectionEnabled,
+    discoveryBoardEnabled:
+      storefront?.discoveryBoardEnabled ?? payload.discoveryBoardEnabled,
+    discoveryBoardOrder: storefront?.discoveryBoardOrder ?? payload.discoveryBoardOrder,
+    visualStripEnabled: storefront?.visualStripEnabled ?? payload.visualStripEnabled,
+    visualStripOrder: storefront?.visualStripOrder ?? payload.visualStripOrder,
     isNewArrival: storefront?.isNewArrival ?? payload.isNewArrival,
     isBestSeller: storefront?.isBestSeller ?? payload.isBestSeller,
     isFeaturedLabel: storefront?.isFeaturedLabel ?? payload.isFeaturedLabel,

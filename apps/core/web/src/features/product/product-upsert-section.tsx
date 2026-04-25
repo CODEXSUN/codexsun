@@ -11,6 +11,7 @@ import type {
 } from "@core/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
+import { invalidateStorefrontShellData } from "@ecommerce/web/src/hooks/use-storefront-shell-data"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -1763,6 +1764,70 @@ export function ProductUpsertSection({
                   }
                 />
                 <ProductCheckboxField
+                  checked={form.discoveryBoardEnabled}
+                  label="Discovery board"
+                  onCheckedChange={(checked) =>
+                    setForm((current) => ({
+                      ...current,
+                      discoveryBoardEnabled: checked,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        discoveryBoardEnabled: checked,
+                      },
+                    }))
+                  }
+                />
+                <ProductField label="Discovery board order">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="1"
+                    max="8"
+                    value={form.storefront?.discoveryBoardOrder ?? 0}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        discoveryBoardOrder: Number(event.target.value || 0),
+                        storefront: {
+                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                          discoveryBoardOrder: Number(event.target.value || 0),
+                        },
+                      }))
+                    }
+                  />
+                </ProductField>
+                <ProductCheckboxField
+                  checked={form.visualStripEnabled}
+                  label="Visual strip"
+                  onCheckedChange={(checked) =>
+                    setForm((current) => ({
+                      ...current,
+                      visualStripEnabled: checked,
+                      storefront: {
+                        ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                        visualStripEnabled: checked,
+                      },
+                    }))
+                  }
+                />
+                <ProductField label="Visual strip order">
+                  <Input
+                    type="number"
+                    step="1"
+                    value={form.storefront?.visualStripOrder ?? 0}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        visualStripOrder: Number(event.target.value || 0),
+                        storefront: {
+                          ...(current.storefront ?? createDefaultProductFormValues().storefront!),
+                          visualStripOrder: Number(event.target.value || 0),
+                        },
+                      }))
+                    }
+                  />
+                </ProductField>
+                <ProductCheckboxField
                   checked={form.homeSliderEnabled}
                   label="Home slider"
                   onCheckedChange={(checked) =>
@@ -2195,6 +2260,7 @@ export function ProductUpsertSection({
           body: JSON.stringify(payload),
         })
       }
+      invalidateStorefrontShellData()
       void navigate(routeBase)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Failed to save product.")

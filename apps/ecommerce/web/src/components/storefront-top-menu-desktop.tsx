@@ -75,7 +75,7 @@ export function StorefrontTopMenuDesktop({ isScrolled }: StorefrontTopMenuProps)
         className="right-5 top-3"
       />
       <div
-        className={`hidden w-full min-w-0 px-4 transition-all duration-300 sm:px-6 lg:grid lg:grid-cols-[minmax(180px,0.92fr)_minmax(280px,1.08fr)_auto] lg:items-center lg:gap-3 lg:px-6 xl:grid-cols-[minmax(240px,1fr)_minmax(420px,820px)_auto] xl:gap-5 xl:px-10 ${
+        className={`hidden w-full min-w-0 px-4 transition-all duration-300 sm:px-6 lg:grid lg:grid-cols-[minmax(180px,0.92fr)_minmax(260px,1.08fr)_auto] lg:items-center lg:gap-3 lg:px-10 xl:grid-cols-[minmax(220px,1fr)_minmax(360px,820px)_auto] xl:gap-5 xl:px-16 2xl:px-20 ${
           isScrolled ? "py-1.5" : "py-2.5"
         }`}
       >

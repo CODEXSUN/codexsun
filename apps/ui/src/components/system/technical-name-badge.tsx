@@ -4,15 +4,17 @@ import { useTechnicalNameOverlay } from "@/components/system/technical-name-over
 import { cn } from "@/lib/utils"
 
 export function TechnicalNameBadge({
+  alwaysVisible = false,
   className,
   name,
 }: {
+  alwaysVisible?: boolean
   className?: string
   name: string
 }) {
   const { enabled } = useTechnicalNameOverlay()
 
-  if (!enabled) {
+  if (!alwaysVisible && !enabled) {
     return null
   }
 

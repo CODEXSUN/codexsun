@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { cn } from "@/lib/utils"
 
 type GiftCornerProps = {
@@ -45,14 +46,20 @@ export function GiftCorner({ className, config }: GiftCornerProps) {
 
   return (
     <section
+      data-technical-name="block.storefront.home.gift-corner"
       className={cn(
-        "relative isolate min-w-0 w-full max-w-full overflow-hidden rounded-[2rem] px-6 py-6 shadow-[0_32px_80px_-48px_rgba(34,20,14,0.65)] lg:px-8 lg:py-7",
+        "relative isolate min-w-0 w-full max-w-full overflow-hidden rounded-[2rem] px-5 py-6 shadow-[0_32px_80px_-48px_rgba(34,20,14,0.65)] sm:px-6 lg:px-8 lg:py-7",
         className
       )}
       style={{
         backgroundImage: `linear-gradient(120deg, ${config.backgroundFrom} 0%, ${config.backgroundTo} 100%)`,
       }}
     >
+      <TechnicalNameBadge
+        alwaysVisible
+        name="block.storefront.home.gift-corner"
+        className="absolute right-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"
+      />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className="absolute left-6 top-1/2 size-32 -translate-y-1/2 rounded-full blur-3xl"
@@ -70,8 +77,14 @@ export function GiftCorner({ className, config }: GiftCornerProps) {
         />
       </div>
 
-      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-center">
-        <div className="space-y-4 lg:max-w-2xl">
+      <div
+        data-technical-name="block.storefront.home.gift-corner.layout"
+        className="relative grid min-w-0 max-w-full gap-6 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-center"
+      >
+        <div
+          data-technical-name="block.storefront.home.gift-corner.copy"
+          className="min-w-0 space-y-4 xl:max-w-2xl"
+        >
           {hasContent(config.eyebrow) ? (
             <p
               className="text-xs font-semibold uppercase tracking-[0.24em]"
@@ -112,10 +125,13 @@ export function GiftCorner({ className, config }: GiftCornerProps) {
           ) : null}
         </div>
 
-        <div className="flex justify-center lg:justify-end">
-          <div className="relative w-full max-w-[18rem] lg:max-w-[19rem]">
+        <div
+          data-technical-name="block.storefront.home.gift-corner.media"
+          className="flex min-w-0 justify-center xl:justify-end"
+        >
+          <div className="relative w-full max-w-[18rem] xl:max-w-[19rem]">
             <div
-              className="relative h-[15rem] overflow-hidden lg:h-[18.5rem]"
+              className="relative h-[15rem] overflow-hidden xl:h-[18.5rem]"
             >
               <img
                 src={config.imageUrl}

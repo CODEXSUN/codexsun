@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function StorefrontHeroSkeleton() {
   return (
-    <section className="grid h-[520px] gap-6 overflow-hidden rounded-[2.4rem] border border-[#e6d8c8] bg-[linear-gradient(135deg,#f0e6da,#fbf7f1)] p-6 lg:grid-cols-[1fr_520px]">
+    <section className="grid min-h-[420px] gap-6 overflow-hidden rounded-[2.4rem] border border-[#e6d8c8] bg-[linear-gradient(135deg,#f0e6da,#fbf7f1)] p-6 xl:h-[520px] xl:grid-cols-[minmax(0,1fr)_minmax(320px,520px)]">
       <div className="flex flex-col justify-center space-y-5">
         <Skeleton className="h-8 w-32 rounded-full bg-white/55" />
         <div className="space-y-3">
@@ -13,8 +13,8 @@ export function StorefrontHeroSkeleton() {
         <Skeleton className="h-6 w-2/3 rounded-lg bg-white/45" />
         <Skeleton className="h-10 w-56 rounded-full bg-white/65" />
       </div>
-      <div className="hidden items-center justify-center lg:flex">
-        <Skeleton className="h-[480px] w-[520px] rounded-[2rem] bg-white/55" />
+      <div className="hidden items-center justify-center xl:flex">
+        <Skeleton className="h-[480px] w-full max-w-[520px] rounded-[2rem] bg-white/55" />
       </div>
     </section>
   )
@@ -69,7 +69,7 @@ export function StorefrontCatalogSkeleton() {
       <Card className="rounded-[2rem] border-[#e3d5c6] bg-white/85 py-0 shadow-[0_26px_55px_-42px_rgba(48,31,19,0.28)]">
         <CardContent className="grid gap-5 p-5">
           <Skeleton className="h-14 w-full rounded-[1.6rem]" />
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]">
             <Skeleton className="h-12 w-full rounded-full" />
             <Skeleton className="h-12 w-full rounded-full" />
             <Skeleton className="h-12 w-full rounded-full" />
@@ -77,7 +77,7 @@ export function StorefrontCatalogSkeleton() {
           </div>
         </CardContent>
       </Card>
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {Array.from({ length: 6 }).map((_, index) => (
           <StorefrontProductCardSkeleton key={index} />
         ))}
@@ -89,7 +89,7 @@ export function StorefrontCatalogSkeleton() {
 export function StorefrontProductPageSkeleton() {
   return (
     <div className="space-y-8">
-      <section className="grid gap-8 lg:grid-cols-[1fr_0.95fr]">
+      <section className="grid gap-8 xl:grid-cols-[1fr_0.95fr]">
         <div className="grid gap-4">
           <Skeleton className="aspect-[4/4.7] w-full rounded-[2.2rem]" />
           <div className="grid gap-4 sm:grid-cols-4">

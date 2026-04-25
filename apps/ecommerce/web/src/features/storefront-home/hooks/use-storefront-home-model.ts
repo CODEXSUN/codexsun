@@ -38,7 +38,8 @@ export function useStorefrontHomeModel() {
     const visualStrip = settings?.visualStrip ?? null
     const trendingSection = settings?.trendingSection ?? null
     const brandShowcase = settings?.brandShowcase ?? null
-    const brandStories = brandShowcase?.cards ?? data?.brands ?? []
+    const brandStories =
+      brandShowcase?.cards.filter((card) => card.imageUrl.trim().length > 0) ?? []
 
     const visibilityMap = {
       error: Boolean(error),

@@ -178,11 +178,11 @@ export function StorefrontCategoryMenu({
         name="shell.storefront.category-menu"
         className="right-4 top-3"
       />
-      <div className="group relative mx-auto w-full max-w-[96rem] px-3 sm:px-4 lg:px-6 2xl:px-8">
+      <div className="group relative w-full max-w-none px-3 sm:px-4 lg:px-10 xl:px-16 2xl:px-20">
         <div
           ref={scrollRef}
           className={cn(
-            "w-full overflow-x-auto px-3 transition-[padding] ease-[cubic-bezier(0.22,1,0.36,1)] [scrollbar-color:#c9b7a5_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#ccb9a6] [&::-webkit-scrollbar-track]:bg-transparent lg:px-4",
+            "w-full overflow-x-auto px-3 transition-[padding] ease-[cubic-bezier(0.22,1,0.36,1)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:px-4",
             isScrolled ? "duration-[420ms]" : "duration-[620ms]",
             isScrolled ? "py-2" : "py-2.75"
           )}

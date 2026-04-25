@@ -88,6 +88,7 @@ npm run cxmedia:typecheck
 npm run lint
 npm run test
 npm run db:prepare
+npm run db:fresh
 npm run db:migrate
 npm run db:seed
 npm run db:status
@@ -128,16 +129,17 @@ Current useful host endpoints:
 5. the shared `ui` layer powers the dashboard shell, auth layouts, and design-system docs surface
 6. framework server startup now prepares the registered app-owned migrations and seeders before serving routes
 7. use `npm run db:prepare` to run the same migration and seeder workflow without starting the server
-8. `apps/cxapp/web` now uses the live auth API for login, request access, password reset, recovery, and logout instead of placeholder-only local auth state
-9. when `AUTH_OTP_DEBUG=true`, OTP responses include a `debugOtp` value so local end-to-end auth setup can be tested without a live mail provider
-10. SMTP delivery is enabled only when `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` are configured; otherwise mailbox sends fall back to stored debug records for local development
-11. the app-owned `frappe` connector baseline is database-backed and available in the shared desk under `/dashboard/apps/frappe`
-12. the app-owned `crm` workspace is available in the shared desk under `/dashboard/apps/crm`
-13. production Docker deployment should use a prebuilt image plus persistent runtime `.env`, persistent media storage, and external MariaDB instead of runtime git sync and live server rebuilds
-14. `apps/mobile` is run through its Expo scripts and is not part of the framework-composed web build output
-15. `cxmedia` is a separate root-level service; run it with `npm run cxmedia:dev`, build it with `npm run cxmedia:build`, and configure its own `cxmedia/.env` for Garage or other S3-compatible storage
-16. the framework media manager in `cxapp` can optionally store media binaries in `cxmedia` while keeping folders and metadata in the suite database
-17. to enable that bridge, set `CXAPP_MEDIA_CXMEDIA_ENABLED=true` plus `CXAPP_MEDIA_CXMEDIA_BASE_URL`, `CXAPP_MEDIA_CXMEDIA_EMAIL`, and `CXAPP_MEDIA_CXMEDIA_PASSWORD` in the suite `.env`
-18. to let `cxapp` create and maintain matching `cxmedia` users automatically, set the same shared secret in `CXAPP_MEDIA_CXMEDIA_SYNC_SECRET` and `CXMEDIA_SYNC_SECRET`
-19. to let signed-in suite users open standalone `cxmedia` without a second login, set the same shared secret in `CXAPP_MEDIA_CXMEDIA_HANDOFF_SECRET` and `CXMEDIA_HANDOFF_SECRET`
-20. when the bridge, sync, and handoff are enabled, framework media still uses the existing `/internal/v1/framework/media*` routes and `cxapp` media browser UI, but uploaded file bytes are stored through `cxmedia`, regular `cxapp` users can be provisioned into standalone `cxmedia` without manual user creation, and the media manager can open `cxmedia` with trusted sign-in
+8. use `npm run db:fresh` to drop the current application tables and views in the configured database, then rerun the registered migrations and seeders for a clean seeded baseline
+9. `apps/cxapp/web` now uses the live auth API for login, request access, password reset, recovery, and logout instead of placeholder-only local auth state
+10. when `AUTH_OTP_DEBUG=true`, OTP responses include a `debugOtp` value so local end-to-end auth setup can be tested without a live mail provider
+11. SMTP delivery is enabled only when `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` are configured; otherwise mailbox sends fall back to stored debug records for local development
+12. the app-owned `frappe` connector baseline is database-backed and available in the shared desk under `/dashboard/apps/frappe`
+13. the app-owned `crm` workspace is available in the shared desk under `/dashboard/apps/crm`
+14. production Docker deployment should use a prebuilt image plus persistent runtime `.env`, persistent media storage, and external MariaDB instead of runtime git sync and live server rebuilds
+15. `apps/mobile` is run through its Expo scripts and is not part of the framework-composed web build output
+16. `cxmedia` is a separate root-level service; run it with `npm run cxmedia:dev`, build it with `npm run cxmedia:build`, and configure its own `cxmedia/.env` for Garage or other S3-compatible storage
+17. the framework media manager in `cxapp` can optionally store media binaries in `cxmedia` while keeping folders and metadata in the suite database
+18. to enable that bridge, set `CXAPP_MEDIA_CXMEDIA_ENABLED=true` plus `CXAPP_MEDIA_CXMEDIA_BASE_URL`, `CXAPP_MEDIA_CXMEDIA_EMAIL`, and `CXAPP_MEDIA_CXMEDIA_PASSWORD` in the suite `.env`
+19. to let `cxapp` create and maintain matching `cxmedia` users automatically, set the same shared secret in `CXAPP_MEDIA_CXMEDIA_SYNC_SECRET` and `CXMEDIA_SYNC_SECRET`
+20. to let signed-in suite users open standalone `cxmedia` without a second login, set the same shared secret in `CXAPP_MEDIA_CXMEDIA_HANDOFF_SECRET` and `CXMEDIA_HANDOFF_SECRET`
+21. when the bridge, sync, and handoff are enabled, framework media still uses the existing `/internal/v1/framework/media*` routes and `cxapp` media browser UI, but uploaded file bytes are stored through `cxmedia`, regular `cxapp` users can be provisioned into standalone `cxmedia` without manual user creation, and the media manager can open `cxmedia` with trusted sign-in

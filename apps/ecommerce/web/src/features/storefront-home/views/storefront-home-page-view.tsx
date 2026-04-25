@@ -13,6 +13,7 @@ import {
   StorefrontHomeGiftCornerSection,
   StorefrontHomeVisualStripSection,
 } from "../sections/storefront-home-simple-block-sections"
+import React from "react";
 
 export function StorefrontHomeModelProviderView({
   heroFallback,

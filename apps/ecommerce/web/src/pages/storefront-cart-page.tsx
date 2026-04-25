@@ -485,12 +485,12 @@ export function StorefrontCartPage() {
 
   return (
     <StorefrontLayout showCategoryMenu={false}>
-      <div className="mx-auto grid w-full max-w-[96rem] gap-7 px-4 pt-8 pb-12 sm:px-6 lg:px-8 2xl:px-10">
+      <div className="grid w-full max-w-none gap-7 px-4 pt-8 pb-12 sm:px-6 lg:px-10 xl:px-16 2xl:px-20">
         <Card className="relative overflow-hidden rounded-[2.4rem] border-[#e3d5c6] bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(252,247,241,0.96)_34%,rgba(247,237,225,0.92)_100%)] py-0 shadow-[0_28px_70px_-46px_rgba(48,31,19,0.18)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(213,183,150,0.18),transparent_24%),radial-gradient(circle_at_74%_28%,rgba(255,255,255,0.72),transparent_22%),radial-gradient(circle_at_88%_82%,rgba(176,131,88,0.12),transparent_18%),linear-gradient(120deg,rgba(255,255,255,0.3),transparent_48%)]" />
           <div className="pointer-events-none absolute -left-10 top-10 h-40 w-40 rounded-full bg-[#f4e3cf]/35 blur-3xl" />
           <div className="pointer-events-none absolute right-10 bottom-0 h-32 w-44 rounded-full bg-[#ead3bb]/30 blur-3xl" />
-          <CardContent className="relative grid gap-6 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <CardContent className="relative grid gap-6 p-5 sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
             <div className="space-y-4">
               <Badge
                 variant="outline"
@@ -558,7 +558,7 @@ export function StorefrontCartPage() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+        <div className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
           <section className="space-y-4">
             {cart.items.length === 0 ? (
               <Card className="rounded-[2rem] border-dashed border-[#dfd1c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,231,0.72))] py-0 shadow-[0_20px_50px_-42px_rgba(48,31,19,0.18)]">

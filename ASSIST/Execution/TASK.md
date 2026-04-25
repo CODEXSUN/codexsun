@@ -2,6 +2,13 @@
 
 ## Active
 
+- [x] `#230` Add `db:fresh` for clean database installation
+  - [x] Phase 1: helper wiring
+    - [x] 1.1 extend the CLI database helper with a destructive fresh command
+    - [x] 1.2 add the root `db:fresh` script for the clean-install path
+  - [x] Phase 2: docs and validation
+    - [x] 2.1 update setup guidance for the new clean-install database command
+    - [x] 2.2 run focused validation for the helper change
 - [ ] `#229` Finalize storefront home merchandising and overflow hardening
   - [x] Phase 1: shared storefront model
     - [x] 1.1 add discovery-board and visual-strip schemas
@@ -21,4 +28,19 @@
     - [x] 3.7 contain marquee and deferred rail overflow around the gift-area scroll path
   - [ ] Phase 4: validation
     - [x] 4.1 run storefront build validation
-    - [ ] 4.2 ask for final storefront confirmation after latest overflow hardening
+    - [x] 4.2 refactor storefront sections and shell surfaces to full-width `px-20` desktop gutters
+    - [x] 4.3 remove visible inner rail scrollbars and tune responsive storefront gutters
+    - [x] 4.4 add technical badge/data markers to storefront lower-home blocks for exact issue targeting
+    - [x] 4.5 make discovery-board collage images own the catalog/product link target
+    - [x] 4.6 add core product merchandising flags for discovery-board and visual-strip storefront products
+    - [x] 4.7 connect discovery-board and visual-strip cards directly to live product records
+    - [x] 4.8 add discovery-board and visual-strip controls to core product bulk edit
+    - [x] 4.9 refill discovery-board slots with ordered live products plus fallback cards
+    - [x] 4.10 keep checked discovery-board and visual-strip products visible even when product media is missing
+    - [x] 4.11 add editable brand-story images/SVG assets and render configured cards on storefront
+    - [x] 4.12 add one-form storefront theme designer for page background and shared card surfaces
+      - [x] 4.12.1 add shared theme schema, defaults, service helpers, and internal API route
+      - [x] 4.12.2 add admin theme designer form and side-menu entry
+      - [x] 4.12.3 apply theme variables to storefront background and shared cards
+      - [x] 4.12.4 validate focused lint and storefront build
+    - [ ] 4.13 ask for final storefront confirmation after latest overflow hardening

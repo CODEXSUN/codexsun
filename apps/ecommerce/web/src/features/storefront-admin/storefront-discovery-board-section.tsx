@@ -36,6 +36,7 @@ function createCard(index: number): StorefrontDiscoveryBoardCard {
     id: baseId,
     title: `Discovery board ${index + 1}`,
     href: "/shop/catalog",
+    imageLinks: [],
     images: Array.from({ length: 4 }, (_, imageIndex) =>
       `https://placehold.co/560x560/f3eee7/2b211b?text=Board+${index + 1}+${imageIndex + 1}`
     ),

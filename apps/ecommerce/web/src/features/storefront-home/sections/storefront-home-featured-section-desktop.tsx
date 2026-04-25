@@ -46,7 +46,7 @@ export function StorefrontHomeFeaturedSectionDesktop({
           <FeaturedCardRowSurface
             cardsPerRow={section.cardsPerRow ?? 3}
             cardDesign={section.cardDesign}
-            cardClassName="min-h-[33.75rem]"
+            cardClassName="min-h-0"
             items={items.map((item) => ({
               id: item.id,
               href: `/products/${item.slug}`,

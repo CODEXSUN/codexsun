@@ -31,6 +31,7 @@ export function StorefrontProductCard({
   isWishlisted = false,
   onToggleWishlist,
   density = "default",
+  imageAspectClassName,
   className,
 }: {
   item: StorefrontProductCardType
@@ -39,6 +40,7 @@ export function StorefrontProductCard({
   isWishlisted?: boolean
   onToggleWishlist?: () => void
   density?: "default" | "compact" | "dense"
+  imageAspectClassName?: string
   className?: string
 }) {
   const isCompact = density === "compact"
@@ -61,11 +63,11 @@ export function StorefrontProductCard({
   return (
     <Card
       className={cn(
-        "group flex h-full flex-col overflow-hidden border border-[#ece2d4] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(250,246,239,0.94)_100%)] py-0 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-24px_rgba(48,31,19,0.22)]",
+        "group flex h-full flex-col overflow-hidden border bg-[var(--storefront-card-bg,#fffaf4)] py-0 [border-color:var(--storefront-card-border,#ece2d4)] [box-shadow:var(--storefront-card-shadow,0_4px_12px_rgba(0,0,0,0.05))] transition duration-300 hover:-translate-y-1 hover:[box-shadow:var(--storefront-card-shadow-hover,0_18px_40px_-24px_rgba(48,31,19,0.22))]",
         isDense
-          ? "rounded-[1.45rem] border-[#e6d5c1] bg-[linear-gradient(180deg,rgba(255,251,246,0.98)_0%,rgba(246,237,227,0.96)_54%,rgba(243,233,221,0.94)_100%)] shadow-[0_10px_26px_-24px_rgba(69,41,18,0.34)] hover:shadow-[0_18px_40px_-24px_rgba(69,41,18,0.36)]"
+          ? "rounded-[1.45rem]"
           : isCompact
-          ? "rounded-[1.65rem] border-[#e7d7c5] bg-[linear-gradient(180deg,rgba(255,251,246,0.98)_0%,rgba(247,239,229,0.96)_48%,rgba(244,235,224,0.94)_100%)] shadow-[0_12px_30px_-24px_rgba(69,41,18,0.38)] hover:shadow-[0_22px_48px_-26px_rgba(69,41,18,0.42)]"
+          ? "rounded-[1.65rem]"
           : "rounded-[2rem]",
         className
       )}
@@ -75,11 +77,12 @@ export function StorefrontProductCard({
         state={{ focus: "product-detail" }}
         className={cn(
           "relative block overflow-hidden bg-[linear-gradient(135deg,#f3eadf,#fbf7f2)]",
-          isDense
-            ? "aspect-[4/3.66] bg-[linear-gradient(135deg,#eedecb,#faf2e8)]"
-            : isCompact
-            ? "aspect-[4/4.02] bg-[linear-gradient(135deg,#eee0cf,#fbf5ed)]"
-            : "aspect-[4/4.35]"
+          imageAspectClassName ??
+            (isDense
+              ? "aspect-[4/3.66] bg-[linear-gradient(135deg,#eedecb,#faf2e8)]"
+              : isCompact
+                ? "aspect-[4/4.02] bg-[linear-gradient(135deg,#eee0cf,#fbf5ed)]"
+                : "aspect-[4/4.35]")
         )}
       >
         {item.primaryImageUrl ? (
@@ -101,7 +104,7 @@ export function StorefrontProductCard({
         <div
           className={cn(
             "pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between",
-            isDense ? "p-2.5" : isCompact ? "p-3" : "p-4"
+            isDense ? "p-2" : isCompact ? "p-3" : "p-4"
           )}
         >
           <div className="flex items-start gap-2">
@@ -148,8 +151,8 @@ export function StorefrontProductCard({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#2d1708]/18 via-transparent to-transparent" />
         ) : null}
       </Link>
-      <CardContent className={cn("flex flex-1 flex-col", isDense ? "space-y-2 p-3.5" : isCompact ? "space-y-2.5 p-4" : "space-y-3 p-5")}>
-        <div className={cn("flex flex-1 flex-col", isDense ? "space-y-1.5" : isCompact ? "space-y-2" : "space-y-2.5")}>
+      <CardContent className={cn("flex flex-1 flex-col", isDense ? "space-y-1.5 px-3 pb-2.5 pt-3" : isCompact ? "space-y-2.5 p-4" : "space-y-3 p-5")}>
+        <div className={cn("flex flex-1 flex-col", isDense ? "space-y-1" : isCompact ? "space-y-2" : "space-y-2.5")}>
           <div className="flex items-center justify-between gap-3">
             <span
               className={cn(
@@ -217,8 +220,8 @@ export function StorefrontProductCard({
       </CardContent>
       <div
         className={cn(
-          "mt-auto grid grid-cols-[1fr_auto] items-center gap-3 pt-0",
-          isDense ? "px-3.5 pb-3.5" : isCompact ? "px-4 pb-4" : "px-5 pb-5"
+          "mt-auto grid grid-cols-[1fr_auto] items-center pt-0",
+          isDense ? "gap-2 px-3 pb-3" : isCompact ? "gap-3 px-4 pb-4" : "gap-3 px-5 pb-5"
         )}
       >
         <Button

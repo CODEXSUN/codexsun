@@ -30,6 +30,7 @@ import type {
 } from "@cxapp/shared"
 import { getStoredAccessToken } from "@cxapp/web/src/auth/session-storage"
 import { FrameworkMediaPickerField } from "@cxapp/web/src/features/framework-media/media-picker-field"
+import { invalidateStorefrontShellData } from "@ecommerce/web/src/hooks/use-storefront-shell-data"
 import { MasterList } from "@/components/blocks/master-list"
 import { RecordActionMenu } from "@/components/blocks/record-action-menu"
 import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
@@ -109,6 +110,10 @@ type ProductBulkEditFormState = {
   isFeatured: BulkToggleValue
   featureSectionEnabled: BulkToggleValue
   featureSectionOrder: string
+  discoveryBoardEnabled: BulkToggleValue
+  discoveryBoardOrder: string
+  visualStripEnabled: BulkToggleValue
+  visualStripOrder: string
   homeSliderEnabled: BulkToggleValue
   homeSliderOrder: string
   promoSliderEnabled: BulkToggleValue
@@ -138,6 +143,10 @@ function createDefaultProductBulkEditFormState(): ProductBulkEditFormState {
     isFeatured: "keep",
     featureSectionEnabled: "keep",
     featureSectionOrder: "",
+    discoveryBoardEnabled: "keep",
+    discoveryBoardOrder: "",
+    visualStripEnabled: "keep",
+    visualStripOrder: "",
     homeSliderEnabled: "keep",
     homeSliderOrder: "",
     promoSliderEnabled: "keep",
@@ -2804,6 +2813,8 @@ export function ProductsSection({
       ["isActive", resolveBulkToggleValue(bulkEditForm.isActive)],
       ["isFeatured", resolveBulkToggleValue(bulkEditForm.isFeatured)],
       ["featureSectionEnabled", resolveBulkToggleValue(bulkEditForm.featureSectionEnabled)],
+      ["discoveryBoardEnabled", resolveBulkToggleValue(bulkEditForm.discoveryBoardEnabled)],
+      ["visualStripEnabled", resolveBulkToggleValue(bulkEditForm.visualStripEnabled)],
       ["homeSliderEnabled", resolveBulkToggleValue(bulkEditForm.homeSliderEnabled)],
       ["promoSliderEnabled", resolveBulkToggleValue(bulkEditForm.promoSliderEnabled)],
       ["isNewArrival", resolveBulkToggleValue(bulkEditForm.isNewArrival)],
@@ -2819,6 +2830,14 @@ export function ProductsSection({
 
     if (bulkEditForm.featureSectionOrder.trim()) {
       payload.featureSectionOrder = Number(bulkEditForm.featureSectionOrder)
+    }
+
+    if (bulkEditForm.discoveryBoardOrder.trim()) {
+      payload.discoveryBoardOrder = Number(bulkEditForm.discoveryBoardOrder)
+    }
+
+    if (bulkEditForm.visualStripOrder.trim()) {
+      payload.visualStripOrder = Number(bulkEditForm.visualStripOrder)
     }
 
     if (bulkEditForm.homeSliderOrder.trim()) {
@@ -2846,6 +2865,7 @@ export function ProductsSection({
         title: "Product bulk update successful.",
         description: `${response.count} selected products were updated with the new merchandising settings.`,
       })
+      invalidateStorefrontShellData()
       setBulkEditOpen(false)
       setBulkEditForm(createDefaultProductBulkEditFormState())
       setSelectedProductIds([])
@@ -2882,28 +2902,27 @@ export function ProductsSection({
       categoryFilter === "__all__" ? true : (product.categoryId ?? "__none__") === categoryFilter
     const matchesBrand =
       brandFilter === "__all__" ? true : (product.brandId ?? "__none__") === brandFilter
+    const hasAnyStorefrontPlacement = Boolean(
+      product.storefrontDepartment ||
+        product.featureSectionEnabled ||
+        product.discoveryBoardEnabled ||
+        product.visualStripEnabled ||
+        product.homeSliderEnabled ||
+        product.promoSliderEnabled ||
+        product.isNewArrival ||
+        product.isBestSeller ||
+        product.isFeaturedLabel
+    )
     const matchesStorefront =
-      storefrontFilter === "all"
-        ? true
-        : storefrontFilter === "feature-section"
-          ? product.featureSectionEnabled
-          : storefrontFilter === "home-slider"
-            ? product.homeSliderEnabled
-            : storefrontFilter === "new-arrival"
-              ? product.isNewArrival
-              : storefrontFilter === "best-seller"
-                ? product.isBestSeller
-                : storefrontFilter === "featured-badge"
-                  ? product.isFeaturedLabel
-                  : Boolean(
-                      product.storefrontDepartment ||
-                        product.featureSectionEnabled ||
-                        product.homeSliderEnabled ||
-                        product.promoSliderEnabled ||
-                        product.isNewArrival ||
-                        product.isBestSeller ||
-                        product.isFeaturedLabel
-                    )
+      storefrontFilter === "all" ||
+      (storefrontFilter === "feature-section" && product.featureSectionEnabled) ||
+      (storefrontFilter === "discovery-board" && product.discoveryBoardEnabled) ||
+      (storefrontFilter === "visual-strip" && product.visualStripEnabled) ||
+      (storefrontFilter === "home-slider" && product.homeSliderEnabled) ||
+      (storefrontFilter === "new-arrival" && product.isNewArrival) ||
+      (storefrontFilter === "best-seller" && product.isBestSeller) ||
+      (storefrontFilter === "featured-badge" && product.isFeaturedLabel) ||
+      (storefrontFilter === "any-storefront" && hasAnyStorefrontPlacement)
     const matchesAttributes = matchesPresenceFilter(
       attributeFilter,
       product.attributeCount > 0
@@ -3010,6 +3029,8 @@ export function ProductsSection({
                   <SelectItem value="all">All storefront states</SelectItem>
                   <SelectItem value="any-storefront">Any storefront placement</SelectItem>
                   <SelectItem value="feature-section">Feature section</SelectItem>
+                  <SelectItem value="discovery-board">Discovery board</SelectItem>
+                  <SelectItem value="visual-strip">Visual strip</SelectItem>
                   <SelectItem value="home-slider">Home slider</SelectItem>
                   <SelectItem value="new-arrival">New arrival</SelectItem>
                   <SelectItem value="best-seller">Best seller</SelectItem>
@@ -3413,6 +3434,58 @@ export function ProductsSection({
                   />
                 </div>
                 <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Discovery Board</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.discoveryBoardEnabled}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        discoveryBoardEnabled: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose discovery update"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    min="1"
+                    max="8"
+                    value={bulkEditForm.discoveryBoardOrder}
+                    onChange={(event) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        discoveryBoardOrder: event.target.value,
+                      }))
+                    }
+                    placeholder="Order"
+                  />
+                </div>
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <label className="text-sm font-medium text-foreground">Visual Strip</label>
+                  <AutocompleteLookupField
+                    value={bulkEditForm.visualStripEnabled}
+                    onChange={(value) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        visualStripEnabled: value as BulkToggleValue,
+                      }))
+                    }
+                    options={bulkToggleOptions}
+                    placeholder="Choose visual update"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    value={bulkEditForm.visualStripOrder}
+                    onChange={(event) =>
+                      setBulkEditForm((current) => ({
+                        ...current,
+                        visualStripOrder: event.target.value,
+                      }))
+                    }
+                    placeholder="Order"
+                  />
+                </div>
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4">
                   <label className="text-sm font-medium text-foreground">Home Slider</label>
                   <AutocompleteLookupField
                     value={bulkEditForm.homeSliderEnabled}
@@ -3543,7 +3616,7 @@ export function ProductsSection({
                   Included updates
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Category, department, slider sections, arrivals, featured labels, and status can all be changed here in one pass.
+                  Category, department, slider sections, discovery board, visual strip, arrivals, featured labels, and status can all be changed here in one pass.
                 </p>
               </div>
             </div>

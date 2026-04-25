@@ -2,6 +2,7 @@ import { ArrowRight, ShieldCheck, Sparkles, Truck } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { normalizeStorefrontCampaignDesign } from "@ecommerce/shared"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -102,9 +103,18 @@ export function CampaignTrustSection({
   }
 
   return (
-    <section className={cn("grid gap-6 lg:grid-cols-[1.15fr_0.85fr]", className)}>
+    <section
+      data-technical-name="block.storefront.home.campaign-trust"
+      className={cn("relative grid gap-6 lg:grid-cols-[1.15fr_0.85fr]", className)}
+    >
+      <TechnicalNameBadge
+        alwaysVisible
+        name="block.storefront.home.campaign-trust"
+        className="absolute right-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"
+      />
       {hasCampaign ? (
         <Card
+          data-technical-name="block.storefront.home.campaign-trust.campaign"
           className="h-full rounded-[2rem] py-0 text-stone-100 shadow-[0_30px_80px_-52px_rgba(28,15,8,0.75)]"
           style={{
             borderColor: design?.campaignBorderColor ?? "#decfbd",
@@ -184,17 +194,21 @@ export function CampaignTrustSection({
       ) : null}
 
       {hasTrust ? (
-        <div className="grid gap-4">
+        <div
+          data-technical-name="block.storefront.home.campaign-trust.trust-list"
+          className="grid gap-4"
+        >
           {trustNotes.map((note) => {
             const Icon = resolveTrustIcon(note.iconKey)
 
             return (
               <Card
                 key={note.id}
-                className="group rounded-[1.6rem] py-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-24px_rgba(53,33,20,0.22)] group-hover:[border-color:var(--trust-card-hover-border)]"
+                data-technical-name="block.storefront.home.campaign-trust.trust-card"
+                className="group rounded-[1.6rem] py-0 [box-shadow:var(--storefront-card-shadow,0_1px_2px_rgba(0,0,0,0.04))] transition-all duration-300 hover:-translate-y-1 hover:[box-shadow:var(--storefront-card-shadow-hover,0_18px_38px_-24px_rgba(53,33,20,0.22))] group-hover:[border-color:var(--trust-card-hover-border)]"
                 style={{
-                  backgroundColor: design?.trustCardBackgroundColor ?? "#ffffff",
-                  borderColor: design?.trustCardBorderColor ?? "#e4d6c7",
+                  backgroundColor: design?.trustCardBackgroundColor ?? "var(--storefront-card-bg, #ffffff)",
+                  borderColor: design?.trustCardBorderColor ?? "var(--storefront-card-border, #e4d6c7)",
                   ["--trust-card-hover-border" as string]:
                     design?.trustCardHoverBorderColor ?? "#d6c1ab",
                   ["--trust-icon-hover-bg" as string]:

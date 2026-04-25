@@ -2,11 +2,40 @@
 
 ## Version State
 
-- Current package version: `1.0.229`
-- Current release tag: `v-1.0.229`
+- Current package version: `1.0.230`
+- Current release tag: `v-1.0.230`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
 
+## v-1.0.230
+
+### [v 1.0.230] 2026-04-25 - Add clean database fresh reset command
+
+- added a guarded `db:fresh` command path that drops current application database objects and reruns the registered migration and seeder flow for clean local or operator-managed installs
+- implemented the fresh-reset runtime support inside the framework database process layer for the active MariaDB and PostgreSQL driver paths instead of scattering ad hoc reset scripts
+- extended the CLI database helper and root package scripts so operators can run the clean-install database reset through one explicit command surface
+- updated setup and architecture documentation to include the new `db:fresh` command alongside the existing `db:prepare`, `db:migrate`, and `db:seed` workflow
+- added focused CLI coverage for destructive confirmation behavior and unknown-command usage output
+- validated the slice with `npx.cmd tsx --test tests/cli/database-helper.test.ts` and focused ESLint for the database helper, fresh runtime, and test file; global typecheck remains blocked by unrelated pre-existing billing workspace type errors
+
 ## v-1.0.229
+
+### [v 1.0.229] 2026-04-25 - Continue storefront live merchandising and theme designer
+
+- refactored storefront home, product, catalog, cart, checkout, legal, tracking, footer, header, category menu, and customer portal surfaces toward full-width layouts with `px-20` desktop gutters and responsive smaller-screen padding
+- removed visible inner horizontal scrollbars from lower-home rails while preserving touch and button-based horizontal navigation
+- hardened the gift-corner-to-footer scroll path by keeping deferred wrappers width-clamped, switching the affected wrappers to horizontal clipping, and tightening coupon, gift, discovery, visual-strip, trending, and brand-story lower-home blocks so they no longer widen the page while scrolling
+- added visible storefront technical-name badges and data markers to gift corner, coupon banner, discovery board, visual strip, trending, brand stories, and campaign trust surfaces for exact screenshot-based issue targeting
+- tightened product-card height and spacing across featured, new arrivals, and best sellers, aligning card image sizing and reducing excess bottom whitespace while keeping the product imagery and typography stable
+- refined the coupon banner by reducing its height, tightening internal spacing, removing the decorative end cutout circles, and shortening helper text into a more concise promo line
+- wired discovery-board and visual-strip merchandising to live core product flags, added those flags and display-order fields to core product editing and bulk edit, and invalidated storefront shell data after product saves so checked products appear in the public storefront
+- changed discovery-board placement so order `1-4` fills the first board, `5-8` fills the second, `0` is ignored, and empty ordered slots remain empty instead of duplicating the same product across all image tiles
+- removed designer fallback artwork from the public discovery-board live-product path and kept live checked products visible even when their own product image is missing by using configured board or strip artwork only as the controlled section fallback
+- made discovery-board image tiles use product/catalog links directly and removed the card-level tilt/lift behavior from the main card wrapper
+- replaced the placeholder Brand Stories admin panel with a live editor for enabled state, section copy, links, media-library images, pasted image URLs, and pasted raw SVG converted into image data URLs
+- allowed storefront media references to accept image data URLs including SVG, filtered Brand Stories rendering to configured image/SVG cards only, enlarged the brand-story logo cards, and aligned the brand-story colors with the storefront warm theme
+- added a new ecommerce Store Front side-menu entry named `Theme Designer` at `/dashboard/apps/ecommerce/theme-designer` for changing page background, section background, shared card background, muted card background, card border, shadow color, and shadow strength from one form
+- applied Theme Designer variables through the public storefront layout and shared card surfaces, including product cards, featured cards, category cards, discovery board, visual strip, brand stories, and campaign trust cards
+- validated the follow-up storefront work with focused ESLint runs and repeated `npx.cmd vite build`
 
 ### [v 1.0.229] 2026-04-23 - Finalize storefront home merchandising and overflow hardening
 

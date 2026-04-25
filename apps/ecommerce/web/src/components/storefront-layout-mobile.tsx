@@ -6,6 +6,7 @@ import { useStorefrontLayoutData } from "./storefront-layout-shared"
 import { StorefrontFooter } from "./storefront-footer"
 import { StorefrontHeader } from "./storefront-header"
 import { StorefrontTechnicalNameBadge } from "./storefront-technical-name-badge"
+import { resolveStorefrontThemeStyle } from "../lib/storefront-theme"
 
 export function StorefrontLayoutMobile({
   children,
@@ -18,9 +19,10 @@ export function StorefrontLayoutMobile({
 
   return (
     <div
-      className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f7f1ea_0%,#f3ede6_18%,#f7f3ee_100%)] text-foreground"
+      className="relative min-h-screen overflow-x-clip bg-[linear-gradient(180deg,#f7f1ea_0%,#f3ede6_18%,#f7f3ee_100%)] text-foreground"
       data-technical-name="shell.storefront.layout"
       data-shell-mode="mobile"
+      style={resolveStorefrontThemeStyle(settings?.theme)}
     >
       <a
         href="#storefront-main-content"
@@ -36,7 +38,7 @@ export function StorefrontLayoutMobile({
       <main
         id="storefront-main-content"
         tabIndex={-1}
-        className={cn("overflow-x-hidden pb-28 pt-[5.75rem]", className)}
+        className={cn("overflow-x-clip pb-28 pt-[5.75rem]", className)}
       >
         {children}
       </main>

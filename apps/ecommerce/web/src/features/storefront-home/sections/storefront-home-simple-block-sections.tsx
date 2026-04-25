@@ -23,7 +23,7 @@ const VisualStrip = lazy(async () =>
 export function StorefrontHomeCouponBannerSection({ landing }: { landing: StorefrontLandingResponse }) {
   return (
     <StorefrontDeferredSection rootMargin={storefrontHomepageSectionPerformance.couponBanner.rootMargin} minHeightClassName={storefrontHomepageSectionPerformance.couponBanner.minHeightClassName} fallback={storefrontHomepageSectionPerformance.couponBanner.fallback}>
-      <div className="relative min-w-0 max-w-full overflow-x-hidden" data-technical-name="section.storefront.home.coupon-banner">
+      <div className="relative min-w-0 max-w-full overflow-x-clip" data-technical-name="section.storefront.home.coupon-banner">
         <StorefrontTechnicalNameBadge name="section.storefront.home.coupon-banner" />
         <StorefrontHomeSectionFrame>
           <Suspense fallback={null}>
@@ -38,7 +38,7 @@ export function StorefrontHomeCouponBannerSection({ landing }: { landing: Storef
 export function StorefrontHomeGiftCornerSection({ landing }: { landing: StorefrontLandingResponse }) {
   return (
     <StorefrontDeferredSection rootMargin={storefrontHomepageSectionPerformance.giftCorner.rootMargin} minHeightClassName={storefrontHomepageSectionPerformance.giftCorner.minHeightClassName} fallback={storefrontHomepageSectionPerformance.giftCorner.fallback}>
-      <div className="relative min-w-0 max-w-full overflow-x-hidden" data-technical-name="section.storefront.home.gift-corner">
+      <div className="relative min-w-0 max-w-full overflow-x-clip" data-technical-name="section.storefront.home.gift-corner">
         <StorefrontTechnicalNameBadge name="section.storefront.home.gift-corner" />
         <StorefrontHomeSectionFrame>
           <Suspense fallback={null}>
@@ -53,7 +53,7 @@ export function StorefrontHomeGiftCornerSection({ landing }: { landing: Storefro
 export function StorefrontHomeDiscoveryBoardSection({ landing }: { landing: StorefrontLandingResponse }) {
   return (
     <StorefrontDeferredSection rootMargin={storefrontHomepageSectionPerformance.discoveryBoard.rootMargin} minHeightClassName={storefrontHomepageSectionPerformance.discoveryBoard.minHeightClassName} fallback={storefrontHomepageSectionPerformance.discoveryBoard.fallback}>
-      <div className="relative min-w-0 max-w-full overflow-x-hidden" data-technical-name="section.storefront.home.discovery-board">
+      <div className="relative min-w-0 max-w-full overflow-x-clip" data-technical-name="section.storefront.home.discovery-board">
         <StorefrontTechnicalNameBadge name="section.storefront.home.discovery-board" />
         <StorefrontHomeSectionFrame>
           <Suspense fallback={null}>
@@ -68,7 +68,7 @@ export function StorefrontHomeDiscoveryBoardSection({ landing }: { landing: Stor
 export function StorefrontHomeVisualStripSection({ landing }: { landing: StorefrontLandingResponse }) {
   return (
     <StorefrontDeferredSection rootMargin={storefrontHomepageSectionPerformance.visualStrip.rootMargin} minHeightClassName={storefrontHomepageSectionPerformance.visualStrip.minHeightClassName} fallback={storefrontHomepageSectionPerformance.visualStrip.fallback}>
-      <div className="relative min-w-0 max-w-full overflow-x-hidden" data-technical-name="section.storefront.home.visual-strip">
+      <div className="relative min-w-0 max-w-full overflow-x-clip" data-technical-name="section.storefront.home.visual-strip">
         <StorefrontTechnicalNameBadge name="section.storefront.home.visual-strip" />
         <StorefrontHomeSectionFrame>
           <Suspense fallback={null}>

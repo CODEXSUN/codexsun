@@ -10,6 +10,7 @@ import {
   getStorefrontCampaign,
   getStorefrontTrendingSection,
   getStorefrontHomeSlider,
+  getStorefrontTheme,
   getStorefrontDesignerSettings,
   getStorefrontSettingsVersionHistory,
   getStorefrontSettingsWorkflowStatus,
@@ -26,6 +27,7 @@ import {
   saveStorefrontCampaign,
   saveStorefrontTrendingSection,
   saveStorefrontHomeSlider,
+  saveStorefrontTheme,
   saveStorefrontSettings,
 } from "../../../ecommerce/src/services/storefront-settings-service.js"
 import {
@@ -274,6 +276,28 @@ export function createEcommerceInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await saveStorefrontHomeSlider(
+            context.databases.primary,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-theme", {
+      summary: "Read ecommerce-owned storefront theme settings for the admin editor.",
+      handler: async (context) => {
+        await requireStorefrontView(context)
+
+        return jsonResponse(await getStorefrontTheme(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/ecommerce/storefront-theme", {
+      method: "PATCH",
+      summary: "Update ecommerce-owned storefront theme settings used by public storefront surfaces.",
+      handler: async (context) => {
+        await requireStorefrontManage(context)
+
+        return jsonResponse(
+          await saveStorefrontTheme(
             context.databases.primary,
             context.request.jsonBody
           )

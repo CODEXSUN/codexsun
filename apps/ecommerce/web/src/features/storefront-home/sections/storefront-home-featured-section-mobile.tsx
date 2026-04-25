@@ -37,7 +37,7 @@ export function StorefrontHomeFeaturedSectionMobile({
         <FeaturedCardRowSurface
           cardsPerRow={section.cardsPerRow ?? 3}
           cardDesign={section.cardDesign}
-          cardClassName="min-h-[33.75rem]"
+          cardClassName="min-h-0"
           densityOverride="dense"
           items={items.map((item) => ({
             id: item.id,

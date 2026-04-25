@@ -8,6 +8,7 @@ import { useStorefrontShellStore } from "../state/storefront-shell-store"
 import { storefrontApi } from "../api/storefront-api"
 
 export function invalidateStorefrontShellData() {
+  useStorefrontShellStore.getState().setLanding(null)
   window.dispatchEvent(new CustomEvent("storefront-shell-invalidated"))
 }
 

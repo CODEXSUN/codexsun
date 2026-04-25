@@ -17,6 +17,7 @@ import {
   storefrontBrandShowcaseSchema,
   storefrontCampaignSectionSchema,
   storefrontAnnouncementItemSchema,
+  storefrontThemeSchema,
   storefrontSettingsSchema,
   storefrontSettingsRollbackPayloadSchema,
   storefrontSettingsRevisionSchema,
@@ -28,6 +29,7 @@ import {
   type StorefrontHomeSlider,
   type StorefrontHomeSliderSlide,
   type StorefrontHomeSliderTheme,
+  type StorefrontTheme,
   type StorefrontSettings,
   type StorefrontSettingsRevision,
   type StorefrontSettingsVersionHistoryEntry,
@@ -198,6 +200,7 @@ function buildMergedStorefrontSettings(
   const payloadRecord = asRecord(payload) ?? {}
   const heroRecord = asRecord(payloadRecord.hero)
   const searchRecord = asRecord(payloadRecord.search)
+  const themeRecord = asRecord(payloadRecord.theme)
   const announcementDesignRecord = asRecord(payloadRecord.announcementDesign)
   const announcementItemsRecord = Array.isArray(payloadRecord.announcementItems)
     ? payloadRecord.announcementItems
@@ -272,6 +275,12 @@ function buildMergedStorefrontSettings(
             : base.search.departments,
         }
       : base.search,
+    theme: themeRecord
+      ? {
+          ...base.theme,
+          ...themeRecord,
+        }
+      : base.theme,
     announcementDesign: announcementDesignRecord
       ? {
           ...base.announcementDesign,
@@ -802,6 +811,28 @@ export async function saveStorefrontHomeSlider(
   })
 
   return storefrontHomeSliderSchema.parse(nextSettings.homeSlider)
+}
+
+export async function getStorefrontTheme(
+  database: Kysely<unknown>
+): Promise<StorefrontTheme> {
+  const settings = await getStorefrontDesignerSettings(database)
+  return storefrontThemeSchema.parse(settings.theme)
+}
+
+export async function saveStorefrontTheme(
+  database: Kysely<unknown>,
+  payload: unknown
+): Promise<StorefrontTheme> {
+  const current = await getStorefrontDesignerSettings(database)
+  const nextSettings = await saveStorefrontSettings(database, {
+    theme: storefrontThemeSchema.parse({
+      ...current.theme,
+      ...(asRecord(payload) ?? {}),
+    }),
+  })
+
+  return storefrontThemeSchema.parse(nextSettings.theme)
 }
 
 export async function getStorefrontFooter(

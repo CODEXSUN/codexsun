@@ -20,6 +20,7 @@ import type {
   StorefrontOrderRequestQueueReport,
   StorefrontOrderRequestResponse,
   StorefrontHomeSlider,
+  StorefrontTheme,
   StorefrontSettings,
   StorefrontSettingsVersionHistoryResponse,
   StorefrontSettingsWorkflowStatus,
@@ -163,7 +164,7 @@ function extractDownloadFileName(disposition: string | null, fallback: string) {
     return fallback
   }
 
-  const match = disposition.match(/filename=\"?([^\";]+)\"?/)
+  const match = disposition.match(/filename="?([^";]+)"?/)
   return match?.[1] ?? fallback
 }
 
@@ -330,6 +331,19 @@ export const storefrontApi = {
   },
   updateHomeSlider(accessToken: string, payload: StorefrontHomeSlider) {
     return requestJson<StorefrontHomeSlider>("/internal/v1/ecommerce/home-slider", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(payload),
+    })
+  },
+  getStorefrontTheme(accessToken: string) {
+    return requestJson<StorefrontTheme>("/internal/v1/ecommerce/storefront-theme", {
+      accessToken,
+      cache: "no-store",
+    })
+  },
+  updateStorefrontTheme(accessToken: string, payload: StorefrontTheme) {
+    return requestJson<StorefrontTheme>("/internal/v1/ecommerce/storefront-theme", {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(payload),
