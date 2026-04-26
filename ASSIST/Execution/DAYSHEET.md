@@ -5,8 +5,8 @@
 ### Launch-Critical
 
 - [x] Storefront smoke product path and seeded checkout flow were restored for `/products/aster-linen-shirt`.
-- [x] Homepage performance budget is back within the current automated `LCP` budget after first-render slimming.
-- [ ] Product performance test still needs a clean rerun now that the functional smoke blocker is fixed.
+- [x] Homepage performance budget is back inside the automated `3500ms` `LCP` budget.
+- [x] Product performance test passed a clean focused rerun for `/products/aster-linen-shirt`.
 - [ ] Production release environment still has blockers for real domains, TLS, live Razorpay completeness, owner emails, and secrets rotation metadata.
 - [ ] Storefront confirmation email delivery is failing under local smoke credentials and still needs proper SMTP/live mailbox validation.
 
@@ -24,5 +24,5 @@
 
 ## Current Focus
 
-- [ ] `#224` Fix storefront medium-screen responsiveness and section spacing.
-- [ ] Next storefront performance slice after `#224`: shrink public entry preload and remove first-screen `motion` cost.
+- [x] `#237` Clean rerun storefront product performance test.
+- [x] `#238` Restore homepage `LCP` under the automated `3500ms` budget.

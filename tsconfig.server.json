@@ -33,7 +33,11 @@
   },
   "include": [
     "apps/framework/src/**/*.ts",
-    "apps/framework/**/*.ts",
+    "apps/framework/engines/**/*.ts",
+    "apps/framework/lib/**/*.ts",
+    "apps/framework/manifests/**/*.ts",
+    "apps/framework/runtime/**/*.ts",
+    "apps/framework/testing/**/*.ts",
     "apps/*/src/**/*.ts",
     "apps/*/database/**/*.ts",
     "apps/*/helper/**/*.ts",

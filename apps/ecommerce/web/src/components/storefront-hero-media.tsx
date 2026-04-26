@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -24,29 +24,20 @@ export function StorefrontHeroMedia({
   className?: string
 }) {
   const hasImage = hasImageCandidate(imageUrl)
-  const [hasImageLoadFailed, setHasImageLoadFailed] = useState(false)
   const resolvedImageUrl = useMemo(
     () => (hasImage ? resolveStorefrontImageUrl(imageUrl) : null),
     [hasImage, imageUrl]
   )
 
-  useEffect(() => {
-    setHasImageLoadFailed(false)
-  }, [resolvedImageUrl])
-
-  if (hasImage && resolvedImageUrl && !hasImageLoadFailed) {
+  if (hasImage && resolvedImageUrl) {
     return (
-      <img
-        src={resolvedImageUrl}
-        alt={alt}
-        width={width}
-        height={height}
-        className={cn("block h-full w-full object-cover object-center", className)}
-        loading="eager"
-        decoding="async"
-        fetchPriority="high"
-        onError={() => {
-          setHasImageLoadFailed(true)
+      <div
+        role="img"
+        aria-label={alt}
+        className={cn("block h-full w-full bg-cover bg-center", className)}
+        style={{
+          aspectRatio: `${width} / ${height}`,
+          backgroundImage: `url("${resolvedImageUrl}")`,
         }}
       />
     )

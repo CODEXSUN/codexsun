@@ -207,7 +207,7 @@ export function validateDiscoveryBoardDesigner(
       validateRequiredMedia(
         issues,
         `${prefix}.images.${imageIndex}`,
-        imageUrl,
+        imageUrl ?? "",
         `${label} image ${imageIndex + 1}`
       )
     })

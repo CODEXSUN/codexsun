@@ -37,6 +37,7 @@ function createCard(index: number): StorefrontDiscoveryBoardCard {
     title: `Discovery board ${index + 1}`,
     href: "/shop/catalog",
     imageLinks: [],
+    imageTitles: [],
     images: Array.from({ length: 4 }, (_, imageIndex) =>
       `https://placehold.co/560x560/f3eee7/2b211b?text=Board+${index + 1}+${imageIndex + 1}`
     ),
@@ -267,7 +268,7 @@ export function StorefrontDiscoveryBoardSection() {
                       <div key={`${card.id}:${imageIndex}`} className="space-y-2">
                         <Label>Image {imageIndex + 1}</Label>
                         <FrameworkMediaPickerField
-                          value={imageUrl}
+                          value={imageUrl ?? ""}
                           onChange={(value) =>
                             updateCard(card.id, (current) => ({
                               ...current,

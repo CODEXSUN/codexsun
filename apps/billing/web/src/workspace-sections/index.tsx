@@ -8834,6 +8834,12 @@ function SalesVoucherShowSection({
 
   const sales = selectedVoucher.sales
   if (!sales) return null
+  const referenceDate =
+    selectedVoucher.billAllocations.find(
+      (allocation) => allocation.referenceNumber === sales.referenceNumber
+    )?.referenceDate ?? null
+  const invoiceHeaderLabel =
+    selectedVoucher.dimensions.branch ?? sales.voucherTypeName
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
@@ -8872,7 +8878,7 @@ function SalesVoucherShowSection({
                 <p className="text-muted-foreground mt-1 text-sm">{sales.voucherTypeName}</p>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-foreground">{selectedVoucher.companyId}</p>
+                <p className="font-semibold text-foreground">{invoiceHeaderLabel}</p>
               </div>
             </div>
 
@@ -8903,10 +8909,10 @@ function SalesVoucherShowSection({
                      <p className="text-foreground font-medium">{sales.referenceNumber}</p>
                    </div>
                 )}
-                {sales.referenceDate && (
+                {referenceDate && (
                    <div>
                      <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-1">Ref Date</p>
-                     <p className="text-foreground font-medium">{sales.referenceDate}</p>
+                     <p className="text-foreground font-medium">{referenceDate}</p>
                    </div>
                 )}
               </div>

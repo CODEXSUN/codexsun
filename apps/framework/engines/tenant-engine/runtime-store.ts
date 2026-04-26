@@ -4,7 +4,7 @@ import {
   ensureJsonStoreTable,
   listJsonStorePayloads,
   replaceJsonStoreRecords,
-} from "../../../apps/framework/src/runtime/database/process/json-store.js"
+} from "../../src/runtime/database/process/json-store.js"
 
 export const tenantEngineTableNames = {
   tenants: "engine_tenant_records",

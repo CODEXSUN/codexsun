@@ -2,88 +2,13 @@
 
 ## Active
 
-- [x] `#236` Move top-level framework content into apps/framework
-  - [x] Phase 1: safe merge
-    - [x] 1.1 inspect source and target directories for conflicts
-    - [x] 1.2 copy and hash-verify root `framework` content into `apps/framework`
-    - [x] 1.3 remove the verified empty root `framework` directory
-    - [x] 1.4 update imports and TypeScript includes to the new app path
-  - [x] Phase 2: validation
-    - [x] 2.1 verify root `framework` is removed and no active old root references remain
-    - [x] 2.2 run focused lint on the moved framework import consumers
-- [x] `#235` Move top-level cxapp content into apps/cxapp
-  - [x] Phase 1: safe merge
-    - [x] 1.1 inspect source and target directories for conflicts
-    - [x] 1.2 move root `cxapp` folders and README into `apps/cxapp`
-    - [x] 1.3 update moved relative imports
-  - [x] Phase 2: validation
-    - [x] 2.1 verify root `cxapp` is removed and no old root references remain
-    - [x] 2.2 run focused lint on the moved mapper
-- [x] `#234` Remove core product stock as a storefront stock source
-  - [x] Phase 1: boundary cleanup
-    - [x] 1.1 remove the stock seeder that copied core product `stockItems` into live balances
-    - [x] 1.2 scrub product master stock quantities during core product projection and upsert
-    - [x] 1.3 keep storefront readiness and product quantity attached to stock live balances
-  - [x] Phase 2: validation
-    - [x] 2.1 replace the stale SQLite-backed stock seeder test with structural flow coverage
-    - [x] 2.2 run focused stock/product validation
-- [x] `#233` Qualify purchase receipt to live stock flow
-  - [x] Phase 1: flow verification
-    - [x] 1.1 inspect purchase receipt, stock entry, acceptance, live balance, and movement ledger wiring
-    - [x] 1.2 add focused automated coverage for receipt-to-live-stock qualification
-  - [x] Phase 2: validation
-    - [x] 2.1 run the focused stock flow test
-- [x] `#232` Prioritize live-stock products on storefront
-  - [x] Phase 1: storefront product ordering
-    - [x] 1.1 add shared live-stock-first storefront product comparator
-    - [x] 1.2 apply live-stock-first ordering to storefront home lanes, catalog results, and related products
-  - [x] Phase 2: validation
-    - [x] 2.1 run focused validation for the touched ecommerce service
-- [x] `#231` Harden billing sales item table responsiveness
-  - [x] Phase 1: sales item table sizing
-    - [x] 1.1 tune the shared fit-to-container inline table cell behavior
-    - [x] 1.2 distribute sales item columns by business weight while keeping serial and action compact
-  - [x] Phase 2: validation
-    - [x] 2.1 run focused type or lint validation for the touched UI files
-- [x] `#230` Add `db:fresh` for clean database installation
-  - [x] Phase 1: helper wiring
-    - [x] 1.1 extend the CLI database helper with a destructive fresh command
-    - [x] 1.2 add the root `db:fresh` script for the clean-install path
-  - [x] Phase 2: docs and validation
-    - [x] 2.1 update setup guidance for the new clean-install database command
-    - [x] 2.2 run focused validation for the helper change
-- [ ] `#229` Finalize storefront home merchandising and overflow hardening
-  - [x] Phase 1: shared storefront model
-    - [x] 1.1 add discovery-board and visual-strip schemas
-    - [x] 1.2 add default storefront seed data
-    - [x] 1.3 add storefront settings get and save helpers
-  - [x] Phase 2: ecommerce admin wiring
-    - [x] 2.1 add internal routes and web API methods
-    - [x] 2.2 add sidebar menu entries and workspace routing
-    - [x] 2.3 add dedicated admin designer forms and validation
-  - [x] Phase 3: storefront rendering
-    - [x] 3.1 add reusable UI blocks for the new sections
-    - [x] 3.2 wire homepage visibility and lazy-render sections
-    - [x] 3.3 render the new sections on the public storefront home page
-    - [x] 3.4 convert brand stories into a marquee-style brand slider
-    - [x] 3.5 harden shared storefront section framing and clip below-fold overflow
-    - [x] 3.6 tune storefront first-render, lane sizing, and hero/product-card behavior
-    - [x] 3.7 contain marquee and deferred rail overflow around the gift-area scroll path
-  - [ ] Phase 4: validation
-    - [x] 4.1 run storefront build validation
-    - [x] 4.2 refactor storefront sections and shell surfaces to full-width `px-20` desktop gutters
-    - [x] 4.3 remove visible inner rail scrollbars and tune responsive storefront gutters
-    - [x] 4.4 add technical badge/data markers to storefront lower-home blocks for exact issue targeting
-    - [x] 4.5 make discovery-board collage images own the catalog/product link target
-    - [x] 4.6 add core product merchandising flags for discovery-board and visual-strip storefront products
-    - [x] 4.7 connect discovery-board and visual-strip cards directly to live product records
-    - [x] 4.8 add discovery-board and visual-strip controls to core product bulk edit
-    - [x] 4.9 refill discovery-board slots with ordered live products plus fallback cards
-    - [x] 4.10 keep checked discovery-board and visual-strip products visible even when product media is missing
-    - [x] 4.11 add editable brand-story images/SVG assets and render configured cards on storefront
-    - [x] 4.12 add one-form storefront theme designer for page background and shared card surfaces
-      - [x] 4.12.1 add shared theme schema, defaults, service helpers, and internal API route
-      - [x] 4.12.2 add admin theme designer form and side-menu entry
-      - [x] 4.12.3 apply theme variables to storefront background and shared cards
-      - [x] 4.12.4 validate focused lint and storefront build
-    - [ ] 4.13 ask for final storefront confirmation after latest overflow hardening
+- [x] `#238` Restore storefront homepage LCP budget
+  - [x] Phase 1: diagnose homepage LCP
+    - [x] 1.1 identify the homepage LCP element and current measured timing
+    - [x] 1.2 inspect first-screen storefront home render path for heavy preload or animation cost
+  - [x] Phase 2: implement focused fix
+    - [x] 2.1 apply the smallest homepage-first-render optimization
+    - [x] 2.2 keep catalog and product performance budgets passing
+  - [x] Phase 3: validation
+    - [x] 3.1 rerun homepage performance budget
+    - [x] 3.2 rerun full storefront performance config
