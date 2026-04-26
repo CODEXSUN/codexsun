@@ -17,29 +17,7 @@ export async function readProjectedStorefrontProducts(database: Kysely<unknown>)
           : Array.isArray((item as { attributes?: unknown }).attributes)
             ? ((item as { attributes: unknown[] }).attributes?.length ?? 0)
             : 0,
-      totalStockQuantity:
-        typeof (item as { totalStockQuantity?: unknown }).totalStockQuantity === "number"
-          ? (item as { totalStockQuantity: number }).totalStockQuantity
-          : [
-              ...(
-                Array.isArray((item as { stockItems?: unknown }).stockItems)
-                  ? ((item as { stockItems: Array<{ quantity?: unknown }> }).stockItems ?? [])
-                  : []
-              ),
-            ].reduce(
-              (sum, stockItem) =>
-                sum + (typeof stockItem.quantity === "number" ? stockItem.quantity : 0),
-              0
-            ) +
-            (
-              Array.isArray((item as { variants?: unknown }).variants)
-                ? ((item as { variants: Array<{ stockQuantity?: unknown }> }).variants ?? [])
-                : []
-            ).reduce(
-              (sum, variant) =>
-                sum + (typeof variant.stockQuantity === "number" ? variant.stockQuantity : 0),
-              0
-            ),
+      totalStockQuantity: 0,
     })
   )
 }

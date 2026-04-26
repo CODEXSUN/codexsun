@@ -5,11 +5,11 @@ import type {
 } from "../shared/index.js"
 import type {
   BillingInventoryTranslation,
-} from "../../../framework/engines/inventory-engine/translations/index.js"
+} from "../../framework/engines/inventory-engine/translations/index.js"
 import type {
   InventoryPutawayTask,
   InventoryStockMovement,
-} from "../../../framework/engines/inventory-engine/contracts/index.js"
+} from "../../framework/engines/inventory-engine/contracts/index.js"
 
 type BillingInventoryMapperContext = {
   tenantId: string

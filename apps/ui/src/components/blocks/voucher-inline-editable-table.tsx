@@ -59,10 +59,18 @@ export function VoucherInlineEditableTable<Row>({
   fitToContainer = false,
   containerClassName,
 }: VoucherInlineEditableTableProps<Row>) {
-  const compactIndexColumnWidth = 18
-  const compactActionColumnWidth = 28
-  const compactIndexColumnStyle = { width: compactIndexColumnWidth, minWidth: compactIndexColumnWidth, maxWidth: compactIndexColumnWidth }
-  const compactActionColumnStyle = { width: compactActionColumnWidth, minWidth: compactActionColumnWidth, maxWidth: compactActionColumnWidth }
+  const compactIndexColumnWidth = 30
+  const compactActionColumnWidth = 38
+  const compactIndexColumnStyle = {
+    maxWidth: compactIndexColumnWidth,
+    minWidth: compactIndexColumnWidth,
+    width: compactIndexColumnWidth,
+  }
+  const compactActionColumnStyle = {
+    maxWidth: compactActionColumnWidth,
+    minWidth: compactActionColumnWidth,
+    width: compactActionColumnWidth,
+  }
 
   return (
     <section
@@ -135,7 +143,9 @@ export function VoucherInlineEditableTable<Row>({
                   key={column.id}
                   className={cn(
                     "border-r border-border/60 font-semibold uppercase tracking-[0.14em] text-muted-foreground last:border-r-0",
-                    fitToContainer ? "px-1.5 text-[10px]" : "px-2 text-[11px]",
+                    fitToContainer
+                      ? "overflow-hidden text-ellipsis whitespace-nowrap px-1.5 text-[10px]"
+                      : "px-2 text-[11px]",
                     column.headerClassName,
                     onRemoveRow && column.id === columns[columns.length - 1]?.id ? "border-r" : ""
                   )}
@@ -151,7 +161,14 @@ export function VoucherInlineEditableTable<Row>({
                     fitToContainer ? "px-1 text-[8px]" : "w-12 min-w-12 px-2 text-[11px]"
                   )}
                 >
-                  Action
+                  {fitToContainer ? (
+                    <>
+                      <span aria-hidden>Act</span>
+                      <span className="sr-only">Action</span>
+                    </>
+                  ) : (
+                    "Action"
+                  )}
                 </TableHead>
               ) : null}
             </TableRow>
@@ -192,7 +209,9 @@ export function VoucherInlineEditableTable<Row>({
                       key={column.id}
                       className={cn(
                         "border-r border-border/50 align-middle last:border-r-0",
-                        fitToContainer ? "px-1.5 py-0.5" : "px-2 py-1",
+                        fitToContainer
+                          ? "min-w-0 overflow-hidden px-1.5 py-0.5 [&_*]:min-w-0"
+                          : "px-2 py-1",
                         column.cellClassName,
                         onRemoveRow && column.id === columns[columns.length - 1]?.id ? "border-r" : ""
                       )}

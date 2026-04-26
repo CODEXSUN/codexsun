@@ -2145,7 +2145,9 @@ function SalesInvoiceEditor({
             {
               id: "itemName",
               header: "Product",
-              headerClassName: "min-w-60",
+              width: "30%",
+              headerClassName: "w-[30%]",
+              cellClassName: "w-[30%]",
               renderCell: (item, index) => {
                 const rowOptions =
                   item.productId || !item.itemName
@@ -2177,7 +2179,9 @@ function SalesInvoiceEditor({
             {
               id: "description",
               header: "Description",
+              width: "34%",
               headerClassName: "w-[34%]",
+              cellClassName: "w-[34%]",
               renderCell: (item, index) => (
                 <Input
                   className={voucherInlineInputClassName}
@@ -2192,8 +2196,9 @@ function SalesInvoiceEditor({
             {
               id: "quantity",
               header: "Qty",
-              headerClassName: "w-[12%]",
-              cellClassName: "w-[12%]",
+              width: "9%",
+              headerClassName: "w-[9%]",
+              cellClassName: "w-[9%]",
               renderCell: (item, index) => (
                 <Input
                   className={voucherInlineInputClassName}
@@ -2210,8 +2215,9 @@ function SalesInvoiceEditor({
             {
               id: "rate",
               header: "Rate",
-              headerClassName: "w-[14%]",
-              cellClassName: "w-[14%]",
+              width: "11%",
+              headerClassName: "w-[11%]",
+              cellClassName: "w-[11%]",
               renderCell: (item, index) => (
                 <Input
                   className={voucherInlineInputClassName}
@@ -2228,8 +2234,9 @@ function SalesInvoiceEditor({
             {
               id: "amount",
               header: "Amount",
-              headerClassName: "w-[14%] text-right",
-              cellClassName: "w-[14%] text-right font-medium text-foreground",
+              width: "16%",
+              headerClassName: "w-[16%] text-right",
+              cellClassName: "w-[16%] truncate text-right font-medium text-foreground",
               renderCell: (item) => formatAmount(getSalesItemAmount(item)),
             },
           ]}
@@ -2841,7 +2848,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "itemName",
                   header: "Product",
-                  headerClassName: "min-w-60",
+                  width: "30%",
+                  headerClassName: "w-[30%]",
+                  cellClassName: "w-[30%]",
                   renderCell: (item, index) => {
                     const rowOptions =
                       item.productId || !item.itemName
@@ -2867,7 +2876,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "description",
                   header: "Description",
+                  width: "34%",
                   headerClassName: "w-[34%]",
+                  cellClassName: "w-[34%]",
                   renderCell: (item, index) => (
                     <Input
                       className={voucherInlineInputClassName}
@@ -2882,8 +2893,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "quantity",
                   header: "Qty",
-                  headerClassName: "w-[12%]",
-                  cellClassName: "w-[12%]",
+                  width: "9%",
+                  headerClassName: "w-[9%]",
+                  cellClassName: "w-[9%]",
                   renderCell: (item, index) => (
                     <Input
                       className={voucherInlineInputClassName}
@@ -2898,8 +2910,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "rate",
                   header: "Rate",
-                  headerClassName: "w-[14%]",
-                  cellClassName: "w-[14%]",
+                  width: "11%",
+                  headerClassName: "w-[11%]",
+                  cellClassName: "w-[11%]",
                   renderCell: (item, index) => (
                     <Input
                       className={voucherInlineInputClassName}
@@ -2914,8 +2927,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "amount",
                   header: "Amount",
-                  headerClassName: "w-[14%] text-right",
-                  cellClassName: "w-[14%] text-right font-medium text-foreground",
+                  width: "16%",
+                  headerClassName: "w-[16%] text-right",
+                  cellClassName: "w-[16%] truncate text-right font-medium text-foreground",
                   renderCell: (item) => formatAmount(getSalesItemAmount(item)),
                 },
               ]}

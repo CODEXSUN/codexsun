@@ -209,6 +209,10 @@ function getUtilityGroupsForCurrentApp(
     }))
     .filter((group) => group.items.length > 0)
 
+  if (app?.id === "billing") {
+    return []
+  }
+
   if (app?.id === "ecommerce") {
     return visibleGroups.filter((group) => group.id === "media") as readonly FrameworkUtilityGroup[]
   }

@@ -2,6 +2,49 @@
 
 ## Active
 
+- [x] `#236` Move top-level framework content into apps/framework
+  - [x] Phase 1: safe merge
+    - [x] 1.1 inspect source and target directories for conflicts
+    - [x] 1.2 copy and hash-verify root `framework` content into `apps/framework`
+    - [x] 1.3 remove the verified empty root `framework` directory
+    - [x] 1.4 update imports and TypeScript includes to the new app path
+  - [x] Phase 2: validation
+    - [x] 2.1 verify root `framework` is removed and no active old root references remain
+    - [x] 2.2 run focused lint on the moved framework import consumers
+- [x] `#235` Move top-level cxapp content into apps/cxapp
+  - [x] Phase 1: safe merge
+    - [x] 1.1 inspect source and target directories for conflicts
+    - [x] 1.2 move root `cxapp` folders and README into `apps/cxapp`
+    - [x] 1.3 update moved relative imports
+  - [x] Phase 2: validation
+    - [x] 2.1 verify root `cxapp` is removed and no old root references remain
+    - [x] 2.2 run focused lint on the moved mapper
+- [x] `#234` Remove core product stock as a storefront stock source
+  - [x] Phase 1: boundary cleanup
+    - [x] 1.1 remove the stock seeder that copied core product `stockItems` into live balances
+    - [x] 1.2 scrub product master stock quantities during core product projection and upsert
+    - [x] 1.3 keep storefront readiness and product quantity attached to stock live balances
+  - [x] Phase 2: validation
+    - [x] 2.1 replace the stale SQLite-backed stock seeder test with structural flow coverage
+    - [x] 2.2 run focused stock/product validation
+- [x] `#233` Qualify purchase receipt to live stock flow
+  - [x] Phase 1: flow verification
+    - [x] 1.1 inspect purchase receipt, stock entry, acceptance, live balance, and movement ledger wiring
+    - [x] 1.2 add focused automated coverage for receipt-to-live-stock qualification
+  - [x] Phase 2: validation
+    - [x] 2.1 run the focused stock flow test
+- [x] `#232` Prioritize live-stock products on storefront
+  - [x] Phase 1: storefront product ordering
+    - [x] 1.1 add shared live-stock-first storefront product comparator
+    - [x] 1.2 apply live-stock-first ordering to storefront home lanes, catalog results, and related products
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused validation for the touched ecommerce service
+- [x] `#231` Harden billing sales item table responsiveness
+  - [x] Phase 1: sales item table sizing
+    - [x] 1.1 tune the shared fit-to-container inline table cell behavior
+    - [x] 1.2 distribute sales item columns by business weight while keeping serial and action compact
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused type or lint validation for the touched UI files
 - [x] `#230` Add `db:fresh` for clean database installation
   - [x] Phase 1: helper wiring
     - [x] 1.1 extend the CLI database helper with a destructive fresh command

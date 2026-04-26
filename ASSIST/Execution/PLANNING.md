@@ -2,6 +2,135 @@
 
 ## Active
 
+- `#236` Move top-level framework content into apps/framework
+  - Goal:
+    - consolidate the remaining root-level `framework/` content into the canonical `apps/framework/` app folder without losing files
+  - Scope in this batch:
+    - move `framework/engines`, `framework/lib`, `framework/manifests`, `framework/runtime`, `framework/testing`, `framework/README.md`, and `framework/ROLL_OUT_GUIDE.md` into `apps/framework/`
+    - refuse destination overwrites and hash-verify copied files before deleting source paths
+    - update code imports that previously referenced root `framework/engines` or root `framework/manifests`
+    - update TypeScript project includes to use `apps/framework/**/*.ts`
+    - update assistant guidance and moved rollout guide paths
+  - Implemented in this batch:
+    - copied all root `framework/` content into `apps/framework/`, verified file lists and SHA-256 hashes, then removed the root `framework/` directory
+    - updated inventory-engine, tenant-engine, and industry manifest imports to resolve from `apps/framework`
+    - changed `tsconfig.json` and `tsconfig.server.json` from `framework/**/*.ts` to `apps/framework/**/*.ts`
+    - updated moved rollout-guide path references from `framework/...` to `apps/framework/...`
+  - Validation:
+    - confirmed `framework/` no longer exists at the workspace root
+    - confirmed `apps/framework/engines`, `apps/framework/lib`, `apps/framework/manifests`, `apps/framework/runtime`, `apps/framework/testing`, `apps/framework/README.md`, and `apps/framework/ROLL_OUT_GUIDE.md` exist
+    - passed focused ESLint for the moved framework import consumers
+- `#235` Move top-level cxapp content into apps/cxapp
+  - Goal:
+    - consolidate the remaining root-level `cxapp/` content into the canonical `apps/cxapp/` app folder without losing files
+  - Scope in this batch:
+    - move `cxapp/manifests`, `cxapp/orchestration`, `cxapp/shell`, `cxapp/workspace`, and `cxapp/README.md` into `apps/cxapp/`
+    - refuse the move if any destination path already exists
+    - remove the empty root `cxapp/` directory after the move
+    - update the moved orchestration mapper relative import for its new location
+    - update assistant docs that still described top-level `cxapp/` as present during migration
+  - Implemented in this batch:
+    - merged all root `cxapp/` contents into `apps/cxapp/` with no destination overwrites
+    - removed the empty top-level `cxapp/` directory
+    - updated `apps/cxapp/orchestration/inventory-engine-mappers.ts` for its new path
+  - Validation:
+    - confirmed `cxapp/` no longer exists at the workspace root
+    - confirmed `apps/cxapp/manifests`, `apps/cxapp/orchestration`, `apps/cxapp/shell`, `apps/cxapp/workspace`, and `apps/cxapp/README.md` exist
+    - passed `npx.cmd eslint apps/cxapp/orchestration/inventory-engine-mappers.ts`
+- `#234` Remove core product stock as a storefront stock source
+  - Goal:
+    - keep the final stock authority as `purchase receipt -> stock entry/barcode preparation -> acceptance verification -> stock ledger/live stock`, with storefront quantity attached only to confirmed live stock balances
+  - Scope in this batch:
+    - remove the stock database seeder that populated live balances from core product `stockItems`
+    - stop ecommerce projected products and core product reads from deriving any quantity from product stock fields
+    - scrub core product upsert output so submitted product stock fields do not persist as product master stock
+    - update storefront multi-warehouse readiness to read stock live balances instead of `product.stockItems`
+    - retire the old SQLite-backed core-stock seeder integration test and extend the structural stock-flow test to enforce the boundary
+  - Constraints:
+    - SQLite is no longer a supported runtime database driver, so stale SQLite-backed tests are not treated as authoritative
+    - a full DB-backed integration run still requires a working MariaDB or PostgreSQL test database; the local MariaDB client path is blocked by the current auth plugin setup
+  - Implemented in this batch:
+    - deleted `apps/stock/database/seeder/01-live-stock-from-core-products.ts` and left the stock seeder registry empty
+    - set projected/core product stock totals to zero at the product master boundary and returned empty product `stockItems`/`stockMovements` from core upsert paths
+    - kept variant product stock/opening quantities normalized to zero in core product form and service mapping
+    - moved storefront multi-warehouse readiness over to `listLiveStockBalances`
+    - extended `tests/stock/purchase-receipt-live-flow.test.ts` to assert the final acceptance-to-live-stock flow and absence of the core-product stock seeder/fallback
+  - Validation:
+    - passed `npx.cmd tsx --test tests/stock/purchase-receipt-live-flow.test.ts tests/core/product-form-state.test.ts`
+    - passed focused ESLint for the touched core, ecommerce, stock-flow test files with the pre-existing product upsert hook dependency warning disabled
+  - Known validation limit:
+    - full DB-backed integration coverage needs a configured MariaDB/PostgreSQL test database because SQLite runtime support has been removed
+- `#233` Qualify purchase receipt to live stock flow
+  - Goal:
+    - verify that the operational flow from purchase receipt through stock entry acceptance produces authoritative live stock and stock ledger evidence
+  - Why this slice now:
+    - storefront availability now depends on stock-owned live balances, so the upstream purchase receipt and stock entry path must be proven rather than inferred
+  - Scope in this batch:
+    - inspect the stock and billing service wiring for purchase receipts, goods inward/stock units, acceptance verification, live balances, and movement ledger reads
+    - add focused automated coverage for the qualified flow
+    - report any structural qualification gaps clearly
+  - Constraints:
+    - keep stock-owned `stock_live_balances` and `stock_movement_ledger` as the authority
+    - do not treat temporary posted/received stock units as sellable until acceptance writes live stock movement
+  - Planned validation:
+    - run the focused stock flow test
+  - Implemented in this batch:
+    - confirmed purchase receipt records are created through the stock facade but still persisted by the current billing-owned purchase receipt store
+    - confirmed barcode/stock entry preparation creates temporary `received` stock units and explicitly tells the operator acceptance is required before inventory becomes live
+    - confirmed acceptance verification is the step that marks units `available` and calls `applyLiveStockMovement` with reference type `billing_stock_acceptance`
+    - confirmed `applyLiveStockMovement` writes both `stock_live_balances` and `stock_movement_ledger`, and storefront availability reads from stock-owned live balances through `getAvailableQuantityByProductIds`
+    - added a focused structural test to guard the stock route, stock manager, billing lifecycle, UI messaging, and live stock ledger wiring
+  - Validation:
+    - passed `npx.cmd tsx --test tests/stock/purchase-receipt-live-flow.test.ts`
+    - passed `npx.cmd eslint tests/stock/purchase-receipt-live-flow.test.ts`
+  - Known validation limit:
+    - a full database-backed runtime qualification could not be run in this workspace because the current runtime no longer supports SQLite and the local MariaDB connection fails with the `auth_gssapi_client` authentication plugin error
+- `#232` Prioritize live-stock products on storefront
+  - Goal:
+    - show products with live sellable stock before out-of-stock products across public storefront product surfaces
+  - Why this slice now:
+    - storefront cards already carry `availableQuantity`, but the product ordering can still place out-of-stock products ahead of live-stock products in home lanes and catalog results
+  - Scope in this batch:
+    - keep out-of-stock products visible after live-stock products
+    - apply the ordering in the ecommerce storefront product payload builder
+    - preserve existing filters and merchandising/price/name sort behavior as secondary ordering
+  - Constraints:
+    - use stock-owned live availability already projected through `getAvailableQuantityByProductIds`
+    - keep this as ordering only; do not change checkout validation, inventory writes, or product schemas
+  - Planned validation:
+    - run focused lint or type validation for the changed ecommerce service
+  - Implemented in this batch:
+    - added a shared live-stock-first storefront card comparator using `availableQuantity > 0`
+    - applied live-stock-first ordering to storefront landing product lanes before section slices are selected
+    - applied live-stock-first ordering to catalog results for featured, latest, price-low, price-high, and search result sort paths
+    - applied live-stock-first ordering to product detail related and recommended product rails
+  - Validation:
+    - passed `npx.cmd eslint apps/ecommerce/src/services/catalog-service.ts`
+  - Known validation limit:
+    - `npx.cmd tsc --noEmit --pretty false` remains blocked by pre-existing unrelated billing type errors plus existing storefront discovery-board/type issues outside the touched service
+- `#231` Harden billing sales item table responsiveness
+  - Goal:
+    - make the billing sales voucher upsert sales-item grid fit the available screen width without exposing a horizontal scrollbar
+  - Why this slice now:
+    - the sales invoice item entry table is a dense operational surface, so serial and row actions should stay compact while product, description, quantity, rate, and amount columns share the remaining width predictably
+  - Scope in this batch:
+    - tighten the shared `VoucherInlineEditableTable` fit-to-container mode used by billing voucher entry forms
+    - assign explicit sales item column widths in the sales upsert surfaces
+    - preserve existing data entry behavior and avoid accounting/business logic changes
+  - Constraints:
+    - use the existing shared table block and project design-system table default instead of introducing a new one-off table composition
+    - keep changes UI-only and scoped to billing voucher entry
+  - Planned validation:
+    - run focused lint or type validation for the changed UI files, with any pre-existing billing typecheck blockers called out
+  - Implemented in this batch:
+    - tightened `VoucherInlineEditableTable` fit-to-container mode so compact index and action columns stay fixed while nested controls can shrink inside their cells
+    - shortened the compact action header to `Act` visually while preserving the accessible `Action` label
+    - assigned the sales item grid proportional widths of product `30%`, description `34%`, quantity `9%`, rate `11%`, and amount `16%` in both billing sales upsert render paths
+  - Validation:
+    - passed `npx.cmd eslint apps/ui/src/components/blocks/voucher-inline-editable-table.tsx`
+    - passed `npx.cmd eslint apps/billing/web/src/workspace-sections/index.tsx --rule "react-hooks/set-state-in-effect: off"`
+  - Known validation limit:
+    - the billing workspace file still has pre-existing hook lint warnings for dependency arrays, and the full repo typecheck is already documented as blocked by unrelated billing type errors
 - `#230` Add `db:fresh` for clean database installation
   - Goal:
     - add one explicit command that drops the current application schema contents and reruns the registered migration and seeder flow for clean local or operator-managed installs

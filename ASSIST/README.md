@@ -153,7 +153,7 @@ Current repository roots are not limited to `apps/`.
 - `clients/` holds client-overlay or tenant-facing workspace roots; `clients/default` currently exists
 - `build/` holds generated app and module outputs
 - `cxmedia/` is a root-level standalone media storage and CDN service that lives in the same repository but runs outside the framework-composed suite
-- legacy top-level directories such as `framework/` and `cxapp/` may still exist during migration work, but active suite ownership lives under `apps/`
+- active suite ownership lives under `apps/`; former top-level `cxapp/` and `framework/` content now lives under `apps/cxapp/` and `apps/framework/`
 
 ## Current App Structure
 

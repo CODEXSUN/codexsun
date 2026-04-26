@@ -2,9 +2,41 @@
 
 ## Version State
 
-- Current package version: `1.0.230`
-- Current release tag: `v-1.0.230`
+- Current package version: `1.0.236`
+- Current release tag: `v-1.0.236`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.236
+
+### [v 1.0.236] 2026-04-26 - Move root framework content under apps/framework
+
+- moved the remaining top-level `framework/` content into the canonical `apps/framework/` app boundary after destination overwrite checks and file-hash verification
+- removed the now-empty root `framework/` directory
+- updated inventory-engine, tenant-engine, and industry manifest imports to resolve through `apps/framework`
+- changed TypeScript project includes from root `framework/**/*.ts` to `apps/framework/**/*.ts`
+- updated moved rollout-guide paths and assistant workspace guidance so root `framework/` is no longer treated as an expected migration directory
+- validated the move with old-path reference checks and focused ESLint for the moved framework import consumers
+
+## v-1.0.235
+
+### [v 1.0.235] 2026-04-26 - Move root cxapp content under apps/cxapp
+
+- moved the remaining top-level `cxapp/` folders and README into the canonical `apps/cxapp/` app boundary without overwriting existing app folders
+- removed the now-empty root `cxapp/` directory
+- updated the moved orchestration mapper relative import for its new path
+- updated assistant workspace guidance so it no longer treats top-level `cxapp/` as an expected migration directory
+- validated the move with old-path reference checks and focused ESLint for the moved mapper
+
+## v-1.0.234
+
+### [v 1.0.234] 2026-04-26 - Attach storefront quantity only to confirmed live stock
+
+- removed the stock seeder that copied core product `stockItems` into `stock_live_balances`, so live stock is no longer bootstrapped from product master stock fields
+- stopped core and ecommerce product projections from deriving product stock totals from product stock rows or variant stock quantities
+- scrubbed core product upsert output so product master saves do not persist submitted stock item or stock movement rows as stock authority
+- updated storefront multi-warehouse readiness to read stock live balances through the stock service instead of `product.stockItems`
+- kept the final stock flow as `purchase receipt -> stock entry/barcode preparation -> acceptance verification -> stock ledger/live stock`, with storefront quantity attached to confirmed live stock
+- replaced the stale SQLite-backed stock seeder test with structural stock-flow coverage; focused tests and ESLint passed, while full DB-backed integration still requires a configured MariaDB/PostgreSQL test database because SQLite runtime support has been removed
 
 ## v-1.0.230
 

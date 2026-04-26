@@ -1,8 +1,8 @@
 import type {
   EcommerceInventoryReleaseTranslation,
   EcommerceInventoryReservationTranslation,
-} from "../../../framework/engines/inventory-engine/translations/index.js"
-import type { EcommerceInventoryReservationRequest } from "../../../framework/engines/inventory-engine/adapters/index.js"
+} from "../../framework/engines/inventory-engine/translations/index.js"
+import type { EcommerceInventoryReservationRequest } from "../../framework/engines/inventory-engine/adapters/index.js"
 
 export type EcommerceReservationLineInput = {
   productId: string

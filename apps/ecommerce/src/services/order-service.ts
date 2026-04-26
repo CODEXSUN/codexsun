@@ -13,6 +13,7 @@ import {
 import { type Product } from "../../../core/shared/index.js"
 import {
   getAvailableQuantityByProductIds,
+  listLiveStockBalances,
   releaseLiveStockReservation,
   reserveLiveStock,
 } from "../../../stock/src/services/live-stock-service.js"
@@ -84,7 +85,6 @@ import {
   type StorefrontOverviewKpiReport,
   type StorefrontAttributionChannel,
   type StorefrontAttributionReport,
-  type StorefrontMultiWarehouseReadinessReport,
   type StorefrontStockReservation,
   type StorefrontRefundQueueItem,
   type StorefrontFulfilmentAgingItem,
@@ -3637,16 +3637,25 @@ export async function getStorefrontMultiWarehouseReadinessReport(
     readProjectedStorefrontProducts(database),
     readOrders(database),
   ])
+  const activeProducts = products.filter((product) => product.isActive)
+  const liveBalances = await listLiveStockBalances(database, {
+    productIds: activeProducts.map((product) => product.id),
+  })
+  const liveBalancesByProductId = liveBalances.reduce((items, balance) => {
+    const productBalances = items.get(balance.product_id) ?? []
+    productBalances.push(balance)
+    items.set(balance.product_id, productBalances)
+    return items
+  }, new Map<string, typeof liveBalances>())
 
-  const productItems = products
-    .filter((product) => product.isActive)
+  const productItems = activeProducts
     .map((product) => {
-      const activeStockItems = product.stockItems.filter((item) => item.isActive)
+      const productLiveBalances = liveBalancesByProductId.get(product.id) ?? []
       const warehouseIds = Array.from(
-        new Set(activeStockItems.map((item) => item.warehouseId).filter(Boolean))
+        new Set(productLiveBalances.map((item) => item.warehouse_id).filter(Boolean))
       )
-      const totalSellableQuantity = activeStockItems.reduce(
-        (sum, item) => sum + Math.max(0, item.quantity - item.reservedQuantity),
+      const totalSellableQuantity = productLiveBalances.reduce(
+        (sum, item) => sum + Math.max(0, item.available_quantity),
         0
       )
 
@@ -3656,7 +3665,7 @@ export async function getStorefrontMultiWarehouseReadinessReport(
         productSlug: product.slug,
         totalSellableQuantity,
         activeWarehouseCount: warehouseIds.length,
-        activeStockRowCount: activeStockItems.length,
+        activeStockRowCount: productLiveBalances.length,
         warehouseIds,
         isSplitAllocationReady: warehouseIds.length > 1 && totalSellableQuantity > 0,
         isLowStock: totalSellableQuantity > 0 && totalSellableQuantity <= 5,

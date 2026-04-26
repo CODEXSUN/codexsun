@@ -1045,11 +1045,6 @@ export function ProductUpsertSection({
                           ? entry
                           : { ...entry, variantClientKey: null }
                       ),
-                      stockItems: current.stockItems.map((entry) =>
-                        entry.variantClientKey == null
-                          ? entry
-                          : { ...entry, variantClientKey: null }
-                      ),
                     }
                   })
                 }
@@ -1187,11 +1182,6 @@ export function ProductUpsertSection({
                       (entry) => entry.clientKey !== variant.clientKey
                     ),
                     prices: current.prices.map((entry) =>
-                      entry.variantClientKey === variant.clientKey
-                        ? { ...entry, variantClientKey: null }
-                        : entry
-                    ),
-                    stockItems: current.stockItems.map((entry) =>
                       entry.variantClientKey === variant.clientKey
                         ? { ...entry, variantClientKey: null }
                         : entry

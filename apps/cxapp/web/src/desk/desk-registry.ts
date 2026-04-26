@@ -451,7 +451,9 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
     }
 
     return [
-      ...billingWorkspaceItems.map((item) => ({
+      ...billingWorkspaceItems
+        .filter((item) => item.id !== "support-ledger-guide")
+        .map((item) => ({
         id: `${app.id}-${item.id}`,
         name: item.name,
         route: item.route,
@@ -465,7 +467,6 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
               ]
             : undefined,
       })),
-      ...createTechnicalWorkspaceModules(app, root),
     ]
   }
 
@@ -1187,30 +1188,6 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 group.items.some((groupItem) => groupItem.route === item.route)
               ),
             })),
-            {
-              id: `${app.id}-workspace`,
-              label: "Workspace",
-              shared: true,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/apps/${app.id}/backend`,
-                  `/dashboard/apps/${app.id}/structure`,
-                  `/dashboard/apps/${app.id}/web`,
-                  `/dashboard/apps/${app.id}/api`,
-                  `/dashboard/apps/${app.id}/database`,
-                ].includes(item.route)
-              ),
-            },
-            {
-              id: `${app.id}-support`,
-              label: "Support",
-              shared: true,
-              items: modules.filter((item) =>
-                [
-                  `/dashboard/billing/support/ledger-guide`,
-                ].includes(item.route)
-              ),
-            },
           ]
       : [
           {

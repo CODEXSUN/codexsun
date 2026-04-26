@@ -5,7 +5,6 @@ import type {
   ProductOfferInput,
   ProductReviewInput,
   ProductSeoInput,
-  ProductStockMovementInput,
   ProductStorefrontInput,
   ProductTagInput,
   ProductUpsertPayload,
@@ -73,8 +72,6 @@ export type ProductVariantFormValue = {
   variantName: string
   price: number
   costPrice: number
-  stockQuantity: number
-  openingStock: number
   weight: number | null
   barcode: string
   isActive: boolean
@@ -90,24 +87,21 @@ export type ProductPriceFormValue = {
   isActive: boolean
 }
 
-export type ProductStockItemFormValue = {
-  variantClientKey: string | null
-  warehouseId: string
-  quantity: number
-  reservedQuantity: number
-  isActive: boolean
-}
-
 export type ProductFormValues = Omit<
   ProductUpsertPayload,
-  "variants" | "attributes" | "attributeValues" | "prices" | "stockItems" | "variantMap"
+  | "variants"
+  | "attributes"
+  | "attributeValues"
+  | "prices"
+  | "stockItems"
+  | "stockMovements"
+  | "variantMap"
 > & {
   variants: ProductVariantFormValue[]
   attributes: ProductAttributeFormValue[]
   attributeValues: ProductAttributeValueFormValue[]
   variantMap: ProductUpsertPayload["variantMap"]
   prices: ProductPriceFormValue[]
-  stockItems: ProductStockItemFormValue[]
 }
 
 export const storefrontDepartmentOptions: LocalOption[] = [
@@ -201,8 +195,6 @@ export function createEmptyProductVariant(): ProductVariantFormValue {
     variantName: "",
     price: 0,
     costPrice: 0,
-    stockQuantity: 0,
-    openingStock: 0,
     weight: null,
     barcode: "",
     isActive: true,
@@ -217,16 +209,6 @@ export function createEmptyProductPrice(): ProductPriceFormValue {
     mrp: 0,
     sellingPrice: 0,
     costPrice: 0,
-    isActive: true,
-  }
-}
-
-export function createEmptyProductStockItem(): ProductStockItemFormValue {
-  return {
-    variantClientKey: null,
-    warehouseId: "",
-    quantity: 0,
-    reservedQuantity: 0,
     isActive: true,
   }
 }
@@ -282,8 +264,6 @@ export function createDefaultProductFormValues(): ProductFormValues {
     attributes: [],
     attributeValues: [],
     variantMap: [],
-    stockItems: [],
-    stockMovements: [],
     seo: {
       metaTitle: "",
       metaDescription: "",
@@ -493,8 +473,6 @@ export function toProductFormValues(product: Product): ProductFormValues {
       variantName: item.variantName,
       price: item.price,
       costPrice: item.costPrice,
-      stockQuantity: item.stockQuantity,
-      openingStock: item.openingStock,
       weight: item.weight,
       barcode: toEditableString(item.barcode),
       isActive: item.isActive,
@@ -577,31 +555,6 @@ export function toProductFormValues(product: Product): ProductFormValues {
       valueClientKey: item.valueId,
       isActive: item.isActive,
     })),
-    stockItems:
-      product.stockItems.length > 0
-        ? product.stockItems.map((item) => ({
-            variantClientKey: item.variantId
-              ? variantClientKeyById.get(item.variantId) ?? item.variantId
-              : null,
-            warehouseId: item.warehouseId,
-            quantity: item.quantity,
-            reservedQuantity: item.reservedQuantity,
-            isActive: item.isActive,
-          }))
-        : [],
-    stockMovements: product.stockMovements.map((item) => ({
-      variantId: item.variantId,
-      variantClientKey: item.variantId
-        ? variantClientKeyById.get(item.variantId) ?? item.variantId
-        : null,
-      warehouseId: item.warehouseId,
-      movementType: item.movementType,
-      quantity: item.quantity,
-      referenceType: toEditableString(item.referenceType),
-      referenceId: toEditableString(item.referenceId),
-      movementAt: item.movementAt,
-      isActive: item.isActive,
-    })) as ProductStockMovementInput[],
     seo: product.seo
       ? ({
           metaTitle: toEditableString(product.seo.metaTitle),
@@ -712,17 +665,9 @@ export function toProductUpsertPayload(values: ProductFormValues): ProductUpsert
   const prices = values.prices.filter(
     (price) => price.variantClientKey == null || validVariantKeys.has(price.variantClientKey)
   )
-  const stockItems = values.stockItems.filter(
-    (item) =>
-      hasValue(item.warehouseId) &&
-      (item.variantClientKey == null || validVariantKeys.has(item.variantClientKey))
-  )
   const tags = values.tags.filter((tag) => hasValue(tag.name))
   const discounts = values.discounts.filter((discount) => hasValue(discount.discountType))
   const offers = values.offers.filter((offer) => hasValue(offer.title))
-  const stockMovements = values.stockMovements.filter(
-    (movement) => hasValue(movement.movementType) && hasValue(movement.movementAt)
-  )
   const reviews = values.reviews.filter(
     (review) => review.rating >= 1 && review.rating <= 5 && hasValue(review.reviewDate)
   )
@@ -755,8 +700,8 @@ export function toProductUpsertPayload(values: ProductFormValues): ProductUpsert
       variantName: variant.variantName,
       price: variant.price,
       costPrice: variant.costPrice,
-      stockQuantity: variant.stockQuantity,
-      openingStock: variant.openingStock,
+      stockQuantity: 0,
+      openingStock: 0,
       weight: variant.weight,
       barcode: variant.barcode || null,
       isActive: variant.isActive,
@@ -796,15 +741,8 @@ export function toProductUpsertPayload(values: ProductFormValues): ProductUpsert
       valueClientKey: value.clientKey,
       isActive: value.isActive,
     })),
-    stockItems: stockItems.map((item) => ({
-      variantId: item.variantClientKey,
-      variantClientKey: item.variantClientKey,
-      warehouseId: item.warehouseId,
-      quantity: item.quantity,
-      reservedQuantity: item.reservedQuantity,
-      isActive: item.isActive,
-    })),
-    stockMovements,
+    stockItems: [],
+    stockMovements: [],
     tags,
     reviews,
   } as ProductUpsertPayload

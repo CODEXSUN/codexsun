@@ -1,7 +1,7 @@
-import type { InventoryAvailability } from "../../../framework/engines/inventory-engine/contracts/index.js"
+import type { InventoryAvailability } from "../../framework/engines/inventory-engine/contracts/index.js"
 import type {
   CoreInventoryProjectionTranslation,
-} from "../../../framework/engines/inventory-engine/translations/index.js"
+} from "../../framework/engines/inventory-engine/translations/index.js"
 
 export type CoreProjectedStockItem = {
   productId: string

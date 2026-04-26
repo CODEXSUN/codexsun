@@ -1,8 +1,8 @@
 import type { Kysely } from "kysely"
 
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
-import type { TenantContext } from "../../../../framework/engines/tenant-engine/services.js"
-import { createTenantEngineRuntimeServices } from "../../../../framework/engines/tenant-engine/runtime-services.js"
+import type { TenantContext } from "../../../framework/engines/tenant-engine/services.js"
+import { createTenantEngineRuntimeServices } from "../../../framework/engines/tenant-engine/runtime-services.js"
 import { listCompanies } from "./company-service.js"
 import {
   syncCxappCompaniesToTenantEngine,

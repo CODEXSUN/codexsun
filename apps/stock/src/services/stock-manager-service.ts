@@ -28,14 +28,14 @@ import type { AuthUser } from "../../../cxapp/shared/index.js"
 import { resolveCxappTenantContext } from "../../../cxapp/src/services/tenant-context-service.js"
 import {
   createInventoryEngineRuntimeDiagnostics,
-} from "../../../../framework/engines/inventory-engine/runtime-diagnostics.js"
+} from "../../../framework/engines/inventory-engine/runtime-diagnostics.js"
 import {
   createInventoryEngineRuntimeServices,
-} from "../../../../framework/engines/inventory-engine/runtime-services.js"
+} from "../../../framework/engines/inventory-engine/runtime-services.js"
 import type {
   InventoryStockReservation,
   InventoryStockTransfer,
-} from "../../../../framework/engines/inventory-engine/contracts/index.js"
+} from "../../../framework/engines/inventory-engine/contracts/index.js"
 import {
   billingGoodsInwardSchema,
   billingPurchaseReceiptSchema,

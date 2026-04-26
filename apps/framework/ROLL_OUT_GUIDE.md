@@ -21,11 +21,11 @@ Additional rule:
 
 Put new code in:
 
-- `framework/runtime`
+- `apps/framework/runtime`
   - config, database runtime, HTTP runtime, auth primitives, host lifecycle
-- `framework/engines`
+- `apps/framework/engines`
   - reusable business-capability engines shared across more than one app or industry
-- `framework/lib`
+- `apps/framework/lib`
   - low-level shared contracts, helper types, and platform-safe utilities
 - `apps/<app>`
   - app-owned workflows, app-owned backend modules, app-owned frontend
@@ -67,7 +67,7 @@ Reason:
 
 Recommended first stock split:
 
-1. `framework/engines/inventory-engine`
+1. `apps/framework/engines/inventory-engine`
    - movement ledger
    - warehouse topology
    - stock identity
@@ -84,10 +84,10 @@ Recommended first stock split:
 
 Every new engine, app, industry pack, or client overlay should add a manifest using:
 
-- `framework/manifests/engine-manifest.ts`
-- `framework/manifests/app-manifest.ts`
-- `framework/manifests/industry-manifest.ts`
-- `framework/manifests/client-manifest.ts`
+- `apps/framework/manifests/engine-manifest.ts`
+- `apps/framework/manifests/app-manifest.ts`
+- `apps/framework/manifests/industry-manifest.ts`
+- `apps/framework/manifests/client-manifest.ts`
 
 Keep manifests small at first:
 

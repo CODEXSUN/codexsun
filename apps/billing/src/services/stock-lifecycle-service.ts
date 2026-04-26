@@ -8,7 +8,7 @@ import { listCompanies } from "../../../cxapp/src/services/company-service.js"
 import { resolveCxappTenantContext } from "../../../cxapp/src/services/tenant-context-service.js"
 import { coreTableNames } from "../../../core/database/table-names.js"
 import { productSchema, type Product } from "../../../core/shared/index.js"
-import { createInventoryEngineRuntimeServices } from "../../../../framework/engines/inventory-engine/runtime-services.js"
+import { createInventoryEngineRuntimeServices } from "../../../framework/engines/inventory-engine/runtime-services.js"
 import { applyLiveStockMovement } from "../../../stock/src/services/live-stock-service.js"
 import {
   listJsonStorePayloads,

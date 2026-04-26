@@ -154,6 +154,29 @@ function scoreSearchResult(item: StorefrontProductCard, search: string) {
   return score
 }
 
+function hasLiveStock(item: Pick<StorefrontProductCard, "availableQuantity">) {
+  return item.availableQuantity > 0
+}
+
+function compareLiveStockFirst(
+  left: Pick<StorefrontProductCard, "availableQuantity">,
+  right: Pick<StorefrontProductCard, "availableQuantity">
+) {
+  return Number(hasLiveStock(right)) - Number(hasLiveStock(left))
+}
+
+function sortStorefrontProductCards(
+  items: StorefrontProductCard[],
+  compareWithinStockGroup: (left: StorefrontProductCard, right: StorefrontProductCard) => number
+) {
+  return items.sort(
+    (left, right) =>
+      compareLiveStockFirst(left, right) ||
+      compareWithinStockGroup(left, right) ||
+      left.name.localeCompare(right.name)
+  )
+}
+
 function buildRecommendationCandidates(
   products: Product[],
   input: {
@@ -222,6 +245,7 @@ function buildRecommendationCandidates(
     .filter((item) => item.score > 0)
     .sort(
       (left, right) =>
+        compareLiveStockFirst(left, right) ||
         right.score - left.score ||
         right.availableQuantity - left.availableQuantity ||
         left.name.localeCompare(right.name)
@@ -509,6 +533,14 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
   const items = products
     .filter((item) => item.isActive)
     .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
+    .sort(
+      (left, right) =>
+        compareLiveStockFirst(left, right) ||
+        Number(right.isFeaturedLabel) - Number(left.isFeaturedLabel) ||
+        Number(right.isBestSeller) - Number(left.isBestSeller) ||
+        Number(right.isNewArrival) - Number(left.isNewArrival) ||
+        left.name.localeCompare(right.name)
+    )
   const featuredItemCount = Math.max(
     1,
     (settings.sections.featured.cardsPerRow ?? 4) *
@@ -529,14 +561,14 @@ export async function getStorefrontLanding(database: Kysely<unknown>) {
     .filter((item) => item.isActive && item.homeSliderEnabled)
     .sort(
       (left, right) =>
+        Number((availableQuantityByProductId.get(right.id) ?? 0) > 0) -
+          Number((availableQuantityByProductId.get(left.id) ?? 0) > 0) ||
         (left.storefront?.homeSliderOrder ?? 0) -
           (right.storefront?.homeSliderOrder ?? 0) ||
         left.name.localeCompare(right.name)
     )
     .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
-  const featured = items
-    .filter((item) => item.isFeaturedLabel)
-    .slice(0, featuredItemCount)
+  const featured = items.filter((item) => item.isFeaturedLabel).slice(0, featuredItemCount)
   const newArrivals = items.filter((item) => item.isNewArrival).slice(0, newArrivalItemCount)
   const bestSellers = items.filter((item) => item.isBestSeller).slice(0, bestSellerItemCount)
   const categories = await listStorefrontCategories(database, items)
@@ -700,10 +732,9 @@ export async function getStorefrontCatalog(database: Kysely<unknown>, query: unk
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(search))
     )
-    items.sort(
-      (left, right) =>
-        scoreSearchResult(right, search) - scoreSearchResult(left, search) ||
-        left.name.localeCompare(right.name)
+    sortStorefrontProductCards(
+      items,
+      (left, right) => scoreSearchResult(right, search) - scoreSearchResult(left, search)
     )
   }
 
@@ -724,30 +755,24 @@ export async function getStorefrontCatalog(database: Kysely<unknown>, query: unk
 
   switch (filters.sort) {
     case "latest":
-      items.sort(
+      sortStorefrontProductCards(
+        items,
         (left, right) =>
-          Number(right.isNewArrival) - Number(left.isNewArrival) ||
-          left.name.localeCompare(right.name)
+          Number(right.isNewArrival) - Number(left.isNewArrival)
       )
       break
     case "price-asc":
-      items.sort(
-        (left, right) =>
-          left.sellingPrice - right.sellingPrice || left.name.localeCompare(right.name)
-      )
+      sortStorefrontProductCards(items, (left, right) => left.sellingPrice - right.sellingPrice)
       break
     case "price-desc":
-      items.sort(
-        (left, right) =>
-          right.sellingPrice - left.sellingPrice || left.name.localeCompare(right.name)
-      )
+      sortStorefrontProductCards(items, (left, right) => right.sellingPrice - left.sellingPrice)
       break
     default:
-      items.sort(
+      sortStorefrontProductCards(
+        items,
         (left, right) =>
           Number(right.isFeaturedLabel) - Number(left.isFeaturedLabel) ||
-          Number(right.isBestSeller) - Number(left.isBestSeller) ||
-          left.name.localeCompare(right.name)
+          Number(right.isBestSeller) - Number(left.isBestSeller)
       )
   }
 
@@ -803,8 +828,15 @@ export async function getStorefrontProduct(
           item.brandName === product.brandName ||
           item.storefrontDepartment === product.storefrontDepartment)
     )
-    .slice(0, 4)
     .map((item) => toStorefrontProductCard(item, availableQuantityByProductId.get(item.id) ?? 0))
+    .sort(
+      (left, right) =>
+        compareLiveStockFirst(left, right) ||
+        Number(right.isBestSeller) - Number(left.isBestSeller) ||
+        Number(right.isNewArrival) - Number(left.isNewArrival) ||
+        left.name.localeCompare(right.name)
+    )
+    .slice(0, 4)
   const recommendedItems = buildRecommendationCandidates(products, {
     baseProduct: product,
     limit: 4,

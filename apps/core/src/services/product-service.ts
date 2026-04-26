@@ -74,28 +74,7 @@ async function readProducts(database: Kysely<unknown>) {
             : Array.isArray((product as { attributes?: unknown }).attributes)
               ? ((product as { attributes: unknown[] }).attributes?.length ?? 0)
               : 0,
-        totalStockQuantity:
-          typeof (product as { totalStockQuantity?: unknown }).totalStockQuantity === "number"
-            ? (product as { totalStockQuantity: number }).totalStockQuantity
-            : [
-                ...(
-                  Array.isArray((product as { stockItems?: unknown }).stockItems)
-                    ? ((product as { stockItems: Array<{ quantity?: unknown }> }).stockItems ?? [])
-                    : []
-                ),
-              ].reduce(
-                (sum, item) => sum + (typeof item.quantity === "number" ? item.quantity : 0),
-                0
-              ) +
-              (
-                Array.isArray((product as { variants?: unknown }).variants)
-                  ? ((product as { variants: Array<{ stockQuantity?: unknown }> }).variants ?? [])
-                  : []
-              ).reduce(
-                (sum, item) =>
-                  sum + (typeof item.stockQuantity === "number" ? item.stockQuantity : 0),
-                0
-              ),
+        totalStockQuantity: 0,
         code:
           typeof (product as { code?: unknown }).code === "string" &&
           (product as { code?: string }).code?.trim()
@@ -198,8 +177,8 @@ function toProductUpsertPayload(product: Product): ProductUpsertPayload {
       variantName: variant.variantName,
       price: variant.price,
       costPrice: variant.costPrice,
-      stockQuantity: variant.stockQuantity,
-      openingStock: variant.openingStock,
+      stockQuantity: 0,
+      openingStock: 0,
       weight: variant.weight,
       barcode: variant.barcode,
       isActive: variant.isActive,
@@ -258,25 +237,8 @@ function toProductUpsertPayload(product: Product): ProductUpsertPayload {
       valueClientKey: item.valueId,
       isActive: item.isActive,
     })),
-    stockItems: product.stockItems.map((item) => ({
-      variantId: item.variantId,
-      variantClientKey: item.variantId,
-      warehouseId: item.warehouseId,
-      quantity: item.quantity,
-      reservedQuantity: item.reservedQuantity,
-      isActive: item.isActive,
-    })),
-    stockMovements: product.stockMovements.map((item) => ({
-      variantId: item.variantId,
-      variantClientKey: item.variantId,
-      warehouseId: item.warehouseId,
-      movementType: item.movementType,
-      quantity: item.quantity,
-      referenceType: item.referenceType,
-      referenceId: item.referenceId,
-      movementAt: item.movementAt,
-      isActive: item.isActive,
-    })),
+    stockItems: [],
+    stockMovements: [],
     seo: product.seo
       ? {
           metaTitle: product.seo.metaTitle,
@@ -577,8 +539,8 @@ function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
       variantName: item.variantName,
       price: item.price,
       costPrice: item.costPrice,
-      stockQuantity: item.stockQuantity,
-      openingStock: item.openingStock,
+      stockQuantity: 0,
+      openingStock: 0,
       weight: item.weight,
       barcode: normalizeOptionalString(item.barcode),
       isActive: item.isActive,
@@ -685,9 +647,7 @@ function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
     primaryImageUrl: images.find((image) => image.isPrimary)?.imageUrl ?? images[0]?.imageUrl ?? null,
     variantCount: variants.length,
     attributeCount: attributes.length,
-    totalStockQuantity:
-      payload.stockItems.reduce((sum, item) => sum + item.quantity, 0) +
-      variants.reduce((sum, item) => sum + item.stockQuantity, 0),
+    totalStockQuantity: 0,
     tagCount: payload.tags.length,
     tagNames: payload.tags.map((tag) => tag.name),
     createdAt: existing?.createdAt ?? timestamp,
@@ -746,33 +706,8 @@ function buildProductRecord(payload: ProductUpsertPayload, existing?: Product) {
       createdAt: existing?.variantMap[index]?.createdAt ?? timestamp,
       updatedAt: timestamp,
     })),
-    stockItems: payload.stockItems.map((item, index) => ({
-      id: existing?.stockItems[index]?.id ?? `product-stock-item:${randomUUID()}`,
-      productId,
-      variantId: resolveLinkId(item.variantId, item.variantClientKey, variantIdByKey),
-      warehouseId: item.warehouseId,
-      quantity: item.quantity,
-      reservedQuantity: item.reservedQuantity,
-      isActive: item.isActive,
-      createdAt: existing?.stockItems[index]?.createdAt ?? timestamp,
-      updatedAt: timestamp,
-    })),
-    stockMovements: payload.stockMovements.map((item, index) => ({
-      id:
-        existing?.stockMovements[index]?.id ??
-        `product-stock-movement:${randomUUID()}`,
-      productId,
-      variantId: resolveLinkId(item.variantId, item.variantClientKey, variantIdByKey),
-      warehouseId: item.warehouseId,
-      movementType: item.movementType,
-      quantity: item.quantity,
-      referenceType: normalizeOptionalString(item.referenceType),
-      referenceId: normalizeOptionalString(item.referenceId),
-      movementAt: item.movementAt,
-      isActive: item.isActive,
-      createdAt: existing?.stockMovements[index]?.createdAt ?? timestamp,
-      updatedAt: timestamp,
-    })),
+    stockItems: [],
+    stockMovements: [],
     seo: payload.seo
       ? {
           id: existing?.seo?.id ?? `product-seo:${randomUUID()}`,

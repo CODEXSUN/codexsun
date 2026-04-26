@@ -1,4 +1,4 @@
-import type { IndustryManifest } from "../../framework/manifests/industry-manifest.js"
+import type { IndustryManifest } from "../../apps/framework/manifests/industry-manifest.js"
 
 export const garmentD2cIndustryManifest: IndustryManifest = {
   id: "garment-d2c",

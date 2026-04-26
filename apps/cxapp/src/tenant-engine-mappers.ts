@@ -3,7 +3,7 @@ import type {
   TenantCompanyLink,
   TenantIndustryProfile,
   TenantRecord,
-} from "../../../framework/engines/tenant-engine/contracts/index.js"
+} from "../../framework/engines/tenant-engine/contracts/index.js"
 
 export type CxappCompanyTenantMappingOptions = {
   tenantId?: string

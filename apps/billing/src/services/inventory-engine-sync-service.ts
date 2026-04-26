@@ -11,7 +11,7 @@ import type {
   InventoryMovementServicePort,
   InventoryPutawayExecutionResult,
   InventoryPutawayServicePort,
-} from "../../../../framework/engines/inventory-engine/services.js"
+} from "../../../framework/engines/inventory-engine/services.js"
 
 export type BillingInventoryEngineContext = {
   tenantId: string

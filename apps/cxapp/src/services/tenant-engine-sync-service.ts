@@ -1,6 +1,6 @@
 import type { Kysely } from "kysely"
 
-import { createTenantEngineRuntimeServices } from "../../../../framework/engines/tenant-engine/runtime-services.js"
+import { createTenantEngineRuntimeServices } from "../../../framework/engines/tenant-engine/runtime-services.js"
 import { listCompanies } from "./company-service.js"
 import { mapCxappCompanyToTenantEngineBundle } from "../tenant-engine-mappers.js"
 

@@ -28,15 +28,6 @@ test("product form payload builder removes empty placeholder rows before submit"
       isActive: true,
     },
   ]
-  form.stockItems = [
-    {
-      variantClientKey: null,
-      warehouseId: "",
-      quantity: 0,
-      reservedQuantity: 0,
-      isActive: true,
-    },
-  ]
   form.tags = [
     { name: "", isActive: true },
     { name: "Featured", isActive: true },
