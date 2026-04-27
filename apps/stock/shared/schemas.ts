@@ -7,6 +7,10 @@ import {
   billingGoodsInwardResponseSchema,
   billingGoodsInwardSchema,
   billingGoodsInwardUpsertPayloadSchema,
+  billingDeliveryNoteListResponseSchema,
+  billingDeliveryNoteResponseSchema,
+  billingDeliveryNoteSchema,
+  billingDeliveryNoteUpsertPayloadSchema,
   billingPurchaseReceiptListResponseSchema,
   billingPurchaseReceiptBarcodeRollbackPayloadSchema,
   billingPurchaseReceiptBarcodeRollbackResponseSchema,
@@ -31,6 +35,8 @@ import {
   type BillingStockAcceptanceResponse,
   type BillingGoodsInward,
   type BillingGoodsInwardUpsertPayload,
+  type BillingDeliveryNote,
+  type BillingDeliveryNoteUpsertPayload,
   type BillingPurchaseReceipt,
   type BillingPurchaseReceiptUpsertPayload,
 } from "./schemas/stock-operations.js"
@@ -133,6 +139,8 @@ export type StockPurchaseReceipt = BillingPurchaseReceipt
 export type StockPurchaseReceiptUpsertPayload = BillingPurchaseReceiptUpsertPayload
 export type StockGoodsInward = BillingGoodsInward
 export type StockGoodsInwardUpsertPayload = BillingGoodsInwardUpsertPayload
+export type StockDeliveryNote = BillingDeliveryNote
+export type StockDeliveryNoteUpsertPayload = BillingDeliveryNoteUpsertPayload
 export type StockBarcodeResolutionPayload = BillingBarcodeResolutionPayload
 export type StockAcceptancePayload = BillingStockAcceptancePayload
 export type StockAcceptanceResponse = BillingStockAcceptanceResponse
@@ -153,6 +161,10 @@ export {
   billingGoodsInwardResponseSchema,
   billingGoodsInwardSchema,
   billingGoodsInwardUpsertPayloadSchema,
+  billingDeliveryNoteListResponseSchema,
+  billingDeliveryNoteResponseSchema,
+  billingDeliveryNoteSchema,
+  billingDeliveryNoteUpsertPayloadSchema,
   billingPurchaseReceiptListResponseSchema,
   billingPurchaseReceiptBarcodeRollbackPayloadSchema,
   billingPurchaseReceiptBarcodeRollbackResponseSchema,
@@ -176,6 +188,7 @@ export {
 
 export type {
   BillingGoodsInward,
+  BillingDeliveryNote,
   BillingPurchaseReceipt,
   BillingPurchaseReceiptBarcodeGenerationResponse,
   BillingPurchaseReceiptBarcodeRollbackResponse,

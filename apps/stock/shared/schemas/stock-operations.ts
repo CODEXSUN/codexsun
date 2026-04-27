@@ -15,6 +15,12 @@ export const billingGoodsInwardStatusSchema = z.enum([
   "cancelled",
 ])
 
+export const billingDeliveryNoteStatusSchema = z.enum([
+  "draft",
+  "submitted",
+  "cancelled",
+])
+
 export const billingInwardPostingStatusSchema = z.enum([
   "not_posted",
   "blocked_until_verification",
@@ -125,6 +131,36 @@ export const billingGoodsInwardSchema = z.object({
   stockUnitIds: z.array(z.string().trim().min(1)).default([]),
   postedAt: z.string().trim().min(1).nullable().default(null),
   postedByUserId: z.string().trim().min(1).nullable().default(null),
+})
+
+export const billingDeliveryNoteLineSchema = z.object({
+  id: z.string().trim().min(1),
+  stockUnitId: z.string().trim().min(1),
+  barcodeValue: z.string().trim().min(1),
+  productId: z.string().trim().min(1),
+  productName: z.string().trim().min(1),
+  productCode: z.string().trim().min(1),
+  batchCode: z.string().trim().min(1).nullable().default(null),
+  serialNumber: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  quantity: z.number().positive().default(1),
+  stockUnitStatus: billingStockUnitStatusSchema,
+})
+
+export const billingDeliveryNoteSchema = z.object({
+  id: z.string().trim().min(1),
+  deliveryNoteNumber: z.string().trim().min(1),
+  postingDate: z.string().trim().min(1),
+  customerId: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  isReturn: z.boolean().default(false),
+  status: billingDeliveryNoteStatusSchema.default("draft"),
+  lines: z.array(billingDeliveryNoteLineSchema).min(1),
+  note: z.string().trim().default(""),
+  createdAt: z.string().trim().min(1),
+  updatedAt: z.string().trim().min(1),
+  createdByUserId: z.string().trim().min(1).nullable().default(null),
 })
 
 export const billingStockUnitSchema = z.object({
@@ -384,6 +420,31 @@ export const billingGoodsInwardUpsertPayloadSchema = z.object({
   note: z.string().trim().default(""),
 })
 
+export const billingDeliveryNoteLineUpsertPayloadSchema = z.object({
+  stockUnitId: z.string().trim().min(1),
+  barcodeValue: z.string().trim().min(1),
+  productId: z.string().trim().min(1),
+  productName: z.string().trim().min(1),
+  productCode: z.string().trim().min(1),
+  batchCode: z.string().trim().nullable().default(null),
+  serialNumber: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  warehouseName: z.string().trim().min(1),
+  quantity: z.number().positive().default(1),
+  stockUnitStatus: billingStockUnitStatusSchema,
+})
+
+export const billingDeliveryNoteUpsertPayloadSchema = z.object({
+  deliveryNoteNumber: z.string().trim().optional().default(""),
+  postingDate: z.string().trim().min(1),
+  customerId: z.string().trim().min(1),
+  warehouseId: z.string().trim().min(1),
+  isReturn: z.boolean().default(false),
+  status: billingDeliveryNoteStatusSchema.default("submitted"),
+  lines: z.array(billingDeliveryNoteLineUpsertPayloadSchema).min(1),
+  note: z.string().trim().default(""),
+})
+
 export const billingPurchaseReceiptResponseSchema = z.object({
   item: billingPurchaseReceiptSchema,
 })
@@ -398,6 +459,14 @@ export const billingGoodsInwardResponseSchema = z.object({
 
 export const billingGoodsInwardListResponseSchema = z.object({
   items: z.array(billingGoodsInwardSchema),
+})
+
+export const billingDeliveryNoteResponseSchema = z.object({
+  item: billingDeliveryNoteSchema,
+})
+
+export const billingDeliveryNoteListResponseSchema = z.object({
+  items: z.array(billingDeliveryNoteSchema),
 })
 
 export const billingStockUnitResponseSchema = z.object({
@@ -465,6 +534,11 @@ export type BillingPurchaseReceiptLine = z.infer<
 export type BillingPurchaseReceipt = z.infer<typeof billingPurchaseReceiptSchema>
 export type BillingGoodsInwardLine = z.infer<typeof billingGoodsInwardLineSchema>
 export type BillingGoodsInward = z.infer<typeof billingGoodsInwardSchema>
+export type BillingDeliveryNoteStatus = z.infer<
+  typeof billingDeliveryNoteStatusSchema
+>
+export type BillingDeliveryNoteLine = z.infer<typeof billingDeliveryNoteLineSchema>
+export type BillingDeliveryNote = z.infer<typeof billingDeliveryNoteSchema>
 export type BillingStockUnitStatus = z.infer<typeof billingStockUnitStatusSchema>
 export type BillingBarcodeAliasSource = z.infer<
   typeof billingBarcodeAliasSourceSchema
@@ -513,6 +587,12 @@ export type BillingGoodsInwardLineInput = z.infer<
 export type BillingGoodsInwardUpsertPayload = z.infer<
   typeof billingGoodsInwardUpsertPayloadSchema
 >
+export type BillingDeliveryNoteLineUpsertPayload = z.infer<
+  typeof billingDeliveryNoteLineUpsertPayloadSchema
+>
+export type BillingDeliveryNoteUpsertPayload = z.infer<
+  typeof billingDeliveryNoteUpsertPayloadSchema
+>
 export type BillingPurchaseReceiptResponse = z.infer<
   typeof billingPurchaseReceiptResponseSchema
 >
@@ -524,6 +604,12 @@ export type BillingGoodsInwardResponse = z.infer<
 >
 export type BillingGoodsInwardListResponse = z.infer<
   typeof billingGoodsInwardListResponseSchema
+>
+export type BillingDeliveryNoteResponse = z.infer<
+  typeof billingDeliveryNoteResponseSchema
+>
+export type BillingDeliveryNoteListResponse = z.infer<
+  typeof billingDeliveryNoteListResponseSchema
 >
 export type BillingStockUnitResponse = z.infer<
   typeof billingStockUnitResponseSchema

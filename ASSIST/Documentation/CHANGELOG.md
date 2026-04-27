@@ -2,9 +2,23 @@
 
 ## Version State
 
-- Current package version: `1.0.250`
-- Current release tag: `v-1.0.250`
+- Current package version: `1.0.273`
+- Current release tag: `v-1.0.273`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.273
+
+### [v 1.0.273] 2026-04-27 - Add persisted stock Delivery Notes
+
+- added a persisted Delivery Note workflow in the stock app with `billing_delivery_notes` JSON-store migration, shared schemas, service wrappers, and internal stock API routes for list, show, create, and update
+- changed the stock Delivery Note page from a UI-only form into a Purchase Receipt-style list with search, status filters, pagination, clickable note numbers, action menu, print, show, edit, new, and save flows
+- added Delivery Note show and edit routes under `/dashboard/apps/stock/delivery-note`, including `/new`, `/:deliveryNoteId`, and `/:deliveryNoteId/edit`
+- added barcode scan and manual product/barcode selection for Delivery Note items, restricted delivery mode to accepted live stock, and added warning messages for unknown or unaccepted barcode scans
+- added Delivery Note print/save-and-print output with customer, warehouse, delivery/return mode, item rows, quantities, totals, and remarks
+- polished Delivery Note UX by removing the Stock hero card, formatting list dates as `dd-MM-yyyy`, cleaning customer labels without the `contact:` prefix, redirecting save back to the list, and replacing Clear/Go back with a single Cancel action
+- updated the stock sidebar with an Outward group containing Delivery Note and kept the group visible even when it has one item
+- continued Goods Rejections polish by removing the intro/helper cards, tightening copy, improving filter summary badges, removing the redundant status column, moving Reason after Notes, shortening warehouse labels, adding pagination, and swapping Stock Ledger above Goods Rejections in the Inward menu
+- validated the batch with `npx.cmd tsc --noEmit --pretty false` and focused ESLint for the changed stock, cxapp, API, schema, migration, and service files; existing local lint overrides were used only for pre-existing `react-hooks/set-state-in-effect` and `app-shell` `no-explicit-any` findings
 
 ## v-1.0.250
 

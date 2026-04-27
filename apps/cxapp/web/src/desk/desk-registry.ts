@@ -591,6 +591,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       "purchase-receipts": ReceiptText,
       "stock-entry": PackageCheck,
       "goods-rejections": Flag,
+      "delivery-note": Truck,
       "stock-ledger": ClipboardList,
       reports: ClipboardList,
       "print-designer": Ruler,
@@ -617,6 +618,12 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
                 `/dashboard/apps/${app.id}/purchase-receipts/:purchaseReceiptId`,
                 `/dashboard/apps/${app.id}/purchase-receipts/:purchaseReceiptId/edit`,
               ]
+            : item.id === "delivery-note"
+              ? [
+                  `/dashboard/apps/${app.id}/delivery-note/new`,
+                  `/dashboard/apps/${app.id}/delivery-note/:deliveryNoteId`,
+                  `/dashboard/apps/${app.id}/delivery-note/:deliveryNoteId/edit`,
+                ]
             : item.id === "stock-ledger"
               ? [
                   `/dashboard/apps/${app.id}/stock-ledger/:productId`,
@@ -1076,6 +1083,17 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                   `/dashboard/apps/${app.id}/goods-inward`,
                   `/dashboard/apps/${app.id}/verifications`,
                   `/dashboard/apps/${app.id}/print-designer`,
+                ].includes(item.route)
+              ),
+            },
+            {
+              id: `${app.id}-outward`,
+              label: "Outward",
+              shared: false,
+              forceGroup: true,
+              items: modules.filter((item) =>
+                [
+                  `/dashboard/apps/${app.id}/delivery-note`,
                 ].includes(item.route)
               ),
             },

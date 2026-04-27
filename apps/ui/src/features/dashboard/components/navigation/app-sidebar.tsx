@@ -419,7 +419,7 @@ function GroupedAppMenu({
           {app.menuGroups.filter((group) => group.items.length > 0).map((group) => {
             const GroupIcon = group.icon ?? group.items[0]?.icon
             const hasNestedChildren = group.items.some((item) => (item.children?.length ?? 0) > 0)
-            const hasChildren = group.items.length > 1 || hasNestedChildren
+            const hasChildren = group.forceGroup || group.items.length > 1 || hasNestedChildren
             const isGroupActive = group.items.some((item) =>
               isMenuItemActive(pathname, item)
             )

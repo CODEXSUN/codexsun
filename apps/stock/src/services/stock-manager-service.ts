@@ -7,6 +7,12 @@ import {
   updateBillingGoodsInwardNote,
 } from "../../../billing/src/services/goods-inward-service.js"
 import {
+  createBillingDeliveryNote,
+  getBillingDeliveryNote,
+  listBillingDeliveryNotes,
+  updateBillingDeliveryNote,
+} from "../../../billing/src/services/delivery-note-service.js"
+import {
   createBillingPurchaseReceipt,
   deleteBillingPurchaseReceipt,
   getBillingPurchaseReceipt,
@@ -197,6 +203,35 @@ export async function postStockGoodsInward(
   inwardId: string
 ) {
   return postBillingGoodsInwardToInventory(database, user, inwardId)
+}
+
+export async function listStockDeliveryNotes(database: Kysely<unknown>, user: AuthUser) {
+  return listBillingDeliveryNotes(database, user)
+}
+
+export async function getStockDeliveryNote(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  deliveryNoteId: string
+) {
+  return getBillingDeliveryNote(database, user, deliveryNoteId)
+}
+
+export async function createStockDeliveryNote(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  payload: unknown
+) {
+  return createBillingDeliveryNote(database, user, payload)
+}
+
+export async function updateStockDeliveryNote(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  deliveryNoteId: string,
+  payload: unknown
+) {
+  return updateBillingDeliveryNote(database, user, deliveryNoteId, payload)
 }
 
 export async function listStockUnits(database: Kysely<unknown>, user: AuthUser) {

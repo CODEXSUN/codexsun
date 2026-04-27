@@ -8,6 +8,9 @@ import {
 } from "./workspace/stock-purchase-receipt-sections"
 import {
   AvailabilitySection,
+  DeliveryNoteSection,
+  DeliveryNoteShowSection,
+  DeliveryNoteUpsertSection,
   GoodsRejectionsSection,
   MovementsSection,
   PrintDesignerSection,
@@ -31,10 +34,12 @@ export {
 export function StockWorkspaceSection({
   productId,
   purchaseReceiptId,
+  deliveryNoteId,
   sectionId,
 }: {
   productId?: string
   purchaseReceiptId?: string
+  deliveryNoteId?: string
   sectionId?: string
 }) {
   const normalizedSectionId = useMemo(() => sectionId ?? "overview", [sectionId])
@@ -56,6 +61,12 @@ export function StockWorkspaceSection({
       return <PurchaseReceiptsSection />
     case "goods-rejections":
       return <GoodsRejectionsSection />
+    case "delivery-note":
+      return <DeliveryNoteSection />
+    case "delivery-note-show":
+      return deliveryNoteId ? <DeliveryNoteShowSection deliveryNoteId={deliveryNoteId} /> : null
+    case "delivery-note-upsert":
+      return <DeliveryNoteUpsertSection deliveryNoteId={deliveryNoteId} />
     case "print-designer":
       return <PrintDesignerSection />
     case "sale-allocations":

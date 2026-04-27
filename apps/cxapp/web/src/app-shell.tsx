@@ -189,6 +189,14 @@ const StockGoodsInwardFormPage = lazyNamed(
   () => import("./pages/stock-goods-inward-form-page"),
   "StockGoodsInwardFormPage",
 );
+const StockDeliveryNoteDetailPage = lazyNamed(
+  () => import("./pages/stock-delivery-note-detail-page"),
+  "StockDeliveryNoteDetailPage",
+);
+const StockDeliveryNoteFormPage = lazyNamed(
+  () => import("./pages/stock-delivery-note-form-page"),
+  "StockDeliveryNoteFormPage",
+);
 const StockLedgerDetailPage = lazyNamed(
   () => import("./pages/stock-ledger-detail-page"),
   "StockLedgerDetailPage",
@@ -2095,6 +2103,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <StockGoodsInwardFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/delivery-note/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockDeliveryNoteFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/delivery-note/:deliveryNoteId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockDeliveryNoteDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/delivery-note/:deliveryNoteId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockDeliveryNoteFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

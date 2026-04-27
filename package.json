@@ -1,7 +1,7 @@
 {
   "name": "codexsun",
   "private": true,
-  "version": "1.0.250",
+  "version": "1.0.273",
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,web \"npm:server:dev\" \"vite\"",

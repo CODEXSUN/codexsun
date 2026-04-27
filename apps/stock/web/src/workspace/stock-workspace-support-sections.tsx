@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { PrinterIcon } from "lucide-react"
+import { EyeIcon, PrinterIcon } from "lucide-react"
 
 import type {
   CommonModuleListResponse,
   CommonModuleRecordResponse,
+  ContactListResponse,
   ProductListResponse,
 } from "@core/shared"
 import type { BillingStockRejectionReason, BillingStockUnit } from "../../../shared/index.ts"
@@ -15,11 +16,15 @@ import {
   useJsonResource,
 } from "./stock-workspace-api"
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
+import { MasterList } from "@/components/blocks/master-list"
+import { RecordActionMenu } from "@/components/blocks/record-action-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { TableCell, TableRow } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
 import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
@@ -31,6 +36,7 @@ import {
   formatOptionalTimestamp,
   formatQuantity,
   getGoodsInwardExceptionQuantity,
+  getProductLookupOptions,
   normalizeInlineItemNote,
   printStockUnitBarcodes,
   SectionIntro,
@@ -53,6 +59,8 @@ import type {
   AvailabilityListResponse,
   BarcodeAliasListResponse,
   BarcodeResolutionResponse,
+  DeliveryNoteListResponse,
+  DeliveryNoteResponse,
   GoodsInwardListResponse,
   GoodsInwardPostingResponse,
   GoodsInwardResponse,
@@ -83,6 +91,10 @@ function escapeStockReportHtml(value: string) {
 
 function formatStockStatusLabel(status: string) {
   return status.replace(/[-_]/g, " ")
+}
+
+function formatWarehouseDisplayName(value: string) {
+  return value.replace(/^warehouse:/, "")
 }
 
 function getLightStockStatusBadgeClassName(status: string) {
@@ -1032,6 +1044,8 @@ export function GoodsRejectionsSection() {
   const [message, setMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCreatingRejectionType, setIsCreatingRejectionType] = useState(false)
+  const [rejectedTablePage, setRejectedTablePage] = useState(1)
+  const [rejectedTablePageSize, setRejectedTablePageSize] = useState(20)
   const barcodeInputRef = useRef<HTMLInputElement | null>(null)
 
   useGlobalLoading(
@@ -1103,6 +1117,15 @@ export function GoodsRejectionsSection() {
     (item) => !purchaseReceiptId || item.purchaseReceiptId === purchaseReceiptId
   )
   const rejectedQuantity = rejectedItems.reduce((sum, item) => sum + item.quantityRejected, 0)
+  const rejectedTableTotalPages = Math.max(1, Math.ceil(rejectedItems.length / rejectedTablePageSize))
+  const rejectedTableCurrentPage = Math.min(rejectedTablePage, rejectedTableTotalPages)
+  const rejectedTableStartIndex =
+    rejectedItems.length === 0 ? 0 : (rejectedTableCurrentPage - 1) * rejectedTablePageSize
+  const rejectedTableEndIndex = Math.min(
+    rejectedTableStartIndex + rejectedTablePageSize,
+    rejectedItems.length
+  )
+  const pagedRejectedItems = rejectedItems.slice(rejectedTableStartIndex, rejectedTableEndIndex)
 
   async function resolveReceivedStockUnit(scannedBarcodeValue: string) {
     const normalizedBarcodeValue = scannedBarcodeValue.trim()
@@ -1246,10 +1269,6 @@ export function GoodsRejectionsSection() {
 
   return (
     <div className="space-y-4">
-      <SectionIntro
-        title="Goods Rejections"
-        description="Review barcode rows rejected during sticker verification before supplier return or disposal actions."
-      />
       <Card
         className="relative border-border/70 shadow-sm"
         data-technical-name="card.stock.goods-rejections.barcode-update"
@@ -1259,13 +1278,13 @@ export function GoodsRejectionsSection() {
           name="card.stock.goods-rejections.barcode-update"
         />
         <CardHeader>
-          <CardTitle>Barcode Rejection Update</CardTitle>
+          <CardTitle>Reject Barcode</CardTitle>
           <CardDescription>
-            Scan one temporary stock barcode, choose the rejection type, and update that unit directly into the rejection register.
+            Scan a received barcode, choose a type, and mark it rejected.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_260px_minmax(0,1fr)_auto]">
+          <div className="grid items-end gap-4 xl:grid-cols-[minmax(0,1.3fr)_260px_minmax(0,1fr)_auto]">
             <Field label="Barcode input">
               <Input
                 ref={barcodeInputRef}
@@ -1315,16 +1334,16 @@ export function GoodsRejectionsSection() {
                 }}
               />
             </Field>
-            <Field label="Action" className="xl:w-auto">
+            <div className="flex items-end xl:w-auto">
               <Button
                 type="button"
-                className="h-11 xl:min-w-32"
+                className="h-11 w-full xl:min-w-32"
                 onClick={() => void handleSubmitGoodsRejection()}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Updating..." : "Update"}
               </Button>
-            </Field>
+            </div>
           </div>
           {matchedUnit ? (
             <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/10 p-4 md:grid-cols-4">
@@ -1361,13 +1380,14 @@ export function GoodsRejectionsSection() {
       </Card>
       <Card className="border-border/70 shadow-sm">
         <CardContent className="p-5">
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_220px]">
+          <div className="grid items-end gap-5 xl:grid-cols-[minmax(0,1fr)_auto]">
             <Field label="Purchase receipt">
               <SearchableLookupField
                 emptyOptionLabel="All receipts"
                 noResultsMessage="No purchase receipts found."
                 onValueChange={(nextValue) => {
                   setPurchaseReceiptId(nextValue)
+                  setRejectedTablePage(1)
                 }}
                 options={receiptOptions}
                 placeholder="All purchase receipts"
@@ -1376,27 +1396,31 @@ export function GoodsRejectionsSection() {
                 value={purchaseReceiptId}
               />
             </Field>
-            <Field label="Rejected rows">
-              <div className="flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground">
-                {rejectedItems.length}
+            <div className="flex flex-wrap items-center gap-6 xl:justify-end">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Rejected rows</span>
+                <Badge
+                  variant="outline"
+                  className="min-w-10 justify-center rounded-full border-orange-200 bg-orange-50 px-3 py-1.5 text-base font-semibold text-orange-700 hover:bg-orange-50"
+                >
+                  {rejectedItems.length}
+                </Badge>
               </div>
-            </Field>
-            <Field label="Rejected quantity">
-              <div className="flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground">
-                {formatQuantity(rejectedQuantity)}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Rejected quantity</span>
+                <Badge
+                  variant="outline"
+                  className="min-w-10 justify-center rounded-full border-orange-200 bg-orange-50 px-3 py-1.5 text-base font-semibold text-orange-700 hover:bg-orange-50"
+                >
+                  {formatQuantity(rejectedQuantity)}
+                </Badge>
               </div>
-            </Field>
+            </div>
           </div>
         </CardContent>
       </Card>
       <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle>Rejected Goods Table</CardTitle>
-          <CardDescription>
-            Persisted rejected barcode rows captured from sticker verification or the barcode update card.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           <DataTable
             headers={[
               "Rejected at",
@@ -1406,13 +1430,12 @@ export function GoodsRejectionsSection() {
               "Barcode",
               "Qty rejected",
               "Warehouse",
-              "Reason",
               "Notes",
-              "Status",
+              "Reason",
             ]}
             rows={
               rejectedItems.length > 0
-                ? rejectedItems.map((item) => [
+                ? pagedRejectedItems.map((item) => [
                     formatOptionalTimestamp(item.updatedAt),
                     receiptById.get(item.purchaseReceiptId)?.entryNumber ?? item.purchaseReceiptId,
                     goodsInwardById.get(item.goodsInwardId)?.inwardNumber ?? item.goodsInwardId,
@@ -1424,14 +1447,13 @@ export function GoodsRejectionsSection() {
                       {item.expectedBarcodeValue}
                     </span>,
                     formatQuantity(item.quantityRejected),
-                    item.warehouseName,
+                    formatWarehouseDisplayName(item.warehouseName),
+                    item.rejectionNote ?? "-",
                     renderStockRejectionReasonBadge(
                       item.rejectionReason ?? "rejected",
                       `${item.id}:reason`,
                       rejectionTypeLabelByCode.get(item.rejectionReason ?? "rejected")
                     ),
-                    item.rejectionNote ?? "-",
-                    renderLightStockStatusBadge("rejected", `${item.id}:status`),
                   ])
                 : [[
                     "No rejected goods found.",
@@ -1443,36 +1465,1265 @@ export function GoodsRejectionsSection() {
                     "-",
                     "-",
                     "-",
-                    "-",
                   ]]
             }
           />
-        </CardContent>
-      </Card>
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle>Rejection Types</CardTitle>
-          <CardDescription>
-            Rejection type is the classification stored on the rejected barcode. Stock lifecycle status stays rejected.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            headers={["Type", "Code", "Status", "Description"]}
-            rows={
-              rejectionTypeItems.length > 0
-                ? rejectionTypeItems.map((item) => [
-                    item.name,
-                    item.code,
-                    renderLightStockStatusBadge("active", `${item.id}:status`, "active"),
-                    item.description || "-",
-                  ])
-                : [["No rejection types found.", "-", "-", "-"]]
-            }
-          />
+          <div className="mt-4 flex flex-col gap-3 rounded-md border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Total rejected: <span className="font-semibold text-foreground">{rejectedItems.length}</span>
+              </span>
+              <label className="flex items-center gap-2">
+                <span>Rows per page</span>
+                <select
+                  className="border-input bg-background h-9 rounded-md border px-3 text-sm text-foreground"
+                  value={rejectedTablePageSize}
+                  onChange={(event) => {
+                    setRejectedTablePageSize(Number(event.target.value))
+                    setRejectedTablePage(1)
+                  }}
+                >
+                  {[10, 20, 50, 100].map((pageSize) => (
+                    <option key={pageSize} value={pageSize}>
+                      {pageSize}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 md:justify-end">
+              <span>
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {rejectedItems.length === 0 ? 0 : rejectedTableStartIndex + 1}
+                </span>{" "}
+                to <span className="font-semibold text-foreground">{rejectedTableEndIndex}</span>{" "}
+                of <span className="font-semibold text-foreground">{rejectedItems.length}</span>
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={rejectedTableCurrentPage <= 1}
+                onClick={() => setRejectedTablePage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </Button>
+              <Badge
+                variant="outline"
+                className="min-w-9 justify-center border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground"
+              >
+                {rejectedTableCurrentPage}
+              </Badge>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={rejectedTableCurrentPage >= rejectedTableTotalPages}
+                onClick={() =>
+                  setRejectedTablePage((current) =>
+                    Math.min(rejectedTableTotalPages, current + 1)
+                  )
+                }
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
       {message ? <StateCard message={message} /> : null}
+    </div>
+  )
+}
+
+type DeliveryNoteItem = {
+  id: string
+  productId: string
+  barcodeValue: string
+  productName: string
+  productCode: string
+  batchCode: string
+  serialNumber: string
+  warehouseId: string
+  warehouseName: string
+  quantity: number
+  stockUnitStatus: string
+}
+
+function getTodayDateInputValue() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getNextDeliveryNoteNumber(items: DeliveryNoteListResponse["items"], currentNoteId?: string) {
+  const maxSequence = items.reduce((currentMax, item) => {
+    if (currentNoteId && item.id === currentNoteId) {
+      return currentMax
+    }
+
+    const match = /^(\d+)$/.exec(item.deliveryNoteNumber.trim())
+    if (!match) {
+      return currentMax
+    }
+
+    const sequence = Number(match[1])
+    return Number.isFinite(sequence) ? Math.max(currentMax, sequence) : currentMax
+  }, 0)
+
+  return String(maxSequence + 1).padStart(2, "0")
+}
+
+const deliveryEligibleStockStatuses = new Set(["available", "allocated"])
+
+function createDeliveryNoteItemFromStockUnit(stockUnit: BillingStockUnit): DeliveryNoteItem {
+  return {
+    id: stockUnit.id,
+    productId: stockUnit.productId,
+    barcodeValue: stockUnit.barcodeValue,
+    productName: stockUnit.productName,
+    productCode: stockUnit.productCode,
+    batchCode: stockUnit.batchCode ?? "No batch",
+    serialNumber: stockUnit.serialNumber,
+    warehouseId: stockUnit.warehouseId,
+    warehouseName: formatWarehouseDisplayName(stockUnit.warehouseName),
+    quantity: stockUnit.quantity,
+    stockUnitStatus: stockUnit.status,
+  }
+}
+
+function getDeliveryStockUnitLabel(stockUnit: BillingStockUnit) {
+  return `${stockUnit.barcodeValue} - ${stockUnit.productName} (${stockUnit.productCode})`
+}
+
+function formatDeliveryNoteDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) {
+    return value
+  }
+
+  return `${match[3]}-${match[2]}-${match[1]}`
+}
+
+function formatDeliveryContactLabel(
+  contactId: string,
+  contacts: ContactListResponse["items"] = []
+) {
+  const contact = contacts.find((item) => item.id === contactId)
+  if (contact) {
+    return contact.name
+  }
+
+  return contactId.replace(/^contact:/, "").replace(/[-_]+/g, " ")
+}
+
+function printDeliveryNoteDocument({
+  customerLabel,
+  deliveryNoteNumber,
+  isReturn,
+  items,
+  note,
+  postingDate,
+  totalQuantity,
+  warehouseLabel,
+}: {
+  customerLabel: string
+  deliveryNoteNumber: string
+  isReturn: boolean
+  items: DeliveryNoteItem[]
+  note: string
+  postingDate: string
+  totalQuantity: number
+  warehouseLabel: string
+}) {
+  const itemRows =
+    items.length > 0
+      ? items
+          .map(
+            (item, index) => `
+        <tr>
+          <td>${escapeStockReportHtml(String(index + 1).padStart(2, "0"))}</td>
+          <td>
+            <strong>${escapeStockReportHtml(item.productName)}</strong><br />
+            <span>${escapeStockReportHtml(item.productCode)}</span>
+          </td>
+          <td>${escapeStockReportHtml(item.barcodeValue)}</td>
+          <td>${escapeStockReportHtml(item.batchCode)}</td>
+          <td>${escapeStockReportHtml(item.serialNumber)}</td>
+          <td>${escapeStockReportHtml(item.warehouseName)}</td>
+          <td>${escapeStockReportHtml(formatQuantity(item.quantity))}</td>
+        </tr>`
+          )
+          .join("")
+      : '<tr><td colspan="7">No delivery items added.</td></tr>'
+
+  const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Delivery Note ${escapeStockReportHtml(deliveryNoteNumber)}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
+      .header { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+      .title { font-size: 26px; font-weight: 700; margin: 0 0 8px; }
+      .meta { margin: 0; color: #4b5563; font-size: 13px; line-height: 1.7; }
+      .badge { display: inline-block; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; vertical-align: top; }
+      th { background: #f3f4f6; }
+      tfoot td { font-weight: 700; background: #f9fafb; }
+      .note { margin-top: 20px; border: 1px solid #d1d5db; padding: 12px; min-height: 48px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1 class="title">Delivery Note</h1>
+        <p class="meta">Number: ${escapeStockReportHtml(deliveryNoteNumber)}</p>
+        <p class="meta">Posting Date: ${escapeStockReportHtml(postingDate)}</p>
+        <p class="meta">Customer: ${escapeStockReportHtml(customerLabel)}</p>
+        <p class="meta">Warehouse: ${escapeStockReportHtml(warehouseLabel)}</p>
+      </div>
+      <div>
+        <span class="badge">${escapeStockReportHtml(isReturn ? "Return" : "Delivery")}</span>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Sl No</th>
+          <th>Product</th>
+          <th>Barcode</th>
+          <th>Batch</th>
+          <th>Serial</th>
+          <th>Warehouse</th>
+          <th>Qty</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="6">Total</td>
+          <td>${escapeStockReportHtml(formatQuantity(totalQuantity))}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div class="note">
+      <strong>Remarks</strong><br />
+      ${escapeStockReportHtml(note.trim() || "-")}
+    </div>
+  </body>
+</html>`
+
+  let frame: HTMLIFrameElement | null = null
+
+  try {
+    frame = document.createElement("iframe")
+    frame.setAttribute("aria-hidden", "true")
+    frame.style.position = "fixed"
+    frame.style.right = "0"
+    frame.style.bottom = "0"
+    frame.style.width = "0"
+    frame.style.height = "0"
+    frame.style.border = "0"
+    frame.style.opacity = "0"
+    document.body.appendChild(frame)
+
+    const frameWindow = frame.contentWindow
+    const frameDocument = frame.contentDocument
+    if (!frameWindow || !frameDocument) {
+      throw new Error("Print frame is unavailable.")
+    }
+
+    frameDocument.open()
+    frameDocument.write(html)
+    frameDocument.close()
+
+    frameWindow.setTimeout(() => {
+      frameWindow.focus()
+      frameWindow.print()
+    }, 120)
+  } finally {
+    if (frame?.contentWindow) {
+      frame.contentWindow.setTimeout(() => {
+        frame?.remove()
+      }, 2000)
+    } else {
+      frame?.remove()
+    }
+  }
+}
+
+export function DeliveryNoteSection() {
+  const navigate = useNavigate()
+  const { data, error, isLoading } = useJsonResource<DeliveryNoteListResponse>(
+    "/internal/v1/stock/delivery-notes"
+  )
+  const contactLookup = useJsonResource<ContactListResponse>("/internal/v1/core/contacts")
+  const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "submitted" | "cancelled">("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  useGlobalLoading(isLoading || contactLookup.isLoading)
+
+  if (isLoading || contactLookup.isLoading) {
+    return null
+  }
+
+  if (error || contactLookup.error || !data || !contactLookup.data) {
+    return <StateCard message={error ?? contactLookup.error ?? "Delivery notes are unavailable."} />
+  }
+
+  const deliveryContacts = contactLookup.data.items
+  const filteredItems = data.items.filter((item) => {
+    const totalQuantity = item.lines.reduce((sum, line) => sum + line.quantity, 0)
+    const customerLabel = formatDeliveryContactLabel(item.customerId, deliveryContacts)
+    const matchesSearch =
+      searchValue.trim().length === 0 ||
+      [
+        item.deliveryNoteNumber,
+        item.postingDate,
+        formatDeliveryNoteDate(item.postingDate),
+        customerLabel,
+        item.warehouseId,
+        item.status,
+        String(totalQuantity),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchValue.trim().toLowerCase())
+
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
+  const totalRecords = filteredItems.length
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  )
+  const activeFilters =
+    statusFilter === "all"
+      ? []
+      : [{ key: "status", label: "Status", value: statusFilter }]
+
+  return (
+    <MasterList
+      header={{
+        pageTitle: "Delivery Notes",
+        pageDescription:
+          "Create and review customer-facing outward delivery notes from accepted stock barcodes.",
+        technicalName: "page.stock.delivery-notes",
+        addLabel: "New Delivery Note",
+        onAddClick: () => {
+          void navigate("/dashboard/apps/stock/delivery-note/new")
+        },
+      }}
+      search={{
+        value: searchValue,
+        onChange: (value) => {
+          setSearchValue(value)
+          setCurrentPage(1)
+        },
+        placeholder: "Search note, customer, warehouse, status, or quantity",
+      }}
+      filters={{
+        options: [
+          {
+            key: "all",
+            label: "All notes",
+            isActive: statusFilter === "all",
+            onSelect: () => {
+              setStatusFilter("all")
+              setCurrentPage(1)
+            },
+          },
+          ...(["draft", "submitted", "cancelled"] as const).map((value) => ({
+            key: value,
+            label: value,
+            isActive: statusFilter === value,
+            onSelect: () => {
+              setStatusFilter(value)
+              setCurrentPage(1)
+            },
+          })),
+        ],
+        activeFilters,
+        onRemoveFilter: (key) => {
+          if (key === "status") {
+            setStatusFilter("all")
+            setCurrentPage(1)
+          }
+        },
+        onClearAllFilters: () => {
+          setStatusFilter("all")
+          setSearchValue("")
+          setCurrentPage(1)
+        },
+        technicalName: "section.stock.delivery-notes.filters",
+      }}
+      table={{
+        technicalName: "section.stock.delivery-notes.table",
+        columns: [
+          {
+            id: "deliveryNoteNumber",
+            header: "Delivery Note",
+            sortable: true,
+            accessor: (item) => item.deliveryNoteNumber,
+            cell: (item) => (
+              <button
+                type="button"
+                className="text-left"
+                onClick={() => {
+                  void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(item.id)}`)
+                }}
+              >
+                <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
+                  {item.deliveryNoteNumber}
+                </p>
+              </button>
+            ),
+          },
+          {
+            id: "postingDate",
+            header: "Posting Date",
+            sortable: true,
+            accessor: (item) => item.postingDate,
+            cell: (item) => formatDeliveryNoteDate(item.postingDate),
+          },
+          {
+            id: "customer",
+            header: "Customer",
+            sortable: true,
+            accessor: (item) => formatDeliveryContactLabel(item.customerId, deliveryContacts),
+            cell: (item) => formatDeliveryContactLabel(item.customerId, deliveryContacts),
+          },
+          {
+            id: "warehouse",
+            header: "Warehouse",
+            sortable: true,
+            accessor: (item) => formatWarehouseDisplayName(item.warehouseId),
+            cell: (item) => formatWarehouseDisplayName(item.warehouseId),
+          },
+          {
+            id: "totalQuantity",
+            header: "Total Qty",
+            sortable: true,
+            accessor: (item) => item.lines.reduce((sum, line) => sum + line.quantity, 0),
+            cell: (item) =>
+              formatQuantity(item.lines.reduce((sum, line) => sum + line.quantity, 0)),
+          },
+          {
+            id: "status",
+            header: "Status",
+            sortable: true,
+            accessor: (item) => item.status,
+            cell: (item) => renderLightStockStatusBadge(item.status, `${item.id}:status`),
+          },
+          {
+            id: "actions",
+            header: "",
+            cell: (item) => (
+              <RecordActionMenu
+                itemLabel={item.deliveryNoteNumber}
+                editLabel="Edit delivery note"
+                customItems={[
+                  {
+                    key: "view",
+                    label: "View delivery note",
+                    icon: <EyeIcon className="size-4" />,
+                    onSelect: () => {
+                      void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(item.id)}`)
+                    },
+                  },
+                  {
+                    key: "print",
+                    label: "Print",
+                    icon: <PrinterIcon className="size-4" />,
+                    onSelect: () => {
+                      const totalQuantity = item.lines.reduce((sum, line) => sum + line.quantity, 0)
+                      printDeliveryNoteDocument({
+                        customerLabel: formatDeliveryContactLabel(
+                          item.customerId,
+                          deliveryContacts
+                        ),
+                        deliveryNoteNumber: item.deliveryNoteNumber,
+                        isReturn: item.isReturn,
+                        items: item.lines.map((line) => ({
+                          id: line.stockUnitId,
+                          productId: line.productId,
+                          barcodeValue: line.barcodeValue,
+                          productName: line.productName,
+                          productCode: line.productCode,
+                          batchCode: line.batchCode ?? "No batch",
+                          serialNumber: line.serialNumber,
+                          warehouseId: line.warehouseId,
+                          warehouseName: formatWarehouseDisplayName(line.warehouseName),
+                          quantity: line.quantity,
+                          stockUnitStatus: line.stockUnitStatus,
+                        })),
+                        note: item.note,
+                        postingDate: formatDeliveryNoteDate(item.postingDate),
+                        totalQuantity,
+                        warehouseLabel: formatWarehouseDisplayName(item.warehouseId),
+                      })
+                    },
+                  },
+                ]}
+                onEdit={() => {
+                  void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(item.id)}/edit`)
+                }}
+              />
+            ),
+            className: "w-16 min-w-16 text-right",
+            headerClassName: "w-16 min-w-16 text-right",
+          },
+        ],
+        data: paginatedItems,
+        emptyMessage: "No delivery notes found.",
+        rowKey: (item) => item.id,
+      }}
+      footer={{
+        content: (
+          <div className="flex flex-wrap items-center gap-4">
+            <span>
+              Total notes: <span className="font-medium text-foreground">{totalRecords}</span>
+            </span>
+          </div>
+        ),
+      }}
+      pagination={{
+        currentPage,
+        pageSize,
+        totalRecords,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: (value) => {
+          setPageSize(value)
+          setCurrentPage(1)
+        },
+      }}
+      />
+  )
+}
+
+export function DeliveryNoteUpsertSection({ deliveryNoteId }: { deliveryNoteId?: string }) {
+  const navigate = useNavigate()
+  const contactLookup = useJsonResource<ContactListResponse>("/internal/v1/core/contacts")
+  const warehouseLookup = useJsonResource<CommonModuleListResponse>(
+    "/internal/v1/core/common-modules/items?module=warehouses"
+  )
+  const productLookup = useJsonResource<ProductListResponse>("/internal/v1/core/products")
+  const stockUnits = useJsonResource<StockUnitListResponse>("/internal/v1/stock/stock-units")
+  const noteList = useJsonResource<DeliveryNoteListResponse>("/internal/v1/stock/delivery-notes")
+  const detail = useJsonResource<DeliveryNoteResponse>(
+    deliveryNoteId ? `/internal/v1/stock/delivery-note?id=${encodeURIComponent(deliveryNoteId)}` : "",
+    [deliveryNoteId]
+  )
+  const [form, setForm] = useState({
+    deliveryNoteNumber: "",
+    postingDate: getTodayDateInputValue(),
+    customerId: "",
+    warehouseId: "",
+    isReturn: false,
+    note: "",
+  })
+  const [barcodeValue, setBarcodeValue] = useState("")
+  const [manualProductId, setManualProductId] = useState("")
+  const [manualStockUnitId, setManualStockUnitId] = useState("")
+  const [items, setItems] = useState<DeliveryNoteItem[]>([])
+  const [message, setMessage] = useState<string | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+
+  const selectedItemIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
+  const deliveryStockUnits = useMemo(
+    () =>
+      (stockUnits.data?.items ?? []).filter((stockUnit) => {
+        if (!stockUnit.isActive || selectedItemIds.has(stockUnit.id)) {
+          return false
+        }
+
+        if (!form.isReturn && !deliveryEligibleStockStatuses.has(stockUnit.status)) {
+          return false
+        }
+
+        if (form.warehouseId && stockUnit.warehouseId !== form.warehouseId) {
+          return false
+        }
+
+        return true
+      }),
+    [form.isReturn, form.warehouseId, selectedItemIds, stockUnits.data?.items]
+  )
+  const productOptions = useMemo(() => {
+    const productIdsWithStock = new Set(deliveryStockUnits.map((stockUnit) => stockUnit.productId))
+    return getProductLookupOptions(productLookup.data?.items ?? []).filter((option) =>
+      productIdsWithStock.has(option.value)
+    )
+  }, [deliveryStockUnits, productLookup.data?.items])
+  const manualStockUnitOptions = useMemo(
+    () =>
+      deliveryStockUnits
+        .filter((stockUnit) => !manualProductId || stockUnit.productId === manualProductId)
+        .map((stockUnit) => ({
+          value: stockUnit.id,
+          label: getDeliveryStockUnitLabel(stockUnit),
+        })),
+    [deliveryStockUnits, manualProductId]
+  )
+
+  useGlobalLoading(
+    contactLookup.isLoading ||
+      warehouseLookup.isLoading ||
+      productLookup.isLoading ||
+      stockUnits.isLoading ||
+      noteList.isLoading ||
+      detail.isLoading ||
+      isScanning
+  )
+
+  const customerOptions = (contactLookup.data?.items ?? []).map((contact) => ({
+    value: contact.id,
+    label: contact.name,
+  }))
+  const warehouseOptions = (warehouseLookup.data?.items ?? [])
+    .filter((item) => item.isActive && String(item.name ?? "").trim() !== "-")
+    .map((item) => ({
+      value: item.id,
+      label: String(item.name ?? item.code ?? item.id),
+    }))
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+  const nextDeliveryNoteNumber = getNextDeliveryNoteNumber(
+    noteList.data?.items ?? [],
+    deliveryNoteId
+  )
+
+  useEffect(() => {
+    if (deliveryNoteId || form.deliveryNoteNumber) {
+      return
+    }
+
+    setForm((current) => ({ ...current, deliveryNoteNumber: nextDeliveryNoteNumber }))
+  }, [deliveryNoteId, form.deliveryNoteNumber, nextDeliveryNoteNumber])
+
+  useEffect(() => {
+    if (!deliveryNoteId || !detail.data) {
+      return
+    }
+
+    const note = detail.data.item
+    setForm({
+      deliveryNoteNumber: note.deliveryNoteNumber,
+      postingDate: note.postingDate,
+      customerId: note.customerId,
+      warehouseId: note.warehouseId,
+      isReturn: note.isReturn,
+      note: note.note,
+    })
+    setItems(
+      note.lines.map((line) => ({
+        id: line.stockUnitId,
+        productId: line.productId,
+        barcodeValue: line.barcodeValue,
+        productName: line.productName,
+        productCode: line.productCode,
+        batchCode: line.batchCode ?? "No batch",
+        serialNumber: line.serialNumber,
+        warehouseId: line.warehouseId,
+        warehouseName: formatWarehouseDisplayName(line.warehouseName),
+        quantity: line.quantity,
+        stockUnitStatus: line.stockUnitStatus,
+      }))
+    )
+  }, [deliveryNoteId, detail.data])
+
+  if (
+    contactLookup.isLoading ||
+    warehouseLookup.isLoading ||
+    productLookup.isLoading ||
+    stockUnits.isLoading ||
+    noteList.isLoading ||
+    detail.isLoading
+  ) {
+    return null
+  }
+
+  if (
+    contactLookup.error ||
+    warehouseLookup.error ||
+    productLookup.error ||
+    stockUnits.error ||
+    noteList.error ||
+    detail.error ||
+    !contactLookup.data ||
+    !warehouseLookup.data ||
+    !productLookup.data ||
+    !stockUnits.data ||
+    !noteList.data ||
+    (deliveryNoteId && !detail.data)
+  ) {
+    return (
+      <StateCard
+        message={
+          contactLookup.error ??
+          warehouseLookup.error ??
+          productLookup.error ??
+          stockUnits.error ??
+          noteList.error ??
+          detail.error ??
+          "Delivery note lookups are unavailable."
+        }
+      />
+    )
+  }
+
+  const selectedCustomerLabel =
+    customerOptions.find((option) => option.value === form.customerId)?.label ?? form.customerId
+  const selectedWarehouseLabel =
+    warehouseOptions.find((option) => option.value === form.warehouseId)?.label ?? form.warehouseId
+
+  function addStockUnitToDelivery(stockUnit: BillingStockUnit, matchedBarcodeValue?: string) {
+    const normalizedMatchedBarcode = matchedBarcodeValue?.trim()
+
+    if (
+      items.some(
+        (item) =>
+          item.id === stockUnit.id ||
+          item.barcodeValue === stockUnit.barcodeValue ||
+          (normalizedMatchedBarcode ? item.barcodeValue === normalizedMatchedBarcode : false)
+      )
+    ) {
+      setMessage("This barcode is already added to the delivery note.")
+      return false
+    }
+
+    if (!form.isReturn && !deliveryEligibleStockStatuses.has(stockUnit.status)) {
+      setMessage(
+        `Warning: barcode is ${stockUnit.status}; only accepted stock can be added to delivery.`
+      )
+      return false
+    }
+
+    setItems((current) => [...current, createDeliveryNoteItemFromStockUnit(stockUnit)])
+    setMessage(`Added ${stockUnit.productName} (${stockUnit.productCode}) to delivery note.`)
+    return true
+  }
+
+  async function handleAddBarcode() {
+    const normalizedBarcode = barcodeValue.trim()
+
+    if (!normalizedBarcode) {
+      setMessage("Scan or enter a barcode before adding a delivery item.")
+      return
+    }
+
+    setIsScanning(true)
+    setMessage(null)
+
+    try {
+      const response = await requestJson<BarcodeResolutionResponse>("/internal/v1/stock/barcode/resolve", {
+        method: "POST",
+        body: JSON.stringify({
+          barcodeValue: normalizedBarcode,
+        }),
+      })
+      const stockUnit = response.item.stockUnit
+
+      if (!response.item.resolved || !stockUnit) {
+        setMessage("Warning: scanned barcode did not match any stock unit.")
+        return
+      }
+
+      if (addStockUnitToDelivery(stockUnit, response.item.barcodeValue)) {
+        setBarcodeValue("")
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to add barcode to delivery note.")
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  function handleAddManualStockUnit() {
+    if (!manualStockUnitId) {
+      setMessage("Select a stock barcode before adding a manual delivery item.")
+      return
+    }
+
+    const stockUnit = stockUnits.data?.items.find((item) => item.id === manualStockUnitId)
+    if (!stockUnit) {
+      setMessage("Selected stock barcode is no longer available.")
+      return
+    }
+
+    if (addStockUnitToDelivery(stockUnit)) {
+      setManualStockUnitId("")
+    }
+  }
+
+  function validateDeliveryNoteForm() {
+    if (!form.customerId) {
+      setMessage("Select a customer before saving the delivery note.")
+      return false
+    }
+
+    if (!form.warehouseId) {
+      setMessage("Select a warehouse before saving the delivery note.")
+      return false
+    }
+
+    if (items.length === 0) {
+      setMessage("Add at least one scanned barcode before saving the delivery note.")
+      return false
+    }
+
+    return true
+  }
+
+  async function saveDeliveryNote() {
+    if (!validateDeliveryNoteForm()) {
+      return null
+    }
+
+    return requestJson<DeliveryNoteResponse>(
+      deliveryNoteId
+        ? `/internal/v1/stock/delivery-note?id=${encodeURIComponent(deliveryNoteId)}`
+        : "/internal/v1/stock/delivery-notes",
+      {
+        method: deliveryNoteId ? "PATCH" : "POST",
+        body: JSON.stringify({
+          deliveryNoteNumber: form.deliveryNoteNumber || nextDeliveryNoteNumber,
+          postingDate: form.postingDate,
+          customerId: form.customerId,
+          warehouseId: form.warehouseId,
+          isReturn: form.isReturn,
+          status: "submitted",
+          note: form.note,
+          lines: items.map((item) => ({
+            stockUnitId: item.id,
+            barcodeValue: item.barcodeValue,
+            productId: item.productId,
+            productName: item.productName,
+            productCode: item.productCode,
+            batchCode: item.batchCode === "No batch" ? null : item.batchCode,
+            serialNumber: item.serialNumber,
+            warehouseId: item.warehouseId,
+            warehouseName: item.warehouseName,
+            quantity: item.quantity,
+            stockUnitStatus: item.stockUnitStatus,
+          })),
+        }),
+      }
+    )
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    try {
+      const response = await saveDeliveryNote()
+      if (!response) {
+        return
+      }
+
+      void navigate("/dashboard/apps/stock/delivery-note")
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to save delivery note.")
+    }
+  }
+
+  async function handleSaveAndPrintDeliveryNote() {
+    try {
+      const response = await saveDeliveryNote()
+      if (!response) {
+        return
+      }
+
+      printDeliveryNoteDocument({
+        customerLabel: selectedCustomerLabel,
+        deliveryNoteNumber: response.item.deliveryNoteNumber,
+        isReturn: response.item.isReturn,
+        items,
+        note: response.item.note,
+        postingDate: formatDeliveryNoteDate(response.item.postingDate),
+        totalQuantity,
+        warehouseLabel: selectedWarehouseLabel,
+      })
+      setMessage(`Save and print prepared for delivery note ${response.item.deliveryNoteNumber}.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to save and print delivery note.")
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="p-5">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Delivery note number">
+                <Input
+                  value={form.deliveryNoteNumber}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      deliveryNoteNumber: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </Field>
+              <Field label="Posting date">
+                <Input
+                  type="date"
+                  value={form.postingDate}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, postingDate: event.target.value }))
+                  }
+                  required
+                />
+              </Field>
+              <Field label="Customer">
+                <SearchableLookupField
+                  noResultsMessage="No customers found."
+                  onValueChange={(nextValue) =>
+                    setForm((current) => ({ ...current, customerId: nextValue }))
+                  }
+                  options={customerOptions}
+                  placeholder="Select customer"
+                  searchPlaceholder="Search customer"
+                  triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                  value={form.customerId}
+                />
+              </Field>
+              <Field label="Warehouse">
+                <SearchableLookupField
+                  noResultsMessage="No warehouses found."
+                  onValueChange={(nextValue) => {
+                    setForm((current) => ({ ...current, warehouseId: nextValue }))
+                    setManualStockUnitId("")
+                  }}
+                  options={warehouseOptions}
+                  placeholder="Select warehouse"
+                  searchPlaceholder="Search warehouse"
+                  triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                  value={form.warehouseId}
+                />
+              </Field>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-border/70 bg-muted/10 px-3 py-2">
+              <Checkbox
+                checked={form.isReturn}
+                onCheckedChange={(checked) =>
+                  setForm((current) => ({ ...current, isReturn: checked === true }))
+                }
+              />
+              <span className="text-sm font-medium text-foreground">Is return</span>
+              {renderLightStockStatusBadge(
+                form.isReturn ? "received" : "available",
+                "delivery-note-mode",
+                form.isReturn ? "Return" : "Delivery"
+              )}
+            </div>
+            <Card className="border-border/70 shadow-sm">
+              <CardContent className="p-4">
+                <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                  <Field label="Scan barcode">
+                    <Input
+                      className="h-11 text-base"
+                      placeholder="Scan stock barcode"
+                      value={barcodeValue}
+                      onChange={(event) => setBarcodeValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") {
+                          return
+                        }
+
+                        event.preventDefault()
+                        void handleAddBarcode()
+                      }}
+                    />
+                  </Field>
+                  <Button
+                    type="button"
+                    className="h-11 min-w-32"
+                    disabled={isScanning}
+                    onClick={() => void handleAddBarcode()}
+                  >
+                    {isScanning ? "Adding..." : "Add item"}
+                  </Button>
+                </div>
+                <div className="mt-4 grid items-end gap-3 border-t border-border/60 pt-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_auto]">
+                  <Field label="Product">
+                    <SearchableLookupField
+                      emptyOptionLabel="Select product"
+                      noResultsMessage="No deliverable stock found."
+                      onValueChange={(nextValue) => {
+                        if (nextValue.startsWith("manual:")) {
+                          return
+                        }
+
+                        setManualProductId(nextValue)
+                        setManualStockUnitId("")
+                      }}
+                      options={productOptions}
+                      placeholder="Select product"
+                      searchPlaceholder="Search product"
+                      triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                      value={manualProductId}
+                    />
+                  </Field>
+                  <Field label="Stock barcode">
+                    <SearchableLookupField
+                      emptyOptionLabel="Select barcode"
+                      noResultsMessage={
+                        manualProductId ? "No stock barcodes found." : "Select product first."
+                      }
+                      onValueChange={(nextValue) => {
+                        if (nextValue.startsWith("manual:")) {
+                          return
+                        }
+
+                        setManualStockUnitId(nextValue)
+                      }}
+                      options={manualStockUnitOptions}
+                      placeholder={manualProductId ? "Select stock barcode" : "Select product first"}
+                      searchPlaceholder="Search barcode"
+                      triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                      value={manualStockUnitId}
+                    />
+                  </Field>
+                  <Button
+                    type="button"
+                    className="h-9 min-w-32"
+                    onClick={handleAddManualStockUnit}
+                  >
+                    Add selected
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <VoucherInlineEditableTable
+              title="Delivery items"
+              addLabel="Add selected item"
+              fitToContainer
+              rows={items}
+              onAddRow={handleAddManualStockUnit}
+              onRemoveRow={(index) =>
+                setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))
+              }
+              removeButtonLabel="Remove"
+              getRowKey={(item) => item.id}
+              columns={[
+                {
+                  id: "product",
+                  header: "Product",
+                  width: "28%",
+                  renderCell: (item) => (
+                    <div>
+                      <p className="font-medium text-foreground">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">{item.productCode}</p>
+                    </div>
+                  ),
+                },
+                {
+                  id: "barcode",
+                  header: "Barcode",
+                  width: "18%",
+                  renderCell: (item) => (
+                    <span className="font-mono text-xs text-foreground">{item.barcodeValue}</span>
+                  ),
+                },
+                {
+                  id: "batch",
+                  header: "Batch",
+                  width: "12%",
+                  renderCell: (item) => item.batchCode,
+                },
+                {
+                  id: "serial",
+                  header: "Serial",
+                  width: "14%",
+                  renderCell: (item) => item.serialNumber,
+                },
+                {
+                  id: "warehouse",
+                  header: "Warehouse",
+                  width: "12%",
+                  renderCell: (item) => item.warehouseName,
+                },
+                {
+                  id: "quantity",
+                  header: "Qty",
+                  width: "8%",
+                  headerClassName: "text-center",
+                  cellClassName: "text-center",
+                  renderCell: (item) => formatQuantity(item.quantity),
+                },
+                {
+                  id: "status",
+                  header: "Status",
+                  width: "8%",
+                  renderCell: (item) =>
+                    renderLightStockStatusBadge(item.stockUnitStatus, `${item.id}:status`),
+                },
+              ]}
+              summaryRow={
+                <TableRow className="border-border/60 bg-muted/20 hover:bg-muted/20">
+                  <TableCell className="border-r border-border/50 px-1 py-0.5" />
+                  <TableCell
+                    colSpan={5}
+                    className="border-r border-border/50 px-1.5 py-0.5 text-right font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+                  >
+                    Total
+                  </TableCell>
+                  <TableCell className="border-r border-border/50 px-0 py-0.5 text-center text-sm font-semibold text-foreground">
+                    <div className="flex h-6 items-center justify-center">
+                      {formatQuantity(totalQuantity)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-0 py-0.5">
+                    <div className="h-6" />
+                  </TableCell>
+                </TableRow>
+              }
+            />
+            <Field label="Delivery note remarks">
+              <Textarea
+                className="min-h-24"
+                value={form.note}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, note: event.target.value }))
+                }
+              />
+            </Field>
+            {message ? (
+              <p className="text-sm font-medium text-muted-foreground">{message}</p>
+            ) : null}
+            <div className="flex gap-3 pt-4">
+              <Button type="submit">Save delivery note</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handleSaveAndPrintDeliveryNote()}
+              >
+                <PrinterIcon className="mr-2 size-4" />
+                Save and print
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void navigate("/dashboard/apps/stock/delivery-note")}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export function DeliveryNoteShowSection({ deliveryNoteId }: { deliveryNoteId: string }) {
+  const navigate = useNavigate()
+  const detail = useJsonResource<DeliveryNoteResponse>(
+    `/internal/v1/stock/delivery-note?id=${encodeURIComponent(deliveryNoteId)}`,
+    [deliveryNoteId]
+  )
+  const contactLookup = useJsonResource<ContactListResponse>("/internal/v1/core/contacts")
+  useGlobalLoading(detail.isLoading || contactLookup.isLoading)
+
+  if (detail.isLoading || contactLookup.isLoading) {
+    return null
+  }
+
+  if (detail.error || contactLookup.error || !detail.data || !contactLookup.data) {
+    return (
+      <StateCard
+        message={detail.error ?? contactLookup.error ?? "Delivery note detail is unavailable."}
+      />
+    )
+  }
+
+  const item = detail.data.item
+  const totalQuantity = item.lines.reduce((sum, line) => sum + line.quantity, 0)
+  const customerLabel = formatDeliveryContactLabel(item.customerId, contactLookup.data.items)
+  const printItems = item.lines.map((line) => ({
+    id: line.stockUnitId,
+    productId: line.productId,
+    barcodeValue: line.barcodeValue,
+    productName: line.productName,
+    productCode: line.productCode,
+    batchCode: line.batchCode ?? "No batch",
+    serialNumber: line.serialNumber,
+    warehouseId: line.warehouseId,
+    warehouseName: formatWarehouseDisplayName(line.warehouseName),
+    quantity: line.quantity,
+    stockUnitStatus: line.stockUnitStatus,
+  }))
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={() =>
+            printDeliveryNoteDocument({
+              customerLabel,
+              deliveryNoteNumber: item.deliveryNoteNumber,
+              isReturn: item.isReturn,
+              items: printItems,
+              note: item.note,
+              postingDate: formatDeliveryNoteDate(item.postingDate),
+              totalQuantity,
+              warehouseLabel: formatWarehouseDisplayName(item.warehouseId),
+            })
+          }
+        >
+          <PrinterIcon className="mr-2 size-4" />
+          Print
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() =>
+            void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(item.id)}/edit`)
+          }
+        >
+          Edit
+        </Button>
+        <Button variant="outline" onClick={() => void navigate("/dashboard/apps/stock/delivery-note")}>
+          Back
+        </Button>
+      </div>
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="grid gap-4 p-5 md:grid-cols-3">
+          <Field label="Delivery note"><p className="text-sm font-medium">{item.deliveryNoteNumber}</p></Field>
+          <Field label="Posting date"><p className="text-sm font-medium">{formatDeliveryNoteDate(item.postingDate)}</p></Field>
+          <Field label="Customer"><p className="text-sm font-medium">{customerLabel}</p></Field>
+          <Field label="Warehouse"><p className="text-sm font-medium">{formatWarehouseDisplayName(item.warehouseId)}</p></Field>
+          <Field label="Mode"><p className="text-sm font-medium">{item.isReturn ? "Return" : "Delivery"}</p></Field>
+          <Field label="Status">{renderLightStockStatusBadge(item.status, `${item.id}:status`)}</Field>
+        </CardContent>
+      </Card>
+      <DataTable
+        headers={["Product", "Barcode", "Batch", "Serial", "Warehouse", "Qty", "Status"]}
+        rows={item.lines.map((line) => [
+          <div key={`${line.id}:product`}>
+            <p className="font-medium text-foreground">{line.productName}</p>
+            <p className="text-xs text-muted-foreground">{line.productCode}</p>
+          </div>,
+          line.barcodeValue,
+          line.batchCode ?? "No batch",
+          line.serialNumber,
+          formatWarehouseDisplayName(line.warehouseName),
+          formatQuantity(line.quantity),
+          renderLightStockStatusBadge(line.stockUnitStatus, `${line.id}:status`),
+        ])}
+      />
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="p-5">
+          <p className="text-sm text-muted-foreground">{item.note || "No remarks."}</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

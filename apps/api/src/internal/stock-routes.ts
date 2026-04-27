@@ -10,12 +10,14 @@ import {
 import {
   acceptStockUnitsToInventory,
   createStockGoodsInward,
+  createStockDeliveryNote,
   createStockPurchaseReceipt,
   createStockPurchaseReceiptBarcodeBatch,
   deleteStockPurchaseReceipt,
   createStockSaleAllocation,
   getStockBarcodeAlias,
   getStockGoodsInward,
+  getStockDeliveryNote,
   getStockPurchaseReceipt,
   getStockPurchaseReceiptLookups,
   getStockReconciliation,
@@ -25,6 +27,7 @@ import {
   listStockAvailability,
   listStockBarcodeAliases,
   listStockGoodsInward,
+  listStockDeliveryNotes,
   listStockMovements,
   listStockPurchaseReceipts,
   listStockReservations,
@@ -35,6 +38,7 @@ import {
   rollbackStockPurchaseReceiptBarcodes,
   resolveStockBarcode,
   updateStockGoodsInward,
+  updateStockDeliveryNote,
   updateStockPurchaseReceipt,
   upsertStockReservation,
   upsertStockTransfer,
@@ -256,6 +260,64 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
       handler: async (context) => {
         const { user } = await requireStockWorkspaceView(context)
         return jsonResponse(await listStockUnits(context.databases.primary, user))
+      },
+    }),
+    defineInternalRoute("/stock/delivery-notes", {
+      summary: "List stock delivery notes.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceView(context)
+        return jsonResponse(await listStockDeliveryNotes(context.databases.primary, user))
+      },
+    }),
+    defineInternalRoute("/stock/delivery-note", {
+      summary: "Read one stock delivery note by id.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceView(context)
+        const deliveryNoteId = context.request.url.searchParams.get("id")
+
+        if (!deliveryNoteId) {
+          throw new ApplicationError("Stock delivery note id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await getStockDeliveryNote(context.databases.primary, user, deliveryNoteId)
+        )
+      },
+    }),
+    defineInternalRoute("/stock/delivery-notes", {
+      method: "POST",
+      summary: "Create a stock delivery note.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        return jsonResponse(
+          await createStockDeliveryNote(
+            context.databases.primary,
+            user,
+            context.request.jsonBody
+          ),
+          201
+        )
+      },
+    }),
+    defineInternalRoute("/stock/delivery-note", {
+      method: "PATCH",
+      summary: "Update a stock delivery note.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        const deliveryNoteId = context.request.url.searchParams.get("id")
+
+        if (!deliveryNoteId) {
+          throw new ApplicationError("Stock delivery note id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await updateStockDeliveryNote(
+            context.databases.primary,
+            user,
+            deliveryNoteId,
+            context.request.jsonBody
+          )
+        )
       },
     }),
     defineInternalRoute("/stock/stock-acceptance-verifications", {

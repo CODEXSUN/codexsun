@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/mobile",
   "private": true,
-  "version": "1.0.250",
+  "version": "1.0.273",
   "main": "expo/AppEntry",
   "scripts": {
     "start": "expo start --clear",

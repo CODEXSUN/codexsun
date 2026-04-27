@@ -1,6 +1,7 @@
 import type { ProductListResponse } from "@core/shared"
 import type {
   BillingGoodsInward,
+  BillingDeliveryNote,
   BillingPurchaseReceipt,
   BillingPurchaseReceiptSerializationMode,
   BillingStockAcceptanceVerification,
@@ -23,6 +24,8 @@ export type PurchaseReceiptResponse = { item: BillingPurchaseReceipt }
 export type GoodsInwardListResponse = { items: BillingGoodsInward[] }
 export type GoodsInwardResponse = { item: BillingGoodsInward }
 export type GoodsInwardPostingResponse = { item: BillingGoodsInward; unitsCreated: number }
+export type DeliveryNoteListResponse = { items: BillingDeliveryNote[] }
+export type DeliveryNoteResponse = { item: BillingDeliveryNote }
 export type StockUnitListResponse = { items: BillingStockUnit[] }
 export type StockAcceptanceVerificationListResponse = {
   items: BillingStockAcceptanceVerification[]
@@ -197,6 +200,7 @@ export type SupplierContactDraft = {
 
 export type {
   BillingGoodsInward,
+  BillingDeliveryNote,
   BillingPurchaseReceipt,
   BillingPurchaseReceiptSerializationMode,
   BillingStockAcceptanceVerification,

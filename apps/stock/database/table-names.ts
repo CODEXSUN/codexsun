@@ -1,5 +1,6 @@
 export const stockOperationsTableNames = {
   purchaseReceipts: "billing_purchase_receipts",
+  deliveryNotes: "billing_delivery_notes",
   goodsInwardNotes: "billing_goods_inward_notes",
   stockUnits: "billing_stock_units",
   stockBarcodeAliases: "billing_stock_barcode_aliases",

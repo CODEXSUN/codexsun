@@ -2,6 +2,412 @@
 
 ## Active
 
+- `#273` Change Delivery Note clear to cancel
+  - Goal:
+    - replace Clear with Cancel and send users back to the Delivery Note list.
+  - Scope in this batch:
+    - Delivery Note form action-row behavior only
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - renamed Clear to Cancel
+    - changed Cancel to navigate back to the Delivery Note list
+    - removed the duplicate Go back action
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#272` Add Delivery Note form back action
+  - Goal:
+    - add a Go back button at the end of Delivery Note form actions.
+  - Scope in this batch:
+    - UI action only; navigate back to the Delivery Note list
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - added a Go back button after Clear on the Delivery Note form, returning to the Delivery Note list
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#271` Format Delivery Note date and contact labels
+  - Goal:
+    - show Delivery Note posting dates as `27-04-2026` instead of `2026-04-27`, and remove `contact:` prefixes from customer display.
+  - Scope in this batch:
+    - display-only formatting for Delivery Note list/show/print
+    - keep saved payload dates and customer ids unchanged
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - added Delivery Note display helpers for `dd-MM-yyyy` posting dates and clean customer labels
+    - updated Delivery Note list display/search/print to use formatted dates and contact names
+    - updated Delivery Note show/print to use formatted dates and contact names
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#270` Polish Delivery Note list and save redirect
+  - Goal:
+    - make the Delivery Note list match the Purchase Receipt list tone and return to the list after save.
+  - Scope in this batch:
+    - replace the simple DataTable Delivery Note list with `MasterList`
+    - add search, status filters, pagination, and record action menu
+    - change Delivery Note save navigation from show page to list page
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - replaced the simple Delivery Note data table with a Purchase Receipt-style `MasterList`
+    - added list header, New Delivery Note action, search, status filters, active filters, pagination, footer count, clickable note number, and action menu
+    - changed successful Delivery Note save to redirect back to `/dashboard/apps/stock/delivery-note`
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#269` Persist Delivery Notes with list show edit
+  - Goal:
+    - create a persisted Delivery Note table and add list/show/edit/new screens like Purchase Receipt.
+  - Scope in this batch:
+    - add JSON-store-backed delivery note schema/table/service/API
+    - keep stock unit status mutation out of scope unless the existing stock lifecycle contract already supports it
+    - reuse the existing Delivery Note form for create/edit
+    - add list and show surfaces in the stock workspace
+  - Planned validation:
+    - run `npx.cmd tsc --noEmit --pretty false`
+    - run focused ESLint for changed stock/cxapp/api/service files
+  - Implemented:
+    - added Delivery Note schemas, response schemas, upsert payloads, and shared stock aliases
+    - added a `billing_delivery_notes` JSON-store table migration
+    - added delivery note list/get/create/update service functions and stock manager wrappers
+    - added internal stock API routes for `/stock/delivery-notes` and `/stock/delivery-note`
+    - changed Delivery Note sidebar route into a persisted list page with New, Show, and Edit actions
+    - converted the previous Delivery Note form into a new/edit upsert section that saves to the API
+    - added a Delivery Note show section with printable detail
+    - added cxapp routes for `/delivery-note/new`, `/delivery-note/:deliveryNoteId`, and `/delivery-note/:deliveryNoteId/edit`
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed focused ESLint with existing local overrides for `react-hooks/set-state-in-effect` and pre-existing `app-shell` `no-explicit-any`
+
+- `#268` Rename Delivery Note print actions
+  - Goal:
+    - simplify Delivery Note actions by removing the separate Print button and renaming Send to print as Save and print.
+  - Scope in this batch:
+    - action row text/visibility only
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - removed the standalone Delivery Note Print button
+    - renamed Send to print to Save and print while keeping the print dialog behavior
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#267` Add Delivery Note print actions
+  - Goal:
+    - add Delivery Note print and send-to-print actions using the current form and item table.
+  - Scope in this batch:
+    - add a stock-owned printable Delivery Note document helper
+    - add two action buttons in the Delivery Note footer
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - added a Delivery Note printable document helper with header, customer, warehouse, mode, item rows, totals, and remarks
+    - added Print and Send to print actions beside Save/Clear
+    - guarded print actions until customer, warehouse, and at least one item are present
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#266` Add Delivery Note action spacing
+  - Goal:
+    - add more vertical space between Delivery Note remarks and the Save/Clear button row.
+  - Scope in this batch:
+    - adjust the Delivery Note action row spacing only
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - added top padding before the Delivery Note Save/Clear action row
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#265` Remove Delivery Note message card spacing
+  - Goal:
+    - remove the added Delivery Note message card and create more space between each form section.
+  - Current evidence:
+    - Delivery Note renders `message` through `StateCard`, creating the large card shown below remarks
+    - the form currently uses tight `space-y-4` spacing
+  - Scope in this batch:
+    - replace the message card with compact inline text
+    - increase Delivery Note form and page section spacing
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - replaced the Delivery Note message `StateCard` with compact inline text
+    - increased Delivery Note page and form spacing from `space-y-4` to `space-y-6`
+    - widened action button gap slightly
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#264` Restrict Delivery Note to accepted stock
+  - Goal:
+    - Delivery Note should add only accepted/live stock items, not received items, and wrong barcode scans should show clear warnings.
+  - Current evidence:
+    - Delivery Note currently includes `received` in delivery eligibility
+    - manual stock barcode options are derived from the same eligibility list
+  - Scope in this batch:
+    - remove `received` from delivery eligibility so manual lookup and scan-add both reject it
+    - make scan failures explicit warning messages
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - removed `received` from Delivery Note delivery eligibility so manual lookup only lists accepted/live stock
+    - kept delivery eligibility to `available` and `allocated`
+    - changed unknown and unaccepted scan failures to explicit warning messages
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#263` Fix Delivery Note item adding
+  - Goal:
+    - make Delivery Note scan barcodes add stock units reliably and add a manual selection path similar in tone to Purchase Receipt item selection.
+  - Current evidence:
+    - Delivery Note currently resolves a barcode directly and only accepts `available` or `allocated` stock statuses
+    - Purchase Receipt uses `SearchableLookupField` inside the workflow for product selection
+  - Scope in this batch:
+    - load stock units and product lookups for Delivery Note
+    - add manual product and barcode lookup controls
+    - route both scan and manual selection through one item-append helper
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - added Delivery Note stock-unit and product lookup loading
+    - added a shared stock-unit append helper used by both barcode scan and manual selection
+    - added manual Product and Stock barcode lookup controls plus an Add selected action
+    - allowed `received`, `available`, and `allocated` stock units for delivery mode while keeping return mode unrestricted
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#262` Simplify Delivery Note number
+  - Goal:
+    - make new Delivery Note numbers start as `01` instead of the dated `DN-YYYYMMDD-HHMM` format.
+  - Current evidence:
+    - `createDeliveryNoteNumber` currently builds `DN-${datePart}-${timePart}`
+  - Scope in this batch:
+    - update the UI default/reset number generator only
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - changed the Delivery Note default/reset number generator to return `01`
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#261` Remove Delivery Note workspace hero card
+  - Goal:
+    - remove the large Stock hero card from the Delivery Note page so the delivery form starts directly below the page header.
+  - Current evidence:
+    - `FrameworkAppWorkspacePage` controls workspace hero visibility with per-app section hide lists
+  - Scope in this batch:
+    - add the stock `delivery-note` section to the hero hidden list
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the workspace page
+  - Implemented:
+    - added `delivery-note` to the stock workspace hero hidden section list
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/cxapp/web/src/pages/framework-app-workspace-page.tsx`
+
+- `#260` Keep stock Outward as sidebar group
+  - Goal:
+    - render Delivery Note inside a visible `Outward` collapsible group below Inward instead of as a standalone sidebar item.
+  - Current evidence:
+    - Stock already has an Outward menu group containing Delivery Note in the desk registry
+    - the shared app sidebar flattens any group that has only one item and no nested children
+  - Scope in this batch:
+    - add a narrow explicit menu-group flag for groups that must render even with one item
+    - apply it to the Stock Outward group only
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the changed dashboard type/sidebar/registry files
+  - Implemented:
+    - added optional `forceGroup` support to dashboard menu groups
+    - changed the sidebar renderer to keep forced groups collapsible even when they have one item
+    - set `forceGroup: true` on the Stock `Outward` group so Delivery Note renders inside it below Inward
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/ui/src/features/dashboard/types.ts apps/ui/src/features/dashboard/components/navigation/app-sidebar.tsx apps/cxapp/web/src/desk/desk-registry.ts`
+    - ESLint reported existing warnings in `app-sidebar.tsx` for `react-hooks/exhaustive-deps` at lines 269 and 353
+
+- `#259` Add stock Outward sidebar group
+  - Goal:
+    - show an Outward sidebar group below Inward in the stock workspace and place Delivery Note inside it.
+  - Current evidence:
+    - Delivery Note exists in the stock workspace item list
+    - the stock menu grouping still only renders Overview, Inward, and Operations
+  - Scope in this batch:
+    - add the Outward group to the stock menu group registry
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for `apps/cxapp/web/src/desk/desk-registry.ts`
+  - Implemented:
+    - added stock `Outward` menu group below `Inward`
+    - placed `/dashboard/apps/stock/delivery-note` inside the Outward group
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/cxapp/web/src/desk/desk-registry.ts`
+
+- `#258` Add stock outward delivery note page
+  - Goal:
+    - introduce an Outward stock workflow with a Delivery Note page for customer-facing barcode-scanned dispatch/return rows.
+  - Scope in this batch:
+    - add an Outward sidebar group and Delivery Note menu item
+    - create a stock Delivery Note page in the same visual tone as Purchase Receipt
+    - include required delivery note fields, customer lookup, `is return` checkbox, barcode scan input, and item table
+  - Constraints:
+    - preserve existing stock routes and lifecycle behavior
+    - keep the first delivery note page focused and app-owned inside stock UI
+  - Planned validation:
+    - run focused `tsc --noEmit` for changed stock UI/navigation files
+    - run focused ESLint for changed stock UI/navigation files
+  - Implemented:
+    - added a Delivery Note stock workspace item and route
+    - added a new Outward sidebar group containing Delivery Note
+    - created a purchase-receipt-toned Delivery Note page with delivery note number, posting date, customer lookup, warehouse lookup, `is return` checkbox, barcode scan action, delivery item table, total quantity, remarks, save, and clear actions
+    - wired barcode scanning through the existing stock barcode resolution endpoint and adds resolved stock units into the delivery item table
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx apps/stock/web/src/workspace-sections.tsx apps/stock/shared/workspace-items.ts apps/cxapp/web/src/desk/desk-registry.ts --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#257` Add rejected goods table pagination
+  - Goal:
+    - add a bottom pagination footer to the rejected goods table so long rejection registers can be browsed cleanly.
+  - Scope in this batch:
+    - add local pagination state to Goods Rejections
+    - slice rejected table rows by selected page size
+    - render total rows, rows-per-page selector, current range, previous/current/next controls
+  - Constraints:
+    - keep this client-side and presentation-only for the current in-memory rejected items list
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed stock UI file
+    - run focused ESLint for the changed stock UI file
+  - Implemented:
+    - added local rejected goods page and rows-per-page state
+    - sliced rejected goods table rows by current page
+    - added a bottom footer with total rejected rows, rows-per-page selector, visible range, previous/current/next controls
+    - reset pagination to page one when purchase receipt filter or page size changes
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#256` Compact rejected goods table card
+  - Goal:
+    - remove the redundant rejected goods table helper header and make the card more compact.
+  - Scope in this batch:
+    - remove title and description from the rejected goods table card
+    - reduce top padding around the table
+  - Constraints:
+    - keep table columns and data unchanged
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed stock UI file
+    - run focused ESLint for the changed stock UI file
+  - Implemented:
+    - removed the rejected goods table title and helper description
+    - reduced card content padding around the table
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#255` Swap stock sidebar goods rejection and ledger order
+  - Goal:
+    - put Stock Ledger above Goods Rejections in the stock Inward sidebar group.
+  - Scope in this batch:
+    - update only the stock workspace navigation order
+  - Constraints:
+    - keep routes and page behavior unchanged
+  - Planned validation:
+    - run focused TypeScript or ESLint validation for the changed navigation file
+  - Implemented:
+    - moved Stock Ledger above Goods Rejections in `apps/stock/shared/workspace-items.ts`
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/shared/workspace-items.ts`
+
+- `#254` Polish rejected goods table columns
+  - Goal:
+    - make the rejected goods table cleaner by removing redundant status, moving reason to the end, and shortening warehouse labels.
+  - Scope in this batch:
+    - remove the table Status column
+    - move Reason after Notes
+    - strip the `warehouse:` prefix from warehouse display values
+  - Constraints:
+    - keep this presentation-only
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed stock UI file
+    - run focused ESLint for the changed stock UI file
+  - Implemented:
+    - removed the rejected goods table Status column
+    - moved Reason after Notes
+    - stripped `warehouse:` from warehouse display values
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#253` Enlarge goods rejection summary badges
+  - Goal:
+    - make the Goods Rejections summary counts more readable by spacing the filter and enlarging count badges.
+  - Scope in this batch:
+    - add horizontal breathing room between the purchase receipt lookup and the count group
+    - use larger light-tone badges for Rejected rows and Rejected quantity values
+  - Constraints:
+    - keep this presentation-only
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed stock UI file
+    - run focused ESLint for the changed stock UI file
+  - Implemented:
+    - separated the purchase receipt filter from the summary counts with a responsive right-side count group
+    - enlarged Rejected rows and Rejected quantity number badges with wider rounded sizing and stronger text weight
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#252` Simplify goods rejection summary and type section
+  - Goal:
+    - make the Goods Rejections filter summary more compact and remove the extra rejection-type management card from the page.
+  - Scope in this batch:
+    - convert `Rejected rows` and `Rejected quantity` values from input-like boxes to light badges
+    - remove the `Rejection Types` card while keeping the lookup-backed type creation behavior intact
+  - Constraints:
+    - keep the change presentation-only; no API or persistence changes
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed stock UI file
+    - run focused ESLint for the changed stock UI file
+  - Implemented:
+    - rendered Rejected rows and Rejected quantity as light rejection badges in the filter summary card
+    - removed the Rejection Types table card from the Goods Rejections page while keeping the lookup-backed creation path active
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#251` Polish goods rejections page header and entry row
+  - Goal:
+    - remove redundant Goods Rejections intro content and make the barcode rejection card more compact and aligned.
+  - Scope in this batch:
+    - remove the `SectionIntro` card from the Goods Rejections page
+    - replace the long barcode card copy with concise action-oriented text
+    - remove the action label and align the Update button with the input row
+  - Constraints:
+    - keep the change presentation-only; no API, lifecycle, rejection type, or persistence changes
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed stock UI file
+    - run focused ESLint for the changed stock UI file
+  - Implemented:
+    - removed the Goods Rejections `SectionIntro` card
+    - changed the entry card title to `Reject Barcode` with shorter scan/type/reject copy
+    - removed the action field label and aligned the Update button with the input row
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
 - `#250` Convert goods rejection type to creatable lookup
   - Goal:
     - make Goods Rejections use a lookup-style rejection type field that can create a new option when no record exists, while keeping lifecycle status clear.

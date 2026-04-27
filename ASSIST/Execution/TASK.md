@@ -2,6 +2,241 @@
 
 ## Active
 
+- [x] `#273` Change Delivery Note clear to cancel
+  - [x] Phase 1: update action row
+    - [x] 1.1 rename Clear to Cancel
+    - [x] 1.2 make Cancel return to Delivery Note list
+    - [x] 1.3 remove duplicate Go back button
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#272` Add Delivery Note form back action
+  - [x] Phase 1: add action
+    - [x] 1.1 add Go back button at the end of Delivery Note form actions
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#271` Format Delivery Note date and contact labels
+  - [x] Phase 1: add display helpers
+    - [x] 1.1 format Delivery Note posting date as `dd-MM-yyyy`
+    - [x] 1.2 resolve/clean contact labels without `contact:` prefix
+  - [x] Phase 2: apply to Delivery Note surfaces
+    - [x] 2.1 update list display/search/print labels
+    - [x] 2.2 update show page display/print labels
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#270` Polish Delivery Note list and save redirect
+  - [x] Phase 1: align list tone
+    - [x] 1.1 render Delivery Note list with `MasterList`
+    - [x] 1.2 add search, status filters, pagination, and action menu
+  - [x] Phase 2: save redirect
+    - [x] 2.1 redirect save to Delivery Note list
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#269` Persist Delivery Notes with list show edit
+  - [x] Phase 1: backend contract and table
+    - [x] 1.1 add delivery note schemas and response types
+    - [x] 1.2 add delivery note JSON store table migration
+    - [x] 1.3 add delivery note service and stock manager wrappers
+    - [x] 1.4 add internal stock delivery note API routes
+  - [x] Phase 2: frontend routes and pages
+    - [x] 2.1 add stock delivery note list page
+    - [x] 2.2 convert current form to new/edit upsert page
+    - [x] 2.3 add delivery note show page
+    - [x] 2.4 add cxapp routes for new/show/edit
+  - [x] Phase 3: validation
+    - [x] 3.1 run TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#268` Rename Delivery Note print actions
+  - [x] Phase 1: update buttons
+    - [x] 1.1 remove standalone Print button
+    - [x] 1.2 rename Send to print to Save and print
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#267` Add Delivery Note print actions
+  - [x] Phase 1: add print document helper
+    - [x] 1.1 build printable Delivery Note HTML from current form and items
+    - [x] 1.2 send printable document to browser print dialog
+  - [x] Phase 2: add actions
+    - [x] 2.1 add Print button beside Save/Clear
+    - [x] 2.2 add Send to print button beside Save/Clear
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#266` Add Delivery Note action spacing
+  - [x] Phase 1: adjust actions spacing
+    - [x] 1.1 add top margin before Save/Clear buttons
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#265` Remove Delivery Note message card spacing
+  - [x] Phase 1: adjust message presentation
+    - [x] 1.1 remove the card wrapper around Delivery Note messages
+    - [x] 1.2 keep warnings visible as inline text
+  - [x] Phase 2: adjust section spacing
+    - [x] 2.1 increase vertical spacing between Delivery Note form sections
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#264` Restrict Delivery Note to accepted stock
+  - [x] Phase 1: update eligibility
+    - [x] 1.1 remove received stock from Delivery Note delivery eligibility
+    - [x] 1.2 keep manual stock barcode options filtered by accepted/live stock only
+  - [x] Phase 2: improve scan warnings
+    - [x] 2.1 show warning text for unknown barcode scans
+    - [x] 2.2 show warning text for received/unaccepted scans
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#263` Fix Delivery Note item adding
+  - [x] Phase 1: trace current add path
+    - [x] 1.1 inspect Delivery Note barcode resolution flow
+    - [x] 1.2 inspect Purchase Receipt manual product lookup pattern
+  - [x] Phase 2: implement scan and manual item add
+    - [x] 2.1 share stock-unit append logic for scanned and manual items
+    - [x] 2.2 add manual product and barcode lookup controls
+    - [x] 2.3 allow live stock statuses used by current stock lifecycle
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#262` Simplify Delivery Note number
+  - [x] Phase 1: locate generator
+    - [x] 1.1 find Delivery Note number default creation
+  - [x] Phase 2: update number format
+    - [x] 2.1 change generated number from dated `DN-*` format to padded `01`
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#261` Remove Delivery Note workspace hero card
+  - [x] Phase 1: locate hero visibility control
+    - [x] 1.1 find stock workspace hero hide list
+  - [x] Phase 2: hide hero on Delivery Note
+    - [x] 2.1 add `delivery-note` to stock hero hidden sections
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#260` Keep stock Outward as sidebar group
+  - [x] Phase 1: confirm flattening behavior
+    - [x] 1.1 verify Stock Outward group exists in desk registry
+    - [x] 1.2 verify sidebar flattens single-item groups
+  - [x] Phase 2: force Outward group rendering
+    - [x] 2.1 add an explicit menu-group flag for single-item grouping
+    - [x] 2.2 set the flag on Stock Outward
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#259` Add stock Outward sidebar group
+  - [x] Phase 1: confirm current stock sidebar grouping
+    - [x] 1.1 verify Delivery Note workspace item exists
+    - [x] 1.2 verify Outward group is missing from stock menu groups
+  - [x] Phase 2: add Outward group
+    - [x] 2.1 place Outward below Inward and above Operations
+    - [x] 2.2 include Delivery Note in Outward
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused validation for stock desk registry
+
+- [x] `#258` Add stock outward delivery note page
+  - [x] Phase 1: trace stock navigation and page routing
+    - [x] 1.1 find stock sidebar grouping source
+    - [x] 1.2 find stock route/page switch for workspace sections
+    - [x] 1.3 reuse purchase receipt tone and table patterns for delivery note UI
+  - [x] Phase 2: add outward delivery note UI
+    - [x] 2.1 add Outward sidebar group with Delivery Note menu
+    - [x] 2.2 create Delivery Note page with required header fields and customer lookup
+    - [x] 2.3 add `is return` checkbox flag
+    - [x] 2.4 add barcode scan input and item table in purchase-receipt tone
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for changed stock UI/navigation files
+    - [x] 3.2 run focused ESLint validation for changed stock UI/navigation files
+
+- [x] `#257` Add rejected goods table pagination
+  - [x] Phase 1: add pagination state
+    - [x] 1.1 track page and rows per page for rejected goods
+    - [x] 1.2 slice rejected rows for current page
+  - [x] Phase 2: render pagination footer
+    - [x] 2.1 add total, rows-per-page, range, previous, current page, and next controls below table
+    - [x] 2.2 reset page safely when filters or page size change
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for the changed stock UI file
+    - [x] 3.2 run focused ESLint validation for the changed stock UI file
+
+- [x] `#256` Compact rejected goods table card
+  - [x] Phase 1: remove table helper header
+    - [x] 1.1 remove Rejected Goods Table title
+    - [x] 1.2 remove helper description
+  - [x] Phase 2: trim card spacing
+    - [x] 2.1 reduce top padding so table starts closer to card edge
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for the changed stock UI file
+    - [x] 3.2 run focused ESLint validation for the changed stock UI file
+
+- [x] `#255` Swap stock sidebar goods rejection and ledger order
+  - [x] Phase 1: locate stock sidebar navigation source
+    - [x] 1.1 find the Inward section item order
+  - [x] Phase 2: update item order
+    - [x] 2.1 move Stock Ledger above Goods Rejections
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused validation for the changed navigation file
+
+- [x] `#254` Polish rejected goods table columns
+  - [x] Phase 1: update rejected goods table structure
+    - [x] 1.1 remove Status column
+    - [x] 1.2 move Reason column to the end
+  - [x] Phase 2: clean warehouse labels
+    - [x] 2.1 display `warehouse:default` as `default`
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for the changed stock UI file
+    - [x] 3.2 run focused ESLint validation for the changed stock UI file
+
+- [x] `#253` Enlarge goods rejection summary badges
+  - [x] Phase 1: adjust summary spacing
+    - [x] 1.1 add space between purchase receipt filter and count badges
+    - [x] 1.2 keep the summary responsive
+  - [x] Phase 2: enlarge count badges
+    - [x] 2.1 render rejected rows and quantity with larger badge sizing
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for the changed stock UI file
+    - [x] 3.2 run focused ESLint validation for the changed stock UI file
+
+- [x] `#252` Simplify goods rejection summary and type section
+  - [x] Phase 1: adjust summary card presentation
+    - [x] 1.1 render rejected rows and rejected quantity as badges
+    - [x] 1.2 keep purchase receipt filter layout stable
+  - [x] Phase 2: remove rejection types page section
+    - [x] 2.1 remove the Rejection Types card from Goods Rejections
+    - [x] 2.2 keep the rejection type lookup working from Core common modules
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for the changed stock UI file
+    - [x] 3.2 run focused ESLint validation for the changed stock UI file
+
+- [x] `#251` Polish goods rejections page header and entry row
+  - [x] Phase 1: update Goods Rejections page layout copy
+    - [x] 1.1 remove the redundant page intro card
+    - [x] 1.2 tighten the barcode rejection card title and description
+  - [x] Phase 2: align rejection entry controls
+    - [x] 2.1 remove the action field label
+    - [x] 2.2 vertically align the update button with the input controls
+  - [x] Phase 3: validation
+    - [x] 3.1 run focused TypeScript validation for the changed stock UI file
+    - [x] 3.2 run focused ESLint validation for the changed stock UI file
+
 - [x] `#250` Convert goods rejection type to creatable lookup
   - [x] Phase 1: trace current goods rejection type and lookup patterns
     - [x] 1.1 inspect goods rejections barcode update card and rejected records table
