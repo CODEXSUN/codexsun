@@ -25,6 +25,8 @@ import {
   billingGoodsInwardSchema,
   billingPurchaseReceiptBarcodeGenerationPayloadSchema,
   billingPurchaseReceiptBarcodeGenerationResponseSchema,
+  billingPurchaseReceiptBarcodeRollbackPayloadSchema,
+  billingPurchaseReceiptBarcodeRollbackResponseSchema,
   billingStickerPrintBatchPayloadSchema,
   billingStickerPrintBatchResponseSchema,
   billingStickerPrintBatchSchema,
@@ -498,13 +500,15 @@ function buildSerialNumberForReceiptPosting(
   unitSequence: number,
   serialPrefix: string | null
 ) {
+  const sequenceToken = String(unitSequence).padStart(2, "0")
+
   if (serialPrefix?.trim()) {
-    return sanitizeToken(`${serialPrefix}-${unitSequence}`, `SERIAL-${lineIndex + 1}-${unitSequence}`)
+    return sanitizeToken(`${serialPrefix}${sequenceToken}`, `SERIAL${lineIndex + 1}${sequenceToken}`)
   }
 
   return sanitizeToken(
-    `${receipt.entryNumber}-${lineIndex + 1}-${unitSequence}`,
-    `SERIAL-${lineIndex + 1}-${unitSequence}`
+    `${receipt.entryNumber}${lineIndex + 1}${sequenceToken}`,
+    `SERIAL${lineIndex + 1}${sequenceToken}`
   )
 }
 
@@ -516,7 +520,20 @@ function buildManufacturerBarcodeForReceiptPosting(
     return null
   }
 
-  return normalizeBarcodeValue(`${manufacturerBarcodePrefix}-${unitSequence}`)
+  const sequenceToken = String(unitSequence).padStart(2, "0")
+  return normalizeBarcodeValue(`${manufacturerBarcodePrefix}${sequenceToken}`)
+}
+
+function buildReceiptBarcodeForReceiptPosting(
+  batchCode: string | null,
+  serialNumber: string,
+  barcodePrefix: string | null
+) {
+  const normalizedPrefix = sanitizeToken(barcodePrefix, "")
+  const normalizedBatchCode = batchCode?.trim() ? sanitizeToken(batchCode, "") : ""
+  const normalizedSerialNumber = sanitizeToken(serialNumber, serialNumber)
+
+  return `${normalizedPrefix}${normalizedBatchCode}${normalizedSerialNumber}`
 }
 
 function createStickerBatchRecord(
@@ -599,6 +616,7 @@ export async function listBillingStockAcceptanceVerifications(
   filters?: {
     purchaseReceiptId?: string
     productId?: string
+    status?: "verified" | "mismatch" | "rejected"
   }
 ) {
   assertBillingViewer(user)
@@ -610,6 +628,10 @@ export async function listBillingStockAcceptanceVerifications(
     }
 
     if (filters?.productId && item.productId !== filters.productId) {
+      return false
+    }
+
+    if (filters?.status && item.status !== filters.status) {
       return false
     }
 
@@ -675,6 +697,7 @@ export async function acceptBillingStockUnitsToInventory(
     verifications.map((item) => [item.stockUnitId, item] as const)
   )
   const acceptedUnitIds = new Set<string>()
+  const rejectedUnitIds = new Set<string>()
   const nextVerificationById = new Map(
     verifications.map((item) => [item.id, item] as const)
   )
@@ -687,8 +710,28 @@ export async function acceptBillingStockUnitsToInventory(
     }
 
     const scannedBarcodeValue = normalizeBarcodeValue(scannedItem.scannedBarcodeValue)
-    const status =
-      scannedBarcodeValue === normalizeBarcodeValue(unit.barcodeValue) ? "verified" : "mismatch"
+    const rejectionReason = scannedItem.rejected
+      ? scannedItem.rejectionReason?.trim() || "rejected"
+      : null
+    const rejectionNote = scannedItem.rejected ? scannedItem.rejectionNote?.trim() || null : null
+
+    if (scannedItem.rejected && !rejectionNote) {
+      throw new ApplicationError(
+        "Rejected stock units require a note before confirmation.",
+        {
+          purchaseReceiptId: parsedPayload.purchaseReceiptId,
+          productId: parsedPayload.productId,
+          stockUnitId: unit.id,
+        },
+        409
+      )
+    }
+
+    const status = scannedItem.rejected
+      ? "rejected"
+      : scannedBarcodeValue === normalizeBarcodeValue(unit.barcodeValue)
+        ? "verified"
+        : "mismatch"
     const existingVerification = verificationByUnitId.get(unit.id)
     const verification = billingStockAcceptanceVerificationSchema.parse({
       id: existingVerification?.id ?? `stock-acceptance-verification:${randomUUID()}`,
@@ -703,7 +746,10 @@ export async function acceptBillingStockUnitsToInventory(
       expectedBarcodeValue: unit.barcodeValue,
       scannedBarcodeValue,
       quantityAccepted: status === "verified" ? unit.quantity : 0,
+      quantityRejected: status === "rejected" ? unit.quantity : 0,
       status,
+      rejectionReason,
+      rejectionNote,
       verifiedAt: status === "verified" ? timestamp : null,
       createdAt: existingVerification?.createdAt ?? timestamp,
       updatedAt: timestamp,
@@ -714,20 +760,33 @@ export async function acceptBillingStockUnitsToInventory(
 
     if (status === "verified") {
       acceptedUnitIds.add(unit.id)
+      continue
+    }
+
+    if (status === "rejected") {
+      rejectedUnitIds.add(unit.id)
     }
   }
 
   const updatedUnits = stockUnits.map((item) => {
-    if (!acceptedUnitIds.has(item.id)) {
-      return item
+    if (acceptedUnitIds.has(item.id)) {
+      return billingStockUnitSchema.parse({
+        ...item,
+        status: "available",
+        availableAt: timestamp,
+        updatedAt: timestamp,
+      })
     }
 
-    return billingStockUnitSchema.parse({
-      ...item,
-      status: "available",
-      availableAt: timestamp,
-      updatedAt: timestamp,
-    })
+    if (rejectedUnitIds.has(item.id)) {
+      return billingStockUnitSchema.parse({
+        ...item,
+        status: "rejected",
+        updatedAt: timestamp,
+      })
+    }
+
+    return item
   })
 
   await writeStockAcceptanceVerifications(
@@ -755,6 +814,10 @@ export async function acceptBillingStockUnitsToInventory(
   const acceptedQuantity = roundQuantity(
     acceptedUnits.reduce((sum, item) => sum + item.quantity, 0)
   )
+  const rejectedUnits = updatedUnits.filter((item) => rejectedUnitIds.has(item.id))
+  const rejectedQuantity = roundQuantity(
+    rejectedUnits.reduce((sum, item) => sum + item.quantity, 0)
+  )
   const responseItems = Array.from(nextVerificationById.values())
     .filter(
       (item) =>
@@ -766,8 +829,10 @@ export async function acceptBillingStockUnitsToInventory(
   return billingStockAcceptanceResponseSchema.parse({
     acceptedCount: acceptedUnits.length,
     acceptedQuantity,
-    mismatchCount: parsedPayload.items.length - acceptedUnits.length,
-    remainingCount: candidateUnits.length - acceptedUnits.length,
+    rejectedCount: rejectedUnits.length,
+    rejectedQuantity,
+    mismatchCount: parsedPayload.items.length - acceptedUnits.length - rejectedUnits.length,
+    remainingCount: candidateUnits.length - acceptedUnits.length - rejectedUnits.length,
     items: responseItems,
   })
 }
@@ -1210,7 +1275,11 @@ export async function createBillingPurchaseReceiptBarcodeBatch(
         unitSequence,
         lineConfig.serialPrefix
       )
-      const barcodeValue = buildInternalBarcode(product, batchCode, serialNumber)
+      const barcodeValue = buildReceiptBarcodeForReceiptPosting(
+        batchCode,
+        serialNumber,
+        lineConfig.barcodePrefix
+      )
       const manufacturerBarcode = buildManufacturerBarcodeForReceiptPosting(
         lineConfig.manufacturerBarcodePrefix,
         unitSequence
@@ -1330,6 +1399,13 @@ export async function createBillingPurchaseReceiptBarcodeBatch(
       damagedQuantity: 0,
       manufacturerBarcode: lineConfig.manufacturerBarcodePrefix,
       manufacturerSerial: lineConfig.serialPrefix,
+      serializationMode: lineConfig.identityMode,
+      serializationBatchCode: batchCode,
+      serializationSerialPrefix: lineConfig.serialPrefix,
+      serializationBarcodePrefix: lineConfig.barcodePrefix,
+      serializationManufacturerBarcodePrefix: lineConfig.manufacturerBarcodePrefix,
+      serializationBarcodeQuantity: lineConfig.barcodeQuantity,
+      serializationExpiresAt: lineConfig.expiresAt,
       note: lineConfig.note,
     })
   })
@@ -1374,6 +1450,181 @@ export async function createBillingPurchaseReceiptBarcodeBatch(
     goodsInward: inward,
     stickerBatch: batch,
     unitsCreated: newUnits.length,
+  })
+}
+
+export async function rollbackBillingPurchaseReceiptBarcodes(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  receiptId: string,
+  payload: unknown
+) {
+  assertBillingViewer(user)
+
+  const parsedPayload = billingPurchaseReceiptBarcodeRollbackPayloadSchema.parse(payload)
+  const [purchaseReceipts, goodsInwards, stockUnits, barcodeAliases, stickerBatches, verifications] =
+    await Promise.all([
+      readPurchaseReceipts(database),
+      readGoodsInwardNotes(database),
+      readStockUnits(database),
+      readBarcodeAliases(database),
+      readStickerPrintBatches(database),
+      readStockAcceptanceVerifications(database),
+    ])
+
+  const receipt = purchaseReceipts.find((item) => item.id === receiptId)
+
+  if (!receipt) {
+    throw new ApplicationError("Billing purchase receipt could not be found.", { receiptId }, 404)
+  }
+
+  const selectedStockUnitIds = new Set(parsedPayload.stockUnitIds)
+  const selectedUnits = stockUnits.filter(
+    (item) => item.purchaseReceiptId === receipt.id && selectedStockUnitIds.has(item.id)
+  )
+  const foundStockUnitIds = new Set(selectedUnits.map((item) => item.id))
+  const missingStockUnitIds = [...selectedStockUnitIds].filter((item) => !foundStockUnitIds.has(item))
+
+  if (selectedUnits.length === 0 || missingStockUnitIds.length > 0) {
+    throw new ApplicationError(
+      "One or more selected generated barcodes could not be found on this purchase receipt.",
+      {
+        receiptId,
+        missingStockUnitIds,
+      },
+      404
+    )
+  }
+
+  const lockedUnits = selectedUnits.filter((item) => item.status !== "received")
+
+  if (lockedUnits.length > 0) {
+    throw new ApplicationError(
+      "Generated barcodes can be deleted only before stock acceptance.",
+      {
+        receiptId,
+        stockUnitIds: lockedUnits.map((item) => item.id),
+        statuses: lockedUnits.map((item) => item.status),
+      },
+      409
+    )
+  }
+
+  const timestamp = new Date().toISOString()
+  const removedQuantityByGoodsInwardLineId = new Map<
+    string,
+    {
+      count: number
+      quantity: number
+    }
+  >()
+
+  for (const unit of selectedUnits) {
+    const current = removedQuantityByGoodsInwardLineId.get(unit.goodsInwardLineId) ?? {
+      count: 0,
+      quantity: 0,
+    }
+    removedQuantityByGoodsInwardLineId.set(unit.goodsInwardLineId, {
+      count: current.count + 1,
+      quantity: roundQuantity(current.quantity + unit.quantity),
+    })
+  }
+
+  const removedGoodsInwardIds = new Set<string>()
+  const nextGoodsInwards = goodsInwards.flatMap((inward) => {
+    if (!inward.stockUnitIds.some((item) => selectedStockUnitIds.has(item))) {
+      return [inward]
+    }
+
+    const nextLines = inward.lines.flatMap((line) => {
+      const removedSummary = removedQuantityByGoodsInwardLineId.get(line.id)
+
+      if (!removedSummary) {
+        return [line]
+      }
+
+      const acceptedQuantity = roundQuantity(
+        Math.max(line.acceptedQuantity - removedSummary.quantity, 0)
+      )
+
+      if (acceptedQuantity <= 0) {
+        return []
+      }
+
+      const serializationBarcodeQuantity =
+        line.serializationBarcodeQuantity == null
+          ? null
+          : Math.max(line.serializationBarcodeQuantity - removedSummary.count, 0)
+
+      return [
+        billingGoodsInwardSchema.shape.lines.element.parse({
+          ...line,
+          acceptedQuantity,
+          serializationBarcodeQuantity:
+            serializationBarcodeQuantity > 0 ? serializationBarcodeQuantity : null,
+        }),
+      ]
+    })
+    const nextStockUnitIds = inward.stockUnitIds.filter((item) => !selectedStockUnitIds.has(item))
+
+    if (nextLines.length === 0 || nextStockUnitIds.length === 0) {
+      removedGoodsInwardIds.add(inward.id)
+      return []
+    }
+
+    return [
+      billingGoodsInwardSchema.parse({
+        ...inward,
+        lines: nextLines,
+        stockUnitIds: nextStockUnitIds,
+        updatedAt: timestamp,
+      }),
+    ]
+  })
+
+  const nextPurchaseReceipts = purchaseReceipts.map((item) =>
+    item.id === receipt.id ? recalculateReceiptStatus(item, nextGoodsInwards) : item
+  )
+  const nextStockUnits = stockUnits.filter((item) => !selectedStockUnitIds.has(item.id))
+  const nextBarcodeAliases = barcodeAliases.filter(
+    (item) => !selectedStockUnitIds.has(item.stockUnitId)
+  )
+  const nextVerifications = verifications.filter(
+    (item) => !selectedStockUnitIds.has(item.stockUnitId)
+  )
+  const nextStickerBatches = stickerBatches.flatMap((batch) => {
+    if (!batch.items.some((item) => selectedStockUnitIds.has(item.stockUnitId))) {
+      return [batch]
+    }
+
+    const nextItems = batch.items.filter((item) => !selectedStockUnitIds.has(item.stockUnitId))
+
+    if (nextItems.length === 0) {
+      return []
+    }
+
+    return [
+      billingStickerPrintBatchSchema.parse({
+        ...batch,
+        itemCount: nextItems.length,
+        items: nextItems,
+        updatedAt: timestamp,
+      }),
+    ]
+  })
+
+  await writeGoodsInwardNotes(database, nextGoodsInwards)
+  await writeStockUnits(database, nextStockUnits)
+  await writeBarcodeAliases(database, nextBarcodeAliases)
+  await writeStockAcceptanceVerifications(database, nextVerifications)
+  await writePurchaseReceipts(database, nextPurchaseReceipts)
+  await writeStickerPrintBatches(database, nextStickerBatches)
+
+  return billingPurchaseReceiptBarcodeRollbackResponseSchema.parse({
+    purchaseReceiptId: receipt.id,
+    rolledBackCount: selectedUnits.length,
+    deletedStockUnitIds: [...selectedStockUnitIds],
+    removedGoodsInwardIds: [...removedGoodsInwardIds],
   })
 }
 

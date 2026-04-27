@@ -32,6 +32,23 @@ const baseCommonModuleItemsByKey: Record<CommonModuleKey, CommonModuleItem[]> = 
   warehouses: operationsSeed.warehouses ?? [],
   destinations: masterSeed.destinations ?? [],
   paymentTerms: masterSeed.paymentTerms ?? [],
+  stockRejectionTypes: [
+    defineItem("stock-rejection-type:rejected", {
+      code: "rejected",
+      name: "Rejected",
+      description: "General supplier or inward rejection.",
+    }),
+    defineItem("stock-rejection-type:doa", {
+      code: "doa",
+      name: "DOA",
+      description: "Dead on arrival or unusable on receipt.",
+    }),
+    defineItem("stock-rejection-type:warranty", {
+      code: "warranty",
+      name: "Warranty",
+      description: "Warranty-linked inward rejection.",
+    }),
+  ],
   storefrontTemplates: operationsSeed.storefrontTemplates ?? [],
   sliderThemes: operationsSeed.sliderThemes ?? [],
 }
@@ -92,6 +109,7 @@ const defaultCommonModuleRows: Record<
   },
   destinations: { code: "-", name: "-", description: "-" },
   paymentTerms: { code: "-", name: "-", due_days: 0, description: "-" },
+  stockRejectionTypes: { code: "-", name: "-", description: "-" },
   storefrontTemplates: {
     code: "-",
     name: "-",

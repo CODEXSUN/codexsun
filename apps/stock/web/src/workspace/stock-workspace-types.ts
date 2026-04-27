@@ -30,6 +30,8 @@ export type StockAcceptanceVerificationListResponse = {
 export type StockAcceptanceResponse = {
   acceptedCount: number
   acceptedQuantity: number
+  rejectedCount: number
+  rejectedQuantity: number
   mismatchCount: number
   remainingCount: number
   items: BillingStockAcceptanceVerification[]
@@ -154,6 +156,9 @@ export type GoodsInwardLineForm = {
   acceptedQuantity: string
   rejectedQuantity: string
   damagedQuantity: string
+  damageReceived: boolean
+  returnToVendor: boolean
+  damageRemark: string
   manufacturerBarcode: string
   manufacturerSerial: string
   note: string
@@ -171,6 +176,7 @@ export type PurchaseReceiptSerializationLineForm = {
   identityMode: BillingPurchaseReceiptSerializationMode
   batchCode: string
   serialPrefix: string
+  barcodePrefix: string
   manufacturerBarcodePrefix: string
   expiresAt: string
   selected: boolean

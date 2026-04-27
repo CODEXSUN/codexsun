@@ -351,12 +351,13 @@ export function FrameworkAppWorkspacePage({
     ) ||
     (
       app.id === "stock" &&
-      [
-        "overview",
-        "purchase-receipts",
-        "stock-entry",
-        "stock-ledger",
-        "stock-ledger-show",
+        [
+          "overview",
+          "purchase-receipts",
+          "stock-entry",
+          "goods-rejections",
+          "stock-ledger",
+          "stock-ledger-show",
         "purchase-receipts-show",
         "purchase-receipts-upsert",
         "goods-inward",

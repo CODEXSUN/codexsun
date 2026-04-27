@@ -32,6 +32,7 @@ import {
   listStockTransfers,
   listStockUnits,
   postStockGoodsInward,
+  rollbackStockPurchaseReceiptBarcodes,
   resolveStockBarcode,
   updateStockGoodsInward,
   updateStockPurchaseReceipt,
@@ -131,6 +132,27 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
 
         return jsonResponse(
           await createStockPurchaseReceiptBarcodeBatch(
+            context.databases.primary,
+            user,
+            receiptId,
+            context.request.jsonBody
+          )
+        )
+      },
+    }),
+    defineInternalRoute("/stock/purchase-receipt/barcodes", {
+      method: "DELETE",
+      summary: "Delete selected generated stock units and barcode stickers from a purchase receipt.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        const receiptId = context.request.url.searchParams.get("id")
+
+        if (!receiptId) {
+          throw new ApplicationError("Stock purchase receipt id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await rollbackStockPurchaseReceiptBarcodes(
             context.databases.primary,
             user,
             receiptId,
@@ -244,6 +266,12 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
           await listStockAcceptanceVerifications(context.databases.primary, user, {
             purchaseReceiptId: context.request.url.searchParams.get("purchaseReceiptId") ?? undefined,
             productId: context.request.url.searchParams.get("productId") ?? undefined,
+            status:
+              (context.request.url.searchParams.get("status") as
+                | "verified"
+                | "mismatch"
+                | "rejected"
+                | null) ?? undefined,
           })
         )
       },

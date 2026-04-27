@@ -44,7 +44,6 @@ test("billing stock foundation creates purchase receipt and goods inward without
     const config = getServerConfig(tempRoot)
     config.database.driver = "sqlite"
     config.database.sqliteFile = path.join(tempRoot, "primary.sqlite")
-    config.offline.enabled = false
 
     const runtime = createRuntimeDatabases(config)
 
@@ -59,41 +58,33 @@ test("billing stock foundation creates purchase receipt and goods inward without
         runtime.primary,
         adminUser,
         {
-          receiptNumber: "PR-2026-001",
-          supplierName: "Foundry Supplier",
-          supplierLedgerId: "ledger-sundry-creditors",
+          entryNumber: "PR-2026-001",
+          supplierId: "ledger-sundry-creditors",
           postingDate: "2026-04-13",
           warehouseId: "warehouse:default",
-          warehouseName: "Default Warehouse",
-          sourceVoucherId: null,
-          sourceFrappeReceiptId: null,
           status: "open",
-          note: "Initial local purchase receipt.",
           lines: [
             {
               productId: product.id,
-              productName: product.name,
-              variantId: null,
-              variantName: null,
-              warehouseId: "warehouse:default",
-              quantity: 3,
-              unit: "Nos",
-              unitCost: 1200,
-              note: "Expected inward quantity.",
+              description: product.name,
+              quantity: 4,
+              rate: 1200,
+              amount: 4800,
+              notes: "Expected inward quantity.",
             },
           ],
         }
       )
 
       assert.equal(purchaseReceipt.item.status, "open")
-      assert.equal(purchaseReceipt.item.lines[0]?.receivedQuantity, 0)
+      assert.equal(purchaseReceipt.item.lines[0]?.quantity, 4)
 
       const storedPurchaseReceipt = await getBillingPurchaseReceipt(
         runtime.primary,
         adminUser,
         purchaseReceipt.item.id
       )
-      assert.equal(storedPurchaseReceipt.item.receiptNumber, "PR-2026-001")
+      assert.equal(storedPurchaseReceipt.item.entryNumber, "PR-2026-001")
 
       const goodsInward = await createBillingGoodsInwardNote(
         runtime.primary,
@@ -101,11 +92,11 @@ test("billing stock foundation creates purchase receipt and goods inward without
         {
           inwardNumber: "GIN-2026-001",
           purchaseReceiptId: purchaseReceipt.item.id,
-          purchaseReceiptNumber: purchaseReceipt.item.receiptNumber,
-          supplierName: purchaseReceipt.item.supplierName,
+          purchaseReceiptNumber: purchaseReceipt.item.entryNumber,
+          supplierName: purchaseReceipt.item.supplierId,
           postingDate: "2026-04-13",
           warehouseId: purchaseReceipt.item.warehouseId,
-          warehouseName: purchaseReceipt.item.warehouseName,
+          warehouseName: purchaseReceipt.item.warehouseId,
           status: "verified",
           note: "Goods verified but not yet posted to sellable stock.",
           lines: [
@@ -115,10 +106,13 @@ test("billing stock foundation creates purchase receipt and goods inward without
               productName: product.name,
               variantId: null,
               variantName: null,
-              expectedQuantity: 3,
-              acceptedQuantity: 3,
-              rejectedQuantity: 0,
-              damagedQuantity: 0,
+              expectedQuantity: 4,
+              acceptedQuantity: 2,
+              rejectedQuantity: 1,
+              damagedQuantity: 1,
+              damageReceived: true,
+              returnToVendor: true,
+              damageRemark: "Carton crushed; vendor return raised.",
               manufacturerBarcode: "MFG-BC-001",
               manufacturerSerial: "MFG-SR-001",
               note: "All units accepted.",
@@ -129,6 +123,9 @@ test("billing stock foundation creates purchase receipt and goods inward without
 
       assert.equal(goodsInward.item.status, "verified")
       assert.equal(goodsInward.item.stockPostingStatus, "blocked_until_verification")
+      assert.equal(goodsInward.item.lines[0]?.damageReceived, true)
+      assert.equal(goodsInward.item.lines[0]?.returnToVendor, true)
+      assert.equal(goodsInward.item.lines[0]?.damageRemark, "Carton crushed; vendor return raised.")
 
       const storedGoodsInward = await getBillingGoodsInwardNote(
         runtime.primary,
@@ -136,6 +133,7 @@ test("billing stock foundation creates purchase receipt and goods inward without
         goodsInward.item.id
       )
       assert.equal(storedGoodsInward.item.inwardNumber, "GIN-2026-001")
+      assert.equal(storedGoodsInward.item.lines[0]?.damagedQuantity, 1)
 
       const updatedGoodsInward = await updateBillingGoodsInwardNote(
         runtime.primary,
@@ -144,11 +142,11 @@ test("billing stock foundation creates purchase receipt and goods inward without
         {
           inwardNumber: "GIN-2026-001",
           purchaseReceiptId: purchaseReceipt.item.id,
-          purchaseReceiptNumber: purchaseReceipt.item.receiptNumber,
-          supplierName: purchaseReceipt.item.supplierName,
+          purchaseReceiptNumber: purchaseReceipt.item.entryNumber,
+          supplierName: purchaseReceipt.item.supplierId,
           postingDate: "2026-04-13",
           warehouseId: purchaseReceipt.item.warehouseId,
-          warehouseName: purchaseReceipt.item.warehouseName,
+          warehouseName: purchaseReceipt.item.warehouseId,
           status: "pending_verification",
           note: "Moved back for inward review.",
           lines: [
@@ -158,47 +156,45 @@ test("billing stock foundation creates purchase receipt and goods inward without
               productName: product.name,
               variantId: null,
               variantName: null,
-              expectedQuantity: 3,
-              acceptedQuantity: 2,
-              rejectedQuantity: 1,
+              expectedQuantity: 4,
+              acceptedQuantity: 4,
+              rejectedQuantity: 0,
               damagedQuantity: 0,
+              damageReceived: false,
+              returnToVendor: false,
+              damageRemark: "",
               manufacturerBarcode: "MFG-BC-001",
               manufacturerSerial: "MFG-SR-001",
-              note: "One unit held back.",
+              note: "All inward units cleared after review.",
             },
           ],
         }
       )
 
       assert.equal(updatedGoodsInward.item.stockPostingStatus, "not_posted")
-      assert.equal(updatedGoodsInward.item.lines[0]?.acceptedQuantity, 2)
+      assert.equal(updatedGoodsInward.item.lines[0]?.acceptedQuantity, 4)
+      assert.equal(updatedGoodsInward.item.lines[0]?.damageReceived, false)
+      assert.equal(updatedGoodsInward.item.lines[0]?.returnToVendor, false)
+      assert.equal(updatedGoodsInward.item.lines[0]?.damageRemark, null)
 
       const updatedPurchaseReceipt = await updateBillingPurchaseReceipt(
         runtime.primary,
         adminUser,
         purchaseReceipt.item.id,
         {
-          receiptNumber: "PR-2026-001",
-          supplierName: "Foundry Supplier",
-          supplierLedgerId: "ledger-sundry-creditors",
+          entryNumber: "PR-2026-001",
+          supplierId: "ledger-sundry-creditors",
           postingDate: "2026-04-13",
           warehouseId: "warehouse:default",
-          warehouseName: "Default Warehouse",
-          sourceVoucherId: null,
-          sourceFrappeReceiptId: null,
           status: "partially_received",
-          note: "Receiving progress captured locally.",
           lines: [
             {
               productId: product.id,
-              productName: product.name,
-              variantId: null,
-              variantName: null,
-              warehouseId: "warehouse:default",
-              quantity: 3,
-              unit: "Nos",
-              unitCost: 1200,
-              note: "Expected inward quantity.",
+              description: product.name,
+              quantity: 4,
+              rate: 1200,
+              amount: 4800,
+              notes: "Expected inward quantity.",
             },
           ],
         }

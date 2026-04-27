@@ -1,6 +1,7 @@
 export {
   acceptBillingStockUnitsToInventory,
   createBillingPurchaseReceiptBarcodeBatch,
+  rollbackBillingPurchaseReceiptBarcodes,
   createBillingStickerPrintBatch,
   createBillingStockSaleAllocation,
   getBillingStockUnit,

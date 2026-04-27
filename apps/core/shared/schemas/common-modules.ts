@@ -26,6 +26,7 @@ const commonModuleKeys = [
   "warehouses",
   "destinations",
   "paymentTerms",
+  "stockRejectionTypes",
   "storefrontTemplates",
   "sliderThemes",
 ] as const

@@ -25,6 +25,12 @@ export const stockWorkspaceItems: StockWorkspaceItem[] = [
     summary: "Prepare a simple stock entry with one product and nos count in a single card.",
   },
   {
+    id: "goods-rejections",
+    name: "Goods Rejections",
+    route: "/dashboard/apps/stock/goods-rejections",
+    summary: "Review rejected barcode rows captured during sticker verification and track vendor-return notes.",
+  },
+  {
     id: "stock-ledger",
     name: "Stock Ledger",
     route: "/dashboard/apps/stock/stock-ledger",

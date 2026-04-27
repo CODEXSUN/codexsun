@@ -77,8 +77,64 @@ async function buildGoodsInwardRecord(
   const parsedPayload = billingGoodsInwardUpsertPayloadSchema.parse(payload)
   const purchaseReceipt = await assertPurchaseReceiptExists(database, parsedPayload.purchaseReceiptId)
   const timestamp = new Date().toISOString()
-  const lines = parsedPayload.lines.map((line, index) =>
-    billingGoodsInwardSchema.shape.lines.element.parse({
+  const lines = parsedPayload.lines.map((line, index) => {
+    const damageReceived = line.damageReceived || line.damagedQuantity > 0
+    const returnToVendor = line.returnToVendor
+    const damageRemark =
+      damageReceived || returnToVendor ? line.damageRemark?.trim() || null : null
+    const damagedQuantity = damageReceived ? line.damagedQuantity : 0
+    const exceptionQuantity = line.rejectedQuantity + damagedQuantity
+    const totalProcessedQuantity = line.acceptedQuantity + exceptionQuantity
+
+    if (damageReceived && damagedQuantity <= 0) {
+      throw new ApplicationError(
+        "Damage received lines must include a damaged quantity.",
+        {
+          purchaseReceiptLineId: line.purchaseReceiptLineId,
+          index,
+        },
+        409
+      )
+    }
+
+    if (returnToVendor && exceptionQuantity <= 0) {
+      throw new ApplicationError(
+        "Return-to-vendor lines must include rejected or damaged quantity.",
+        {
+          purchaseReceiptLineId: line.purchaseReceiptLineId,
+          index,
+        },
+        409
+      )
+    }
+
+    if ((damageReceived || returnToVendor) && !damageRemark) {
+      throw new ApplicationError(
+        "Damage received and vendor return lines require remarks.",
+        {
+          purchaseReceiptLineId: line.purchaseReceiptLineId,
+          index,
+        },
+        409
+      )
+    }
+
+    if (totalProcessedQuantity > line.expectedQuantity) {
+      throw new ApplicationError(
+        "Accepted, rejected, and damaged quantity cannot exceed the expected quantity.",
+        {
+          purchaseReceiptLineId: line.purchaseReceiptLineId,
+          index,
+          expectedQuantity: line.expectedQuantity,
+          acceptedQuantity: line.acceptedQuantity,
+          rejectedQuantity: line.rejectedQuantity,
+          damagedQuantity,
+        },
+        409
+      )
+    }
+
+    return billingGoodsInwardSchema.shape.lines.element.parse({
       id: existing?.lines[index]?.id ?? `goods-inward-line:${randomUUID()}`,
       purchaseReceiptLineId: line.purchaseReceiptLineId,
       productId: line.productId,
@@ -88,12 +144,22 @@ async function buildGoodsInwardRecord(
       expectedQuantity: line.expectedQuantity,
       acceptedQuantity: line.acceptedQuantity,
       rejectedQuantity: line.rejectedQuantity,
-      damagedQuantity: line.damagedQuantity,
+      damagedQuantity,
+      damageReceived,
+      returnToVendor,
+      damageRemark,
       manufacturerBarcode: line.manufacturerBarcode,
       manufacturerSerial: line.manufacturerSerial,
+      serializationMode: line.serializationMode,
+      serializationBatchCode: line.serializationBatchCode,
+      serializationSerialPrefix: line.serializationSerialPrefix,
+      serializationBarcodePrefix: line.serializationBarcodePrefix,
+      serializationManufacturerBarcodePrefix: line.serializationManufacturerBarcodePrefix,
+      serializationBarcodeQuantity: line.serializationBarcodeQuantity,
+      serializationExpiresAt: line.serializationExpiresAt,
       note: line.note,
     })
-  )
+  })
 
   const record = billingGoodsInwardSchema.parse({
     id: existing?.id ?? `goods-inward:${randomUUID()}`,

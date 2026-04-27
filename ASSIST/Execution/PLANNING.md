@@ -2,6 +2,265 @@
 
 ## Active
 
+- `#250` Convert goods rejection type to creatable lookup
+  - Goal:
+    - make Goods Rejections use a lookup-style rejection type field that can create a new option when no record exists, while keeping lifecycle status clear.
+  - Current evidence:
+    - the current goods rejection entry card uses a fixed rejection-type dropdown with hardcoded values
+    - stock-unit lifecycle status should remain `rejected`; rejection type should be the user-facing reason/classification rather than a second lifecycle status
+  - Scope in this batch:
+    - inspect existing stock/core lookup controls and create-on-miss patterns
+    - replace the fixed Goods Rejections rejection-type selector with a creatable autocomplete lookup field
+    - add an on-page rejection type table if the current implementation needs visible management for custom values
+  - Constraints:
+    - do not change the underlying stock-unit lifecycle model in this batch
+    - keep backend status values and existing rejection persistence compatible unless a narrow contract change is required
+  - Planned validation:
+    - run focused `tsc --noEmit` for changed stock UI files
+    - run focused ESLint for changed stock UI files
+  - Implemented:
+    - added `stockRejectionTypes` as a Core common module with seeded `Rejected`, `DOA`, and `Warranty` records plus the standard common-module management route
+    - widened stock acceptance `rejectionReason` from the fixed enum to a non-empty string so lookup-backed custom type codes can be persisted
+    - replaced the Goods Rejections fixed rejection-type dropdown with a searchable creatable lookup backed by `/internal/v1/core/common-modules/items?module=stockRejectionTypes`
+    - added a Rejection Types table on the Goods Rejections page and kept the lifecycle status display fixed as `rejected`
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx apps/core/shared/schemas/common-modules.ts apps/core/shared/common-module-navigation.ts apps/core/src/common-modules/definitions.ts apps/core/src/common-modules/seed-data.ts apps/core/database/table-names.ts apps/stock/shared/schemas/stock-operations.ts --rule "react-hooks/set-state-in-effect: off" --quiet`
+    - attempted `npx.cmd tsx --test tests/billing/stock-acceptance-rejection.test.ts tests/stock/purchase-receipt-live-flow.test.ts`; `tests/stock/purchase-receipt-live-flow.test.ts` passed, while `tests/billing/stock-acceptance-rejection.test.ts` was blocked by local MariaDB access denied for user `''@'localhost'`
+
+- `#249` Standardize light-tone stock app status badges
+  - Goal:
+    - make stock app status badges use a consistent light-tone status language instead of saturated full-color fills.
+  - Current evidence:
+    - purchase receipt statuses were just changed to full colored badges
+    - the stock app also renders status badges in support sections and generated barcode tables, so those surfaces should share the same lighter tone family
+  - Scope in this batch:
+    - trace `Badge` status usage under `apps/stock/web/src`
+    - update purchase receipt and stock-unit status badge helpers to light backgrounds with colored text and borders
+    - align status badges in stock forms/pages where they are local status markers rather than plain metrics
+  - Constraints:
+    - keep this presentation-only; do not change status values, filters, API payloads, or stock lifecycle behavior
+    - keep app-specific status color mapping inside the stock app instead of moving it into shared UI
+  - Planned validation:
+    - run focused `tsc --noEmit` for changed stock UI files
+    - run focused ESLint for changed stock UI files
+  - Implemented:
+    - changed purchase receipt and generated barcode stock-unit status badges from saturated fills to light outline tones
+    - added a local generic light status badge helper in the stock support workspace sections
+    - aligned goods inward status and posting badges, sales allocation status, transfer status, reservation status, challan status, verification status, and live audit scan status to the same light-tone status treatment
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#248` Color stock purchase receipt status badges
+  - Goal:
+    - make stock purchase receipt statuses render as full colored badges instead of neutral outline labels.
+  - Current evidence:
+    - the purchase receipt list currently renders `item.status` inside an outline `Badge`
+    - the shared UI project default confirms `badge` maps to the pill/status marker pattern, so a local app-owned color helper can keep the component source unchanged
+  - Scope in this batch:
+    - add a focused purchase receipt status badge helper inside the stock purchase receipt workspace file
+    - style known purchase receipt states with full colored badge classes in the list and any matching detail/header status surfaces found during inspection
+  - Constraints:
+    - keep this as a presentation-only change; do not alter purchase receipt status values, filters, or backend behavior
+    - avoid moving app-specific stock status styling into shared `apps/ui`
+  - Planned validation:
+    - run focused `tsc --noEmit` for the changed purchase receipt screen
+    - run focused ESLint for the changed purchase receipt screen
+  - Implemented:
+    - added local full-color badge helpers for purchase receipt statuses in the stock purchase receipt workspace file
+    - updated the purchase receipt list status column and generated barcode stock-unit status cells to use filled colored badges
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx`
+
+- `#247` Add barcode-driven rejection updates to the goods rejections page
+  - Goal:
+    - let the goods rejections page scan one barcode, mark that unit into the rejection register from a top card, and persist the selected rejection reason without changing the stock-unit lifecycle state model.
+  - Current evidence:
+    - the goods rejections page currently only lists persisted `rejected` stock acceptance rows and has no direct action surface
+    - stock acceptance already supports moving one `received` stock unit to `rejected`, but only from the sticker-verification table and only with a free-form note
+    - barcode resolution already maps scanned aliases back to a concrete stock unit, so the page can reuse that path instead of inventing a second lookup mechanism
+  - Scope in this batch:
+    - add a focused barcode-entry card at the top of the goods rejections page with barcode input, rejection-type dropdown, optional detail note, and update action
+    - extend the stock acceptance verification contract to persist a rejection reason such as `rejected`, `doa`, or `warranty`
+    - submit barcode-driven goods rejection updates through the existing stock acceptance service so only `received` units can move into the rejected register
+    - show the persisted rejection reason in the goods rejection tables after submission
+  - Constraints:
+    - keep the stock-unit lifecycle statuses unchanged in this batch; the inventory state remains `rejected` even when the rejection reason is `doa` or `warranty`
+    - avoid creating a parallel backend rejection flow when the existing acceptance path already owns this transition
+  - Planned validation:
+    - run focused `tsc --noEmit` and ESLint on the changed stock, billing, and shared schema files
+    - run focused stock acceptance rejection tests and the structural stock live-flow test
+  - Implemented:
+    - added a barcode-update card on the goods rejections page with barcode input, rejection-type dropdown, optional note, matched-unit preview, and update action
+    - extended stock acceptance verification records with a typed `rejectionReason` while continuing to transition inventory state only to `rejected`
+    - updated rejected-record tables to show the persisted rejection reason and refreshed the goods rejection register after barcode-driven updates
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/billing/src/services/stock-lifecycle-service.ts apps/stock/shared/schemas/stock-operations.ts apps/stock/shared/schemas.ts apps/stock/web/src/workspace/stock-workspace-support-sections.tsx tests/billing/stock-acceptance-rejection.test.ts tests/stock/purchase-receipt-live-flow.test.ts --rule "react-hooks/set-state-in-effect: off"`
+    - passed `npx.cmd tsx --test tests/billing/stock-acceptance-rejection.test.ts tests/stock/purchase-receipt-live-flow.test.ts`
+    - `npm.cmd run build` remains blocked by unrelated existing server typecheck errors at `apps/billing/src/services/stock-lifecycle-service.ts:1564` and `apps/core/src/services/product-service.ts:307,309`
+
+- `#246` Move stock rejection capture to sticker verification and add goods rejection page
+  - Goal:
+    - capture stock rejection during sticker verification, keep rejected units out of live stock acceptance, and expose a dedicated rejection review page in the stock workspace.
+  - Current evidence:
+    - goods inward now has damage and return UI, but the actual barcode-level acceptance decision happens later in the sticker verification card
+    - stock acceptance records currently persist only `verified` and `mismatch`, so there is no first-class rejected row or rejection note for a generated barcode
+  - Scope in this batch:
+    - add `rejected` acceptance status, rejected quantity, and rejection note to the stock acceptance contract
+    - update stock acceptance so rejected rows move stock units to `rejected` instead of `available`
+    - move the rejection checkbox and notes input to the sticker verification table and add a rejected-record table beside accepted records
+    - add a dedicated `Goods Rejections` stock page and sidebar entry backed by persisted rejection records
+  - Constraints:
+    - keep the current goods inward and barcode generation flow alive; only move the user-facing rejection capture point
+    - do not post rejected units into live stock movement balances
+  - Planned validation:
+    - run focused `tsc --noEmit` and ESLint on the changed stock, billing, API, and cxapp files
+    - run focused stock acceptance rejection and stock flow wiring tests
+
+- `#245` Record goods inward damage receipt, vendor return, and ledger timestamp polish
+  - Goal:
+    - let stock inward entries explicitly record damaged receipt handling and vendor returns while making stock ledger status and timestamps easier to read.
+  - Current evidence:
+    - goods inward lines only persist rejected and damaged quantities with no explicit damage-received intent or remarks field
+    - the stock ledger detail table still renders raw ISO timestamps and the stock-unit badge helper does not distinguish return from damage
+  - Scope in this batch:
+    - add `damageReceived`, `returnToVendor`, and `damageRemark` to the shared goods-inward line contract
+    - validate damage and vendor-return combinations in the billing goods-inward service
+    - update the stock goods-inward form and detail screen to edit and display the new flags and remarks
+    - format stock ledger timestamps and extend stock status badges for `rejected` and `damaged`
+  - Constraints:
+    - keep posting behavior boundary-safe by continuing to create stock units only for accepted quantity
+    - treat stock-unit `rejected` as the return-facing badge rather than introducing a new inventory status in this batch
+  - Planned validation:
+    - run focused `tsc --noEmit` and ESLint on the changed stock and billing files
+    - run focused goods-inward service test coverage for damage and return persistence
+
+- `#244` Add colored status badges to stock ledger unit rows
+  - Goal:
+    - make stock ledger statuses easier to scan by assigning distinct colors to key stock-unit states.
+  - Current evidence:
+    - the stock ledger product-detail rows still render stock-unit status through a plain outline badge
+    - the stock-units ledger list uses the same neutral badge treatment
+  - Scope in this batch:
+    - add a focused stock-unit status badge helper in the stock support workspace
+    - style `available` as blue, `received` as light yellow, and `sold` as green on stock ledger unit rows
+    - preserve reasonable fallback styling for `allocated`, `rejected`, and `damaged`
+  - Constraints:
+    - keep the change limited to stock ledger and stock-unit list status display
+    - do not alter stock status values or ledger calculations
+  - Planned validation:
+    - run focused `tsc --noEmit` for the stock support workspace
+    - run focused ESLint for the stock support workspace
+  - Implemented:
+    - added a local stock-unit status badge renderer in the stock support workspace
+    - updated the stock-units ledger and per-product stock-ledger detail table to use the new status color mapping
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off"`
+    - default `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx` remains blocked by unrelated existing `react-hooks/set-state-in-effect` errors at lines `901`, `1415`, `1419`, `1424`, `1930`, and `2396`
+
+- `#243` Show product code under product name in generated barcode tables
+  - Goal:
+    - replace the repeated secondary product label in generated barcode tables with the actual product code.
+  - Current evidence:
+    - the immediate generated barcode batch already includes `productCode`
+    - the persisted generated barcode table still prints product id under the product name instead of the product code
+  - Scope in this batch:
+    - update the immediate generated barcode batch table to render product name on the first line and product code on the second line
+    - update the persisted generated barcode table to render product code under the resolved product name
+  - Constraints:
+    - keep the change limited to generated barcode display only
+    - preserve the existing product-name lookup fallback behavior
+  - Planned validation:
+    - run focused `tsc --noEmit` for the stock purchase-receipt screen
+    - run focused ESLint for the stock purchase-receipt screen
+  - Implemented:
+    - updated the immediate generated barcode batch card to render a two-line product cell using the resolved product name plus `productCode`
+    - updated the persisted generated barcode table to show `stockUnit.productCode` beneath the resolved product name instead of the raw product id
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx`
+
+- `#242` Add selected generated-barcode rollback on stock purchase receipts
+  - Goal:
+    - let users delete selected generated barcodes from a purchase receipt so the same line quantity can be regenerated cleanly.
+  - Current evidence:
+    - the generated barcode table already supports row selection, but only exposes print actions
+    - purchase-receipt barcode generation writes stock units, barcode aliases, sticker batches, and posted goods-inward quantities with no rollback path
+  - Scope in this batch:
+    - add a purchase-receipt barcode rollback service that removes selected received units and the linked alias, sticker, verification, and inward references
+    - recalculate receipt received quantities after rollback so the removed quantity becomes available for regeneration again
+    - add a selected delete action in the stock purchase-receipt generated-barcode table
+  - Constraints:
+    - allow rollback only while the selected stock units are still in `received` status
+    - keep the change limited to purchase-receipt generated barcodes and avoid broader inventory reversal logic
+  - Planned validation:
+    - run focused `tsc --noEmit` and ESLint on the changed stock, billing, and test files
+    - run focused tests for purchase-receipt rollback behavior and stock live-flow wiring
+  - Implemented:
+    - added a purchase-receipt barcode rollback payload and response contract plus a billing rollback service that removes selected generated stock units, linked aliases, sticker rows, stock-acceptance verifications, and empty inward records
+    - updated the receipt status and remaining inward quantities after rollback so deleted generated units can be recreated from the same purchase receipt line
+    - added a delete-selected action with confirmation in the stock purchase-receipt generated-barcode table and blocked rollback once units have moved past `received`
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/billing/src/services/stock-lifecycle-service.ts apps/stock/shared/schemas/stock-operations.ts apps/stock/shared/schemas.ts apps/stock/src/services/stock-lifecycle-service.ts apps/stock/src/services/stock-manager-service.ts apps/api/src/internal/stock-routes.ts apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx tests/stock/purchase-receipt-live-flow.test.ts tests/billing/purchase-receipt-barcode-rollback.test.ts`
+    - passed `npx.cmd tsx --test tests/billing/purchase-receipt-barcode-rollback.test.ts tests/stock/purchase-receipt-live-flow.test.ts`
+
+- `#241` Remove automatic separators from stock receipt barcode format
+  - Goal:
+    - keep stock receipt barcode and serial generation flat unless the user explicitly typed a separator in the prefix.
+  - Current evidence:
+    - purchase-receipt serial generation still builds prefixed serials with an automatic `-<sequence>` suffix
+    - purchase-receipt barcode generation still joins prefix, batch, and serial segments with automatic `-`
+  - Scope in this batch:
+    - change serial prefix generation to append the sequence directly, with zero-padded numbering
+    - change barcode and manufacturer-barcode generation to concatenate segments without auto-inserted separators
+    - keep the rest of the saved purchase-receipt barcode persistence logic unchanged
+  - Constraints:
+    - preserve user-typed hyphens or text already present in the prefix fields
+    - keep the change limited to the purchase-receipt barcode generation path
+  - Planned validation:
+    - run focused `tsc --noEmit` for the affected stock lifecycle service
+    - run focused ESLint plus the stock purchase-receipt structural test
+  - Implemented:
+    - changed purchase-receipt serial generation to append a zero-padded unit sequence directly to the typed serial prefix instead of inserting an automatic separator
+    - changed purchase-receipt manufacturer barcode generation to append the same zero-padded sequence directly so typed prefix formatting is preserved
+    - changed purchase-receipt barcode assembly to concatenate `barcodePrefix + batchCode + serialNumber` directly, preserving only the hyphens already present in those values
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/billing/src/services/stock-lifecycle-service.ts tests/stock/purchase-receipt-live-flow.test.ts`
+    - passed `npx.cmd tsx --test tests/stock/purchase-receipt-live-flow.test.ts`
+
+- `#240` Fix stock purchase-receipt barcode persistence and format
+  - Goal:
+    - keep stock purchase-receipt barcode settings stable after reload and remove the forced `CS-` barcode prefix from receipt barcode generation.
+  - Current evidence:
+    - the purchase-receipt serialization form rebuilds each line from defaults on load instead of reading the saved generated settings
+    - the receipt barcode generation path hardcodes internal barcode values through `CS-${product.code}-...`
+  - Scope in this batch:
+    - persist the relevant receipt barcode generation settings on the generated inward data
+    - hydrate the purchase-receipt serialization form from saved inward plus stock-unit data when barcodes already exist
+    - add a configurable barcode prefix field so batch mode and serial-only mode produce the requested barcode format
+  - Constraints:
+    - keep the fix limited to the purchase-receipt barcode flow rather than redesigning unrelated stock identity paths
+    - preserve the current stock-unit and barcode-alias write flow unless a narrow schema addition is required for saved generation settings
+  - Planned validation:
+    - run focused `tsc --noEmit` for the affected frontend and service files
+    - run focused ESLint for the affected frontend and service files
+  - Implemented:
+    - added explicit serialization metadata fields to goods-inward lines so receipt barcode generation settings can be persisted with the generated inward record
+    - hydrated the purchase-receipt serialization form from saved goods-inward line metadata plus generated stock-unit data instead of rebuilding batch, serial, and related inputs from defaults on every load
+    - added a dedicated receipt barcode prefix field and changed purchase-receipt barcode generation to build barcode values from `prefix + batch + serial`, `batch + serial`, `prefix + serial`, or plain serial without the forced `CS-` prefix
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx apps/stock/web/src/workspace/stock-workspace-types.ts apps/stock/shared/schemas/stock-operations.ts apps/billing/src/services/stock-lifecycle-service.ts apps/billing/src/services/goods-inward-service.ts apps/ui/src/features/branding/runtime-brand-default.ts`
+    - passed `npx.cmd tsx --test tests/stock/purchase-receipt-live-flow.test.ts`
+    - `npx.cmd tsc -p tsconfig.server.json --noEmit --pretty false` remains blocked by unrelated existing `apps/core/src/services/product-service.ts` errors on `discoveryBoardOrder` and `visualStripOrder`
+
 - `#238` Restore storefront homepage LCP budget
   - Source:
     - `ASSIST/Execution/DAYSHEET.md` lists the next current-focus item: restore homepage `LCP` under the automated `3500ms` budget.

@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { PrinterIcon } from "lucide-react"
 
-import type { CommonModuleListResponse, ProductListResponse } from "@core/shared"
-import type { BillingStockUnit } from "../../../shared/index.ts"
+import type {
+  CommonModuleListResponse,
+  CommonModuleRecordResponse,
+  ProductListResponse,
+} from "@core/shared"
+import type { BillingStockRejectionReason, BillingStockUnit } from "../../../shared/index.ts"
 import {
   createReservationForm,
   createTransferForm,
@@ -14,7 +18,9 @@ import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-e
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { TechnicalNameBadge } from "@/components/system/technical-name-badge"
 import { useGlobalLoading } from "@/features/dashboard/loading/global-loading-provider"
 import { SearchableLookupField } from "@/features/forms/searchable-lookup-field"
 import {
@@ -22,6 +28,7 @@ import {
   Field,
   FormGrid,
   buildWarehouseOptions,
+  formatOptionalTimestamp,
   formatQuantity,
   getGoodsInwardExceptionQuantity,
   normalizeInlineItemNote,
@@ -72,6 +79,140 @@ function escapeStockReportHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;")
+}
+
+function formatStockStatusLabel(status: string) {
+  return status.replace(/[-_]/g, " ")
+}
+
+function getLightStockStatusBadgeClassName(status: string) {
+  if (
+    status === "available" ||
+    status === "open" ||
+    status === "requested" ||
+    status === "ready" ||
+    status === "confirmed" ||
+    status === "posted" ||
+    status === "active"
+  ) {
+    return "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50"
+  }
+
+  if (
+    status === "received" ||
+    status === "partially-received" ||
+    status === "partially_consumed" ||
+    status === "partially-consumed" ||
+    status === "partially_received" ||
+    status === "pending_verification" ||
+    status === "mismatch"
+  ) {
+    return "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
+  }
+
+  if (
+    status === "sold" ||
+    status === "verified" ||
+    status === "consumed" ||
+    status === "fully_received" ||
+    status === "completed"
+  ) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
+  }
+
+  if (status === "allocated" || status === "approved" || status === "in-transit") {
+    return "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50"
+  }
+
+  if (status === "rejected" || status === "released" || status === "cancelled") {
+    return "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-50"
+  }
+
+  if (status === "damaged" || status === "failed") {
+    return "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50"
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
+}
+
+function renderLightStockStatusBadge(status: string, key: string, label?: string) {
+  return (
+    <Badge
+      key={key}
+      variant="outline"
+      className={`capitalize ${getLightStockStatusBadgeClassName(status)}`}
+    >
+      {label ?? formatStockStatusLabel(status)}
+    </Badge>
+  )
+}
+
+function renderStockUnitStatusBadge(status: BillingStockUnit["status"], key: string) {
+  const label =
+    status === "rejected" ? "return" : status === "damaged" ? "damage" : status
+
+  return renderLightStockStatusBadge(status, key, label)
+}
+
+function formatStockRejectionReasonLabel(
+  reason: BillingStockRejectionReason | null | undefined
+) {
+  const normalizedReason = reason?.trim()
+
+  if (!normalizedReason || normalizedReason === "rejected") {
+    return "Rejected"
+  }
+
+  if (normalizedReason.toLowerCase() === "doa") {
+    return "DOA"
+  }
+
+  return normalizedReason
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+function renderStockRejectionReasonBadge(
+  reason: BillingStockRejectionReason | null | undefined,
+  key: string,
+  label?: string
+) {
+  const normalizedReason = reason ?? "rejected"
+  const className =
+    normalizedReason === "doa"
+      ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50"
+      : normalizedReason === "warranty"
+        ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50"
+        : "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-50"
+
+  return (
+    <Badge key={key} variant="outline" className={className}>
+      {label ?? formatStockRejectionReasonLabel(normalizedReason)}
+    </Badge>
+  )
+}
+
+function buildStockRejectionAuditNote(
+  reason: BillingStockRejectionReason,
+  note: string
+) {
+  const trimmedNote = note.trim()
+
+  if (trimmedNote.length > 0) {
+    return trimmedNote
+  }
+
+  return `${formatStockRejectionReasonLabel(reason)} recorded from the goods rejections page.`
+}
+
+function toLookupCode(value: string) {
+  const normalizedValue = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+
+  return normalizedValue || "rejected"
 }
 
 function printStockEntryDocument({
@@ -311,6 +452,8 @@ export function StockEntrySection() {
     [purchaseReceiptId, productId, refreshNonce]
   )
   const [barcodeInputs, setBarcodeInputs] = useState<Record<string, string>>({})
+  const [rejectionSelections, setRejectionSelections] = useState<Record<string, boolean>>({})
+  const [rejectionNotes, setRejectionNotes] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<string | null>(null)
   const barcodeInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   useGlobalLoading(
@@ -379,12 +522,18 @@ export function StockEntrySection() {
   const barcodeCount = pendingVerificationUnits.length
   const verifiedAcceptanceRecords =
     acceptanceRecords.data?.items.filter((item) => item.status === "verified") ?? []
+  const rejectedAcceptanceRecords =
+    acceptanceRecords.data?.items.filter((item) => item.status === "rejected") ?? []
   const normalizeScannedBarcode = (value: string) => value.trim().toUpperCase()
-  const acceptedRecordDateTimeFormatter = new Intl.DateTimeFormat("en-IN", {
+  const recordDateTimeFormatter = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
   })
   const verifiedCount = pendingVerificationUnits.filter((stockUnit) => {
+    if (rejectionSelections[stockUnit.id]) {
+      return false
+    }
+
     const inputValue = barcodeInputs[stockUnit.id]
     return (
       typeof inputValue === "string" &&
@@ -394,6 +543,27 @@ export function StockEntrySection() {
 
   function handleBarcodeInputChange(stockUnitId: string, value: string) {
     setBarcodeInputs((current) => ({
+      ...current,
+      [stockUnitId]: value,
+    }))
+  }
+
+  function handleRejectionSelectionChange(stockUnitId: string, rejected: boolean) {
+    setRejectionSelections((current) => ({
+      ...current,
+      [stockUnitId]: rejected,
+    }))
+
+    if (!rejected) {
+      setRejectionNotes((current) => ({
+        ...current,
+        [stockUnitId]: "",
+      }))
+    }
+  }
+
+  function handleRejectionNoteChange(stockUnitId: string, value: string) {
+    setRejectionNotes((current) => ({
       ...current,
       [stockUnitId]: value,
     }))
@@ -456,12 +626,28 @@ export function StockEntrySection() {
     const acceptanceItems = pendingVerificationUnits
       .map((stockUnit) => ({
         stockUnitId: stockUnit.id,
-        scannedBarcodeValue: barcodeInputs[stockUnit.id]?.trim() ?? "",
+        scannedBarcodeValue: rejectionSelections[stockUnit.id]
+          ? barcodeInputs[stockUnit.id]?.trim() || stockUnit.barcodeValue
+          : barcodeInputs[stockUnit.id]?.trim() ?? "",
+        rejected: Boolean(rejectionSelections[stockUnit.id]),
+        rejectionReason: rejectionSelections[stockUnit.id] ? "rejected" : null,
+        rejectionNote: rejectionSelections[stockUnit.id]
+          ? rejectionNotes[stockUnit.id]?.trim() ?? ""
+          : "",
       }))
-      .filter((item) => item.scannedBarcodeValue.length > 0)
+      .filter((item) => item.scannedBarcodeValue.length > 0 || item.rejected)
 
     if (acceptanceItems.length === 0) {
-      setMessage("Scan at least one barcode before confirming partial stock acceptance.")
+      setMessage("Scan at least one barcode or mark rejected rows before confirming stock acceptance.")
+      return
+    }
+
+    const missingRejectionNote = acceptanceItems.find(
+      (item) => item.rejected && !(item.rejectionNote?.trim().length > 0)
+    )
+
+    if (missingRejectionNote) {
+      setMessage("Enter rejection notes for every rejected barcode row before confirmation.")
       return
     }
 
@@ -476,9 +662,11 @@ export function StockEntrySection() {
       })
 
       setMessage(
-        `Accepted ${response.acceptedCount} verified unit${response.acceptedCount === 1 ? "" : "s"} (${response.acceptedQuantity}). ${response.mismatchCount} mismatch item${response.mismatchCount === 1 ? "" : "s"}, ${response.remainingCount} unit${response.remainingCount === 1 ? "" : "s"} still temporary.`
+        `Accepted ${response.acceptedCount} verified unit${response.acceptedCount === 1 ? "" : "s"} (${response.acceptedQuantity}). Rejected ${response.rejectedCount} unit${response.rejectedCount === 1 ? "" : "s"} (${response.rejectedQuantity}). ${response.mismatchCount} mismatch item${response.mismatchCount === 1 ? "" : "s"}, ${response.remainingCount} unit${response.remainingCount === 1 ? "" : "s"} still temporary.`
       )
       setBarcodeInputs({})
+      setRejectionSelections({})
+      setRejectionNotes({})
       setRefreshNonce((current) => current + 1)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to confirm stock acceptance.")
@@ -510,7 +698,7 @@ export function StockEntrySection() {
         item.scannedBarcodeValue,
         formatQuantity(item.quantityAccepted),
         item.verifiedAt
-          ? acceptedRecordDateTimeFormatter.format(new Date(item.verifiedAt))
+          ? recordDateTimeFormatter.format(new Date(item.verifiedAt))
           : "-",
       ]),
     })
@@ -542,6 +730,8 @@ export function StockEntrySection() {
                         setPurchaseReceiptId(nextValue)
                         setProductId("")
                         setBarcodeInputs({})
+                        setRejectionSelections({})
+                        setRejectionNotes({})
                       }}
                       options={receiptOptions}
                       placeholder="Select purchase receipt"
@@ -562,9 +752,11 @@ export function StockEntrySection() {
                         return
                       }
 
-                      setProductId(nextValue)
-                      setBarcodeInputs({})
-                    }}
+                        setProductId(nextValue)
+                        setBarcodeInputs({})
+                        setRejectionSelections({})
+                        setRejectionNotes({})
+                      }}
                     options={productOptions}
                     placeholder={purchaseReceiptId ? "Select product" : "Select purchase receipt first"}
                     searchPlaceholder="Search product"
@@ -604,6 +796,8 @@ export function StockEntrySection() {
                     <th className="px-4 py-3 font-medium text-foreground">Product</th>
                     <th className="px-4 py-3 font-medium text-foreground">Barcode</th>
                     <th className="px-4 py-3 font-medium text-foreground">Status</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Reject</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/70">
@@ -613,6 +807,9 @@ export function StockEntrySection() {
                         stockUnit.id,
                         stockUnit.barcodeValue
                       )
+                      const displayStatus = rejectionSelections[stockUnit.id]
+                        ? "rejected"
+                        : verificationStatus
                       const resolvedProduct = productById.get(stockUnit.productId)
                       const productDisplayName = resolvedProduct?.name ?? stockUnit.productName
                       const productDisplayCode = resolvedProduct?.code ?? stockUnit.productCode
@@ -644,22 +841,44 @@ export function StockEntrySection() {
                           <td className="px-4 py-3">
                             <span
                               className={
-                                verificationStatus === "verified"
+                                displayStatus === "verified"
                                   ? "inline-flex h-8 items-center rounded-full bg-emerald-100 px-3 text-xs font-medium text-emerald-700"
-                                  : verificationStatus === "mismatch"
+                                  : displayStatus === "mismatch"
                                     ? "inline-flex h-8 items-center rounded-full bg-rose-100 px-3 text-xs font-medium text-rose-700"
-                                    : "inline-flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium text-muted-foreground"
+                                    : displayStatus === "rejected"
+                                      ? "inline-flex h-8 items-center rounded-full bg-orange-100 px-3 text-xs font-medium text-orange-700"
+                                      : "inline-flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium text-muted-foreground"
                               }
                             >
-                              {verificationStatus}
+                              {displayStatus}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center">
+                              <Checkbox
+                                checked={Boolean(rejectionSelections[stockUnit.id])}
+                                onCheckedChange={(checked) =>
+                                  handleRejectionSelectionChange(stockUnit.id, checked === true)
+                                }
+                              />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Input
+                              placeholder="Rejected quantity notes"
+                              value={rejectionNotes[stockUnit.id] ?? ""}
+                              disabled={!rejectionSelections[stockUnit.id]}
+                              onChange={(event) =>
+                                handleRejectionNoteChange(stockUnit.id, event.target.value)
+                              }
+                            />
                           </td>
                         </tr>
                       )
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                      <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                         No temporary units are pending barcode verification for this selection.
                       </td>
                     </tr>
@@ -711,7 +930,7 @@ export function StockEntrySection() {
                           <td className="px-4 py-3 text-foreground">{item.quantityAccepted}</td>
                           <td className="px-4 py-3 text-muted-foreground">
                             {item.verifiedAt
-                              ? acceptedRecordDateTimeFormatter.format(new Date(item.verifiedAt))
+                              ? recordDateTimeFormatter.format(new Date(item.verifiedAt))
                               : "-"}
                           </td>
                         </tr>
@@ -728,7 +947,531 @@ export function StockEntrySection() {
             </div>
           </CardContent>
         </Card>
+        <Card className="border-border/70 shadow-sm">
+          <CardHeader>
+            <CardTitle>Rejected Records</CardTitle>
+            <CardDescription>
+              Rejected barcode rows saved from the current sticker verification run.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-xl border border-border/70">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/70 bg-muted/20 text-left">
+                    <th className="px-4 py-3 font-medium text-foreground">Sl No</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Barcode</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Qty</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Reason</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Notes</th>
+                    <th className="px-4 py-3 font-medium text-foreground">Rejected At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/70">
+                  {rejectedAcceptanceRecords.length > 0 ? (
+                    rejectedAcceptanceRecords.map((item, index) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {item.expectedBarcodeValue}
+                        </td>
+                        <td className="px-4 py-3 text-foreground">{item.quantityRejected}</td>
+                        <td className="px-4 py-3">
+                          {renderStockRejectionReasonBadge(
+                            item.rejectionReason ?? "rejected",
+                            `${item.id}:reason`
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {item.rejectionNote ?? "-"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {recordDateTimeFormatter.format(new Date(item.updatedAt))}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                        Rejected barcode records will appear here after stock rejection is confirmed.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+      {message ? <StateCard message={message} /> : null}
+    </div>
+  )
+}
+
+export function GoodsRejectionsSection() {
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const [rejectionTypeRefreshNonce, setRejectionTypeRefreshNonce] = useState(0)
+  const receiptLookup = useJsonResource<PurchaseReceiptListResponse>(
+    "/internal/v1/stock/purchase-receipts"
+  )
+  const goodsInwardLookup = useJsonResource<GoodsInwardListResponse>("/internal/v1/stock/goods-inward")
+  const rejectionTypeLookup = useJsonResource<CommonModuleListResponse>(
+    "/internal/v1/core/common-modules/items?module=stockRejectionTypes",
+    [rejectionTypeRefreshNonce]
+  )
+  const acceptanceRecords = useJsonResource<StockAcceptanceVerificationListResponse>(
+    "/internal/v1/stock/stock-acceptance-verifications?status=rejected",
+    [refreshNonce]
+  )
+  const [purchaseReceiptId, setPurchaseReceiptId] = useState("")
+  const [barcodeValue, setBarcodeValue] = useState("")
+  const [rejectionReason, setRejectionReason] =
+    useState<BillingStockRejectionReason>("rejected")
+  const [rejectionNote, setRejectionNote] = useState("")
+  const [matchedUnit, setMatchedUnit] = useState<BillingStockUnit | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCreatingRejectionType, setIsCreatingRejectionType] = useState(false)
+  const barcodeInputRef = useRef<HTMLInputElement | null>(null)
+
+  useGlobalLoading(
+    receiptLookup.isLoading ||
+      goodsInwardLookup.isLoading ||
+      rejectionTypeLookup.isLoading ||
+      acceptanceRecords.isLoading
+  )
+
+  if (
+    receiptLookup.isLoading ||
+    goodsInwardLookup.isLoading ||
+    rejectionTypeLookup.isLoading ||
+    acceptanceRecords.isLoading
+  ) {
+    return null
+  }
+
+  if (
+    receiptLookup.error ||
+    goodsInwardLookup.error ||
+    rejectionTypeLookup.error ||
+    acceptanceRecords.error ||
+    !receiptLookup.data ||
+    !goodsInwardLookup.data ||
+    !rejectionTypeLookup.data ||
+    !acceptanceRecords.data
+  ) {
+    return (
+      <StateCard
+        message={
+          receiptLookup.error ??
+          goodsInwardLookup.error ??
+          rejectionTypeLookup.error ??
+          acceptanceRecords.error ??
+          "Goods rejection records are unavailable."
+        }
+      />
+    )
+  }
+
+  const receiptOptions = receiptLookup.data.items.map((receipt) => ({
+    value: receipt.id,
+    label: `${receipt.entryNumber} · ${receipt.postingDate}`,
+  }))
+  const receiptById = new Map(
+    receiptLookup.data.items.map((receipt) => [receipt.id, receipt] as const)
+  )
+  const goodsInwardById = new Map(
+    goodsInwardLookup.data.items.map((item) => [item.id, item] as const)
+  )
+  const rejectionTypeItems = rejectionTypeLookup.data.items
+    .filter((item) => item.isActive && String(item.code ?? "").trim() !== "-")
+    .map((item) => ({
+      id: item.id,
+      code: String(item.code ?? "").trim(),
+      name: String(item.name ?? "").trim(),
+      description: String(item.description ?? "").trim(),
+    }))
+    .filter((item) => item.code && item.name)
+  const rejectionTypeOptions = rejectionTypeItems.map((item) => ({
+    value: item.code,
+    label: item.name,
+  }))
+  const rejectionTypeLabelByCode = new Map(
+    rejectionTypeOptions.map((option) => [option.value, option.label] as const)
+  )
+  const rejectedItems = acceptanceRecords.data.items.filter(
+    (item) => !purchaseReceiptId || item.purchaseReceiptId === purchaseReceiptId
+  )
+  const rejectedQuantity = rejectedItems.reduce((sum, item) => sum + item.quantityRejected, 0)
+
+  async function resolveReceivedStockUnit(scannedBarcodeValue: string) {
+    const normalizedBarcodeValue = scannedBarcodeValue.trim()
+
+    if (!normalizedBarcodeValue) {
+      throw new Error("Scan or enter a barcode before updating goods rejection.")
+    }
+
+    const response = await requestJson<BarcodeResolutionResponse>("/internal/v1/stock/barcode/resolve", {
+      method: "POST",
+      body: JSON.stringify({
+        barcodeValue: normalizedBarcodeValue,
+      }),
+    })
+    const stockUnit = response.item.stockUnit
+
+    if (!response.item.resolved || !stockUnit) {
+      throw new Error("Scanned barcode did not match any stock unit.")
+    }
+
+    if (stockUnit.status !== "received") {
+      const statusMessage =
+        stockUnit.status === "available"
+          ? "already accepted into live stock"
+          : stockUnit.status === "rejected"
+            ? "already moved into the rejection register"
+            : `currently ${stockUnit.status}`
+      throw new Error(
+        `Scanned barcode belongs to a stock unit that is ${statusMessage} and cannot be updated from this card.`
+      )
+    }
+
+    return stockUnit
+  }
+
+  async function handleLookupBarcode() {
+    try {
+      const stockUnit = await resolveReceivedStockUnit(barcodeValue)
+      setMatchedUnit(stockUnit)
+      setMessage(
+        `${stockUnit.productName} (${stockUnit.productCode}) is ready to move into the rejection register.`
+      )
+    } catch (error) {
+      setMatchedUnit(null)
+      setMessage(error instanceof Error ? error.message : "Barcode lookup failed.")
+    }
+  }
+
+  async function handleCreateRejectionType(query: string) {
+    const name = query.trim()
+    const code = toLookupCode(name)
+
+    if (!name) {
+      return
+    }
+
+    const existingOption = rejectionTypeOptions.find(
+      (option) =>
+        option.value.toLowerCase() === code ||
+        option.label.trim().toLowerCase() === name.toLowerCase()
+    )
+
+    if (existingOption) {
+      setRejectionReason(existingOption.value)
+      return
+    }
+
+    setIsCreatingRejectionType(true)
+    setMessage(null)
+
+    try {
+      const response = await requestJson<CommonModuleRecordResponse>(
+        "/internal/v1/core/common-modules/items?module=stockRejectionTypes",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            code,
+            name,
+            description: "",
+            isActive: true,
+          }),
+        }
+      )
+      const createdCode = String(response.item.code ?? code)
+
+      setRejectionReason(createdCode)
+      setRejectionTypeRefreshNonce((current) => current + 1)
+      setMessage(`Created rejection type ${String(response.item.name ?? name)}.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to create rejection type.")
+    } finally {
+      setIsCreatingRejectionType(false)
+    }
+  }
+
+  async function handleSubmitGoodsRejection() {
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const stockUnit =
+        matchedUnit && matchedUnit.status === "received"
+          ? matchedUnit
+          : await resolveReceivedStockUnit(barcodeValue)
+
+      await requestJson<StockAcceptanceResponse>("/internal/v1/stock/stock-acceptance", {
+        method: "POST",
+        body: JSON.stringify({
+          purchaseReceiptId: stockUnit.purchaseReceiptId,
+          productId: stockUnit.productId,
+          items: [
+            {
+              stockUnitId: stockUnit.id,
+              scannedBarcodeValue: barcodeValue.trim(),
+              rejected: true,
+              rejectionReason,
+              rejectionNote: buildStockRejectionAuditNote(rejectionReason, rejectionNote),
+            },
+          ],
+        }),
+      })
+
+      setPurchaseReceiptId(stockUnit.purchaseReceiptId)
+      setMatchedUnit(null)
+      setBarcodeValue("")
+      setRejectionReason("rejected")
+      setRejectionNote("")
+      setRefreshNonce((current) => current + 1)
+      setMessage(
+        `Moved ${stockUnit.productName} (${stockUnit.productCode}) into goods rejection as ${rejectionTypeLabelByCode.get(rejectionReason) ?? formatStockRejectionReasonLabel(rejectionReason)}.`
+      )
+      window.setTimeout(() => {
+        barcodeInputRef.current?.focus()
+      }, 0)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to update goods rejection.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <SectionIntro
+        title="Goods Rejections"
+        description="Review barcode rows rejected during sticker verification before supplier return or disposal actions."
+      />
+      <Card
+        className="relative border-border/70 shadow-sm"
+        data-technical-name="card.stock.goods-rejections.barcode-update"
+      >
+        <TechnicalNameBadge
+          className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)]"
+          name="card.stock.goods-rejections.barcode-update"
+        />
+        <CardHeader>
+          <CardTitle>Barcode Rejection Update</CardTitle>
+          <CardDescription>
+            Scan one temporary stock barcode, choose the rejection type, and update that unit directly into the rejection register.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_260px_minmax(0,1fr)_auto]">
+            <Field label="Barcode input">
+              <Input
+                ref={barcodeInputRef}
+                className="h-11 text-base"
+                placeholder="Scan received barcode"
+                value={barcodeValue}
+                onChange={(event) => {
+                  setBarcodeValue(event.target.value)
+                  setMatchedUnit(null)
+                  setMessage(null)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") {
+                    return
+                  }
+
+                  event.preventDefault()
+                  void handleLookupBarcode()
+                }}
+              />
+            </Field>
+            <Field label="Rejection type">
+              <SearchableLookupField
+                createActionLabel="Create rejection type"
+                disabled={isCreatingRejectionType}
+                noResultsMessage="No rejection types found."
+                onCreateNew={(query) => {
+                  void handleCreateRejectionType(query)
+                }}
+                onValueChange={(nextValue) =>
+                  setRejectionReason(nextValue as BillingStockRejectionReason)
+                }
+                options={rejectionTypeOptions}
+                placeholder={isCreatingRejectionType ? "Creating..." : "Select rejection type"}
+                searchPlaceholder="Search rejection type"
+                triggerClassName="h-11"
+                value={rejectionReason}
+              />
+            </Field>
+            <Field label="Note">
+              <Input
+                className="h-11"
+                placeholder="Optional details"
+                value={rejectionNote}
+                onChange={(event) => {
+                  setRejectionNote(event.target.value)
+                }}
+              />
+            </Field>
+            <Field label="Action" className="xl:w-auto">
+              <Button
+                type="button"
+                className="h-11 xl:min-w-32"
+                onClick={() => void handleSubmitGoodsRejection()}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Updating..." : "Update"}
+              </Button>
+            </Field>
+          </div>
+          {matchedUnit ? (
+            <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/10 p-4 md:grid-cols-4">
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Product
+                </p>
+                <p className="font-medium text-foreground">{matchedUnit.productName}</p>
+                <p className="text-xs text-muted-foreground">{matchedUnit.productCode}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Purchase receipt
+                </p>
+                <p className="font-medium text-foreground">{matchedUnit.purchaseReceiptNumber}</p>
+                <p className="text-xs text-muted-foreground">{matchedUnit.goodsInwardNumber}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Warehouse
+                </p>
+                <p className="font-medium text-foreground">{matchedUnit.warehouseName}</p>
+                <p className="text-xs text-muted-foreground">{matchedUnit.barcodeValue}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Current status
+                </p>
+                <div>{renderStockUnitStatusBadge(matchedUnit.status, `${matchedUnit.id}:status`)}</div>
+              </div>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="p-5">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_220px]">
+            <Field label="Purchase receipt">
+              <SearchableLookupField
+                emptyOptionLabel="All receipts"
+                noResultsMessage="No purchase receipts found."
+                onValueChange={(nextValue) => {
+                  setPurchaseReceiptId(nextValue)
+                }}
+                options={receiptOptions}
+                placeholder="All purchase receipts"
+                searchPlaceholder="Search receipt"
+                triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                value={purchaseReceiptId}
+              />
+            </Field>
+            <Field label="Rejected rows">
+              <div className="flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground">
+                {rejectedItems.length}
+              </div>
+            </Field>
+            <Field label="Rejected quantity">
+              <div className="flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground">
+                {formatQuantity(rejectedQuantity)}
+              </div>
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader>
+          <CardTitle>Rejected Goods Table</CardTitle>
+          <CardDescription>
+            Persisted rejected barcode rows captured from sticker verification or the barcode update card.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            headers={[
+              "Rejected at",
+              "Purchase receipt",
+              "Goods inward",
+              "Product",
+              "Barcode",
+              "Qty rejected",
+              "Warehouse",
+              "Reason",
+              "Notes",
+              "Status",
+            ]}
+            rows={
+              rejectedItems.length > 0
+                ? rejectedItems.map((item) => [
+                    formatOptionalTimestamp(item.updatedAt),
+                    receiptById.get(item.purchaseReceiptId)?.entryNumber ?? item.purchaseReceiptId,
+                    goodsInwardById.get(item.goodsInwardId)?.inwardNumber ?? item.goodsInwardId,
+                    <div key={`${item.id}:product`}>
+                      <p className="font-medium text-foreground">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">{item.productCode}</p>
+                    </div>,
+                    <span key={`${item.id}:barcode`} className="font-mono text-xs text-foreground">
+                      {item.expectedBarcodeValue}
+                    </span>,
+                    formatQuantity(item.quantityRejected),
+                    item.warehouseName,
+                    renderStockRejectionReasonBadge(
+                      item.rejectionReason ?? "rejected",
+                      `${item.id}:reason`,
+                      rejectionTypeLabelByCode.get(item.rejectionReason ?? "rejected")
+                    ),
+                    item.rejectionNote ?? "-",
+                    renderLightStockStatusBadge("rejected", `${item.id}:status`),
+                  ])
+                : [[
+                    "No rejected goods found.",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                  ]]
+            }
+          />
+        </CardContent>
+      </Card>
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader>
+          <CardTitle>Rejection Types</CardTitle>
+          <CardDescription>
+            Rejection type is the classification stored on the rejected barcode. Stock lifecycle status stays rejected.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            headers={["Type", "Code", "Status", "Description"]}
+            rows={
+              rejectionTypeItems.length > 0
+                ? rejectionTypeItems.map((item) => [
+                    item.name,
+                    item.code,
+                    renderLightStockStatusBadge("active", `${item.id}:status`, "active"),
+                    item.description || "-",
+                  ])
+                : [["No rejection types found.", "-", "-", "-"]]
+            }
+          />
+        </CardContent>
+      </Card>
       {message ? <StateCard message={message} /> : null}
     </div>
   )
@@ -760,8 +1503,8 @@ export function GoodsInwardSection() {
           item.inwardNumber,
           item.purchaseReceiptNumber,
           item.warehouseName,
-          <Badge key={`${item.id}:status`} variant="outline">{item.status}</Badge>,
-          <Badge key={`${item.id}:posting`} variant={item.stockPostingStatus === "posted" ? "secondary" : "outline"}>{item.stockPostingStatus}</Badge>,
+          renderLightStockStatusBadge(item.status, `${item.id}:status`),
+          renderLightStockStatusBadge(item.stockPostingStatus, `${item.id}:posting`),
           <div key={`${item.id}:actions`} className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
               <Link to={`/dashboard/apps/stock/goods-inward/${encodeURIComponent(item.id)}`}>Show</Link>
@@ -899,6 +1642,9 @@ export function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: st
           acceptedQuantity: String(line.acceptedQuantity),
           rejectedQuantity: String(line.rejectedQuantity),
           damagedQuantity: String(line.damagedQuantity),
+          damageReceived: line.damageReceived || line.damagedQuantity > 0,
+          returnToVendor: line.returnToVendor || line.rejectedQuantity > 0,
+          damageRemark: line.damageRemark ?? "",
           manufacturerBarcode: line.manufacturerBarcode ?? "",
           manufacturerSerial: line.manufacturerSerial ?? "",
           note: normalizeInlineItemNote(line.note),
@@ -927,6 +1673,9 @@ export function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: st
           acceptedQuantity: "0",
           rejectedQuantity: "0",
           damagedQuantity: "0",
+          damageReceived: false,
+          returnToVendor: false,
+          damageRemark: "",
           manufacturerBarcode: "",
           manufacturerSerial: "",
           note: "",
@@ -955,14 +1704,17 @@ export function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: st
         productName: line.productName,
         variantId: line.variantId ?? "",
         variantName: line.variantName ?? "",
-        expectedQuantity: String(line.quantity - line.receivedQuantity),
-        acceptedQuantity: "0",
-        rejectedQuantity: "0",
-        damagedQuantity: "0",
-        manufacturerBarcode: "",
-        manufacturerSerial: "",
-        note: "",
-      }))
+          expectedQuantity: String(line.quantity - line.receivedQuantity),
+          acceptedQuantity: "0",
+          rejectedQuantity: "0",
+          damagedQuantity: "0",
+          damageReceived: false,
+          returnToVendor: false,
+          damageRemark: "",
+          manufacturerBarcode: "",
+          manufacturerSerial: "",
+          note: "",
+        }))
     )
   }
 
@@ -1000,6 +1752,9 @@ export function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: st
               acceptedQuantity: Number(line.acceptedQuantity),
               rejectedQuantity: Number(line.rejectedQuantity),
               damagedQuantity: Number(line.damagedQuantity),
+              damageReceived: line.damageReceived,
+              returnToVendor: line.returnToVendor,
+              damageRemark: line.damageRemark || null,
               manufacturerBarcode: line.manufacturerBarcode || null,
               manufacturerSerial: line.manufacturerSerial || null,
               note: line.note,
@@ -1066,6 +1821,9 @@ export function GoodsInwardUpsertSection({ goodsInwardId }: { goodsInwardId?: st
                     acceptedQuantity: "0",
                     rejectedQuantity: "0",
                     damagedQuantity: "0",
+                    damageReceived: false,
+                    returnToVendor: false,
+                    damageRemark: "",
                     manufacturerBarcode: "",
                     manufacturerSerial: "",
                     note: "",
@@ -1289,7 +2047,7 @@ export function StockUnitsSection() {
   if (isLoading) return null
   if (error || !data) return <StateCard message={error ?? "Stock units are unavailable."} />
 
-  return <DataTable headers={["Barcode", "Product", "Batch", "Serial", "Warehouse", "Status"]} rows={data.items.map((item) => [item.barcodeValue, item.productName, item.batchCode ?? "No batch", item.serialNumber, item.warehouseName, <Badge key={item.id} variant="outline">{item.status}</Badge>])} />
+  return <DataTable headers={["Barcode", "Product", "Batch", "Serial", "Warehouse", "Status"]} rows={data.items.map((item) => [item.barcodeValue, item.productName, item.batchCode ?? "No batch", item.serialNumber, item.warehouseName, renderStockUnitStatusBadge(item.status, item.id)])} />
 }
 
 export function BarcodeSection() {
@@ -1880,7 +2638,7 @@ export function SaleAllocationsSection() {
         </CardContent>
       </Card>
       {message ? <StateCard message={message} /> : null}
-      {list.data ? <DataTable headers={["Barcode", "Product", "Warehouse", "Voucher", "Status", "Allocated"]} rows={list.data.items.map((item) => [item.barcodeValue, item.productId, item.warehouseId, item.salesVoucherNumber ?? "-", <Badge key={item.id} variant="outline">{item.status}</Badge>, item.allocatedAt])} /> : null}
+      {list.data ? <DataTable headers={["Barcode", "Product", "Warehouse", "Voucher", "Status", "Allocated"]} rows={list.data.items.map((item) => [item.barcodeValue, item.productId, item.warehouseId, item.salesVoucherNumber ?? "-", renderLightStockStatusBadge(item.status, item.id), item.allocatedAt])} /> : null}
     </div>
   )
 }
@@ -2042,7 +2800,7 @@ export function StockLedgerSection({ productId }: { productId?: string }) {
         <Card className="border-border/70 shadow-sm">
           <CardContent className="p-0">
             <DataTable
-              headers={["Warehouse", "Barcode", "Serial", "Qty", "Status", "Accepted", "Dispatched"]} 
+              headers={["Warehouse", "Barcode", "Serial", "Qty", "Status", "Accepted at", "Last movement"]}
               rows={selectedProductItems.map((item) => [
                 item.warehouseName,
                 <span key={`${item.id}:barcode`} className="font-mono text-xs text-foreground">
@@ -2050,9 +2808,14 @@ export function StockLedgerSection({ productId }: { productId?: string }) {
                 </span>,
                 item.serialNumber,
                 String(item.quantity),
-                <Badge key={`${item.id}:status`} variant="outline">{item.status}</Badge>,
-                item.availableAt ?? "-",
-                item.soldAt ?? item.allocatedAt ?? item.soldVoucherNumber ?? "-",
+                renderStockUnitStatusBadge(item.status, `${item.id}:status`),
+                formatOptionalTimestamp(item.availableAt),
+                <div key={`${item.id}:movement`} className="space-y-0.5">
+                  <p>{formatOptionalTimestamp(item.soldAt ?? item.allocatedAt)}</p>
+                  {item.soldVoucherNumber ? (
+                    <p className="text-xs text-muted-foreground">{item.soldVoucherNumber}</p>
+                  ) : null}
+                </div>,
               ])}
             />
           </CardContent>
@@ -2227,7 +2990,7 @@ export function TransfersSection() {
         </CardContent>
       </Card>
       {message ? <StateCard message={message} /> : null}
-      {list.data ? <DataTable headers={["Transfer", "From", "To", "Status", "Requested", "Lines"]} rows={list.data.items.map((item) => [item.id, item.sourceWarehouseId, item.destinationWarehouseId, <Badge key={item.id} variant="outline">{item.status}</Badge>, item.requestedAt, String(item.lines.length)])} /> : null}
+      {list.data ? <DataTable headers={["Transfer", "From", "To", "Status", "Requested", "Lines"]} rows={list.data.items.map((item) => [item.id, item.sourceWarehouseId, item.destinationWarehouseId, renderLightStockStatusBadge(item.status, item.id), item.requestedAt, String(item.lines.length)])} /> : null}
     </div>
   )
 }
@@ -2279,7 +3042,7 @@ export function ReservationsSection() {
         </CardContent>
       </Card>
       {message ? <StateCard message={message} /> : null}
-      {list.data ? <DataTable headers={["Reservation", "Product", "Warehouse", "Status", "Qty", "Consumed"]} rows={list.data.items.map((item) => [item.id, item.productId, item.warehouseId ?? "-", <Badge key={item.id} variant="outline">{item.status}</Badge>, String(item.quantity), String(item.consumedQuantity)])} /> : null}
+      {list.data ? <DataTable headers={["Reservation", "Product", "Warehouse", "Status", "Qty", "Consumed"]} rows={list.data.items.map((item) => [item.id, item.productId, item.warehouseId ?? "-", renderLightStockStatusBadge(item.status, item.id), String(item.quantity), String(item.consumedQuantity)])} /> : null}
     </div>
   )
 }
@@ -2422,6 +3185,9 @@ export function StockReportsSection() {
   const selectedReceiptAcceptances = acceptanceRecords.data.items.filter(
     (item) => item.purchaseReceiptId === purchaseReceiptId && item.status === "verified"
   )
+  const selectedReceiptRejections = acceptanceRecords.data.items.filter(
+    (item) => item.purchaseReceiptId === purchaseReceiptId && item.status === "rejected"
+  )
   const challanRows =
     selectedReceipt?.lines.map((line, index) => {
       const product = productById.get(line.productId)
@@ -2431,7 +3197,10 @@ export function StockReportsSection() {
       const verifiedQuantity = selectedReceiptAcceptances
         .filter((item) => item.productId === line.productId)
         .reduce((sum, item) => sum + item.quantityAccepted, 0)
-      const pendingQuantity = Math.max(receivedQuantity - verifiedQuantity, 0)
+      const rejectedQuantity = selectedReceiptRejections
+        .filter((item) => item.productId === line.productId)
+        .reduce((sum, item) => sum + item.quantityRejected, 0)
+      const pendingQuantity = Math.max(receivedQuantity - verifiedQuantity - rejectedQuantity, 0)
 
       return {
         slNo: String(index + 1),
@@ -2602,9 +3371,7 @@ export function StockReportsSection() {
                     item.orderedQuantity,
                     item.receivedQuantity,
                     item.pendingQuantity,
-                    <Badge key={`${item.slNo}:challan-status`} variant="outline">
-                      {item.status}
-                    </Badge>,
+                    renderLightStockStatusBadge(item.status, `${item.slNo}:challan-status`),
                   ])
                 : [["-", "Select purchase receipt", "-", "-", "-", "-", "-"]]
             }
@@ -2653,9 +3420,7 @@ export function StockReportsSection() {
                     item.productCode,
                     item.receivedQuantity,
                     item.verifiedQuantity,
-                    <Badge key={`${item.slNo}:verify-status`} variant="outline">
-                      {item.status}
-                    </Badge>,
+                    renderLightStockStatusBadge(item.status, `${item.slNo}:verify-status`),
                   ])
                 : [["-", "Select purchase receipt", "-", "-", "-", "-"]]
             }
@@ -3174,14 +3939,8 @@ export function VerificationSection() {
             <Field label="Status" className="md:w-auto">
               <div className="flex h-9 items-center">
                 <Badge
-                  className={
-                    randomScanResult.status === "confirmed"
-                      ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
-                      : randomScanResult.status === "mismatch"
-                        ? "rounded-full bg-rose-100 px-3 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
-                        : "rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted"
-                  }
-                  variant="secondary"
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${getLightStockStatusBadgeClassName(randomScanResult.status)}`}
+                  variant="outline"
                 >
                   {randomScanResult.status === "confirmed"
                     ? "Confirmed"

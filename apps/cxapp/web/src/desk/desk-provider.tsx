@@ -5,6 +5,7 @@ import type { AppSuite } from "@framework/application/app-manifest"
 import {
   DashboardShellProvider,
 } from "@/features/dashboard/dashboard-shell"
+import { fallbackRuntimeBrandProfile } from "@/features/branding/runtime-brand-default"
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import type { DashboardNotification, DashboardUser } from "@/features/dashboard/types"
 
@@ -73,8 +74,8 @@ export function DeskProvider({
         systemUpdate: "/dashboard/system-update",
       }}
       brand={{
-        name: brand?.brandName ?? appSuite.framework.name,
-        tagline: brand?.tagline ?? "Framework runtime with CxApp shell",
+        name: brand?.brandName ?? fallbackRuntimeBrandProfile.brandName,
+        tagline: brand?.tagline ?? fallbackRuntimeBrandProfile.tagline ?? "Connected business portal",
       }}
     >
       <DeskContext.Provider

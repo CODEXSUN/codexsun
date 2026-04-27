@@ -2,9 +2,29 @@
 
 ## Version State
 
-- Current package version: `1.0.236`
-- Current release tag: `v-1.0.236`
+- Current package version: `1.0.250`
+- Current release tag: `v-1.0.250`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.250
+
+### [v 1.0.250] 2026-04-27 - Add goods rejection type lookup and light stock status badges
+
+- changed stock purchase receipt and stock workspace status badges to use a consistent light-tone treatment across receipt status, generated barcode status, goods inward status, posting status, sales allocation, transfers, reservations, challan, verification, and live audit scan surfaces
+- added `stockRejectionTypes` as a Core common module with seeded `Rejected`, `DOA`, and `Warranty` records plus standard common-module navigation and metadata
+- replaced the Goods Rejections fixed rejection-type dropdown with a searchable creatable lookup backed by Core common modules, so operators can create a new rejection type when no matching record exists
+- widened the stock acceptance `rejectionReason` contract from fixed enum values to a non-empty lookup-backed string while keeping the actual stock-unit lifecycle status as `rejected`
+- added a Rejection Types table to the Goods Rejections page so configured rejection classifications are visible beside the rejected goods register
+- validated the UI and contract changes with `npx.cmd tsc --noEmit --pretty false` and focused ESLint; a focused billing rejection test run was attempted but blocked by local MariaDB access denied for user `''@'localhost'`, while `tests/stock/purchase-receipt-live-flow.test.ts` passed in the same run
+
+## v-1.0.239
+
+### [v 1.0.239] 2026-04-27 - Fix first-load dashboard and web brand logo fallback
+
+- added a shared runtime startup brand profile and browser cache helpers so first-render branding no longer starts from a null state
+- changed the cxapp runtime brand query to hydrate from the shared startup brand, persist successful company-brand fetches, and fall back to cached/default brand data when the network response is not ready yet
+- removed the dashboard sidebar fallback to the framework manifest brand so the app side menu and web-facing menu branding both resolve through the same runtime brand source
+- validated the branding fix with `npx.cmd tsc --noEmit --pretty false` and focused ESLint on the changed branding files
 
 ## v-1.0.236
 

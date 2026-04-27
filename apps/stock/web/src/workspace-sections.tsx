@@ -8,6 +8,7 @@ import {
 } from "./workspace/stock-purchase-receipt-sections"
 import {
   AvailabilitySection,
+  GoodsRejectionsSection,
   MovementsSection,
   PrintDesignerSection,
   ReconciliationSection,
@@ -21,6 +22,7 @@ import {
 } from "./workspace/stock-workspace-support-sections"
 
 export {
+  GoodsRejectionsSection,
   GoodsInwardSection,
   GoodsInwardShowSection,
   GoodsInwardUpsertSection,
@@ -52,6 +54,8 @@ export function StockWorkspaceSection({
       return <PurchaseReceiptsSection />
     case "goods-inward-upsert":
       return <PurchaseReceiptsSection />
+    case "goods-rejections":
+      return <GoodsRejectionsSection />
     case "print-designer":
       return <PrintDesignerSection />
     case "sale-allocations":

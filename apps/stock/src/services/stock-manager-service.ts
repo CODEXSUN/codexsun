@@ -22,6 +22,7 @@ import {
   listBillingStockSaleAllocations,
   listBillingStockUnits,
   postBillingGoodsInwardToInventory,
+  rollbackBillingPurchaseReceiptBarcodes,
   resolveBillingStockBarcode,
 } from "./stock-lifecycle-service.js"
 import type { AuthUser } from "../../../cxapp/shared/index.js"
@@ -152,6 +153,15 @@ export async function createStockPurchaseReceiptBarcodeBatch(
   return createBillingPurchaseReceiptBarcodeBatch(database, user, receiptId, payload)
 }
 
+export async function rollbackStockPurchaseReceiptBarcodes(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  receiptId: string,
+  payload: unknown
+) {
+  return rollbackBillingPurchaseReceiptBarcodes(database, user, receiptId, payload)
+}
+
 export async function listStockGoodsInward(database: Kysely<unknown>, user: AuthUser) {
   return listBillingGoodsInwardNotes(database, user)
 }
@@ -199,6 +209,7 @@ export async function listStockAcceptanceVerifications(
   filters?: {
     purchaseReceiptId?: string
     productId?: string
+    status?: "verified" | "mismatch" | "rejected"
   }
 ) {
   return listBillingStockAcceptanceVerifications(database, user, filters)

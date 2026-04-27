@@ -24,6 +24,7 @@ export const commonModuleTableNames = {
   warehouses: "common_warehouses",
   destinations: "common_destinations",
   paymentTerms: "common_payment_terms",
+  stockRejectionTypes: "common_stock_rejection_types",
   storefrontTemplates: "common_storefront_templates",
   sliderThemes: "common_slider_themes",
 } as const

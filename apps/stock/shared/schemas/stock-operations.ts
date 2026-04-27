@@ -41,7 +41,10 @@ export const billingBarcodeAliasSourceSchema = z.enum([
 export const billingStockAcceptanceVerificationStatusSchema = z.enum([
   "verified",
   "mismatch",
+  "rejected",
 ])
+
+export const billingStockRejectionReasonSchema = z.string().trim().min(1)
 
 export const billingStickerTemplateSchema = z.enum([
   "inventory-sticker-25x50mm",
@@ -88,8 +91,18 @@ export const billingGoodsInwardLineSchema = z.object({
   acceptedQuantity: z.number().nonnegative(),
   rejectedQuantity: z.number().nonnegative(),
   damagedQuantity: z.number().nonnegative(),
+  damageReceived: z.boolean().default(false),
+  returnToVendor: z.boolean().default(false),
+  damageRemark: z.string().trim().min(1).nullable().default(null),
   manufacturerBarcode: z.string().trim().nullable().default(null),
   manufacturerSerial: z.string().trim().nullable().default(null),
+  serializationMode: billingPurchaseReceiptSerializationModeSchema.nullable().default(null),
+  serializationBatchCode: z.string().trim().min(1).nullable().default(null),
+  serializationSerialPrefix: z.string().trim().min(1).nullable().default(null),
+  serializationBarcodePrefix: z.string().trim().min(1).nullable().default(null),
+  serializationManufacturerBarcodePrefix: z.string().trim().min(1).nullable().default(null),
+  serializationBarcodeQuantity: z.number().int().positive().nullable().default(null),
+  serializationExpiresAt: z.string().trim().min(1).nullable().default(null),
   note: z.string().trim().default(""),
 })
 
@@ -205,6 +218,7 @@ export const billingPurchaseReceiptBarcodeGenerationLineSchema = z.object({
   identityMode: billingPurchaseReceiptSerializationModeSchema.default("batch-and-serial"),
   batchCode: z.string().trim().nullable().default(null),
   serialPrefix: z.string().trim().nullable().default(null),
+  barcodePrefix: z.string().trim().nullable().default(null),
   manufacturerBarcodePrefix: z.string().trim().nullable().default(null),
   expiresAt: z.string().trim().nullable().default(null),
   note: z.string().trim().default(""),
@@ -221,6 +235,17 @@ export const billingPurchaseReceiptBarcodeGenerationResponseSchema = z.object({
   goodsInward: billingGoodsInwardSchema,
   stickerBatch: billingStickerPrintBatchSchema,
   unitsCreated: z.number().int().nonnegative(),
+})
+
+export const billingPurchaseReceiptBarcodeRollbackPayloadSchema = z.object({
+  stockUnitIds: z.array(z.string().trim().min(1)).min(1),
+})
+
+export const billingPurchaseReceiptBarcodeRollbackResponseSchema = z.object({
+  purchaseReceiptId: z.string().trim().min(1),
+  rolledBackCount: z.number().int().nonnegative(),
+  deletedStockUnitIds: z.array(z.string().trim().min(1)),
+  removedGoodsInwardIds: z.array(z.string().trim().min(1)),
 })
 
 export const billingStockScanVerificationSchema = z.object({
@@ -246,7 +271,10 @@ export const billingStockAcceptanceVerificationSchema = z.object({
   expectedBarcodeValue: z.string().trim().min(1),
   scannedBarcodeValue: z.string().trim().min(1),
   quantityAccepted: z.number().nonnegative(),
+  quantityRejected: z.number().nonnegative().default(0),
   status: billingStockAcceptanceVerificationStatusSchema,
+  rejectionReason: billingStockRejectionReasonSchema.nullable().default(null),
+  rejectionNote: z.string().trim().min(1).nullable().default(null),
   verifiedAt: z.string().trim().min(1).nullable().default(null),
   createdAt: z.string().trim().min(1),
   updatedAt: z.string().trim().min(1),
@@ -260,6 +288,9 @@ export const billingStockAcceptanceVerificationListResponseSchema = z.object({
 export const billingStockAcceptanceItemPayloadSchema = z.object({
   stockUnitId: z.string().trim().min(1),
   scannedBarcodeValue: z.string().trim().min(1),
+  rejected: z.boolean().default(false),
+  rejectionReason: billingStockRejectionReasonSchema.nullable().default(null),
+  rejectionNote: z.string().trim().nullable().default(null),
 })
 
 export const billingStockAcceptancePayloadSchema = z.object({
@@ -271,6 +302,8 @@ export const billingStockAcceptancePayloadSchema = z.object({
 export const billingStockAcceptanceResponseSchema = z.object({
   acceptedCount: z.number().int().nonnegative(),
   acceptedQuantity: z.number().nonnegative(),
+  rejectedCount: z.number().int().nonnegative(),
+  rejectedQuantity: z.number().nonnegative(),
   mismatchCount: z.number().int().nonnegative(),
   remainingCount: z.number().int().nonnegative(),
   items: z.array(billingStockAcceptanceVerificationSchema),
@@ -323,8 +356,18 @@ export const billingGoodsInwardLineInputSchema = z.object({
   acceptedQuantity: z.number().nonnegative(),
   rejectedQuantity: z.number().nonnegative().default(0),
   damagedQuantity: z.number().nonnegative().default(0),
+  damageReceived: z.boolean().default(false),
+  returnToVendor: z.boolean().default(false),
+  damageRemark: z.string().trim().nullable().default(null),
   manufacturerBarcode: z.string().trim().nullable().default(null),
   manufacturerSerial: z.string().trim().nullable().default(null),
+  serializationMode: billingPurchaseReceiptSerializationModeSchema.nullable().default(null),
+  serializationBatchCode: z.string().trim().min(1).nullable().default(null),
+  serializationSerialPrefix: z.string().trim().min(1).nullable().default(null),
+  serializationBarcodePrefix: z.string().trim().min(1).nullable().default(null),
+  serializationManufacturerBarcodePrefix: z.string().trim().min(1).nullable().default(null),
+  serializationBarcodeQuantity: z.number().int().positive().nullable().default(null),
+  serializationExpiresAt: z.string().trim().min(1).nullable().default(null),
   note: z.string().trim().default(""),
 })
 
@@ -429,6 +472,9 @@ export type BillingBarcodeAliasSource = z.infer<
 export type BillingStockAcceptanceVerificationStatus = z.infer<
   typeof billingStockAcceptanceVerificationStatusSchema
 >
+export type BillingStockRejectionReason = z.infer<
+  typeof billingStockRejectionReasonSchema
+>
 export type BillingStickerTemplate = z.infer<typeof billingStickerTemplateSchema>
 export type BillingPurchaseReceiptSerializationMode = z.infer<
   typeof billingPurchaseReceiptSerializationModeSchema
@@ -514,6 +560,12 @@ export type BillingPurchaseReceiptBarcodeGenerationPayload = z.infer<
 >
 export type BillingPurchaseReceiptBarcodeGenerationResponse = z.infer<
   typeof billingPurchaseReceiptBarcodeGenerationResponseSchema
+>
+export type BillingPurchaseReceiptBarcodeRollbackPayload = z.infer<
+  typeof billingPurchaseReceiptBarcodeRollbackPayloadSchema
+>
+export type BillingPurchaseReceiptBarcodeRollbackResponse = z.infer<
+  typeof billingPurchaseReceiptBarcodeRollbackResponseSchema
 >
 export type BillingStockSaleAllocationPayload = z.infer<
   typeof billingStockSaleAllocationPayloadSchema

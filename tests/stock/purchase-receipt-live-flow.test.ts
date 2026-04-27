@@ -31,11 +31,20 @@ test("purchase receipt stock entry flow is wired through acceptance into live st
   assert.match(stockRoutes, /\/stock\/availability/)
 
   assert.match(stockManager, /createStockPurchaseReceiptBarcodeBatch/)
+  assert.match(stockManager, /rollbackStockPurchaseReceiptBarcodes/)
   assert.match(stockManager, /acceptStockUnitsToInventory/)
   assert.match(stockManager, /listStockMovements/)
   assert.match(stockManager, /listStockAvailability/)
 
   assert.match(billingStockLifecycle, /createBillingPurchaseReceiptBarcodeBatch/)
+  assert.match(billingStockLifecycle, /rollbackBillingPurchaseReceiptBarcodes/)
+  assert.match(billingStockLifecycle, /const sequenceToken = String\(unitSequence\)\.padStart\(2,\s*"0"\)/)
+  assert.match(billingStockLifecycle, /`\$\{serialPrefix\}\$\{sequenceToken\}`/)
+  assert.match(billingStockLifecycle, /`\$\{manufacturerBarcodePrefix\}\$\{sequenceToken\}`/)
+  assert.match(
+    billingStockLifecycle,
+    /return `\$\{normalizedPrefix\}\$\{normalizedBatchCode\}\$\{normalizedSerialNumber\}`/
+  )
   assert.match(billingStockLifecycle, /status:\s*"received"/)
   assert.match(
     billingStockLifecycle,
@@ -43,6 +52,9 @@ test("purchase receipt stock entry flow is wired through acceptance into live st
   )
   assert.match(billingStockLifecycle, /acceptBillingStockUnitsToInventory/)
   assert.match(billingStockLifecycle, /status:\s*"available"/)
+  assert.match(billingStockLifecycle, /status:\s*"rejected"/)
+  assert.match(billingStockLifecycle, /rejectionReason/)
+  assert.match(billingStockLifecycle, /rejectionNote/)
   assert.match(billingStockLifecycle, /applyLiveStockMovement\(database,\s*{\s*productId:\s*unit\.productId/s)
   assert.match(billingStockLifecycle, /referenceType:\s*"billing_stock_acceptance"/)
 
@@ -61,6 +73,10 @@ test("purchase receipt stock entry flow is wired through acceptance into live st
   assert.doesNotMatch(storefrontOrderService, /product\.stockItems/)
 
   assert.match(stockEntryUi, /Confirm partial stock acceptance/)
+  assert.match(stockEntryUi, /Rejected Records/)
+  assert.match(stockEntryUi, /Goods Rejections/)
+  assert.match(stockEntryUi, /Rejection type/)
+  assert.match(stockEntryUi, /DOA|doa/)
   assert.match(stockEntryUi, /\/internal\/v1\/stock\/stock-acceptance/)
   assert.match(
     stockEntryUi,

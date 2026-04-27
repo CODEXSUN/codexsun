@@ -74,6 +74,7 @@ export const coreCommonModuleMenuGroups: CoreCommonModuleMenuGroup[] = [
       defineCommonModuleItem("transports", "Transports", "Transport method master."),
       defineCommonModuleItem("destinations", "Destinations", "Shipping and movement destination types."),
       defineCommonModuleItem("orderTypes", "Order Types", "Order flow types across buying and selling."),
+      defineCommonModuleItem("stockRejectionTypes", "Stock Rejection Types", "Reusable rejection classifications for stock inward checks."),
     ],
   },
   {

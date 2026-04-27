@@ -2,6 +2,12 @@ import { useQuery } from "@tanstack/react-query"
 
 import type { CompanyBrandProfile } from "@cxapp/shared"
 import { getStoredAccessToken, readStoredAuthSession } from "@cxapp/web/src/auth/session-storage"
+import {
+  fallbackRuntimeBrandProfile,
+  persistRuntimeBrandProfile,
+  readStoredRuntimeBrandProfile,
+  resolveInitialRuntimeBrandProfile,
+} from "@/features/branding/runtime-brand-default"
 import type { AppSettingsSnapshot } from "../../../../framework/shared/index.js"
 
 import { fallbackRuntimeAppSettings } from "../features/runtime-app-settings/runtime-app-settings-fallback"
@@ -92,11 +98,19 @@ export function useRuntimeBrandQuery() {
           ? await requestJson<CompanyBrandProfile>("/internal/v1/cxapp/company-brand", true)
           : await requestJson<CompanyBrandProfile>("/public/v1/brand-profile")
 
-        return payload.item ?? null
+        const resolvedBrand =
+          payload.item ??
+          readStoredRuntimeBrandProfile() ??
+          fallbackRuntimeBrandProfile
+
+        persistRuntimeBrandProfile(resolvedBrand)
+
+        return resolvedBrand
       } catch {
-        return null
+        return readStoredRuntimeBrandProfile() ?? fallbackRuntimeBrandProfile
       }
     },
+    initialData: resolveInitialRuntimeBrandProfile,
     retry: false,
   })
 }

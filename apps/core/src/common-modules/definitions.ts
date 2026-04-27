@@ -318,6 +318,17 @@ export const commonModuleDefinitions = [
     ],
   },
   {
+    key: "stockRejectionTypes",
+    label: "Stock Rejection Types",
+    tableName: commonModuleTableNames.stockRejectionTypes,
+    defaultSortKey: "name",
+    columns: [
+      { key: "code", label: "Code", type: "string", required: true, nullable: false },
+      { key: "name", label: "Name", type: "string", required: true, nullable: false },
+      { key: "description", label: "Description", type: "string", required: false, nullable: true },
+    ],
+  },
+  {
     key: "storefrontTemplates",
     label: "Storefront Design Templates",
     tableName: commonModuleTableNames.storefrontTemplates,

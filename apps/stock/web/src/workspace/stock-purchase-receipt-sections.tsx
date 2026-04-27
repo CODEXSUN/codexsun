@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
-import { EyeIcon, PrinterIcon, SparklesIcon } from "lucide-react"
+import { EyeIcon, PrinterIcon, SparklesIcon, Trash2Icon } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 import type {
   BillingPurchaseReceiptSerializationMode,
   BillingPurchaseReceipt,
   BillingPurchaseReceiptBarcodeGenerationResponse,
+  BillingPurchaseReceiptBarcodeRollbackResponse,
 } from "../../../shared/index.ts"
 import type {
   ContactListResponse,
@@ -82,6 +83,7 @@ import {
   voucherInlineInputClassName,
 } from "./stock-workspace-helpers"
 import type {
+  GoodsInwardListResponse,
   LookupsResponse,
   MovementListResponse,
   PurchaseReceiptLineForm,
@@ -100,6 +102,82 @@ function escapeReceiptPrintHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;")
+}
+
+function formatStatusLabel(status: string) {
+  return status.replace(/_/g, " ")
+}
+
+function getPurchaseReceiptStatusBadgeClassName(status: BillingPurchaseReceipt["status"]) {
+  if (status === "fully_received") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
+  }
+
+  if (status === "partially_received") {
+    return "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
+  }
+
+  if (status === "open") {
+    return "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50"
+  }
+
+  if (status === "cancelled") {
+    return "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50"
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
+}
+
+function renderPurchaseReceiptStatusBadge(status: BillingPurchaseReceipt["status"], key?: string) {
+  return (
+    <Badge
+      key={key}
+      variant="outline"
+      className={`capitalize ${getPurchaseReceiptStatusBadgeClassName(status)}`}
+    >
+      {formatStatusLabel(status)}
+    </Badge>
+  )
+}
+
+function getStockUnitStatusBadgeClassName(status: string) {
+  if (status === "available") {
+    return "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50"
+  }
+
+  if (status === "received") {
+    return "border-yellow-200 bg-yellow-50 text-yellow-800 hover:bg-yellow-50"
+  }
+
+  if (status === "sold") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
+  }
+
+  if (status === "allocated") {
+    return "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50"
+  }
+
+  if (status === "rejected") {
+    return "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-50"
+  }
+
+  if (status === "damaged") {
+    return "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50"
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
+}
+
+function renderStockUnitStatusBadge(status: string, key?: string) {
+  return (
+    <Badge
+      key={key}
+      variant="outline"
+      className={`capitalize ${getStockUnitStatusBadgeClassName(status)}`}
+    >
+      {formatStatusLabel(status)}
+    </Badge>
+  )
 }
 
 function printPurchaseReceiptDocument({
@@ -476,11 +554,7 @@ export function PurchaseReceiptsSection() {
               header: "Status",
               sortable: true,
               accessor: (item) => item.status,
-              cell: (item) => (
-                <Badge variant="outline" className="capitalize">
-                  {item.status.replace(/_/g, " ")}
-                </Badge>
-              ),
+              cell: (item) => renderPurchaseReceiptStatusBadge(item.status),
             },
             {
               id: "actions",
@@ -592,6 +666,10 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     "/internal/v1/stock/purchase-receipts",
     [refreshNonce]
   )
+  const goodsInward = useJsonResource<GoodsInwardListResponse>(
+    "/internal/v1/stock/goods-inward",
+    [refreshNonce]
+  )
   const contactLookup = useJsonResource<ContactListResponse>("/internal/v1/core/contacts", [refreshNonce])
   const productLookup = useJsonResource<ProductListResponse>("/internal/v1/core/products", [refreshNonce])
   const stockUnits = useJsonResource<StockUnitListResponse>("/internal/v1/stock/stock-units", [refreshNonce])
@@ -600,8 +678,10 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
   const [lineForms, setLineForms] = useState<PurchaseReceiptSerializationLineForm[]>([])
   const [pendingGenerateLine, setPendingGenerateLine] =
     useState<PurchaseReceiptSerializationLineForm | null>(null)
+  const [pendingRollbackUnitIds, setPendingRollbackUnitIds] = useState<string[] | null>(null)
   const [generatingLineId, setGeneratingLineId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isRollingBack, setIsRollingBack] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [selectedPrintedUnitIds, setSelectedPrintedUnitIds] = useState<string[]>([])
   const [formError, setFormError] = useState<string | null>(null)
@@ -611,10 +691,12 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     detail.isLoading ||
       lookups.isLoading ||
       receiptList.isLoading ||
+      goodsInward.isLoading ||
       contactLookup.isLoading ||
       productLookup.isLoading ||
       stockUnits.isLoading ||
       isGenerating ||
+      isRollingBack ||
       isDeleting
   )
 
@@ -628,7 +710,38 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     const receivedByLineId = new Map(
       (lookupReceipt?.lines ?? []).map((line) => [line.id, Number(line.receivedQuantity || 0)])
     )
+    const receiptGoodsInward = [...(goodsInward.data?.items ?? [])]
+      .filter((entry) => entry.purchaseReceiptId === item.id)
+      .sort(
+        (left, right) =>
+          right.updatedAt.localeCompare(left.updatedAt) ||
+          right.createdAt.localeCompare(left.createdAt)
+      )
+    const latestSerializationLineByReceiptLineId = new Map<
+      string,
+      (typeof receiptGoodsInward)[number]["lines"][number]
+    >()
+    for (const inward of receiptGoodsInward) {
+      for (const inwardLine of inward.lines) {
+        if (!latestSerializationLineByReceiptLineId.has(inwardLine.purchaseReceiptLineId)) {
+          latestSerializationLineByReceiptLineId.set(
+            inwardLine.purchaseReceiptLineId,
+            inwardLine
+          )
+        }
+      }
+    }
+    const receiptStockUnits = (stockUnits.data?.items ?? []).filter(
+      (stockUnit) => stockUnit.purchaseReceiptId === item.id
+    )
+    const stockUnitsByGoodsInwardLineId = new Map<string, StockUnitListResponse["items"]>()
+    for (const stockUnit of receiptStockUnits) {
+      const current = stockUnitsByGoodsInwardLineId.get(stockUnit.goodsInwardLineId) ?? []
+      current.push(stockUnit)
+      stockUnitsByGoodsInwardLineId.set(stockUnit.goodsInwardLineId, current)
+    }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPostingDate(item.postingDate)
     setLineForms(
       item.lines.map((line) => {
@@ -637,6 +750,15 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
         const remainingQuantity = Math.max(orderedQuantity - receivedQuantity, 0)
         const defaultBarcodeQuantity =
           Number.isInteger(remainingQuantity) && remainingQuantity > 0 ? remainingQuantity : 1
+        const latestSerializationLine = latestSerializationLineByReceiptLineId.get(line.id) ?? null
+        const latestSerializationUnits =
+          latestSerializationLine
+            ? [...(stockUnitsByGoodsInwardLineId.get(latestSerializationLine.id) ?? [])].sort(
+                (left, right) => left.unitSequence - right.unitSequence
+              )
+            : []
+        const firstSerializationUnit = latestSerializationUnits[0] ?? null
+        const hasSavedSerialization = latestSerializationLine !== null
 
         return {
           purchaseReceiptLineId: line.id,
@@ -646,22 +768,50 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
           receivedQuantity,
           remainingQuantity,
           inwardQuantity: remainingQuantity > 0 ? String(remainingQuantity) : "0",
-          barcodeQuantity: remainingQuantity > 0 ? String(defaultBarcodeQuantity) : "1",
-          identityMode: "batch-and-serial",
-          batchCode: "",
-          serialPrefix: line.productId.replace(/[^a-zA-Z0-9]+/g, "-").toUpperCase(),
-          manufacturerBarcodePrefix: "",
-          expiresAt: "",
+          barcodeQuantity:
+            latestSerializationLine?.serializationBarcodeQuantity != null
+              ? String(latestSerializationLine.serializationBarcodeQuantity)
+              : latestSerializationUnits.length > 0
+                ? String(latestSerializationUnits.length)
+                : remainingQuantity > 0
+                  ? String(defaultBarcodeQuantity)
+                  : "1",
+          identityMode: hasSavedSerialization
+            ? (latestSerializationLine?.serializationMode ??
+              (firstSerializationUnit?.batchCode ? "batch-and-serial" : "serial-only"))
+            : "batch-and-serial",
+          batchCode:
+            latestSerializationLine?.serializationBatchCode ??
+            firstSerializationUnit?.batchCode ??
+            "",
+          serialPrefix: hasSavedSerialization
+            ? (latestSerializationLine?.serializationSerialPrefix ??
+              latestSerializationLine?.manufacturerSerial ??
+              "")
+            : "",
+          barcodePrefix: hasSavedSerialization
+            ? (latestSerializationLine?.serializationBarcodePrefix ?? "")
+            : "",
+          manufacturerBarcodePrefix: hasSavedSerialization
+            ? (latestSerializationLine?.serializationManufacturerBarcodePrefix ??
+              latestSerializationLine?.manufacturerBarcode ??
+              "")
+            : "",
+          expiresAt:
+            latestSerializationLine?.serializationExpiresAt ??
+            firstSerializationUnit?.expiresAt ??
+            "",
           selected: remainingQuantity > 0,
         }
       })
     )
-  }, [detail.data, lookups.data])
+  }, [detail.data, goodsInward.data, lookups.data, stockUnits.data])
 
   if (
     detail.isLoading ||
     lookups.isLoading ||
     receiptList.isLoading ||
+    goodsInward.isLoading ||
     contactLookup.isLoading ||
     productLookup.isLoading ||
     stockUnits.isLoading
@@ -673,12 +823,20 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     return <StateCard message={detail.error ?? "Purchase receipt detail is unavailable."} />
   }
 
-  if (lookups.error || receiptList.error || contactLookup.error || productLookup.error || stockUnits.error) {
+  if (
+    lookups.error ||
+    receiptList.error ||
+    goodsInward.error ||
+    contactLookup.error ||
+    productLookup.error ||
+    stockUnits.error
+  ) {
     return (
       <StateCard
         message={
           lookups.error ??
           receiptList.error ??
+          goodsInward.error ??
           contactLookup.error ??
           productLookup.error ??
           stockUnits.error ??
@@ -705,6 +863,9 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
   const selectedPrintedUnits = receiptStockUnits.filter((unit) =>
     selectedPrintedUnitIds.includes(unit.id)
   )
+  const canRollbackSelectedPrintedUnits =
+    selectedPrintedUnits.length > 0 &&
+    selectedPrintedUnits.every((unit) => unit.status === "received")
 
   function updateSerializationLine(
     purchaseReceiptLineId: string,
@@ -765,6 +926,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
                 identityMode: line.identityMode,
                 batchCode: line.identityMode === "batch-and-serial" ? line.batchCode : null,
                 serialPrefix: line.serialPrefix || null,
+                barcodePrefix: line.barcodePrefix || null,
                 manufacturerBarcodePrefix: line.manufacturerBarcodePrefix || null,
                 expiresAt: line.expiresAt || null,
                 note: line.description || "",
@@ -794,6 +956,42 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     }
   }
 
+  async function executeRollbackSelectedUnits(stockUnitIds: string[]) {
+    setIsRollingBack(true)
+
+    try {
+      const response = await requestJson<BillingPurchaseReceiptBarcodeRollbackResponse>(
+        `/internal/v1/stock/purchase-receipt/barcodes?id=${encodeURIComponent(receiptId)}`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({
+            stockUnitIds,
+          }),
+        }
+      )
+
+      setLastGeneratedBatch(null)
+      setSelectedPrintedUnitIds((current) =>
+        current.filter((item) => !response.deletedStockUnitIds.includes(item))
+      )
+      setRefreshNonce((current) => current + 1)
+      showRecordToast({
+        entity: "Generated barcode",
+        action: "rolled back",
+        recordName: `${item.entryNumber} (${response.rolledBackCount})`,
+      })
+    } catch (rollbackError) {
+      setFormError(
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : "Failed to delete selected generated barcodes."
+      )
+    } finally {
+      setIsRollingBack(false)
+      setPendingRollbackUnitIds(null)
+    }
+  }
+
   function handleGenerateBarcodeLine(line: PurchaseReceiptSerializationLineForm) {
     setFormError(null)
     setLastGeneratedBatch(null)
@@ -808,7 +1006,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
       !Number.isInteger(barcodeQuantity) ||
       barcodeQuantity <= 0 ||
       barcodeQuantity > Math.ceil(inwardQuantity)
-    ) {
+      ) {
       setFormError(`Check barcode quantity for product ${line.productId}.`)
       return
     }
@@ -819,6 +1017,22 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
     }
 
     setPendingGenerateLine(line)
+  }
+
+  function handleRollbackSelectedUnits() {
+    setFormError(null)
+
+    if (selectedPrintedUnits.length === 0) {
+      setFormError("Select one or more generated barcodes to delete.")
+      return
+    }
+
+    if (!selectedPrintedUnits.every((unit) => unit.status === "received")) {
+      setFormError("Generated barcodes can be deleted only before stock acceptance.")
+      return
+    }
+
+    setPendingRollbackUnitIds(selectedPrintedUnits.map((unit) => unit.id))
   }
   return (
     <div className="space-y-4">
@@ -1099,6 +1313,19 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
                             placeholder={productCodeById.get(line.productId) ?? ""}
                           />
                         </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-foreground">Barcode prefix</p>
+                          <Input
+                            value={line.barcodePrefix}
+                            disabled={!line.selected}
+                            onChange={(event) =>
+                              updateSerializationLine(line.purchaseReceiptLineId, {
+                                barcodePrefix: event.target.value.toUpperCase(),
+                              })
+                            }
+                            placeholder="Leave blank for serial or batch + serial"
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2 md:col-span-2">
                         <p className="text-sm font-medium text-foreground">Manufacturer barcode prefix</p>
@@ -1133,7 +1360,12 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
             <DataTable
               headers={["Product", "Batch", "Serial", "Barcode", "Expiry"]}
               rows={lastGeneratedBatch.stickerBatch.items.map((generatedItem) => [
-                generatedItem.productName,
+                <div key={`${generatedItem.stockUnitId}:product`} className="space-y-0.5">
+                  <p className="font-medium text-foreground">
+                    {productNameById.get(generatedItem.productId) ?? generatedItem.productName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{generatedItem.productCode}</p>
+                </div>,
                 generatedItem.batchCode ?? "No batch",
                 generatedItem.serialNumber,
                 <span
@@ -1176,6 +1408,15 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
               </div>
               <Button
                 type="button"
+                variant={canRollbackSelectedPrintedUnits ? "destructive" : "outline"}
+                disabled={!canRollbackSelectedPrintedUnits || isRollingBack}
+                onClick={handleRollbackSelectedUnits}
+              >
+                <Trash2Icon className="mr-2 size-4" />
+                {isRollingBack ? "Deleting..." : "Delete selected"}
+              </Button>
+              <Button
+                type="button"
                 variant={selectedPrintedUnits.length > 0 ? "default" : "outline"}
                 disabled={selectedPrintedUnits.length === 0}
                 onClick={() => {
@@ -1186,6 +1427,11 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
                 Print Barcode
               </Button>
             </div>
+            {selectedPrintedUnits.length > 0 && !canRollbackSelectedPrintedUnits ? (
+              <div className="rounded-md border border-border/70 px-3 py-2 text-sm text-muted-foreground">
+                Delete selected is available only while the chosen units are still in received status.
+              </div>
+            ) : null}
           </CardHeader>
           <CardContent>
             <DataTable
@@ -1209,7 +1455,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
                   <p className="font-medium text-foreground">
                     {productNameById.get(stockUnit.productId) ?? stockUnit.productName}
                   </p>
-                  <p className="text-xs text-muted-foreground">{stockUnit.productId}</p>
+                  <p className="text-xs text-muted-foreground">{stockUnit.productCode}</p>
                 </div>,
                 stockUnit.batchCode ?? "No batch",
                 stockUnit.serialNumber,
@@ -1220,9 +1466,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
                   {stockUnit.barcodeValue}
                 </span>,
                 formatOptionalDate(stockUnit.expiresAt),
-                <Badge key={`${stockUnit.id}:status`} variant="outline">
-                  {stockUnit.status}
-                </Badge>,
+                renderStockUnitStatusBadge(stockUnit.status, `${stockUnit.id}:status`),
                 <Button
                   key={`${stockUnit.id}:print`}
                   type="button"
@@ -1269,6 +1513,39 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
               }}
             >
               {isGenerating ? "Generating..." : "Continue"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={pendingRollbackUnitIds !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isRollingBack) {
+            setPendingRollbackUnitIds(null)
+          }
+        }}
+      >
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected generated barcodes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the selected generated barcodes, inward quantity, and sticker rows so
+              you can regenerate them again from this purchase receipt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRollingBack}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isRollingBack || !pendingRollbackUnitIds}
+              onClick={() => {
+                if (!pendingRollbackUnitIds) {
+                  return
+                }
+
+                void executeRollbackSelectedUnits(pendingRollbackUnitIds)
+              }}
+            >
+              {isRollingBack ? "Deleting..." : "Delete selected"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1387,6 +1664,7 @@ export function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string
 
     const warehouseName = getWarehouseNameFromOptionLabel(defaultWarehouse.label)
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((current) => ({
       ...current,
       warehouseId: defaultWarehouse.value,
@@ -1398,7 +1676,7 @@ export function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string
         warehouseId: defaultWarehouse.value,
       }))
     )
-  }, [form.warehouseId, receiptId, warehouseOptions])
+  }, [form.warehouseId, receiptId, warehouseLookup.data?.items, warehouseOptions])
 
   useEffect(() => {
     if (!receiptId || !detail.data) {
@@ -1407,6 +1685,7 @@ export function PurchaseReceiptUpsertSection({ receiptId }: { receiptId?: string
 
     const detailItem = detail.data.item
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       registerEntryNumber: detailItem.entryNumber ?? "",
       receiptNumber: detailItem.entryNumber,

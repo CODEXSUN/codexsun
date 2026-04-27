@@ -136,6 +136,20 @@ export function formatOptionalDate(value: string | null | undefined) {
     : new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(date)
 }
 
+export function formatOptionalTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return "-"
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date)
+}
+
 export function createSupplierContactDraft(name = ""): SupplierContactDraft {
   return {
     contactPerson: "",

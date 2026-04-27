@@ -590,6 +590,7 @@ function createWorkspaceModules(app: AppManifest): DashboardWorkspaceLink[] {
       overview: LayoutDashboard,
       "purchase-receipts": ReceiptText,
       "stock-entry": PackageCheck,
+      "goods-rejections": Flag,
       "stock-ledger": ClipboardList,
       reports: ClipboardList,
       "print-designer": Ruler,
@@ -1070,6 +1071,7 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
                 [
                   `/dashboard/apps/${app.id}/purchase-receipts`,
                   `/dashboard/apps/${app.id}/stock-entry`,
+                  `/dashboard/apps/${app.id}/goods-rejections`,
                   `/dashboard/apps/${app.id}/stock-ledger`,
                   `/dashboard/apps/${app.id}/goods-inward`,
                   `/dashboard/apps/${app.id}/verifications`,
