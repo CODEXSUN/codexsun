@@ -21,6 +21,8 @@ import {
   StockReportsSection,
   StockEntrySection,
   TransfersSection,
+  TransferShowSection,
+  TransferUpsertSection,
   VerificationSection,
 } from "./workspace/stock-workspace-support-sections"
 
@@ -36,11 +38,13 @@ export function StockWorkspaceSection({
   purchaseReceiptId,
   deliveryNoteId,
   sectionId,
+  transferId,
 }: {
   productId?: string
   purchaseReceiptId?: string
   deliveryNoteId?: string
   sectionId?: string
+  transferId?: string
 }) {
   const normalizedSectionId = useMemo(() => sectionId ?? "overview", [sectionId])
 
@@ -85,6 +89,10 @@ export function StockWorkspaceSection({
       return <ReconciliationSection />
     case "transfers":
       return <TransfersSection />
+    case "transfers-show":
+      return transferId ? <TransferShowSection transferId={transferId} /> : null
+    case "transfers-upsert":
+      return <TransferUpsertSection transferId={transferId} />
     case "reservations":
       return <ReservationsSection />
     case "verifications":

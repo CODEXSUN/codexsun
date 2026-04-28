@@ -597,10 +597,11 @@ Implemented now:
 18. app-owned `crm` lead and interaction flows registered into the suite manifest, internal API surface, and shared desk workspace
 19. the full purchase-receipt to delivery stock plan is documented in [STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md](/E:/Workspace/codexsun/ASSIST/Documentation/STOCK_WAREHOUSE_DELIVERY_BLUEPRINT.md), and the runtime now covers purchase receipts, goods inward notes, inward posting into aggregate `core` stock, stock-unit identity, barcode aliasing, sticker payload generation, and scan-based sales allocation records
 20. warehouse UI, putaway, delivery execution, and richer bin-level traceability remain later phases, but the backend stock lifecycle foundation now exists in `apps/billing`
-21. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
-20. shared storefront editor and docs surfaces in `apps/ui` such as reusable search, featured-card, category-card, rich-text editor, and toast blocks that are consumed by both the storefront and design-system docs
-21. an Expo-based `apps/mobile` companion client package for device-native workflows outside the current framework-composed web suite
-22. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, demo installer flows, and Frappe connector behavior
+21. the first live tenant visibility layer now resolves `industry bundle -> client overlay -> tenant industry profile -> runtime workspace visibility`, exposes bundle and visibility admin pages, and filters cxapp desk apps plus sidebar groups by resolved `visibleAppIds` and `visibleModuleIds`
+22. TanStack Query as the shared server-state layer for runtime settings, storefront shell data, and demo installer polling, with Zustand used only for lightweight session and storefront shell client state
+23. shared storefront editor and docs surfaces in `apps/ui` such as reusable search, featured-card, category-card, rich-text editor, and toast blocks that are consumed by both the storefront and design-system docs
+24. an Expo-based `apps/mobile` companion client package for device-native workflows outside the current framework-composed web suite
+25. root tests that validate suite registration, workspace structure, framework runtime behavior, database process execution, auth lifecycle behavior, ecommerce service flows, demo installer flows, and Frappe connector behavior
 
 Still future work:
 

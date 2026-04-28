@@ -28,6 +28,7 @@ export type DashboardMenuGroup = {
   forceGroup?: boolean
   route?: string
   icon?: LucideIcon
+  visibilityKey?: string
   items: DashboardMenuItem[]
 }
 

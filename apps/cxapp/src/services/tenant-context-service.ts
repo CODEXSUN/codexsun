@@ -3,7 +3,9 @@ import type { Kysely } from "kysely"
 import { ApplicationError } from "../../../framework/src/runtime/errors/application-error.js"
 import type { TenantContext } from "../../../framework/engines/tenant-engine/services.js"
 import { createTenantEngineRuntimeServices } from "../../../framework/engines/tenant-engine/runtime-services.js"
+import { normalizeTenantIndustryId } from "../../shared/tenant-visibility-catalog.js"
 import { listCompanies } from "./company-service.js"
+import { detectCxappIndustryId } from "./tenant-industry-detection.js"
 import {
   syncCxappCompaniesToTenantEngine,
   type CompanyTenantSyncInstruction,
@@ -18,33 +20,10 @@ export type ResolvedCxappTenantContext = {
   context: TenantContext
 }
 
-function detectIndustryId(company: CompanySummary) {
-  const searchable = [
-    company.id,
-    company.name,
-    company.tagline ?? "",
-    company.shortAbout ?? "",
-  ]
-    .join(" ")
-    .toLowerCase()
-
-  if (
-    searchable.includes("loomline") ||
-    searchable.includes("retail") ||
-    searchable.includes("storefront") ||
-    searchable.includes("d2c") ||
-    searchable.includes("direct-to-consumer")
-  ) {
-    return "garment-d2c"
-  }
-
-  return "textile-wholesale"
-}
-
 function buildSyncInstruction(company: CompanySummary): CompanyTenantSyncInstruction {
   return {
     companyId: company.id,
-    industryId: detectIndustryId(company),
+    industryId: detectCxappIndustryId(company),
   }
 }
 
@@ -72,8 +51,26 @@ async function ensureTenantContextForCompany(
   const existing = await runtime.contextService.resolveContext({
     companyId: company.id,
   })
+  const expectedIndustryId = detectCxappIndustryId(company)
+  const existingProfile =
+    existing.industryProfiles.find((item) => item.companyId === company.id) ??
+    existing.industryProfiles[0] ??
+    null
+  const hasResolvedVisibilityFields =
+    existingProfile != null &&
+    Array.isArray(existingProfile.enabledModuleIds) &&
+    typeof existingProfile.clientOverlayId !== "undefined"
+  const matchesExpectedIndustry =
+    existingProfile != null &&
+    normalizeTenantIndustryId(existingProfile.industryId) === expectedIndustryId
 
-  if (existing.tenant && existing.companyLinks.length > 0 && existing.industryProfiles.length > 0) {
+  if (
+    existing.tenant &&
+    existing.companyLinks.length > 0 &&
+    existing.industryProfiles.length > 0 &&
+    hasResolvedVisibilityFields &&
+    matchesExpectedIndustry
+  ) {
     return existing
   }
 

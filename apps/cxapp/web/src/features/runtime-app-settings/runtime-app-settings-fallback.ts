@@ -3,6 +3,10 @@ import type {
   AppSettingsSnapshot,
 } from "../../../../../framework/shared/index.js"
 import { applicationVersion } from "../../../../../framework/shared/index.js"
+import {
+  tenantVisibilityDefaultAppIds,
+  tenantVisibilityDefaultModuleIds,
+} from "@cxapp/shared"
 
 function defineOption(input: AppSettingOption): AppSettingOption {
   return input
@@ -44,7 +48,9 @@ const apps = [
   ["framework", "Framework", "/dashboard", "Framework shell and runtime controls."],
   ["core", "Core", "/dashboard/apps/core", "Core business masters and shared common modules."],
   ["billing", "Billing", "/dashboard/billing", "Billing operations and accounting workspace."],
+  ["stock", "Stock", "/dashboard/apps/stock", "Operational stock workspace and live movement controls."],
   ["ecommerce", "Ecommerce", "/dashboard/apps/ecommerce", "Storefront and commerce workspace."],
+  ["crm", "CRM", "/dashboard/apps/crm", "Lead and sales orchestration workspace."],
   ["frappe", "Frappe", "/dashboard/apps/frappe", "Frappe connector workspace."],
   ["demo", "Demo", "/dashboard/apps/demo", "Demo data installer and sample workspace."],
   ["ui", "UI", "/dashboard/apps/ui", "Design system and reusable block workspace."],
@@ -61,6 +67,8 @@ const resources = [
   ["permissions", "Permissions", "framework", "/dashboard/settings/permissions", "module", "Framework permission manager."],
   ["companies", "Companies", "framework", "/dashboard/settings/companies", "module", "Framework company manager."],
   ["core-settings", "Core Settings", "framework", "/dashboard/settings/core-settings", "workspace", "Framework runtime settings."],
+  ["industry-bundles", "Industry Bundles", "framework", "/dashboard/settings/industry-bundles", "page", "Industry bundle catalog and default visibility presets."],
+  ["tenant-visibility", "Tenant Visibility", "framework", "/dashboard/settings/tenant-visibility", "page", "Tenant-aware industry, client overlay, app, and module visibility control."],
   ["developer-settings", "Developer Settings", "framework", "/dashboard/settings/developer-settings", "workspace", "Framework developer toggles, technical naming helpers, and frontend build recovery controls."],
   ["activity-log", "Activity Log", "framework", "/dashboard/settings/activity-log", "page", "Framework audit and admin activity ledger."],
   ["alerts-dashboard", "Alerts Dashboard", "framework", "/dashboard/settings/alerts-dashboard", "page", "Framework monitoring and alert coverage dashboard."],
@@ -72,7 +80,9 @@ const resources = [
   ["live-servers", "Live Servers", "framework", "/dashboard/live-servers", "page", "Super-admin server fleet status and remote live config checks."],
   ["core", "Core Workspace", "core", "/dashboard/apps/core", "workspace", "Whole core workspace."],
   ["billing", "Billing Workspace", "billing", "/dashboard/billing", "workspace", "Whole billing workspace."],
+  ["stock", "Stock Workspace", "stock", "/dashboard/apps/stock", "workspace", "Whole stock workspace."],
   ["ecommerce", "Ecommerce Workspace", "ecommerce", "/dashboard/apps/ecommerce", "workspace", "Whole ecommerce workspace."],
+  ["crm", "CRM Workspace", "crm", "/dashboard/apps/crm", "workspace", "Whole CRM workspace."],
   ["frappe", "Frappe Workspace", "frappe", "/dashboard/apps/frappe", "workspace", "Whole frappe workspace."],
   ["demo", "Demo Workspace", "demo", "/dashboard/apps/demo", "workspace", "Whole demo workspace."],
   ["ui", "UI Workspace", "ui", "/dashboard/apps/ui", "workspace", "Whole UI workspace."],
@@ -146,5 +156,13 @@ export const fallbackRuntimeAppSettings: AppSettingsSnapshot = {
   },
   uiDeveloperTools: {
     showTechnicalNames: false,
+  },
+  workspaceVisibility: {
+    tenantId: null,
+    companyId: null,
+    industryId: "garments",
+    clientOverlayId: "default",
+    visibleAppIds: tenantVisibilityDefaultAppIds,
+    visibleModuleIds: tenantVisibilityDefaultModuleIds,
   },
 }

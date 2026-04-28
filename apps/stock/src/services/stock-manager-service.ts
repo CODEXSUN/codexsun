@@ -8,6 +8,7 @@ import {
 } from "../../../billing/src/services/goods-inward-service.js"
 import {
   createBillingDeliveryNote,
+  deleteBillingDeliveryNote,
   getBillingDeliveryNote,
   listBillingDeliveryNotes,
   updateBillingDeliveryNote,
@@ -232,6 +233,14 @@ export async function updateStockDeliveryNote(
   payload: unknown
 ) {
   return updateBillingDeliveryNote(database, user, deliveryNoteId, payload)
+}
+
+export async function deleteStockDeliveryNote(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  deliveryNoteId: string
+) {
+  return deleteBillingDeliveryNote(database, user, deliveryNoteId)
 }
 
 export async function listStockUnits(database: Kysely<unknown>, user: AuthUser) {

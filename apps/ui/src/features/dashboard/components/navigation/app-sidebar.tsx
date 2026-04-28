@@ -5,6 +5,7 @@ import {
   Database,
   Images,
   KeyRound,
+  Layers3,
   Mail,
   RefreshCcw,
   Settings2,
@@ -134,6 +135,22 @@ const frameworkUtilityGroups: FrameworkUtilityGroup[] = [
         icon: Settings2,
         name: "Core Settings",
         route: "/dashboard/settings/core-settings",
+      },
+    ],
+  },
+  {
+    id: "tenancy",
+    label: "Tenancy Control",
+    items: [
+      {
+        icon: Layers3,
+        name: "Bundle Registry",
+        route: "/dashboard/settings/industry-bundles",
+      },
+      {
+        icon: Workflow,
+        name: "Visibility Matrix",
+        route: "/dashboard/settings/tenant-visibility",
       },
     ],
   },

@@ -2,8 +2,10 @@ import { createAppSuite } from "../../../framework/src/application/app-suite.js"
 import type { AppSettingOption } from "../../../framework/shared/index.js"
 import { billingWorkspaceItems } from "../../../billing/shared/index.js"
 import { coreWorkspaceItems } from "../../../core/shared/index.js"
+import { crmWorkspaceItems } from "../../../crm/shared/index.js"
 import { ecommerceWorkspaceItems } from "../../../ecommerce/shared/index.js"
 import { frappeWorkspaceItems } from "../../../frappe/shared/index.js"
+import { stockWorkspaceItems } from "../../../stock/shared/index.js"
 
 function createOption(input: AppSettingOption): AppSettingOption {
   return input
@@ -142,6 +144,24 @@ const frameworkResources = [
   }),
   createOption({
     category: "resource",
+    key: "industry-bundles",
+    label: "Bundle Registry",
+    summary: "Industry bundle and client overlay registry for tenant visibility presets.",
+    appId: "framework",
+    route: "/dashboard/settings/industry-bundles",
+    scopeType: "page",
+  }),
+  createOption({
+    category: "resource",
+    key: "tenant-visibility",
+    label: "Visibility Matrix",
+    summary: "Tenant-aware bundle, client overlay, app, and module visibility control.",
+    appId: "framework",
+    route: "/dashboard/settings/tenant-visibility",
+    scopeType: "page",
+  }),
+  createOption({
+    category: "resource",
     key: "system-update",
     label: "System Update",
     summary: "Framework update controls.",
@@ -172,7 +192,9 @@ const frameworkResources = [
 const workspaceModuleMap = new Map<string, Array<{ id: string; name: string; route: string; summary: string }>>([
   ["core", coreWorkspaceItems],
   ["billing", billingWorkspaceItems],
+  ["stock", stockWorkspaceItems],
   ["ecommerce", ecommerceWorkspaceItems],
+  ["crm", crmWorkspaceItems],
   ["frappe", frappeWorkspaceItems],
 ])
 

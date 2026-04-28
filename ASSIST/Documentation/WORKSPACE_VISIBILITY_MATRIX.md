@@ -10,7 +10,11 @@ This document defines the future visibility matrix for workspace resolution acro
 4. user workspace profile
 5. feature flags
 
-This is an architecture and planning document only. It does not mean the current runtime already resolves workspaces this way.
+Current runtime note:
+
+1. the first live visibility layer now exists for `industry bundle -> client overlay -> tenant company profile -> cxapp desk app and sidebar group filtering`
+2. the current implementation resolves tenant-aware `visibleAppIds` and `visibleModuleIds` through runtime app settings and applies them inside the shared cxapp desk shell
+3. workspace-profile permission narrowing, richer feature-flag final overrides, and a full visibility ledger remain future follow-up layers
 
 ## Shared Planning Contract
 
@@ -36,7 +40,7 @@ The next-layer planning contracts that sit underneath this visibility model live
 
 ## Resolution Inputs
 
-Workspace visibility should eventually be resolved from these inputs in order:
+Workspace visibility should resolve from these inputs in order:
 
 1. platform defaults
 2. mode: `demo`, `tenant`, or `control-plane`
@@ -47,7 +51,7 @@ Workspace visibility should eventually be resolved from these inputs in order:
 
 ## Precedence Rules
 
-The future resolution order must be deterministic:
+The resolution order must be deterministic:
 
 1. platform default establishes the baseline surface visibility
 2. mode filters the whole environment
@@ -143,6 +147,8 @@ Rules:
 3. demo mode must stay isolated from live client operational data
 
 ## Future Runtime Resolution Shape
+
+The current live runtime already covers steps `3`, `4`, `5`, and `6` below through tenant industry profiles, while the broader mode and user-workspace profile layers remain staged.
 
 The eventual runtime should resolve visibility in this order:
 

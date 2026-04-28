@@ -8,6 +8,7 @@ import {
 import { fallbackRuntimeBrandProfile } from "@/features/branding/runtime-brand-default"
 import { useRuntimeBrand } from "@/features/branding/runtime-brand-provider"
 import type { DashboardNotification, DashboardUser } from "@/features/dashboard/types"
+import { useRuntimeAppSettings } from "../features/runtime-app-settings/runtime-app-settings-provider"
 
 import {
   createDeskState,
@@ -51,7 +52,11 @@ export function DeskProvider({
 }) {
   const location = useLocation()
   const { brand } = useRuntimeBrand()
-  const { apps, services } = useMemo(() => createDeskState(appSuite), [appSuite])
+  const { settings } = useRuntimeAppSettings()
+  const { apps, services } = useMemo(
+    () => createDeskState(appSuite, settings?.workspaceVisibility ?? null),
+    [appSuite, settings?.workspaceVisibility]
+  )
   const notifications = useMemo(() => createInitialNotifications(apps), [apps])
   const currentApp = findDeskAppByPathname(apps, location.pathname)
   const locationMeta = resolveDeskLocation(apps, location.pathname)

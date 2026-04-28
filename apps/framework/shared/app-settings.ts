@@ -49,11 +49,21 @@ export const uiDeveloperToolsSettingsSchema = z.object({
   showTechnicalNames: z.boolean(),
 })
 
+export const workspaceVisibilitySettingsSchema = z.object({
+  tenantId: z.string().min(1).nullable(),
+  companyId: z.string().min(1).nullable(),
+  industryId: z.string().min(1).nullable(),
+  clientOverlayId: z.string().min(1).nullable(),
+  visibleAppIds: z.array(z.string().min(1)),
+  visibleModuleIds: z.array(z.string().min(1)),
+})
+
 export const appSettingsSnapshotSchema = z.object({
   applicationVersion: applicationVersionSchema,
   authMetadata: authMetadataSettingsSchema,
   uiFeedback: uiFeedbackSettingsSchema,
   uiDeveloperTools: uiDeveloperToolsSettingsSchema,
+  workspaceVisibility: workspaceVisibilitySettingsSchema,
   loadedAt: z.string().min(1),
 })
 
@@ -69,5 +79,6 @@ export type ToastTone = z.infer<typeof toastToneSchema>
 export type ToastSettings = z.infer<typeof toastSettingsSchema>
 export type UiFeedbackSettings = z.infer<typeof uiFeedbackSettingsSchema>
 export type UiDeveloperToolsSettings = z.infer<typeof uiDeveloperToolsSettingsSchema>
+export type WorkspaceVisibilitySettings = z.infer<typeof workspaceVisibilitySettingsSchema>
 export type AppSettingsSnapshot = z.infer<typeof appSettingsSnapshotSchema>
 export type AppSettingsResponse = z.infer<typeof appSettingsResponseSchema>

@@ -1,0 +1,7 @@
+export { defaultClientManifest } from "./default/manifest.js"
+export { techmediaClientManifest } from "./techmedia/manifest.js"
+export { tirupurdirectClientManifest } from "./tirupurdirect/manifest.js"
+export { theTirupurTextilesClientManifest } from "./thetirupurtextiles/manifest.js"
+export { studioPressClientManifest } from "./studiopress/manifest.js"
+export { upvcPrimeClientManifest } from "./upvcprime/manifest.js"
+export { auditDeskClientManifest } from "./auditdesk/manifest.js"

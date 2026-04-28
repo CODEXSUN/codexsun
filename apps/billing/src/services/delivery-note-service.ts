@@ -219,3 +219,35 @@ export async function updateBillingDeliveryNote(
 
   return billingDeliveryNoteResponseSchema.parse({ item: updatedItem })
 }
+
+export async function deleteBillingDeliveryNote(
+  database: Kysely<unknown>,
+  user: AuthUser,
+  deliveryNoteId: string
+) {
+  assertBillingViewer(user)
+
+  const items = await readDeliveryNotes(database)
+  const existingItem = items.find((item) => item.id === deliveryNoteId)
+
+  if (!existingItem) {
+    throw new ApplicationError("Delivery note could not be found.", { deliveryNoteId }, 404)
+  }
+
+  const nextItems = items.filter((item) => item.id !== deliveryNoteId)
+
+  await replaceStorePayloads(
+    database,
+    billingTableNames.deliveryNotes,
+    nextItems.map((item, index) => ({
+      id: item.id,
+      moduleKey: "delivery-notes",
+      sortOrder: index + 1,
+      payload: item,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }))
+  )
+
+  return { deleted: true, id: deliveryNoteId }
+}

@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
-import { EyeIcon, PrinterIcon, SparklesIcon, Trash2Icon } from "lucide-react"
+import {
+  ChevronRightIcon,
+  EyeIcon,
+  PencilIcon,
+  PrinterIcon,
+  SparklesIcon,
+  Trash2Icon,
+  Undo2Icon,
+} from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 import type {
@@ -1039,10 +1047,12 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+            <Undo2Icon className="mr-2 size-4" />
             Back
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate(1)}>
             Forward
+            <ChevronRightIcon className="ml-2 size-4" />
           </Button>
           <Button
             type="button"
@@ -1059,7 +1069,10 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
             }}
           >
             Next
+            <ChevronRightIcon className="ml-2 size-4" />
           </Button>
+        </div>
+        <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
           <Button
             type="button"
             className="bg-violet-600 text-white hover:bg-violet-700"
@@ -1075,8 +1088,6 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
             <PrinterIcon className="mr-2 size-4" />
             Print
           </Button>
-        </div>
-        <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
           {isInwardStarted ? (
             <div className="rounded-md border border-border/70 px-3 py-2 text-sm text-muted-foreground">
               Edit/Delete blocked after barcode generation starts
@@ -1085,6 +1096,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
             <>
               <Button variant="outline" asChild>
                 <Link to={`/dashboard/apps/stock/purchase-receipts/${encodeURIComponent(item.id)}/edit`}>
+                  <PencilIcon className="mr-2 size-4" />
                   Edit
                 </Link>
               </Button>
@@ -1094,6 +1106,7 @@ export function PurchaseReceiptShowSection({ receiptId }: { receiptId: string })
                 disabled={isDeleting}
                 onClick={() => void handleDeleteReceipt()}
               >
+                <Trash2Icon className="mr-2 size-4" />
                 {isDeleting ? "Deleting..." : "Delete"}
               </Button>
             </>

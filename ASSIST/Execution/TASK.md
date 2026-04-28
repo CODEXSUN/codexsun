@@ -2,6 +2,115 @@
 
 ## Active
 
+- [x] `#284` Add tenant-aware industry bundle visibility control
+  - [x] Phase 1: registry and tenant profile contract
+    - [x] 1.1 define industry bundle and client overlay visibility registry
+    - [x] 1.2 extend tenant industry profile with client overlay and module visibility ids
+  - [x] Phase 2: backend visibility resolution
+    - [x] 2.1 expose current tenant visibility in runtime app settings
+    - [x] 2.2 add admin read and update routes for tenant visibility control
+  - [x] Phase 3: cxapp shell and settings UI
+    - [x] 3.1 filter desk apps and app menu groups by resolved tenant visibility
+    - [x] 3.2 add framework tenancy control menu items and pages for bundle registry and visibility matrix
+  - [x] Phase 4: docs and validation
+    - [x] 4.1 update architecture, overview, and visibility docs for the first live client overlay layer
+    - [x] 4.2 run focused validation and document blockers
+
+- [x] `#283` Add barcode item flow to Billing Sales invoice
+  - [x] Phase 1: sales item model
+    - [x] 1.1 extend sales form rows with optional barcode metadata
+    - [x] 1.2 add parent callback to append scanned stock as sales item
+  - [x] Phase 2: sales invoice editor
+    - [x] 2.1 add scan barcode card and manual product/barcode selection
+    - [x] 2.2 restyle sales item spacing/table to match Delivery Note tone
+  - [x] Phase 3: validation
+    - [x] 3.1 run TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#282` Tune Warehouse Transfer item columns
+  - [x] Phase 1: table spacing
+    - [x] 1.1 shrink barcode column
+    - [x] 1.2 widen action column spacing
+  - [x] Phase 2: validation
+    - [x] 2.1 run TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#281` Add barcode item selection to Warehouse Transfer
+  - [x] Phase 1: transfer item model
+    - [x] 1.1 load stock units in transfer upsert
+    - [x] 1.2 support scanned barcode add and manual product/barcode selection
+  - [x] Phase 2: transfer item table
+    - [x] 2.1 show selected barcode rows in Delivery Note tone
+    - [x] 2.2 save selected barcode rows as transfer lines
+  - [x] Phase 3: validation
+    - [x] 3.1 run TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#280` Split Warehouse Transfers into list show upsert
+  - [x] Phase 1: routing
+    - [x] 1.1 add stock transfer route props and cxapp pages
+    - [x] 1.2 add new/show/edit routes
+  - [x] Phase 2: stock workspace sections
+    - [x] 2.1 convert Warehouse Transfers to Delivery Note-style list
+    - [x] 2.2 add Warehouse Transfer show section
+    - [x] 2.3 add Warehouse Transfer upsert section
+  - [x] Phase 3: validation
+    - [x] 3.1 run TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#279` Restyle Warehouse Transfers
+  - [x] Phase 1: transfer form tone
+    - [x] 1.1 use Delivery Note-style card spacing and lookup fields
+    - [x] 1.2 show transfer line in the same inline table tone
+  - [x] Phase 2: transfer list tone
+    - [x] 2.1 replace plain transfer table with white inline table presentation
+    - [x] 2.2 keep status badges and cleaned warehouse labels
+  - [x] Phase 3: validation
+    - [x] 3.1 run TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#278` Style Delivery Note print button
+  - [x] Phase 1: toolbar polish
+    - [x] 1.1 make Delivery Note show Print button purple
+  - [x] Phase 2: validation
+    - [x] 2.1 run TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#277` Add Purchase Receipt show action icons
+  - [x] Phase 1: toolbar polish
+    - [x] 1.1 add icons to Purchase Receipt show action buttons
+    - [x] 1.2 move Print into the right-side action group
+  - [x] Phase 2: validation
+    - [x] 2.1 run TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#276` Add Delivery Note show action icons
+  - [x] Phase 1: toolbar polish
+    - [x] 1.1 add icons to Back, Prev, Next, Convert to sales, Print, Edit, and Delete buttons
+  - [x] Phase 2: validation
+    - [x] 2.1 run TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
+- [x] `#275` Wire Delivery Note show actions
+  - [x] Phase 1: backend delete support
+    - [x] 1.1 add Delivery Note delete service path
+    - [x] 1.2 expose stock internal DELETE route
+  - [x] Phase 2: show-page toolbar
+    - [x] 2.1 reorder top actions into left, center, and right groups
+    - [x] 2.2 wire Back, Prev, Next, Convert to sales, Print, Edit, and Delete
+  - [x] Phase 3: validation
+    - [x] 3.1 run TypeScript validation
+    - [x] 3.2 run focused ESLint validation
+
+- [x] `#274` Restyle Delivery Note show item table
+  - [x] Phase 1: replace show table
+    - [x] 1.1 use upsert-tone inline table on Delivery Note show
+    - [x] 1.2 keep table background white
+    - [x] 1.3 include serial index, data rows, and total row
+  - [x] Phase 2: validation
+    - [x] 2.1 run focused TypeScript validation
+    - [x] 2.2 run focused ESLint validation
+
 - [x] `#273` Change Delivery Note clear to cancel
   - [x] Phase 1: update action row
     - [x] 1.1 rename Clear to Cancel

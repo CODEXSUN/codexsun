@@ -197,6 +197,14 @@ const StockDeliveryNoteFormPage = lazyNamed(
   () => import("./pages/stock-delivery-note-form-page"),
   "StockDeliveryNoteFormPage",
 );
+const StockTransferDetailPage = lazyNamed(
+  () => import("./pages/stock-transfer-detail-page"),
+  "StockTransferDetailPage",
+);
+const StockTransferFormPage = lazyNamed(
+  () => import("./pages/stock-transfer-form-page"),
+  "StockTransferFormPage",
+);
 const StockLedgerDetailPage = lazyNamed(
   () => import("./pages/stock-ledger-detail-page"),
   "StockLedgerDetailPage",
@@ -293,9 +301,17 @@ const FrameworkDataBackupPage = lazyNamed(
   () => import("./pages/framework-data-backup-page"),
   "FrameworkDataBackupPage",
 );
+const FrameworkIndustryBundlesPage = lazyNamed(
+  () => import("./pages/framework-industry-bundles-page"),
+  "FrameworkIndustryBundlesPage",
+);
 const FrameworkDeveloperSettingsPage = lazyNamed(
   () => import("./pages/framework-developer-settings-page"),
   "FrameworkDeveloperSettingsPage",
+);
+const FrameworkTenantVisibilityPage = lazyNamed(
+  () => import("./pages/framework-tenant-visibility-page"),
+  "FrameworkTenantVisibilityPage",
 );
 const FrameworkQueueManagerPage = lazyNamed(
   () => import("./pages/framework-queue-manager-page"),
@@ -423,6 +439,16 @@ function FrameworkUtilityPage({
             title: "Core Settings",
             href: "/dashboard/settings/core-settings",
             summary: "Runtime environment settings and operational controls.",
+          },
+          {
+            title: "Bundle Registry",
+            href: "/dashboard/settings/industry-bundles",
+            summary: "Review industry bundles and client overlays that define tenant-ready app and module presets.",
+          },
+          {
+            title: "Visibility Matrix",
+            href: "/dashboard/settings/tenant-visibility",
+            summary: "Assign one bundle and client overlay per tenant, then control visible apps and sidebar groups.",
           },
           {
             title: "Mail Settings",
@@ -960,6 +986,26 @@ function AuthenticatedAppShell() {
                     appId="core"
                     sectionId="core-settings"
                   />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/industry-bundles"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkIndustryBundlesPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings/tenant-visibility"
+            element={
+              <ProtectedRoute allow={isAdminSurfaceUser}>
+                <AdminLayout>
+                  <FrameworkTenantVisibilityPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
@@ -2133,6 +2179,36 @@ function AuthenticatedAppShell() {
               <ProtectedRoute>
                 <AdminLayout>
                   <StockDeliveryNoteFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/transfers/new"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockTransferFormPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/transfers/:transferId"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockTransferDetailPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/apps/stock/transfers/:transferId/edit"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StockTransferFormPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -7,6 +7,7 @@ import {
   ChevronsUpDownIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
+  PlusIcon,
   RotateCcwIcon,
   Trash2Icon,
 } from "lucide-react"
@@ -42,6 +43,8 @@ import type {
   BillingVoucherResponse,
   BillingVoucherType,
   BillingVoucherUpsertPayload,
+  BillingBarcodeResolutionResponse,
+  BillingStockUnit,
 } from "@billing/shared"
 import { billingVoucherModules } from "@billing/shared"
 import type { CommonModuleItem, CommonModuleListResponse, ProductListResponse } from "@core/shared"
@@ -387,15 +390,22 @@ type VoucherBillAllocationForm = {
 }
 
 type SalesItemForm = {
+  barcodeValue?: string
+  batchCode?: string
   description: string
   hsnOrSac: string
   itemName: string
   productId: string
+  serialNumber?: string
+  stockUnitId?: string
+  stockUnitStatus?: string
   warehouseId: string
   quantity: string
   rate: string
   unit: string
 }
+
+type BillingStockUnitListResponse = { items: BillingStockUnit[] }
 
 type StockItemForm = {
   landedCostAmount: string
@@ -680,6 +690,12 @@ function getSalesSummary(sales: SalesFormState) {
   }
 }
 
+const salesStockEligibleStatuses = new Set(["available", "allocated"])
+
+function getBillingStockUnitLabel(stockUnit: BillingStockUnit) {
+  return `${stockUnit.barcodeValue} - ${stockUnit.productName} (${stockUnit.productCode})`
+}
+
 function toStatusLabel(status: BillingVoucher["eInvoice"]["status"]) {
   switch (status) {
     case "not_applicable":
@@ -905,10 +921,15 @@ function toVoucherForm(voucher: BillingVoucher): VoucherFormState {
           supplyType: voucher.sales.supplyType,
           taxRate: String(voucher.sales.taxRate),
           items: voucher.sales.items.map((item) => ({
+            barcodeValue: "",
+            batchCode: "",
             description: item.description,
             hsnOrSac: item.hsnOrSac,
             itemName: item.itemName,
             productId: item.productId ?? "",
+            serialNumber: "",
+            stockUnitId: "",
+            stockUnitStatus: "",
             warehouseId: item.warehouseId ?? "",
             quantity: String(item.quantity),
             rate: String(item.rate),
@@ -2662,6 +2683,7 @@ function SalesVoucherUpsertSection({
   onSalesItemChange,
   onSalesItemCreate,
   onSalesItemRemove,
+  onSalesStockUnitAdd,
   onSave,
   products,
   selectedVoucher,
@@ -2680,6 +2702,7 @@ function SalesVoucherUpsertSection({
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
   onSalesItemRemove: (index: number) => void
+  onSalesStockUnitAdd: (stockUnit: BillingStockUnit) => void
   onSave: () => void
   products: ProductListResponse["items"]
   selectedVoucher: BillingVoucher | null
@@ -2701,6 +2724,7 @@ function SalesVoucherUpsertSection({
       onSalesItemChange={onSalesItemChange}
       onSalesItemCreate={onSalesItemCreate}
       onSalesItemRemove={onSalesItemRemove}
+      onSalesStockUnitAdd={onSalesStockUnitAdd}
       products={products}
       selectedVoucher={selectedVoucher}
       voucherTypes={voucherTypes}
@@ -2723,6 +2747,7 @@ function SalesInvoiceTabbedEditor({
   onSalesItemChange,
   onSalesItemCreate,
   onSalesItemRemove,
+  onSalesStockUnitAdd,
   products,
   selectedVoucher,
   voucherTypes,
@@ -2741,6 +2766,7 @@ function SalesInvoiceTabbedEditor({
   onSalesItemChange: (index: number, field: keyof SalesItemForm, value: string) => void
   onSalesItemCreate: () => void
   onSalesItemRemove: (index: number) => void
+  onSalesStockUnitAdd: (stockUnit: BillingStockUnit) => void
   products: ProductListResponse["items"]
   selectedVoucher: BillingVoucher | null
   voucherTypes: BillingVoucherMasterType[]
@@ -2752,10 +2778,47 @@ function SalesInvoiceTabbedEditor({
   )
   const salesSummary = getSalesSummary(form.sales)
   const activeProducts = products.filter((product) => product.isActive)
+  const [stockUnits, setStockUnits] = useState<BillingStockUnit[]>([])
+  const [stockUnitsError, setStockUnitsError] = useState<string | null>(null)
+  const [isStockUnitsLoading, setIsStockUnitsLoading] = useState(true)
+  const [barcodeValue, setBarcodeValue] = useState("")
+  const [manualProductId, setManualProductId] = useState("")
+  const [manualStockUnitId, setManualStockUnitId] = useState("")
+  const [barcodeMessage, setBarcodeMessage] = useState<string | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
   const productOptions = activeProducts.map((product) => ({
     value: product.id,
     label: `${product.name} (${product.code})`,
   }))
+  const selectedStockUnitIds = useMemo(
+    () => new Set(form.sales.items.map((item) => item.stockUnitId).filter(Boolean)),
+    [form.sales.items]
+  )
+  const salesStockUnits = useMemo(
+    () =>
+      stockUnits.filter((stockUnit) => {
+        if (!stockUnit.isActive || selectedStockUnitIds.has(stockUnit.id)) {
+          return false
+        }
+
+        return salesStockEligibleStatuses.has(stockUnit.status)
+      }),
+    [selectedStockUnitIds, stockUnits]
+  )
+  const salesStockProductOptions = useMemo(() => {
+    const productIdsWithStock = new Set(salesStockUnits.map((stockUnit) => stockUnit.productId))
+    return productOptions.filter((option) => productIdsWithStock.has(option.value))
+  }, [productOptions, salesStockUnits])
+  const manualStockUnitOptions = useMemo(
+    () =>
+      salesStockUnits
+        .filter((stockUnit) => !manualProductId || stockUnit.productId === manualProductId)
+        .map((stockUnit) => ({
+          value: stockUnit.id,
+          label: getBillingStockUnitLabel(stockUnit),
+        })),
+    [manualProductId, salesStockUnits]
+  )
   const selectedCustomerLedger =
     ledgers.find((ledger) => ledger.id === form.sales.customerLedgerId) ?? null
   const title = selectedVoucher
@@ -2764,6 +2827,115 @@ function SalesInvoiceTabbedEditor({
       : "View sales invoice"
     : "Create sales invoice"
   const invoiceLabel = form.voucherNumber.trim() || title
+  useGlobalLoading(isStockUnitsLoading || isScanning)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadStockUnits() {
+      setIsStockUnitsLoading(true)
+      setStockUnitsError(null)
+
+      try {
+        const response = await request<BillingStockUnitListResponse>("/internal/v1/billing/stock-units")
+        if (!cancelled) {
+          setStockUnits(response.items)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStockUnitsError(error instanceof Error ? error.message : "Stock barcodes are unavailable.")
+        }
+      } finally {
+        if (!cancelled) {
+          setIsStockUnitsLoading(false)
+        }
+      }
+    }
+
+    void loadStockUnits()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function addStockUnitToSales(stockUnit: BillingStockUnit, matchedBarcodeValue?: string) {
+    const normalizedMatchedBarcode = matchedBarcodeValue?.trim()
+    const hasDuplicate = form.sales.items.some(
+      (item) =>
+        item.stockUnitId === stockUnit.id ||
+        item.barcodeValue === stockUnit.barcodeValue ||
+        (normalizedMatchedBarcode ? item.barcodeValue === normalizedMatchedBarcode : false)
+    )
+
+    if (hasDuplicate) {
+      setBarcodeMessage("This barcode is already added to the sales invoice.")
+      return false
+    }
+
+    if (!salesStockEligibleStatuses.has(stockUnit.status)) {
+      setBarcodeMessage(
+        `Warning: barcode is ${stockUnit.status}; only accepted stock can be added to sales.`
+      )
+      return false
+    }
+
+    onSalesStockUnitAdd(stockUnit)
+    setBarcodeMessage(`Added ${stockUnit.productName} (${stockUnit.productCode}) to sales invoice.`)
+    return true
+  }
+
+  async function handleAddBarcode() {
+    const normalizedBarcode = barcodeValue.trim()
+
+    if (!normalizedBarcode) {
+      setBarcodeMessage("Scan or enter a barcode before adding a sales item.")
+      return
+    }
+
+    setIsScanning(true)
+    setBarcodeMessage(null)
+
+    try {
+      const response = await request<BillingBarcodeResolutionResponse>("/internal/v1/billing/stock/barcode/resolve", {
+        method: "POST",
+        body: JSON.stringify({
+          barcodeValue: normalizedBarcode,
+        }),
+      })
+      const stockUnit = response.item.stockUnit
+
+      if (!response.item.resolved || !stockUnit) {
+        setBarcodeMessage("Warning: scanned barcode did not match any stock unit.")
+        return
+      }
+
+      if (addStockUnitToSales(stockUnit, response.item.barcodeValue)) {
+        setBarcodeValue("")
+      }
+    } catch (error) {
+      setBarcodeMessage(error instanceof Error ? error.message : "Failed to add barcode to sales invoice.")
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  function handleAddManualStockUnit() {
+    if (!manualStockUnitId) {
+      setBarcodeMessage("Select a stock barcode before adding a sales item.")
+      return
+    }
+
+    const stockUnit = stockUnits.find((item) => item.id === manualStockUnitId)
+    if (!stockUnit) {
+      setBarcodeMessage("Selected stock barcode is no longer available.")
+      return
+    }
+
+    if (addStockUnitToSales(stockUnit)) {
+      setManualStockUnitId("")
+    }
+  }
 
   const tabs = useMemo<AnimatedContentTab[]>(
     () => [
@@ -2771,7 +2943,7 @@ function SalesInvoiceTabbedEditor({
         label: "Details",
         value: "details",
         content: (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="grid gap-4">
                 <div className="space-y-2">
@@ -2834,23 +3006,108 @@ function SalesInvoiceTabbedEditor({
                 </div>
               </div>
             </div>
+            <Card className="border-border/70 shadow-sm">
+              <CardContent className="p-4">
+                <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground" htmlFor="sales-barcode-scan">
+                      Scan barcode
+                    </label>
+                    <Input
+                      id="sales-barcode-scan"
+                      className="h-11 text-base"
+                      placeholder="Scan stock barcode"
+                      value={barcodeValue}
+                      onChange={(event) => setBarcodeValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") {
+                          return
+                        }
+
+                        event.preventDefault()
+                        void handleAddBarcode()
+                      }}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-11 min-w-32"
+                    disabled={isScanning}
+                    onClick={() => void handleAddBarcode()}
+                  >
+                    {isScanning ? "Adding..." : "Add item"}
+                  </Button>
+                </div>
+                <div className="mt-4 grid items-end gap-3 border-t border-border/60 pt-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_auto]">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Product</label>
+                    <AutocompleteLookupField
+                      emptyLabel="Select product"
+                      onChange={(nextValue) => {
+                        if (nextValue.startsWith("manual:")) {
+                          return
+                        }
+
+                        setManualProductId(nextValue)
+                        setManualStockUnitId("")
+                      }}
+                      options={salesStockProductOptions}
+                      searchPlaceholder="Search product"
+                      triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                      value={manualProductId}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Stock barcode</label>
+                    <AutocompleteLookupField
+                      emptyLabel={manualProductId ? "Select stock barcode" : "Select product first"}
+                      onChange={(nextValue) => {
+                        if (nextValue.startsWith("manual:")) {
+                          return
+                        }
+
+                        setManualStockUnitId(nextValue)
+                      }}
+                      options={manualStockUnitOptions}
+                      searchPlaceholder="Search barcode"
+                      triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                      value={manualStockUnitId}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-9 min-w-32"
+                    onClick={handleAddManualStockUnit}
+                  >
+                    <PlusIcon className="mr-2 size-4" />
+                    Add selected
+                  </Button>
+                </div>
+                {stockUnitsError ? (
+                  <p className="mt-3 text-sm text-destructive">{stockUnitsError}</p>
+                ) : null}
+                {barcodeMessage ? (
+                  <p className="mt-3 text-sm text-muted-foreground">{barcodeMessage}</p>
+                ) : null}
+              </CardContent>
+            </Card>
             <VoucherInlineEditableTable
               title="Sales items"
-              description="Add invoice lines as sale sub-items. Tax and posting totals are derived from this table."
+              description="Scan or select stock barcodes, then adjust rate and tax-ready invoice values."
               addLabel="Add item"
               fitToContainer
               rows={form.sales.items}
               onAddRow={onSalesItemCreate}
               onRemoveRow={onSalesItemRemove}
               removeButtonLabel="Remove"
-              getRowKey={(item, index) => `sales-item:${index}:${item.itemName}`}
+              getRowKey={(item, index) => `sales-item:${index}:${item.stockUnitId ?? item.itemName}`}
               columns={[
                 {
                   id: "itemName",
                   header: "Product",
-                  width: "30%",
-                  headerClassName: "w-[30%]",
-                  cellClassName: "w-[30%]",
+                  width: "24%",
+                  headerClassName: "w-[24%]",
+                  cellClassName: "w-[24%]",
                   renderCell: (item, index) => {
                     const rowOptions =
                       item.productId || !item.itemName
@@ -2858,27 +3115,49 @@ function SalesInvoiceTabbedEditor({
                         : [{ value: `manual:${index}`, label: item.itemName }, ...productOptions]
 
                     return (
-                      <AutocompleteLookupField
-                        emptyLabel="Select product"
-                        onChange={(nextValue) =>
-                          nextValue.startsWith("manual:")
-                            ? undefined
-                            : onSalesItemProductChange(index, nextValue)
-                        }
-                        options={rowOptions}
-                        searchPlaceholder="Search product"
-                        triggerClassName="h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-                        value={item.productId || (item.itemName ? `manual:${index}` : "")}
-                      />
+                      <div className="space-y-0.5">
+                        <AutocompleteLookupField
+                          emptyLabel="Select product"
+                          onChange={(nextValue) =>
+                            nextValue.startsWith("manual:")
+                              ? undefined
+                              : onSalesItemProductChange(index, nextValue)
+                          }
+                          options={rowOptions}
+                          searchPlaceholder="Search product"
+                          triggerClassName="h-9 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                          value={item.productId || (item.itemName ? `manual:${index}` : "")}
+                        />
+                        <p className="truncate text-xs text-muted-foreground">
+                          {item.barcodeValue || item.hsnOrSac || "No barcode selected"}
+                        </p>
+                      </div>
                     )
                   },
                 },
                 {
+                  id: "barcode",
+                  header: "Barcode",
+                  width: "16%",
+                  headerClassName: "w-[16%]",
+                  cellClassName: "w-[16%]",
+                  renderCell: (item) => (
+                    <div className="space-y-0.5">
+                      <p className="truncate font-mono text-xs text-foreground">
+                        {item.barcodeValue || "-"}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {item.serialNumber || item.batchCode || "-"}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
                   id: "description",
                   header: "Description",
-                  width: "34%",
-                  headerClassName: "w-[34%]",
-                  cellClassName: "w-[34%]",
+                  width: "22%",
+                  headerClassName: "w-[22%]",
+                  cellClassName: "w-[22%]",
                   renderCell: (item, index) => (
                     <Input
                       className={voucherInlineInputClassName}
@@ -2893,9 +3172,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "quantity",
                   header: "Qty",
-                  width: "9%",
-                  headerClassName: "w-[9%]",
-                  cellClassName: "w-[9%]",
+                  width: "8%",
+                  headerClassName: "w-[8%]",
+                  cellClassName: "w-[8%]",
                   renderCell: (item, index) => (
                     <Input
                       className={voucherInlineInputClassName}
@@ -2910,9 +3189,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "rate",
                   header: "Rate",
-                  width: "11%",
-                  headerClassName: "w-[11%]",
-                  cellClassName: "w-[11%]",
+                  width: "10%",
+                  headerClassName: "w-[10%]",
+                  cellClassName: "w-[10%]",
                   renderCell: (item, index) => (
                     <Input
                       className={voucherInlineInputClassName}
@@ -2927,9 +3206,9 @@ function SalesInvoiceTabbedEditor({
                 {
                   id: "amount",
                   header: "Amount",
-                  width: "16%",
-                  headerClassName: "w-[16%] text-right",
-                  cellClassName: "w-[16%] truncate text-right font-medium text-foreground",
+                  width: "14%",
+                  headerClassName: "w-[14%] text-right",
+                  cellClassName: "w-[14%] truncate text-right font-medium text-foreground",
                   renderCell: (item) => formatAmount(getSalesItemAmount(item)),
                 },
               ]}
@@ -3130,14 +3409,23 @@ function SalesInvoiceTabbedEditor({
       onSalesItemCreate,
       onSalesItemProductChange,
       onSalesItemRemove,
+      onSalesStockUnitAdd,
       productOptions,
+      manualProductId,
+      manualStockUnitId,
+      manualStockUnitOptions,
       salesSummary.grandTotal,
       salesSummary.subtotal,
       salesSummary.taxAmount,
       salesSummary.totalQuantity,
+      salesStockProductOptions,
       salesVoucherTypes,
       selectedCustomerLedger,
       selectedVoucher,
+      stockUnitsError,
+      barcodeMessage,
+      barcodeValue,
+      isScanning,
     ]
   )
 
@@ -7284,6 +7572,73 @@ export function BillingWorkspaceSection({
     }))
   }
 
+  function createSalesItemFromStockUnit(stockUnit: BillingStockUnit): SalesItemForm {
+    const selectedProduct = state.products.find((product) => product.id === stockUnit.productId) ?? null
+    const unitLabel = selectedProduct?.unitId
+      ? getCommonModuleText(
+          state.units.find((item) => item.id === selectedProduct.unitId),
+          ["code", "symbol", "name"]
+        )
+      : ""
+    const hsnLabel = selectedProduct?.hsnCodeId
+      ? getCommonModuleText(
+          state.hsnCodes.find((item) => item.id === selectedProduct.hsnCodeId),
+          ["code", "name"]
+        )
+      : ""
+
+    return {
+      ...defaultSalesItem,
+      barcodeValue: stockUnit.barcodeValue,
+      batchCode: stockUnit.batchCode ?? "No batch",
+      description: stockUnit.variantName ?? stockUnit.attributeSummary ?? stockUnit.productName,
+      hsnOrSac: hsnLabel,
+      itemName: stockUnit.productName,
+      productId: stockUnit.productId,
+      quantity: String(stockUnit.quantity),
+      rate: String(stockUnit.sellingPrice ?? stockUnit.mrp ?? selectedProduct?.basePrice ?? ""),
+      serialNumber: stockUnit.serialNumber,
+      stockUnitId: stockUnit.id,
+      stockUnitStatus: stockUnit.status,
+      unit: unitLabel || defaultSalesItem.unit,
+      warehouseId: stockUnit.warehouseId,
+    }
+  }
+
+  function handleSalesStockUnitAdd(stockUnit: BillingStockUnit) {
+    const salesItem = createSalesItemFromStockUnit(stockUnit)
+
+    setForm((current) => {
+      const hasDuplicate = current.sales.items.some(
+        (item) =>
+          item.stockUnitId === stockUnit.id ||
+          item.barcodeValue === stockUnit.barcodeValue
+      )
+
+      if (hasDuplicate) {
+        return current
+      }
+
+      const blankIndex = current.sales.items.findIndex(
+        (item) => !item.productId && !item.itemName && !item.description
+      )
+      const nextItems =
+        blankIndex >= 0
+          ? current.sales.items.map((item, itemIndex) =>
+              itemIndex === blankIndex ? salesItem : item
+            )
+          : [...current.sales.items, salesItem]
+
+      return {
+        ...current,
+        sales: {
+          ...current.sales,
+          items: nextItems,
+        },
+      }
+    })
+  }
+
   function handleSalesItemCreate() {
     setForm((current) => ({
       ...current,
@@ -8516,6 +8871,7 @@ export function BillingWorkspaceSection({
           onSalesItemChange={handleSalesItemChange}
           onSalesItemCreate={handleSalesItemCreate}
           onSalesItemRemove={handleSalesItemRemove}
+          onSalesStockUnitAdd={handleSalesStockUnitAdd}
           onSave={handleSave}
           products={state.products}
           selectedVoucher={selectedVoucher}

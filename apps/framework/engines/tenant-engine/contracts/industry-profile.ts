@@ -3,7 +3,9 @@ export type TenantIndustryProfile = {
   tenantId: string
   industryId: string
   companyId: string | null
+  clientOverlayId: string | null
   enabledAppIds: string[]
+  enabledModuleIds: string[]
   enabledEngineIds: string[]
   featureFlags: string[]
   inventoryMode: "basic" | "warehouse" | "warehouse-bin" | "warehouse-bin-batch-serial"

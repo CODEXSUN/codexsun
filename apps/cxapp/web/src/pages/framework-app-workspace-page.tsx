@@ -154,6 +154,7 @@ export function FrameworkAppWorkspacePage({
   productId,
   deliveryNoteId,
   purchaseReceiptId,
+  transferId,
   ledgerId,
   voucherId,
   sectionId: forcedSectionId,
@@ -166,6 +167,7 @@ export function FrameworkAppWorkspacePage({
   productId?: string
   deliveryNoteId?: string
   purchaseReceiptId?: string
+  transferId?: string
   ledgerId?: string
   voucherId?: string
   sectionId?: string
@@ -275,6 +277,7 @@ export function FrameworkAppWorkspacePage({
         deliveryNoteId={deliveryNoteId}
         productId={productId}
         purchaseReceiptId={purchaseReceiptId}
+        transferId={transferId}
         sectionId={sectionId}
       />
     ) : null
@@ -375,6 +378,8 @@ export function FrameworkAppWorkspacePage({
         "availability",
         "reconciliation",
         "transfers",
+        "transfers-show",
+        "transfers-upsert",
         "reservations",
         "verifications",
       ].includes(sectionId ?? "overview")

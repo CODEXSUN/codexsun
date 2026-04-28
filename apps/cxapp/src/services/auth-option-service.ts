@@ -8,6 +8,7 @@ import {
 } from "../../../framework/shared/index.js"
 import { getServerConfig } from "../../../framework/src/runtime/config/server-config.js"
 import { asQueryDatabase } from "../data/query-database.js"
+import { getCurrentTenantVisibility } from "./tenant-visibility-service.js"
 
 import { cxappTableNames } from "../../database/table-names.js"
 
@@ -44,6 +45,7 @@ export async function getAppSettingsSnapshot(
 ): Promise<AppSettingsResponse> {
   const options = await listAuthOptionCatalog(database)
   const config = getServerConfig()
+  const workspaceVisibility = await getCurrentTenantVisibility(database)
   const filterByCategory = (category: string) =>
     options.filter((option) => option.category === category)
 
@@ -67,6 +69,7 @@ export async function getAppSettingsSnapshot(
       uiDeveloperTools: {
         showTechnicalNames: config.developerTools.showTechnicalNames,
       },
+      workspaceVisibility,
     },
   })
 }

@@ -21,6 +21,10 @@ import {
   updateCompany,
 } from "../../../cxapp/src/services/company-service.js"
 import {
+  getTenantVisibilityAdminSnapshot,
+  updateTenantVisibilityProfile,
+} from "../../../cxapp/src/services/tenant-visibility-service.js"
+import {
   readCompanyBrandAssetDraft,
   saveCompanyBrandAssetDraft,
 } from "../../../cxapp/src/services/company-brand-asset-draft-service.js"
@@ -238,6 +242,45 @@ export function createCxappInternalRoutes(): HttpRouteDefinition[] {
         })
 
         return jsonResponse(response, 201)
+      },
+    }),
+    defineInternalRoute("/cxapp/tenant-visibility", {
+      summary: "Read tenant-aware industry bundle registry and current tenant visibility profiles.",
+      handler: async (context) => {
+        await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        return jsonResponse(await getTenantVisibilityAdminSnapshot(context.databases.primary))
+      },
+    }),
+    defineInternalRoute("/cxapp/tenant-visibility", {
+      method: "PUT",
+      summary: "Update one tenant visibility profile with industry, client, app, and module visibility settings.",
+      handler: async (context) => {
+        const { user } = await requireAuthenticatedUser(context, {
+          allowedActorTypes: ["admin"],
+        })
+
+        const response = await updateTenantVisibilityProfile(
+          context.databases.primary,
+          context.request.jsonBody
+        )
+
+        await writeFrameworkActivityFromContext(context, user, {
+          category: "settings",
+          action: "tenant-visibility.save",
+          message: "Tenant visibility profile was updated from the admin workspace.",
+          details: {
+            companyId: response.item.companyId,
+            industryId: response.item.industryId,
+            clientOverlayId: response.item.clientOverlayId,
+            enabledAppCount: response.item.enabledAppIds.length,
+            enabledModuleCount: response.item.enabledModuleIds.length,
+          },
+        })
+
+        return jsonResponse(response)
       },
     }),
     defineInternalRoute("/cxapp/companies", {

@@ -37,6 +37,22 @@ function upsertById<T extends { id: string }>(existing: T[], incoming: T[]) {
   return merged
 }
 
+function upsertIndustryProfiles(
+  existing: TenantIndustryProfile[],
+  incoming: TenantIndustryProfile[]
+) {
+  const filteredExisting = existing.filter(
+    (item) =>
+      !incoming.some(
+        (candidate) =>
+          candidate.id === item.id ||
+          (candidate.tenantId === item.tenantId && candidate.companyId === item.companyId)
+      )
+  )
+
+  return [...filteredExisting, ...incoming]
+}
+
 export function createTenantEngineRuntimeServices(database: Kysely<unknown>): {
   tenantService: TenantRecordServicePort
   companyLinkService: TenantCompanyLinkServicePort
@@ -107,7 +123,7 @@ export function createTenantEngineRuntimeServices(database: Kysely<unknown>): {
         database,
         tenantEngineTableNames.industryProfiles
       )
-      const nextItems = upsertById(existing, request.profiles)
+      const nextItems = upsertIndustryProfiles(existing, request.profiles)
       const processedAt = timestamp()
 
       await replaceTenantEngineRecords(

@@ -13,6 +13,7 @@ import {
   createStockDeliveryNote,
   createStockPurchaseReceipt,
   createStockPurchaseReceiptBarcodeBatch,
+  deleteStockDeliveryNote,
   deleteStockPurchaseReceipt,
   createStockSaleAllocation,
   getStockBarcodeAlias,
@@ -317,6 +318,22 @@ export function createStockInternalRoutes(): HttpRouteDefinition[] {
             deliveryNoteId,
             context.request.jsonBody
           )
+        )
+      },
+    }),
+    defineInternalRoute("/stock/delivery-note", {
+      method: "DELETE",
+      summary: "Delete a stock delivery note.",
+      handler: async (context) => {
+        const { user } = await requireStockWorkspaceManage(context)
+        const deliveryNoteId = context.request.url.searchParams.get("id")
+
+        if (!deliveryNoteId) {
+          throw new ApplicationError("Stock delivery note id is required.", {}, 400)
+        }
+
+        return jsonResponse(
+          await deleteStockDeliveryNote(context.databases.primary, user, deliveryNoteId)
         )
       },
     }),

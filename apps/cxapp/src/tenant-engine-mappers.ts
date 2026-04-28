@@ -1,4 +1,5 @@
 import type { CompanySummary } from "../shared/index.js"
+import { resolveTenantVisibilityDefaults } from "./services/tenant-visibility-registry.js"
 import type {
   TenantCompanyLink,
   TenantIndustryProfile,
@@ -10,9 +11,12 @@ export type CxappCompanyTenantMappingOptions = {
   tenantSlug?: string
   tenantDisplayName?: string
   industryId: string
+  clientOverlayId?: string | null
   deploymentMode?: TenantRecord["deploymentMode"]
   enabledAppIds?: string[]
+  enabledModuleIds?: string[]
   enabledEngineIds?: string[]
+  featureFlags?: string[]
   inventoryMode?: TenantIndustryProfile["inventoryMode"]
   productionPolicy?: TenantIndustryProfile["productionPolicy"]
 }
@@ -80,14 +84,21 @@ export function mapCxappCompanyToTenantIndustryProfile(
   company: CompanyTenantSource,
   options: CxappCompanyTenantMappingOptions
 ): TenantIndustryProfile {
+  const defaults = resolveTenantVisibilityDefaults(
+    options.industryId,
+    options.clientOverlayId
+  )
+
   return {
     id: `tenant-industry-profile:${options.tenantId ?? `tenant:${company.id}`}:${options.industryId}`,
     tenantId: options.tenantId ?? `tenant:${company.id}`,
-    industryId: options.industryId,
+    industryId: defaults.industryId,
     companyId: company.id,
-    enabledAppIds: options.enabledAppIds ?? ["billing"],
+    clientOverlayId: options.clientOverlayId ?? defaults.clientOverlayId,
+    enabledAppIds: options.enabledAppIds ?? defaults.enabledAppIds,
+    enabledModuleIds: options.enabledModuleIds ?? defaults.enabledModuleIds,
     enabledEngineIds: options.enabledEngineIds ?? ["tenant-engine", "inventory-engine"],
-    featureFlags: [],
+    featureFlags: options.featureFlags ?? defaults.featureFlags,
     inventoryMode: options.inventoryMode ?? "warehouse",
     productionPolicy: options.productionPolicy ?? "single-company",
     createdAt: company.createdAt,

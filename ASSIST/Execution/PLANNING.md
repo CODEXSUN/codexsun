@@ -2,6 +2,214 @@
 
 ## Active
 
+- `#284` Add tenant-aware industry bundle visibility control
+  - Goal:
+    - add a first live industry-bundle and tenant-visibility layer so one codebase can expose different app and module menus per tenant.
+  - Current evidence:
+    - current runtime app settings already expose `workspaceVisibility` and the desk registry already filters apps and menu groups from that snapshot
+    - the admin routes and initial settings pages already exist, but the client overlay registry is still limited to the `default` overlay and the framework sidebar tenancy controls need a clearer first-class menu surface
+  - Scope in this batch:
+    - define the first bundle catalog for garments, offset, upvc, garment ecommerce, computer-store ecommerce, and accounts-audit
+    - add client overlay and module visibility fields to the tenant industry profile contract
+    - expose current tenant visibility through runtime app settings and add internal admin routes for bundle and visibility control
+    - filter cxapp desk apps and sidebar menu groups from the resolved visibility snapshot
+    - add a real client overlay registry with industry-aware overlays and validate overlay selection against the chosen bundle
+    - refine framework settings pages into a bundle registry plus visibility matrix control surface
+    - add a dedicated tenancy control group in the framework sidebar
+    - update architecture and overview docs to reflect the first live industry plus client overlay visibility layer
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the changed cxapp, api, framework, industry, and client files
+  - Implemented:
+    - completed the first live industry bundle registry for garments, offset, upvc, garment ecommerce, computer-store ecommerce, and accounts-audit
+    - added real client overlays for default, techmedia, tirupurdirect, thetirupurtextiles, studiopress, upvcprime, and auditdesk under `clients/*`
+    - made client overlays industry-aware in the registry and tenant visibility editor, with compatible overlay filtering and default fallback when an overlay does not match the selected bundle
+    - refined the bundle registry page to show both industry bundles and client overlays in one operator-facing control surface
+    - fixed the tenant visibility editor so changing the client overlay now recalculates enabled apps, enabled modules, and feature flags instead of only changing the selected id
+    - connected the framework sidebar and settings launcher to a dedicated tenancy control area with `Bundle Registry` and `Visibility Matrix` menu items
+    - aligned framework route titles, auth resource labels, and docs with the live bundle-registry and visibility-matrix terminology
+    - updated architecture and workspace visibility docs to reflect that the first tenant-aware bundle plus overlay layer is now live in the cxapp shell
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed focused ESLint for the changed tenancy files with local overrides for `react-hooks/set-state-in-effect` and the existing `app-shell.tsx` `@typescript-eslint/no-explicit-any`
+
+- `#283` Add barcode item flow to Billing Sales invoice
+  - Goal:
+    - refine Billing Sales invoice item entry with the same barcode scan/manual selection effect used in Delivery Note.
+  - Scope in this batch:
+    - load billing stock units inside the sales invoice editor
+    - add scan barcode and manual Product + Stock barcode lookup card
+    - append scanned/selected stock units into existing sales item rows
+    - improve spacing around sales invoice sections and sales item table
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the billing workspace section file
+  - Implemented:
+    - extended sales item form rows with optional stock barcode metadata
+    - added billing stock-unit loading and barcode resolution inside the Sales Invoice editor
+    - added Delivery Note-style scan barcode and manual Product + Stock barcode selection card
+    - appended scanned/selected stock units into normal sales item rows so existing totals and save payload continue to work
+    - widened vertical spacing and refined the Sales items table with barcode/serial display
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/billing/web/src/workspace-sections/index.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#282` Tune Warehouse Transfer item columns
+  - Goal:
+    - improve Warehouse Transfer item table spacing by shrinking barcode and giving action cells more room.
+  - Scope in this batch:
+    - Warehouse Transfer upsert item table column widths only
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the stock support workspace file
+  - Implemented:
+    - reduced Warehouse Transfer upsert barcode column width
+    - widened and padded the action column
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#281` Add barcode item selection to Warehouse Transfer
+  - Goal:
+    - make Warehouse Transfer upsert add items through scan barcode and manual product/barcode selection like Delivery Note.
+  - Scope in this batch:
+    - load stock units in transfer upsert
+    - add scan barcode card and manual Product + Stock barcode lookup controls
+    - keep selected stock barcode rows in the transfer item table
+    - save selected rows as transfer lines through the existing transfer upsert API
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the stock support workspace file
+  - Implemented:
+    - added stock-unit loading and a transfer item model for selected barcode rows
+    - added scan barcode add flow and manual Product + Stock barcode lookup flow to Warehouse Transfer upsert
+    - changed the Transfer items table to show product, barcode, batch, serial, warehouse, qty, status, and remove action
+    - saved selected barcode rows as transfer lines with source/destination validation
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#280` Split Warehouse Transfers into list show upsert
+  - Goal:
+    - make Warehouse Transfers follow the same page model as Delivery Note: list, show, and upsert.
+  - Scope in this batch:
+    - add stock transfer new/show/edit CX routes
+    - pass `transferId` through the framework stock page wrapper
+    - convert the combined transfer page into a list page
+    - add show and upsert sections using the existing transfer list/upsert API
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for changed stock and cxapp files
+  - Implemented:
+    - added stock transfer detail and form page wrappers
+    - added routes for `/dashboard/apps/stock/transfers/new`, `/dashboard/apps/stock/transfers/:transferId`, and `/dashboard/apps/stock/transfers/:transferId/edit`
+    - passed `transferId` through the framework stock workspace wrapper
+    - converted Warehouse Transfers into a Delivery Note-style `MasterList`
+    - added Warehouse Transfer show and upsert sections with white inline item tables, status badges, and list/show/edit navigation
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed focused ESLint for changed stock/cxapp files with the existing local rule overrides
+
+- `#279` Restyle Warehouse Transfers
+  - Goal:
+    - make the Stock Warehouse Transfers page match the Delivery Note tone.
+  - Scope in this batch:
+    - restyle the existing transfer form in-place
+    - use product and warehouse lookup controls where the old form used raw ids
+    - present current transfer line and saved transfer list with the same white inline-table tone used by Delivery Note
+    - keep the existing one-line transfer save contract unchanged
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the stock support workspace file
+  - Implemented:
+    - changed Warehouse Transfers to a Delivery Note-style card form with product and warehouse lookup fields
+    - added an inline transfer item preview table in the same white table tone
+    - replaced the plain saved transfer table with a white inline register table, status badges, cleaned warehouse labels, and a total quantity summary
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#278` Style Delivery Note print button
+  - Goal:
+    - make the Delivery Note show Print button use the same purple filled treatment as Purchase Receipt.
+  - Scope in this batch:
+    - Delivery Note show toolbar visual style only
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the stock support workspace file
+  - Implemented:
+    - changed the Delivery Note show Print button to the purple filled action style
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#277` Add Purchase Receipt show action icons
+  - Goal:
+    - add matching icons to Purchase Receipt show actions and move Print to the right action group.
+  - Scope in this batch:
+    - Purchase Receipt show toolbar only
+    - no behavior changes beyond Print placement
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the Purchase Receipt stock workspace file
+  - Implemented:
+    - added lucide icons to Purchase Receipt show navigation and action buttons
+    - moved Print from the left navigation group into the right action group beside Edit/Delete
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-purchase-receipt-sections.tsx --quiet`
+
+- `#276` Add Delivery Note show action icons
+  - Goal:
+    - add matching lucide icons to the Delivery Note show toolbar actions.
+  - Scope in this batch:
+    - visual polish only; keep all existing button behavior unchanged
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for the stock support workspace file
+  - Implemented:
+    - added lucide icons to Back, Prev, Next, Convert to sales, Print, Edit, and Delete on the Delivery Note show toolbar
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
+- `#275` Wire Delivery Note show actions
+  - Goal:
+    - add the requested top action layout on Delivery Note show and make every action functional.
+  - Scope in this batch:
+    - add a stock internal delete path for Delivery Notes
+    - load Delivery Note list context on the show page for Prev/Next navigation
+    - route Convert to sales into the Sales Voucher creation flow with the source Delivery Note id carried in the URL
+    - reorder toolbar actions as `Back | Prev | Next`, center `Convert to sales`, and right `Print | Edit | Delete`
+  - Planned validation:
+    - run TypeScript validation
+    - run focused ESLint validation for changed backend/frontend files
+  - Implemented:
+    - added Delivery Note delete support in the billing service, stock manager wrapper, and stock internal API
+    - changed the Delivery Note show toolbar into left `Back | Prev | Next`, center `Convert to sales`, and right `Print | Edit | Delete`
+    - wired Prev/Next from the Delivery Note list context
+    - wired Convert to sales to open Sales Voucher creation with the Delivery Note id in the URL
+    - wired Delete with confirmation, toast feedback, and list redirect
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+    - passed `npx.cmd eslint apps/billing/src/services/delivery-note-service.ts apps/stock/src/services/stock-manager-service.ts apps/api/src/internal/stock-routes.ts --quiet`
+
+- `#274` Restyle Delivery Note show item table
+  - Goal:
+    - make the Delivery Note show item table match the upsert table tone with a white surface, serial row index, data rows, and total row.
+  - Scope in this batch:
+    - Delivery Note show page table presentation only
+  - Planned validation:
+    - run focused TypeScript and ESLint validation for the stock support workspace file
+  - Implemented:
+    - replaced the Delivery Note show `DataTable` with `VoucherInlineEditableTable`
+    - applied white table/container background
+    - kept the serial `#` column and added a bottom total row matching the upsert table tone
+  - Validation:
+    - passed `npx.cmd tsc --noEmit --pretty false`
+    - passed `npx.cmd eslint apps/stock/web/src/workspace/stock-workspace-support-sections.tsx --rule "react-hooks/set-state-in-effect: off" --quiet`
+
 - `#273` Change Delivery Note clear to cancel
   - Goal:
     - replace Clear with Cancel and send users back to the Delivery Note list.

@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { EyeIcon, PrinterIcon } from "lucide-react"
+import {
+  ArrowRightLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  EyeIcon,
+  FileTextIcon,
+  PencilIcon,
+  PrinterIcon,
+  Trash2Icon,
+  Undo2Icon,
+} from "lucide-react"
 
 import type {
   CommonModuleListResponse,
@@ -18,6 +28,7 @@ import {
 import { VoucherInlineEditableTable } from "@/components/blocks/voucher-inline-editable-table"
 import { MasterList } from "@/components/blocks/master-list"
 import { RecordActionMenu } from "@/components/blocks/record-action-menu"
+import { showRecordToast } from "@/components/ui/app-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -1551,6 +1562,20 @@ type DeliveryNoteItem = {
   stockUnitStatus: string
 }
 
+type TransferItem = {
+  id: string
+  productId: string
+  barcodeValue: string
+  productName: string
+  productCode: string
+  batchCode: string
+  serialNumber: string
+  warehouseId: string
+  warehouseName: string
+  quantity: number
+  stockUnitStatus: string
+}
+
 function getTodayDateInputValue() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -1576,6 +1601,22 @@ function getNextDeliveryNoteNumber(items: DeliveryNoteListResponse["items"], cur
 const deliveryEligibleStockStatuses = new Set(["available", "allocated"])
 
 function createDeliveryNoteItemFromStockUnit(stockUnit: BillingStockUnit): DeliveryNoteItem {
+  return {
+    id: stockUnit.id,
+    productId: stockUnit.productId,
+    barcodeValue: stockUnit.barcodeValue,
+    productName: stockUnit.productName,
+    productCode: stockUnit.productCode,
+    batchCode: stockUnit.batchCode ?? "No batch",
+    serialNumber: stockUnit.serialNumber,
+    warehouseId: stockUnit.warehouseId,
+    warehouseName: formatWarehouseDisplayName(stockUnit.warehouseName),
+    quantity: stockUnit.quantity,
+    stockUnitStatus: stockUnit.status,
+  }
+}
+
+function createTransferItemFromStockUnit(stockUnit: BillingStockUnit): TransferItem {
   return {
     id: stockUnit.id,
     productId: stockUnit.productId,
@@ -2625,26 +2666,47 @@ export function DeliveryNoteUpsertSection({ deliveryNoteId }: { deliveryNoteId?:
 
 export function DeliveryNoteShowSection({ deliveryNoteId }: { deliveryNoteId: string }) {
   const navigate = useNavigate()
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const noteList = useJsonResource<DeliveryNoteListResponse>("/internal/v1/stock/delivery-notes")
   const detail = useJsonResource<DeliveryNoteResponse>(
     `/internal/v1/stock/delivery-note?id=${encodeURIComponent(deliveryNoteId)}`,
     [deliveryNoteId]
   )
   const contactLookup = useJsonResource<ContactListResponse>("/internal/v1/core/contacts")
-  useGlobalLoading(detail.isLoading || contactLookup.isLoading)
+  useGlobalLoading(noteList.isLoading || detail.isLoading || contactLookup.isLoading)
 
-  if (detail.isLoading || contactLookup.isLoading) {
+  if (noteList.isLoading || detail.isLoading || contactLookup.isLoading) {
     return null
   }
 
-  if (detail.error || contactLookup.error || !detail.data || !contactLookup.data) {
+  if (
+    noteList.error ||
+    detail.error ||
+    contactLookup.error ||
+    !noteList.data ||
+    !detail.data ||
+    !contactLookup.data
+  ) {
     return (
       <StateCard
-        message={detail.error ?? contactLookup.error ?? "Delivery note detail is unavailable."}
+        message={
+          noteList.error ??
+          detail.error ??
+          contactLookup.error ??
+          "Delivery note detail is unavailable."
+        }
       />
     )
   }
 
   const item = detail.data.item
+  const currentNoteIndex = noteList.data.items.findIndex((entry) => entry.id === item.id)
+  const previousNote = currentNoteIndex > 0 ? noteList.data.items[currentNoteIndex - 1] : null
+  const nextNote =
+    currentNoteIndex >= 0 && currentNoteIndex < noteList.data.items.length - 1
+      ? noteList.data.items[currentNoteIndex + 1]
+      : null
   const totalQuantity = item.lines.reduce((sum, line) => sum + line.quantity, 0)
   const customerLabel = formatDeliveryContactLabel(item.customerId, contactLookup.data.items)
   const printItems = item.lines.map((line) => ({
@@ -2661,39 +2723,114 @@ export function DeliveryNoteShowSection({ deliveryNoteId }: { deliveryNoteId: st
     stockUnitStatus: line.stockUnitStatus,
   }))
 
+  function handleConvertToSales() {
+    const params = new URLSearchParams({
+      sourceType: "delivery-note",
+      sourceId: item.id,
+      deliveryNoteId: item.id,
+    })
+
+    void navigate(`/dashboard/billing/sales-vouchers/new?${params.toString()}`)
+  }
+
+  async function handleDeleteDeliveryNote() {
+    if (!window.confirm(`Delete delivery note ${item.deliveryNoteNumber}?`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    setDeleteError(null)
+
+    try {
+      await requestJson(
+        `/internal/v1/stock/delivery-note?id=${encodeURIComponent(item.id)}`,
+        { method: "DELETE" }
+      )
+      showRecordToast({
+        entity: "Delivery note",
+        action: "deleted",
+        recordName: item.deliveryNoteNumber,
+      })
+      void navigate("/dashboard/apps/stock/delivery-note")
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Failed to delete delivery note.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={() =>
-            printDeliveryNoteDocument({
-              customerLabel,
-              deliveryNoteNumber: item.deliveryNoteNumber,
-              isReturn: item.isReturn,
-              items: printItems,
-              note: item.note,
-              postingDate: formatDeliveryNoteDate(item.postingDate),
-              totalQuantity,
-              warehouseLabel: formatWarehouseDisplayName(item.warehouseId),
-            })
-          }
-        >
-          <PrinterIcon className="mr-2 size-4" />
-          Print
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() =>
-            void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(item.id)}/edit`)
-          }
-        >
-          Edit
-        </Button>
-        <Button variant="outline" onClick={() => void navigate("/dashboard/apps/stock/delivery-note")}>
-          Back
-        </Button>
+      <div className="grid gap-2 lg:grid-cols-3 lg:items-center">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void navigate("/dashboard/apps/stock/delivery-note")}>
+            <Undo2Icon className="mr-2 size-4" />
+            Back
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!previousNote}
+            onClick={() =>
+              previousNote &&
+              void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(previousNote.id)}`)
+            }
+          >
+            <ChevronLeftIcon className="mr-2 size-4" />
+            Prev
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!nextNote}
+            onClick={() =>
+              nextNote &&
+              void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(nextNote.id)}`)
+            }
+          >
+            Next
+            <ChevronRightIcon className="ml-2 size-4" />
+          </Button>
+        </div>
+        <div className="flex justify-start lg:justify-center">
+          <Button onClick={handleConvertToSales}>
+            <FileTextIcon className="mr-2 size-4" />
+            Convert to sales
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <Button
+            className="bg-violet-600 text-white hover:bg-violet-700"
+            onClick={() =>
+              printDeliveryNoteDocument({
+                customerLabel,
+                deliveryNoteNumber: item.deliveryNoteNumber,
+                isReturn: item.isReturn,
+                items: printItems,
+                note: item.note,
+                postingDate: formatDeliveryNoteDate(item.postingDate),
+                totalQuantity,
+                warehouseLabel: formatWarehouseDisplayName(item.warehouseId),
+              })
+            }
+          >
+            <PrinterIcon className="mr-2 size-4" />
+            Print
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              void navigate(`/dashboard/apps/stock/delivery-note/${encodeURIComponent(item.id)}/edit`)
+            }
+          >
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Button>
+          <Button variant="outline" disabled={isDeleting} onClick={() => void handleDeleteDeliveryNote()}>
+            <Trash2Icon className="mr-2 size-4" />
+            Delete
+          </Button>
+        </div>
       </div>
+      {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
       <Card className="border-border/70 shadow-sm">
         <CardContent className="grid gap-4 p-5 md:grid-cols-3">
           <Field label="Delivery note"><p className="text-sm font-medium">{item.deliveryNoteNumber}</p></Field>
@@ -2704,20 +2841,86 @@ export function DeliveryNoteShowSection({ deliveryNoteId }: { deliveryNoteId: st
           <Field label="Status">{renderLightStockStatusBadge(item.status, `${item.id}:status`)}</Field>
         </CardContent>
       </Card>
-      <DataTable
-        headers={["Product", "Barcode", "Batch", "Serial", "Warehouse", "Qty", "Status"]}
-        rows={item.lines.map((line) => [
-          <div key={`${line.id}:product`}>
-            <p className="font-medium text-foreground">{line.productName}</p>
-            <p className="text-xs text-muted-foreground">{line.productCode}</p>
-          </div>,
-          line.barcodeValue,
-          line.batchCode ?? "No batch",
-          line.serialNumber,
-          formatWarehouseDisplayName(line.warehouseName),
-          formatQuantity(line.quantity),
-          renderLightStockStatusBadge(line.stockUnitStatus, `${line.id}:status`),
-        ])}
+      <VoucherInlineEditableTable
+        title="Delivery items"
+        className="bg-white"
+        containerClassName="bg-white"
+        fitToContainer
+        rows={item.lines}
+        getRowKey={(line) => line.id}
+        columns={[
+          {
+            id: "product",
+            header: "Product",
+            width: "28%",
+            renderCell: (line) => (
+              <div>
+                <p className="font-medium text-foreground">{line.productName}</p>
+                <p className="text-xs text-muted-foreground">{line.productCode}</p>
+              </div>
+            ),
+          },
+          {
+            id: "barcode",
+            header: "Barcode",
+            width: "20%",
+            renderCell: (line) => (
+              <span className="font-mono text-xs text-foreground">{line.barcodeValue}</span>
+            ),
+          },
+          {
+            id: "batch",
+            header: "Batch",
+            width: "10%",
+            renderCell: (line) => line.batchCode ?? "No batch",
+          },
+          {
+            id: "serial",
+            header: "Serial",
+            width: "12%",
+            renderCell: (line) => line.serialNumber,
+          },
+          {
+            id: "warehouse",
+            header: "Warehouse",
+            width: "12%",
+            renderCell: (line) => formatWarehouseDisplayName(line.warehouseName),
+          },
+          {
+            id: "quantity",
+            header: "Qty",
+            width: "8%",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            renderCell: (line) => formatQuantity(line.quantity),
+          },
+          {
+            id: "status",
+            header: "Status",
+            width: "10%",
+            renderCell: (line) =>
+              renderLightStockStatusBadge(line.stockUnitStatus, `${line.id}:status`),
+          },
+        ]}
+        summaryRow={
+          <TableRow className="border-border/60 bg-muted/20 hover:bg-muted/20">
+            <TableCell className="border-r border-border/50 px-1 py-0.5" />
+            <TableCell
+              colSpan={5}
+              className="border-r border-border/50 px-1.5 py-0.5 text-right font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              Total
+            </TableCell>
+            <TableCell className="border-r border-border/50 px-0 py-0.5 text-center text-sm font-semibold text-foreground">
+              <div className="flex h-6 items-center justify-center">
+                {formatQuantity(totalQuantity)}
+              </div>
+            </TableCell>
+            <TableCell className="px-0 py-0.5">
+              <div className="h-6" />
+            </TableCell>
+          </TableRow>
+        }
       />
       <Card className="border-border/70 shadow-sm">
         <CardContent className="p-5">
@@ -4182,66 +4385,932 @@ export function ReconciliationSection() {
   return <DataTable headers={["Warehouse", "Product", "Engine", "Core", "Mismatch"]} rows={data.items.map((item) => [item.warehouseId, item.productId, String(item.engineOnHandQuantity), String(item.coreOnHandQuantity), <Badge key={`${item.warehouseId}:${item.productId}`} variant={item.mismatchQuantity === 0 ? "secondary" : "outline"}>{item.mismatchQuantity}</Badge>])} />
 }
 
-export function TransfersSection() {
-  const list = useJsonResource<TransferListResponse>("/internal/v1/stock/transfers")
-  const [message, setMessage] = useState<string | null>(null)
-  const [form, setForm] = useState(createTransferForm)
+function getTransferQuantity(item: StockTransfer) {
+  return item.lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0)
+}
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const response = await requestJson<{ item: StockTransfer }>("/internal/v1/stock/transfers", {
-      method: "POST",
-      body: JSON.stringify({
-        id: form.id,
-        status: form.status,
-        sourceWarehouseId: form.sourceWarehouseId,
-        sourceLocationId: form.sourceLocationId || null,
-        destinationWarehouseId: form.destinationWarehouseId,
-        destinationLocationId: form.destinationLocationId || null,
-        requestedAt: form.requestedAt,
-        dispatchedAt: form.dispatchedAt || null,
-        receivedAt: form.receivedAt || null,
-        referenceType: form.referenceType || null,
-        referenceId: form.referenceId || null,
-        notes: form.notes || null,
-        lines: [{
-          id: `${form.id}:line-1`,
-          productId: form.productId,
-          variantId: null,
-          batchId: null,
-          serialId: null,
-          quantity: Number(form.quantity),
-          sourceLocationId: form.sourceLocationId || null,
-          destinationLocationId: form.destinationLocationId || null,
-        }],
-      }),
-    })
-    setMessage(`Transfer ${response.item.id} saved as ${response.item.status}. Use status in-transit for send and received for accept.`)
+function findTransfer(items: StockTransfer[], transferId: string) {
+  return items.find((item) => item.id === transferId)
+}
+
+export function TransfersSection() {
+  const navigate = useNavigate()
+  const list = useJsonResource<TransferListResponse>("/internal/v1/stock/transfers")
+  const [searchValue, setSearchValue] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  useGlobalLoading(list.isLoading)
+
+  if (list.isLoading) {
+    return null
   }
+
+  if (list.error || !list.data) {
+    return <StateCard message={list.error ?? "Warehouse transfers are unavailable."} />
+  }
+
+  const filteredItems = list.data.items.filter((item) => {
+    const search = searchValue.trim().toLowerCase()
+    const matchesSearch =
+      search.length === 0 ||
+      [
+        item.id,
+        item.sourceWarehouseId,
+        item.destinationWarehouseId,
+        item.status,
+        item.requestedAt,
+        String(getTransferQuantity(item)),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
+  const totalRecords = filteredItems.length
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  )
+  const activeFilters =
+    statusFilter === "all"
+      ? []
+      : [{ key: "status", label: "Status", value: statusFilter }]
+
+  return (
+    <MasterList
+      header={{
+        pageTitle: "Warehouse Transfers",
+        pageDescription:
+          "Create and review warehouse-to-warehouse transfer records in the same operational tone as delivery notes.",
+        technicalName: "page.stock.transfers",
+        addLabel: "New Transfer",
+        onAddClick: () => {
+          void navigate("/dashboard/apps/stock/transfers/new")
+        },
+      }}
+      search={{
+        value: searchValue,
+        onChange: (value) => {
+          setSearchValue(value)
+          setCurrentPage(1)
+        },
+        placeholder: "Search transfer, warehouse, status, or quantity",
+      }}
+      filters={{
+        options: [
+          {
+            key: "all",
+            label: "All transfers",
+            isActive: statusFilter === "all",
+            onSelect: () => {
+              setStatusFilter("all")
+              setCurrentPage(1)
+            },
+          },
+          ...(["requested", "approved", "in-transit", "received", "cancelled"] as const).map((value) => ({
+            key: value,
+            label: value,
+            isActive: statusFilter === value,
+            onSelect: () => {
+              setStatusFilter(value)
+              setCurrentPage(1)
+            },
+          })),
+        ],
+        activeFilters,
+        onRemoveFilter: (key) => {
+          if (key === "status") {
+            setStatusFilter("all")
+            setCurrentPage(1)
+          }
+        },
+        onClearAllFilters: () => {
+          setStatusFilter("all")
+          setSearchValue("")
+          setCurrentPage(1)
+        },
+        technicalName: "section.stock.transfers.filters",
+      }}
+      table={{
+        technicalName: "section.stock.transfers.table",
+        columns: [
+          {
+            id: "transfer",
+            header: "Transfer",
+            sortable: true,
+            accessor: (item) => item.id,
+            cell: (item) => (
+              <button
+                type="button"
+                className="text-left"
+                onClick={() => {
+                  void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(item.id)}`)
+                }}
+              >
+                <p className="font-medium text-foreground hover:underline hover:underline-offset-2">
+                  {item.id}
+                </p>
+              </button>
+            ),
+          },
+          {
+            id: "from",
+            header: "From",
+            sortable: true,
+            accessor: (item) => formatWarehouseDisplayName(item.sourceWarehouseId),
+            cell: (item) => formatWarehouseDisplayName(item.sourceWarehouseId),
+          },
+          {
+            id: "to",
+            header: "To",
+            sortable: true,
+            accessor: (item) => formatWarehouseDisplayName(item.destinationWarehouseId),
+            cell: (item) => formatWarehouseDisplayName(item.destinationWarehouseId),
+          },
+          {
+            id: "requested",
+            header: "Requested",
+            sortable: true,
+            accessor: (item) => item.requestedAt,
+            cell: (item) => formatOptionalTimestamp(item.requestedAt),
+          },
+          {
+            id: "quantity",
+            header: "Qty",
+            sortable: true,
+            accessor: getTransferQuantity,
+            cell: (item) => formatQuantity(getTransferQuantity(item)),
+          },
+          {
+            id: "status",
+            header: "Status",
+            sortable: true,
+            accessor: (item) => item.status,
+            cell: (item) => renderLightStockStatusBadge(item.status, `${item.id}:status`),
+          },
+          {
+            id: "actions",
+            header: "",
+            cell: (item) => (
+              <RecordActionMenu
+                itemLabel={item.id}
+                editLabel="Edit transfer"
+                customItems={[
+                  {
+                    key: "view",
+                    label: "View transfer",
+                    icon: <EyeIcon className="size-4" />,
+                    onSelect: () => {
+                      void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(item.id)}`)
+                    },
+                  },
+                ]}
+                onEdit={() => {
+                  void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(item.id)}/edit`)
+                }}
+              />
+            ),
+            className: "w-16 min-w-16 text-right",
+            headerClassName: "w-16 min-w-16 text-right",
+          },
+        ],
+        data: paginatedItems,
+        emptyMessage: "No warehouse transfers found.",
+        rowKey: (item) => item.id,
+      }}
+      footer={{
+        content: (
+          <div className="flex flex-wrap items-center gap-4">
+            <span>
+              Total transfers: <span className="font-medium text-foreground">{totalRecords}</span>
+            </span>
+          </div>
+        ),
+      }}
+      pagination={{
+        currentPage,
+        pageSize,
+        totalRecords,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: (value) => {
+          setPageSize(value)
+          setCurrentPage(1)
+        },
+      }}
+    />
+  )
+}
+
+export function TransferShowSection({ transferId }: { transferId: string }) {
+  const navigate = useNavigate()
+  const list = useJsonResource<TransferListResponse>("/internal/v1/stock/transfers")
+  const productLookup = useJsonResource<ProductListResponse>("/internal/v1/core/products")
+  useGlobalLoading(list.isLoading || productLookup.isLoading)
+
+  if (list.isLoading || productLookup.isLoading) {
+    return null
+  }
+
+  if (list.error || productLookup.error || !list.data || !productLookup.data) {
+    return <StateCard message={list.error ?? productLookup.error ?? "Warehouse transfer detail is unavailable."} />
+  }
+
+  const item = findTransfer(list.data.items, transferId)
+
+  if (!item) {
+    return <StateCard message="Warehouse transfer could not be found." />
+  }
+
+  const productNameById = new Map(productLookup.data.items.map((product) => [product.id, product.name]))
+  const totalQuantity = getTransferQuantity(item)
+  const currentTransferIndex = list.data.items.findIndex((entry) => entry.id === item.id)
+  const previousTransfer = currentTransferIndex > 0 ? list.data.items[currentTransferIndex - 1] : null
+  const nextTransfer =
+    currentTransferIndex >= 0 && currentTransferIndex < list.data.items.length - 1
+      ? list.data.items[currentTransferIndex + 1]
+      : null
 
   return (
     <div className="space-y-4">
-      <SectionIntro title="Warehouse transfers" description="Manage send, in-transit, receive, and accept flows across warehouse and rack locations." />
+      <div className="grid gap-2 lg:grid-cols-3 lg:items-center">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void navigate("/dashboard/apps/stock/transfers")}>
+            <Undo2Icon className="mr-2 size-4" />
+            Back
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!previousTransfer}
+            onClick={() =>
+              previousTransfer &&
+              void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(previousTransfer.id)}`)
+            }
+          >
+            <ChevronLeftIcon className="mr-2 size-4" />
+            Prev
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!nextTransfer}
+            onClick={() =>
+              nextTransfer &&
+              void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(nextTransfer.id)}`)
+            }
+          >
+            Next
+            <ChevronRightIcon className="ml-2 size-4" />
+          </Button>
+        </div>
+        <div />
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <Button
+            variant="outline"
+            onClick={() =>
+              void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(item.id)}/edit`)
+            }
+          >
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Button>
+        </div>
+      </div>
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="grid gap-4 p-5 md:grid-cols-3">
+          <Field label="Transfer"><p className="text-sm font-medium">{item.id}</p></Field>
+          <Field label="Requested"><p className="text-sm font-medium">{formatOptionalTimestamp(item.requestedAt)}</p></Field>
+          <Field label="Status">{renderLightStockStatusBadge(item.status, `${item.id}:status`)}</Field>
+          <Field label="From"><p className="text-sm font-medium">{formatWarehouseDisplayName(item.sourceWarehouseId)}</p></Field>
+          <Field label="To"><p className="text-sm font-medium">{formatWarehouseDisplayName(item.destinationWarehouseId)}</p></Field>
+          <Field label="Qty"><p className="text-sm font-medium">{formatQuantity(totalQuantity)}</p></Field>
+        </CardContent>
+      </Card>
+      <VoucherInlineEditableTable
+        title="Transfer items"
+        className="bg-white"
+        containerClassName="bg-white"
+        fitToContainer
+        rows={item.lines}
+        getRowKey={(line) => line.id}
+        columns={[
+          {
+            id: "product",
+            header: "Product",
+            width: "34%",
+            renderCell: (line) => (
+              <div>
+                <p className="font-medium text-foreground">{productNameById.get(line.productId) ?? line.productId}</p>
+                <p className="text-xs text-muted-foreground">{line.productId}</p>
+              </div>
+            ),
+          },
+          {
+            id: "from",
+            header: "From location",
+            width: "18%",
+            renderCell: (line) => line.sourceLocationId ?? "-",
+          },
+          {
+            id: "to",
+            header: "To location",
+            width: "18%",
+            renderCell: (line) => line.destinationLocationId ?? "-",
+          },
+          {
+            id: "quantity",
+            header: "Qty",
+            width: "12%",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            renderCell: (line) => formatQuantity(line.quantity),
+          },
+          {
+            id: "status",
+            header: "Status",
+            width: "18%",
+            renderCell: () => renderLightStockStatusBadge(item.status, `${item.id}:line-status`),
+          },
+        ]}
+        summaryRow={
+          <TableRow className="border-border/60 bg-muted/20 hover:bg-muted/20">
+            <TableCell className="border-r border-border/50 px-1 py-0.5" />
+            <TableCell
+              colSpan={3}
+              className="border-r border-border/50 px-1.5 py-0.5 text-right font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              Total
+            </TableCell>
+            <TableCell className="border-r border-border/50 px-0 py-0.5 text-center text-sm font-semibold text-foreground">
+              <div className="flex h-6 items-center justify-center">
+                {formatQuantity(totalQuantity)}
+              </div>
+            </TableCell>
+            <TableCell className="px-0 py-0.5">
+              <div className="h-6" />
+            </TableCell>
+          </TableRow>
+        }
+      />
       <Card className="border-border/70 shadow-sm">
         <CardContent className="p-5">
-          <form className="grid gap-3 md:grid-cols-3" onSubmit={handleSubmit}>
-            <Input placeholder="Transfer id" value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value })} />
-            <select className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-              <option value="requested">Requested</option>
-              <option value="approved">Approved</option>
-              <option value="in-transit">In transit</option>
-              <option value="received">Received</option>
-            </select>
-            <Input placeholder="Product id" value={form.productId} onChange={(event) => setForm({ ...form, productId: event.target.value })} required />
-            <Input placeholder="Source warehouse" value={form.sourceWarehouseId} onChange={(event) => setForm({ ...form, sourceWarehouseId: event.target.value })} required />
-            <Input placeholder="Destination warehouse" value={form.destinationWarehouseId} onChange={(event) => setForm({ ...form, destinationWarehouseId: event.target.value })} required />
-            <Input placeholder="Quantity" type="number" min="0" step="0.01" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} required />
-            <Button type="submit">Save transfer</Button>
+          <p className="text-sm text-muted-foreground">{item.notes || "No remarks."}</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export function TransferUpsertSection({ transferId }: { transferId?: string }) {
+  const navigate = useNavigate()
+  const list = useJsonResource<TransferListResponse>("/internal/v1/stock/transfers")
+  const productLookup = useJsonResource<ProductListResponse>("/internal/v1/core/products")
+  const warehouseLookup = useJsonResource<CommonModuleListResponse>(
+    "/internal/v1/core/common-modules/items?module=warehouses"
+  )
+  const stockUnits = useJsonResource<StockUnitListResponse>("/internal/v1/stock/stock-units")
+  const [form, setForm] = useState(createTransferForm)
+  const [barcodeValue, setBarcodeValue] = useState("")
+  const [manualProductId, setManualProductId] = useState("")
+  const [manualStockUnitId, setManualStockUnitId] = useState("")
+  const [items, setItems] = useState<TransferItem[]>([])
+  const [message, setMessage] = useState<string | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const selectedItemIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
+  const transferStockUnits = useMemo(
+    () =>
+      (stockUnits.data?.items ?? []).filter((stockUnit) => {
+        if (!stockUnit.isActive || selectedItemIds.has(stockUnit.id)) {
+          return false
+        }
+
+        if (!deliveryEligibleStockStatuses.has(stockUnit.status)) {
+          return false
+        }
+
+        if (form.sourceWarehouseId && stockUnit.warehouseId !== form.sourceWarehouseId) {
+          return false
+        }
+
+        return true
+      }),
+    [form.sourceWarehouseId, selectedItemIds, stockUnits.data?.items]
+  )
+  const transferProductOptions = useMemo(() => {
+    const productIdsWithStock = new Set(transferStockUnits.map((stockUnit) => stockUnit.productId))
+    return getProductLookupOptions(productLookup.data?.items ?? []).filter((option) =>
+      productIdsWithStock.has(option.value)
+    )
+  }, [productLookup.data?.items, transferStockUnits])
+  const manualTransferStockUnitOptions = useMemo(
+    () =>
+      transferStockUnits
+        .filter((stockUnit) => !manualProductId || stockUnit.productId === manualProductId)
+        .map((stockUnit) => ({
+          value: stockUnit.id,
+          label: getDeliveryStockUnitLabel(stockUnit),
+        })),
+    [manualProductId, transferStockUnits]
+  )
+  useGlobalLoading(
+    list.isLoading ||
+      productLookup.isLoading ||
+      warehouseLookup.isLoading ||
+      stockUnits.isLoading ||
+      isScanning
+  )
+
+  const existingTransfer = transferId && list.data ? findTransfer(list.data.items, transferId) : null
+
+  useEffect(() => {
+    if (!existingTransfer) {
+      return
+    }
+
+    const firstLine = existingTransfer.lines[0]
+    setForm({
+      id: existingTransfer.id,
+      status: existingTransfer.status,
+      sourceWarehouseId: existingTransfer.sourceWarehouseId,
+      sourceLocationId: existingTransfer.sourceLocationId ?? "",
+      destinationWarehouseId: existingTransfer.destinationWarehouseId,
+      destinationLocationId: existingTransfer.destinationLocationId ?? "",
+      requestedAt: existingTransfer.requestedAt,
+      dispatchedAt: existingTransfer.dispatchedAt ?? "",
+      receivedAt: existingTransfer.receivedAt ?? "",
+      referenceType: existingTransfer.referenceType ?? "manual_transfer",
+      referenceId: existingTransfer.referenceId ?? "",
+      notes: existingTransfer.notes ?? "",
+      productId: firstLine?.productId ?? "",
+      quantity: firstLine ? String(firstLine.quantity) : "1",
+    })
+    setItems(
+      existingTransfer.lines.map((line) => {
+        const stockUnit =
+          stockUnits.data?.items.find((unit) => unit.id === line.serialId || unit.id === line.id) ??
+          null
+
+        if (stockUnit) {
+          return createTransferItemFromStockUnit(stockUnit)
+        }
+
+        return {
+          id: line.id,
+          productId: line.productId,
+          barcodeValue: line.serialId ?? line.id,
+          productName: productLookup.data?.items.find((product) => product.id === line.productId)?.name ?? line.productId,
+          productCode: line.productId,
+          batchCode: line.batchId ?? "No batch",
+          serialNumber: line.serialId ?? line.id,
+          warehouseId: existingTransfer.sourceWarehouseId,
+          warehouseName: formatWarehouseDisplayName(existingTransfer.sourceWarehouseId),
+          quantity: line.quantity,
+          stockUnitStatus: existingTransfer.status,
+        }
+      })
+    )
+  }, [existingTransfer, productLookup.data?.items, stockUnits.data?.items])
+
+  if (list.isLoading || productLookup.isLoading || warehouseLookup.isLoading || stockUnits.isLoading) {
+    return null
+  }
+
+  if (
+    list.error ||
+    productLookup.error ||
+    warehouseLookup.error ||
+    stockUnits.error ||
+    !list.data ||
+    !productLookup.data ||
+    !warehouseLookup.data ||
+    !stockUnits.data
+  ) {
+    return (
+      <StateCard
+        message={
+          list.error ??
+          productLookup.error ??
+          warehouseLookup.error ??
+          stockUnits.error ??
+          "Warehouse transfer form is unavailable."
+        }
+      />
+    )
+  }
+
+  if (transferId && !existingTransfer) {
+    return <StateCard message="Warehouse transfer could not be found." />
+  }
+
+  const warehouseOptions = buildWarehouseOptions(warehouseLookup.data.items, "", "")
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+
+  function addStockUnitToTransfer(stockUnit: BillingStockUnit, matchedBarcodeValue?: string) {
+    const normalizedMatchedBarcode = matchedBarcodeValue?.trim()
+
+    if (
+      items.some(
+        (item) =>
+          item.id === stockUnit.id ||
+          item.barcodeValue === stockUnit.barcodeValue ||
+          (normalizedMatchedBarcode ? item.barcodeValue === normalizedMatchedBarcode : false)
+      )
+    ) {
+      setMessage("This barcode is already added to the warehouse transfer.")
+      return false
+    }
+
+    if (!deliveryEligibleStockStatuses.has(stockUnit.status)) {
+      setMessage(
+        `Warning: barcode is ${stockUnit.status}; only accepted stock can be added to transfer.`
+      )
+      return false
+    }
+
+    if (form.sourceWarehouseId && stockUnit.warehouseId !== form.sourceWarehouseId) {
+      setMessage("Warning: selected barcode is not in the source warehouse.")
+      return false
+    }
+
+    setItems((current) => [...current, createTransferItemFromStockUnit(stockUnit)])
+    setMessage(`Added ${stockUnit.productName} (${stockUnit.productCode}) to warehouse transfer.`)
+    return true
+  }
+
+  async function handleAddTransferBarcode() {
+    const normalizedBarcode = barcodeValue.trim()
+
+    if (!normalizedBarcode) {
+      setMessage("Scan or enter a barcode before adding a transfer item.")
+      return
+    }
+
+    setIsScanning(true)
+    setMessage(null)
+
+    try {
+      const response = await requestJson<BarcodeResolutionResponse>("/internal/v1/stock/barcode/resolve", {
+        method: "POST",
+        body: JSON.stringify({
+          barcodeValue: normalizedBarcode,
+        }),
+      })
+      const stockUnit = response.item.stockUnit
+
+      if (!response.item.resolved || !stockUnit) {
+        setMessage("Warning: scanned barcode did not match any stock unit.")
+        return
+      }
+
+      if (addStockUnitToTransfer(stockUnit, response.item.barcodeValue)) {
+        setBarcodeValue("")
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to add barcode to transfer.")
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  function handleAddManualTransferStockUnit() {
+    if (!manualStockUnitId) {
+      setMessage("Select a stock barcode before adding a transfer item.")
+      return
+    }
+
+    const stockUnit = stockUnits.data?.items.find((item) => item.id === manualStockUnitId)
+    if (!stockUnit) {
+      setMessage("Selected stock barcode is no longer available.")
+      return
+    }
+
+    if (addStockUnitToTransfer(stockUnit)) {
+      setManualStockUnitId("")
+    }
+  }
+
+  function removeTransferItem(itemId: string) {
+    setItems((current) => current.filter((item) => item.id !== itemId))
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!form.sourceWarehouseId) {
+      setMessage("Select a source warehouse before saving the warehouse transfer.")
+      return
+    }
+
+    if (!form.destinationWarehouseId) {
+      setMessage("Select a destination warehouse before saving the warehouse transfer.")
+      return
+    }
+
+    if (items.length === 0) {
+      setMessage("Add at least one scanned barcode before saving the warehouse transfer.")
+      return
+    }
+
+    if (items.some((item) => item.warehouseId !== form.sourceWarehouseId)) {
+      setMessage("All selected barcodes must belong to the source warehouse.")
+      return
+    }
+
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const response = await requestJson<{ item: StockTransfer }>("/internal/v1/stock/transfers", {
+        method: "POST",
+        body: JSON.stringify({
+          id: form.id,
+          status: form.status,
+          sourceWarehouseId: form.sourceWarehouseId,
+          sourceLocationId: form.sourceLocationId || null,
+          destinationWarehouseId: form.destinationWarehouseId,
+          destinationLocationId: form.destinationLocationId || null,
+          requestedAt: form.requestedAt,
+          dispatchedAt: form.dispatchedAt || null,
+          receivedAt: form.receivedAt || null,
+          referenceType: form.referenceType || null,
+          referenceId: form.referenceId || null,
+          notes: form.notes || null,
+          lines: items.map((item) => ({
+            id: `${form.id}:${item.id}`,
+            productId: item.productId,
+            variantId: null,
+            batchId: item.batchCode === "No batch" ? null : item.batchCode,
+            serialId: item.id,
+            quantity: item.quantity,
+            sourceLocationId: form.sourceLocationId || null,
+            destinationLocationId: form.destinationLocationId || null,
+          })),
+        }),
+      })
+      void navigate(`/dashboard/apps/stock/transfers/${encodeURIComponent(response.item.id)}`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to save warehouse transfer.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="p-5">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Transfer number">
+                <Input
+                  value={form.id}
+                  onChange={(event) => setForm({ ...form, id: event.target.value })}
+                  required
+                />
+              </Field>
+              <Field label="Status">
+                <select
+                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  value={form.status}
+                  onChange={(event) => setForm({ ...form, status: event.target.value })}
+                >
+                  <option value="requested">Requested</option>
+                  <option value="approved">Approved</option>
+                  <option value="in-transit">In transit</option>
+                  <option value="partially-received">Partially received</option>
+                  <option value="received">Received</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </Field>
+              <Field label="Source warehouse">
+                <SearchableLookupField
+                  noResultsMessage="No warehouses found."
+                  onValueChange={(nextValue) =>
+                    setForm((current) => ({ ...current, sourceWarehouseId: nextValue }))
+                  }
+                  options={warehouseOptions}
+                  placeholder="Select source warehouse"
+                  searchPlaceholder="Search warehouse"
+                  triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                  value={form.sourceWarehouseId}
+                />
+              </Field>
+              <Field label="Destination warehouse">
+                <SearchableLookupField
+                  noResultsMessage="No warehouses found."
+                  onValueChange={(nextValue) =>
+                    setForm((current) => ({ ...current, destinationWarehouseId: nextValue }))
+                  }
+                  options={warehouseOptions}
+                  placeholder="Select destination warehouse"
+                  searchPlaceholder="Search warehouse"
+                  triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                  value={form.destinationWarehouseId}
+                />
+              </Field>
+            </div>
+            <Card className="border-border/70 shadow-sm">
+              <CardContent className="p-4">
+                <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                  <Field label="Scan barcode">
+                    <Input
+                      className="h-11 text-base"
+                      placeholder="Scan stock barcode"
+                      value={barcodeValue}
+                      onChange={(event) => setBarcodeValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") {
+                          return
+                        }
+
+                        event.preventDefault()
+                        void handleAddTransferBarcode()
+                      }}
+                    />
+                  </Field>
+                  <Button
+                    type="button"
+                    className="h-11 min-w-32"
+                    disabled={isScanning}
+                    onClick={() => void handleAddTransferBarcode()}
+                  >
+                    {isScanning ? "Adding..." : "Add item"}
+                  </Button>
+                </div>
+                <div className="mt-4 grid items-end gap-3 border-t border-border/60 pt-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_auto]">
+                  <Field label="Product">
+                    <SearchableLookupField
+                      emptyOptionLabel="Select product"
+                      noResultsMessage="No transferable stock found."
+                      onValueChange={(nextValue) => {
+                        if (nextValue.startsWith("manual:")) {
+                          return
+                        }
+
+                        setManualProductId(nextValue)
+                        setManualStockUnitId("")
+                      }}
+                      options={transferProductOptions}
+                      placeholder="Select product"
+                      searchPlaceholder="Search product"
+                      triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                      value={manualProductId}
+                    />
+                  </Field>
+                  <Field label="Stock barcode">
+                    <SearchableLookupField
+                      emptyOptionLabel="Select barcode"
+                      noResultsMessage={
+                        manualProductId ? "No stock barcodes found." : "Select product first."
+                      }
+                      onValueChange={(nextValue) => {
+                        if (nextValue.startsWith("manual:")) {
+                          return
+                        }
+
+                        setManualStockUnitId(nextValue)
+                      }}
+                      options={manualTransferStockUnitOptions}
+                      placeholder={manualProductId ? "Select stock barcode" : "Select product first"}
+                      searchPlaceholder="Search barcode"
+                      triggerClassName="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-none focus-visible:border-ring focus-visible:ring-0"
+                      value={manualStockUnitId}
+                    />
+                  </Field>
+                  <Button
+                    type="button"
+                    className="h-9 min-w-32"
+                    onClick={handleAddManualTransferStockUnit}
+                  >
+                    Add selected
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <VoucherInlineEditableTable
+              title="Transfer items"
+              className="bg-white"
+              containerClassName="bg-white"
+              fitToContainer
+              rows={items}
+              getRowKey={(line) => line.id}
+              columns={[
+                {
+                  id: "product",
+                  header: "Product",
+                  width: "28%",
+                  renderCell: (line) => (
+                    <div>
+                      <p className="font-medium text-foreground">{line.productName}</p>
+                      <p className="text-xs text-muted-foreground">{line.productCode}</p>
+                    </div>
+                  ),
+                },
+                {
+                  id: "barcode",
+                  header: "Barcode",
+                  width: "16%",
+                  renderCell: (line) => (
+                    <span className="font-mono text-xs text-foreground">{line.barcodeValue}</span>
+                  ),
+                },
+                {
+                  id: "batch",
+                  header: "Batch",
+                  width: "10%",
+                  renderCell: (line) => line.batchCode,
+                },
+                {
+                  id: "serial",
+                  header: "Serial",
+                  width: "12%",
+                  renderCell: (line) => line.serialNumber,
+                },
+                {
+                  id: "warehouse",
+                  header: "Warehouse",
+                  width: "12%",
+                  renderCell: (line) => formatWarehouseDisplayName(line.warehouseName),
+                },
+                {
+                  id: "quantity",
+                  header: "Qty",
+                  width: "8%",
+                  headerClassName: "text-center",
+                  cellClassName: "text-center",
+                  renderCell: (line) => formatQuantity(line.quantity),
+                },
+                {
+                  id: "status",
+                  header: "Status",
+                  width: "8%",
+                  renderCell: (line) =>
+                    renderLightStockStatusBadge(line.stockUnitStatus, `${line.id}:status`),
+                },
+                {
+                  id: "actions",
+                  header: "Act",
+                  width: "6%",
+                  headerClassName: "text-center",
+                  cellClassName: "px-2 text-center",
+                  renderCell: (line) => (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeTransferItem(line.id)}
+                      aria-label={`Remove ${line.barcodeValue}`}
+                    >
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  ),
+                },
+              ]}
+              summaryRow={
+                <TableRow className="border-border/60 bg-muted/20 hover:bg-muted/20">
+                  <TableCell className="border-r border-border/50 px-1 py-0.5" />
+                  <TableCell
+                    colSpan={5}
+                    className="border-r border-border/50 px-1.5 py-0.5 text-right font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+                  >
+                    Total
+                  </TableCell>
+                  <TableCell className="border-r border-border/50 px-0 py-0.5 text-center text-sm font-semibold text-foreground">
+                    <div className="flex h-6 items-center justify-center">
+                      {formatQuantity(totalQuantity)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-0 py-0.5">
+                    <div className="h-6" />
+                  </TableCell>
+                </TableRow>
+              }
+            />
+            <Field label="Transfer remarks">
+              <Textarea
+                value={form.notes}
+                onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                rows={4}
+              />
+            </Field>
+            {message ? <p className="text-sm text-destructive">{message}</p> : null}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button type="submit" disabled={saving}>
+                <ArrowRightLeftIcon className="mr-2 size-4" />
+                {saving ? "Saving..." : "Save transfer"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void navigate("/dashboard/apps/stock/transfers")}
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
-      {message ? <StateCard message={message} /> : null}
-      {list.data ? <DataTable headers={["Transfer", "From", "To", "Status", "Requested", "Lines"]} rows={list.data.items.map((item) => [item.id, item.sourceWarehouseId, item.destinationWarehouseId, renderLightStockStatusBadge(item.status, item.id), item.requestedAt, String(item.lines.length)])} /> : null}
     </div>
   )
 }

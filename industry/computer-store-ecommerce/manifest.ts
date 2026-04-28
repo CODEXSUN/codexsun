@@ -1,0 +1,40 @@
+import type { IndustryManifest } from "../../apps/framework/manifests/industry-manifest.js"
+
+export const computerStoreEcommerceIndustryManifest: IndustryManifest = {
+  id: "computer-store-ecommerce",
+  kind: "industry",
+  displayName: "Computer Store Ecommerce",
+  summary:
+    "Computer-store ecommerce bundle covering catalog, orders, payments, billing, stock, and shared product masters.",
+  dependencies: [
+    { id: "billing", kind: "app" },
+    { id: "stock", kind: "app" },
+    { id: "ecommerce", kind: "app" },
+    { id: "core", kind: "app" },
+  ],
+  enabledApps: ["core", "billing", "stock", "ecommerce"],
+  enabledModuleIds: [
+    "core.overview",
+    "core.master",
+    "core.common",
+    "billing.overview",
+    "billing.system",
+    "billing.books",
+    "billing.vouchers",
+    "billing.accounts",
+    "billing.inventory",
+    "billing.reports",
+    "stock.overview",
+    "stock.inward",
+    "stock.outward",
+    "stock.operations",
+    "ecommerce.overview",
+    "ecommerce.storefront",
+    "ecommerce.commerce",
+    "ecommerce.operations",
+    "ecommerce.stock",
+    "ecommerce.settings",
+    "ecommerce.common",
+  ],
+  featureFlags: [],
+}

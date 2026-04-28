@@ -51,6 +51,7 @@ import { frappeWorkspaceItems } from "@frappe/shared"
 import { taskWorkspaceItems } from "@task/shared"
 import { crmWorkspaceItems } from "@crm/shared"
 import { stockWorkspaceItems } from "../../../../stock/shared/index.js"
+import { getTenantVisibilityKeyForMenuGroup } from "@cxapp/shared"
 import { docsCategories } from "@/registry/data/catalog"
 import { registryBlockCategories, registryBlocks } from "@/registry/data/blocks"
 import { docsTemplateCategories } from "@/docs/data/templates"
@@ -65,6 +66,10 @@ import type {
 
 export type DeskAppDefinition = DashboardAppDefinition
 export type DeskServiceDefinition = DashboardServiceDefinition
+type DeskVisibilitySettings = {
+  visibleAppIds: string[]
+  visibleModuleIds: string[]
+}
 
 const appIconMap: Record<string, LucideIcon> = {
   api: Cable,
@@ -714,6 +719,59 @@ function createUiMenuGroups(
   ]
 }
 
+function collectMenuItemRoutes(items: DashboardMenuGroup["items"]) {
+  const routes = new Set<string>()
+  const stack = [...items]
+
+  while (stack.length > 0) {
+    const item = stack.pop()
+
+    if (!item) {
+      continue
+    }
+
+    routes.add(item.route)
+
+    for (const child of item.children ?? []) {
+      stack.push(child)
+    }
+  }
+
+  return routes
+}
+
+function applyDeskVisibility(
+  app: DeskAppDefinition,
+  visibility: DeskVisibilitySettings | null
+): DeskAppDefinition | null {
+  if (!visibility) {
+    return app
+  }
+
+  if (!visibility.visibleAppIds.includes(app.id)) {
+    return null
+  }
+
+  const visibleModuleIds = new Set(visibility.visibleModuleIds)
+  const menuGroups = app.menuGroups.filter((group) =>
+    group.visibilityKey ? visibleModuleIds.has(group.visibilityKey) : true
+  )
+
+  if (menuGroups.length === 0) {
+    return null
+  }
+
+  const visibleRoutes = collectMenuItemRoutes(menuGroups.flatMap((group) => group.items))
+  const modules = app.modules.filter((item) => visibleRoutes.has(item.route))
+
+  return {
+    ...app,
+    menuGroups,
+    modules,
+    quickActions: modules.slice(0, 3),
+  }
+}
+
 function toDeskApp(app: AppManifest): DeskAppDefinition {
   const modules = createWorkspaceModules(app)
   const menuGroups =
@@ -1217,6 +1275,10 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
             items: modules,
           },
         ]
+  const resolvedMenuGroups = menuGroups.map((group) => ({
+    ...group,
+    visibilityKey: getTenantVisibilityKeyForMenuGroup(group.id) ?? undefined,
+  }))
 
   return {
     id: app.id,
@@ -1240,12 +1302,15 @@ function toDeskApp(app: AppManifest): DeskAppDefinition {
       seederRoot: app.workspace.seederRoot,
     },
     modules,
-    menuGroups,
+    menuGroups: resolvedMenuGroups,
     quickActions: modules.slice(0, 3),
   }
 }
 
-export function createDeskState(appSuite: AppSuite) {
+export function createDeskState(
+  appSuite: AppSuite,
+  visibility: DeskVisibilitySettings | null = null
+) {
   const sortedApps = [...appSuite.apps].sort((left, right) => {
     const leftPriority = appPriorityOrder.indexOf(left.id as (typeof appPriorityOrder)[number])
     const rightPriority = appPriorityOrder.indexOf(right.id as (typeof appPriorityOrder)[number])
@@ -1266,7 +1331,9 @@ export function createDeskState(appSuite: AppSuite) {
   })
 
   return {
-    apps: sortedApps.map((app) => toDeskApp(app)),
+    apps: sortedApps
+      .map((app) => applyDeskVisibility(toDeskApp(app), visibility))
+      .filter((app): app is DeskAppDefinition => app !== null),
     services: frameworkServices,
   }
 }
@@ -1416,6 +1483,24 @@ export function resolveDeskLocation(
         section: "Framework",
         title: "Core Settings",
         description: "Runtime environment settings and shared operational guardrails for the suite.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/industry-bundles" || pathname.startsWith("/dashboard/settings/industry-bundles/")) {
+      return {
+        section: "Framework",
+        title: "Bundle Registry",
+        description: "Industry bundles and client overlays that define tenant-ready app and module visibility presets.",
+        app: null,
+      }
+    }
+
+    if (pathname === "/dashboard/settings/tenant-visibility" || pathname.startsWith("/dashboard/settings/tenant-visibility/")) {
+      return {
+        section: "Framework",
+        title: "Visibility Matrix",
+        description: "Tenant-aware bundle, client overlay, app, and module visibility control.",
         app: null,
       }
     }

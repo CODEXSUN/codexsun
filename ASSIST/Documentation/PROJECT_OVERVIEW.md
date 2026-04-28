@@ -29,6 +29,7 @@ The repository currently runs with this model:
 12. PostgreSQL remains available for approved runtime deployments and optional analytics paths
 13. local and container startup must use managed network database services
 14. `cxmedia/` is a root-level standalone service for self-hosted media storage, CDN-style image delivery, signed URLs, and file-manager operations outside the main suite shell
+15. the first live tenant-visibility layer already resolves industry bundles, client overlays, and tenant-specific app or module visibility inside the shared cxapp shell
 
 Architecture maturity note:
 
@@ -91,6 +92,7 @@ Near-to-mid-term transition order:
 2. introduce application-domain-infrastructure separation and ports-and-adapters where complexity justifies them
 3. introduce DDD incrementally inside one stable domain at a time
 4. introduce event-driven cross-module reactions in-process first, then make them durable only where justified
+5. keep expanding tenant-aware bundle, overlay, and menu visibility resolution from the current shared desk baseline instead of forking client shells
 
 Pragmatic adoption rule:
 

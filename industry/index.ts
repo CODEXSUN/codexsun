@@ -1,0 +1,6 @@
+export { accountsAuditIndustryManifest } from "./accounts-audit/manifest.js"
+export { computerStoreEcommerceIndustryManifest } from "./computer-store-ecommerce/manifest.js"
+export { garmentEcommerceIndustryManifest } from "./garment-ecommerce/manifest.js"
+export { garmentsIndustryManifest } from "./garments/manifest.js"
+export { offsetIndustryManifest } from "./offset/manifest.js"
+export { upvcIndustryManifest } from "./upvc/manifest.js"

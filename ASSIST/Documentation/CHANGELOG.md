@@ -2,9 +2,22 @@
 
 ## Version State
 
-- Current package version: `1.0.273`
-- Current release tag: `v-1.0.273`
+- Current package version: `1.0.284`
+- Current release tag: `v-1.0.284`
 - Reference format: changelog labels use `v 1.0.<number>`, task refs use `#<number>`, and release tags use `v-1.0.<number>`
+
+## v-1.0.284
+
+### [v 1.0.284] 2026-04-28 - Add tenant-aware bundle registry and visibility matrix
+
+- completed the first live tenant-aware visibility layer with industry bundles for garments, offset, upvc, garment ecommerce, computer-store ecommerce, and accounts-audit
+- added real client overlays under `clients/*` for `default`, `techmedia`, `tirupurdirect`, `thetirupurtextiles`, `studiopress`, `upvcprime`, and `auditdesk`
+- made the tenant visibility registry industry-aware so client overlays are filtered by compatible industry and fall back safely to `default` when needed
+- refined the framework tenancy admin pages into a `Bundle Registry` and `Visibility Matrix`, including client-overlay-aware recalculation of visible apps and module groups
+- connected the controls into the cxapp and shared sidebar with a dedicated `Tenancy Control` group plus `Bundle Registry` and `Visibility Matrix` menu items
+- aligned framework route titles, auth-option resource labels, and support docs with the live bundle-registry and visibility-matrix terminology
+- updated architecture, project overview, workspace visibility docs, and execution tracking to reflect that cxapp now filters desk apps and sidebar groups from resolved tenant visibility
+- validated the batch with `npx.cmd tsc --noEmit --pretty false` and focused ESLint for the changed tenancy files using the existing local `app-shell.tsx` `@typescript-eslint/no-explicit-any` exception
 
 ## v-1.0.273
 
