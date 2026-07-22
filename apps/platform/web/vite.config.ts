@@ -7,13 +7,23 @@ import { resolve } from "node:path";
 import { requireEnvNumber, requireEnvValue } from "@codexsun/framework/env";
 
 const configDir = fileURLToPath(new URL(".", import.meta.url));
-const rootPackage = JSON.parse(
-  readFileSync(resolve(configDir, "../../../package.json"), "utf8")
-) as { version: string };
+const repositoryDir = resolve(configDir, "../../..");
+const workspaceDir = resolve(repositoryDir, "..");
+const platformSourceRoots = [
+  repositoryDir,
+  resolve(workspaceDir, "billing"),
+  resolve(workspaceDir, "core"),
+  resolve(workspaceDir, "framework"),
+  resolve(workspaceDir, "mail"),
+  resolve(workspaceDir, "ui")
+];
+const rootPackage = JSON.parse(readFileSync(resolve(repositoryDir, "package.json"), "utf8")) as {
+  version: string;
+};
 
 export default defineConfig(({ command, mode }) => {
   const runtimeEnv = {
-    ...loadEnv(mode, resolve(configDir, "../../.."), ""),
+    ...loadEnv(mode, repositoryDir, ""),
     ...process.env
   };
 
@@ -21,10 +31,34 @@ export default defineConfig(({ command, mode }) => {
     build: {
       chunkSizeWarningLimit: 900,
       emptyOutDir: true,
-      outDir: "../../../dist/apps/platform/web"
+      outDir: "../../../dist/apps/platform/web",
+      reportCompressedSize: false
     },
     cacheDir: "../../../node_modules/.vite/platform-web",
     envDir: "../../..",
+    optimizeDeps: {
+      entries: ["src/main.tsx"],
+      include: [
+        "@dnd-kit/core",
+        "@dnd-kit/modifiers",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities",
+        "@tanstack/react-query",
+        "@tanstack/react-router",
+        "@tanstack/react-table",
+        "date-fns",
+        "framer-motion",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-dev-runtime",
+        "react/jsx-runtime",
+        "recharts",
+        "sonner",
+        "zod"
+      ]
+    },
     define: {
       __APP_VERSION__: JSON.stringify(rootPackage.version),
       "import.meta.env.VITE_DEV_AUTO_TENANT_LOGIN": JSON.stringify(
@@ -37,21 +71,28 @@ export default defineConfig(({ command, mode }) => {
     },
     plugins: [tailwindcss(), react()],
     resolve: {
-      dedupe: ["react", "react-dom"]
+      dedupe: ["@tanstack/react-query", "react", "react-dom"]
     },
     ...(command === "serve"
       ? {
           server: {
-            allowedHosts: [
-              "sukraa.codexsun.com",
-              "cotton.codexsun.com",
-              "ganapathi.codexsun.com"
-            ],
+            allowedHosts: ["sukraa.codexsun.com", "cotton.codexsun.com", "ganapathi.codexsun.com"],
+            fs: {
+              allow: platformSourceRoots
+            },
             headers: {
               "Permissions-Policy": "unload=*"
             },
             host: "127.0.0.1",
             port: requireEnvNumber(runtimeEnv.PLATFORM_WEB_PORT, "PLATFORM_WEB_PORT"),
+            warmup: {
+              clientFiles: [
+                "./src/main.tsx",
+                "./src/app/PlatformWebApp.tsx",
+                "./src/app/router.tsx",
+                "./src/public/login/LoginPage.tsx"
+              ]
+            },
             proxy: {
               "/api/billing": {
                 changeOrigin: false,

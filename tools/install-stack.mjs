@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const repositories = ["framework", "ui", "core", "mail", "billing", "ecommerce", "sites"];
+const repositories = ["framework", "ui", "core", "mail", "billing"];
 
 for (const repository of repositories) {
   const directory = resolve(root, "..", repository);

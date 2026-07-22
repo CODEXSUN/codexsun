@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { Building2Icon, CheckCircle2Icon, Clock3Icon, DatabaseIcon } from "lucide-react";
-import { GlobalLoader, StatusBadge } from "@codexsun/ui";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import type { TenantDatabaseStatus } from "./tenant-database.types";
 
 export function TenantDatabaseList({

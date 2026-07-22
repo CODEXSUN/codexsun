@@ -13,9 +13,8 @@ services:
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?MARIADB_ROOT_PASSWORD is required}
-      MARIADB_ROOT_HOST: "%"
       MARIADB_DATABASE: ${DB_MASTER_NAME:-codexsun_master}
-      CODEXSUN_DB_USER: ${DB_USER:-root}
+      CODEXSUN_DB_USER: ${DB_USER:-codexsun_app}
       CODEXSUN_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     ports:
       - "${MARIADB_BIND_ADDRESS:-${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}}:${MARIADB_HOST_PORT:?MARIADB_HOST_PORT is required}:3306"

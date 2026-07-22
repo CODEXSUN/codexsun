@@ -3,14 +3,23 @@ import type { PlatformDatabase, TenantDatabase } from "../../database/schema.js"
 import {
   migrateTenantPermissionModule,
   tenantPermissionMigration
-} from "../tenant-permission/index.js";
+} from "../tenant-permission/tenant-permission.migration.js";
 import {
   migrateTenantRolePermissionModule,
   tenantRolePermissionMigration
-} from "../tenant-role-permission/index.js";
-import { migrateTenantRoleModule, tenantRoleMigration } from "../tenant-role/index.js";
-import { migrateTenantUserRoleModule, tenantUserRoleMigration } from "../tenant-user-role/index.js";
-import { migrateTenantUserModule, tenantUserMigration } from "../tenant-user/index.js";
+} from "../tenant-role-permission/tenant-role-permission.migration.js";
+import {
+  migrateTenantRoleModule,
+  tenantRoleMigration
+} from "../tenant-role/tenant-role.migration.js";
+import {
+  migrateTenantUserRoleModule,
+  tenantUserRoleMigration
+} from "../tenant-user-role/tenant-user-role.migration.js";
+import {
+  migrateTenantUserModule,
+  tenantUserMigration
+} from "../tenant-user/tenant-user.migration.js";
 
 export const tenantMigration = {
   key: "platform.tenant.foundation",

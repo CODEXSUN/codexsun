@@ -1,4 +1,4 @@
-import { StatusBadge } from "@codexsun/ui";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import type { AccessControlOverview } from "./access-control.types";
 
 export function AccessControlList({ data }: { data: AccessControlOverview }) {

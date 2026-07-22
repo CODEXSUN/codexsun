@@ -102,6 +102,15 @@ prepare_deploy_env() {
   set_env_value BILLING_STACK_API_IMAGE_TAG "$version"
   set_env_value BILLING_STACK_WEB_IMAGE_TAG "$version"
   set_env_value BILLING_STACK_MIGRATIONS_IMAGE_TAG "$version"
+  if [ "$(env_value PLATFORM_API_URL "")" = "http://codexsun-platform-api:7010" ]; then
+    set_env_value PLATFORM_API_URL "http://platform-api:7010"
+    echo "Updated the Billing API service hostname."
+  fi
+
+  # Published host ports may differ from the stable container ports when a
+  # native development runtime is running alongside Docker.
+  set_default_if_empty PLATFORM_API_HOST_PORT "$(env_value PLATFORM_API_PORT 7010)"
+  set_default_if_empty PLATFORM_WEB_HOST_PORT "$(env_value PLATFORM_WEB_PORT 7020)"
 
   for key in \
     DB_USER DB_PASSWORD DB_MASTER_NAME JWT_SECRET \
@@ -147,10 +156,11 @@ prepare_deploy_env() {
 
   if [ "$(env_value ENABLE_DEFAULT_TENANT_SEED 0)" = "1" ]; then
     set_default_if_empty DEFAULT_TENANT_CORPORATE_ID CODEXSUN
-    set_default_if_empty DEFAULT_TENANT_DB_NAME codexsun_tenant_codexsun
+    set_default_if_empty DEFAULT_TENANT_DB_NAME codexsun_db
     set_default_if_empty DEFAULT_TENANT_DOMAIN codexsun.localhost
     set_default_if_empty DEFAULT_TENANT_NAME Codexsun
     set_default_if_empty DEFAULT_TENANT_SLUG codexsun
+    set_default_if_empty DEFAULT_TENANTS_JSON '[{"corporateId":"CODEXSUN","databaseName":"codexsun_db","domain":"app.codexsun.com","name":"Codexsun","slug":"codexsun"},{"corporateId":"COTTON","databaseName":"codexsun_tenant_cotton","domain":"cotton.codexsun.com","name":"Cotton","slug":"cotton"},{"corporateId":"SUKRAA","databaseName":"codexsun_tenant_sukraa","domain":"sukraa.codexsun.com","name":"Sukraa","slug":"sukraa"},{"corporateId":"GANAPATHI","databaseName":"codexsun_tenant_ganapathi","domain":"ganapathi.codexsun.com","name":"Ganapathi","slug":"ganapathi"}]'
     set_default_if_empty DEFAULT_TENANT_ADMIN_NAME "$(env_value TENANT_ADMIN_NAME "$(env_value SUPER_ADMIN_NAME "CODEXSUN Admin")")"
     set_default_if_empty DEFAULT_TENANT_ADMIN_EMAIL "$(env_value TENANT_ADMIN_EMAIL "$(env_value SUPER_ADMIN_EMAIL "")")"
     set_default_if_empty DEFAULT_TENANT_ADMIN_PASSWORD "$(env_value TENANT_ADMIN_PASSWORD "$(env_value SUPER_ADMIN_PASSWORD "")")"
@@ -180,6 +190,15 @@ validate_deploy_env() {
         exit 78
       }
     done
+    DEFAULT_TENANTS_JSON="$(env_value DEFAULT_TENANTS_JSON "")" node -e '
+      const tenants = JSON.parse(process.env.DEFAULT_TENANTS_JSON || "[]");
+      if (!Array.isArray(tenants) || tenants.length === 0) process.exit(1);
+      for (const tenant of tenants) {
+        for (const key of ["corporateId", "databaseName", "domain", "name", "slug"])
+          if (typeof tenant[key] !== "string" || !tenant[key].trim()) process.exit(1);
+        if (!/^[A-Za-z0-9_]+$/.test(tenant.databaseName)) process.exit(1);
+      }
+    ' || { echo "DEFAULT_TENANTS_JSON is invalid." >&2; exit 78; }
   fi
 }
 
@@ -198,7 +217,8 @@ ensure_network() {
 ensure_media_volumes() {
   for volume in \
     "$(env_value MEDIA_DATA_VOLUME codexsun-media-data)" \
-    "$(env_value MEDIA_DB_VOLUME codexsun-media-db)"; do
+    "$(env_value MEDIA_DB_VOLUME codexsun-media-db)" \
+    "$(env_value MEDIA_CONFIG_VOLUME codexsun-media-config)"; do
     docker volume inspect "$volume" >/dev/null 2>&1 || docker volume create "$volume" >/dev/null
   done
 }

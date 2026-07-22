@@ -1,4 +1,4 @@
-import { StatusBadge } from "@codexsun/ui";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import type { TenantAccessSummary } from "./tenant-access.types";
 
 export function TenantAccessList({ records }: { records: TenantAccessSummary[] }) {

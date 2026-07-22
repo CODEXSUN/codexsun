@@ -14,8 +14,6 @@ COPY framework ./framework
 COPY core ./core
 COPY billing ./billing
 COPY mail ./mail
-COPY ecommerce ./ecommerce
-COPY sites ./sites
 COPY ui ./ui
 COPY codexsun ./codexsun
 
@@ -27,7 +25,8 @@ RUN rm -rf apps/platform/web/public/storage \
 
 ENV NODE_ENV=production
 
-RUN npm run build \
+RUN npm run build --prefix ../framework \
+  && npm run build --workspace @codexsun/platform-web \
   && npm run dependencies:check
 
 FROM nginx:1.28-alpine AS runtime

@@ -12,14 +12,22 @@ apply_grants() {
   fi
 }
 
-db_user=${CODEXSUN_DB_USER:-root}
+db_user=${CODEXSUN_DB_USER:-codexsun_app}
 db_password=${CODEXSUN_DB_PASSWORD:-${MARIADB_ROOT_PASSWORD}}
+if [[ "$db_user" == "root" ]]; then
+  echo "CODEXSUN_DB_USER must be a dedicated non-root account." >&2
+  exit 1
+fi
 escaped_user=$(printf '%s' "$db_user" | sed "s/'/''/g")
 escaped_password=$(printf '%s' "$db_password" | sed "s/'/''/g")
 
 apply_grants <<SQL
 CREATE USER IF NOT EXISTS '${escaped_user}'@'%' IDENTIFIED BY '${escaped_password}';
 ALTER USER '${escaped_user}'@'%' IDENTIFIED BY '${escaped_password}';
-GRANT ALL PRIVILEGES ON *.* TO '${escaped_user}'@'%' WITH GRANT OPTION;
+DROP USER IF EXISTS 'root'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, REFERENCES,
+  CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW,
+  CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER
+  ON *.* TO '${escaped_user}'@'%';
 FLUSH PRIVILEGES;
 SQL

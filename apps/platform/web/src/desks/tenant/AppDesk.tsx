@@ -10,16 +10,13 @@ import {
   UserRoundIcon
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ApplicationLayout,
-  Button,
-  Card,
-  GlobalLoader,
-  Label,
-  RadioGroup,
-  RadioGroupItem,
-  StatusBadge
-} from "@codexsun/ui";
+import { Button } from "@codexsun/ui/components/button";
+import { Card } from "@codexsun/ui/components/card";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
+import { Label } from "@codexsun/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@codexsun/ui/components/radio-group";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
+import { ApplicationLayout } from "@codexsun/ui/layouts/application-layout";
 import { AuthGate } from "../../shared/auth/AuthGate";
 import {
   appMenuItemsFor,
@@ -840,12 +837,7 @@ function LandingDesk({
         : appId === "mail"
           ? "Inbox, compose, scheduled delivery, sent history, failures, and mail settings."
           : "Shared workspace, company setup, roles, and cross-app launch desk.",
-    icon:
-      appId === "billing"
-        ? CreditCardIcon
-        : appId === "mail"
-          ? MailIcon
-          : LayoutDashboardIcon,
+    icon: appId === "billing" ? CreditCardIcon : appId === "mail" ? MailIcon : LayoutDashboardIcon,
     iconClass:
       appId === "billing"
         ? "bg-emerald-600 text-white"
@@ -853,12 +845,7 @@ function LandingDesk({
           ? "bg-sky-600 text-white"
           : "bg-slate-950 text-white",
     id: appId,
-    label:
-      appId === "billing"
-        ? "Billing"
-        : appId === "mail"
-          ? "Mail"
-          : "Application"
+    label: appId === "billing" ? "Billing" : appId === "mail" ? "Mail" : "Application"
   })) satisfies Array<{
     description: string;
     icon: typeof LayoutDashboardIcon;
@@ -1381,11 +1368,7 @@ function isAppRootPath() {
 function readPublishedLandingApp(): PlatformAppId | null {
   try {
     const stored = window.localStorage.getItem(LANDING_APP_STORAGE_KEY);
-    return stored === "application" ||
-      stored === "billing" ||
-      stored === "mail"
-      ? stored
-      : null;
+    return stored === "application" || stored === "billing" || stored === "mail" ? stored : null;
   } catch {
     return null;
   }

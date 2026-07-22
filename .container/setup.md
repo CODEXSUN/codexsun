@@ -2,17 +2,20 @@
 
 Last updated: 2026-07-21
 
-This document records the active deployment on `69.62.81.166`. Secrets and
+This document records the target deployment on `69.62.81.166`. Secrets and
 passwords are intentionally omitted. Runtime credentials are stored in the
 ignored `.env` and `.container/deploy.env` files, both with mode `0600`.
 
 ## Repository and runtime
 
-- Repository path: `/home/codexsun`
+- Workspace path: `/home/codexsun`
+- Platform repository: `/home/codexsun/codexsun`
+- Sibling repositories: `framework`, `ui`, `core`, `billing`, and `mail`
 - Branch: `main`
 - Docker network: `codexsun-network`
 - Runtime versions: Node.js `26.5.0` and npm `12.0.1` inside the application images
-- Deployment command: `bash .container/setup.sh billing`
+- First deployment command: `bash install.sh`
+- Update command: `bash install.sh update`
 
 The complete stack is deployed with persistent Docker volumes. MariaDB, Redis,
 FileBrowser, Platform API, and Platform Web use restart policies and health
@@ -21,17 +24,17 @@ runtime.
 
 ## Containers and host ports
 
-| Service | Container | Host binding |
-| --- | --- | --- |
-| MariaDB | `codexsun-mariadb` | `0.0.0.0:3307` |
-| Redis | `codexsun-redis` | `127.0.0.1:6379` |
-| Platform API | `codexsun-platform-api` | `127.0.0.1:7010` |
-| Platform Web | `codexsun-platform-web` | `127.0.0.1:7020` |
-| FileBrowser | `codexsun-media` | `127.0.0.1:7090` |
+| Service      | Container              | Host binding     |
+| ------------ | ---------------------- | ---------------- |
+| MariaDB      | `codexsun-mariadb`     | `127.0.0.1:3307` |
+| Redis        | `codexsun-redis`       | `127.0.0.1:6379` |
+| Platform API | `codexsun-billing-api` | `127.0.0.1:7010` |
+| Platform Web | `codexsun-billing-web` | `127.0.0.1:7020` |
+| FileBrowser  | `codexsun-media`       | `127.0.0.1:7090` |
 
-Traefik runs separately from `/docker/traefik`, listens on public ports 80 and
-443, redirects HTTP to HTTPS, and obtains certificates with the `letsencrypt`
-resolver.
+Traefik is managed by `.container/traefik/docker-compose.yml`, listens on public
+ports 80 and 443, redirects HTTP to HTTPS, and obtains certificates with the
+`letsencrypt` resolver.
 
 ## Public HTTPS routes
 
@@ -48,15 +51,15 @@ CORS allowlist. The former `sslip.io` routes and runtime values were removed.
 
 ## Databases and tenants
 
-The MariaDB application user is `root`; its password is stored only in the
+The MariaDB application user is `codexsun_app`; its password is stored only in the
 protected environment files. The master database is `cxsun_master_db`.
 
-| Tenant code | Primary domain | Database | Status |
-| --- | --- | --- | --- |
-| `CODEXSUN` | `codexsun.com` | `codexsun_db` | Active |
-| `SUKRAA` | `sukraa.codexsun.com` | `sukraa_db` | Active |
-| `COTTONKNIT` | `cotton.codexsun.com` | `cottonknit_db` | Active |
-| `GANAPATHI` | `ganapathi.codexsun.com` | `ganapathi_db` | Active |
+| Tenant code  | Primary domain           | Database        | Status |
+| ------------ | ------------------------ | --------------- | ------ |
+| `CODEXSUN`   | `codexsun.com`           | `codexsun_db`   | Active |
+| `SUKRAA`     | `sukraa.codexsun.com`    | `sukraa_db`     | Active |
+| `COTTONKNIT` | `cotton.codexsun.com`    | `cottonknit_db` | Active |
+| `GANAPATHI`  | `ganapathi.codexsun.com` | `ganapathi_db`  | Active |
 
 Each tenant database was provisioned with the repository-supported tenant
 workflow and seeded idempotently with Platform Application, Core/Billing, Mail,
@@ -84,12 +87,10 @@ UFW is enabled with default incoming traffic denied. The explicit incoming
 rules are:
 
 - TCP 22 for OpenSSH
-- TCP 3307 for remote MariaDB
 
-MariaDB is deliberately published on all interfaces and permits the configured
-root user from remote hosts. TCP 3307 is currently open from any source. For a
-production deployment, replace the global rule with source-IP-specific UFW
-rules and use a dedicated least-privilege database user.
+MariaDB binds to loopback by default and is not exposed through Traefik. If
+remote database administration is required, use an SSH tunnel instead of a
+public database port.
 
 ## Verification
 

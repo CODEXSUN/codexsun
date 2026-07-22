@@ -1,8 +1,10 @@
-import { GlobalLoader, StatusBadge } from "@codexsun/ui";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import { AppOrchestrationForm } from "./app-orchestration.form";
 import { useAppOperationsQuery } from "./app-orchestration.hooks";
-import { appOperationTones, AppServiceList } from "./app-orchestration.list";
+import { appOperationStatusTone, appOperationTone, AppServiceList } from "./app-orchestration.list";
 import type { OrchestratedAppId } from "./app-orchestration.types";
+
 export function AppOrchestrationWorkspace({
   appId,
   onBack
@@ -24,10 +26,12 @@ export function AppOrchestrationWorkspace({
         </div>
       </main>
     );
+
+  const tone = appOperationTone(app.id);
   return (
     <main className="mx-auto w-[calc(100%-2rem)] max-w-[92rem] space-y-5 py-5 lg:w-[calc(100%-3rem)]">
       <section
-        className={`relative overflow-hidden rounded-lg border bg-gradient-to-br p-6 shadow-sm ${appOperationTones[app.id].card}`}
+        className={`relative overflow-hidden rounded-lg border bg-gradient-to-br p-6 shadow-sm ${tone.card}`}
       >
         <span
           aria-hidden="true"
@@ -44,54 +48,72 @@ export function AppOrchestrationWorkspace({
             <h1 className="text-3xl font-semibold">{app.label} Operations</h1>
             <p className="mt-2 text-sm text-muted-foreground">{app.description}</p>
           </div>
-          <StatusBadge
-            tone={app.status === "online" ? "green" : app.status === "partial" ? "amber" : "red"}
-          >
-            {app.status}
-          </StatusBadge>
+          <StatusBadge tone={appOperationStatusTone(app.status)}>{app.status}</StatusBadge>
         </div>
         <div className="relative z-10 mt-5">
           <AppOrchestrationForm busy={query.isFetching} onRefresh={() => void query.refetch()} />
         </div>
       </section>
       <div className="grid gap-4 md:grid-cols-4">
-        <Metric
-          tone={appOperationTones[app.id].metric}
-          label="Services online"
-          value={`${app.services.filter((item) => item.online).length}/${app.services.length}`}
-        />
-        <Metric
-          tone={appOperationTones[app.id].metric}
-          label="Average response"
-          value={average(app)}
-        />
-        <Metric
-          tone={appOperationTones[app.id].metric}
-          label="Managed uptime"
-          value={app.uptimeSeconds === null ? "External" : formatDuration(app.uptimeSeconds)}
-        />
-        <Metric
-          tone={appOperationTones[app.id].metric}
-          label="Terminal PID"
-          value={app.terminalPid === null ? "—" : String(app.terminalPid)}
-        />
+        {app.kind === "runtime" ? (
+          <>
+            <Metric
+              tone={tone.metric}
+              label="Services online"
+              value={`${app.services.filter((item) => item.online).length}/${app.services.length}`}
+            />
+            <Metric tone={tone.metric} label="Average response" value={average(app)} />
+            <Metric
+              tone={tone.metric}
+              label="Managed uptime"
+              value={app.uptimeSeconds === null ? "External" : formatDuration(app.uptimeSeconds)}
+            />
+            <Metric
+              tone={tone.metric}
+              label="Terminal PID"
+              value={app.terminalPid === null ? "—" : String(app.terminalPid)}
+            />
+          </>
+        ) : (
+          <>
+            <Metric tone={tone.metric} label="Repository" value={app.packageName} compact />
+            <Metric tone={tone.metric} label="Components" value={String(app.components.length)} />
+            <Metric tone={tone.metric} label="Readiness" value={app.readiness} />
+            <Metric tone={tone.metric} label="Runtime" value="Platform" />
+          </>
+        )}
       </div>
       <AppServiceList app={app} />
       <section className="rounded-md border bg-card p-5 text-sm text-muted-foreground">
-        Platform is the only runtime. Core, Billing, Mail, Framework, and UI are composed workspace
-        packages and do not own standalone processes or ports.
+        {app.kind === "runtime"
+          ? "Platform is the only runtime. Application repositories contribute owned bundles without separate startup ports."
+          : app.readiness === "active"
+            ? `${app.label} is connected through its repository-owned public bundle and runs inside Platform.`
+            : `${app.label} is connected as an installable repository boundary. Runtime modules will remain owned here when they are added.`}
       </section>
     </main>
   );
 }
-function Metric({ label, tone, value }: { label: string; tone: string; value: string }) {
+
+function Metric({
+  compact = false,
+  label,
+  tone,
+  value
+}: {
+  compact?: boolean;
+  label: string;
+  tone: string;
+  value: string;
+}) {
   return (
     <div className={`min-h-28 rounded-lg border bg-gradient-to-br p-5 shadow-sm ${tone}`}>
       <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
-      <div className="mt-3 text-2xl font-semibold">{value}</div>
+      <div className={`mt-3 font-semibold ${compact ? "text-base" : "text-2xl"}`}>{value}</div>
     </div>
   );
 }
+
 function average(app: { services: Array<{ responseMs: number | null }> }) {
   const values = app.services.flatMap((item) =>
     item.responseMs === null ? [] : [item.responseMs]
@@ -100,6 +122,7 @@ function average(app: { services: Array<{ responseMs: number | null }> }) {
     ? `${Math.round(values.reduce((a, b) => a + b, 0) / values.length)} ms`
     : "—";
 }
+
 function formatDuration(seconds: number) {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);

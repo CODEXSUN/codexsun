@@ -17,8 +17,6 @@ Actions:
   --reinstall  Replace only the selected stack's containers/images, rebuild
                without cache, migrate, and start. Named volumes are preserved.
   build        Build the selected stack images locally.
-  publish      Build and push versioned images to CODEXSUN_IMAGE_REGISTRY.
-  upgrade      Pull versioned images, migrate, and recreate only app containers.
   migrate      Run safe forward migrations and print migration state.
   ps           Show the selected stack containers.
   logs         Follow the selected stack logs.
@@ -36,7 +34,7 @@ case "$STACK" in
 esac
 
 case "$ACTION" in
-  up|--reinstall|build|publish|upgrade|migrate|ps|logs|down) ;;
+  up|--reinstall|build|migrate|ps|logs|down) ;;
   -h|--help) usage; exit 0 ;;
   *) usage >&2; exit 64 ;;
 esac
@@ -114,11 +112,6 @@ build_stack() {
   compose_all build "$@"
 }
 
-publish_stack() {
-  build_stack --pull
-  compose_all push
-}
-
 migration_service() {
   case "$STACK" in
     billing) printf '%s' platform-migrate ;;
@@ -156,21 +149,10 @@ reinstall_stack() {
   start_stack
 }
 
-upgrade_stack() {
-  require_stack_dependencies
-  registry=${CODEXSUN_IMAGE_REGISTRY:-$(env_value CODEXSUN_IMAGE_REGISTRY codexsun)}
-  echo "Pulling the versioned $STACK release from $registry."
-  compose_all pull
-  migrate_stack
-  start_stack
-}
-
 case "$ACTION" in
   up) up_stack ;;
   --reinstall) reinstall_stack ;;
   build) build_stack ;;
-  publish) publish_stack ;;
-  upgrade) upgrade_stack ;;
   migrate) migrate_stack ;;
   ps) compose_stack ps ;;
   logs) compose_stack logs -f --tail=150 ;;

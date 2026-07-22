@@ -1,14 +1,36 @@
 import { createConnection } from "node:net";
+import { billingApplication } from "@codexsun/billing-api";
+import { mailApplication } from "@codexsun/mail-api";
 import { env } from "../../env.js";
-import type { OrchestratedApp, OrchestratedService } from "./app-orchestration.types.js";
+import type {
+  OrchestratedApp,
+  OrchestratedAppReadiness,
+  OrchestratedComponent,
+  OrchestratedService
+} from "./app-orchestration.types.js";
+
+type ApplicationBundle = {
+  components: readonly OrchestratedComponent[];
+  description: string;
+  id: string;
+  label: string;
+  packageName: string;
+  readiness: Exclude<OrchestratedAppReadiness, "runtime">;
+};
+
+const applicationBundles = [billingApplication, mailApplication] satisfies readonly ApplicationBundle[];
 
 const apiUrl = new URL(env.PLATFORM_API_URL);
-const webUrl = new URL(env.PLATFORM_WEB_ORIGIN);
+const webUrl = new URL(env.PLATFORM_WEB_HEALTH_URL || env.PLATFORM_WEB_ORIGIN);
 const platformDefinition = {
+  components: [],
+  description: "The CODEXSUN runtime that composes repository-owned application bundles.",
   id: "platform",
+  kind: "runtime",
   label: "Platform",
-  description: "The single CODEXSUN runtime with composed Core, Billing, and Mail packages.",
   managed: false,
+  packageName: "codexsun",
+  readiness: "runtime",
   services: [
     { id: "api", label: "API", host: apiUrl.hostname, port: env.PLATFORM_API_PORT },
     {
@@ -22,23 +44,39 @@ const platformDefinition = {
 
 export class AppOrchestrationRepository {
   definition(id: string) {
-    return id === platformDefinition.id ? platformDefinition : null;
+    if (id === platformDefinition.id) return platformDefinition;
+    return applicationBundles.find((bundle) => bundle.id === id) ?? null;
   }
 
   async list(): Promise<OrchestratedApp[]> {
     const services = await Promise.all(platformDefinition.services.map(probe));
     const online = services.filter((item) => item.online).length;
-    return [
-      {
-        ...platformDefinition,
-        lastAction: null,
-        services,
-        status: online === 0 ? "offline" : online === services.length ? "online" : "partial",
-        terminalPid: null,
-        uptimeSeconds: null
-      }
-    ];
+    const platform: OrchestratedApp = {
+      ...platformDefinition,
+      components: [],
+      lastAction: null,
+      services,
+      status: online === 0 ? "offline" : online === services.length ? "online" : "partial",
+      terminalPid: null,
+      uptimeSeconds: null
+    };
+
+    return [platform, ...applicationBundles.map(toOrchestratedBundle)];
   }
+}
+
+function toOrchestratedBundle(bundle: ApplicationBundle): OrchestratedApp {
+  return {
+    ...bundle,
+    components: [...bundle.components],
+    kind: "bundle",
+    lastAction: null,
+    managed: false,
+    services: [],
+    status: "connected",
+    terminalPid: null,
+    uptimeSeconds: null
+  };
 }
 
 async function probe(

@@ -1,2 +1,2 @@
 import { z } from "zod";
-export const orchestratedAppIdSchema = z.enum(["platform", "core", "billing"]);
+export const orchestratedAppIdSchema = z.string().trim().min(1);

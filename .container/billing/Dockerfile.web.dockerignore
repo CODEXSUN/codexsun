@@ -11,7 +11,10 @@
 **/dist
 **/dist-types
 **/coverage
-**/storage
+# Exclude runtime storage only. Framework owns source contracts under
+# framework/src/storage and those must remain in the build context.
+codexsun/storage
+codexsun/apps/platform/web/public/storage
 **/*.log
 **/*.tsbuildinfo
 **/.env

@@ -14,6 +14,7 @@ x-api-env: &api-env
   JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
   PLATFORM_WEB_ORIGIN: ${PLATFORM_WEB_ORIGIN:?PLATFORM_WEB_ORIGIN is required}
   PLATFORM_WEB_ORIGINS: ${PLATFORM_WEB_ORIGINS:-}
+  PLATFORM_WEB_HEALTH_URL: http://platform-web:80
   PLATFORM_WEB_PORT: ${PLATFORM_WEB_PORT:?PLATFORM_WEB_PORT is required}
   PLATFORM_API_URL: ${PLATFORM_API_URL:?PLATFORM_API_URL is required}
   CODEXSUN_QUEUE_BACKEND: ${CODEXSUN_QUEUE_BACKEND:-bullmq-redis}
@@ -40,6 +41,7 @@ x-api-env: &api-env
   DEFAULT_TENANT_DOMAIN: ${DEFAULT_TENANT_DOMAIN:-localhost}
   DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-}
   DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-}
+  DEFAULT_TENANTS_JSON: ${DEFAULT_TENANTS_JSON:-}
   DEFAULT_TENANT_ADMIN_NAME: ${DEFAULT_TENANT_ADMIN_NAME:-}
   DEFAULT_TENANT_ADMIN_EMAIL: ${DEFAULT_TENANT_ADMIN_EMAIL:-}
   DEFAULT_TENANT_ADMIN_PASSWORD: ${DEFAULT_TENANT_ADMIN_PASSWORD:-}
@@ -108,7 +110,7 @@ services:
         NODE_RUNTIME_VERSION: ${NODE_RUNTIME_VERSION:-26.5.0}
         NPM_RUNTIME_VERSION: ${NPM_RUNTIME_VERSION:-12.0.1}
         PLATFORM_API_PORT: ${PLATFORM_API_PORT:?PLATFORM_API_PORT is required}
-    container_name: codexsun-platform-api
+    container_name: codexsun-billing-api
     depends_on:
       storage-init:
         condition: service_completed_successfully
@@ -116,7 +118,7 @@ services:
       <<: *api-env
       HEALTH_PORT: ${PLATFORM_API_PORT:?PLATFORM_API_PORT is required}
     ports:
-      - "${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}:${PLATFORM_API_PORT}:${PLATFORM_API_PORT}"
+      - "${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}:${PLATFORM_API_HOST_PORT:?PLATFORM_API_HOST_PORT is required}:${PLATFORM_API_PORT}"
 
   platform-web:
     <<: *web-service
@@ -129,27 +131,24 @@ services:
         NPM_RUNTIME_VERSION: ${NPM_RUNTIME_VERSION:-12.0.1}
         DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-Codexsun}
         DEV_AUTO_TENANT_LOGIN: ${DEV_AUTO_TENANT_LOGIN:-0}
-    container_name: codexsun-platform-web
+    container_name: codexsun-billing-web
     depends_on:
       platform-api:
         condition: service_healthy
     ports:
-      - "${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}:${PLATFORM_WEB_PORT:?PLATFORM_WEB_PORT is required}:80"
+      - "${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}:${PLATFORM_WEB_HOST_PORT:?PLATFORM_WEB_HOST_PORT is required}:80"
     labels:
       traefik.enable: "true"
+      traefik.docker.network: ${CODEXSUN_DOCKER_NETWORK:-codexsun-network}
       traefik.http.routers.codexsun-web.rule: "Host(`${CODEXSUN_WEB_HOST:?CODEXSUN_WEB_HOST is required}`) || Host(`${CODEXSUN_TENANT_HOST_SUKRAA:?CODEXSUN_TENANT_HOST_SUKRAA is required}`) || Host(`${CODEXSUN_TENANT_HOST_COTTON:?CODEXSUN_TENANT_HOST_COTTON is required}`) || Host(`${CODEXSUN_TENANT_HOST_GANAPATHI:?CODEXSUN_TENANT_HOST_GANAPATHI is required}`)"
       traefik.http.routers.codexsun-web.entrypoints: websecure
       traefik.http.routers.codexsun-web.tls: "true"
       traefik.http.routers.codexsun-web.tls.certresolver: letsencrypt
+      traefik.http.routers.codexsun-web.middlewares: codexsun-security-headers
       traefik.http.services.codexsun-web.loadbalancer.server.port: "80"
-      traefik.http.routers.codexsun-web-www.rule: "Host(`${CODEXSUN_WEB_HOST_ALT:?CODEXSUN_WEB_HOST_ALT is required}`)"
-      traefik.http.routers.codexsun-web-www.entrypoints: websecure
-      traefik.http.routers.codexsun-web-www.tls: "true"
-      traefik.http.routers.codexsun-web-www.tls.certresolver: letsencrypt
-      traefik.http.routers.codexsun-web-www.middlewares: codexsun-www-redirect
-      traefik.http.middlewares.codexsun-www-redirect.redirectregex.regex: "^https://www\\.codexsun\\.com/(.*)"
-      traefik.http.middlewares.codexsun-www-redirect.redirectregex.replacement: "https://codexsun.com/$${1}"
-      traefik.http.middlewares.codexsun-www-redirect.redirectregex.permanent: "true"
+      traefik.http.middlewares.codexsun-security-headers.headers.stsseconds: "31536000"
+      traefik.http.middlewares.codexsun-security-headers.headers.stsincludesubdomains: "true"
+      traefik.http.middlewares.codexsun-security-headers.headers.stspreload: "true"
 
   platform-migrate:
     build:

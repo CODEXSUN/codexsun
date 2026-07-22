@@ -8,8 +8,6 @@ COPY framework ./framework
 COPY core ./core
 COPY billing ./billing
 COPY mail ./mail
-COPY ecommerce ./ecommerce
-COPY sites ./sites
 COPY ui ./ui
 COPY codexsun ./codexsun
 
@@ -58,7 +56,10 @@ COPY --from=production-dependencies /workspace/mail /workspace/mail
 COPY --from=production-dependencies /workspace/codexsun /workspace/codexsun
 COPY codexsun/.container/scripts/api-entrypoint.sh /usr/local/bin/codexsun-api-entrypoint
 
-RUN sed -i 's#\./src/index\.ts#./dist/index.js#g; s#\./src/modules/mail/index\.ts#./dist/modules/mail/index.js#g' \
+RUN cp -a /workspace/core/dist/api /workspace/core/api/dist \
+  && cp -a /workspace/billing/dist/api /workspace/billing/api/dist \
+  && cp -a /workspace/mail/dist/api /workspace/mail/api/dist \
+  && sed -i 's#\./src/index\.ts#./dist/index.js#g; s#\./src/modules/mail/index\.ts#./dist/modules/mail/index.js#g' \
       /workspace/core/api/package.json \
       /workspace/billing/api/package.json \
       /workspace/mail/api/package.json \

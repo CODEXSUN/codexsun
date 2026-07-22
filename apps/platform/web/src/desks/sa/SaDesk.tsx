@@ -300,7 +300,7 @@ function pageFromUrl(): SaPage {
 }
 
 function appIdFromUrl(): OrchestratedAppId {
-  return "platform";
+  return new URLSearchParams(window.location.search).get("app") ?? "platform";
 }
 
 function SaOverview({ onOpenApp }: { onOpenApp: (appId: OrchestratedAppId) => void }) {
@@ -313,7 +313,7 @@ function SaOverview({ onOpenApp }: { onOpenApp: (appId: OrchestratedAppId) => vo
         </p>
         <h1 className="mt-1 text-2xl font-semibold">Apps</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Live state for the single Platform runtime and its composed workspace packages.
+          Platform runtime health and connected repository-owned application bundles.
         </p>
       </section>
       {apps.error ? (

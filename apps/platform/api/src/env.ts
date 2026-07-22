@@ -9,6 +9,9 @@ const envSchema = z.object({
   PLATFORM_WEB_PORT: z.coerce.number().int().positive().default(7020),
   PLATFORM_WEB_ORIGIN: z.string().url("PLATFORM_WEB_ORIGIN must be a valid URL"),
   PLATFORM_WEB_ORIGINS: z.string().default(""),
+  PLATFORM_WEB_HEALTH_URL: z
+    .union([z.literal(""), z.string().url("PLATFORM_WEB_HEALTH_URL must be a valid URL")])
+    .default(""),
   DB_HOST: z.string().default("127.0.0.1"),
   DB_PORT: z.coerce.number().int().positive(),
   DB_USER: z.string().min(1, "DB_USER is required"),
@@ -49,6 +52,7 @@ const envSchema = z.object({
   DEFAULT_TENANT_DOMAIN: z.string().default("localhost"),
   DEFAULT_TENANT_NAME: z.string().default(""),
   DEFAULT_TENANT_SLUG: z.string().default(""),
+  DEFAULT_TENANTS_JSON: z.string().default(""),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
   SOFTWARE_ADMIN_EMAIL: z.string().default(""),
   SOFTWARE_ADMIN_NAME: z.string().default(""),

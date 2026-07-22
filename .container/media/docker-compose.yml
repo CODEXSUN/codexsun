@@ -25,6 +25,7 @@ services:
       - "${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}:${MEDIA_HOST_PORT:?MEDIA_HOST_PORT is required}:80"
     labels:
       traefik.enable: "true"
+      traefik.docker.network: ${CODEXSUN_DOCKER_NETWORK:-codexsun-network}
       traefik.http.routers.codexsun-media.rule: "Host(`${CODEXSUN_MEDIA_HOST:?CODEXSUN_MEDIA_HOST is required}`)"
       traefik.http.routers.codexsun-media.entrypoints: websecure
       traefik.http.routers.codexsun-media.tls: "true"
@@ -33,6 +34,7 @@ services:
     volumes:
       - media-data:/srv
       - media-db:/database
+      - media-config:/config
     networks:
       - codexsun-network
     healthcheck:
@@ -48,6 +50,9 @@ volumes:
     external: true
   media-db:
     name: ${MEDIA_DB_VOLUME:-codexsun-media-db}
+    external: true
+  media-config:
+    name: ${MEDIA_CONFIG_VOLUME:-codexsun-media-config}
     external: true
 
 networks:

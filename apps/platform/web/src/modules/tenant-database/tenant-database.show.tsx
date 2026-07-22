@@ -7,7 +7,8 @@ import {
   RotateCcwIcon,
   UploadIcon
 } from "lucide-react";
-import { GlobalLoader, StatusBadge } from "@codexsun/ui";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import { Button } from "@codexsun/ui/components/button";
 import {
   WorkspaceAnimatedTabs,

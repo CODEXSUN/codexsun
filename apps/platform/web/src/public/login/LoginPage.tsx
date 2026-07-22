@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { AuthLayout, Button, Field } from "@codexsun/ui";
+import { Button } from "@codexsun/ui/components/button";
+import { Field } from "@codexsun/ui/components/Field";
+import { AuthLayout } from "@codexsun/ui/layouts/auth-layout";
 import { LogIn } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { developmentTenantLogin, type Desk, login } from "../../shared/api/platform-api";

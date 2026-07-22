@@ -24,11 +24,11 @@ import {
   tenantStorageRoot
 } from "../storage-manager/storage-manager.paths.js";
 import type { Tenant, TenantSavePayload } from "./tenant.types.js";
-import { seedTenantPermissionModule } from "../tenant-permission/index.js";
-import { seedTenantRolePermissionModule } from "../tenant-role-permission/index.js";
-import { seedTenantRoleModule } from "../tenant-role/index.js";
-import { seedTenantUserRoleModule } from "../tenant-user-role/index.js";
-import { seedTenantUserModule } from "../tenant-user/index.js";
+import { seedTenantPermissionModule } from "../tenant-permission/tenant-permission.seed.js";
+import { seedTenantRolePermissionModule } from "../tenant-role-permission/tenant-role-permission.seed.js";
+import { seedTenantRoleModule } from "../tenant-role/tenant-role.seed.js";
+import { seedTenantUserRoleModule } from "../tenant-user-role/tenant-user-role.seed.js";
+import { seedTenantUserModule } from "../tenant-user/tenant-user.seed.js";
 
 export const tenantSeed = {
   records: []
@@ -98,7 +98,13 @@ export async function seedDefaultTenant() {
     return null;
   }
 
-  const input = defaultTenant();
+  const inputs = defaultTenants();
+  const seeded: Tenant[] = [];
+  for (const input of inputs) seeded.push(await seedOneDefaultTenant(input));
+  return seeded[0] ?? null;
+}
+
+async function seedOneDefaultTenant(input: TenantSavePayload) {
   console.info(`[seeder] default tenant seed started for "${input.tenantCode}"`);
   const repository = new TenantRepository();
   const existing = await repository.findByIdOrCode(input.tenantCode);
@@ -168,13 +174,60 @@ export async function seedTenantRuntimeModule(database: Kysely<TenantDatabase>, 
   console.info(`[seeder] tenant runtime seed completed for "${tenant.tenantCode}"`);
 }
 
-function defaultTenant(): TenantSavePayload {
-  const tenantCode = requiredSeedValue("DEFAULT_TENANT_CORPORATE_ID").toUpperCase();
-  const slug = normalizeSlug(requiredSeedValue("DEFAULT_TENANT_SLUG"));
+type DefaultTenantDefinition = {
+  corporateId: string;
+  databaseName: string;
+  domain: string;
+  name: string;
+  slug: string;
+};
+
+function defaultTenants() {
+  const configured = env.DEFAULT_TENANTS_JSON.trim();
+  if (!configured) {
+    return [
+      defaultTenant({
+        corporateId: requiredSeedValue("DEFAULT_TENANT_CORPORATE_ID"),
+        databaseName: requiredSeedValue("DEFAULT_TENANT_DB_NAME"),
+        domain: env.DEFAULT_TENANT_DOMAIN,
+        name: requiredSeedValue("DEFAULT_TENANT_NAME"),
+        slug: requiredSeedValue("DEFAULT_TENANT_SLUG")
+      })
+    ];
+  }
+
+  const parsed: unknown = JSON.parse(configured);
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error("DEFAULT_TENANTS_JSON must be a non-empty JSON array.");
+  }
+  return parsed.map((value, index) => defaultTenant(parseDefaultTenant(value, index)));
+}
+
+function parseDefaultTenant(value: unknown, index: number): DefaultTenantDefinition {
+  if (!isRecord(value)) throw new Error(`DEFAULT_TENANTS_JSON[${index}] must be an object.`);
+  const definition = {
+    corporateId: stringValue(value.corporateId),
+    databaseName: stringValue(value.databaseName),
+    domain: stringValue(value.domain),
+    name: stringValue(value.name),
+    slug: stringValue(value.slug)
+  };
+  if (Object.values(definition).some((item) => !item)) {
+    throw new Error(`DEFAULT_TENANTS_JSON[${index}] has missing fields.`);
+  }
+  if (!/^[A-Za-z0-9_]+$/u.test(definition.databaseName)) {
+    throw new Error(`DEFAULT_TENANTS_JSON[${index}].databaseName is unsafe.`);
+  }
+  return definition;
+}
+
+function defaultTenant(definition: DefaultTenantDefinition): TenantSavePayload {
+  const tenantCode = definition.corporateId.toUpperCase();
+  const slug = normalizeSlug(definition.slug);
   return {
     corporateId: tenantCode,
     dbHost: env.DB_HOST,
-    dbName: requiredSeedValue("DEFAULT_TENANT_DB_NAME"),
+    dbName: definition.databaseName,
     dbPort: env.DB_PORT,
     dbSecretRef: "DB_PASSWORD",
     dbType: env.DB_DRIVER,
@@ -195,14 +248,14 @@ function defaultTenant(): TenantSavePayload {
         tenantCode
       }
     },
-    primaryDomain: defaultTenantDomain(),
+    primaryDomain: defaultTenantDomain(definition.domain),
     slug,
     status: "active",
     storagePrivateRoot: tenantPrivateStorageRoot(slug),
     storagePublicRoot: tenantPublicStorageRoot(slug),
     storageRoot: tenantStorageRoot(slug),
     tenantCode,
-    tenantName: requiredSeedValue("DEFAULT_TENANT_NAME"),
+    tenantName: definition.name,
     uuid: stableUuid(tenantCode)
   };
 }
@@ -304,8 +357,8 @@ async function seedDefaultTenantSubscription(tenant: Tenant) {
   );
 }
 
-function defaultTenantDomain() {
-  const domain = normalizeTenantDomain(env.DEFAULT_TENANT_DOMAIN || "localhost");
+function defaultTenantDomain(value: string) {
+  const domain = normalizeTenantDomain(value || "localhost");
   if (!domain) {
     throw new Error(
       "DEFAULT_TENANT_DOMAIN must resolve to a non-empty domain when ENABLE_DEFAULT_TENANT_SEED=1."
@@ -313,6 +366,10 @@ function defaultTenantDomain() {
   }
 
   return domain;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function requiredSeedValue(
