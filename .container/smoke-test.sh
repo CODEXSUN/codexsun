@@ -76,7 +76,7 @@ docker exec codexsun-billing-api node --input-type=module -e '
   }
   const apps = await request("/admin/app-operations", { headers });
   const ids = apps.map((app) => app.id).sort().join(",");
-  if (ids !== "billing,mail,platform") {
+  if (ids !== "billing,cms,mail,platform") {
     throw new Error(`Unexpected App Operations bundles: ${ids}`);
   }
   const platform = apps.find((app) => app.id === "platform");

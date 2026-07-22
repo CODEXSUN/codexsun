@@ -22,6 +22,20 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.0.47
 
+### [v 1.0.47] 2026-07-22 8:11 pm - Correct Billing CMS rollout smoke validation
+
+#### Database Changes
+
+- Database update: Safe forward Billing migration applied during the verified 1.0.47 rollout; no
+  reset, drop, or shared-infrastructure change was performed.
+
+#### App Codebase Changes
+
+- Updated the Billing smoke-test App Operations bundle assertion to include the composed CMS
+  catalogue, allowing the 1.0.47 Billing rollout to verify `billing,cms,mail,platform` correctly.
+- Verified the resulting Billing API and Web containers are healthy on 1.0.47 while MariaDB, Redis,
+  Media, and their persistent volumes retained their original identities.
+
 ### [v 1.0.47] 2026-07-22 7:47 pm - Add CMS catalogue source to Billing build composition
 
 #### Database Changes

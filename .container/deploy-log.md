@@ -29,6 +29,67 @@ values. A failed or blocked result remains in history and must not be rewritten 
 
 ## v-1.0.47
 
+### [v 1.0.47] 2026-07-22 20:11 UTC - Successful Billing 1.0.47 rollout
+
+#### Deployment
+
+- Environment: existing VPS Billing deployment at `/home/codexsun`.
+- Action: coordinated current-source preflight, Billing image build, approved safe forward migration,
+  Billing API/Web replacement, and smoke verification.
+- Result: successful.
+- Operator or agent: Codex.
+- Verified backup: non-empty configured marker verified; fresh/reset flags remained disabled.
+
+#### Repository revisions
+
+| Repository | Before | After | Branch | Clean before update |
+| ---------- | ------ | ----- | ------ | ------------------- |
+| codexsun   | 36b2b23 | 36b2b23 | main | Yes |
+| framework  | 9689834 | 9689834 | main | Yes |
+| ui         | d2e0d0a | d2e0d0a | main | Yes |
+| sites      | 5c2c944 | 5c2c944 | main | Yes |
+| cms        | 57e0e60 | 57e0e60 | main | Yes |
+| core       | 41740df | 41740df | main | Yes |
+| billing    | c6f598b | c6f598b | main | Yes |
+| mail       | 46f98cd | 46f98cd | main | Yes |
+
+#### Commands executed
+
+```text
+git fetch origin main                         # every Billing build repository
+CODEXSUN_DEPLOY_ENV=/home/codexsun/.container/vps.env bash .container/deploy.sh billing up
+CODEXSUN_DEPLOY_ENV=/home/codexsun/.container/vps.env bash .container/smoke-test.sh
+docker compose --env-file .container/vps.env -f .container/billing/docker-compose.yml ps
+```
+
+#### Migration and rollout results
+
+- The approved forward migration completed before Billing container replacement; no reset, drop,
+  shared-infrastructure change, or destructive database command was used.
+- Billing API: `codexsun/billing-stack-api:1.0.47` image `eff037362574`, container
+  `d0deb0384756`, healthy.
+- Billing Web: `codexsun/billing-stack-web:1.0.47` image `7ff0c6cddef6`, container
+  `1e43d1f856a8`, healthy. Migration image: `b0d09f561e6e`.
+- Updated the smoke-test App Operations expectation from `billing,mail,platform` to
+  `billing,cms,mail,platform`; the CMS catalogue is now correctly registered by the composed
+  Platform API.
+- Smoke test passed for API/Web, Media, authenticated Redis, MariaDB, Platform master database,
+  Super Admin session/App Operations, and all seeded Billing/Mail tenant databases.
+- Shared infrastructure preservation: MariaDB `eaee0f844524`, Redis `d600592c73ed`, and Media
+  `e8fd8814bede` remained healthy; the `codexsun-mariadb-data`, `codexsun-redis-data`, and
+  `codexsun-media-data` volumes retained their original identities.
+
+#### Warnings and follow-up
+
+- A first rollout invocation without `CODEXSUN_DEPLOY_ENV` stopped before Docker because it created
+  a local ignored `.container/deploy.env` without the required default tenant administrator setting.
+  The successful rollout explicitly used the existing protected `.container/vps.env`.
+- MariaDB client smoke checks emit the existing passwordless-SSL verification warning; all database
+  checks passed. Review client TLS settings separately if strict server-certificate verification is
+  required.
+
+## v-1.0.47
+
 ### [v 1.0.47] 2026-07-22 19:47 UTC - Blocked Billing rollout: database migration not authorized
 
 #### Deployment
