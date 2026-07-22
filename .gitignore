@@ -141,3 +141,16 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local IDE and agent state
+/.idea/
+/.agents/
+/agents/
+/.agent/
+/agent/
+/.codex/
+/.codex-runtime/
+
+# Runtime and build artifacts
+/.turbo/
+/storage/

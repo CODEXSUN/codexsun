@@ -1,0 +1,55 @@
+name: Deploy CODEXSUN
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      PLATFORM_API_PORT: 7010
+      PLATFORM_WEB_PORT: 7020
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: codexsun
+      DB_PASSWORD: build-placeholder
+      DB_MASTER_NAME: codexsun_master
+      JWT_SECRET: build-placeholder
+      CODEXSUN_REDIS_URL: redis://127.0.0.1:6379
+      CODEXSUN_QUEUE_BACKEND: bullmq-redis
+      PLATFORM_WEB_ORIGIN: http://localhost:7020
+      PLATFORM_API_URL: http://localhost:7010
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26.5.0
+          cache: npm
+      - run: npm ci
+      - run: npm run check:module-boundaries
+      - run: npm run typecheck
+      - run: npm run build
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CODEXSUN_DEPLOY_HOST }}
+          username: ${{ secrets.CODEXSUN_DEPLOY_USER }}
+          key: ${{ secrets.CODEXSUN_DEPLOY_KEY }}
+          script_stop: true
+          script: |
+            cd "${{ secrets.CODEXSUN_DEPLOY_PATH }}"
+            test -z "$(git status --porcelain --untracked-files=no)" || {
+              echo "Tracked server changes detected; refusing to overwrite them."
+              exit 1
+            }
+            git pull --ff-only origin main
+            bash .container/setup.sh
