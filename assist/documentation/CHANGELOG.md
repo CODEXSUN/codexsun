@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.44
+Current version: 1.0.45
 
-Release tag: v-1.0.44
+Release tag: v-1.0.45
 
-Changelog label: v 1.0.44
+Changelog label: v 1.0.45
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,24 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.45
+
+### [v 1.0.45] 2026-07-22 11:19 pm - Move Platform under src and restore shared notifications
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Moved the Platform API and Web workspaces from `apps/platform` to `src/platform` and rewired
+  workspace scripts, build output, checks, documentation, and Billing container paths.
+- Routed Platform notification calls through the UI-owned Sonner export so toast producers and the
+  mounted toaster share one runtime instance.
+- Kept the global toaster mounted outside route Suspense and restored bottom-right notification
+  delivery across composed applications.
+- Bumped repository version to 1.0.45.
 
 ## v-1.0.44
 

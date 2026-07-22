@@ -9,8 +9,8 @@ boundaries are ownership boundaries, not folders that may be crossed for conveni
 
 ```text
 codexsun/
-  apps/platform/api/     # executable API, auth, tenant context, Platform modules, DB composition
-  apps/platform/web/     # executable React shell, desks, routing, navigation composition
+  src/platform/api/      # executable API, auth, tenant context, Platform modules, DB composition
+  src/platform/web/      # executable React shell, desks, routing, navigation composition
   tools/                 # stack, database, boundary, version, and release tooling
 ```
 

@@ -67,19 +67,19 @@ assertOrdered("../billing/api/src/database/billing-database.ts", [
   "seedReceiptModule(",
   "seedDashboardModule("
 ]);
-assertOrdered("apps/platform/api/src/modules/tenant/tenant.seed.ts", [
+assertOrdered("src/platform/api/src/modules/tenant/tenant.seed.ts", [
   "seedTenantRoleModule(",
   "seedTenantPermissionModule(",
   "seedTenantUserModule(",
   "seedTenantUserRoleModule(",
   "seedTenantRolePermissionModule("
 ]);
-assertOrdered("apps/platform/api/src/database/tenant-app-database.ts", [
+assertOrdered("src/platform/api/src/database/tenant-app-database.ts", [
   "migrateCoreTenantDatabase(",
   "migrateBillingTenantDatabase(",
   "migrateMailModule("
 ]);
-assertOrdered("apps/platform/api/src/database/tenant-app-database.ts", [
+assertOrdered("src/platform/api/src/database/tenant-app-database.ts", [
   "seedCoreTenantDatabase(",
   "seedBillingTenantDatabase(",
   "seedMailModule("

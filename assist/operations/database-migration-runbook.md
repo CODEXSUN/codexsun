@@ -60,7 +60,7 @@ Database installation, migration, seeding, tenant setup, and tenant reinstall us
 All module SQL and seed behavior remains in the owning repository and leaf module's
 `*.migration.ts` and `*.seed.ts` files:
 
-- Platform master and tenant runtime: `apps/platform/api/src/modules/`
+- Platform master and tenant runtime: `src/platform/api/src/modules/`
 - Core tenant business data: `../core/api/src/modules/`
 - Billing tenant business data: `../billing/api/src/modules/`
 - Mail tenant data: `../mail/api/src/modules/mail/`

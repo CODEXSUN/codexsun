@@ -44,9 +44,9 @@ RUN npm install --global npm@${NPM_RUNTIME_VERSION} \
   && apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates mariadb-client \
   && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p /storage /workspace/codexsun/apps/platform/web/public \
+  && mkdir -p /storage /workspace/codexsun/src/platform/web/public \
   && ln -s /storage/tenants /workspace/codexsun/storage \
-  && ln -s /storage/app/public /workspace/codexsun/apps/platform/web/public/storage \
+  && ln -s /storage/app/public /workspace/codexsun/src/platform/web/public/storage \
   && chown -R node:node /storage /workspace
 
 COPY --from=production-dependencies /workspace/framework /workspace/framework

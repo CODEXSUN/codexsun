@@ -9,14 +9,14 @@ Last reviewed: 2026-07-22.
 
 ## Active Repositories
 
-| Repository | Package | Nature | Runtime role |
-| --- | --- | --- | --- |
-| `codexsun` | `codexsun` | Executable Platform and composition root | Platform API and Platform Web |
-| `framework` | `@codexsun/framework` | Backend infrastructure and stable contracts | Linked library; no business tables |
-| `ui` | `@codexsun/ui` | Presentation primitives | Linked library; no business ownership |
-| `core` | `@codexsun/core` | Common, organisation, and master foundation | API and Web packages composed into Platform |
-| `billing` | `@codexsun/billing` | Billing and financial documents | API and Web packages composed into Platform |
-| `mail` | `@codexsun/mail` | Mail delivery and synchronization | API and Web packages composed into Platform |
+| Repository  | Package               | Nature                                      | Runtime role                                |
+| ----------- | --------------------- | ------------------------------------------- | ------------------------------------------- |
+| `codexsun`  | `codexsun`            | Executable Platform and composition root    | Platform API and Platform Web               |
+| `framework` | `@codexsun/framework` | Backend infrastructure and stable contracts | Linked library; no business tables          |
+| `ui`        | `@codexsun/ui`        | Presentation primitives                     | Linked library; no business ownership       |
+| `core`      | `@codexsun/core`      | Common, organisation, and master foundation | API and Web packages composed into Platform |
+| `billing`   | `@codexsun/billing`   | Billing and financial documents             | API and Web packages composed into Platform |
+| `mail`      | `@codexsun/mail`      | Mail delivery and synchronization           | API and Web packages composed into Platform |
 
 Each directory is an independent Git repository with its own package metadata, lockfile, version,
 changelog, checks, and release command. They are checked out as sibling folders under one parent.
@@ -40,7 +40,7 @@ prohibited.
 
 ## Database Ownership And Order
 
-- Platform owns master and tenant-runtime tables under `apps/platform/api/src/modules/`.
+- Platform owns master and tenant-runtime tables under `src/platform/api/src/modules/`.
 - Core owns tenant common, organisation, and master tables under `../core/api/src/modules/`.
 - Billing owns tenant financial tables under `../billing/api/src/modules/`.
 - Mail owns its tenant tables under `../mail/api/src/modules/mail/`.

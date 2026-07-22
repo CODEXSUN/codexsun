@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createConnection, type Connection, type RowDataPacket } from "mysql2/promise";
-import { env as platformEnv } from "../../apps/platform/api/src/env.js";
-import { closePlatformDatabase } from "../../apps/platform/api/src/database/platform-database.js";
-import { closeAllTenantDatabases } from "../../apps/platform/api/src/database/tenant-database.js";
-import { SubscriptionService } from "../../apps/platform/api/src/modules/subscription/subscription.service.js";
-import { TenantService } from "../../apps/platform/api/src/modules/tenant/tenant.service.js";
-import type { Tenant } from "../../apps/platform/api/src/modules/tenant/tenant.types.js";
-import { signAuthToken } from "../../apps/platform/api/src/auth/jwt.js";
-import { createApp as createPlatformApp } from "../../apps/platform/api/src/app.js";
-import { tenantDatabaseMigrationsFor } from "../../apps/platform/api/src/database/tenant-app-database.js";
+import { env as platformEnv } from "../../src/platform/api/src/env.js";
+import { closePlatformDatabase } from "../../src/platform/api/src/database/platform-database.js";
+import { closeAllTenantDatabases } from "../../src/platform/api/src/database/tenant-database.js";
+import { SubscriptionService } from "../../src/platform/api/src/modules/subscription/subscription.service.js";
+import { TenantService } from "../../src/platform/api/src/modules/tenant/tenant.service.js";
+import type { Tenant } from "../../src/platform/api/src/modules/tenant/tenant.types.js";
+import { signAuthToken } from "../../src/platform/api/src/auth/jwt.js";
+import { createApp as createPlatformApp } from "../../src/platform/api/src/app.js";
+import { tenantDatabaseMigrationsFor } from "../../src/platform/api/src/database/tenant-app-database.js";
 import {
   bootstrapCoreDatabase,
   closeCoreDatabase,

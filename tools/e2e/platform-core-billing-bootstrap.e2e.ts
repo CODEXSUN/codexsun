@@ -20,19 +20,19 @@ Object.assign(process.env, {
   NODE_ENV: "test"
 });
 
-const { env } = await import("../../apps/platform/api/src/env.js");
+const { env } = await import("../../src/platform/api/src/env.js");
 const { bootstrapPlatformDatabase, closePlatformDatabase } =
-  await import("../../apps/platform/api/src/database/platform-database.js");
+  await import("../../src/platform/api/src/database/platform-database.js");
 const { closeAllTenantDatabases } =
-  await import("../../apps/platform/api/src/database/tenant-database.js");
+  await import("../../src/platform/api/src/database/tenant-database.js");
 const { tenantDatabaseMigrationsFor } =
-  await import("../../apps/platform/api/src/database/tenant-app-database.js");
+  await import("../../src/platform/api/src/database/tenant-app-database.js");
 const { migrateTenantDatabase, seedTenantDatabase } =
-  await import("../../apps/platform/api/src/modules/tenant/tenant.seed.js");
+  await import("../../src/platform/api/src/modules/tenant/tenant.seed.js");
 const { TenantService } =
-  await import("../../apps/platform/api/src/modules/tenant/tenant.service.js");
+  await import("../../src/platform/api/src/modules/tenant/tenant.service.js");
 const { DatabaseMaintenanceService } =
-  await import("../../apps/platform/api/src/modules/database-maintenance/database-maintenance.service.js");
+  await import("../../src/platform/api/src/modules/database-maintenance/database-maintenance.service.js");
 const { closeCoreDatabase } = await import("../../../core/api/src/database/core-database.js");
 const { closeAllBillingDatabases } =
   await import("../../../billing/api/src/database/billing-database.js");

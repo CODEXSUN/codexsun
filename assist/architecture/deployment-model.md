@@ -151,7 +151,7 @@ Build/dev workflows should clean nested workspace output so package artifacts an
 
 ## Hosted Platform Runtime
 
-The non-container hosted baseline serves `dist/apps/platform/web` as static files through nginx and runs one compiled
+The non-container hosted baseline serves `dist/platform/web` as static files through nginx and runs one compiled
 Platform API server under systemd. Production nginx must not proxy the web root to Vite, and hosted services must not
 depend on `npm run dev` remaining attached to a shell.
 

@@ -17,7 +17,7 @@ approved events. Private sibling source imports and cross-repository table write
 
 ## Composition Root
 
-`codexsun/apps/platform` may:
+`codexsun/src/platform` may:
 
 - Register public app modules.
 - Inject tenant/session/permission/queue dependencies.
@@ -95,7 +95,7 @@ Country → State → District → City → Pincode
 
 ## Database Ownership
 
-- Platform master and tenant-runtime tables: `codexsun/apps/platform/api/src/modules/`.
+- Platform master and tenant-runtime tables: `codexsun/src/platform/api/src/modules/`.
 - Core tenant tables: `core/api/src/modules/`.
 - Billing tenant tables: `billing/api/src/modules/`.
 - Mail tenant tables: `mail/api/src/modules/mail/`.
