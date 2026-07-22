@@ -1,7 +1,8 @@
 # CODEXSUN Container Deployment Rules
 
-Every human or automated agent must read this file and `.container/README.md` before running a
-Docker, migration, install, update, or VPS command for this repository.
+Every human or automated agent must read this file, `.container/README.md`,
+`.container/setup.md`, and `.container/deploy-log.md` before running a Docker, migration, install,
+update, or VPS command for this repository.
 
 ## Ownership boundary
 
@@ -71,10 +72,47 @@ Media wiping is outside normal deployment. It requires the explicit, separately 
 After every Billing rollout, run:
 
 ```bash
-bash .container/smoke-test.sh
-docker compose --env-file .container/deploy.env \
+CODEXSUN_DEPLOY_ENV=.container/vps.env bash .container/smoke-test.sh
+docker compose --env-file .container/vps.env \
   -f .container/billing/docker-compose.yml ps
 ```
 
 Confirm the three shared infrastructure container IDs and named volumes were not replaced by the
 application deployment.
+
+## Mandatory deployment log
+
+Every fresh installation, update, reinstall, migration-only run, rollback attempt, and blocked or
+failed deployment must add a new newest-first entry to `.container/deploy-log.md`. A deployment task
+is not complete until the entry records:
+
+- deployed CODEXSUN version and timestamp;
+- environment and action without secrets;
+- repository revisions before and after;
+- exact secret-free commands used;
+- preflight and verified-backup status;
+- migration, container, route, health, and smoke-test results;
+- shared infrastructure identity preservation;
+- every bug, warning, blocker, workaround, and required next improvement;
+- final result: successful, failed, rolled back, or blocked.
+
+`bash install.sh update` requires every tracked repository to remain clean. Capture preflight facts
+without editing tracked files, run the clean fast-forward/update, and append the log entry immediately
+after the command finishes. If preflight blocks before the update command, append the blocked entry
+after completing the checks. Never make the deployment log itself the reason an update cannot start.
+
+Historical deployment entries are immutable. Never delete an error or rewrite an older result to
+make a deployment appear successful. Never record passwords, tokens, private keys, environment-file
+contents, or other secrets.
+
+After the rollout, an authorized agent must review and publish the sanitized log change using the
+repository-standard subject format. Preview first:
+
+```bash
+npm run github:now -- --dry-run --message "#00 - Record VPS deployment"
+npm run github:now -- --yes --message "#00 - Record VPS deployment"
+```
+
+Replace `#00` with the deployed release patch reference. If the VPS intentionally has no Git push
+credentials, do not add credentials merely for deployment. Preserve the completed log change,
+report publishing as a blocker, and hand it to an authorized development operator.

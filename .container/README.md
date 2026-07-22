@@ -1,6 +1,7 @@
 # CODEXSUN Container Deployment
 
-> **Mandatory agent pre-read:** read `.container/AGENTS.md` before any local or VPS Docker command.
+> **Mandatory agent pre-read:** read `.container/AGENTS.md`, `.container/setup.md`, and
+> `.container/deploy-log.md` before any local or VPS Docker command.
 > Normal development, update, and reinstall operations rebuild only the Billing application stack
 > and connect it to the existing shared infrastructure.
 
@@ -138,6 +139,20 @@ bash .container/release-local.sh verify
 Git commits and pushes remain explicit repository operations through `npm run github:now`. Container
 scripts never commit or push source.
 
+## Deployment history
+
+`.container/deploy-log.md` is the append-only operational record for fresh installations, updates,
+reinstalls, migration runs, rollbacks, failures, and blockers. Every deployment agent must start a
+new evidence record, finish it with the actual result and exact secret-free commands, and record
+issues for the next improvement. Keep tracked files unchanged until `install.sh update` completes its
+clean-repository preflight and fast-forward; then write the entry. Successful smoke tests do not
+permit deleting warnings or failed-attempt history.
+
+When the deployment host has approved Git push authorization, publish the sanitized log entry with
+`npm run github:now -- --message "#00 - Record VPS deployment"` after a dry run. A host without push
+authorization must hand the log change to an authorized development operator instead of installing
+new credentials.
+
 ## Traefik and nginx
 
 Use both layers. Traefik is the Docker-aware VPS ingress and certificate manager. Nginx is embedded
@@ -203,3 +218,11 @@ bash .container/smoke-test.sh
 ```
 
 The smoke test checks Platform API/Web, Media, authenticated Redis access, MariaDB, the Platform master database, and—when enabled—the default tenant database with Billing and Mail active.
+
+On a VPS, explicitly select the protected VPS environment file:
+
+```bash
+CODEXSUN_DEPLOY_ENV=.container/vps.env bash .container/smoke-test.sh
+docker compose --env-file .container/vps.env \
+  -f .container/billing/docker-compose.yml ps
+```

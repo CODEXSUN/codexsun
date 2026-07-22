@@ -1,6 +1,8 @@
 # CODEXSUN Host Setup
 
-Last updated: 2026-07-21
+Document version: 1.0.46
+
+Last updated: 2026-07-22
 
 This document records the target deployment on `69.62.81.166`. Secrets and
 passwords are intentionally omitted. Runtime credentials are stored in the
@@ -99,7 +101,7 @@ public database port.
 The deployment was verified with:
 
 ```bash
-bash .container/smoke-test.sh
+CODEXSUN_DEPLOY_ENV=.container/vps.env bash .container/smoke-test.sh
 docker ps
 ufw status verbose
 ```
@@ -107,3 +109,128 @@ ufw status verbose
 Checks confirmed healthy containers, authenticated Redis, MariaDB connectivity,
 master and tenant databases, seeded Billing and Mail modules, hostname-to-tenant
 resolution, HTTPS certificates, redirects, and per-origin CORS responses.
+
+## Reusable VPS agent instructions
+
+This section is the starting instruction for an automated VPS agent. It contains no credentials.
+Production secrets belong only in the ignored `.container/vps.env` or `.container/deploy.env` file
+with mode `0600`.
+
+CODEXSUN deploys the Billing application stack. CMS and TechMedia are independent repositories and
+deployments; never clone, build, stop, or remove them through this workflow.
+
+Before planning or running commands, read these files completely from the current checkout:
+
+1. `.container/AGENTS.md`
+2. `.container/README.md`
+3. `.container/deploy-log.md`
+4. `assist/AGENT-GUIDE.md`
+5. `assist/governance/rules.md`
+6. `assist/architecture/deployment-model.md`
+
+Inspect the current scripts, environment-example keys, Git state, Docker state, firewall, DNS,
+available disk, and memory. The checked-out scripts and rules are authoritative if this document
+becomes stale. Present a concise plan before mutation.
+
+Always preserve these boundaries:
+
+- Build from the six public sibling repositories: `codexsun`, `framework`, `ui`, `core`, `billing`,
+  and `mail`. A registry or GitHub login is not required for installation.
+- Maintain exactly one shared MariaDB, Redis, and Media layer on `codexsun-network`.
+- Replace only Billing API/Web containers, migrations, images, and application storage during an
+  application update.
+- Never prune or delete shared containers, Traefik, networks, named volumes, databases, or uploads.
+- Never run a database drop, fresh/reset command, destructive migration, or production reset.
+- Keep `CODEXSUN_DB_FRESH_ON_START=0` and `CODEXSUN_ALLOW_PRODUCTION_DB_RESET=0`.
+- Use the dedicated application database account, never MariaDB root, for application runtime.
+- Bind MariaDB, Redis, Media, API, and Web host ports to loopback. Use an SSH tunnel for remote
+  database administration.
+- Permit only the approved SSH policy and public TCP 80/443. Do not expose Traefik port 8080.
+- Never print, commit, or copy secrets into documentation or deployment logs.
+- Stop on dirty/diverged repositories, unhealthy or partial infrastructure, missing backup evidence,
+  unsafe migrations, or ambiguous ownership.
+- Create and finish the required `.container/deploy-log.md` entry even when work fails or blocks.
+
+### Prompt for a fresh VPS installation
+
+```text
+Perform a fresh CODEXSUN Billing installation from public source repositories.
+
+If no checkout exists, create /opt/codexsun, clone
+https://github.com/CODEXSUN/codexsun.git into /opt/codexsun/codexsun, and then read
+.container/setup.md, .container/AGENTS.md, .container/README.md, .container/deploy-log.md, and every
+mandatory document they name. If an installation already exists, locate and use it instead of
+creating a second workspace.
+
+Inspect the host and present a short plan. Install only missing prerequisites: Git, ca-certificates,
+curl, Docker Engine, Docker Compose v2, Python 3, ripgrep, and rsync. Enable Docker at boot. Configure
+the firewall for the approved SSH policy plus TCP 80/443 only; never expose database, Redis, Media,
+application host ports, or a Traefik dashboard.
+
+From the codexsun repository run `bash install.sh`. The first run clones framework, ui, core,
+billing, and mail as siblings and creates `.container/vps.env`. Stop after creation and require the
+operator to enter real domains, administrator identities, strong unique secrets, optional verified
+SMTP values, and a backup marker. A confirmed empty installation may use a recorded marker such as
+initial-empty-database-YYYYMMDD. Never display the entered values.
+
+After operator confirmation, verify mode 0600 and ensure no example placeholders remain. Confirm
+every configured application and Media hostname resolves to the VPS. Run `bash install.sh` again.
+Shared infrastructure may be created only when MariaDB, Redis, and Media are all absent. Stop if it
+is partial or unhealthy. Permit only safe forward owner migrations and idempotent default seeds.
+
+Run `CODEXSUN_DEPLOY_ENV=.container/vps.env bash .container/smoke-test.sh` and the exact Billing
+Compose `ps` command from AGENTS.md. Verify HTTPS, redirects, API/Web health, shared-service health,
+tenant hostname resolution, and that no
+protected port is public. Complete a new deploy-log.md entry with revisions, secret-free commands,
+migrations, image tags, health, shared container identities, bugs, blockers, and the final result.
+Publish the sanitized log through the approved Git workflow when authorized; otherwise hand it to
+an authorized operator and report the publishing blocker.
+```
+
+### Prompt to update code and containers
+
+```text
+Safely update the existing CODEXSUN Billing codebase and container deployment.
+
+Locate the current codexsun repository; do not move it or create a second installation. Read
+.container/setup.md, .container/AGENTS.md, .container/README.md, .container/deploy-log.md, and all
+referenced rules before running commands. Inspect current scripts instead of using remembered ones.
+
+Capture, without modifying tracked files, the facts for a new deploy-log.md entry: current branch and
+commit of all six repositories; Git status; container IDs, image IDs, health, and named volumes for
+shared infrastructure, Traefik, and Billing; disk space; protected environment-file permissions;
+and verified-backup status. Never record secret values. `install.sh update` requires a clean
+checkout, so write the tracked log entry only after the update command finishes, or after preflight
+has blocked the attempt.
+
+Require clean main branches that can fast-forward, healthy shared services, the existing shared
+network, and a valid backup marker. On any failure stop without stash, reset, force-pull, cleanup, or
+infrastructure recreation, then complete the log entry as blocked.
+
+When preflight passes run `bash install.sh update` from the existing codexsun repository. It must
+fast-forward all six repositories, build Billing images from source, apply safe forward migrations,
+replace only Billing application containers, and smoke-test. It must preserve environment files,
+MariaDB, Redis, Media, Traefik, uploads, databases, volumes, and the network.
+
+Do not run broad Docker cleanup. Use `bash .container/deploy.sh billing --reinstall` only when the
+operator explicitly authorizes a no-cache Billing rebuild. Verify shared container IDs and volumes
+remain unchanged.
+
+Afterwards run `CODEXSUN_DEPLOY_ENV=.container/vps.env bash .container/smoke-test.sh` and the exact
+Billing Compose `ps` command from AGENTS.md. Verify routes, redirects, API/Web health, tenant resolution, Redis authentication,
+MariaDB, Media, and logs. Finish deploy-log.md with before/after revisions, exact secret-free
+commands, migration and health results, shared-resource identity comparison, every warning/bug/
+blocker, required next improvements, and the final result. Publish the sanitized log through the
+approved `#00 - message` Git workflow when authorized; otherwise report and hand off the blocker.
+```
+
+### Short instruction for a returning VPS agent
+
+```text
+Read the current `.container/setup.md` completely and follow its "Prompt to update code and
+containers". Use the existing installation, update all six sibling repositories through
+`bash install.sh update`, rebuild only Billing application containers, preserve shared
+infrastructure and data, complete `.container/deploy-log.md` with commands, results, bugs and
+blockers, run every required smoke check, and publish the sanitized log with the standard commit
+format when authorized.
+```
