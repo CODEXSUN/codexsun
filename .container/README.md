@@ -123,10 +123,12 @@ cd /opt/codexsun/codexsun
 bash install.sh update
 ```
 
-`update` refuses to continue if any repository has uncommitted server changes. It fast-forwards all
-six repositories from their public `main` branches, rebuilds application images, runs safe forward
-migrations, recreates only application containers, and smoke-tests the result. MariaDB, Redis,
-Media, uploads, credentials, and named volumes remain untouched.
+`update` refuses to continue if any repository has uncommitted server changes, is not on `main`, or
+is ahead of/diverged from `origin/main`. It fetches all six repositories first, reports every local
+and remote revision, and does not change any checkout until the complete set passes. It then
+fast-forwards all six repositories to the inspected revisions, rebuilds application images, runs
+safe forward migrations, recreates only application containers, and smoke-tests the result.
+MariaDB, Redis, Media, uploads, credentials, and named volumes remain untouched.
 
 ## Local verification
 

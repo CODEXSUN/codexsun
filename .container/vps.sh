@@ -11,6 +11,9 @@ case "$ACTION" in
 esac
 
 if [ "$ACTION" = "install" ] || [ "$ACTION" = "update" ]; then
+  if [ "$ACTION" = "update" ]; then
+    echo "Update phase 1/4: inspect, fetch, compare, and fast-forward all six repositories."
+  fi
   bash "$SCRIPT_DIR/source-stack.sh" "$ACTION"
 fi
 
@@ -61,7 +64,9 @@ case "$ACTION" in
     edge up -d --wait --wait-timeout 120
     ;;
   update)
+    echo "Update phases 2-3/4: build Billing images, then migrate and replace only Billing containers."
     bash "$SCRIPT_DIR/deploy.sh" billing up
+    echo "Update phase 4/4: run the complete deployment smoke test."
     bash "$SCRIPT_DIR/smoke-test.sh"
     ;;
   edge-up) edge up -d --wait --wait-timeout 120 ;;

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.46
+Current version: 1.0.47
 
-Release tag: v-1.0.46
+Release tag: v-1.0.47
 
-Changelog label: v 1.0.46
+Changelog label: v 1.0.47
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,24 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.47
+
+### [v 1.0.47] 2026-07-23 12:09 am - Enforce coordinated source preflight before container updates
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Added a coordinated six-repository update preflight that validates clean `main` branches, fetches
+  every `origin/main`, reports revision and ahead/behind state, and stops before any checkout changes
+  when a repository is ahead or diverged.
+- Fast-forwarded repositories only after the complete source set passes, then retained the strict
+  build, safe-migration, Billing-only container replacement, and smoke-test sequence.
+- Updated the container rules, setup prompt, deployment guide, and append-only deployment history
+  for agents performing future VPS updates.
 
 ## v-1.0.46
 

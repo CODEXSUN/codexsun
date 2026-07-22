@@ -108,6 +108,7 @@ remove_stack_images() {
 }
 
 build_stack() {
+  echo "Building $STACK images from the synchronized source repositories."
   compose_all config --quiet
   compose_all build "$@"
 }
@@ -130,6 +131,7 @@ migrate_stack() {
 
 start_stack() {
   require_stack_dependencies
+  echo "Replacing only the $STACK application containers."
   compose_stack up -d --no-build --remove-orphans --wait --wait-timeout 300
 }
 

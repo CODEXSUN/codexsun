@@ -1,8 +1,8 @@
 # CODEXSUN Host Setup
 
-Document version: 1.0.46
+Document version: 1.0.47
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 This document records the target deployment on `69.62.81.166`. Secrets and
 passwords are intentionally omitted. Runtime credentials are stored in the
@@ -203,14 +203,19 @@ and verified-backup status. Never record secret values. `install.sh update` requ
 checkout, so write the tracked log entry only after the update command finishes, or after preflight
 has blocked the attempt.
 
-Require clean main branches that can fast-forward, healthy shared services, the existing shared
-network, and a valid backup marker. On any failure stop without stash, reset, force-pull, cleanup, or
-infrastructure recreation, then complete the log entry as blocked.
+Require clean `main` branches, healthy shared services, the existing shared network, and a valid
+backup marker. Before changing any checkout, fetch `origin/main` for all six repositories and report
+each local revision, remote revision, ahead count, and behind count. Stop the whole update if any
+repository is dirty, on another branch, ahead, diverged, missing its remote branch, or cannot fetch.
+Do not partially update earlier repositories while later repositories remain unchecked. On any
+failure stop without stash, reset, force-pull, cleanup, or infrastructure recreation, then complete
+the log entry as blocked.
 
-When preflight passes run `bash install.sh update` from the existing codexsun repository. It must
-fast-forward all six repositories, build Billing images from source, apply safe forward migrations,
-replace only Billing application containers, and smoke-test. It must preserve environment files,
-MariaDB, Redis, Media, Traefik, uploads, databases, volumes, and the network.
+When preflight passes run `bash install.sh update` from the existing codexsun repository. Its strict
+order is: fetch and compare every repository; fast-forward every repository to the fetched revision;
+build Billing images from the synchronized source; apply safe forward migrations; replace only
+Billing application containers; and smoke-test. It must preserve environment files, MariaDB, Redis,
+Media, Traefik, uploads, databases, volumes, and the network.
 
 Do not run broad Docker cleanup. Use `bash .container/deploy.sh billing --reinstall` only when the
 operator explicitly authorizes a no-cache Billing rebuild. Verify shared container IDs and volumes

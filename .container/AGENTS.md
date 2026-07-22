@@ -18,15 +18,19 @@ update, or VPS command for this repository.
 
 Before an application build or VPS update, verify:
 
-1. The exact Git repositories are clean and on the intended `main` revisions.
-2. Docker Engine and Compose v2 are available.
-3. `codexsun-network` already exists.
-4. `codexsun-mariadb`, `codexsun-redis`, and `codexsun-media` are running and healthy.
-5. `.container/deploy.env` or `.container/vps.env` exists, is protected, and contains production
+1. All six source repositories (`codexsun`, `framework`, `ui`, `core`, `billing`, and `mail`) are
+   clean and on `main`.
+2. Fetch `origin/main` for every repository before changing any checkout, compare every local and
+   remote revision, and stop the whole update if any repository is ahead or diverged. Only after all
+   six pass may they be fast-forwarded to the fetched revisions.
+3. Docker Engine and Compose v2 are available.
+4. `codexsun-network` already exists.
+5. `codexsun-mariadb`, `codexsun-redis`, and `codexsun-media` are running and healthy.
+6. `.container/deploy.env` or `.container/vps.env` exists, is protected, and contains production
    values rather than examples.
-6. `CODEXSUN_DB_FRESH_ON_START=0`, `CODEXSUN_ALLOW_PRODUCTION_DB_RESET=0`, and a verified backup
+7. `CODEXSUN_DB_FRESH_ON_START=0`, `CODEXSUN_ALLOW_PRODUCTION_DB_RESET=0`, and a verified backup
    marker is recorded before production migrations.
-7. Public DNS, TCP 80/443, Traefik, and the ACME email are ready for a VPS deployment.
+8. Public DNS, TCP 80/443, Traefik, and the ACME email are ready for a VPS deployment.
 
 If shared infrastructure is missing, partial, or unhealthy during an update, stop and report it.
 Do not repair an application deployment by deleting or recreating shared resources.
@@ -100,6 +104,9 @@ is not complete until the entry records:
 without editing tracked files, run the clean fast-forward/update, and append the log entry immediately
 after the command finishes. If preflight blocks before the update command, append the blocked entry
 after completing the checks. Never make the deployment log itself the reason an update cannot start.
+The command must inspect all six repositories, fetch all six remotes, compare all six revisions, and
+approve all six before it fast-forwards any checkout. It then builds, migrates, replaces only Billing,
+and smoke-tests in that order.
 
 Historical deployment entries are immutable. Never delete an error or rewrite an older result to
 make a deployment appear successful. Never record passwords, tokens, private keys, environment-file

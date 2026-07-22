@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current documented release: 1.0.46
+Current documented release: 1.0.47
 
-Release tag: v-1.0.46
+Release tag: v-1.0.47
 
-Changelog label: v 1.0.46
+Changelog label: v 1.0.47
 
 This is the append-only operational history for CODEXSUN Billing deployments. It contains no
 secrets. New entries are inserted above older entries and use the CODEXSUN version actually deployed.
@@ -26,6 +26,48 @@ attempt must create an entry. Historical entries are immutable. An entry must in
 
 Never record passwords, access tokens, private keys, cookies, full environment files, or secret
 values. A failed or blocked result remains in history and must not be rewritten as successful.
+
+## v-1.0.47
+
+### [v 1.0.47] 2026-07-23 - Enforce coordinated repository update preflight
+
+#### Deployment
+
+- Environment: Documentation and deployment-script release; no VPS deployment executed in this
+  entry.
+- Action: Strengthened the normal source and Billing container update workflow.
+- Result: Prepared for the next authorized VPS update.
+
+#### Update contract
+
+- `bash install.sh update` now validates clean `main` branches and an `origin` remote for all six
+  repositories before contacting any remote.
+- It fetches every `origin/main`, reports local/remote revisions with ahead/behind counts, and stops
+  the complete update when any repository is ahead or diverged.
+- Only after every repository passes does it fast-forward all checkouts to the already inspected
+  revisions, preventing a late repository failure from causing an avoidable partial source update.
+- The remaining order is explicit: build Billing images, apply safe forward migrations, replace
+  only Billing containers, and run the full smoke test.
+
+#### Commands established
+
+```bash
+bash install.sh update
+CODEXSUN_DEPLOY_ENV=.container/vps.env bash .container/smoke-test.sh
+docker compose --env-file .container/vps.env \
+  -f .container/billing/docker-compose.yml ps
+```
+
+#### Bugs, blockers, and next improvements
+
+- Resolved the prior gap where repositories were pulled sequentially without first fetching and
+  comparing the complete six-repository source set.
+- No live VPS update, Docker build, migration, or smoke test was performed for this release. The
+  next deployment agent must record the actual before/after revisions, images, containers, routes,
+  shared-resource identity comparison, and verification results in a new entry.
+- Git cannot provide a transactional multi-repository checkout. The coordinated fetch and comparison
+  removes expected policy failures before mutation; an unexpected local filesystem failure during a
+  later fast-forward must still be logged and repaired deliberately without reset or force-pull.
 
 ## v-1.0.46
 

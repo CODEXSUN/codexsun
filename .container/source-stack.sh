@@ -30,19 +30,64 @@ for repository in $REPOSITORIES; do
 done
 
 if [ "$ACTION" = "update" ]; then
-  for directory in "$PROJECT_ROOT" \
-    "$WORKSPACE_ROOT/framework" "$WORKSPACE_ROOT/ui" "$WORKSPACE_ROOT/core" \
-    "$WORKSPACE_ROOT/billing" "$WORKSPACE_ROOT/mail"; do
+  update_directories=(
+    "$WORKSPACE_ROOT/framework"
+    "$WORKSPACE_ROOT/ui"
+    "$WORKSPACE_ROOT/core"
+    "$WORKSPACE_ROOT/billing"
+    "$WORKSPACE_ROOT/mail"
+    "$PROJECT_ROOT"
+  )
+
+  echo "Checking all six repositories before changing any checkout."
+  for directory in "${update_directories[@]}"; do
+    repository=$(basename "$directory")
+    branch=$(git -C "$directory" branch --show-current)
+    [ "$branch" = "main" ] || {
+      echo "Update stopped: $repository is on ${branch:-a detached HEAD}, not main." >&2
+      exit 65
+    }
     [ -z "$(git -C "$directory" status --porcelain)" ] || {
-      echo "Update stopped: uncommitted changes in $directory" >&2
+      echo "Update stopped: uncommitted changes in $repository ($directory)." >&2
+      exit 65
+    }
+    git -C "$directory" remote get-url origin >/dev/null 2>&1 || {
+      echo "Update stopped: $repository has no origin remote." >&2
       exit 65
     }
   done
 
-  for directory in "$WORKSPACE_ROOT/framework" "$WORKSPACE_ROOT/ui" \
-    "$WORKSPACE_ROOT/core" "$WORKSPACE_ROOT/billing" "$WORKSPACE_ROOT/mail" \
-    "$PROJECT_ROOT"; do
-    git -C "$directory" pull --ff-only origin main
+  echo "Fetching origin/main for every repository before any fast-forward."
+  for directory in "${update_directories[@]}"; do
+    repository=$(basename "$directory")
+    echo "Fetching $repository..."
+    git -C "$directory" fetch --prune origin main
+  done
+
+  echo "Comparing every local main branch with its fetched origin/main."
+  for directory in "${update_directories[@]}"; do
+    repository=$(basename "$directory")
+    current=$(git -C "$directory" rev-parse --short HEAD)
+    remote=$(git -C "$directory" rev-parse --short refs/remotes/origin/main)
+    read -r ahead behind < <(
+      git -C "$directory" rev-list --left-right --count HEAD...refs/remotes/origin/main
+    )
+    printf '%-10s local=%s remote=%s ahead=%s behind=%s\n' \
+      "$repository" "$current" "$remote" "$ahead" "$behind"
+    [ "$ahead" -eq 0 ] || {
+      echo "Update stopped: $repository is ahead of or diverged from origin/main." >&2
+      echo "Review and publish the repository through its approved Git workflow first." >&2
+      exit 65
+    }
+  done
+
+  echo "All repositories passed preflight. Fast-forwarding to the fetched revisions."
+  for directory in "${update_directories[@]}"; do
+    repository=$(basename "$directory")
+    before=$(git -C "$directory" rev-parse --short HEAD)
+    git -C "$directory" merge --ff-only refs/remotes/origin/main
+    after=$(git -C "$directory" rev-parse --short HEAD)
+    echo "$repository: $before -> $after"
   done
 fi
 
