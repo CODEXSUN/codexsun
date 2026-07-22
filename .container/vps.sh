@@ -12,7 +12,7 @@ esac
 
 if [ "$ACTION" = "install" ] || [ "$ACTION" = "update" ]; then
   if [ "$ACTION" = "update" ]; then
-    echo "Update phase 1/4: inspect, fetch, compare, and fast-forward all six repositories."
+    echo "Update phase 1/4: inspect, fetch, compare, and fast-forward all eight repositories."
   fi
   bash "$SCRIPT_DIR/source-stack.sh" "$ACTION"
 fi

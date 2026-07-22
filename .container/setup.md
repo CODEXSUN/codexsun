@@ -12,7 +12,7 @@ ignored `.env` and `.container/deploy.env` files, both with mode `0600`.
 
 - Workspace path: `/home/codexsun`
 - Platform repository: `/home/codexsun/codexsun`
-- Sibling repositories: `framework`, `ui`, `core`, `billing`, and `mail`
+- Sibling repositories: `framework`, `ui`, `sites`, `cms`, `core`, `billing`, and `mail`
 - Branch: `main`
 - Docker network: `codexsun-network`
 - Runtime versions: Node.js `26.5.0` and npm `12.0.1` inside the application images
@@ -116,8 +116,9 @@ This section is the starting instruction for an automated VPS agent. It contains
 Production secrets belong only in the ignored `.container/vps.env` or `.container/deploy.env` file
 with mode `0600`.
 
-CODEXSUN deploys the Billing application stack. CMS and TechMedia are independent repositories and
-deployments; never clone, build, stop, or remove them through this workflow.
+CODEXSUN deploys the Billing application stack. CMS and TechMedia remain independent runtime
+deployments. The Platform catalogue dependency requires the CMS and Sites source packages during a
+Billing image build, but this workflow must never start, expose, stop, or remove their services.
 
 Before planning or running commands, read these files completely from the current checkout:
 
@@ -134,8 +135,8 @@ becomes stale. Present a concise plan before mutation.
 
 Always preserve these boundaries:
 
-- Build from the six public sibling repositories: `codexsun`, `framework`, `ui`, `core`, `billing`,
-  and `mail`. A registry or GitHub login is not required for installation.
+- Build from the eight public sibling repositories: `codexsun`, `framework`, `ui`, `sites`, `cms`,
+  `core`, `billing`, and `mail`. A registry or GitHub login is not required for installation.
 - Maintain exactly one shared MariaDB, Redis, and Media layer on `codexsun-network`.
 - Replace only Billing API/Web containers, migrations, images, and application storage during an
   application update.
@@ -167,8 +168,8 @@ curl, Docker Engine, Docker Compose v2, Python 3, ripgrep, and rsync. Enable Doc
 the firewall for the approved SSH policy plus TCP 80/443 only; never expose database, Redis, Media,
 application host ports, or a Traefik dashboard.
 
-From the codexsun repository run `bash install.sh`. The first run clones framework, ui, core,
-billing, and mail as siblings and creates `.container/vps.env`. Stop after creation and require the
+From the codexsun repository run `bash install.sh`. The first run clones framework, ui, sites, cms,
+core, billing, and mail as siblings and creates `.container/vps.env`. Stop after creation and require the
 operator to enter real domains, administrator identities, strong unique secrets, optional verified
 SMTP values, and a backup marker. A confirmed empty installation may use a recorded marker such as
 initial-empty-database-YYYYMMDD. Never display the entered values.
@@ -197,14 +198,14 @@ Locate the current codexsun repository; do not move it or create a second instal
 referenced rules before running commands. Inspect current scripts instead of using remembered ones.
 
 Capture, without modifying tracked files, the facts for a new deploy-log.md entry: current branch and
-commit of all six repositories; Git status; container IDs, image IDs, health, and named volumes for
+commit of all eight repositories; Git status; container IDs, image IDs, health, and named volumes for
 shared infrastructure, Traefik, and Billing; disk space; protected environment-file permissions;
 and verified-backup status. Never record secret values. `install.sh update` requires a clean
 checkout, so write the tracked log entry only after the update command finishes, or after preflight
 has blocked the attempt.
 
 Require clean `main` branches, healthy shared services, the existing shared network, and a valid
-backup marker. Before changing any checkout, fetch `origin/main` for all six repositories and report
+backup marker. Before changing any checkout, fetch `origin/main` for all eight repositories and report
 each local revision, remote revision, ahead count, and behind count. Stop the whole update if any
 repository is dirty, on another branch, ahead, diverged, missing its remote branch, or cannot fetch.
 Do not partially update earlier repositories while later repositories remain unchecked. On any
@@ -233,7 +234,7 @@ approved `#00 - message` Git workflow when authorized; otherwise report and hand
 
 ```text
 Read the current `.container/setup.md` completely and follow its "Prompt to update code and
-containers". Use the existing installation, update all six sibling repositories through
+containers". Use the existing installation, update all eight sibling repositories through
 `bash install.sh update`, rebuild only Billing application containers, preserve shared
 infrastructure and data, complete `.container/deploy-log.md` with commands, results, bugs and
 blockers, run every required smoke check, and publish the sanitized log with the standard commit

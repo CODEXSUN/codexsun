@@ -22,6 +22,24 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.0.47
 
+### [v 1.0.47] 2026-07-22 7:47 pm - Add CMS catalogue source to Billing build composition
+
+#### Database Changes
+
+- Database update: No. The Billing 1.0.47 rollout was not applied because its required production
+  schema migration was not authorized.
+
+#### App Codebase Changes
+
+- Added Sites and CMS as source-only dependencies of the Billing image build so Platform's public
+  `@codexsun/cms` catalogue import resolves during API and Web compilation.
+- Kept CMS, Sites, Techmedia, and Devkit outside the Billing runtime: no service, route, volume, or
+  shared-infrastructure ownership was added.
+- Updated the coordinated source preflight, deployment documentation, architecture inventory, and
+  append-only deployment log from six to eight Billing build repositories.
+- Verified and prepared local Billing API, Web, and migration images for 1.0.47 without replacing
+  the live 1.0.44 Billing containers or modifying MariaDB, Redis, Media, or their volumes.
+
 ### [v 1.0.47] 2026-07-23 12:09 am - Enforce coordinated source preflight before container updates
 
 #### Database Changes

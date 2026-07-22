@@ -11,6 +11,8 @@ ENV NODE_ENV=development
 WORKDIR /workspace
 RUN npm install --global npm@${NPM_RUNTIME_VERSION}
 COPY framework ./framework
+COPY sites ./sites
+COPY cms ./cms
 COPY core ./core
 COPY billing ./billing
 COPY mail ./mail

@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 WORKSPACE_ROOT="$(cd "$PROJECT_ROOT/.." && pwd)"
 ACTION=${1:-install}
-REPOSITORIES="framework ui core billing mail"
+REPOSITORIES="framework ui sites cms core billing mail"
 
 case "$ACTION" in
   install|update) ;;
@@ -33,6 +33,8 @@ if [ "$ACTION" = "update" ]; then
   update_directories=(
     "$WORKSPACE_ROOT/framework"
     "$WORKSPACE_ROOT/ui"
+    "$WORKSPACE_ROOT/sites"
+    "$WORKSPACE_ROOT/cms"
     "$WORKSPACE_ROOT/core"
     "$WORKSPACE_ROOT/billing"
     "$WORKSPACE_ROOT/mail"
