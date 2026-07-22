@@ -152,7 +152,11 @@ export class TenantRepository {
         ].map((key) => (key === "platform.tenant" ? "platform.application" : key))
       )
     )
-      .filter((key) => key === "platform.application" || !manuallyDisabledKeys.includes(key))
+      .filter(
+        (key) =>
+          key !== "platform.task-manager" &&
+          (key === "platform.application" || !manuallyDisabledKeys.includes(key))
+      )
       .sort();
     const payloadSettings = {
       ...tenant.payloadSettings,

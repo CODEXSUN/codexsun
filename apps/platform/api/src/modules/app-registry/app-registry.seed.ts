@@ -9,6 +9,10 @@ export const appRegistrySeed = {
 };
 
 export async function seedAppRegistryModule(database: Kysely<PlatformDatabase>) {
+  await database
+    .deleteFrom("platform_apps")
+    .where("module_key", "=", "platform.task-manager")
+    .execute();
   console.info(`[seeder] seeding app registry (${platformAppRegistry.length} apps)`);
   for (const app of platformAppRegistry) {
     await database

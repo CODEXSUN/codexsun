@@ -5,9 +5,7 @@ import {
   CircleGaugeIcon,
   CreditCardIcon,
   DatabaseIcon,
-  ListChecksIcon,
   PaletteIcon,
-  ClipboardListIcon,
   ShieldCheckIcon
 } from "lucide-react";
 import { SuperLayout } from "@codexsun/ui/layouts/super-layout";
@@ -70,15 +68,6 @@ const QueueManagementWorkspace = lazyWorkspace(() =>
 const StorageManagerWorkspace = lazyWorkspace(() =>
   import("../../modules/storage-manager").then((module) => module.StorageManagerWorkspace)
 );
-const PlatformRegistryWorkspace = lazyWorkspace(() =>
-  import("../../modules/platform-registry").then((module) => module.PlatformRegistryWorkspace)
-);
-const WorkAutomationWorkspace = lazyWorkspace(() =>
-  import("../../modules/work-automation").then((module) => module.WorkAutomationWorkspace)
-);
-const TaskManagerWorkspace = lazyWorkspace(() =>
-  import("../../modules/task-manager").then((module) => module.TaskManagerWorkspace)
-);
 const AppOrchestrationWorkspace = lazyWorkspace(() =>
   import("../../modules/app-orchestration/app-orchestration.workspace").then(
     (module) => module.AppOrchestrationWorkspace
@@ -88,7 +77,6 @@ const AppOrchestrationWorkspace = lazyWorkspace(() =>
 type SaPage =
   | "overview"
   | "app-operations"
-  | "task-manager"
   | "tenants"
   | "domains"
   | "plans"
@@ -102,9 +90,6 @@ type SaPage =
   | "tenant-database"
   | "queue-management"
   | "storage-manager"
-  | "platform-registry"
-  | "work-automation"
-  | "workflow"
   | "access"
   | "activity"
   | "design-system";
@@ -143,30 +128,6 @@ export function SaDesk() {
       icon: CircleGaugeIcon,
       isActive: page === "overview",
       onSelect: () => selectPage("overview")
-    },
-    {
-      title: "Task Manager",
-      icon: ListChecksIcon,
-      isActive: page === "task-manager",
-      onSelect: () => selectPage("task-manager")
-    },
-    {
-      title: "Project Manager",
-      icon: ClipboardListIcon,
-      isActive: page === "platform-registry" || page === "work-automation" || page === "workflow",
-      items: [
-        {
-          title: "Platform Registry",
-          isActive: page === "platform-registry",
-          onSelect: () => selectPage("platform-registry")
-        },
-        {
-          title: "Work Automation",
-          isActive: page === "work-automation",
-          onSelect: () => selectPage("work-automation")
-        },
-        { title: "Workflow", isActive: page === "workflow", onSelect: () => selectPage("workflow") }
-      ]
     },
     {
       title: "Tenant Setup",
@@ -283,7 +244,7 @@ export function SaDesk() {
         menuItems={menuItems}
         onLogout={handleLogout}
         versionLabel={`v ${__APP_VERSION__}`}
-        workspace={page === "task-manager" ? "task-manager" : "platform"}
+        workspace="platform"
       >
         <Suspense fallback={<GlobalLoader className="min-h-[24rem]" fullScreen={false} />}>
           {page === "overview" ? <SaOverview onOpenApp={openAppOperations} /> : null}
@@ -293,7 +254,6 @@ export function SaDesk() {
               onBack={() => selectPage("overview")}
             />
           ) : null}
-          {page === "task-manager" ? <TaskManagerWorkspace /> : null}
           {page === "tenants" ? <TenantList onBack={() => selectPage("overview")} /> : null}
           {page === "domains" ? <TenantDomainList /> : null}
           {page === "plans" ? <PlanWorkspace /> : null}
@@ -307,9 +267,6 @@ export function SaDesk() {
           {page === "tenant-database" ? <TenantDatabaseWorkspace /> : null}
           {page === "queue-management" ? <QueueManagementWorkspace /> : null}
           {page === "storage-manager" ? <StorageManagerWorkspace /> : null}
-          {page === "platform-registry" ? <PlatformRegistryWorkspace /> : null}
-          {page === "work-automation" ? <WorkAutomationWorkspace /> : null}
-          {page === "workflow" ? <WorkAutomationWorkspace initialView="timeline" /> : null}
           {page === "access" ? <AccessControlWorkspace /> : null}
           {page === "activity" ? <PlatformActivityWorkspace /> : null}
           {page === "design-system" ? <DesignSystemGallery /> : null}
@@ -321,9 +278,7 @@ export function SaDesk() {
 
 function pageFromUrl(): SaPage {
   const page = window.location.pathname.split("/")[2];
-  if (page === "project-manager") return "platform-registry";
   return page === "app-operations" ||
-    page === "task-manager" ||
     page === "tenants" ||
     page === "domains" ||
     page === "plans" ||
@@ -337,9 +292,6 @@ function pageFromUrl(): SaPage {
     page === "tenant-database" ||
     page === "queue-management" ||
     page === "storage-manager" ||
-    page === "platform-registry" ||
-    page === "work-automation" ||
-    page === "workflow" ||
     page === "access" ||
     page === "activity" ||
     page === "design-system"

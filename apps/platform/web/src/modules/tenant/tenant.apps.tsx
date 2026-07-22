@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BlocksIcon, ListChecksIcon, SaveIcon } from "lucide-react";
+import { BlocksIcon, SaveIcon } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
@@ -141,9 +141,8 @@ export function TenantAppSelectionCard({
   const registry = platformAppRegistry.find(
     (app) => app.id === appId || app.moduleKey === moduleKey
   );
-  const Icon = registry?.icon ?? (appId === "task-manager" ? ListChecksIcon : BlocksIcon);
-  const accentClass =
-    registry?.accentClass ?? (appId === "task-manager" ? "bg-violet-600" : "bg-slate-600");
+  const Icon = registry?.icon ?? BlocksIcon;
+  const accentClass = registry?.accentClass ?? "bg-slate-600";
 
   return (
     <WorkspaceSwitchCard

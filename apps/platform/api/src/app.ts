@@ -28,8 +28,6 @@ import { platformActivityModule } from "./modules/platform-activity/index.js";
 import { databaseMaintenanceModule } from "./modules/database-maintenance/index.js";
 import { queueManagerModule } from "./modules/queue-manager/index.js";
 import { storageManagerModule } from "./modules/storage-manager/index.js";
-import { projectManagerModule } from "./modules/project-manager/index.js";
-import { taskManagerModule } from "./modules/task-manager/index.js";
 import { appOrchestrationModule } from "./modules/app-orchestration/index.js";
 import { startQueueManagerWorker } from "./modules/queue-manager/queue-manager.runtime.js";
 import { QueueManagerService } from "./modules/queue-manager/queue-manager.service.js";
@@ -100,8 +98,6 @@ export async function createApp() {
             databaseMaintenanceModule.key,
             queueManagerModule.key,
             storageManagerModule.key,
-            projectManagerModule.key,
-            taskManagerModule.key,
             appOrchestrationModule.key,
             mailModule.key
           ],
@@ -140,8 +136,6 @@ export async function createApp() {
       databaseMaintenanceModule,
       queueManagerModule,
       storageManagerModule,
-      projectManagerModule,
-      taskManagerModule,
       appOrchestrationModule,
       mailModule
     ],

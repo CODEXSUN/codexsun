@@ -5,7 +5,10 @@
   "packageManager": "npm@12.0.1",
   "description": "Complete CODEXSUN application and stack orchestrator",
   "type": "module",
-  "workspaces": ["apps/platform/*", "tools/*"],
+  "workspaces": [
+    "apps/platform/*",
+    "tools/*"
+  ],
   "scripts": {
     "setup": "node tools/install-stack.mjs",
     "dev": "node tools/dev-stack.mjs",
@@ -21,6 +24,7 @@
     "format": "prettier . ../framework ../ui ../core ../billing ../ecommerce ../sites ../mail --write",
     "format:check": "prettier . ../framework ../ui ../core ../billing ../ecommerce ../sites ../mail --check",
     "test:product-stacks": "node --test tools/product-stack-contract.test.mjs",
+    "test:e2e": "npm run test:e2e:organisation && npm run test:e2e:bootstrap && npm run test:e2e:persistence && npm run test:e2e:composed-runtime",
     "test:e2e:organisation": "tsx ../core/api/src/modules/organisation/organisation.e2e.ts",
     "test:e2e:bootstrap": "tsx tools/e2e/platform-core-billing-bootstrap.e2e.ts",
     "test:e2e:composed-runtime": "tsx tools/e2e/composed-platform-runtime.e2e.ts",
@@ -39,11 +43,6 @@
     "db:dump:download": "tsx apps/platform/api/src/database/db-cli.ts dump:download",
     "db:restore:test": "tsx apps/platform/api/src/database/db-cli.ts restore:test",
     "db:backup:verify": "tsx apps/platform/api/src/database/db-cli.ts backup:verify",
-    "version:show": "node tools/version/version.mjs show",
-    "version:bump": "node tools/version-bump.mjs",
-    "changelog:append": "node tools/version/version.mjs append",
-    "check:versions": "node tools/check-versions.mjs",
-    "github:now": "node tools/github-helper.mjs",
     "github:ssh-key": "node tools/github-ssh-key.mjs",
     "env:jwt-secret": "node tools/env-jwt-secret.mjs"
   },

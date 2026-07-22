@@ -33,13 +33,6 @@ import { migrateStorageManagerModule } from "../modules/storage-manager/storage-
 import { seedStorageManagerModule } from "../modules/storage-manager/storage-manager.seed.js";
 import { migrateAppOrchestrationModule } from "../modules/app-orchestration/app-orchestration.migration.js";
 import { seedAppOrchestrationModule } from "../modules/app-orchestration/app-orchestration.seed.js";
-import { migrateProjectManagerModule } from "../modules/project-manager/project-manager.migration.js";
-import { seedProjectManagerModule } from "../modules/project-manager/project-manager.seed.js";
-import {
-  migrateTaskManagerModule,
-  taskManagerMigration
-} from "../modules/task-manager/task-manager.migration.js";
-import { seedTaskManagerModule } from "../modules/task-manager/task-manager.seed.js";
 import { assertDatabaseName, quoteIdentifier } from "./database-utils.js";
 import type { PlatformDatabase } from "./schema.js";
 
@@ -104,16 +97,6 @@ const platformMasterMigrationSteps = [
     name: "platform.storage-manager.foundation"
   },
   {
-    description: "Project Manager code-owned storage policy.",
-    migrate: async (_database: Kysely<PlatformDatabase>) => migrateProjectManagerModule(),
-    name: "platform.project-manager.store-policy"
-  },
-  {
-    description: taskManagerMigration.description,
-    migrate: async (_database: Kysely<PlatformDatabase>) => migrateTaskManagerModule(),
-    name: taskManagerMigration.key
-  },
-  {
     description: "Application orchestration process-local state policy.",
     migrate: async (_database: Kysely<PlatformDatabase>) => migrateAppOrchestrationModule(),
     name: "platform.app-orchestration.runtime-policy"
@@ -133,14 +116,6 @@ const platformMasterSeedSteps = [
   { name: "platform.database-maintenance", seed: seedDatabaseMaintenanceModule },
   { name: "platform.queue-manager", seed: seedQueueManagerModule },
   { name: "platform.storage-manager", seed: seedStorageManagerModule },
-  {
-    name: "platform.project-manager",
-    seed: async (_database: Kysely<PlatformDatabase>) => seedProjectManagerModule()
-  },
-  {
-    name: "platform.task-manager",
-    seed: async (_database: Kysely<PlatformDatabase>) => seedTaskManagerModule()
-  },
   {
     name: "platform.app-orchestration",
     seed: async (_database: Kysely<PlatformDatabase>) => seedAppOrchestrationModule()

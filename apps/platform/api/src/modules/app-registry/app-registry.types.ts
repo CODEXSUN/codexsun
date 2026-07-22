@@ -1,4 +1,4 @@
-export type PlatformAppId = "application" | "billing" | "mail" | "task-manager";
+export type PlatformAppId = "application" | "billing" | "mail";
 
 export type PlatformAppDefinition = {
   alwaysEnabled: boolean;
@@ -8,7 +8,7 @@ export type PlatformAppDefinition = {
   appId: PlatformAppId;
   label: string;
   moduleKey: string;
-  stack: "platform" | "billing" | "mail" | "platform-task-manager";
+  stack: "platform" | "billing" | "mail";
   uuid: string;
 };
 

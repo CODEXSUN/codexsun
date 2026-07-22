@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import type { SidemenuItem } from "@codexsun/ui/blocks/menu/sidemenu/sub/sidemenu-section";
 
-export type PlatformAppId = "application" | "billing" | "mail" | "task-manager";
+export type PlatformAppId = "application" | "billing" | "mail";
 
 export type BillingNavigationFeatures = {
   exportSales: boolean;

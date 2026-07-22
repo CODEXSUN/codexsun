@@ -1,3 +1,12 @@
+@import "@codexsun/ui/styles.css";
+
+@source ".";
+@source "../../../../../billing/web/src";
+@source "../../../../../core/web/src";
+@source "../../../../../ecommerce/web/src";
+@source "../../../../../mail/web/src";
+@source "../../../../../sites/web/src";
+
 .simple-page {
   align-items: center;
   display: grid;

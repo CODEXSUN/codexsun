@@ -41,17 +41,6 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
     moduleKey: "mail",
     stack: "mail",
     uuid: ""
-  },
-  {
-    alwaysEnabled: false,
-    defaultLanding: false,
-    description: "Tenant-owned Todo planning with a lightweight JSON workspace.",
-    appId: "task-manager",
-    id: 0,
-    label: "Task Manager",
-    moduleKey: "platform.task-manager",
-    stack: "platform-task-manager",
-    uuid: ""
   }
 ];
 

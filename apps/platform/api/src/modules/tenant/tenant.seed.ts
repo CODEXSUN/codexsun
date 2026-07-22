@@ -213,9 +213,15 @@ async function reconcileDefaultTenantModules(repository: TenantRepository, tenan
 
   const apps = isRecord(tenant.payloadSettings.apps) ? tenant.payloadSettings.apps : {};
   const configuredApps = stringArray(apps.enabled);
+  const enabledModuleKeys = tenant.enabledModuleKeys.filter(
+    (key) => key !== "platform.task-manager"
+  );
+  const configuredModuleKeys = configuredApps.filter((key) => key !== "platform.task-manager");
   if (
-    defaultTenantModuleKeys.every((key) => tenant.enabledModuleKeys.includes(key)) &&
-    defaultTenantModuleKeys.every((key) => configuredApps.includes(key))
+    enabledModuleKeys.length === tenant.enabledModuleKeys.length &&
+    configuredModuleKeys.length === configuredApps.length &&
+    defaultTenantModuleKeys.every((key) => enabledModuleKeys.includes(key)) &&
+    defaultTenantModuleKeys.every((key) => configuredModuleKeys.includes(key))
   ) {
     return tenant;
   }
@@ -224,13 +230,13 @@ async function reconcileDefaultTenantModules(repository: TenantRepository, tenan
     (await repository.update(String(tenant.id), {
       ...tenant,
       enabledModuleKeys: Array.from(
-        new Set([...defaultTenantModuleKeys, ...tenant.enabledModuleKeys])
+        new Set([...defaultTenantModuleKeys, ...enabledModuleKeys])
       ).sort(),
       payloadSettings: {
         ...tenant.payloadSettings,
         apps: {
           ...apps,
-          enabled: Array.from(new Set([...defaultTenantModuleKeys, ...configuredApps])).sort()
+          enabled: Array.from(new Set([...defaultTenantModuleKeys, ...configuredModuleKeys])).sort()
         }
       }
     })) ?? tenant

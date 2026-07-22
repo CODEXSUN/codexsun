@@ -3,7 +3,6 @@ import {
   Building2Icon,
   CreditCardIcon,
   LayoutDashboardIcon,
-  ListChecksIcon,
   MailIcon,
   RocketIcon,
   Settings2Icon,
@@ -334,8 +333,6 @@ type AppPage =
   | "mail.sent"
   | "mail.failed"
   | "mail.trash"
-  | "task-manager.overview"
-  | "task-manager.todos"
   | "core.common.location.countries"
   | "core.common.location.states"
   | "core.common.location.districts"
@@ -532,13 +529,7 @@ export function AppDesk() {
   }
 
   const activeWorkspaceTitle =
-    activeApp === "billing"
-      ? "Billing"
-      : activeApp === "mail"
-        ? "Mail"
-        : activeApp === "task-manager"
-          ? "Task Manager"
-          : "Application";
+    activeApp === "billing" ? "Billing" : activeApp === "mail" ? "Mail" : "Application";
   const menuItems = appMenuItemsFor(
     activeApp,
     safePage,
@@ -553,18 +544,14 @@ export function AppDesk() {
           ? "application.overview"
           : item.title === "Billing"
             ? "billing.overview"
-            : item.title === "Mail"
-              ? "mail.inbox"
-              : "task-manager.overview"
+            : "mail.inbox"
       ),
     url:
       item.title === "Application"
         ? "/app/application/overview"
         : item.title === "Billing"
           ? "/app/billing/overview"
-          : item.title === "Mail"
-            ? "/app/mail/inbox"
-            : "/app/task-manager/overview"
+          : "/app/mail/inbox"
   }));
 
   const contextError =
@@ -615,9 +602,7 @@ export function AppDesk() {
               ? "/app/billing/overview"
               : activeApp === "mail"
                 ? "/app/mail/inbox"
-                : activeApp === "task-manager"
-                  ? "/app/task-manager/overview"
-                  : "/app/application/overview",
+                : "/app/application/overview",
           ...(companyBranding.lightLogoUrl ? { logoSrc: companyBranding.lightLogoUrl } : {}),
           ...(companyBranding.darkLogoUrl ? { logoDarkSrc: companyBranding.darkLogoUrl } : {}),
           logoAlt: `${selectedCompany?.name ?? "Company"} logo`,
@@ -860,26 +845,20 @@ function LandingDesk({
         ? CreditCardIcon
         : appId === "mail"
           ? MailIcon
-          : appId === "task-manager"
-            ? ListChecksIcon
-            : LayoutDashboardIcon,
+          : LayoutDashboardIcon,
     iconClass:
       appId === "billing"
         ? "bg-emerald-600 text-white"
         : appId === "mail"
           ? "bg-sky-600 text-white"
-          : appId === "task-manager"
-            ? "bg-violet-600 text-white"
-            : "bg-slate-950 text-white",
+          : "bg-slate-950 text-white",
     id: appId,
     label:
       appId === "billing"
         ? "Billing"
         : appId === "mail"
           ? "Mail"
-          : appId === "task-manager"
-            ? "Task Manager"
-            : "Application"
+          : "Application"
   })) satisfies Array<{
     description: string;
     icon: typeof LayoutDashboardIcon;
@@ -1292,8 +1271,6 @@ function titleForPage(page: AppPage) {
     "mail.sent": "Sent",
     "mail.failed": "Failed",
     "mail.trash": "Trash",
-    "task-manager.overview": "Task Manager",
-    "task-manager.todos": "Todo",
     "core.common.location.cities": "Cities",
     "core.common.location.countries": "Countries",
     "core.common.location.districts": "Districts",
@@ -1376,8 +1353,6 @@ function appFromPage(
   if (page.startsWith("core.organisation")) return "application";
   if (page.startsWith("billing") || page.startsWith("core"))
     return enabledApps.includes("billing") ? "billing" : landingApp;
-  if (page.startsWith("task-manager"))
-    return enabledApps.includes("task-manager") ? "task-manager" : landingApp;
   if (page.startsWith("mail")) return enabledApps.includes("mail") ? "mail" : landingApp;
   return "application";
 }
@@ -1395,7 +1370,6 @@ function mailboxForPage(page: AppPage) {
 }
 
 function pageForApp(app: PlatformAppId): AppPage {
-  if (app === "task-manager") return "task-manager.overview";
   if (app === "mail") return "mail.inbox";
   return app === "billing" ? "billing.overview" : "application.overview";
 }
@@ -1409,8 +1383,7 @@ function readPublishedLandingApp(): PlatformAppId | null {
     const stored = window.localStorage.getItem(LANDING_APP_STORAGE_KEY);
     return stored === "application" ||
       stored === "billing" ||
-      stored === "mail" ||
-      stored === "task-manager"
+      stored === "mail"
       ? stored
       : null;
   } catch {

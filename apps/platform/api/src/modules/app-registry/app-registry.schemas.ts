@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-const appId = z.enum(["application", "billing", "mail", "task-manager"]);
-const stack = z.enum(["platform", "billing", "mail", "platform-task-manager"]);
+const appId = z.enum(["application", "billing", "mail"]);
+const stack = z.enum(["platform", "billing", "mail"]);
 
 export const platformAppSaveSchema = z
   .object({

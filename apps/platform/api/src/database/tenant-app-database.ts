@@ -54,10 +54,6 @@ export async function migrateSelectedTenantApps(database: Kysely<TenantDatabase>
     provisionedApps.push("mail");
   }
 
-  if (enabled.has("platform.task-manager")) {
-    provisionedApps.push("task-manager");
-  }
-
   return {
     migrationOrder: tenantDatabaseMigrationsFor(tenant).map((migration) => migration.name),
     provisionedApps
@@ -79,7 +75,6 @@ export async function seedSelectedTenantApps(database: Kysely<TenantDatabase>, t
     seededApps.push("mail");
   }
 
-  if (enabled.has("platform.task-manager")) seededApps.push("task-manager");
   return { seededApps };
 }
 
