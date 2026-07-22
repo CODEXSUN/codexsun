@@ -1,5 +1,9 @@
 # CODEXSUN Container Deployment
 
+> **Mandatory agent pre-read:** read `.container/AGENTS.md` before any local or VPS Docker command.
+> Normal development, update, and reinstall operations rebuild only the Billing application stack
+> and connect it to the existing shared infrastructure.
+
 This directory provides one persistent infrastructure layer and the composed CODEXSUN Platform runtime.
 
 The Billing stack owns `app.codexsun.com`, `cotton.codexsun.com`, `sukraa.codexsun.com`, and
@@ -12,6 +16,38 @@ separate CMS repository and are not routed by this stack.
 | CODEXSUN | Framework + UI + Platform + Core + Billing + Mail | Platform API/Platform Web |
 
 MariaDB, Redis, and Media are installed once. Product deployment commands never delete their named volumes. Normal source updates rebuild and replace only application containers, so databases, credentials, uploads, and application storage remain stable.
+
+## Deployment prerequisites
+
+- Git, Docker Engine, and Docker Compose v2.
+- The `codexsun`, `framework`, `ui`, `core`, `billing`, and `mail` repositories as siblings.
+- A protected `.container/deploy.env` or `.container/vps.env` with non-example production values.
+- Healthy shared `codexsun-mariadb`, `codexsun-redis`, and `codexsun-media` containers on the
+  existing external `codexsun-network` for every update or development rebuild.
+- A verified database backup marker before migrations, or a unique recorded marker for a confirmed
+  empty first installation.
+- VPS DNS pointed to the host, inbound TCP 80/443, Traefik, and a valid ACME email.
+
+First installation is the only workflow allowed to bootstrap shared infrastructure, and only when
+all three shared containers are absent. If infrastructure is partial or unhealthy, setup stops;
+an application agent must not delete and recreate it.
+
+## Safe development rebuild
+
+Use the Billing-owned deployment command during development:
+
+```bash
+bash .container/deploy.sh billing up
+```
+
+For a no-cache application rebuild:
+
+```bash
+bash .container/deploy.sh billing --reinstall
+```
+
+Both commands operate only on Billing API, Web, migrations, images, and application storage. They
+must leave MariaDB, Redis, Media, Traefik, `codexsun-network`, and all shared volumes untouched.
 
 ## First installation
 
@@ -126,7 +162,9 @@ bash .container/deploy.sh PRODUCT logs
 bash .container/deploy.sh PRODUCT down
 ```
 
-`--reinstall` performs a no-cache rebuild of the selected application stack while preserving all named volumes. `down` also preserves volumes. There is intentionally no implicit destructive reset command.
+`--reinstall` performs a no-cache rebuild of the selected Billing application stack while preserving
+all named volumes. It does not stop or rebuild shared infrastructure. `down` also preserves volumes
+and is scoped to Billing. There is intentionally no implicit destructive reset command.
 
 ## Persistent resources
 

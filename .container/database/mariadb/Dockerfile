@@ -1,7 +1,7 @@
 ARG MARIADB_BASE_IMAGE=mariadb:11.8
 FROM ${MARIADB_BASE_IMAGE}
 
-ARG CODEXSUN_VERSION=1.0.42
+ARG CODEXSUN_VERSION=1.0.44
 LABEL org.opencontainers.image.title="CODEXSUN MariaDB" \
       org.opencontainers.image.version="$CODEXSUN_VERSION"
 

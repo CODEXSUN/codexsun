@@ -38,12 +38,14 @@ ports 80 and 443, redirects HTTP to HTTPS, and obtains certificates with the
 
 ## Public HTTPS routes
 
-- `https://codexsun.com` - canonical Platform Web address
-- `https://www.codexsun.com` - permanent redirect to `https://codexsun.com`
-- `https://files.codexsun.com` - FileBrowser
+- `https://app.codexsun.com` - canonical Billing/Platform Web address
+- `https://media.codexsun.com` - FileBrowser
 - `https://sukraa.codexsun.com` - Sukraa tenant application
 - `https://cotton.codexsun.com` - Cotton Knit tenant application
 - `https://ganapathi.codexsun.com` - Ganapathi tenant application
+
+`codexsun.com`, `logicx.in`, and `tenkasisports.com` are served by the separate CMS stack and are
+not Billing routes.
 
 The tenant hostnames route through Traefik to the same Platform Web container.
 They are present in the Vite development host allowlist and the Platform API
@@ -56,7 +58,7 @@ protected environment files. The master database is `cxsun_master_db`.
 
 | Tenant code  | Primary domain           | Database        | Status |
 | ------------ | ------------------------ | --------------- | ------ |
-| `CODEXSUN`   | `codexsun.com`           | `codexsun_db`   | Active |
+| `CODEXSUN`   | `app.codexsun.com`       | `codexsun_db`   | Active |
 | `SUKRAA`     | `sukraa.codexsun.com`    | `sukraa_db`     | Active |
 | `COTTONKNIT` | `cotton.codexsun.com`    | `cottonknit_db` | Active |
 | `GANAPATHI`  | `ganapathi.codexsun.com` | `ganapathi_db`  | Active |

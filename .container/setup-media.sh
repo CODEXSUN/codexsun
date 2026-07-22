@@ -36,7 +36,7 @@ media_db=$(env_value MEDIA_DB_VOLUME codexsun-media-db)
 media_user=$(env_value MEDIA_ADMIN_USER admin)
 media_password=$(env_value MEDIA_ADMIN_PASSWORD "")
 registry=$(env_value CODEXSUN_IMAGE_REGISTRY codexsun)
-media_tag=$(env_value MEDIA_IMAGE_TAG 1.0.42-filebrowser2.63.5)
+media_tag=$(env_value MEDIA_IMAGE_TAG 1.0.44-filebrowser2.63.5)
 media_image="${registry}/media:${media_tag}"
 
 cleanup_on_error() {

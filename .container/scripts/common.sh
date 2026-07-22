@@ -214,6 +214,15 @@ ensure_network() {
   docker network inspect "$network" >/dev/null 2>&1 || docker network create "$network" >/dev/null
 }
 
+require_network() {
+  network=$(env_value CODEXSUN_DOCKER_NETWORK codexsun-network)
+  docker network inspect "$network" >/dev/null 2>&1 || {
+    echo "Required shared Docker network is missing: $network" >&2
+    echo "Application deployment will not recreate shared infrastructure." >&2
+    exit 69
+  }
+}
+
 ensure_media_volumes() {
   for volume in \
     "$(env_value MEDIA_DATA_VOLUME codexsun-media-data)" \
@@ -233,5 +242,4 @@ run_preflight() {
   prepare_deploy_env
   validate_deploy_env
   require_docker
-  ensure_network
 }

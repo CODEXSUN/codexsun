@@ -67,7 +67,7 @@ x-api-env: &api-env
   GSP_IP_ADDRESS: ${GSP_IP_ADDRESS:-0.0.0.0}
 
 x-api-service: &api-service
-  image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-api:${BILLING_STACK_API_IMAGE_TAG:-1.0.42}
+  image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-api:${BILLING_STACK_API_IMAGE_TAG:-1.0.44}
   restart: unless-stopped
   volumes:
     - billing-stack-data:/storage
@@ -76,14 +76,14 @@ x-api-service: &api-service
     - codexsun-network
 
 x-web-service: &web-service
-  image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-web:${BILLING_STACK_WEB_IMAGE_TAG:-1.0.42}
+  image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-web:${BILLING_STACK_WEB_IMAGE_TAG:-1.0.44}
   restart: unless-stopped
   networks:
     - codexsun-network
 
 services:
   storage-init:
-    image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-api:${BILLING_STACK_API_IMAGE_TAG:-1.0.42}
+    image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-api:${BILLING_STACK_API_IMAGE_TAG:-1.0.44}
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -106,7 +106,7 @@ services:
       dockerfile: codexsun/.container/billing/Dockerfile.api
       target: runtime
       args:
-        CODEXSUN_VERSION: ${CODEXSUN_VERSION:-1.0.42}
+        CODEXSUN_VERSION: ${CODEXSUN_VERSION:-1.0.44}
         NODE_RUNTIME_VERSION: ${NODE_RUNTIME_VERSION:-26.5.0}
         NPM_RUNTIME_VERSION: ${NPM_RUNTIME_VERSION:-12.0.1}
         PLATFORM_API_PORT: ${PLATFORM_API_PORT:?PLATFORM_API_PORT is required}
@@ -126,7 +126,7 @@ services:
       context: ../../..
       dockerfile: codexsun/.container/billing/Dockerfile.web
       args:
-        CODEXSUN_VERSION: ${CODEXSUN_VERSION:-1.0.42}
+        CODEXSUN_VERSION: ${CODEXSUN_VERSION:-1.0.44}
         NODE_RUNTIME_VERSION: ${NODE_RUNTIME_VERSION:-26.5.0}
         NPM_RUNTIME_VERSION: ${NPM_RUNTIME_VERSION:-12.0.1}
         DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-Codexsun}
@@ -156,10 +156,10 @@ services:
       dockerfile: codexsun/.container/billing/Dockerfile.api
       target: migrations
       args:
-        CODEXSUN_VERSION: ${CODEXSUN_VERSION:-1.0.42}
+        CODEXSUN_VERSION: ${CODEXSUN_VERSION:-1.0.44}
         NODE_RUNTIME_VERSION: ${NODE_RUNTIME_VERSION:-26.5.0}
         NPM_RUNTIME_VERSION: ${NPM_RUNTIME_VERSION:-12.0.1}
-    image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-migrations:${BILLING_STACK_MIGRATIONS_IMAGE_TAG:-1.0.42}
+    image: ${CODEXSUN_IMAGE_REGISTRY:-codexsun}/billing-stack-migrations:${BILLING_STACK_MIGRATIONS_IMAGE_TAG:-1.0.44}
     profiles:
       - tools
     environment:

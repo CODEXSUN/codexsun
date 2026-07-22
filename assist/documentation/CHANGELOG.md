@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.43
+Current version: 1.0.44
 
-Release tag: v-1.0.43
+Release tag: v-1.0.44
 
-Changelog label: v 1.0.43
+Changelog label: v 1.0.44
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,26 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.44
+
+### [v 1.0.44] 2026-07-22 9:46 pm - Enforce application-only container deployment boundaries
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Added mandatory `.container/AGENTS.md` deployment rules covering prerequisites, exact ownership,
+  prohibited destructive Docker operations, VPS backup requirements, and post-rollout verification.
+- Changed setup so shared MariaDB, Redis, and Media are bootstrapped only when all three containers
+  are absent; partial or unhealthy infrastructure now stops for operator review.
+- Changed Billing reinstall and update workflows to rebuild only Billing application services and
+  connect them to the existing shared network without replacing shared containers or volumes.
+- Corrected VPS routing documentation so `app.codexsun.com` belongs to Billing while the portfolio
+  domains remain owned by CMS.
+- Aligned package, workspace, container build, image, and deployment defaults to version 1.0.44.
 
 ## v-1.0.43
 

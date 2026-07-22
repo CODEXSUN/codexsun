@@ -14,9 +14,13 @@ Usage: .container/setup.sh [--reinstall] [billing]
 
 Installs/starts MariaDB, Redis, and Media once, then deploys Billing.
 
---reinstall cleanly replaces CODEXSUN containers and images, then runs safe
-forward migrations. Named volumes, databases, credentials, and uploads remain.
-No setup mode deletes a Docker volume or drops a database.
+--reinstall replaces only Billing application containers and images, then runs
+safe forward migrations. Shared MariaDB, Redis, Media, their named volumes, the
+shared network, credentials, databases, and uploads remain untouched.
+
+Shared infrastructure is bootstrapped only on a first installation where all
+three shared containers are absent. Partial or unhealthy infrastructure causes
+setup to stop for operator review.
 EOF
 }
 
@@ -31,58 +35,67 @@ done
 
 run_preflight
 
-infrastructure_image() {
-  stack="$1"
-  registry=$(env_value CODEXSUN_IMAGE_REGISTRY codexsun)
-  version=$(env_value CODEXSUN_VERSION 1.0.42)
-  case "$stack" in
-    mariadb) tag=$(env_value MARIADB_IMAGE_TAG "11.8-codexsun-${version}") ;;
-    redis) tag=$(env_value REDIS_IMAGE_TAG "7.4-codexsun-${version}") ;;
-    media) tag=$(env_value MEDIA_IMAGE_TAG "${version}-filebrowser2.63.5") ;;
-    *) echo "Unknown infrastructure image: $stack" >&2; exit 64 ;;
-  esac
-  printf '%s/%s:%s' "$registry" "$stack" "$tag"
+shared_infrastructure_count() {
+  count=0
+  for container in codexsun-mariadb codexsun-redis codexsun-media; do
+    if docker container inspect "$container" >/dev/null 2>&1; then
+      count=$((count + 1))
+    fi
+  done
+  printf '%s' "$count"
 }
 
-remove_infrastructure_images() {
-  for stack in mariadb redis media; do
-    image=$(infrastructure_image "$stack")
-    if docker image inspect "$image" >/dev/null 2>&1; then
-      docker image rm "$image" >/dev/null || {
-        echo "Failed to remove infrastructure image: $image" >&2
-        exit 74
-      }
-      echo "Removed infrastructure image: $image"
-    fi
+require_shared_infrastructure() {
+  for container in codexsun-mariadb codexsun-redis codexsun-media; do
+    state=$(docker inspect "$container" --format '{{.State.Status}}' 2>/dev/null || true)
+    health=$(docker inspect "$container" \
+      --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+      2>/dev/null || true)
+    [ "$state" = "running" ] && [ "$health" = "healthy" ] || {
+      echo "Shared infrastructure is not healthy: $container (state=${state:-missing}, health=${health:-missing})." >&2
+      echo "Application setup will not delete or recreate shared infrastructure." >&2
+      exit 69
+    }
   done
 }
 
-stop_all_containers() {
-  bash "$SCRIPT_DIR/deploy.sh" billing down >/dev/null 2>&1 || true
-  stack_compose media down --remove-orphans
-  stack_compose database/redis down --remove-orphans
-  stack_compose database/mariadb down --remove-orphans
+bootstrap_shared_infrastructure() {
+  echo "First installation: bootstrapping the shared MariaDB, Redis, and Media layer."
+  stack_compose database/mariadb build
+  stack_compose database/mariadb up -d --no-build --wait --wait-timeout 180
+  MSYS_NO_PATHCONV=1 docker exec codexsun-mariadb \
+    bash /docker-entrypoint-initdb.d/10-codexsun-grants.sh >/dev/null
+  echo "MariaDB application grants reconciled. Host access: $(env_value CODEXSUN_BIND_ADDRESS):$(env_value MARIADB_HOST_PORT)."
+
+  stack_compose database/redis build
+  stack_compose database/redis up -d --no-build --wait --wait-timeout 120
+
+  stack_compose media build
+  bash "$SCRIPT_DIR/setup-media.sh"
 }
 
-build_option=()
-if [ "$MODE" = "reinstall" ]; then
-  echo "Clean reinstall requested. Named volumes and databases will be preserved."
-  stop_all_containers
-  remove_infrastructure_images
-  build_option=(--pull --no-cache)
-fi
+infrastructure_count=$(shared_infrastructure_count)
+case "$infrastructure_count" in
+  0)
+    [ "$MODE" = "install" ] || {
+      echo "Billing reinstall requires the existing shared infrastructure layer." >&2
+      exit 69
+    }
+    ensure_network
+    bootstrap_shared_infrastructure
+    ;;
+  3)
+    require_network
+    require_shared_infrastructure
+    echo "Shared infrastructure is healthy and will not be rebuilt or replaced."
+    ;;
+  *)
+    echo "Shared infrastructure is partial ($infrastructure_count/3 containers present)." >&2
+    echo "Stop and repair it from the infrastructure owner; setup will not delete or recreate it." >&2
+    exit 69
+    ;;
+esac
 
-stack_compose database/mariadb build "${build_option[@]}"
-stack_compose database/mariadb up -d --no-build --wait --wait-timeout 180
-MSYS_NO_PATHCONV=1 docker exec codexsun-mariadb \
-  bash /docker-entrypoint-initdb.d/10-codexsun-grants.sh >/dev/null
-echo "MariaDB application grants reconciled. Host access: $(env_value CODEXSUN_BIND_ADDRESS):$(env_value MARIADB_HOST_PORT)."
-
-stack_compose database/redis build "${build_option[@]}"
-stack_compose database/redis up -d --no-build --wait --wait-timeout 120
-
-stack_compose media build "${build_option[@]}"
-bash "$SCRIPT_DIR/setup-media.sh"
 bash "$SCRIPT_DIR/update-runtime.sh"
 
 deploy_target() {

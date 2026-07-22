@@ -89,7 +89,7 @@ stack_image() {
     migrations) tag_key="${upper_stack}_STACK_MIGRATIONS_IMAGE_TAG" ;;
     *) echo "Unknown image role: $suffix" >&2; exit 64 ;;
   esac
-  tag=$(env_value "$tag_key" "$(env_value CODEXSUN_VERSION 1.0.42)")
+  tag=$(env_value "$tag_key" "$(env_value CODEXSUN_VERSION 1.0.44)")
   printf '%s/%s-stack-%s:%s' "$registry" "$STACK" "$suffix" "$tag"
 }
 
