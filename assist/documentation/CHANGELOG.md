@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.47
+Current version: 1.0.48
 
-Release tag: v-1.0.47
+Release tag: v-1.0.48
 
-Changelog label: v 1.0.47
+Changelog label: v 1.0.48
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,27 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.48
+
+### [v 1.0.48] 2026-07-23 11:11 am - Add durable switchable queue backends
+
+#### Database Changes
+
+- Database update: Yes.
+- Extended the module-owned Queue Manager schema and seed contract with backend selection,
+  delivery state, idempotency, retry, and operator-visible health metadata.
+- Existing installations require the forward Queue Manager migration before the updated runtime
+  is enabled; no table reset or cross-module schema ownership is introduced.
+
+#### App Codebase Changes
+
+- Added database and BullMQ/Redis Queue V2 adapters behind the Framework queue contract, including
+  durable receipts, backend health checks, safe switching, retry, cancellation, and shutdown.
+- Updated fixed Queue Manager API contracts and its independently owned Web workspace for backend
+  selection and live operational state.
+- Added queue-backend persistence coverage and retained the established migration and seed order.
+- Bumped repository version to 1.0.48.
 
 ## v-1.0.47
 

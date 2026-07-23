@@ -20,6 +20,7 @@ export type PlatformDatabase = {
   platform_activity: PlatformActivityTable;
   platform_apps: PlatformAppsTable;
   queue_jobs: QueueJobsTable;
+  queue_runtime_settings: QueueRuntimeSettingsTable;
   storage_objects: StorageObjectsTable;
   subscriptions: SubscriptionsTable;
   tenant_domains: TenantDomainsTable;
@@ -132,6 +133,15 @@ export type QueueJobsTable = {
   status: "cancelled" | "completed" | "failed" | "pending" | "running";
   tenant_id: string | null;
   updated_at: TimestampColumn;
+  uuid: string;
+};
+
+export type QueueRuntimeSettingsTable = {
+  backend: "bullmq-redis" | "database";
+  id: Generated<number>;
+  setting_key: string;
+  updated_at: TimestampColumn;
+  updated_by: string | null;
   uuid: string;
 };
 

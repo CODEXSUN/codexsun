@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { ok } from "@codexsun/framework/http";
+import { registerContractRoute } from "@codexsun/framework/http";
 import { requireSuperAdmin } from "../../auth/super-admin.guard.js";
 import { QueueManagerService } from "./queue-manager.service.js";
 import type { QueueJobFilters, QueueJobStatus } from "./queue-manager.types.js";
+import { z } from "zod";
 
 const service = new QueueManagerService();
 
@@ -60,6 +62,33 @@ export async function registerQueueManagerRoutes(app: FastifyInstance) {
   app.post("/admin/queue/cleanup", { preHandler: requireSuperAdmin }, async (request) =>
     ok(await service.cleanupRetainedJobs(), { requestId: request.id })
   );
+  registerContractRoute(app, {
+    method: "PUT",
+    preHandler: requireSuperAdmin,
+    schemas: {
+      body: z.object({ backend: z.enum(["database", "bullmq-redis"]) }).strict(),
+      response: z.object({
+        backend: z.enum(["database", "bullmq-redis"]),
+        backendHealth: z.object({
+          checkedAt: z.string(),
+          latencyMs: z.number(),
+          message: z.string().optional(),
+          status: z.enum(["available", "degraded", "unavailable"])
+        }),
+        backendLabel: z.string(),
+        canRunInline: z.boolean(),
+        completed: z.number(),
+        failed: z.number(),
+        pending: z.number(),
+        redisConfigured: z.boolean(),
+        running: z.number(),
+        workerEnabled: z.boolean(),
+        workerIntervalMs: z.number()
+      })
+    },
+    url: "/admin/queue/settings/backend",
+    handler: ({ body }) => service.switchBackend(body.backend)
+  });
 }
 
 function filtersFromQuery(query: unknown): QueueJobFilters {

@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.47",
+  "version": "1.0.48",
   "private": true,
   "packageManager": "npm@12.0.1",
   "description": "Complete CODEXSUN application and stack orchestrator",
@@ -31,7 +31,8 @@
     "format": "prettier . ../framework ../ui ../core ../billing ../mail --write",
     "format:check": "prettier . ../framework ../ui ../core ../billing ../mail --check",
     "test:product-stacks": "node --test tools/product-stack-contract.test.mjs",
-    "test:e2e": "npm run test:e2e:organisation && npm run test:e2e:bootstrap && npm run test:e2e:persistence && npm run test:e2e:composed-runtime",
+    "test:e2e": "npm run test:e2e:queue && npm run test:e2e:organisation && npm run test:e2e:bootstrap && npm run test:e2e:persistence && npm run test:e2e:composed-runtime",
+    "test:e2e:queue": "tsx tools/e2e/queue-backend.e2e.ts",
     "test:e2e:organisation": "tsx ../core/api/src/modules/organisation/organisation.e2e.ts",
     "test:e2e:bootstrap": "tsx tools/e2e/platform-core-billing-bootstrap.e2e.ts",
     "test:e2e:composed-runtime": "tsx tools/e2e/composed-platform-runtime.e2e.ts",
