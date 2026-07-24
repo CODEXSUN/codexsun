@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.50
+Current version: 1.0.51
 
-Release tag: v-1.0.50
+Release tag: v-1.0.51
 
-Changelog label: v 1.0.50
+Changelog label: v 1.0.51
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,24 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.51
+
+### [v 1.0.51] 2026-07-24 5:47 pm - Prevent repository text encoding corruption
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Added a repository-local text encoding gate that scans source, configuration, documentation, and
+  environment files for invalid UTF-8 and common mojibake sequences.
+- Required environment comments to remain ASCII and environment files to remain BOM-free so
+  decorative separators cannot be silently corrupted by Windows encoding conversions.
+- Wired the encoding gate into the normal repository check while retaining a focused environment
+  check alias for maintenance workflows.
+- Bumped the repository, Platform API, Platform Web, and lockfile versions to 1.0.51.
 
 ## v-1.0.50
 
