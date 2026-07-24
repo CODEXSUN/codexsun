@@ -10,6 +10,7 @@ import type {
   TenantUserSavePayload,
   TenantUserStatus
 } from "./tenant-user.types.js";
+import type { TenantSupportTarget } from "../tenant/index.js";
 
 export class TenantUserService {
   private readonly repository: TenantUserRepository;
@@ -104,6 +105,15 @@ export class TenantUserService {
       throw error;
     }
   }
+}
+
+export function createTenantUserAdminService(target: TenantSupportTarget, actorEmail: string) {
+  return new TenantUserService({
+    actorEmail,
+    authorize: async () => undefined,
+    database: target.database,
+    tenantId: target.tenantId
+  });
 }
 function normalize(input: TenantUserSavePayload, creating: boolean): TenantUserSavePayload {
   const password = input.password?.trim();

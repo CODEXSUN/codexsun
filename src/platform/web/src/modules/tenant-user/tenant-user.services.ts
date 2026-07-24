@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPost, apiPut } from "../../shared/api/platform-api";
 import type { TenantUser, TenantUserListFilters, TenantUserSavePayload } from "./tenant-user.types";
+import type { TenantUserTenantOption } from "./tenant-user.types";
 const path = "/tenant/access/users";
 export function listTenantUsers(filters: TenantUserListFilters = {}) {
   const query = new URLSearchParams();
@@ -27,4 +28,57 @@ export function forceDeleteTenantUser(id: number) {
 function toApi(payload: TenantUserSavePayload) {
   const { password, ...value } = payload;
   return password ? { ...value, password } : value;
+}
+
+type TenantOptionResponse = {
+  id: number;
+  status: string;
+  tenantCode: string;
+  tenantName: string;
+};
+
+const adminPath = "/admin/tenant-users";
+
+export async function listTenantUserTenants(): Promise<TenantUserTenantOption[]> {
+  const tenants = await apiGet<TenantOptionResponse[]>("/admin/tenants/options", "sa");
+  return tenants.map((tenant) => ({
+    id: tenant.id,
+    label: tenant.tenantName,
+    status: tenant.status,
+    tenantCode: tenant.tenantCode
+  }));
+}
+
+export function listAdminTenantUsers(tenantId: number, filters: TenantUserListFilters = {}) {
+  const query = new URLSearchParams({ tenantId: String(tenantId) });
+  if (filters.search?.trim()) query.set("search", filters.search.trim());
+  return apiGet<TenantUser[]>(`${adminPath}?${query}`, "sa");
+}
+
+export function createAdminTenantUser(tenantId: number, payload: TenantUserSavePayload) {
+  return apiPost<TenantUser>(adminPath, { ...toApi(payload), tenantId: String(tenantId) }, "sa");
+}
+
+export function updateAdminTenantUser(
+  tenantId: number,
+  id: number,
+  payload: TenantUserSavePayload
+) {
+  return apiPut<TenantUser>(
+    `${adminPath}/${id}`,
+    { ...toApi(payload), tenantId: String(tenantId) },
+    "sa"
+  );
+}
+
+export function activateAdminTenantUser(tenantId: number, id: number) {
+  return apiPost<TenantUser>(`${adminPath}/${id}/activate`, { tenantId: String(tenantId) }, "sa");
+}
+
+export function deactivateAdminTenantUser(tenantId: number, id: number) {
+  return apiPost<TenantUser>(`${adminPath}/${id}/deactivate`, { tenantId: String(tenantId) }, "sa");
+}
+
+export function forceDeleteAdminTenantUser(tenantId: number, id: number) {
+  return apiDelete<TenantUser>(`${adminPath}/${id}/force?tenantId=${tenantId}`, "sa");
 }

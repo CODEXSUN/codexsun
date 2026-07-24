@@ -15,3 +15,9 @@ export type TenantUserSavePayload = {
   status: TenantUserStatus;
 };
 export type TenantUserListFilters = { search?: string };
+export type TenantUserTenantOption = {
+  id: number;
+  label: string;
+  status: string;
+  tenantCode: string;
+};

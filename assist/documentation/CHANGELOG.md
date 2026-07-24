@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.49
+Current version: 1.0.50
 
-Release tag: v-1.0.49
+Release tag: v-1.0.50
 
-Changelog label: v 1.0.49
+Changelog label: v 1.0.50
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,27 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.50
+
+### [v 1.0.50] 2026-07-24 5:28 pm - Add cross-tenant user administration
+
+#### Database Changes
+
+- Database update: No.
+- Reuses each selected tenant's existing database and tenant-user tables without changing schemas,
+  migrations, seeds, or persisted records.
+
+#### App Codebase Changes
+
+- Added guarded Super Admin tenant-user routes for listing, creating, editing, lifecycle changes,
+  and force deletion against an explicitly selected tenant.
+- Added the Super Admin Tenant Users workspace with tenant lookup, search, forms, lifecycle actions,
+  and tenant-scoped query invalidation.
+- Resolved tenant databases exclusively on the server and recorded cross-tenant support actions with
+  the Super Admin actor and selected tenant context.
+- Added focused tenant-user administration E2E coverage and documented the support-access boundary.
+- Bumped repository version to 1.0.50.
 
 ## v-1.0.49
 
