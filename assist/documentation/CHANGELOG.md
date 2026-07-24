@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.48
+Current version: 1.0.49
 
-Release tag: v-1.0.48
+Release tag: v-1.0.49
 
-Changelog label: v 1.0.48
+Changelog label: v 1.0.49
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,32 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.49
+
+### [v 1.0.49] 2026-07-24 10:39 am - Synchronize tenant landing and simplify deployment sources
+
+#### Database Changes
+
+- Database update: Yes.
+- Updated repeatable tenant permission and provisioning behavior so authorized landing-app changes
+  persist in the Platform tenant record and reconcile the Core Default Company mirror.
+- No new table or column migration is introduced; existing installations must rerun the normal
+  seed/provisioning lifecycle so the settings permission and landing mirror are aligned.
+
+#### App Codebase Changes
+
+- Added fixed tenant-runtime contracts that synchronize Landing Desk, Default Company, and tenant
+  app-connection updates through one persisted landing-app source of truth, with rollback when the
+  mirrored Core write or Platform write fails.
+- Removed browser storage as a landing-app authority and added focused landing-state E2E coverage.
+- Replaced the obsolete CMS package dependency with the Sites-owned application catalogue in
+  Platform composition and App Operations.
+- Simplified Billing container builds and VPS source checks from eight repositories to the active
+  seven-repository stack while preserving shared MariaDB, Redis, Media, and application data.
+- Updated deployment guidance, source scripts, image inputs, and smoke assertions for the Sites
+  ownership boundary.
+- Bumped repository version to 1.0.49.
 
 ## v-1.0.48
 

@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/platform-api",
-  "version": "1.0.48",
+  "version": "1.0.49",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@codexsun/billing-api": "file:../../../../billing/api",
-    "@codexsun/cms": "file:../../../../cms",
+    "@codexsun/sites": "file:../../../../sites",
     "@codexsun/core-api": "file:../../../../core/api",
     "@codexsun/framework": "file:../../../../framework",
     "@codexsun/mail-api": "file:../../../../mail/api",

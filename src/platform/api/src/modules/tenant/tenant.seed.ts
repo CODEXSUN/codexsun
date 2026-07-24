@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { sql, type Kysely } from "kysely";
+import { defaultCompanyApplicationContract } from "@codexsun/core-api";
 import { getPlatformDatabase } from "../../database/platform-database.js";
 import {
   createTenantDatabase,
@@ -45,6 +46,7 @@ export async function provisionTenantDatabase(tenant: Tenant) {
     const migrated = await migrateSelectedTenantApps(database, tenant);
     await seedTenantRuntimeModule(database, tenant);
     const seeded = await seedSelectedTenantApps(database, tenant);
+    await defaultCompanyApplicationContract(tenant.dbName).syncLandingApp(tenant.defaultLandingApp);
     console.info(`[database] tenant database provisioned: "${tenant.dbName}"`);
     return { ...migrated, ...seeded };
   } finally {

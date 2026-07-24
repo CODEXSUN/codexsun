@@ -10,18 +10,18 @@ This directory provides one persistent infrastructure layer and the composed COD
 The Billing stack owns `app.codexsun.com`, `cotton.codexsun.com`, `sukraa.codexsun.com`, and
 `ganapathi.codexsun.com`. Its module-owned default seeder provisions four tenant registries and
 four isolated databases with Billing and Mail enabled. Public portfolio domains are owned by the
-separate CMS repository and are not routed by this stack.
+separate Sites deployment and are not routed by this stack.
 
-| Product  | Source composition                                | Runtime services          |
-| -------- | ------------------------------------------------- | ------------------------- |
-| CODEXSUN | Framework + UI + Sites + CMS catalogue + Platform + Core + Billing + Mail | Platform API/Platform Web |
+| Product  | Source composition                                                  | Runtime services          |
+| -------- | ------------------------------------------------------------------- | ------------------------- |
+| CODEXSUN | Framework + UI + Sites catalogue + Platform + Core + Billing + Mail | Platform API/Platform Web |
 
 MariaDB, Redis, and Media are installed once. Product deployment commands never delete their named volumes. Normal source updates rebuild and replace only application containers, so databases, credentials, uploads, and application storage remain stable.
 
 ## Deployment prerequisites
 
 - Git, Docker Engine, and Docker Compose v2.
-- The `codexsun`, `framework`, `ui`, `sites`, `cms`, `core`, `billing`, and `mail` repositories as siblings.
+- The `codexsun`, `framework`, `ui`, `sites`, `core`, `billing`, and `mail` repositories as siblings.
 - A protected `.container/deploy.env` or `.container/vps.env` with non-example production values.
 - Healthy shared `codexsun-mariadb`, `codexsun-redis`, and `codexsun-media` containers on the
   existing external `codexsun-network` for every update or development rebuild.
@@ -104,7 +104,7 @@ cd codexsun
 bash install.sh
 ```
 
-The first run automatically clones `framework`, `ui`, `sites`, `cms`, `core`, `billing`, and `mail` beside
+The first run automatically clones `framework`, `ui`, `sites`, `core`, `billing`, and `mail` beside
 `codexsun`, then creates the ignored `.container/vps.env`. Edit that single file with the real
 domains, HTTPS origin, administrator values, secrets, and verified-backup marker. For an empty first
 installation, use a recorded marker such as `initial-empty-database-YYYYMMDD`. Then rerun:
@@ -124,9 +124,9 @@ bash install.sh update
 ```
 
 `update` refuses to continue if any repository has uncommitted server changes, is not on `main`, or
-is ahead of/diverged from `origin/main`. It fetches all eight repositories first, reports every local
+is ahead of/diverged from `origin/main`. It fetches all seven repositories first, reports every local
 and remote revision, and does not change any checkout until the complete set passes. It then
-fast-forwards all eight repositories to the inspected revisions, rebuilds application images, runs
+fast-forwards all seven repositories to the inspected revisions, rebuilds application images, runs
 safe forward migrations, recreates only application containers, and smoke-tests the result.
 MariaDB, Redis, Media, uploads, credentials, and named volumes remain untouched.
 

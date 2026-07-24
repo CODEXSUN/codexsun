@@ -1,7 +1,7 @@
 import { createConnection } from "node:net";
 import { billingApplication } from "@codexsun/billing-api";
-import { cmsApplication } from "@codexsun/cms";
 import { mailApplication } from "@codexsun/mail-api";
+import { sitesApplication } from "@codexsun/sites";
 import { env } from "../../env.js";
 import type {
   OrchestratedApp,
@@ -19,7 +19,11 @@ type ApplicationBundle = {
   readiness: Exclude<OrchestratedAppReadiness, "runtime">;
 };
 
-const applicationBundles = [billingApplication, cmsApplication, mailApplication] satisfies readonly ApplicationBundle[];
+const applicationBundles = [
+  billingApplication,
+  sitesApplication,
+  mailApplication
+] satisfies readonly ApplicationBundle[];
 
 const apiUrl = new URL(env.PLATFORM_API_URL);
 const webUrl = new URL(env.PLATFORM_WEB_HEALTH_URL || env.PLATFORM_WEB_ORIGIN);

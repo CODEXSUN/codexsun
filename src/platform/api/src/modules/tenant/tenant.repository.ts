@@ -191,6 +191,31 @@ export class TenantRepository {
     };
   }
 
+  async updateLandingApp(tenant: Tenant, defaultLandingApp: Tenant["defaultLandingApp"]) {
+    const payloadSettings = {
+      ...tenant.payloadSettings,
+      landing: {
+        ...(isRecord(tenant.payloadSettings.landing) ? tenant.payloadSettings.landing : {}),
+        app: defaultLandingApp,
+        mode: "tenant"
+      }
+    };
+    await getPlatformDatabase()
+      .updateTable("tenants")
+      .set({
+        default_landing_app: defaultLandingApp,
+        payload_settings: JSON.stringify(payloadSettings)
+      })
+      .where("id", "=", tenant.id)
+      .execute();
+    await this.audit(tenant.id, "tenant.landing-app.updated");
+    return {
+      ...tenant,
+      defaultLandingApp,
+      payloadSettings
+    };
+  }
+
   async activity(id: string) {
     const tenant = await this.findByIdOrCode(id);
     if (!tenant) return [];

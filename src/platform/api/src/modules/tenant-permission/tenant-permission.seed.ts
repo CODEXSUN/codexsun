@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Kysely } from "kysely";
 import type { TenantDatabase } from "../../database/schema.js";
 const seeds = [
+  "settings.update",
   "user.view",
   "user.create",
   "user.update",

@@ -87,9 +87,9 @@ framework + platform + core + billing = billing stack
 
 The executable container layout lives under `.container/`. MariaDB, Redis, and Media form one
 persistent infrastructure layer alongside the Billing Compose project. A VPS checkout places
-`codexsun`, `framework`, `ui`, `sites`, `cms`, `core`, `billing`, and `mail` as sibling Git repositories. Docker
-builds the application images directly from that source layout. CMS and Sites satisfy Platform's
-public catalogue import only; their independent services are not part of the Billing runtime. No external container registry or
+`codexsun`, `framework`, `ui`, `sites`, `core`, `billing`, and `mail` as sibling Git repositories. Docker
+builds the application images directly from that source layout. Sites owns the CMS and public-site
+catalogue consumed by Platform; its independent services are not part of the Billing runtime. No external container registry or
 GitHub package login is part of installation.
 
 The local and VPS paths use the same Dockerfiles, Compose files, migration gate, and smoke test. A

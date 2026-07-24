@@ -5,20 +5,19 @@
 This is the authoritative repository map for the composed Billing product. Historical changelog
 entries may describe earlier layouts; they do not change the active stack.
 
-Last reviewed: 2026-07-22.
+Last reviewed: 2026-07-23.
 
 ## Active Repositories
 
-| Repository  | Package               | Nature                                      | Runtime role                                |
-| ----------- | --------------------- | ------------------------------------------- | ------------------------------------------- |
-| `codexsun`  | `codexsun`            | Executable Platform and composition root    | Platform API and Platform Web               |
-| `framework` | `@codexsun/framework` | Backend infrastructure and stable contracts | Linked library; no business tables          |
-| `ui`        | `@codexsun/ui`        | Presentation primitives                     | Linked library; no business ownership       |
-| `sites`     | `@codexsun/sites`     | Public site application boundary            | Linked CMS dependency; no Billing service   |
-| `cms`       | `@codexsun/cms`       | Public CMS application catalogue            | Linked Platform dependency; no Billing service |
-| `core`      | `@codexsun/core`      | Common, organisation, and master foundation | API and Web packages composed into Platform |
-| `billing`   | `@codexsun/billing`   | Billing and financial documents             | API and Web packages composed into Platform |
-| `mail`      | `@codexsun/mail`      | Mail delivery and synchronization           | API and Web packages composed into Platform |
+| Repository  | Package               | Nature                                            | Runtime role                                   |
+| ----------- | --------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| `codexsun`  | `codexsun`            | Executable Platform and composition root          | Platform API and Platform Web                  |
+| `framework` | `@codexsun/framework` | Backend infrastructure and stable contracts       | Linked library; no business tables             |
+| `ui`        | `@codexsun/ui`        | Presentation primitives                           | Linked library; no business ownership          |
+| `sites`     | `@codexsun/sites`     | CMS, public-site, and application catalogue owner | Linked Platform dependency; no Billing service |
+| `core`      | `@codexsun/core`      | Common, organisation, and master foundation       | API and Web packages composed into Platform    |
+| `billing`   | `@codexsun/billing`   | Billing and financial documents                   | API and Web packages composed into Platform    |
+| `mail`      | `@codexsun/mail`      | Mail delivery and synchronization                 | API and Web packages composed into Platform    |
 
 Each directory is an independent Git repository with its own package metadata, lockfile, version,
 changelog, checks, and release command. They are checked out as sibling folders under one parent.
@@ -27,7 +26,7 @@ changelog, checks, and release command. They are checked out as sibling folders 
 
 ```text
 framework -> core API -----+
-cms ------> Platform API --+
+sites ----> Platform API --+
           -> billing API --+
           -> mail API -----+--> codexsun Platform API
 

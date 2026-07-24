@@ -6,7 +6,6 @@ ARG NPM_RUNTIME_VERSION=12.0.1
 RUN npm install --global npm@${NPM_RUNTIME_VERSION}
 COPY framework ./framework
 COPY sites ./sites
-COPY cms ./cms
 COPY core ./core
 COPY billing ./billing
 COPY mail ./mail
@@ -47,7 +46,6 @@ RUN apt-get update \
 
 COPY --from=production-dependencies /workspace/framework /workspace/framework
 COPY --from=production-dependencies /workspace/sites /workspace/sites
-COPY --from=production-dependencies /workspace/cms /workspace/cms
 COPY --from=production-dependencies /workspace/core /workspace/core
 COPY --from=production-dependencies /workspace/billing /workspace/billing
 COPY --from=production-dependencies /workspace/mail /workspace/mail
