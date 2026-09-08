@@ -7,7 +7,7 @@ export const uiGalleryWebModule: PlatformWebModule<FC> = {
   navigation: [
     {
       id: 'ui-gallery.components',
-      label: 'UI Gallery',
+      label: 'Overview',
       order: 20,
       routeId: 'ui-gallery.components',
     },
@@ -17,7 +17,7 @@ export const uiGalleryWebModule: PlatformWebModule<FC> = {
       component: UiGallery,
       id: 'ui-gallery.components',
       path: '/ui',
-      title: 'UI component gallery',
+      title: 'Overview workspace',
     },
   ],
   version: '1.0.0',

@@ -8,6 +8,15 @@ import { ModuleLifecycleError, type ModuleLifecyclePhase } from './module-errors
 
 export type ModuleRuntimeState = 'idle' | 'active' | 'stopped' | 'failed'
 export type ModuleContextFactory = (module: FrameworkModule) => ModuleLifecycleContext
+export type ModuleLifecycleEventStatus = 'completed' | 'failed' | 'started'
+
+export interface ModuleLifecycleEvent {
+  moduleId: string
+  phase: ModuleLifecyclePhase
+  status: ModuleLifecycleEventStatus
+}
+
+export type ModuleLifecycleReporter = (event: ModuleLifecycleEvent) => void
 
 export class ModuleLifecycleExecutor {
   private activeModules: FrameworkModule[] = []
@@ -16,14 +25,18 @@ export class ModuleLifecycleExecutor {
   constructor(
     private readonly plan: ModuleCompositionPlan,
     private readonly createContext: ModuleContextFactory = defaultContextFactory,
+    private readonly report: ModuleLifecycleReporter = () => {},
   ) {}
 
   get state(): ModuleRuntimeState {
     return this.runtimeState
   }
 
-  async install(): Promise<void> {
-    await this.runWithRollback('install', 'uninstall', this.plan.modules)
+  async install(moduleIds?: ReadonlySet<string>): Promise<void> {
+    const modules = moduleIds
+      ? this.plan.modules.filter((module) => moduleIds.has(module.id))
+      : this.plan.modules
+    await this.runWithRollback('install', 'uninstall', modules)
   }
 
   async activate(): Promise<void> {
@@ -115,9 +128,12 @@ export class ModuleLifecycleExecutor {
     phase: ModuleLifecyclePhase,
     action: () => Promise<void> | void,
   ): Promise<void> {
+    this.report({ moduleId: module.id, phase, status: 'started' })
     try {
       await action()
+      this.report({ moduleId: module.id, phase, status: 'completed' })
     } catch (error) {
+      this.report({ moduleId: module.id, phase, status: 'failed' })
       throw new ModuleLifecycleError(module.id, phase, error)
     }
   }

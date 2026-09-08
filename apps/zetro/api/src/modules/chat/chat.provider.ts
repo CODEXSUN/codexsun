@@ -38,6 +38,8 @@ export class CodexAppServerProvider implements ChatProvider {
             .map((attachment) => attachment.dataUrl),
         ),
         text: toCodexPrompt(request.messages, request.previousDelivery),
+        projectId: request.projectId,
+        projectRoot: request.projectRoot,
         workflow: request.workflow,
       })
 

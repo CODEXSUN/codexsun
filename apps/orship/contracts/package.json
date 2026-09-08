@@ -1,0 +1,18 @@
+{
+  "name": "@codexsun/orship-contracts",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "main": "../../../dist/apps/orship/contracts/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

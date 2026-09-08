@@ -2,14 +2,21 @@
 
 import { spawn, spawnSync } from 'node:child_process'
 import { config as loadDotenv } from 'dotenv'
-import { resolve } from 'node:path'
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import { preparePort } from './service-lifecycle.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '..')
 const serviceName = process.argv[2]
 const services = {
   'platform-api': {
-    args: ['--watch', '--watch-path=src', '--import', 'tsx', 'src/server.ts'],
+    args: [
+      '--watch',
+      '--watch-path=src',
+      '--import',
+      'tsx',
+      resolve(projectRoot, 'apps/platform/api/src/server.ts'),
+    ],
     command: process.execPath,
     cwd: resolve(projectRoot, 'apps/platform/api'),
     defaultPort: 6010,
@@ -29,7 +36,7 @@ const services = {
     healthPath: '/',
   },
   'docs-api': {
-    args: ['--import', 'tsx', 'src/server.ts'],
+    args: ['--import', 'tsx', resolve(projectRoot, 'apps/docs/api/src/server.ts')],
     command: process.execPath,
     cwd: resolve(projectRoot, 'apps/docs/api'),
     hostKey: 'DOCS_API_HOST',
@@ -48,8 +55,28 @@ const services = {
     defaultPort: 6040,
     healthPath: '/',
   },
+  'devkit-api': {
+    args: ['--import', 'tsx', resolve(projectRoot, 'apps/devkit/api/src/server.ts')],
+    command: process.execPath,
+    cwd: resolve(projectRoot, 'apps/devkit/api'),
+    defaultPort: 6070,
+    hostKey: 'DEVKIT_API_HOST',
+    label: 'DevKit API',
+    portKey: 'DEVKIT_API_PORT',
+    healthPath: '/health',
+  },
+  'devkit-web': {
+    args: [resolve(projectRoot, 'node_modules/vite/bin/vite.js'), '--strictPort'],
+    command: process.execPath,
+    cwd: resolve(projectRoot, 'apps/devkit/web'),
+    defaultPort: 6080,
+    hostKey: 'DEVKIT_WEB_HOST',
+    label: 'DevKit web',
+    portKey: 'DEVKIT_WEB_PORT',
+    healthPath: '/',
+  },
   'zetro-api': {
-    args: ['--import', 'tsx', 'src/server.ts'],
+    args: ['--import', 'tsx', resolve(projectRoot, 'apps/zetro/api/src/server.ts')],
     command: process.execPath,
     cwd: resolve(projectRoot, 'apps/zetro/api'),
     defaultPort: 6050,
@@ -68,6 +95,26 @@ const services = {
     portKey: 'ZETRO_WEB_PORT',
     healthPath: '/',
   },
+  'orship-api': {
+    args: ['--import', 'tsx', resolve(projectRoot, 'apps/orship/api/src/server.ts')],
+    command: process.execPath,
+    cwd: resolve(projectRoot, 'apps/orship/api'),
+    defaultPort: 6090,
+    hostKey: 'ORSHIP_API_HOST',
+    label: 'Orship API',
+    portKey: 'ORSHIP_API_PORT',
+    healthPath: '/health',
+  },
+  'orship-web': {
+    args: [resolve(projectRoot, 'node_modules/vite/bin/vite.js'), '--strictPort'],
+    command: process.execPath,
+    cwd: resolve(projectRoot, 'apps/orship/web'),
+    defaultPort: 6091,
+    hostKey: 'ORSHIP_WEB_HOST',
+    label: 'Orship web',
+    portKey: 'ORSHIP_WEB_PORT',
+    healthPath: '/',
+  },
 }
 
 if (!serviceName || !(serviceName in services)) {
@@ -80,9 +127,10 @@ loadDotenv({ path: resolve(projectRoot, '.env'), quiet: true })
 const service = services[serviceName]
 const host = process.env[service.hostKey] || '127.0.0.1'
 let child
+let port
 
 try {
-  const port = readPort(service.portKey, service.defaultPort)
+  port = readPort(service.portKey, service.defaultPort)
   await preparePort({
     healthUrl: service.healthPath ? `http://${host}:${port}${service.healthPath}` : undefined,
     host,
@@ -106,20 +154,24 @@ function startService(serviceDefinition, hostName, portNumber) {
 
   return spawn(serviceDefinition.command, serviceArgs, {
     cwd: serviceDefinition.cwd,
+    detached: process.platform === 'win32',
     env: process.env,
     stdio: 'inherit',
+    windowsHide: true,
   })
 }
 
 let stopping = false
 
 child.once('spawn', () => {
+  void writeProcessMarker(child.pid, port)
   if (typeof process.send === 'function') {
     process.send({ service: serviceName, type: 'codexsun:service-started' })
   }
 })
 
-child.once('exit', (code, signal) => {
+child.once('exit', async (code, signal) => {
+  await removeProcessMarker(child.pid)
   if (!stopping && code !== 0) {
     process.stderr.write(
       `[preflight] ${service.label} exited with ${signal ? `signal ${signal}` : `code ${code}`}\n`,
@@ -182,4 +234,36 @@ function waitForExit(childProcess, timeoutMilliseconds) {
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error)
+}
+
+function markerPath() {
+  return resolve(projectRoot, 'storage/app/private/runtime/processes', `${serviceName}.json`)
+}
+
+async function writeProcessMarker(processId, servicePort) {
+  const path = markerPath()
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(
+    path,
+    `${JSON.stringify(
+      {
+        pid: processId,
+        port: servicePort,
+        projectRoot,
+        serviceId: serviceName,
+        startedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    )}\n`,
+  )
+}
+
+async function removeProcessMarker(processId) {
+  try {
+    const marker = JSON.parse(await readFile(markerPath(), 'utf8'))
+    if (marker.pid === processId) await unlink(markerPath())
+  } catch (error) {
+    if (error?.code !== 'ENOENT') process.stderr.write(`[preflight] marker cleanup failed\n`)
+  }
 }

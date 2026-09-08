@@ -1,5 +1,13 @@
-import { Check, ChevronRight, Eye, EyeOff, Highlighter, X } from 'lucide-react'
+import { Check, ChevronRight, Copy, Eye, EyeOff, Highlighter, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@codexsun/ui/components/select'
 import type {
   InterfaceTopologyController,
   InterfaceTopologySection,
@@ -14,21 +22,10 @@ export function TopologyInspector({ topology }: { topology: InterfaceTopologyCon
   return (
     <aside
       aria-label="Interface Topology Overlay"
-      className="fixed bottom-16 right-14 top-8 z-50 flex w-[min(23rem,calc(100vw-4.5rem))] flex-col overflow-hidden rounded-xl border border-border bg-white text-neutral-950 shadow-[0_16px_42px_rgb(15_23_42/0.16)]"
+      className="fixed top-4 right-14 bottom-20 z-50 flex w-88 max-w-[calc(100vw-4.5rem)] flex-col overflow-hidden rounded-xl border border-border bg-white text-neutral-950 shadow-xl"
     >
       <InspectorHeader topology={topology} />
-      <div className="border-b border-border px-4 py-5">
-        <strong className="block text-sm">
-          {selected.id} · {selected.name}
-        </strong>
-        <code className="mt-1 block break-all text-xs font-bold text-violet-700">
-          {selected.technicalName}
-        </code>
-        <span className="mt-3 block text-[10px] font-bold uppercase tracking-[0.14em] text-violet-700">
-          {selected.scope}
-        </span>
-        <p className="mt-1 text-sm leading-5 text-neutral-600">{selected.description}</p>
-      </div>
+      <SelectedSectionDetails section={selected} topology={topology} />
       <nav
         aria-label="Topology sections"
         className="min-h-0 flex-1 overflow-y-auto px-2 py-2 [scrollbar-color:#a78bfa_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-violet-400 [&::-webkit-scrollbar]:w-1"
@@ -41,13 +38,75 @@ export function TopologyInspector({ topology }: { topology: InterfaceTopologyCon
   )
 }
 
+function SelectedSectionDetails({
+  section,
+  topology,
+}: {
+  section: InterfaceTopologySection
+  topology: InterfaceTopologyController
+}) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => setCopied(false), [section.id])
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), 1_500)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <div className="border-b border-border px-3 py-3">
+      <strong className="block truncate text-sm">
+        {section.id} · {section.name}
+      </strong>
+      <button
+        aria-label={`Copy ${section.technicalName}`}
+        className="mt-1 flex w-full cursor-pointer items-center gap-2 rounded-md py-1 text-left text-violet-700 transition hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+        onClick={() => {
+          topology.copyTechnicalName(section.id)
+          setCopied(true)
+        }}
+        title="Copy technical name"
+        type="button"
+      >
+        <code className="min-w-0 flex-1 break-all text-xs font-bold">{section.technicalName}</code>
+        {copied ? <Check aria-hidden="true" size={15} /> : <Copy aria-hidden="true" size={15} />}
+        <span className="sr-only" aria-live="polite">
+          {copied ? 'Copied' : ''}
+        </span>
+      </button>
+    </div>
+  )
+}
+
 function InspectorHeader({ topology }: { topology: InterfaceTopologyController }) {
   return (
-    <header className="border-b border-border px-4 py-3">
-      <p className="pb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-700">
-        Interface Topology Overlay
-      </p>
-      <div className="flex items-center justify-end gap-1 border-t border-border pt-3">
+    <header className="flex items-center gap-2 border-b border-border p-3">
+      {topology.desks.length > 1 ? (
+        <Select
+          items={topology.desks.map((desk) => ({ label: desk.name, value: desk.id }))}
+          onValueChange={(value) => {
+            if (value) topology.selectDesk(value)
+          }}
+          value={topology.activeDeskId}
+        >
+          <SelectTrigger aria-label="Select topology desk" className="min-w-0 flex-1" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            <SelectGroup>
+              {topology.desks.map((desk) => (
+                <SelectItem key={desk.id} value={desk.id}>
+                  {desk.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      ) : (
+        <span className="flex-1" />
+      )}
+      <div className="flex shrink-0 items-center gap-1">
         <HeaderAction
           active={topology.labelsVisible}
           label={topology.labelsVisible ? 'Hide ITO labels' : 'Show ITO labels'}
@@ -127,9 +186,10 @@ function TopologyGroup({
             topology.inspect(section.id)
           }
         }}
+        title={`Inspect and copy ${section.technicalName}`}
         type="button"
       >
-        <b className="min-w-7 rounded bg-violet-700 px-1.5 py-1 text-center text-[10px] text-white">
+        <b className="min-w-7 rounded bg-violet-700 px-1.5 py-1 text-center text-xs text-white">
           {section.id}
         </b>
         <span className="truncate">{section.name}</span>

@@ -74,9 +74,11 @@ export class ModuleRegistry {
 
   private collectCompositionIssues(platformVersion: string): ModuleIssue[] {
     const issues: ModuleIssue[] = []
-    issues.push(...collectExtensionIssues(this.getModules()))
+    const modules = this.getModules()
+    issues.push(...collectExtensionIssues(modules))
+    issues.push(...collectEventIssues(modules))
 
-    for (const module of this.getModules()) {
+    for (const module of modules) {
       if (!satisfies(platformVersion, module.platformVersionRange)) {
         issues.push(
           issue(
@@ -162,6 +164,74 @@ export class ModuleRegistry {
     }
     return undefined
   }
+}
+
+function collectEventIssues(modules: readonly FrameworkModule[]): ModuleIssue[] {
+  const issues: ModuleIssue[] = []
+  const publishers = new Map<string, { moduleId: string; version: string }[]>()
+
+  for (const module of modules) {
+    for (const event of module.publishes) {
+      const declarations = publishers.get(event.id) ?? []
+      declarations.push({ moduleId: module.id, version: event.version })
+      publishers.set(event.id, declarations)
+    }
+  }
+
+  for (const [eventId, declarations] of publishers) {
+    if (declarations.length <= 1) continue
+    for (const declaration of declarations) {
+      issues.push(
+        issue(
+          'DUPLICATE_EVENT_PUBLISHER',
+          declaration.moduleId,
+          `Event "${eventId}" has more than one publisher.`,
+        ),
+      )
+    }
+  }
+
+  for (const module of modules) {
+    for (const consumed of module.consumes) {
+      const declarations = publishers.get(consumed.id) ?? []
+      if (declarations.length === 0) {
+        issues.push(
+          issue(
+            'MISSING_EVENT_PUBLISHER',
+            module.id,
+            `Module "${module.id}" consumes event "${consumed.id}" without a publisher.`,
+          ),
+        )
+        continue
+      }
+      if (declarations.length > 1) continue
+
+      const publisher = declarations[0]!
+      if (!satisfies(publisher.version, consumed.versionRange)) {
+        issues.push(
+          issue(
+            'INCOMPATIBLE_EVENT',
+            module.id,
+            `Module "${module.id}" requires event "${consumed.id}" at "${consumed.versionRange}", but version "${publisher.version}" is published.`,
+          ),
+        )
+      }
+      if (
+        publisher.moduleId !== module.id &&
+        !module.dependencies.some(({ id }) => id === publisher.moduleId)
+      ) {
+        issues.push(
+          issue(
+            'EVENT_DEPENDENCY_REQUIRED',
+            module.id,
+            `Module "${module.id}" must depend on event publisher "${publisher.moduleId}".`,
+          ),
+        )
+      }
+    }
+  }
+
+  return issues
 }
 
 function issue(code: ModuleIssue['code'], moduleId: string, message: string): ModuleIssue {

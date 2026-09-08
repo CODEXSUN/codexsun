@@ -12,6 +12,8 @@ import {
 import { TopologyMarker, TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { useCodexConnection } from './settings.hooks'
+import '../../styles/settings.css'
+import '../../styles/settings-actions.css'
 
 export function SettingsWorkspace() {
   const topology = useMdiTopology()

@@ -1,35 +1,62 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
   InterfaceTopologyController,
+  InterfaceTopologyDesk,
   InterfaceTopologySection,
 } from './interface-topology.types'
 
 const labelsStorageKey = 'codexsun.ui.ito.labels-visible'
 
 export function useInterfaceTopology(
-  sections: readonly InterfaceTopologySection[],
+  desks: readonly InterfaceTopologyDesk[],
 ): InterfaceTopologyController {
-  validateInterfaceTopologySections(sections)
+  validateInterfaceTopologyDesks(desks)
+  const firstDesk = desks[0]
+  const [activeDeskId, setActiveDeskId] = useState(firstDesk?.id ?? '')
+  const activeDesk = desks.find(({ id }) => id === activeDeskId) ?? firstDesk
+  const sections = activeDesk?.sections ?? []
+  const allSections = useMemo(() => desks.flatMap((desk) => desk.sections), [desks])
   const firstId = sections[0]?.id ?? ''
   const [labelsVisible, setLabelsVisible] = useState(readLabelsVisibility)
   const [open, setOpen] = useState(false)
   const [highlighting, setHighlighting] = useState(false)
   const [selected, setSelected] = useState(firstId)
-  const sectionIds = useMemo(() => new Set(sections.map(({ id }) => id)), [sections])
-  const pageKey = sections.map(({ technicalName }) => technicalName).join('|')
+  const sectionIds = useMemo(() => new Set(allSections.map(({ id }) => id)), [allSections])
+  const pageKey = desks
+    .map(
+      (desk) => `${desk.id}:${desk.sections.map(({ technicalName }) => technicalName).join('|')}`,
+    )
+    .join(';')
 
   useEffect(() => setHighlighting(false), [pageKey])
   useEffect(() => {
-    if (!sectionIds.has(selected)) setSelected(firstId)
-  }, [firstId, sectionIds, selected])
+    if (!desks.some(({ id }) => id === activeDeskId)) setActiveDeskId(firstDesk?.id ?? '')
+  }, [activeDeskId, desks, firstDesk?.id])
+  useEffect(() => {
+    if (!sections.some(({ id }) => id === selected)) setSelected(firstId)
+  }, [firstId, sections, selected])
 
   function inspect(id: string) {
-    const section = sections.find((candidate) => candidate.id === id)
-    if (!section) return
-    copyText(section.technicalName)
+    const owner = desks.find((desk) => desk.sections.some((section) => section.id === id))
+    if (!owner) return
+    setActiveDeskId(owner.id)
+    copyTechnicalName(id)
     setSelected(id)
     setHighlighting(true)
     setOpen(true)
+  }
+
+  function copyTechnicalName(id: string) {
+    const section = allSections.find((candidate) => candidate.id === id)
+    if (section) copyText(section.technicalName)
+  }
+
+  function selectDesk(id: string) {
+    const desk = desks.find((candidate) => candidate.id === id)
+    if (!desk) return
+    setActiveDeskId(id)
+    setSelected(desk.sections[0]?.id ?? '')
+    setHighlighting(false)
   }
 
   function toggleLabels() {
@@ -41,9 +68,13 @@ export function useInterfaceTopology(
   }
 
   return {
+    activeDeskId,
+    allSections,
     close: () => setOpen(false),
+    copyTechnicalName,
+    desks,
     highlightClassName: () =>
-      'data-[ito-highlighted=true]:shadow-[inset_0_0_0_2px_rgb(126_34_206/0.92)]',
+      'data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700',
     highlighting,
     inspect,
     labelsVisible,
@@ -54,11 +85,21 @@ export function useInterfaceTopology(
     }),
     sections,
     select: setSelected,
+    selectDesk,
     selected,
     toggleHighlight: () => setHighlighting((current) => !current),
     toggleLabels,
     toggleOpen: () => setOpen((current) => !current),
   }
+}
+
+export function validateInterfaceTopologyDesks(desks: readonly InterfaceTopologyDesk[]): void {
+  const deskIds = new Set<string>()
+  for (const desk of desks) {
+    if (deskIds.has(desk.id)) throw new Error(`Duplicate ITO desk id: ${desk.id}`)
+    deskIds.add(desk.id)
+  }
+  validateInterfaceTopologySections(desks.flatMap((desk) => desk.sections))
 }
 
 export function validateInterfaceTopologySections(
@@ -107,10 +148,11 @@ function persistLabelsVisibility(visible: boolean) {
 }
 
 function copyText(value: string) {
-  fallbackCopy(value)
   if (navigator.clipboard?.writeText) {
-    void navigator.clipboard.writeText(value).catch(() => undefined)
+    void navigator.clipboard.writeText(value).catch(() => fallbackCopy(value))
+    return
   }
+  fallbackCopy(value)
 }
 
 function fallbackCopy(value: string) {

@@ -8,6 +8,7 @@ import type {
   CodexTurnResult,
 } from './codex-connection.types.js'
 import type { CodexWorktreeService } from './codex-worktree.service.js'
+import { resolveCodexCommand } from './codex-command.js'
 import { deliveryOutputJsonSchema, parseDeliveryOutput } from './codex-delivery.js'
 import { createDeveloperInstructions } from './codex-workflow.js'
 
@@ -131,8 +132,16 @@ export class CodexAppServerClient {
   }
 
   public async runTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
-    const worktree = await this.worktrees.ensure(input.conversationId)
-    const filePaths = await this.worktrees.writeInputs(input.conversationId, input.files)
+    const worktree = await this.worktrees.ensure(
+      input.conversationId,
+      input.projectRoot,
+      input.projectId,
+    )
+    const filePaths = await this.worktrees.writeInputs(
+      input.conversationId,
+      input.files,
+      input.projectId,
+    )
     const threadResult = asRecord(
       await this.request('thread/start', {
         approvalPolicy: 'never',
@@ -197,13 +206,21 @@ export class CodexAppServerClient {
   }
 
   private async start(): Promise<void> {
+    if (this.startPromise) return this.startPromise
     if (this.process) return
-    this.startPromise ??= this.initialize()
-    return this.startPromise
+
+    const startPromise = this.initialize()
+    this.startPromise = startPromise
+    try {
+      await startPromise
+    } finally {
+      if (this.startPromise === startPromise) this.startPromise = null
+    }
   }
 
   private async initialize(): Promise<void> {
-    this.process = spawn(this.command, ['app-server', '--stdio'], {
+    const command = await resolveCodexCommand(this.command)
+    const child = spawn(command, ['app-server', '--stdio'], {
       cwd: this.projectRoot,
       env: this.apiKey
         ? {
@@ -215,9 +232,15 @@ export class CodexAppServerClient {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     })
-    createInterface({ input: this.process.stdout }).on('line', (line) => this.handleLine(line))
-    this.process.once('exit', () => this.handleExit())
-    this.process.stderr.resume()
+    this.process = child
+    child.on('error', (error) => this.handleProcessFailure(child, toLaunchError(command, error)))
+    child.once('exit', () =>
+      this.handleProcessFailure(child, new Error('Codex App Server stopped unexpectedly.')),
+    )
+
+    await waitForSpawn(child, command)
+    createInterface({ input: child.stdout }).on('line', (line) => this.handleLine(line))
+    child.stderr.resume()
 
     await this.requestWithoutStart('initialize', {
       clientInfo: { name: 'zetro', title: 'Zetro', version: '0.1.0' },
@@ -355,8 +378,8 @@ export class CodexAppServerClient {
     collector.reject(error)
   }
 
-  private handleExit(): void {
-    const error = new Error('Codex App Server stopped unexpectedly.')
+  private handleProcessFailure(child: ChildProcessWithoutNullStreams, error: Error): void {
+    if (this.process !== child) return
     for (const pending of this.pendingRequests.values()) {
       clearTimeout(pending.timeout)
       pending.reject(error)
@@ -364,8 +387,21 @@ export class CodexAppServerClient {
     for (const threadId of this.turns.keys()) this.rejectTurn(threadId, error)
     this.pendingRequests.clear()
     this.process = null
-    this.startPromise = null
   }
+}
+
+function waitForSpawn(child: ChildProcessWithoutNullStreams, command: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    child.once('spawn', resolve)
+    child.once('error', (error) => reject(toLaunchError(command, error)))
+  })
+}
+
+function toLaunchError(command: string, error: Error): Error {
+  const detail = error.message ? ` ${error.message}` : ''
+  return new Error(
+    `Codex executable "${command}" could not start.${detail} Set ZETRO_CODEX_COMMAND to its full path if Codex is installed.`,
+  )
 }
 
 function readTurnOutput(

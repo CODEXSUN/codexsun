@@ -16,7 +16,7 @@ The registry validates identity, versions, ownership, capabilities, dependencies
 
 The public manifest parser accepts unknown runtime input. It rejects missing fields, unknown fields, invalid lifecycle functions, and invalid value shapes before semantic composition starts.
 
-The registry locks after it creates a plan. Plans use deterministic dependency order. Activation failures deactivate completed modules in reverse order.
+The registry locks after it creates a plan. Plans use deterministic dependency order. Activation failures deactivate completed modules in reverse order. The lifecycle executor can install only newly discovered modules and reports structured start, completion, and failure events without importing an application logger.
 
 Modules declare a `core`, `feature`, `addon`, or `adapter` kind. Extension point owners define a semantic version and `one` or `many` cardinality. Add-ons declare compatible contributions and depend on each point owner.
 
@@ -34,3 +34,4 @@ Use the [framework development skill](../../assist/skills/framework-development.
 - [2026-09-08 Framework capability roadmap](../../assist/records/platform/2026-09-08-framework-capability-roadmap.md)
 - [2026-09-08 Extensible application and add-on foundation](../../assist/records/platform/2026-09-08-extension-foundation.md)
 - [2026-09-08 Safe runtime manifest boundary](../../assist/records/platform/2026-09-08-manifest-boundary.md)
+- [2026-09-08 Durable module runtime](../../assist/records/platform/2026-09-08-durable-module-runtime.md)

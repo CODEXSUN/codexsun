@@ -1,14 +1,18 @@
-import { CheckIcon, Grid3X3Icon, XIcon } from 'lucide-react'
+import { CheckIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@codexsun/ui/components/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@codexsun/ui/components/popover'
 import { cn } from '@codexsun/ui/lib/utils'
+import { TopologyMarker } from '../../features/interface-topology'
 
+import { mdiTopMenuButtonClassName } from './mdi-top-menu-control'
+import { useMdiTopology } from './mdi-topology'
 import type { MdiAppItem } from './mdi-types'
 
 export function MdiAppSwitcher({ apps }: { apps: MdiAppItem[] }) {
   const [open, setOpen] = useState(false)
+  const topology = useMdiTopology()
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -17,27 +21,50 @@ export function MdiAppSwitcher({ apps }: { apps: MdiAppItem[] }) {
           <Button
             variant="outline"
             size="icon"
-            className="size-10 rounded-full bg-background shadow-sm"
+            className={cn(mdiTopMenuButtonClassName, topology.highlightClassName('01.5.1'))}
             aria-label="Open applications"
+            {...topology.regionProps('01.5.1')}
           />
         }
       >
-        <Grid3X3Icon className="size-4" />
+        <DotGrid />
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={9} className="w-[352px] gap-3 rounded-3xl p-4">
+      <PopoverContent
+        align="end"
+        sideOffset={9}
+        className={cn('w-88 gap-3 rounded-3xl p-4', topology.highlightClassName('01.5.2'))}
+        {...topology.regionProps('01.5.2')}
+      >
+        <TopologyMarker id="01.5.2" topology={topology} />
         <div className="flex items-center justify-between px-2">
           <h2 className="text-base font-semibold">Apps</h2>
           <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)} aria-label="Close">
             <XIcon />
           </Button>
         </div>
-        <div className="grid grid-cols-3 gap-x-3 gap-y-5 rounded-2xl border p-5">
+        <div
+          className={cn(
+            'grid grid-cols-3 gap-x-3 gap-y-5 rounded-2xl border p-5',
+            topology.highlightClassName('01.5.3'),
+          )}
+          {...topology.regionProps('01.5.3')}
+        >
           {apps.map((app) => (
             <AppItem key={app.label} app={app} onClose={() => setOpen(false)} />
           ))}
         </div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+function DotGrid() {
+  return (
+    <span className="grid size-4 grid-cols-3 place-items-center gap-px" aria-hidden="true">
+      {Array.from({ length: 9 }, (_, index) => (
+        <span className="size-1 rounded-full bg-current" key={index} />
+      ))}
+    </span>
   )
 }
 

@@ -15,7 +15,11 @@ Read [the application standard](../architecture/application-standard.md) and [th
 
 - MariaDB is the primary database. Kysely is the query builder and MySQL2 is the driver.
 - The root `.env` file provides database and storage configuration. Do not commit it.
-- Add a typed database module and migrations together when persistence is approved.
+- Add typed database access and module-owned migrations together when persistence is approved. Never create a central business migration or seed directory.
+- Run migrations in dependency order through the module runtime, one transaction at a time, with immutable ledger checksums and an application migration lock.
+- Keep liveness available while MariaDB or module preparation is unavailable. Readiness must report the failed component.
+- Use request context for request ID, correlation ID, locale, and cancellation instead of process globals.
+- Add Fastify response schemas for every public status code.
 - BullMQ requires a documented Redis configuration, named queues, retry rules, idempotency behavior, and worker ownership before it is used.
 - Never log secrets, raw credentials, or sensitive request data.
 - Use `npm.cmd run dev:api` so port preflight runs before the API watcher starts.

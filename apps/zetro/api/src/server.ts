@@ -3,6 +3,7 @@ import { getProjectRoot, readEnvironment } from './config.js'
 import { registerChatModule } from './modules/chat/index.js'
 import { registerCodexConnectionModule } from './modules/codex-connection/index.js'
 import { registerTasksModule } from './modules/tasks/index.js'
+import { registerProjectsModule } from './modules/projects/index.js'
 
 export async function createServer() {
   const environment = readEnvironment()
@@ -13,13 +14,14 @@ export async function createServer() {
 
   server.addHook('onSend', async (_request, reply) => {
     reply.header('Access-Control-Allow-Headers', 'Content-Type')
-    reply.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS')
+    reply.header('Access-Control-Allow-Methods', 'DELETE,GET,POST,PATCH,OPTIONS')
     reply.header('Access-Control-Allow-Origin', `http://127.0.0.1:${environment.ZETRO_WEB_PORT}`)
   })
   server.options('*', async (_request, reply) => reply.code(204).send())
 
   const projectRoot = getProjectRoot()
   const codexConnection = await registerCodexConnectionModule(server, environment, projectRoot)
+  const projects = await registerProjectsModule(server, environment, projectRoot)
 
   server.get('/health', async () => {
     const connection = await codexConnection.service.getStatus()
@@ -33,8 +35,8 @@ export async function createServer() {
   server.get('/health/live', async () => ({ service: 'zetro-api', status: 'ok' }))
   server.get('/health/ready', async () => ({ service: 'zetro-api', status: 'ready' }))
 
-  await registerChatModule(server, environment, codexConnection.client, projectRoot)
-  await registerTasksModule(server, environment, projectRoot)
+  await registerChatModule(server, environment, codexConnection.client, projectRoot, projects)
+  await registerTasksModule(server, environment, projectRoot, projects)
 
   return { environment, server }
 }

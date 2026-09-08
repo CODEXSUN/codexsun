@@ -155,6 +155,20 @@ Do not add desktop or mobile points before their platform plans define security 
 
 Uninstall must default to data preservation. A destructive purge needs a separate explicit application action.
 
+Migration and seed declarations remain inside the contributing module. The application supplies transaction, lock, and ledger adapters; it must not copy declarations into a central business migration folder.
+
+Cross-module events must be declared by publisher and consumer with compatible versions. In-process delivery propagates handler failures but is not durable. Durable delivery requires a transactional outbox and idempotent inbox.
+
+## Deployment selection
+
+- Register a deployable add-on in `deployments/catalog.json` only after its public extension contract is stable.
+- Declare the target application and exact target component identifiers.
+- Select the add-on in a versioned deployment profile. Do not modify the target application source for one customer.
+- Stage the add-on only into its declared component images.
+- Treat `CODEXSUN_ADDONS` as a requested selection, not as permission or proof of compatibility.
+- Let the target application composition root validate the extension binding and run its module-owned lifecycle.
+- Prove both selected and omitted profiles. An omitted add-on must leave no artifact in the final component image.
+
 ## Security and isolation
 
 - Grant capabilities explicitly to the application composition.

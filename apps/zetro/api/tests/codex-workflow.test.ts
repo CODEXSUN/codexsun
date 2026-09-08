@@ -62,6 +62,7 @@ test('chat requests default to develop and reject unknown workflows', () => {
   const request = {
     conversationId: '9a5d01ba-7c25-4300-97e8-bb16404906a6',
     messages: [{ attachments: [], content: 'Update this module.', role: 'user' }],
+    projectId: '00000000-0000-4000-8000-000000000001',
   }
 
   assert.equal(chatTurnRequestSchema.parse(request).workflow, 'develop')
@@ -84,6 +85,7 @@ test('stored execution records without a workflow default to develop', () => {
         role: 'assistant',
       },
     ],
+    projectId: '00000000-0000-4000-8000-000000000001',
   })
 
   assert.equal(conversation.messages[0]?.execution?.workflow, 'develop')

@@ -15,23 +15,34 @@ export class CodexWorktreeService {
     private readonly worktreeRoot: string,
   ) {}
 
-  public ensure(conversationId: string): Promise<CodexWorktree> {
-    const existing = this.pending.get(conversationId)
+  public ensure(
+    conversationId: string,
+    repositoryRoot = this.repositoryRoot,
+    projectId?: string,
+  ): Promise<CodexWorktree> {
+    const key = projectId ? `${projectId}:${conversationId}` : conversationId
+    const existing = this.pending.get(key)
     if (existing) return existing
 
-    const work = this.createOrLoad(conversationId).finally(() => {
-      this.pending.delete(conversationId)
+    const work = this.createOrLoad(conversationId, repositoryRoot, projectId).finally(() => {
+      this.pending.delete(key)
     })
-    this.pending.set(conversationId, work)
+    this.pending.set(key, work)
     return work
   }
 
   public async writeInputs(
     conversationId: string,
     files: readonly { dataUrl: string; id: string; name: string }[],
+    projectId?: string,
   ): Promise<readonly string[]> {
     if (files.length === 0) return []
-    const inputRoot = resolve(this.worktreeRoot, '.inputs', conversationId)
+    const inputRoot = resolve(
+      this.worktreeRoot,
+      '.inputs',
+      ...(projectId ? [safeName(projectId)] : []),
+      conversationId,
+    )
     assertContainedPath(this.worktreeRoot, inputRoot)
     await mkdir(inputRoot, { recursive: true })
 
@@ -44,13 +55,19 @@ export class CodexWorktreeService {
     )
   }
 
-  private async createOrLoad(conversationId: string): Promise<CodexWorktree> {
-    const worktreePath = resolve(this.worktreeRoot, conversationId)
+  private async createOrLoad(
+    conversationId: string,
+    repositoryRoot: string,
+    projectId?: string,
+  ): Promise<CodexWorktree> {
+    const projectSegments =
+      samePath(repositoryRoot, this.repositoryRoot) || !projectId ? [] : [safeName(projectId)]
+    const worktreePath = resolve(this.worktreeRoot, ...projectSegments, conversationId)
     assertContainedPath(this.worktreeRoot, worktreePath)
 
     if (!(await exists(worktreePath))) {
       await mkdir(dirname(worktreePath), { recursive: true })
-      await runGit(this.repositoryRoot, ['worktree', 'add', '--detach', worktreePath, 'HEAD'])
+      await runGit(repositoryRoot, ['worktree', 'add', '--detach', worktreePath, 'HEAD'])
     }
 
     const root = await runGit(worktreePath, ['rev-parse', '--show-toplevel'])
@@ -63,6 +80,10 @@ export class CodexWorktreeService {
       revision: await runGit(worktreePath, ['rev-parse', 'HEAD']),
     }
   }
+}
+
+function samePath(left: string, right: string): boolean {
+  return resolve(left).toLowerCase() === resolve(right).toLowerCase()
 }
 
 async function runGit(cwd: string, args: readonly string[]): Promise<string> {

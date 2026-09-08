@@ -1,5 +1,18 @@
 # Zetro Development Records
 
+- [2026-09-08 Project properties layer](2026-09-08-project-properties-layer.md)
+- [2026-09-08 Project workspace binding](2026-09-08-project-workspace-binding.md)
+- [2026-09-08 Compact sidebar navigation](2026-09-08-compact-sidebar-navigation.md)
+- [2026-09-08 Task details and workspace context](2026-09-08-task-details-workspace-context.md)
+- [2026-09-08 Task sidebar actions](2026-09-08-task-sidebar-actions.md)
+- [2026-09-08 Task System master-detail workflow](2026-09-08-task-system.md)
+- [2026-09-08 Zetro Desk workspace](2026-09-08-zetro-desk-workspace.md)
+- [2026-09-08 Legacy frontend cleanup](2026-09-08-legacy-frontend-cleanup.md)
+- [2026-09-08 Empty Desk reset](2026-09-08-empty-desk-reset.md)
+- [2026-09-08 Agent chat foundation](2026-09-08-agent-chat-foundation.md)
+- [2026-09-08 Archived chats](2026-09-08-archived-chats.md)
+- [2026-09-08 Response actions](2026-09-08-response-actions.md)
+- [2026-09-08 Codex launch recovery](2026-09-08-codex-launch-recovery.md)
 - [2026-09-08 Zetro development and documentation workflows](2026-09-08-development-documentation-workflows.md)
 - [2026-09-08 Zetro governed delivery pipeline](2026-09-08-governed-delivery-pipeline.md)
 - [2026-09-08 Zetro persisted delivery records](2026-09-08-persisted-delivery-records.md)

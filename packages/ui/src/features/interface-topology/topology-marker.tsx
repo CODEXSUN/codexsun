@@ -23,7 +23,8 @@ export function TopologyMarker({
   return (
     <button
       aria-label={`Inspect ${section.name}: ${section.technicalName}`}
-      className="absolute left-2 top-2 z-30 flex min-h-6 min-w-7 max-w-48 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-white/65 bg-[var(--ito-sticker-soft)] px-1.5 text-[11px] font-extrabold text-[var(--ito-sticker)] shadow-[0_5px_16px_rgb(15_23_42/0.14)] backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-[var(--ito-sticker)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[selected=true]:bg-[var(--ito-sticker)] data-[selected=true]:text-white"
+      className="absolute top-2 left-2 z-30 flex min-h-6 min-w-7 max-w-48 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-white/60 bg-[var(--ito-sticker-soft)] px-1.5 text-xs font-extrabold text-[var(--ito-sticker)] shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-[var(--ito-sticker)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[selected=true]:bg-[var(--ito-sticker)] data-[selected=true]:text-white"
+      data-ito-marker={id}
       data-selected={selected}
       onClick={(event) => {
         event.preventDefault()
@@ -52,6 +53,5 @@ function sectionIndex(id: string) {
 function isLabelVisible(id: string, topology: InterfaceTopologyController) {
   if (!id.includes('.')) return true
   if (!topology.highlighting) return false
-  const normalized = topology.selected.replace(/^0+(?=\d)/, '')
-  return id === normalized || id.slice(0, id.lastIndexOf('.')) === normalized
+  return id === topology.selected || id.slice(0, id.lastIndexOf('.')) === topology.selected
 }

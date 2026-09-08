@@ -4,42 +4,57 @@ Reference: [Application standard](../../assist/architecture/application-standard
 
 ## Purpose
 
-Zetro is a standalone agentic AI workspace for conversations and task execution. It is a product application and does not place agent behavior in the CODEXSUN framework kernel.
+Zetro is a standalone development desk with task execution and provider-backed agent APIs. It is a product application and does not place agent behavior in the CODEXSUN framework kernel.
 
 ## Ownership
 
 - `api/src/modules/codex-connection` owns local Codex account status, device authorization, and App Server turns.
-- `api/src/modules/chat` owns provider-backed multimodal turns and private conversation history.
-- `api/src/modules/tasks` owns task records and private file persistence.
-- `web/src/modules/chat` owns chat, history navigation, attachments, and browser voice behavior.
+- `api/src/modules/chat` owns provider-backed turns, private conversation history, archive state, and permanent conversation deletion.
+- `api/src/modules/projects` owns registered local repository workspaces.
+- `api/src/modules/tasks` owns project-scoped task records and private file persistence.
+- `web/src/modules/desk` owns the Zetro Desk shell, workspace, and sidebar surfaces.
+- `web/src/modules/agent-chat` owns active and archived history, messages, and prompt input.
+- `web/src/modules/projects` owns the active project and sidebar project switcher.
+- `web/src/modules/project-tasks` owns project task management.
 - `web/src/modules/settings` owns connection status and device activation UI.
-- `web/src/modules/tasks` owns task UI behavior.
 - The web `app.tsx` is the thin composition root.
 
-The composition root supplies Zetro navigation and runtime status to the
-shared `@codexsun/ui/layouts/mdi-main` frame. Chat, task, and Codex settings
-remain app-owned content inside that frame.
+The composition root supplies Zetro identity and runtime status to the shared
+`@codexsun/ui/layouts/mdi-main` frame. Codex settings remain app-owned content.
+
+The only public product route is `/zetro`. It opens the agent chat inside Zetro
+Desk. Settings remains a source module without a public route or visible
+navigation. Project Chat and Tasks switch inside this one Desk route.
 
 ## Workspaces and commands
 
-| Workspace             | Purpose            | Development command         | Default address         |
-| --------------------- | ------------------ | --------------------------- | ----------------------- |
-| `@codexsun/zetro-api` | Agent and task API | `npm.cmd run dev:zetro-api` | `http://127.0.0.1:6050` |
-| `@codexsun/zetro-web` | Agent workspace    | `npm.cmd run dev:zetro`     | `http://127.0.0.1:6060` |
+| Workspace             | Purpose            | Development command         | Default address               |
+| --------------------- | ------------------ | --------------------------- | ----------------------------- |
+| `@codexsun/zetro-api` | Agent and task API | `npm.cmd run dev:zetro-api` | `http://127.0.0.1:6050`       |
+| `@codexsun/zetro-web` | Agent workspace    | `npm.cmd run dev:zetro`     | `http://127.0.0.1:6060/zetro` |
+
+## Deployment assembly
+
+The shared runtime holder registers `zetro-api` and `zetro-web`. Zetro requires Platform and is selected in the complete `development` profile. Customer profiles can omit Zetro; its Codex provider, chat, project, task, and worktree artifacts then remain outside the generated deployment.
+
+The API and web remain separate component and container boundaries. Selecting Zetro does not move provider credentials into the profile; secrets remain deployment environment bindings.
 
 ## Runtime configuration
 
-Root `.env` owns `ZETRO_API_PORT`, `ZETRO_WEB_PORT`, and optional Codex provider settings. Open **Settings** to manage the local Codex account.
+Root `.env` owns `ZETRO_API_PORT`, `ZETRO_WEB_PORT`, and optional Codex provider settings. The API owns local Codex account connection endpoints. The unmounted Settings web module is available for a later approved Desk region.
 
 `ZETRO_CODEX_API_KEY` supplies a separate API credential to the local Codex App Server. `ZETRO_WORKTREE_ROOT` selects the parent directory for task worktrees.
 
-Each conversation gets one detached Git worktree below `ZETRO_WORKTREE_ROOT`. The worktree starts from the current repository `HEAD`.
+On Windows, the default `codex` command resolves the newest executable from the Codex desktop installation. Set `ZETRO_CODEX_COMMAND` to a full path to override discovery.
 
-Zetro does not copy uncommitted main-checkout changes into a new worktree. Zetro keeps task worktrees until a separate cleanup flow removes them.
+Each conversation gets one detached Git worktree below `ZETRO_WORKTREE_ROOT`.
+The worktree starts from the selected project's repository `HEAD`.
 
-## Task workflows
+Zetro does not copy uncommitted main-checkout changes into a new worktree. Zetro keeps task worktrees after conversation deletion until a separate cleanup flow removes them.
 
-The chat composer provides five workflows:
+## Provider workflows
+
+The Chat API supports five workflows for provider-backed turns:
 
 - **Deliver** runs the complete governed delivery pipeline.
 - **Develop** implements a focused change and runs proportionate checks.
@@ -47,7 +62,7 @@ The chat composer provides five workflows:
 - **Review** inspects code and reports prioritized findings without editing by default.
 - **Test** reproduces behavior and separates existing failures from regressions.
 
-Zetro stores the selected workflow in browser local storage. Each response stores the workflow in its execution summary.
+Each response stores the selected workflow in its execution summary.
 
 ### Delivery pipeline
 

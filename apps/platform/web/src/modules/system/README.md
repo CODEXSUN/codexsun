@@ -7,7 +7,7 @@ The System web module shows the active Platform version, modules, versions, and 
 ## Identity and version
 
 - Module ID: `system`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -20,7 +20,7 @@ The System web module shows the active Platform version, modules, versions, and 
 
 ## Public contracts
 
-- API: Consumes `system.runtime` version `1.0.0`.
+- API: Consumes `system.runtime` version `1.1.0`.
 - Events published: None.
 - Events consumed: None.
 - Dependencies and version ranges: Platform web `^0.1.0`.
@@ -54,3 +54,4 @@ module list, module cards, and runtime error state.
 
 - [2026-09-08 Platform and framework foundation](../../../../../../assist/records/platform/2026-09-08-platform-framework-foundation.md)
 - [2026-09-08 Cross-app interface topology](../../../../../../assist/records/platform/2026-09-08-cross-app-interface-topology.md)
+- [2026-09-08 Durable module runtime](../../../../../../assist/records/platform/2026-09-08-durable-module-runtime.md)

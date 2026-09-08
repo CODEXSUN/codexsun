@@ -1,9 +1,9 @@
 {
   "name": "@codexsun/platform-contracts",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
-  "main": "../../../../dist/packages/platform-core/shared/contracts/index.js",
+  "main": "../../../dist/packages/platform-core/shared/contracts/index.js",
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",

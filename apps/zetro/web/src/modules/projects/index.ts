@@ -1,0 +1,5 @@
+export { ProjectSwitcher } from './project-switcher'
+export { useProjects } from './projects.controller'
+export { ProjectProvider } from './projects.context'
+export { projectsModuleManifest } from './projects.module'
+export type { ZetroProject } from './projects.types'

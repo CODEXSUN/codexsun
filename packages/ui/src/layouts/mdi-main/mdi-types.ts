@@ -36,11 +36,22 @@ export type MdiNavigationSection = {
 }
 
 export type MdiPrimaryAction = {
+  icon?: LucideIcon
   label: string
   onSelect?: () => void
 }
 
+export type MdiNotification = {
+  description?: string
+  id: string
+  read?: boolean
+  time?: string
+  title: string
+  onSelect?: () => void
+}
+
 export type MdiUser = {
+  avatarUrl?: string
   email?: string
   initials: string
   name: string
@@ -55,14 +66,18 @@ export type MdiMainProps = {
   apps?: MdiAppItem[]
   children?: ReactNode
   defaultFeatures?: Partial<MdiFeatures>
+  deskRegionId?: string
   navigation?: MdiNavigationSection[]
   notificationCount?: number
-  organizationName?: string
+  notifications?: readonly MdiNotification[]
   primaryAction?: MdiPrimaryAction | null
   searchPlaceholder?: string
   searchValue?: string
   showAppearancePanel?: boolean
+  showMdiOverview?: boolean
+  sidebarContent?: ReactNode
   sidebarContentClassName?: string
+  sidebarFooter?: ReactNode | null
   statusLabel?: string
   topologySections?: readonly InterfaceTopologySection[]
   user?: MdiUser

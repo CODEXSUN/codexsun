@@ -11,7 +11,7 @@ export function MdiStatusBar({ statusLabel, workspaceTitle }: MdiStatusBarProps)
   const topology = useMdiTopology()
   return (
     <footer
-      className="relative flex h-7 shrink-0 items-center border-t bg-muted/30 px-3 text-xs text-muted-foreground data-[ito-highlighted=true]:shadow-[inset_0_0_0_2px_rgb(126_34_206/0.92)]"
+      className="relative flex h-7 shrink-0 items-center border-t bg-muted/30 px-3 text-xs text-muted-foreground data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
       {...topology.regionProps('04')}
     >
       <TopologyMarker id="04" topology={topology} />

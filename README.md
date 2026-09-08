@@ -4,6 +4,8 @@ CODEXSUN is a TypeScript application platform. The Platform host has a web
 application and an API service. Product applications will follow the same
 structure.
 
+One shared runtime holder composes these source-owned applications for local development and customer deployment. The complete development profile runs all registered applications. A customer profile selects only the applications and add-ons that enter its generated Docker stack.
+
 ## Start here
 
 Every contributor and coding agent must read [AGENTS.md](AGENTS.md) before
@@ -20,14 +22,18 @@ adding a reusable add-on, adapter, or extension point.
 
 ## Current applications
 
-| Workspace                | Purpose                                              | Local command               | Default URL             |
-| ------------------------ | ---------------------------------------------------- | --------------------------- | ----------------------- |
-| `@codexsun/platform-web` | React, Vite, Tailwind, and shadcn/ui web application | `npm.cmd run dev:web`       | `http://127.0.0.1:6021` |
-| `@codexsun/platform-api` | Fastify HTTP API                                     | `npm.cmd run dev:api`       | `http://127.0.0.1:6010` |
-| `@codexsun/docs-web`     | Connected MDX documentation workspace                | `npm.cmd run dev:docs`      | `http://127.0.0.1:6040` |
-| `@codexsun/docs-api`     | Docs vault API and HTML renderer                     | `npm.cmd run dev:docs-api`  | `http://127.0.0.1:6030` |
-| `@codexsun/zetro-web`    | Agentic AI chat and task workspace                   | `npm.cmd run dev:zetro`     | `http://127.0.0.1:6060` |
-| `@codexsun/zetro-api`    | Zetro Codex wrapper and task API                     | `npm.cmd run dev:zetro-api` | `http://127.0.0.1:6050` |
+| Workspace                | Purpose                                              | Local command                | Default URL                   |
+| ------------------------ | ---------------------------------------------------- | ---------------------------- | ----------------------------- |
+| `@codexsun/platform-web` | React, Vite, Tailwind, and shadcn/ui web application | `npm.cmd run dev:web`        | `http://127.0.0.1:6021`       |
+| `@codexsun/platform-api` | Fastify HTTP API                                     | `npm.cmd run dev:api`        | `http://127.0.0.1:6010`       |
+| `@codexsun/docs-web`     | Connected MDX documentation workspace                | `npm.cmd run dev:docs`       | `http://127.0.0.1:6040`       |
+| `@codexsun/docs-api`     | Docs vault API and HTML renderer                     | `npm.cmd run dev:docs-api`   | `http://127.0.0.1:6030`       |
+| `@codexsun/devkit-web`   | Project planning registry workspace                  | `npm.cmd run dev:devkit`     | `http://127.0.0.1:6080`       |
+| `@codexsun/devkit-api`   | Project registry JSON API                            | `npm.cmd run dev:devkit-api` | `http://127.0.0.1:6070`       |
+| `@codexsun/zetro-web`    | Agentic AI chat and task workspace                   | `npm.cmd run dev:zetro`      | `http://127.0.0.1:6060/zetro` |
+| `@codexsun/zetro-api`    | Zetro Codex wrapper and task API                     | `npm.cmd run dev:zetro-api`  | `http://127.0.0.1:6050`       |
+| `@codexsun/orship-web`   | Live orchestration and service controls              | `npm.cmd run dev:orship`     | `http://127.0.0.1:6091`       |
+| `@codexsun/orship-api`   | Service health, metrics, logs, and local controls    | `npm.cmd run dev:orship-api` | `http://127.0.0.1:6090`       |
 
 The API liveness check is available at `GET /health`. The dependency readiness check is available at `GET /health/ready`.
 
@@ -45,7 +51,23 @@ npm.cmd run dev:api
 npm.cmd run dev:web
 npm.cmd run dev:zetro
 npm.cmd run dev:zetro-api
+npm.cmd run dev:orship
 ```
+
+`npm.cmd run dev` starts the complete `development` deployment profile. The focused commands start one application or component for isolated work.
+
+## Deployment assembly
+
+The deployable catalog is [deployments/catalog.json](deployments/catalog.json). Versioned profiles in [deployments/profiles](deployments/profiles) select applications and add-ons without changing their source. The shared [runtime holder](packages/runtime/README.md) validates dependencies and framework bindings, builds only selected workspaces, and writes generated output below `dist/deployments/<profile>`.
+
+```powershell
+npm.cmd run runtime:validate
+npm.cmd run runtime:plan -- platform-only
+npm.cmd run runtime:compose -- platform-only
+npm.cmd run runtime:build -- platform-only
+```
+
+One generated Compose project is the combined customer deployment. Each selected API, web server, or worker remains one independently managed container. Read the [deployment guide](deployments/README.md) and [assembly standard](assist/architecture/deployment-assembly-standard.md) before adding an application, add-on, profile, or container.
 
 Run checks before handing over a change:
 
@@ -58,7 +80,11 @@ npm.cmd run format:check
 npm.cmd run check:workspace-layout
 npm.cmd run check:app-docs
 npm.cmd run check:module-docs
+npm.cmd run check:module-boundaries
 npm.cmd run test:framework
+npm.cmd run test:runtime-holder
+npm.cmd run test:orship
+npm.cmd run test:platform-runtime
 npm.cmd run test:platform-web
 npm.cmd run test:e2e:server
 npm.cmd run check

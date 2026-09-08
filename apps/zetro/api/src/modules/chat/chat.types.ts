@@ -19,6 +19,8 @@ export interface ChatTurnRequest {
   conversationId: string
   messages: readonly ChatMessage[]
   previousDelivery?: CodexDeliveryRun
+  projectId: string
+  projectRoot: string
   workflow: CodexWorkflow
 }
 

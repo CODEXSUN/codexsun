@@ -16,6 +16,7 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 - Routes and UI paths: the Docs web root.
 - User flows: start from the library overview, search titles/tags/aliases/paths, open a hash-deep-linked document, follow linked notes, inspect backlinks and tag-related notes, use a document outline, and open the Ideas development-plan tab.
 - Client behavior: the web module preserves a rendered-document cache during navigation and aborts stale requests to prevent reader flicker.
+- Reader styling: inline snippets use compact muted pills; fenced code samples use a separate high-contrast, scrollable code surface.
 - Settings: `VITE_DOCS_API_URL` overrides the local Docs API; development defaults to `http://127.0.0.1:6030`.
 
 ## Public contracts and verification

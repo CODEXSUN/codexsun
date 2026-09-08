@@ -3,14 +3,16 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.5.0`
+- Version: `0.7.0`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
 
 The response route requires a Zetro conversation ID. The service sends text and images through the public App Server client.
 
-The conversation ID selects an isolated worktree. The response includes the worktree path, available coding tools, and completed tool activity.
+The required project ID scopes conversation lists and creation. The API resolves
+the registered repository before a provider turn. The conversation ID and
+project select an isolated worktree.
 
 The response route accepts a `workflow` value. Valid values are `deliver`, `develop`, `document`, `review`, and `test`. The route defaults to `develop` for older clients.
 
@@ -19,6 +21,16 @@ Delivery responses expose an expanded tool catalog for assignment, documentation
 A delivery response includes nine validated stage records. Each record contains its stage ID, status, evidence, and server timestamp.
 
 The web client sends the latest validated delivery record with the next turn. Codex can continue from that evidence and must recheck stale facts.
+
+## Archive and deletion
+
+- `GET /api/v1/chat/conversations?projectId=...` lists active project conversations.
+- `GET /api/v1/chat/conversations?projectId=...&archived=true` lists archived project conversations.
+- `PATCH /api/v1/chat/conversations/:conversationId` archives or restores a conversation with the optional `archived` field.
+- `DELETE /api/v1/chat/conversations/:conversationId` permanently deletes one archived conversation.
+- `DELETE /api/v1/chat/conversations/archived?projectId=...` deletes the project's archived conversations.
+
+The API rejects permanent deletion for an active conversation. Archiving clears its pin state. Permanent deletion removes only the saved conversation. It preserves the isolated worktree for a separate cleanup flow.
 
 ## Configuration
 
@@ -32,7 +44,9 @@ The web client sends the latest validated delivery record with the next turn. Co
 
 The module stores conversations in `storage/app/private/zetro/conversations.json`. Writes replace the file atomically.
 
-Assistant messages can store optional execution metadata, the selected workflow, and a delivery record. Existing conversation records remain valid without a migration.
+Assistant messages can store optional execution metadata, the selected workflow,
+and a delivery record. Existing records receive the default project ID during
+repository initialization.
 
 The module has no tables, migrations, seeds, events, or jobs. Uninstall keeps conversation history unless a separate data removal flow runs.
 

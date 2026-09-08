@@ -32,10 +32,13 @@ If ownership is unclear, keep the capability with its first application consumer
 - Reject unknown manifest fields and report all structural issues together.
 - Require every extension contribution to depend on its point owner.
 - Bind executable values through target-specific public contracts, not the framework manifest.
+- Keep migration and seed contracts technical and target-specific. Keep each concrete declaration in its owning application module.
+- Require publishers and consumers to use manifest-declared, versioned events. Do not imply durable delivery from an in-memory bus.
+- Keep request context in async-local Platform Core state and carry cancellation through `AbortSignal`.
 
 ## Verification
 
-1. Test success, invalid input, dependency failure, rollback, cancellation, and shutdown where relevant.
+1. Test success, restart, invalid input, dependency failure, checksum mismatch, rollback, cancellation, and shutdown where relevant.
 2. Test deterministic behavior and isolation when concurrency is possible.
 3. Run the focused package tests and full root quality gate for a cross-workspace contract.
 4. Update the owner README, architecture roadmap, development record, changelog, and this guide when the preferred workflow changes.

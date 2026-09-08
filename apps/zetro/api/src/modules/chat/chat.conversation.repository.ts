@@ -5,12 +5,23 @@ import type { ChatConversation } from './chat.conversation.types.js'
 export class ChatConversationRepository {
   private conversations: ChatConversation[] = []
 
-  public constructor(private readonly filePath: string) {}
+  public constructor(
+    private readonly filePath: string,
+    private readonly defaultProjectId: string,
+  ) {}
 
   public async initialize(): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true })
     try {
-      this.conversations = JSON.parse(await readFile(this.filePath, 'utf8')) as ChatConversation[]
+      const stored = JSON.parse(await readFile(this.filePath, 'utf8')) as Array<
+        Omit<ChatConversation, 'projectId'> & { projectId?: string }
+      >
+      const needsMigration = stored.some(({ projectId }) => !projectId)
+      this.conversations = stored.map((conversation) => ({
+        ...conversation,
+        projectId: conversation.projectId ?? this.defaultProjectId,
+      }))
+      if (needsMigration) await this.persist()
     } catch (error) {
       if (!isMissingFile(error)) throw error
       await this.persist()
@@ -30,6 +41,22 @@ export class ChatConversationRepository {
     if (index === -1) this.conversations.push(conversation)
     else this.conversations[index] = conversation
     await this.persist()
+  }
+
+  public async delete(conversationId: string): Promise<void> {
+    this.conversations = this.conversations.filter(
+      (conversation) => conversation.id !== conversationId,
+    )
+    await this.persist()
+  }
+
+  public async deleteArchived(projectId: string): Promise<number> {
+    const currentCount = this.conversations.length
+    this.conversations = this.conversations.filter(
+      (conversation) => conversation.projectId !== projectId || !conversation.archivedAt,
+    )
+    await this.persist()
+    return currentCount - this.conversations.length
   }
 
   private async persist(): Promise<void> {

@@ -3,7 +3,8 @@
 ## Outcome
 
 Docs now opens on a source-backed overview and provides search, hash deep links,
-reader outlines, linked notes, backlinks, and tag-related document discovery.
+reader outlines, linked notes, backlinks, tag-related document discovery, and
+separate readable styling for fenced code samples.
 
 ## Authoritative references
 
@@ -15,7 +16,7 @@ reader outlines, linked notes, backlinks, and tag-related document discovery.
 ## Ownership and boundaries
 
 `docs.library.web` owns browser search, URL selection, reader cache, outline,
-and document relationship views. `docs.library.api` continues to own vault
+document relationship views, and Markdown reader presentation. `docs.library.api` continues to own vault
 scanning and restricted MDX rendering. The source vault remains authoritative;
 no documentation content was moved into a browser store or database workflow.
 

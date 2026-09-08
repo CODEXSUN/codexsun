@@ -5,6 +5,7 @@ Development records explain completed changes and their integration decisions. T
 ## Applications
 
 - [Docs](docs/README.md)
+- [Orship](orship/README.md)
 - [Platform](platform/README.md)
 - [Zetro](zetro/README.md)
 

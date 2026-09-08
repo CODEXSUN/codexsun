@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned. No runtime code, database table, or migration exists for this phase.
+Foundation implemented. Advanced live MariaDB recovery and contention scenarios remain open.
 
 ## Objective
 
@@ -176,6 +176,6 @@ The System module may remain available for diagnostics during degraded startup. 
 
 ## Completion updates
 
-When implementation starts, update this record with actual table names, contracts, migrations, commands, and results.
+Implementation is recorded in [Durable module runtime](2026-09-08-durable-module-runtime.md). The runtime now owns `platform_module_state`, `platform_module_migrations`, and `platform_module_seeds`. Modules supply their own migrations and seeds through Platform Core contracts.
 
-Update the Platform README, System README, module catalog, framework roadmap, local skills, and changelog in the same change.
+The Platform README, System README, module catalog, framework roadmap, local skills, and changelog were updated in the same change.

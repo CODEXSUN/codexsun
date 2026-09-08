@@ -10,7 +10,8 @@ import {
   PopoverTrigger,
 } from '@codexsun/ui/components/popover'
 import { cn } from '@codexsun/ui/lib/utils'
-import { TopologyMarker } from '../../features/interface-topology'
+import { TopologyMarker, TopologyRegion } from '../../features/interface-topology'
+import { ThemeSelector } from '../../theme'
 import { useMdiTopology } from './mdi-topology'
 
 export type MdiCanvas = 'grid' | 'plain'
@@ -34,7 +35,7 @@ export function MdiTweakPanel({
   const topology = useMdiTopology()
   return (
     <div
-      className="fixed right-3 bottom-8 z-40 data-[ito-highlighted=true]:shadow-[inset_0_0_0_2px_rgb(126_34_206/0.92)]"
+      className="fixed right-3 bottom-8 z-40 data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
       {...topology.regionProps('05')}
     >
       <TopologyMarker id="05" topology={topology} />
@@ -51,6 +52,9 @@ export function MdiTweakPanel({
               Adjust the MDI shell while its structure is reviewed.
             </PopoverDescription>
           </PopoverHeader>
+          <TopologyRegion as="div" id="05.1" topology={topology}>
+            <ThemeSelector />
+          </TopologyRegion>
           <OptionGroup
             label="Density"
             options={['compact', 'comfortable']}

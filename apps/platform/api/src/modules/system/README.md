@@ -8,7 +8,7 @@ The System module reports the Platform version and the composed module versions.
 
 - Module ID: `system`
 - Kind: `core`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -21,10 +21,10 @@ The System module reports the Platform version and the composed module versions.
 
 ## Public contracts
 
-- API: `system.runtime` version `1.0.0`.
+- API: `system.runtime` version `1.1.0`.
 - Events published: None.
 - Events consumed: None.
-- Dependencies and version ranges: Platform `^0.1.0`.
+- Dependencies and version ranges: `module-runtime` `^1.0.0`; Platform `^0.1.0`.
 
 ## Extension bindings
 
@@ -34,9 +34,9 @@ The System module reports the Platform version and the composed module versions.
 
 ## Lifecycle
 
-- Install: No persistence exists in version `1.0.0`.
+- Install: No persistence exists in version `1.1.0`.
 - Activate: The Platform composition root activates the module.
-- Upgrade: No migration exists in version `1.0.0`.
+- Upgrade: Version `1.1.0` adds diagnostics and full manifest discovery without persistence.
 - Deactivate: The Platform composition root deactivates the module in reverse order.
 - Uninstall: No persistent records require removal.
 
@@ -48,7 +48,7 @@ The System module reports the Platform version and the composed module versions.
 
 ## Verification
 
-- Unit and integration tests: Platform composition and lifecycle tests cover registration and activation.
+- Unit and integration tests: Platform composition and lifecycle tests cover registration, response serialization, diagnostics, and activation.
 - Browser, desktop, or mobile checks: Not required for the API-only first version.
 - Database checks: The module does not use MariaDB.
 
@@ -56,3 +56,4 @@ The System module reports the Platform version and the composed module versions.
 
 - [2026-09-08 Platform and framework foundation](../../../../../../assist/records/platform/2026-09-08-platform-framework-foundation.md)
 - [2026-09-08 Extensible application and add-on foundation](../../../../../../assist/records/platform/2026-09-08-extension-foundation.md)
+- [2026-09-08 Durable module runtime](../../../../../../assist/records/platform/2026-09-08-durable-module-runtime.md)

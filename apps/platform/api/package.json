@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/platform-api",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -10,9 +10,9 @@
     "start": "node ../../../dist/apps/platform/api/server.js"
   },
   "dependencies": {
-    "@codexsun/framework": "^0.1.0",
-    "@codexsun/platform-core-api": "^0.1.0",
-    "@codexsun/platform-contracts": "^0.1.0",
+    "@codexsun/framework": "^0.1.1",
+    "@codexsun/platform-core-api": "^0.1.1",
+    "@codexsun/platform-contracts": "^0.1.1",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
     "@fastify/rate-limit": "^11.2.0",

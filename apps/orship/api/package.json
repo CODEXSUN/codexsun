@@ -1,0 +1,31 @@
+{
+  "name": "@codexsun/orship-api",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "tsx --test tests/*.test.ts",
+    "start": "node ../../../dist/apps/orship/api/server.js"
+  },
+  "dependencies": {
+    "@codexsun/framework": "file:../../../packages/framework",
+    "@codexsun/orship-contracts": "file:../contracts",
+    "@codexsun/runtime": "file:../../../packages/runtime",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/rate-limit": "^11.2.0",
+    "@fastify/sensible": "^6.0.5",
+    "@fastify/under-pressure": "^9.1.0",
+    "dotenv": "latest",
+    "fastify": "^5.12.1",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

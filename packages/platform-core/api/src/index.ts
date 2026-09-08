@@ -1,9 +1,24 @@
 import type { FrameworkModule } from '@codexsun/framework'
 import type { FastifyPluginAsync } from 'fastify'
+import type { PlatformDiagnostics } from './diagnostics.js'
+import type { PlatformModuleEventBus } from './events.js'
+import type { PlatformModuleMigration, PlatformModuleSeed } from './module-data.js'
+import type { PlatformRequestContextAccessor } from './request-context.js'
+
+export * from './diagnostics.js'
+export * from './events.js'
+export * from './module-data.js'
+export * from './request-context.js'
 
 export interface PlatformModuleSummary {
   capabilities: readonly string[]
+  consumes: readonly { id: string; versionRange: string }[]
+  extensionPoints: readonly { cardinality: 'many' | 'one'; id: string; version: string }[]
   id: string
+  kind: FrameworkModule['kind']
+  owner: string
+  publicContracts: readonly { id: string; version: string }[]
+  publishes: readonly { id: string; version: string }[]
   version: string
 }
 
@@ -15,14 +30,19 @@ export interface PlatformShutdownTask {
 export interface PlatformApiModuleContext {
   clock: () => Date
   createId: () => string
+  diagnostics: PlatformDiagnostics
+  events: PlatformModuleEventBus
   modules: readonly PlatformModuleSummary[]
+  requestContext: PlatformRequestContextAccessor
   registerShutdown(task: PlatformShutdownTask): void
   signal: AbortSignal
 }
 
-export interface PlatformApiModule {
+export interface PlatformApiModule<TMigrationContext = never, TSeedContext = TMigrationContext> {
   createPlugin(context: PlatformApiModuleContext): FastifyPluginAsync
   manifest: FrameworkModule
+  migrations?: readonly PlatformModuleMigration<TMigrationContext>[]
+  seeds?: readonly PlatformModuleSeed<TSeedContext>[]
 }
 
 export class PlatformShutdownRegistry {

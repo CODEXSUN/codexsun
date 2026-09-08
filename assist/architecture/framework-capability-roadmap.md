@@ -90,10 +90,12 @@ Each `apps/<app>` composition root owns:
 - The selected modules and adapters.
 - Concrete Fastify, MariaDB, Redis, BullMQ, storage, and telemetry setup.
 - Environment validation and startup failure policy.
-- Database migrations and installed-module state.
+- Installed-module state plus migration, seed, transaction, and lock coordination. Concrete migrations and seeds remain in owning modules.
 - Public HTTP exposure and security policy.
 - Process startup, signals, shutdown, and operational logs.
 - Web routes and navigation assembled from module contributions.
+
+The cross-application deployment plan is a separate concern. `packages/runtime` validates which application composition roots and add-ons enter a deployment. It may bind framework and Platform package versions, but it does not own application modules, infrastructure policy, or business behavior.
 
 ## Preferred class design
 
@@ -118,6 +120,7 @@ Classes represent stateful lifecycle owners. Pure validation and transformation 
 | `OutboxDispatcher`         | Application API   | Deliver committed events with retry and idempotency.                                   |
 | `JobDispatcher`            | Platform Core API | Submit versioned jobs without exposing BullMQ to domain code.                          |
 | `TelemetryProvider`        | Platform Core API | Configure traces and metrics for an application runtime.                               |
+| `DeploymentPlanner`        | Runtime holder    | Resolve selected applications, add-ons, process components, ports, and package ranges. |
 
 Do not create one large `FrameworkManager`, `BaseService`, or `BaseRepository`. Do not make all services inherit from framework classes. Use composition and narrow contracts.
 
@@ -136,23 +139,25 @@ Do not create one large `FrameworkManager`, `BaseService`, or `BaseRepository`. 
 - Fastify application binding, injectable runtime dependencies, component readiness, and shutdown tasks.
 - Shared HTTP envelope schemas and Platform route and navigation contributions.
 - System runtime API and web workspace.
+- Durable MariaDB module state with module-owned migration and seed ledgers.
+- Checksum-protected, dependency-ordered module preparation under a MariaDB advisory lock.
+- Async request context with correlation, locale, request identity, and cancellation.
+- Structured lifecycle, runtime, and readiness diagnostics.
+- Manifest-enforced in-process event publication and consumption.
+- Fastify response schemas for Platform health, readiness, and runtime routes.
+- Read-only capability, contract, event, and extension discovery through the System runtime contract.
+- Profile-driven deployment planning with selected builds and one-container-per-process Compose output.
 
-### Required before Identity
+### Remaining before Identity
 
-1. Durable installed-module state in MariaDB.
-2. Module-owned migration ledger with checksums and upgrade transactions.
-3. Separate registry, planner, runtime, and lifecycle responsibilities where current code needs them.
-4. Async request context with correlation identifiers and cancellation.
-5. Structured diagnostic events for lifecycle and readiness failures.
-6. Fastify response schemas and serialization for every public route.
-7. Module health contributions and a detailed operator-facing readiness result.
-8. Read-only capability and public-contract discovery for Platform diagnostics.
+1. Add module-owned health contributions instead of application-only readiness probes.
+2. Add actor and authorization contracts at application and route boundaries without adding tenant policy to the kernel.
+3. Prove the durable runtime against a configured MariaDB instance, including clean install, restart, lock contention, rollback, and recovery.
 
 Identity may then add authentication and authorization through application and module contracts. Actor, role, permission, session, and tenant rules must not enter the generic kernel.
 
 ### Add when the first real consumer exists
 
-- Domain event publisher and in-process adapter.
 - Transactional outbox and idempotent inbox.
 - BullMQ jobs, workers, schedules, retry policy, and dead-letter handling.
 - Redis cache and distributed locks.

@@ -10,6 +10,8 @@ Use this guide for work in `apps/platform/web` and future product web apps.
 - Supply application identity, navigation contributions, search copy, and user actions through the MDI layout contract. Do not recreate top menus, app switchers, profile popovers, feature settings, or status bars inside applications.
 - Put colors, spacing, typography, and other visual values in `packages/ui/src/tokens`.
 - Use Tailwind CSS and shadcn/ui conventions. Configure each app `components.json` to install reusable items in `packages/ui`; keep application composition in the app.
+- Use `@codexsun/ui/templates/ui-page` for UI component and block documentation.
+  Read [ui-template-pages.md](ui-template-pages.md) before changing those pages.
 - Use TanStack Query for server-state caching and TanStack Router for application routes.
 - Register module routes and navigation through `@codexsun/platform-core-web` contributions.
 - Use Zod to validate untrusted client data. Share API shapes through an owning public contracts package.
@@ -17,6 +19,11 @@ Use this guide for work in `apps/platform/web` and future product web apps.
 ## Quality rules
 
 - Preserve accessible semantics, keyboard operation, focus handling, and clear loading, empty, and error states.
+- Use the shared default Button height of 40px for standard actions. Choose a smaller
+  named size only for explicitly compact toolbars, icon controls, or dense tables.
+- Every enabled button, pagination action, select control, and actionable dropdown item must display a pointer cursor.
+  Enforce this through shared UI primitives and the base theme instead of repeating
+  application-local styles. Disabled controls remain non-interactive.
 - Use Framer Motion only when motion clarifies feedback or state change.
 - Use DnD Kit only when drag-and-drop is essential and has a keyboard path.
 - Keep API URLs and environment configuration explicit; do not silently fall back to production services.

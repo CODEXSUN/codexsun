@@ -9,9 +9,11 @@ export interface StoredChatMessage {
 }
 
 export interface ChatConversationSummary {
+  archivedAt?: string
   createdAt: string
   id: string
   pinned: boolean
+  projectId: string
   title: string
   updatedAt: string
 }
@@ -21,6 +23,7 @@ export interface ChatConversation extends ChatConversationSummary {
 }
 
 export interface ConversationUpdate {
+  archived?: boolean
   messages?: readonly StoredChatMessage[]
   pinned?: boolean
   title?: string

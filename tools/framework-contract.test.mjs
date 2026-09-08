@@ -218,6 +218,40 @@ test('manifest validation rejects duplicate capabilities and unsupported platfor
   )
 })
 
+test('composition validates event publisher ownership, compatibility, and dependencies', () => {
+  const missing = new ModuleRegistry()
+  const missingConsumer = moduleDefinition('consumer', '1.0.0')
+  missingConsumer.consumes = [{ id: 'task.created', versionRange: '^1.0.0' }]
+  missing.register(missingConsumer)
+  assert.throws(
+    () => missing.createCompositionPlan('0.1.0'),
+    (error) => hasIssue(error, 'MISSING_EVENT_PUBLISHER'),
+  )
+
+  const invalid = new ModuleRegistry()
+  const publisher = moduleDefinition('publisher', '1.0.0')
+  publisher.publishes = [{ id: 'task.created', version: '2.0.0' }]
+  invalid.register(publisher)
+  const consumer = moduleDefinition('consumer', '1.0.0')
+  consumer.consumes = [{ id: 'task.created', versionRange: '^1.0.0' }]
+  invalid.register(consumer)
+  assert.throws(
+    () => invalid.createCompositionPlan('0.1.0'),
+    (error) =>
+      hasIssue(error, 'INCOMPATIBLE_EVENT') && hasIssue(error, 'EVENT_DEPENDENCY_REQUIRED'),
+  )
+
+  const valid = new ModuleRegistry()
+  publisher.publishes = [{ id: 'task.created', version: '1.2.0' }]
+  consumer.dependencies = [{ id: 'publisher', versionRange: '^1.0.0' }]
+  valid.register(publisher)
+  valid.register(consumer)
+  assert.deepEqual(
+    valid.createCompositionPlan('0.1.0').modules.map(({ id }) => id),
+    ['publisher', 'consumer'],
+  )
+})
+
 test('lifecycle activation rolls back completed modules', async () => {
   const events = []
   const registry = new ModuleRegistry()
@@ -282,6 +316,31 @@ test('lifecycle install rolls back and upgrade receives both versions', async ()
   )
   await upgradeExecutor.upgrade(new Map([['system', '0.9.0']]))
   assert.equal(events.at(-1), 'upgrade:system:0.9.0:1.0.0')
+})
+
+test('lifecycle installs selected modules and reports structured phase events', async () => {
+  const actions = []
+  const reports = []
+  const registry = new ModuleRegistry()
+  const system = lifecycleModule('system', [], actions)
+  system.lifecycle.install = () => actions.push('install:system')
+  registry.register(system)
+  const identity = lifecycleModule('identity', [{ id: 'system', versionRange: '^1.0.0' }], actions)
+  identity.lifecycle.install = () => actions.push('install:identity')
+  registry.register(identity)
+  const executor = new ModuleLifecycleExecutor(
+    registry.createCompositionPlan('0.1.0'),
+    undefined,
+    (event) => reports.push(event),
+  )
+
+  await executor.install(new Set(['identity']))
+
+  assert.deepEqual(actions, ['install:identity'])
+  assert.deepEqual(reports, [
+    { moduleId: 'identity', phase: 'install', status: 'started' },
+    { moduleId: 'identity', phase: 'install', status: 'completed' },
+  ])
 })
 
 function lifecycleModule(id, dependencies, events, failActivation = false) {

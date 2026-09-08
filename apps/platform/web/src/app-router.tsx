@@ -20,6 +20,12 @@ const homeRoute = createRoute({
   path: '/',
 })
 
+const overviewRoute = createRoute({
+  component: () => null,
+  getParentRoute: () => rootRoute,
+  path: '/overview',
+})
+
 const moduleRoutes = platformWebComposition.routes.map((route) =>
   createRoute({
     component: route.component,
@@ -28,7 +34,7 @@ const moduleRoutes = platformWebComposition.routes.map((route) =>
   }),
 )
 
-const routeTree = rootRoute.addChildren([homeRoute, ...moduleRoutes])
+const routeTree = rootRoute.addChildren([homeRoute, overviewRoute, ...moduleRoutes])
 
 export const platformRouter = createRouter({
   defaultPreload: 'intent',

@@ -13,7 +13,11 @@ export function useDocsLibrary() {
     const controller = new AbortController()
     void fetchDocuments(controller.signal)
       .then(({ documents }) => {
-        setState({ documents, loading: false })
+        setState((current) => ({
+          ...current,
+          documents,
+          loading: selectedSlug ? current.loading : false,
+        }))
       })
       .catch(
         (error: unknown) =>

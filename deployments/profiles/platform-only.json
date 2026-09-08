@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "platform-only",
+  "customer": "Platform-only example",
+  "version": "0.1.0",
+  "environment": "production",
+  "buildEnvironment": {
+    "VITE_PLATFORM_API_URL": "http://127.0.0.1:6010"
+  },
+  "applications": ["platform"],
+  "addons": [],
+  "portOverrides": {}
+}

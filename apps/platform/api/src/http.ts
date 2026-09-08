@@ -1,14 +1,36 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { PlatformRequestContextStore } from '@codexsun/platform-core-api'
 import { randomUUID } from 'node:crypto'
 import { ZodError } from 'zod'
 
 const correlationIdPattern = /^[a-zA-Z0-9._:-]{1,128}$/
 
-export function registerHttpLifecycle(server: FastifyInstance): void {
-  server.addHook('onRequest', async (request, reply) => {
+export function registerHttpLifecycle(
+  server: FastifyInstance,
+  requestContext: PlatformRequestContextStore,
+): void {
+  const requestControllers = new Map<string, AbortController>()
+
+  server.addHook('onRequest', (request, reply, done) => {
     const correlationId = getCorrelationId(request)
+    const controller = new AbortController()
+    requestControllers.set(request.id, controller)
     reply.header('x-correlation-id', correlationId)
     reply.header('x-request-id', request.id)
+    requestContext.run(
+      {
+        correlationId,
+        locale: getLocale(request),
+        requestId: request.id,
+        signal: controller.signal,
+      },
+      done,
+    )
+  })
+
+  server.addHook('onResponse', async (request) => {
+    requestControllers.get(request.id)?.abort('request complete')
+    requestControllers.delete(request.id)
   })
 
   server.setNotFoundHandler(async (request, reply) => {
@@ -49,6 +71,12 @@ export function registerHttpLifecycle(server: FastifyInstance): void {
       meta: createResponseMeta(request),
     })
   })
+}
+
+function getLocale(request: FastifyRequest): string | undefined {
+  const header = request.headers['accept-language']
+  const value = Array.isArray(header) ? header[0] : header
+  return value?.split(',')[0]?.trim() || undefined
 }
 
 export function createResponseMeta(request: FastifyRequest) {

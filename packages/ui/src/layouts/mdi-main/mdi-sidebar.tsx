@@ -1,5 +1,5 @@
 import { ChevronRightIcon, LayoutDashboardIcon, PlusIcon, Settings2Icon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { Button } from '@codexsun/ui/components/button'
 import {
@@ -14,7 +14,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
@@ -28,76 +27,74 @@ import type { MdiNavigationItem, MdiNavigationSection, MdiPrimaryAction } from '
 import { useMdiTopology } from './mdi-topology'
 
 type MdiSidebarProps = {
-  applicationName: string
   navigation: MdiNavigationSection[]
   onOpenFeatures: () => void
-  organizationName: string
   primaryAction?: MdiPrimaryAction | null
+  sidebarContent?: ReactNode
   sidebarContentClassName?: string
+  sidebarFooter?: ReactNode | null
 }
 
 export function MdiSidebar({
-  applicationName,
   navigation,
   onOpenFeatures,
-  organizationName,
   primaryAction,
+  sidebarContent,
   sidebarContentClassName,
+  sidebarFooter,
 }: MdiSidebarProps) {
   const topology = useMdiTopology()
+  const PrimaryActionIcon = primaryAction?.icon ?? PlusIcon
+
   return (
     <Sidebar
-      className="absolute h-full data-[ito-highlighted=true]:shadow-[inset_0_0_0_2px_rgb(126_34_206/0.92)]"
+      className="absolute h-full data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
       collapsible="offcanvas"
       {...topology.regionProps('02')}
     >
       <TopologyMarker id="02" topology={topology} />
+      <SidebarContent className={cn('scrollbar-gutter-stable pt-8', sidebarContentClassName)}>
+        {sidebarContent !== undefined ? (
+          sidebarContent
+        ) : (
+          <>
+            {primaryAction ? (
+              <TopologyRegion as={SidebarGroup} className="px-3 pt-3" id="02.2" topology={topology}>
+                <Button className="w-full justify-start" onClick={primaryAction.onSelect}>
+                  <PrimaryActionIcon />
+                  {primaryAction.label}
+                </Button>
+              </TopologyRegion>
+            ) : null}
+            <TopologyRegion as="div" className="min-h-0 flex-1" id="02.3" topology={topology}>
+              {navigation.map((section, index) => (
+                <NavigationSection key={section.label ?? index} section={section} />
+              ))}
+            </TopologyRegion>
+          </>
+        )}
+      </SidebarContent>
+      {sidebarFooter === undefined ? (
+        <TopologyRegion as={SidebarFooter} className="border-t p-3" id="02.4" topology={topology}>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton render={<button type="button" />} onClick={onOpenFeatures}>
+                <Settings2Icon />
+                <span>Feature settings</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </TopologyRegion>
+      ) : sidebarFooter === null ? null : (
+        <SidebarFooter className="border-t p-3">{sidebarFooter}</SidebarFooter>
+      )}
       <TopologyRegion
-        as={SidebarHeader}
-        className="gap-2 border-b px-3 py-3"
-        id="02.1"
+        as="div"
+        className="pointer-events-none absolute inset-y-0 right-0 w-4 [&>[data-ito-marker]]:left-auto [&>[data-ito-marker]]:right-2 [&>[data-ito-marker]]:top-20"
+        id="02.5"
         topology={topology}
       >
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="grid size-8 place-items-center rounded-lg bg-foreground text-sm font-semibold text-background">
-            C
-          </span>
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-semibold">{organizationName}</p>
-            <p className="truncate text-xs text-muted-foreground">{applicationName}</p>
-          </div>
-        </div>
-        {primaryAction ? (
-          <TopologyRegion as="div" id="02.2" topology={topology}>
-            <Button className="w-full justify-start" onClick={primaryAction.onSelect}>
-              <PlusIcon />
-              {primaryAction.label}
-            </Button>
-          </TopologyRegion>
-        ) : null}
-      </TopologyRegion>
-      <TopologyRegion
-        as={SidebarContent}
-        className={cn('scrollbar-gutter-stable', sidebarContentClassName)}
-        id="02.3"
-        topology={topology}
-      >
-        {navigation.map((section, index) => (
-          <NavigationSection key={section.label ?? index} section={section} />
-        ))}
-      </TopologyRegion>
-      <TopologyRegion as={SidebarFooter} className="border-t p-3" id="02.4" topology={topology}>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton render={<button type="button" />} onClick={onOpenFeatures}>
-              <Settings2Icon />
-              <span>Feature settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </TopologyRegion>
-      <TopologyRegion as="div" className="contents" id="02.5" topology={topology}>
-        <SidebarRail />
+        <SidebarRail className="pointer-events-auto" />
       </TopologyRegion>
     </Sidebar>
   )

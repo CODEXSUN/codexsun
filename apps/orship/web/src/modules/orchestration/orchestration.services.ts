@@ -1,0 +1,49 @@
+import {
+  orchestrationOverviewSchema,
+  serviceActionResponseSchema,
+  serviceLogsResponseSchema,
+  type ServiceAction,
+} from '@codexsun/orship-contracts'
+
+const baseUrl = (import.meta.env.VITE_ORSHIP_API_URL ?? 'http://127.0.0.1:6090').replace(/\/$/u, '')
+
+export async function fetchOrchestrationOverview() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/services`)
+  return orchestrationOverviewSchema.parse(await readResponse(response, 'Could not load services'))
+}
+
+export async function runServiceAction(serviceId: string, action: ServiceAction) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/services/${serviceId}/actions`, {
+    body: JSON.stringify({ action }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+  return serviceActionResponseSchema.parse(
+    await readResponse(response, `Could not ${action} ${serviceId}`),
+  )
+}
+
+export async function fetchServiceLogs(serviceId: string) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/services/${serviceId}/logs?limit=180`)
+  return serviceLogsResponseSchema.parse(await readResponse(response, 'Could not load logs'))
+}
+
+async function readResponse(response: Response, action: string): Promise<unknown> {
+  const body = await response.json().catch(() => undefined)
+  if (!response.ok) {
+    const message = readErrorMessage(body)
+    throw new Error(message ? `${action}: ${message}` : `${action} (${response.status}).`)
+  }
+  return body
+}
+
+function readErrorMessage(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object' || !('error' in body)) return undefined
+  const error = body.error
+  return error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string'
+    ? error.message
+    : undefined
+}

@@ -32,6 +32,7 @@ test('Platform API registers module plugins in framework dependency order', asyn
   const { server } = await buildPlatformApi({
     database: fakeDatabase(),
     environment,
+    moduleRuntime: false,
     modules: [identityModule, systemModule],
     storage: fakeStorage(),
   })
@@ -48,6 +49,7 @@ test('Platform API reports composed modules and readiness components', async () 
   const { server } = await buildPlatformApi({
     database: fakeDatabase(),
     environment: testEnvironment(),
+    moduleRuntime: false,
     readinessProbes: [
       { check: async () => {}, name: 'database' },
       { check: async () => {}, name: 'storage' },
@@ -62,7 +64,7 @@ test('Platform API reports composed modules and readiness components', async () 
     assert.equal(runtime.statusCode, 200)
     assert.deepEqual(
       runtime.json().data.modules.map(({ id }) => id),
-      ['system'],
+      ['module-runtime', 'system'],
     )
     assert.equal(readiness.statusCode, 200)
     assert.deepEqual(readiness.json().data.components, [
@@ -78,6 +80,7 @@ test('Platform readiness reports every failed dependency', async () => {
   const { server } = await buildPlatformApi({
     database: fakeDatabase(),
     environment: testEnvironment(),
+    moduleRuntime: false,
     readinessProbes: [
       {
         check: async () => {
@@ -95,6 +98,45 @@ test('Platform readiness reports every failed dependency', async () => {
     assert.equal(response.statusCode, 503)
     assert.equal(response.json().data.status, 'not-ready')
     assert.equal(response.json().data.components[0].status, 'not-ready')
+  } finally {
+    await server.close()
+  }
+})
+
+test('Platform request context carries correlation, locale, request, and cancellation data', async () => {
+  const contextModule = createModule('context', '1.0.0', [], [])
+  contextModule.createPlugin = (context) => async (server) => {
+    server.get('/context', async () => {
+      const active = context.requestContext.require()
+      return {
+        correlationId: active.correlationId,
+        locale: active.locale,
+        requestId: active.requestId,
+        signalAborted: active.signal.aborted,
+      }
+    })
+  }
+  const { server } = await buildPlatformApi({
+    database: fakeDatabase(),
+    environment: testEnvironment(),
+    moduleRuntime: false,
+    modules: [contextModule],
+    storage: fakeStorage(),
+  })
+
+  try {
+    const response = await server.inject({
+      headers: { 'accept-language': 'en-IN,en;q=0.9', 'x-correlation-id': 'context-test' },
+      method: 'GET',
+      url: '/context',
+    })
+    assert.equal(response.statusCode, 200)
+    assert.deepEqual(response.json(), {
+      correlationId: 'context-test',
+      locale: 'en-IN',
+      requestId: response.headers['x-request-id'],
+      signalAborted: false,
+    })
   } finally {
     await server.close()
   }

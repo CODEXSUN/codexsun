@@ -9,6 +9,7 @@ const serverFile = resolve(projectRoot, 'dist/apps/platform/api/server.js')
 const host = '127.0.0.1'
 const signalPort = 6199
 const gracefulPort = 6198
+const degradedPort = 6196
 
 test('production API starts, serves health, handles SIGTERM, and releases its port', async () => {
   await assertPortAvailable(signalPort)
@@ -48,13 +49,42 @@ test('production API completes graceful shutdown through supervisor IPC', async 
   }
 })
 
-function startServer(port, useIpc) {
+test('production API keeps liveness available when module runtime preparation fails', async () => {
+  await assertPortAvailable(degradedPort)
+  const runtime = startServer(degradedPort, false, true)
+
+  try {
+    await assertHealthy(runtime, degradedPort)
+    const readiness = await fetch(`http://${host}:${degradedPort}/health/ready`, {
+      signal: AbortSignal.timeout(1_000),
+    })
+    const body = await readiness.json()
+
+    assert.equal(readiness.status, 503)
+    assert.equal(body.data.status, 'not-ready')
+    assert.equal(
+      body.data.components.some(
+        ({ name, status }) => name === 'module-runtime' && status === 'not-ready',
+      ),
+      true,
+    )
+    runtime.child.kill('SIGTERM')
+    await waitForExit(runtime.child, 10_000, 'SIGTERM')
+    await assertPortAvailable(degradedPort)
+  } finally {
+    stopOrphan(runtime.child)
+  }
+})
+
+function startServer(port, useIpc, moduleRuntimeEnabled = false) {
   const child = spawn(process.execPath, [serverFile], {
     cwd: projectRoot,
     env: {
       ...process.env,
       APP_ENV: 'test',
+      DATABASE_PORT: moduleRuntimeEnabled ? '1' : process.env.DATABASE_PORT,
       LOG_PRETTY: 'false',
+      MODULE_RUNTIME_ENABLED: String(moduleRuntimeEnabled),
       PLATFORM_API_HOST: host,
       PLATFORM_API_PORT: String(port),
       PLATFORM_WEB_ORIGIN: 'http://127.0.0.1:6299',
@@ -86,7 +116,7 @@ async function assertHealthy(runtime, port) {
   assert.equal(runtimeResponse.status, 200)
   assert.deepEqual(
     runtimeBody.data.modules.map(({ id }) => id),
-    ['system'],
+    ['module-runtime', 'system'],
   )
 
   const missingResponse = await fetch(`http://${host}:${port}/missing`, {

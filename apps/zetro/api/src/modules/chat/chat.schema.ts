@@ -46,6 +46,7 @@ export const chatTurnRequestSchema = z.strictObject({
   conversationId: z.string().uuid(),
   messages: z.array(messageSchema).min(1).max(24),
   previousDelivery: deliveryRunSchema.optional(),
+  projectId: z.string().uuid(),
   workflow: z.enum(codexWorkflows).default('develop'),
 })
 
@@ -78,12 +79,22 @@ export const conversationParametersSchema = z.strictObject({
   conversationId: z.string().uuid(),
 })
 
+export const conversationListQuerySchema = z.strictObject({
+  archived: z
+    .enum(['false', 'true'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  projectId: z.string().uuid(),
+})
+
 export const createConversationSchema = z.strictObject({
   messages: z.array(storedMessageSchema).min(1).max(100),
+  projectId: z.string().uuid(),
 })
 
 export const updateConversationSchema = z
   .strictObject({
+    archived: z.boolean().optional(),
     messages: z.array(storedMessageSchema).min(1).max(100).optional(),
     pinned: z.boolean().optional(),
     title: z.string().trim().min(1).max(60).optional(),

@@ -19,6 +19,8 @@ Create these files with the application:
 
 The application README must remain accurate for commands, addresses, environment keys, health behavior, shutdown behavior, and verification. `npm.cmd run check:app-docs` enforces its required sections and links.
 
+Register each runnable API, web server, or worker as one component in `deployments/catalog.json`. Bind the application to compatible framework, Platform Core, contract, UI, and runtime-holder versions. Add it to the complete `development` profile before the application is considered available to the shared local runtime.
+
 ## Runtime ownership
 
 - `apps/<app>/api` owns Fastify startup, API composition, configuration, persistence adapters, workers, and shutdown.
@@ -35,6 +37,7 @@ Read [the runtime foundation](runtime-foundation.md) before creating or changing
 - Record the allocation in root `.env.example`, the root README, and the application README.
 - Read all local settings from the root `.env`. Keep safe defaults in validated application configuration.
 - Add every local service to `tools/preflight.mjs`. Add a named stack to `tools/dev-stack.mjs` when API and web must start together.
+- Give each deployable component a catalog entry with its workspace, build dependencies, root-dist output, health path, and port environment key.
 - Never stop an unrelated listener. A restart may stop only a listener verified as belonging to this workspace.
 
 ## API baseline
@@ -80,6 +83,7 @@ Before the first feature enters an application:
 5. Send `SIGTERM` or supervisor IPC and confirm graceful exit and port release.
 6. Add a production-artifact lifecycle E2E test for the API.
 7. Run `npm.cmd run check:app-docs`, `npm.cmd run check`, and `git diff --check`.
+8. Run `npm.cmd run runtime:validate` and prove that a minimal profile can omit the new application.
 
 Do not describe a database, browser, desktop, mobile, or E2E path as verified unless that path ran successfully.
 
@@ -89,6 +93,9 @@ Do not describe a database, browser, desktop, mobile, or E2E path as verified un
 - [ ] API and web ports are unique and in the 6000 series.
 - [ ] Root scripts start, build, type-check, and test the application.
 - [ ] Preflight checks ownership and reserves each port.
+- [ ] The deployment catalog and complete development profile contain every runnable component.
+- [ ] Runtime package bindings and application dependencies are explicit and version compatible.
+- [ ] A customer profile can select or omit the application without changing its source.
 - [ ] API logs, envelopes, health routes, and shutdown follow the runtime foundation.
 - [ ] Root `dist`, root `node_modules`, and central storage rules are preserved.
 - [ ] Every module has an internal README and app catalog entry.

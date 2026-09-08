@@ -21,6 +21,7 @@ const environmentSchema = z.object({
   DATABASE_NAME: z.string().min(1).default('codexsun'),
   DATABASE_USER: z.string().min(1).default('codexsun'),
   DATABASE_PASSWORD: z.string().default(''),
+  MODULE_RUNTIME_ENABLED: z.enum(['true', 'false']).default('true'),
   STORAGE_ROOT: z.literal('storage/app').default('storage/app'),
 })
 

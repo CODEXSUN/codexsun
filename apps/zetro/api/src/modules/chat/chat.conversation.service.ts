@@ -10,21 +10,31 @@ import type {
 export class ChatConversationService {
   public constructor(private readonly repository: ChatConversationRepository) {}
 
-  public list(): readonly ChatConversationSummary[] {
-    return this.repository.list().map(toSummary)
+  public list(projectId: string, archived = false): readonly ChatConversationSummary[] {
+    return this.repository
+      .list()
+      .filter(
+        (conversation) =>
+          conversation.projectId === projectId && Boolean(conversation.archivedAt) === archived,
+      )
+      .map(toSummary)
   }
 
   public get(conversationId: string): ChatConversation {
     return this.requireConversation(conversationId)
   }
 
-  public async create(messages: readonly StoredChatMessage[]): Promise<ChatConversation> {
+  public async create(
+    projectId: string,
+    messages: readonly StoredChatMessage[],
+  ): Promise<ChatConversation> {
     const timestamp = new Date().toISOString()
     const conversation: ChatConversation = {
       createdAt: timestamp,
       id: randomUUID(),
       messages,
       pinned: false,
+      projectId,
       title: createShortTitle(messages),
       updatedAt: timestamp,
     }
@@ -37,13 +47,27 @@ export class ChatConversationService {
     update: ConversationUpdate,
   ): Promise<ChatConversation> {
     const current = this.requireConversation(conversationId)
+    const timestamp = new Date().toISOString()
+    const { archived, ...changes } = update
     const conversation: ChatConversation = {
       ...current,
-      ...update,
-      updatedAt: new Date().toISOString(),
+      ...changes,
+      ...(archived === undefined ? {} : { archivedAt: archived ? timestamp : undefined }),
+      ...(archived ? { pinned: false } : {}),
+      updatedAt: timestamp,
     }
     await this.repository.save(conversation)
     return conversation
+  }
+
+  public async delete(conversationId: string): Promise<void> {
+    const conversation = this.requireConversation(conversationId)
+    if (!conversation.archivedAt) throw new ChatConversationNotArchivedError(conversationId)
+    await this.repository.delete(conversationId)
+  }
+
+  public deleteArchived(projectId: string): Promise<number> {
+    return this.repository.deleteArchived(projectId)
   }
 
   private requireConversation(conversationId: string): ChatConversation {
@@ -56,6 +80,12 @@ export class ChatConversationService {
 export class ChatConversationNotFoundError extends Error {
   public constructor(conversationId: string) {
     super(`Conversation ${conversationId} was not found.`)
+  }
+}
+
+export class ChatConversationNotArchivedError extends Error {
+  public constructor(conversationId: string) {
+    super(`Conversation ${conversationId} must be archived before permanent deletion.`)
   }
 }
 

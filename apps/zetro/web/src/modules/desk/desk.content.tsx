@@ -1,0 +1,158 @@
+import { Bot, ChevronRight, ListTodo, LoaderCircle, MessageSquare } from 'lucide-react'
+import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
+import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@codexsun/ui/components/sidebar'
+import { AgentChatHistory, AgentChatWorkspace, useAgentChat } from '../agent-chat'
+import { ProjectTaskList, ProjectTasksWorkspace, useProjectTasks } from '../project-tasks'
+import { ProjectSwitcher, useProjects } from '../projects'
+import { useCodexConnection } from '../settings'
+
+export function ZetroProjectSidebar() {
+  const chat = useAgentChat()
+  const projects = useProjects()
+  const tasks = useProjectTasks()
+  const topology = useMdiTopology()
+  const openTaskCount = tasks.tasks.filter(({ status }) => status !== 'done').length
+
+  function showChat() {
+    projects.setView('chat')
+    chat.showChat()
+  }
+
+  return (
+    <div className="flex size-full min-h-0 flex-col">
+      <TopologyRegion as="div" className="border-b p-2" id="15.2.4" topology={topology}>
+        {projects.activeProject ? (
+          <ProjectSwitcher disabled={chat.isBusy} />
+        ) : (
+          <div className="flex h-12 items-center gap-2 px-2 text-sm text-muted-foreground">
+            {projects.isLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            {projects.isLoading ? 'Loading projects' : 'No project available'}
+          </div>
+        )}
+      </TopologyRegion>
+      <TopologyRegion as="div" id="15.2.5" topology={topology}>
+        <SidebarGroup className="border-b p-1.5">
+          <SidebarGroupContent>
+            <SidebarMenu aria-label="Project features" className="grid grid-cols-2 gap-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  aria-label="Chat"
+                  className="h-9 cursor-pointer justify-center pr-7"
+                  isActive={projects.view === 'chat'}
+                  onClick={showChat}
+                  title="Chat"
+                >
+                  <MessageSquare />
+                  <span className="sr-only">Chat</span>
+                  <SidebarMenuBadge>{chat.summaries.length}</SidebarMenuBadge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  aria-label="Tasks"
+                  className="h-9 cursor-pointer justify-center pr-7"
+                  isActive={projects.view === 'tasks'}
+                  onClick={() => projects.setView('tasks')}
+                  title="Tasks"
+                >
+                  <ListTodo />
+                  <span className="sr-only">Tasks</span>
+                  <SidebarMenuBadge>{openTaskCount}</SidebarMenuBadge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </TopologyRegion>
+      <div className="min-h-0 flex-1">
+        {projects.view === 'chat' ? <AgentChatHistory /> : <ProjectTaskList />}
+      </div>
+    </div>
+  )
+}
+
+export function ZetroProjectWorkspace() {
+  const { activeProject, error, isLoading, view } = useProjects()
+  const chat = useAgentChat()
+  const tasks = useProjectTasks()
+  const { connection, isLoading: isLoadingConnection } = useCodexConnection()
+  if (isLoading) {
+    return (
+      <div className="grid size-full place-items-center">
+        <LoaderCircle className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+  if (!activeProject) {
+    return (
+      <div className="grid size-full place-items-center px-6 text-sm text-destructive">
+        {error ?? 'No project is available.'}
+      </div>
+    )
+  }
+  return (
+    <div className="flex size-full min-h-0 flex-col">
+      <WorkspaceContextBar
+        connectionState={isLoadingConnection ? 'checking' : (connection?.state ?? 'disconnected')}
+        model={chat.model}
+        projectName={activeProject.name}
+        title={
+          view === 'tasks' && tasks.view === 'archive'
+            ? 'Archived tasks'
+            : view === 'tasks'
+              ? 'Tasks'
+              : 'Chat'
+        }
+      />
+      <div className="min-h-0 flex-1">
+        {view === 'tasks' ? <ProjectTasksWorkspace /> : <AgentChatWorkspace />}
+      </div>
+    </div>
+  )
+}
+
+function WorkspaceContextBar({
+  connectionState,
+  model,
+  projectName,
+  title,
+}: {
+  connectionState: 'checking' | 'connected' | 'disconnected' | 'error' | 'pending'
+  model: string
+  projectName: string
+  title: string
+}) {
+  const connected = connectionState === 'connected'
+
+  return (
+    <header className="flex h-11 shrink-0 items-center gap-3 border-b px-4 text-sm">
+      <span className="max-w-48 truncate text-muted-foreground">{projectName}</span>
+      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="font-medium">{title}</span>
+      <div
+        className="ml-auto flex min-w-0 items-center gap-2 text-xs"
+        title={`${connectionState} provider: Codex; model: ${model}`}
+      >
+        <span
+          aria-label={connected ? 'Connected' : connectionState}
+          className={
+            connected ? 'size-2 rounded-full bg-emerald-500' : 'size-2 rounded-full bg-amber-500'
+          }
+        />
+        <Bot className="size-3.5 text-muted-foreground" />
+        <span className="text-muted-foreground">Provider</span>
+        <span className="font-medium">Codex</span>
+        <span className="text-muted-foreground">Model</span>
+        <span className="font-medium">{model}</span>
+      </div>
+    </header>
+  )
+}

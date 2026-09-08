@@ -1,14 +1,21 @@
-import { BellIcon, MenuIcon, SearchIcon, type LucideIcon } from 'lucide-react'
+import { MenuIcon, type LucideIcon } from 'lucide-react'
 
 import { Button } from '@codexsun/ui/components/button'
-import { Input } from '@codexsun/ui/components/input'
 import { useSidebar } from '@codexsun/ui/components/sidebar'
 import { TopologyMarker, TopologyRegion } from '../../features/interface-topology'
 
 import { MdiAppSwitcher } from './mdi-app-switcher'
+import { MdiGlobalSearch } from './mdi-global-search'
+import { MdiNotificationsMenu } from './mdi-notifications-menu'
 import { MdiProfileMenu } from './mdi-profile-menu'
 import { useMdiTopology } from './mdi-topology'
-import type { MdiAppItem, MdiFeatures, MdiUser } from './mdi-types'
+import type {
+  MdiAppItem,
+  MdiFeatures,
+  MdiNavigationSection,
+  MdiNotification,
+  MdiUser,
+} from './mdi-types'
 
 type MdiTopMenuProps = {
   applicationIcon: LucideIcon
@@ -16,6 +23,8 @@ type MdiTopMenuProps = {
   apps: MdiAppItem[]
   features: MdiFeatures
   notificationCount: number
+  notifications: readonly MdiNotification[]
+  navigation: MdiNavigationSection[]
   searchPlaceholder: string
   searchValue?: string
   user: MdiUser
@@ -28,6 +37,8 @@ export function MdiTopMenu({
   apps,
   features,
   notificationCount,
+  notifications,
+  navigation,
   searchPlaceholder,
   searchValue,
   user,
@@ -38,7 +49,7 @@ export function MdiTopMenu({
 
   return (
     <header
-      className="relative flex h-14 shrink-0 items-center border-t-4 border-t-emerald-50 border-b bg-background shadow-xs data-[ito-highlighted=true]:shadow-[inset_0_0_0_2px_rgb(126_34_206/0.92)]"
+      className="relative flex h-14 shrink-0 items-center border-t-4 border-t-emerald-50 border-b border-b-border bg-background shadow-sm data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
       {...topology.regionProps('01')}
     >
       <TopologyMarker id="01" topology={topology} />
@@ -67,36 +78,20 @@ export function MdiTopMenu({
           <ApplicationIcon className="size-4" />
           <span className="truncate">{applicationName}</span>
         </TopologyRegion>
-        <TopologyRegion
-          as="label"
-          className="relative hidden w-full max-w-3xl md:block"
-          id="01.3"
-          topology={topology}
-        >
-          <span className="sr-only">Search {applicationName}</span>
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            className="h-10 rounded-full border-0 bg-muted/70 pl-11 shadow-none focus-visible:bg-background"
-            value={searchValue}
-            placeholder={searchPlaceholder}
-            onChange={(event) => onSearchChange?.(event.target.value)}
-          />
-        </TopologyRegion>
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <TopologyRegion as="div" id="01.3" topology={topology}>
+            <MdiGlobalSearch
+              applicationName={applicationName}
+              apps={apps}
+              navigation={navigation}
+              onSearchChange={onSearchChange}
+              placeholder={searchPlaceholder}
+              value={searchValue}
+            />
+          </TopologyRegion>
           {features.notifications ? (
             <TopologyRegion as="div" id="01.4" topology={topology}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative rounded-full"
-                aria-label="Notifications"
-              >
-                <BellIcon className="size-4" />
-                {notificationCount > 0 ? (
-                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full border border-background bg-red-500" />
-                ) : null}
-              </Button>
+              <MdiNotificationsMenu count={notificationCount} notifications={notifications} />
             </TopologyRegion>
           ) : null}
           {features.appSwitcher ? (

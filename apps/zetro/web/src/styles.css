@@ -1,9 +1,2 @@
 @import './styles/base.css';
-@import './styles/history.css';
-@import './styles/execution.css';
-@import './styles/workflow.css';
-@import './styles/chat.css';
-@import './styles/tasks.css';
-@import './styles/settings.css';
-@import './styles/settings-actions.css';
-@import './styles/customization.css';
+@import 'tw-shimmer';

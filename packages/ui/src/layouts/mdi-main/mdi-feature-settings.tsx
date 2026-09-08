@@ -46,7 +46,7 @@ export function MdiFeatureSettings({ features, onBack, onFeatureChange }: MdiFea
   const topology = useMdiTopology()
   return (
     <section
-      className="relative h-full overflow-auto bg-background data-[ito-highlighted=true]:shadow-[inset_0_0_0_2px_rgb(126_34_206/0.92)]"
+      className="relative h-full overflow-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
       aria-labelledby="mdi-features-title"
       {...topology.regionProps('06')}
     >

@@ -26,7 +26,7 @@ export const codexConnectionModuleManifest = {
     deactivate: 'Close the local Codex App Server process.',
     install: 'No Zetro credentials or persistent records are created.',
     uninstall: 'Leave Codex-managed credentials untouched.',
-    upgrade: 'Version 0.5.0 adds structured delivery records without a data migration.',
+    upgrade: 'Version 0.5.1 adds safe Windows command discovery without a data migration.',
   },
   publicContracts: [
     'GET /api/v1/settings/codex',
@@ -36,7 +36,7 @@ export const codexConnectionModuleManifest = {
     'CodexAppServerClient',
   ],
   scope: 'zetro-api',
-  version: '0.5.0',
+  version: '0.5.1',
 } as const
 
 export async function registerCodexConnectionModule(

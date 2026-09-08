@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.5.0`
+- Version: `0.5.1`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -17,7 +17,9 @@ Zetro never reads or returns the Codex auth cache. An optional `ZETRO_CODEX_API_
 
 Starting another device-code flow cancels older pending attempts. `POST /api/v1/settings/codex/disconnect` calls the App Server account logout contract and clears pending codes. An explicit `ZETRO_CODEX_API_KEY` cannot be removed by the HTTP route; it must be removed from the root `.env` file.
 
-The module requires the local `codex` executable. Device-code login must be enabled in the user's ChatGPT security settings or workspace permissions.
+The module requires the local `codex` executable. On Windows, the default command first resolves the newest Codex desktop executable below `%LOCALAPPDATA%\OpenAI\Codex\bin`. An explicit `ZETRO_CODEX_COMMAND` value remains authoritative.
+
+A missing or invalid command returns a controlled service error. It does not stop the Zetro API or web process. Device-code login must be enabled in the user's ChatGPT security settings or workspace permissions.
 
 ## Task execution
 
@@ -43,13 +45,13 @@ The documentation workflow uses current code and repository documents as evidenc
 
 ## Lifecycle and persistence
 
-Install creates no data. Activate starts the App Server lazily. Version 0.5.0 needs no data migration.
+Install creates no data. Activate starts the App Server lazily. Version 0.5.1 needs no data migration.
 
 Deactivate closes the child process. Uninstall leaves credentials and worktrees untouched. The module has no tables, seeds, events, or jobs.
 
 ## Verification
 
-Run the API typecheck, build, workflow tests, history tests, and worktree integration test. Inspect account status and device-code endpoints.
+Run the API typecheck, build, connection tests, workflow tests, history tests, and worktree integration test. Inspect account status and device-code endpoints.
 
 A complete activation requires user sign-in in the browser. A live coding turn must prove file edits and command activity.
 

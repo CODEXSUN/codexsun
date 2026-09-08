@@ -27,24 +27,39 @@ Read the [extension standard](extension-standard.md) before adding an extension 
 
 ## Backend structure
 
+Every business module follows DDD dependency direction. Use the physical layers below for new modules and when an existing module receives structural work. A small technical module may keep module-prefixed role files at its root, but its README must explain why business domain layers do not apply.
+
 ```text
 apps/<app>/api/src/modules/<module>/
   README.md
   <module>.module.ts
-  <module>.types.ts
-  <module>.service.ts
-  <module>.repository.ts
-  <module>.routes.ts
-  <module>.migration.ts      # only when the module owns persistence
-  <module>.seed.ts           # only when the module owns seed data
-  <module>.events.ts         # only when events exist
-  <module>.worker.ts         # only when jobs exist
-  <module>.sync.ts           # only when sync exists
-  <module>.test.ts           # focused module tests
+  domain/
+    <module>.aggregate.ts
+    <module>.events.ts       # only when domain events exist
+    <module>.ports.ts
+  application/
+    <module>.commands.ts
+    <module>.queries.ts
+    <module>.service.ts
+  infrastructure/
+    <module>.repository.ts
+    <module>.migrations.ts   # only when the module owns persistence
+    <module>.seeds.ts        # only when the module owns seed data
+    <module>.worker.ts       # only when jobs exist
+  presentation/
+    <module>.routes.ts
+    <module>.schema.ts
+  <module>.test.ts
   index.ts
 ```
 
 Use the role files only when they contain real executable behavior. Record an intentional omission in the module README.
+
+Presentation may depend on application. Application may depend on domain. Infrastructure implements ports defined by domain or application. Domain imports none of the outer layers. The composition root constructs adapters and registers only the module public entry point.
+
+Migrations and seeds are versioned module declarations. They stay below the owning module folder, run in stable order, execute through an application-supplied transaction, and record immutable checksums. A central business migration or seed directory is forbidden.
+
+Use events for cross-module facts. Keep the event schema and publisher with the source module, and keep each handler with the consuming module. Both sides declare compatible event versions in their manifests. Synchronous behavior within one module does not need an event.
 
 ## Frontend structure
 
@@ -78,3 +93,4 @@ Use semantic versions for module manifests.
 - Increase the major version for a breaking public contract, migration, or lifecycle change.
 - Declare compatibility ranges for every required module dependency.
 - Test install and upgrade behavior against an existing persisted database when a module owns migrations.
+- Run `npm.cmd run check:module-boundaries` to reject misplaced migration files and private sibling imports.

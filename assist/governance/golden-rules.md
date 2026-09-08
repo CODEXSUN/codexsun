@@ -10,6 +10,16 @@ These rules are mandatory for every application, package, module, and agent.
 - Use modules through intentional public exports, injected dependencies, fixed lookup APIs, or approved events.
 - Never import a sibling module's private files.
 - Never write directly to another module's tables or storage records.
+- Import another module only through its public `index.ts` and a declared manifest dependency.
+
+## Event-driven module collaboration
+
+- Use synchronous calls inside one module. Use a declared public contract or a versioned event across modules.
+- Declare every published and consumed event in the module manifest before composition.
+- Publish domain events after the owning use case succeeds. When database durability is required, write an outbox record in the same transaction.
+- Keep event payload schemas, handlers, idempotency rules, retry behavior, and failure policy in the owning module.
+- Do not use events to hide request-response work that requires an immediate result.
+- The in-process event bus is same-process delivery. Do not claim durable delivery until an outbox and idempotent inbox exist.
 
 ## DDD ownership
 
@@ -32,6 +42,8 @@ These rules are mandatory for every application, package, module, and agent.
 - Reject missing, incompatible, duplicate, or undeclared extension bindings before startup.
 - Support install, activate, upgrade, deactivate, and uninstall decisions through explicit module behavior.
 - Keep migrations additive and ordered. Make seeds repeatable and owned by the module.
+- Keep migration and seed files inside the module folder that owns the affected tables and records.
+- Never edit an applied migration or seed checksum. Add a new ordered declaration for the next module version.
 - Preserve existing record identity during an upgrade. Do not recreate records to imitate a fresh installation.
 - Document every public contract or migration change in the module README and app catalog.
 
@@ -43,6 +55,8 @@ These rules are mandatory for every application, package, module, and agent.
 - Use module-prefixed filenames. Keep public exports in the module `index.ts`.
 - Validate every external input with strict Zod schemas at the route boundary.
 - Keep routes thin. Routes call module services. Services enforce business rules. Repositories own only module persistence.
+- Enforce DDD dependency direction: presentation to application to domain, with infrastructure implementing ports defined inward.
+- Keep domain code free of Fastify, Kysely, BullMQ, React, and application globals.
 - Add events, workers, sync, migrations, and seeds only when the module has real behavior for them.
 - Do not add empty, placeholder, wrapper, alias, or borrowed role files.
 
@@ -70,6 +84,18 @@ These rules are mandatory for every application, package, module, and agent.
 - Run the application and module documentation gates before handoff.
 - Do not mark a feature complete when its owner README or development record is stale.
 
+## Deployment assembly
+
+- Treat applications and add-ons as selectable source-owned units. Do not fork business code for a customer deployment.
+- Register every deployable application and component in `deployments/catalog.json` with explicit runtime bindings and dependencies.
+- Use `packages/runtime` to produce one immutable plan before local startup, build, or container composition.
+- Use the `development` profile to run every registered application locally. Use a versioned customer profile to select or omit production units.
+- Keep one process boundary per container. Combine selected containers as one generated Compose deployment.
+- Build and stage only selected workspaces and keep every generated artifact below root `dist`.
+- Keep secrets outside profiles and source. Inject them through deployment environment or secret-manager bindings.
+- Selecting an add-on does not authorize it. The target application must expose, validate, and load a documented public extension point.
+- Reject unknown units, missing workspaces, dependency cycles, version incompatibility, unsafe output paths, and port conflicts before build.
+
 ## Size and quality limits
 
 - Keep every authored source and documentation file at 700 physical lines or fewer.
@@ -93,3 +119,4 @@ Before finalizing module work, verify all of the following:
 6. No authored file exceeds 700 lines.
 7. Focused tests, type checks, builds, and relevant persistence checks pass.
 8. Any unavailable database, browser, desktop, mobile, or E2E check is reported as not run.
+9. `check:module-boundaries` passes for migration ownership and sibling public imports.

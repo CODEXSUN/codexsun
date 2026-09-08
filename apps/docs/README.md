@@ -27,6 +27,12 @@ header or sidebar shell.
 
 `npm.cmd run dev:docs` starts the API and web stack together.
 
+## Deployment assembly
+
+The shared runtime holder registers `docs-api` and `docs-web`. The Docs application requires Platform and is selected in the complete `development` profile. Customer profiles can omit Docs; omitted Docs workspaces and artifacts do not enter the generated component stages.
+
+The API and web components keep their own process, port, health, and output boundaries. Deployment selection does not transfer Docs vault, index, or rendering ownership to Platform.
+
 ## Runtime configuration
 
 Root `.env` owns `DOCS_API_HOST`, `DOCS_API_PORT`, `DOCS_WEB_PORT`, `VITE_DOCS_API_URL`, `DOCS_VAULT_PATH`, and `DOCS_INDEX_MODE`. The index mode is `filesystem`, `database`, or `hybrid`; the default is `hybrid`.
