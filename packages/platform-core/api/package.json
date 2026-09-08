@@ -1,0 +1,21 @@
+{
+  "name": "@codexsun/platform-core-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "../../../dist/packages/platform-core/api/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^0.1.0"
+  },
+  "peerDependencies": {
+    "fastify": "^5.12.1"
+  }
+}

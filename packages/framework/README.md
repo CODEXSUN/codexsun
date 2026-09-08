@@ -1,0 +1,36 @@
+# Framework
+
+## Purpose
+
+The framework owns only generic module lifecycle and registry contracts.
+
+## Boundary
+
+It must not own business entities, database tables, authentication, HTTP routes, UI, or product workflows.
+
+## Public contract
+
+The package exports versioned module manifests, validation results, immutable composition plans, lifecycle execution, extension declarations, and typed errors.
+
+The registry validates identity, versions, ownership, capabilities, dependencies, configuration, public contracts, and events. It reports all composition issues and returns complete cycle paths.
+
+The public manifest parser accepts unknown runtime input. It rejects missing fields, unknown fields, invalid lifecycle functions, and invalid value shapes before semantic composition starts.
+
+The registry locks after it creates a plan. Plans use deterministic dependency order. Activation failures deactivate completed modules in reverse order.
+
+Modules declare a `core`, `feature`, `addon`, or `adapter` kind. Extension point owners define a semantic version and `one` or `many` cardinality. Add-ons declare compatible contributions and depend on each point owner.
+
+Composition rejects missing points, incompatible versions, duplicate declarations, missing owner dependencies, and cardinality conflicts. The immutable plan exposes extensions in point, order, and identifier order.
+
+## Capability roadmap
+
+Read the [framework capability roadmap](../../assist/architecture/framework-capability-roadmap.md) before expanding this package. It defines the allowed kernel boundary, preferred class responsibilities, staged work, and explicitly rejected framework features.
+
+Use the [framework development skill](../../assist/skills/framework-development.md) for implementation and review.
+
+## Development records
+
+- [2026-09-08 Platform and framework foundation](../../assist/records/platform/2026-09-08-platform-framework-foundation.md)
+- [2026-09-08 Framework capability roadmap](../../assist/records/platform/2026-09-08-framework-capability-roadmap.md)
+- [2026-09-08 Extensible application and add-on foundation](../../assist/records/platform/2026-09-08-extension-foundation.md)
+- [2026-09-08 Safe runtime manifest boundary](../../assist/records/platform/2026-09-08-manifest-boundary.md)

@@ -1,0 +1,7 @@
+export { AppSidebar } from './components/app-sidebar'
+export { ChartAreaInteractive } from './components/chart-area-interactive'
+export { DataTable, schema as dashboardTableSchema } from './components/data-table'
+export type { DataTableItem } from './components/data-table'
+export { SectionCards } from './components/section-cards'
+export { SiteHeader } from './components/site-header'
+export { default as dashboardData } from './data.json'

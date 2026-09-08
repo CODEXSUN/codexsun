@@ -1,0 +1,20 @@
+{
+  "name": "@codexsun/framework",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "../../../dist/packages/framework/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.8.0",
+    "typescript": "latest"
+  },
+  "dependencies": {
+    "semver": "^7.8.5",
+    "zod": "^4.5.4"
+  }
+}

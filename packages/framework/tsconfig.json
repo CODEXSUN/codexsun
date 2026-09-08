@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "declaration": true,
+    "outDir": "../../dist/packages/framework",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

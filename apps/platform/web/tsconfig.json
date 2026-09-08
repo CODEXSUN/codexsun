@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/platform-web.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@codexsun/platform-contracts": [
+        "../../../packages/platform-core/shared/contracts/src/index.ts"
+      ],
+      "@codexsun/platform-core-web": ["../../../packages/platform-core/web/src/index.ts"],
+      "@codexsun/ui": ["../../../packages/ui/src/index.ts"]
+    },
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}

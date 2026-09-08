@@ -1,0 +1,87 @@
+.execution-summary {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.execution-summary summary {
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  padding: 10px 12px;
+}
+
+.execution-summary summary::-webkit-details-marker {
+  display: none;
+}
+
+.execution-summary summary span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.execution-summary summary code {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execution-body {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.execution-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.execution-tools span {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.execution-body ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.execution-body li {
+  align-items: baseline;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+}
+
+.execution-body li strong,
+.execution-body li small,
+.execution-body p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.execution-body li span {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .execution-body li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

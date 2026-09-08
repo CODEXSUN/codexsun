@@ -1,0 +1,61 @@
+{
+  "name": "@codexsun/ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "../../dist/packages/ui/index.js",
+  "types": "../../dist/packages/ui/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./globals.css": "./src/styles/globals.css",
+    "./components/*": "./src/components/*.tsx",
+    "./blocks/loader": "./src/blocks/loader/index.ts",
+    "./lib/*": "./src/lib/*.ts",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./features/interface-topology": "./src/features/interface-topology/index.ts",
+    "./layouts/mdi-main": "./src/layouts/mdi-main/index.ts",
+    "./tokens": "./src/tokens/index.ts",
+    "./templates/dashboard-01": "./src/templates/dashboard-01/index.ts",
+    "./templates/documentation-sidebar": "./src/templates/documentation-sidebar/index.ts",
+    "./templates/ui-gallery": "./src/templates/ui-gallery/index.ts",
+    "./templates/sidebar-07": "./src/templates/sidebar-07/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@shadcn/react": "^0.3.1",
+    "@tabler/icons-react": "^3.46.0",
+    "@tanstack/react-table": "^9.2.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "latest",
+    "cmdk": "^1.1.1",
+    "cn": "^0.2.6",
+    "date-fns": "^4.4.0",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.5.0",
+    "lucide-react": "^1.33.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.6.7",
+    "react": "latest",
+    "react-day-picker": "^10.0.1",
+    "react-dom": "latest",
+    "react-resizable-panels": "^4.12.4",
+    "recharts": "^3.8.0",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "latest",
+    "vaul": "^1.1.2",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
+  }
+}

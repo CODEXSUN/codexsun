@@ -1,0 +1,25 @@
+---
+title: Docs hybrid mode
+description: How CODEXSUN Docs combines an Obsidian-compatible vault with a MariaDB index.
+tags:
+  - docs
+  - architecture
+  - hybrid
+aliases:
+  - Docs overview
+---
+
+# Docs hybrid mode
+
+CODEXSUN Docs keeps authored knowledge in readable MD and MDX files. The API
+reads that vault directly and mirrors its metadata into MariaDB for future
+search, filtering, and analytics.
+
+## What belongs where
+
+- **Vault files** are the human-editable source of truth.
+- **MariaDB** stores the query index only.
+- **The Docs API** validates metadata and turns safe MDX into HTML.
+- **The Docs web app** renders the returned HTML and keeps navigation connected.
+
+See [[reference/obsidian-conventions|Obsidian conventions]] for how to connect notes.

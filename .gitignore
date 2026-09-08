@@ -81,6 +81,10 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+/storage/app/private/*
+!/storage/app/private/.gitkeep
+/storage/app/public/*
+!/storage/app/public/.gitkeep
 .output
 
 # Gatsby files
@@ -137,7 +141,11 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
-# Vite files
+# Vite cache files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+/.idea/*
+/.vscode/
+/.idea/

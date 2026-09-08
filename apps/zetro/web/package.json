@@ -1,0 +1,29 @@
+{
+  "name": "@codexsun/zetro-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 6060",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "preview": "vite preview --port 6060"
+  },
+  "dependencies": {
+    "@codexsun/ui": "file:../../../packages/ui",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "^1.33.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "^4.3.3",
+    "typescript": "latest",
+    "vite": "latest",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
+  }
+}

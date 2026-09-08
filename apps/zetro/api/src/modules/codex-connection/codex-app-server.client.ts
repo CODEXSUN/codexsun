@@ -1,0 +1,439 @@
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { createInterface } from 'node:readline'
+import type {
+  CodexConnectionStatus,
+  CodexDeviceCode,
+  CodexToolActivity,
+  CodexTurnInput,
+  CodexTurnResult,
+} from './codex-connection.types.js'
+import type { CodexWorktreeService } from './codex-worktree.service.js'
+import { deliveryOutputJsonSchema, parseDeliveryOutput } from './codex-delivery.js'
+import { createDeveloperInstructions } from './codex-workflow.js'
+
+interface AppServerMessage {
+  error?: { message?: string }
+  id?: number
+  method?: string
+  params?: unknown
+  result?: unknown
+}
+
+interface PendingRequest {
+  reject(reason: Error): void
+  resolve(value: unknown): void
+  timeout: NodeJS.Timeout
+}
+
+interface TurnCollector {
+  activities: CodexToolActivity[]
+  content: string
+  reject(reason: Error): void
+  resolve(value: CodexTurnResult): void
+  timeout: NodeJS.Timeout
+  worktreePath: string
+  workflow: CodexTurnInput['workflow']
+}
+
+export class CodexAppServerClient {
+  private nextRequestId = 1
+  private process: ChildProcessWithoutNullStreams | null = null
+  private startPromise: Promise<void> | null = null
+  private readonly pendingRequests = new Map<number, PendingRequest>()
+  private readonly turns = new Map<string, TurnCollector>()
+  private readonly loginResults = new Map<string, { error?: string; success: boolean }>()
+  private readonly deviceCodes = new Map<string, string>()
+
+  public constructor(
+    private readonly command: string,
+    private readonly projectRoot: string,
+    private readonly worktrees: CodexWorktreeService,
+    private readonly apiKey?: string,
+    private readonly baseUrl?: string,
+    private readonly model?: string,
+  ) {}
+
+  public async readAccount(refreshToken = false): Promise<CodexConnectionStatus> {
+    const result = asRecord(await this.request('account/read', { refreshToken }))
+    const account = result.account
+
+    if (!isRecord(account)) {
+      return { mode: 'none', state: 'disconnected' }
+    }
+
+    if (account.type === 'chatgpt') {
+      return {
+        email: typeof account.email === 'string' ? account.email : undefined,
+        mode: 'chatgpt',
+        planType: typeof account.planType === 'string' ? account.planType : undefined,
+        state: 'connected',
+      }
+    }
+
+    if (account.type === 'apiKey') {
+      return { mode: 'api_key', state: 'connected' }
+    }
+
+    return { mode: 'none', state: 'disconnected' }
+  }
+
+  public async startDeviceLogin(): Promise<CodexDeviceCode> {
+    await this.cancelPendingLogins()
+    const result = asRecord(
+      await this.request('account/login/start', { type: 'chatgptDeviceCode' }, 30_000),
+    )
+    const deviceCode = {
+      loginId: readString(result, 'loginId'),
+      userCode: readString(result, 'userCode'),
+      verificationUrl: readString(result, 'verificationUrl'),
+    }
+    this.loginResults.delete(deviceCode.loginId)
+    this.deviceCodes.set(deviceCode.loginId, deviceCode.userCode)
+    return deviceCode
+  }
+
+  public async logout(): Promise<CodexConnectionStatus> {
+    await this.request('account/logout', undefined)
+    this.deviceCodes.clear()
+    this.loginResults.clear()
+    return { mode: 'none', state: 'disconnected' }
+  }
+
+  public async confirmLogin(loginId: string, userCode: string): Promise<CodexConnectionStatus> {
+    const expectedCode = this.deviceCodes.get(loginId)
+
+    if (!expectedCode || normalizeCode(expectedCode) !== normalizeCode(userCode)) {
+      return {
+        message: 'The pasted code does not match the active device code.',
+        mode: 'none',
+        state: 'error',
+      }
+    }
+
+    return this.readLogin(loginId)
+  }
+
+  public async readLogin(loginId: string): Promise<CodexConnectionStatus> {
+    const loginResult = this.loginResults.get(loginId)
+
+    if (loginResult?.success) {
+      this.deviceCodes.delete(loginId)
+      this.loginResults.delete(loginId)
+      return this.readAccount(true)
+    }
+    if (loginResult?.error) {
+      this.deviceCodes.delete(loginId)
+      this.loginResults.delete(loginId)
+      return { message: loginResult.error, mode: 'none', state: 'error' }
+    }
+
+    return { mode: 'none', state: 'pending' }
+  }
+
+  public async runTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
+    const worktree = await this.worktrees.ensure(input.conversationId)
+    const filePaths = await this.worktrees.writeInputs(input.conversationId, input.files)
+    const threadResult = asRecord(
+      await this.request('thread/start', {
+        approvalPolicy: 'never',
+        cwd: worktree.path,
+        developerInstructions: createDeveloperInstructions(worktree.path, input.workflow),
+        ephemeral: true,
+        model: this.model,
+        sandbox: 'workspace-write',
+        serviceName: 'zetro',
+        threadSource: 'zetro',
+      }),
+    )
+    const thread = asRecord(threadResult.thread)
+    const threadId = readString(thread, 'id')
+    const completion = this.collectTurn(threadId, worktree.path, input.workflow)
+
+    try {
+      await this.request('turn/start', {
+        input: [
+          { text: addFilePaths(input.text, filePaths), type: 'text' },
+          ...input.images.map((url) => ({ type: 'image', url })),
+        ],
+        outputSchema: input.workflow === 'deliver' ? deliveryOutputJsonSchema : undefined,
+        threadId,
+      })
+      return await completion
+    } catch (error) {
+      this.rejectTurn(threadId, toError(error))
+      throw error
+    }
+  }
+
+  public async close(): Promise<void> {
+    this.process?.kill()
+    this.process = null
+    this.startPromise = null
+  }
+
+  private async request(method: string, params?: unknown, timeoutMs = 15_000): Promise<unknown> {
+    await this.start()
+    const requestId = this.nextRequestId++
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error(`Codex App Server timed out while handling ${method}.`))
+      }, timeoutMs)
+      this.pendingRequests.set(requestId, { reject, resolve, timeout })
+      this.write(
+        params === undefined ? { id: requestId, method } : { id: requestId, method, params },
+      )
+    })
+  }
+
+  private async cancelPendingLogins(): Promise<void> {
+    const loginIds = [...this.deviceCodes.keys()]
+    this.deviceCodes.clear()
+    this.loginResults.clear()
+    await Promise.allSettled(
+      loginIds.map((loginId) => this.request('account/login/cancel', { loginId })),
+    )
+  }
+
+  private async start(): Promise<void> {
+    if (this.process) return
+    this.startPromise ??= this.initialize()
+    return this.startPromise
+  }
+
+  private async initialize(): Promise<void> {
+    this.process = spawn(this.command, ['app-server', '--stdio'], {
+      cwd: this.projectRoot,
+      env: this.apiKey
+        ? {
+            ...process.env,
+            OPENAI_API_KEY: this.apiKey,
+            OPENAI_BASE_URL: this.baseUrl,
+          }
+        : process.env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    createInterface({ input: this.process.stdout }).on('line', (line) => this.handleLine(line))
+    this.process.once('exit', () => this.handleExit())
+    this.process.stderr.resume()
+
+    await this.requestWithoutStart('initialize', {
+      clientInfo: { name: 'zetro', title: 'Zetro', version: '0.1.0' },
+    })
+    this.write({ method: 'initialized', params: {} })
+  }
+
+  private requestWithoutStart(method: string, params: unknown): Promise<unknown> {
+    const requestId = this.nextRequestId++
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Codex App Server did not initialize.')),
+        15_000,
+      )
+      this.pendingRequests.set(requestId, { reject, resolve, timeout })
+      this.write({ id: requestId, method, params })
+    })
+  }
+
+  private write(message: object): void {
+    if (!this.process?.stdin.writable) throw new Error('Codex App Server is unavailable.')
+    this.process.stdin.write(`${JSON.stringify(message)}\n`)
+  }
+
+  private handleLine(line: string): void {
+    let message: AppServerMessage
+    try {
+      message = JSON.parse(line) as AppServerMessage
+    } catch {
+      return
+    }
+
+    if (typeof message.id === 'number') this.handleResponse(message)
+    if (message.method) this.handleNotification(message.method, message.params)
+  }
+
+  private handleResponse(message: AppServerMessage): void {
+    const pending = this.pendingRequests.get(message.id!)
+    if (!pending) return
+    clearTimeout(pending.timeout)
+    this.pendingRequests.delete(message.id!)
+    if (message.error) pending.reject(new Error(message.error.message ?? 'Codex request failed.'))
+    else pending.resolve(message.result)
+  }
+
+  private handleNotification(method: string, params: unknown): void {
+    const values = isRecord(params) ? params : {}
+
+    if (method === 'account/login/completed') {
+      const loginId = typeof values.loginId === 'string' ? values.loginId : undefined
+      if (loginId) {
+        this.loginResults.set(loginId, {
+          error: typeof values.error === 'string' ? values.error : undefined,
+          success: values.success === true,
+        })
+      }
+    }
+
+    const threadId = typeof values.threadId === 'string' ? values.threadId : undefined
+    if (!threadId || !this.turns.has(threadId)) return
+
+    if (method === 'item/completed') {
+      const item = isRecord(values.item) ? values.item : {}
+      if (item.type === 'agentMessage' && typeof item.text === 'string') {
+        this.turns.get(threadId)!.content = item.text
+      }
+      const activity = toToolActivity(item)
+      if (activity) this.turns.get(threadId)!.activities.push(activity)
+    }
+
+    if (method === 'turn/completed') this.completeTurn(threadId, values)
+  }
+
+  private collectTurn(
+    threadId: string,
+    worktreePath: string,
+    workflow: CodexTurnInput['workflow'],
+  ): Promise<CodexTurnResult> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => this.rejectTurn(threadId, new Error('Codex turn timed out.')),
+        120_000,
+      )
+      this.turns.set(threadId, {
+        activities: [],
+        content: '',
+        reject,
+        resolve,
+        timeout,
+        worktreePath,
+        workflow,
+      })
+    })
+  }
+
+  private completeTurn(threadId: string, params: Record<string, unknown>): void {
+    const collector = this.turns.get(threadId)
+    if (!collector) return
+    const turn = isRecord(params.turn) ? params.turn : {}
+    const error = isRecord(turn.error) ? turn.error : {}
+
+    if (turn.status !== 'completed' || !collector.content.trim()) {
+      this.rejectTurn(
+        threadId,
+        new Error(readOptionalString(error, 'message') ?? 'Codex turn failed.'),
+      )
+      return
+    }
+
+    let output: ReturnType<typeof readTurnOutput>
+    try {
+      output = readTurnOutput(collector.content, collector.workflow)
+    } catch (error) {
+      this.rejectTurn(threadId, toError(error))
+      return
+    }
+
+    clearTimeout(collector.timeout)
+    this.turns.delete(threadId)
+    collector.resolve({
+      activities: collector.activities.slice(0, 20),
+      content: output.content,
+      delivery: output.delivery,
+      threadId,
+      worktreePath: collector.worktreePath,
+      workflow: collector.workflow,
+    })
+  }
+
+  private rejectTurn(threadId: string, error: Error): void {
+    const collector = this.turns.get(threadId)
+    if (!collector) return
+    clearTimeout(collector.timeout)
+    this.turns.delete(threadId)
+    collector.reject(error)
+  }
+
+  private handleExit(): void {
+    const error = new Error('Codex App Server stopped unexpectedly.')
+    for (const pending of this.pendingRequests.values()) {
+      clearTimeout(pending.timeout)
+      pending.reject(error)
+    }
+    for (const threadId of this.turns.keys()) this.rejectTurn(threadId, error)
+    this.pendingRequests.clear()
+    this.process = null
+    this.startPromise = null
+  }
+}
+
+function readTurnOutput(
+  content: string,
+  workflow: CodexTurnInput['workflow'],
+): { content: string; delivery?: CodexTurnResult['delivery'] } {
+  return workflow === 'deliver' ? parseDeliveryOutput(content) : { content: content.trim() }
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) throw new Error('Codex returned an invalid response.')
+  return value
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function readString(record: Record<string, unknown>, key: string): string {
+  const value = record[key]
+  if (typeof value !== 'string' || !value) throw new Error(`Codex did not return ${key}.`)
+  return value
+}
+
+function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
+  return typeof record[key] === 'string' ? record[key] : undefined
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error('Codex request failed.')
+}
+
+function normalizeCode(value: string): string {
+  return value.replace(/\s/g, '').toUpperCase()
+}
+
+function addFilePaths(text: string, filePaths: readonly string[]): string {
+  if (filePaths.length === 0) return text
+  return `${text}\n\nUser file inputs:\n${filePaths.map((path) => `- ${path}`).join('\n')}`
+}
+
+function toToolActivity(item: Record<string, unknown>): CodexToolActivity | null {
+  if (item.type === 'commandExecution' && typeof item.command === 'string') {
+    return { kind: 'command', label: limitLabel(item.command), status: readActivityStatus(item) }
+  }
+  if (item.type === 'fileChange') {
+    const count = Array.isArray(item.changes) ? item.changes.length : 0
+    return {
+      kind: 'file_change',
+      label: `${count} file ${count === 1 ? 'change' : 'changes'}`,
+      status: readActivityStatus(item),
+    }
+  }
+  if (item.type === 'mcpToolCall' && typeof item.tool === 'string') {
+    const server = typeof item.server === 'string' ? `${item.server}: ` : ''
+    return {
+      kind: 'mcp',
+      label: limitLabel(`${server}${item.tool}`),
+      status: readActivityStatus(item),
+    }
+  }
+  return null
+}
+
+function readActivityStatus(item: Record<string, unknown>): string {
+  return typeof item.status === 'string' ? item.status : 'completed'
+}
+
+function limitLabel(value: string): string {
+  return value.length <= 500 ? value : `${value.slice(0, 499)}…`
+}

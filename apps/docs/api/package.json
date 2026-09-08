@@ -1,0 +1,32 @@
+{
+  "name": "@codexsun/docs-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "start": "node ../../../dist/apps/docs/api/server.js"
+  },
+  "dependencies": {
+    "@codexsun/docs-contracts": "file:../contracts",
+    "@fastify/cors": "latest",
+    "@mdx-js/mdx": "latest",
+    "dotenv": "latest",
+    "fastify": "^5.12.1",
+    "gray-matter": "latest",
+    "kysely": "^0.29.5",
+    "mysql2": "^3.23.4",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

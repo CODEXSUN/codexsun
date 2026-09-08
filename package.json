@@ -1,0 +1,63 @@
+{
+  "name": "codexsun",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*/*",
+    "packages/*",
+    "packages/*/*",
+    "packages/*/*/*"
+  ],
+  "scripts": {
+    "dev": "node tools/dev-stack.mjs",
+    "dev:api": "node tools/preflight.mjs platform-api",
+    "dev:web": "node tools/preflight.mjs platform-web",
+    "start:api": "npm run start --workspace @codexsun/platform-api",
+    "dev:docs": "node tools/dev-stack.mjs docs",
+    "dev:docs-api": "node tools/preflight.mjs docs-api",
+    "dev:zetro": "node tools/dev-stack.mjs zetro",
+    "dev:zetro-api": "node tools/preflight.mjs zetro-api",
+    "dev:zetro-web": "node tools/preflight.mjs zetro-web",
+    "version:show": "node tools/version/version.mjs show",
+    "version:bump": "node tools/version-bump.mjs",
+    "changelog:append": "node tools/version/version.mjs append",
+    "check:versions": "node tools/check-versions.mjs",
+    "github:now": "node tools/github-helper.mjs",
+    "github:ssh-key": "node tools/github-ssh-key.mjs",
+    "build": "npm run build:workspaces && npm run check:build-output",
+    "build:workspaces": "npm run build --workspaces --if-present",
+    "build:api": "npm run build --workspace @codexsun/framework && npm run build --workspace @codexsun/platform-core-api && npm run build --workspace @codexsun/platform-api",
+    "build:zetro": "npm run build --workspace @codexsun/zetro-web && npm run build --workspace @codexsun/zetro-api",
+    "test:zetro": "npm run test:history --workspace @codexsun/zetro-api && npm run test:workflow --workspace @codexsun/zetro-api && npm run test:worktree --workspace @codexsun/zetro-api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check:lines": "node tools/check-file-lengths.mjs",
+    "check:module-docs": "node tools/check-module-documentation.mjs",
+    "check:app-docs": "node tools/check-application-documentation.mjs",
+    "check:workspace-layout": "node tools/check-workspace-layout.mjs",
+    "check:build-output": "node tools/check-build-output.mjs",
+    "test:framework": "node --test tools/framework-contract.test.mjs",
+    "test:platform-web": "npm run build --workspace @codexsun/platform-core-web && node --test tools/platform-web-composition.test.mjs",
+    "test:e2e:server": "npm run build:api && node --test tools/platform-api-composition.test.mjs tools/e2e/server-lifecycle.e2e.mjs",
+    "check": "npm run check:workspace-layout && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:framework && npm run test:platform-web && npm run test:e2e:server"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "eslint": "latest",
+    "eslint-config-prettier": "latest",
+    "fastify": "^5.12.3",
+    "globals": "latest",
+    "prettier": "latest",
+    "typescript-eslint": "latest"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "msgpackr-extract@3.0.4": true
+  }
+}

@@ -1,0 +1,8 @@
+@import '@codexsun/ui/globals.css';
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100vh;
+}

@@ -1,0 +1,4 @@
+# Docs Development Records
+
+- [2026-09-08 Docs library experience](2026-09-08-docs-library-experience.md)
+- [2026-09-08 Docs ideas workspace](2026-09-08-docs-ideas-workspace.md)

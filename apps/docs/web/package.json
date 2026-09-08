@@ -1,0 +1,27 @@
+{
+  "name": "@codexsun/docs-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@codexsun/docs-contracts": "file:../contracts",
+    "@codexsun/ui": "file:../../../packages/ui",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "^1.33.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
+  }
+}

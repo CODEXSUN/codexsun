@@ -1,0 +1,15 @@
+{
+  "name": "@codexsun/platform-core-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "../../../dist/packages/platform-core/desktop/index.js",
+  "types": "../../../dist/packages/platform-core/desktop/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}
