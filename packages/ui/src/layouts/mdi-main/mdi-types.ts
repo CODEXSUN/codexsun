@@ -64,6 +64,7 @@ export type MdiUser = {
 
 export type MdiMainProps = {
   applicationIcon?: LucideIcon
+  applicationLogoUrl?: string
   applicationId?: string
   applicationName?: string
   apps?: MdiAppItem[]

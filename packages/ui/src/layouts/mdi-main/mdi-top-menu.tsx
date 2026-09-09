@@ -19,6 +19,7 @@ import type {
 
 type MdiTopMenuProps = {
   applicationIcon: LucideIcon
+  applicationLogoUrl?: string
   applicationName: string
   apps: MdiAppItem[]
   features: MdiFeatures
@@ -33,6 +34,7 @@ type MdiTopMenuProps = {
 
 export function MdiTopMenu({
   applicationIcon: ApplicationIcon,
+  applicationLogoUrl,
   applicationName,
   apps,
   features,
@@ -75,7 +77,11 @@ export function MdiTopMenu({
           id="01.2"
           topology={topology}
         >
-          <ApplicationIcon className="size-4" />
+          {applicationLogoUrl ? (
+            <img alt="" className="size-7 shrink-0 object-contain" src={applicationLogoUrl} />
+          ) : (
+            <ApplicationIcon className="size-4" />
+          )}
           <span className="truncate">{applicationName}</span>
         </TopologyRegion>
         <div className="ml-auto flex shrink-0 items-center gap-2">

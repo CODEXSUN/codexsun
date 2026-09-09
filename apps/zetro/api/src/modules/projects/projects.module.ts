@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import type { ZetroEnvironment } from '../../config.js'
+import type { ZetroDatabase } from '../../infrastructure/zetro-database.js'
 import { ProjectRepository } from './projects.repository.js'
 import { registerProjectRoutes } from './projects.routes.js'
 import {
@@ -24,14 +25,14 @@ export const projectsModuleManifest = {
     'repository-workspace-binding',
   ],
   dependencies: {},
+  dataSchema: { checksum: 'projects-001-projects-v1', version: 1 },
   id: 'zetro.projects.api',
   lifecycle: {
     activate: 'Register validated project routes.',
     deactivate: 'Stop accepting project requests with the API runtime.',
-    install:
-      'Create the private project registry and add the startup folder when it is a Git repository.',
+    install: 'Create the module-owned project table and import the legacy registry once.',
     uninstall: 'Preserve projects and dependent work for recoverability.',
-    upgrade: 'Remove the untouched desktop placeholder and accept folders inside a Git repository.',
+    upgrade: 'Version 0.5.0 migrates projects to SQLite or MariaDB.',
   },
   publicContracts: [
     'GET /api/v1/projects',
@@ -41,15 +42,17 @@ export const projectsModuleManifest = {
     'PATCH /api/v1/projects/:projectId',
   ],
   scope: 'zetro-api',
-  version: '0.4.1',
+  version: '0.5.0',
 } as const
 
 export async function registerProjectsModule(
   server: FastifyInstance,
   environment: ZetroEnvironment,
   projectRoot: string,
+  database: ZetroDatabase,
 ) {
   const repository = new ProjectRepository(
+    database,
     resolve(projectRoot, environment.STORAGE_ROOT, 'private', 'zetro', 'projects.json'),
   )
   const repositoryRoot = await findGitRepositoryRoot(projectRoot)

@@ -14,11 +14,14 @@ import type {
   ChatWorkspaceScope,
   ChatWorkflow,
 } from './agent-chat.types'
+import { zetroFetch } from '../../lib/zetro-api'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
 
 export async function listConversations(projectId: string): Promise<ChatConversationSummary[]> {
-  const response = await fetch(`${apiBaseUrl}/api/v1/chat/conversations?${projectQuery(projectId)}`)
+  const response = await zetroFetch(
+    `${apiBaseUrl}/api/v1/chat/conversations?${projectQuery(projectId)}`,
+  )
   return readResponse(response, conversationListResponseSchema).then(
     ({ conversations }) => conversations,
   )
@@ -27,7 +30,7 @@ export async function listConversations(projectId: string): Promise<ChatConversa
 export async function listArchivedConversations(
   projectId: string,
 ): Promise<ChatConversationSummary[]> {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/chat/conversations?${projectQuery(projectId, true)}`,
   )
   return readResponse(response, conversationListResponseSchema).then(
@@ -39,7 +42,7 @@ export async function getConversation(
   projectId: string,
   conversationId: string,
 ): Promise<ChatConversation> {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/chat/conversations/${conversationId}?${projectQuery(projectId)}`,
   )
   return readResponse(response, conversationResponseSchema).then(({ conversation }) => conversation)
@@ -50,7 +53,7 @@ export async function createConversation(
   messages: readonly ChatMessage[],
   scope?: ChatWorkspaceScope,
 ) {
-  const response = await fetch(`${apiBaseUrl}/api/v1/chat/conversations`, {
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/chat/conversations`, {
     body: JSON.stringify({ messages, projectId, scope }),
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
@@ -69,7 +72,7 @@ export async function updateConversation(
     title?: string
   },
 ) {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/chat/conversations/${conversationId}?${projectQuery(projectId)}`,
     {
       body: JSON.stringify(update),
@@ -81,7 +84,7 @@ export async function updateConversation(
 }
 
 export async function deleteConversation(projectId: string, conversationId: string): Promise<void> {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/chat/conversations/${conversationId}?${projectQuery(projectId)}`,
     { method: 'DELETE' },
   )
@@ -89,7 +92,7 @@ export async function deleteConversation(projectId: string, conversationId: stri
 }
 
 export async function deleteArchivedConversations(projectId: string): Promise<number> {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/chat/conversations/archived?${projectQuery(projectId)}`,
     {
       method: 'DELETE',
@@ -107,7 +110,7 @@ export async function requestChatTurn(
   workflow: ChatWorkflow,
   signal?: AbortSignal,
 ): Promise<ChatTurnResponse> {
-  const response = await fetch(`${apiBaseUrl}/api/v1/chat/responses`, {
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/chat/responses`, {
     body: JSON.stringify({
       conversationId,
       messages: messages.slice(-24).map(({ attachments, content, role }) => ({
@@ -127,7 +130,7 @@ export async function requestChatTurn(
 }
 
 export async function stopChatTurn(conversationId: string, projectId: string): Promise<boolean> {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/chat/responses/${conversationId}/stop?${projectQuery(projectId)}`,
     { method: 'POST' },
   )

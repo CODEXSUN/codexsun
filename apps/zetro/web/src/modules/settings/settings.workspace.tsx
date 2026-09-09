@@ -9,6 +9,7 @@ import {
   Search,
   SlidersHorizontal,
   Rocket,
+  Activity,
 } from 'lucide-react'
 import { Button } from '@codexsun/ui/components/button'
 import { Input } from '@codexsun/ui/components/input'
@@ -32,9 +33,11 @@ import { ThemeSelector } from '@codexsun/ui/theme'
 import { SettingsConnection } from './settings.connection'
 import { GlobalDeveloperToolSettings } from '../developer-tools'
 import { GlobalGitDeliverySettings } from '../git-delivery'
+import { OperationsSettingsView } from '../operations'
 import { useZetroPreferences, type ZetroDefaultWorkflow } from './settings.preferences'
 
-type SettingsSection = 'appearance' | 'connection' | 'developer-tools' | 'general' | 'git-delivery'
+type SettingsSection =
+  'appearance' | 'connection' | 'developer-tools' | 'general' | 'git-delivery' | 'operations'
 
 const navigation: Array<{
   icon: ComponentType<{ className?: string }>
@@ -45,6 +48,7 @@ const navigation: Array<{
   { icon: Palette, id: 'appearance', label: 'Appearance' },
   { icon: GitBranch, id: 'developer-tools', label: 'Developer tools' },
   { icon: Rocket, id: 'git-delivery', label: 'Git delivery' },
+  { icon: Activity, id: 'operations', label: 'Operations' },
   { icon: Bot, id: 'connection', label: 'Codex connection' },
 ]
 
@@ -150,6 +154,7 @@ export function SettingsWorkspace({ features, onBack, onFeatureChange }: MdiSett
           {activeSection === 'connection' ? <SettingsConnection /> : null}
           {activeSection === 'developer-tools' ? <GlobalDeveloperToolSettings /> : null}
           {activeSection === 'git-delivery' ? <GlobalGitDeliverySettings /> : null}
+          {activeSection === 'operations' ? <OperationsSettingsView /> : null}
         </div>
       </div>
     </TopologyRegion>

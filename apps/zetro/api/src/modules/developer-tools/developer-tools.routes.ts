@@ -10,6 +10,14 @@ import {
   projectParametersSchema,
   projectToolSettingsSchema,
   toolSettingsSchema,
+  repositoryScriptSchema,
+  branchDeleteSchema,
+  conflictResolutionSchema,
+  diffQuerySchema,
+  pullRequestSchema,
+  repositoryPathSchema,
+  stageSchema,
+  stashActionSchema,
 } from './developer-tools.schema.js'
 import { DeveloperToolsPolicyError, type DeveloperToolsService } from './developer-tools.service.js'
 
@@ -61,6 +69,105 @@ export async function registerDeveloperToolRoutes(
       service.launch(
         projectParametersSchema.parse(request.params).projectId,
         launchActionSchema.parse(request.body).target,
+      ),
+    ),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/scripts', async (request, reply) =>
+    handle(reply, async () => ({
+      scripts: await service.scripts(projectParametersSchema.parse(request.params).projectId),
+    })),
+  )
+  server.post('/api/v1/projects/:projectId/developer-tools/script-tasks', async (request, reply) =>
+    handle(reply, async () => {
+      const projectId = projectParametersSchema.parse(request.params).projectId
+      const input = repositoryScriptSchema.parse(request.body)
+      return { task: await service.runScript(projectId, input.script) }
+    }),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/changes', async (request, reply) =>
+    handle(reply, async () => ({
+      files: await service.changes(projectParametersSchema.parse(request.params).projectId),
+    })),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/diff', async (request, reply) =>
+    handle(reply, () => {
+      const projectId = projectParametersSchema.parse(request.params).projectId
+      const query = diffQuerySchema.parse(request.query)
+      return service.diff(projectId, query.path, query.staged)
+    }),
+  )
+  server.post('/api/v1/projects/:projectId/developer-tools/stage', async (request, reply) =>
+    handle(reply, () => {
+      const projectId = projectParametersSchema.parse(request.params).projectId
+      const input = stageSchema.parse(request.body)
+      return service.stage(projectId, input.path, input.staged, input.hunk)
+    }),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/history', async (request, reply) =>
+    handle(reply, async () => ({
+      history: await service.history(
+        projectParametersSchema.parse(request.params).projectId,
+        repositoryPathSchema.parse(request.query).path,
+      ),
+    })),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/blame', async (request, reply) =>
+    handle(reply, async () => ({
+      lines: await service.blame(
+        projectParametersSchema.parse(request.params).projectId,
+        repositoryPathSchema.parse(request.query).path,
+      ),
+    })),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/conflicts', async (request, reply) =>
+    handle(reply, async () => ({
+      files: await service.conflicts(projectParametersSchema.parse(request.params).projectId),
+    })),
+  )
+  server.post('/api/v1/projects/:projectId/developer-tools/conflicts', async (request, reply) =>
+    handle(reply, () => {
+      const projectId = projectParametersSchema.parse(request.params).projectId
+      const input = conflictResolutionSchema.parse(request.body)
+      return service.resolveConflict(projectId, input.path, input.resolution, input.content)
+    }),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/branches', async (request, reply) =>
+    handle(reply, async () => ({
+      branches: await service.branches(projectParametersSchema.parse(request.params).projectId),
+    })),
+  )
+  server.delete('/api/v1/projects/:projectId/developer-tools/branches', async (request, reply) =>
+    handle(reply, async () => ({
+      branches: await service.deleteBranch(
+        projectParametersSchema.parse(request.params).projectId,
+        branchDeleteSchema.parse(request.body).branch,
+      ),
+    })),
+  )
+  server.get('/api/v1/projects/:projectId/developer-tools/stashes', async (request, reply) =>
+    handle(reply, async () => ({
+      stashes: await service.stashes(projectParametersSchema.parse(request.params).projectId),
+    })),
+  )
+  server.post('/api/v1/projects/:projectId/developer-tools/stashes', async (request, reply) =>
+    handle(reply, async () => {
+      const projectId = projectParametersSchema.parse(request.params).projectId
+      const input = stashActionSchema.parse(request.body)
+      return {
+        stashes: await service.stash(
+          projectId,
+          input.action,
+          'index' in input ? input.index : undefined,
+          'message' in input ? input.message : undefined,
+        ),
+      }
+    }),
+  )
+  server.post('/api/v1/projects/:projectId/developer-tools/pull-requests', async (request, reply) =>
+    handle(reply, () =>
+      service.pullRequest(
+        projectParametersSchema.parse(request.params).projectId,
+        pullRequestSchema.parse(request.body),
       ),
     ),
   )

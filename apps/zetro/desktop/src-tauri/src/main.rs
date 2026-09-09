@@ -14,6 +14,7 @@ struct DesktopStatus {
     app_data_directory: String,
     log_file: String,
     runtime_owner: String,
+    session_token: String,
     version: &'static str,
     worktree_directory: String,
 }
@@ -29,6 +30,7 @@ fn desktop_status(
         app_data_directory: display(app.path().app_data_dir().map_err(display_error)?),
         log_file: display(paths.log_file.clone()),
         runtime_owner: runtime.owner(),
+        session_token: runtime.session_token().to_string(),
         version: env!("CARGO_PKG_VERSION"),
         worktree_directory: display(paths.worktree_directory.clone()),
     })

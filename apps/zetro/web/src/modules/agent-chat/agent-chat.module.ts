@@ -12,7 +12,7 @@ export const agentChatModuleManifest = {
     'centralized-workflow-default',
   ],
   dependencies: {
-    'zetro.chat.api': '^0.10.0',
+    'zetro.chat.api': '^0.11.0',
     'zetro.desk.web': '^0.7.0',
     'zetro.projects.web': '^0.5.0',
     'zetro.project-tasks.web': '^0.4.1',

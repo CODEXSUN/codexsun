@@ -2,6 +2,7 @@
 
 ## Records
 
+- [2026-09-09 Standalone Docker control boundary](2026-09-09-standalone-docker-control.md)
 - [2026-09-09 Local deployment evidence desk](2026-09-09-local-deployment-evidence-desk.md)
 - [2026-09-09 Failure center](2026-09-09-failure-center.md)
 - [2026-09-09 Service desk](2026-09-09-service-desk.md)

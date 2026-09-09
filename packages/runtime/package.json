@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/runtime",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "main": "../../../dist/packages/runtime/index.js",
   "types": "./src/index.ts",
@@ -11,10 +11,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {
-    "@codexsun/framework": "^0.1.8",
-    "@codexsun/platform-contracts": "^0.1.8",
-    "@codexsun/platform-core-api": "^0.1.8",
-    "@codexsun/platform-core-web": "^0.1.8",
+    "@codexsun/framework": "^0.1.9",
+    "@codexsun/platform-contracts": "^0.1.9",
+    "@codexsun/platform-core-api": "^0.1.9",
+    "@codexsun/platform-core-web": "^0.1.9",
     "semver": "^7.8.5",
     "zod": "^4.5.4"
   },

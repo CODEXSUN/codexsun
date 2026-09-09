@@ -1,0 +1,34 @@
+# Identity Web Module
+
+## Purpose
+
+The Identity web module composes three isolated portal desks and their account routes from shared presentation blocks.
+
+## Identity and version
+
+- Module ID: `identity`
+- Version: `1.0.0`
+- Scope: `platform`
+- Status: `active`
+
+## Routes
+
+| Portal              | Desk     | Sign in        | Recovery                 |
+| ------------------- | -------- | -------------- | ------------------------ |
+| Regular             | `/`      | `/login`       | `/password/forgot`       |
+| Administrator       | `/admin` | `/admin/login` | `/admin/password/forgot` |
+| Super administrator | `/sa`    | `/sa/login`    | `/sa/password/forgot`    |
+
+`/register` creates regular accounts only. `/admin/login` is the only administrator sign-in route.
+
+## Boundaries
+
+The module owns routes, React Query hooks, API services, and portal compositions. Shared visual blocks live in `@codexsun/ui/blocks/auth`. No portal imports another portal page, credential state, or cookie. The API remains the authority for portal access.
+
+## Verification
+
+Run Platform web typecheck and build checks. Browser verification must cover all three sign-in routes, the three protected desks, registration visibility, and development sign-in visibility.
+
+## Development records
+
+- [2026-09-09 Identity portals](../../../../../../assist/records/platform/2026-09-09-identity-portals.md)

@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { TaskRepository } from '../src/modules/tasks/tasks.repository.js'
 import { TaskNotFoundError, TaskService } from '../src/modules/tasks/tasks.service.js'
+import { openTestDatabase } from './test-database.js'
 
 const firstProjectId = '00000000-0000-4000-8000-000000000001'
 const secondProjectId = '11111111-1111-4111-8111-111111111111'
@@ -12,7 +13,9 @@ const secondProjectId = '11111111-1111-4111-8111-111111111111'
 test('isolates task lists and updates by project', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-tasks-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
-  const repository = new TaskRepository(join(directory, 'tasks.json'), firstProjectId)
+  const database = await openTestDatabase(directory)
+  context.after(() => database.close())
+  const repository = new TaskRepository(database, join(directory, 'tasks.json'), firstProjectId)
   await repository.initialize()
   const service = new TaskService(repository)
 

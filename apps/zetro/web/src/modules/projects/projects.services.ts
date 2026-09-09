@@ -4,17 +4,19 @@ import {
   projectResponseSchema,
 } from './projects.schema'
 import type { ProjectUpdate } from './projects.types'
+import { zetroFetch } from '../../lib/zetro-api'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
 
 export async function listProjects() {
-  return readResponse(await fetch(`${apiBaseUrl}/api/v1/projects`), projectListResponseSchema).then(
-    ({ projects }) => projects,
-  )
+  return readResponse(
+    await zetroFetch(`${apiBaseUrl}/api/v1/projects`),
+    projectListResponseSchema,
+  ).then(({ projects }) => projects)
 }
 
 export async function createProject(input: { name: string; repositoryPath: string }) {
-  const response = await fetch(`${apiBaseUrl}/api/v1/projects`, {
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/projects`, {
     body: JSON.stringify(input),
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
@@ -23,7 +25,7 @@ export async function createProject(input: { name: string; repositoryPath: strin
 }
 
 export async function updateProject(projectId: string, input: ProjectUpdate) {
-  const response = await fetch(`${apiBaseUrl}/api/v1/projects/${projectId}`, {
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/projects/${projectId}`, {
     body: JSON.stringify(input),
     headers: { 'Content-Type': 'application/json' },
     method: 'PATCH',
@@ -33,7 +35,7 @@ export async function updateProject(projectId: string, input: ProjectUpdate) {
 
 export async function listProjectDirectories(path: string) {
   const query = new URLSearchParams({ path })
-  const response = await fetch(`${apiBaseUrl}/api/v1/projects/directories?${query}`)
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/projects/directories?${query}`)
   return readResponse(response, projectDirectoryListingSchema)
 }
 

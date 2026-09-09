@@ -7,7 +7,7 @@ export const gitDeliveryModuleManifest = {
     'global-settings',
     'project-settings',
   ],
-  dependencies: { 'zetro.git-delivery.api': '^0.1.0' },
+  dependencies: { 'zetro.git-delivery.api': '^1.0.0' },
   id: 'zetro.git-delivery.web',
   lifecycle: {
     activate: 'Mount the Git delivery flow builder and settings.',

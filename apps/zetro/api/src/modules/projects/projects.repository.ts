@@ -1,26 +1,31 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import type { Kysely } from 'kysely'
+import type { ZetroDatabase } from '../../infrastructure/zetro-database.js'
+import type { ProjectsDatabase } from './projects.database.js'
+import { projectsMigrations } from './projects.migrations.js'
 import type { ZetroProject } from './projects.types.js'
 
 export class ProjectRepository {
   private projects: ZetroProject[] = []
+  private readonly database: Kysely<ProjectsDatabase>
+  private readonly databaseProvider: ZetroDatabase
 
-  public constructor(private readonly filePath: string) {}
+  public constructor(
+    databaseProvider: ZetroDatabase,
+    private readonly legacyFilePath: string,
+  ) {
+    this.databaseProvider = databaseProvider
+    this.database = databaseProvider.forModule<ProjectsDatabase>()
+  }
 
   public async initialize(defaultProject?: ZetroProject): Promise<void> {
-    await mkdir(dirname(this.filePath), { recursive: true })
-    try {
-      const stored = JSON.parse(await readFile(this.filePath, 'utf8')) as ZetroProject[]
-      const requiresMigration = stored.some(needsIdentityMigration)
-      this.projects = stored.map(normalizeProject)
-      if (requiresMigration) await this.persist()
-    } catch (error) {
-      if (!isMissingFile(error)) throw error
-    }
+    await this.migrate()
+    this.projects = await this.readAll()
+    if (this.projects.length === 0) await this.importLegacy()
 
     if (defaultProject && !this.projects.some(({ id }) => id === defaultProject.id)) {
       this.projects.unshift(defaultProject)
-      await this.persist()
+      await this.insert(defaultProject)
     }
   }
 
@@ -40,34 +45,55 @@ export class ProjectRepository {
 
   public async save(project: ZetroProject): Promise<void> {
     this.projects.push(project)
-    await this.persist()
+    await this.insert(project)
   }
 
   public async update(project: ZetroProject): Promise<void> {
     this.projects = this.projects.map((current) => (current.id === project.id ? project : current))
-    await this.persist()
+    await this.database
+      .updateTable('zetro_projects')
+      .set(toRow(project))
+      .where('id', '=', project.id)
+      .execute()
   }
 
   public async delete(projectId: string): Promise<void> {
     this.projects = this.projects.filter(({ id }) => id !== projectId)
-    await this.persist()
+    await this.database.deleteFrom('zetro_projects').where('id', '=', projectId).execute()
   }
 
-  private async persist(): Promise<void> {
-    const temporaryPath = `${this.filePath}.tmp`
-    await writeFile(temporaryPath, `${JSON.stringify(this.projects, null, 2)}\n`, 'utf8')
-    await rename(temporaryPath, this.filePath)
+  private migrate(): Promise<void> {
+    return this.databaseProvider.migrate('zetro.projects.api', projectsMigrations)
+  }
+
+  private async readAll(): Promise<ZetroProject[]> {
+    const rows = await this.database.selectFrom('zetro_projects').select('data').execute()
+    return rows.map(({ data }) => normalizeProject(JSON.parse(data) as ZetroProject))
+  }
+
+  private async importLegacy(): Promise<void> {
+    try {
+      const stored = JSON.parse(await readFile(this.legacyFilePath, 'utf8')) as ZetroProject[]
+      for (const project of stored.map(normalizeProject)) await this.insert(project)
+      this.projects = stored.map(normalizeProject)
+    } catch (error) {
+      if (!isMissingFile(error)) throw error
+    }
+  }
+
+  private async insert(project: ZetroProject): Promise<void> {
+    await this.database.insertInto('zetro_projects').values(toRow(project)).execute()
   }
 }
 
-function needsIdentityMigration(project: ZetroProject): boolean {
-  return (
-    typeof project.archived !== 'boolean' ||
-    typeof project.githubUrl !== 'string' ||
-    typeof project.logoColor !== 'string' ||
-    typeof project.logoText !== 'string' ||
-    typeof project.tagline !== 'string'
-  )
+function toRow(project: ZetroProject) {
+  return {
+    archived: project.archived ? 1 : 0,
+    created_at: project.createdAt,
+    data: JSON.stringify(project),
+    id: project.id,
+    updated_at: project.updatedAt,
+  }
 }
 
 function normalizeProject(project: ZetroProject): ZetroProject {

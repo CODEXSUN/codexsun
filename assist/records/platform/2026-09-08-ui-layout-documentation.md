@@ -163,7 +163,9 @@ shared table changes. This work does not change those modules or their data.
   code dialog and confirmed that the browser console has no warning or error.
 - Passed the shared UI type check and lint, Platform production build, documentation
   checks, authored-file line check, and `git diff --check` for the Button system.
-- Verified all 14 Button variants in the live gallery. Standard text buttons measured
-  40px high with 20px side padding. The icon button measured 40px square.
+- Verified one `Default Version` card with no Set default action. Button controls use three
+  borderless rows on wide screens and responsive wrapping without a horizontal scrollbar.
+- Applied the same component-display contract to Button Group with nine live compositions
+  in three borderless rows and no horizontal overflow.
 - Verified distinct semantic tones, the Info code dialog, default transfer and restore,
   content-width sizing, pointer cursors, and a clean browser console.

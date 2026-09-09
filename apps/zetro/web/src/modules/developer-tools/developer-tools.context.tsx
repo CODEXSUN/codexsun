@@ -81,6 +81,7 @@ export function DeveloperToolsProvider({
       error,
       global,
       project,
+      projectId,
       status,
       compare: async (base: string) => {
         if (!projectId) throw new Error('Select a project first.')

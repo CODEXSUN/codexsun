@@ -5,6 +5,14 @@ import { z } from 'zod'
 
 const projectRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 const environmentSource = PlatformEnvironmentLoader.load({
+  aliases: {
+    IDENTITY_DEV_LOGIN_ENABLED: ['DEV_AUTO_TENANT_LOGIN'],
+    IDENTITY_SESSION_RENEWAL_HOURS: ['AUTH_SESSION_RENEWAL_HOURS'],
+    IDENTITY_SESSION_TTL_HOURS: ['AUTH_SESSION_TTL_HOURS'],
+    IDENTITY_SUPER_ADMIN_EMAIL: ['SUPER_ADMIN_EMAIL'],
+    IDENTITY_SUPER_ADMIN_NAME: ['SUPER_ADMIN_NAME'],
+    IDENTITY_SUPER_ADMIN_PASSWORD: ['SUPER_ADMIN_PASSWORD'],
+  },
   path: resolve(projectRoot, '.env'),
 })
 
@@ -27,6 +35,14 @@ const environmentSchema = z
     DB_MASTER_NAME: z.string().min(1).default('codexsun'),
     MODULE_RUNTIME_ENABLED: z.enum(['true', 'false']).default('true'),
     STORAGE_ROOT: z.literal('storage/app').default('storage/app'),
+    IDENTITY_AUTH_MODE: z.literal('session').default('session'),
+    IDENTITY_DEV_LOGIN_ENABLED: z.enum(['true', 'false']).default('false'),
+    IDENTITY_REGISTRATION_ENABLED: z.enum(['true', 'false']).default('true'),
+    IDENTITY_SESSION_RENEWAL_HOURS: z.coerce.number().int().min(1).max(720).default(24),
+    IDENTITY_SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(8760).default(168),
+    IDENTITY_SUPER_ADMIN_EMAIL: z.email().default('superadmin@localhost'),
+    IDENTITY_SUPER_ADMIN_NAME: z.string().min(2).max(120).default('Super Administrator'),
+    IDENTITY_SUPER_ADMIN_PASSWORD: z.string().min(8).max(128).default('ChangeMe!1234'),
   })
   .superRefine((value, context) => {
     if (value.APP_ENV === 'production' && value.DB_PASSWORD.length === 0) {
@@ -34,6 +50,17 @@ const environmentSchema = z
         code: 'custom',
         message: 'DB_PASSWORD is required in production.',
         path: ['DB_PASSWORD'],
+      })
+    }
+    if (
+      value.APP_ENV === 'production' &&
+      (value.IDENTITY_SUPER_ADMIN_PASSWORD === 'ChangeMe!1234' ||
+        value.IDENTITY_SUPER_ADMIN_PASSWORD.length < 12)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'IDENTITY_SUPER_ADMIN_PASSWORD must be changed in production.',
+        path: ['IDENTITY_SUPER_ADMIN_PASSWORD'],
       })
     }
   })

@@ -8,15 +8,15 @@ This module presents live service health, process metrics, runtime logs, and loc
 
 - Module ID: `orchestration`
 - Kind: `feature`
-- Version: `1.2.0`
+- Version: `1.3.0`
 - Scope: `app`
 - Status: `active`
 
 ## Ownership
 
-- Entities and records: browser service snapshots, application-level reports, independent component logs, deployment-target settings, read-only deployment evidence, and in-workspace list/show navigation history.
+- Entities and records: browser service snapshots, application-level reports, independent component logs, deployment-target settings, read-only deployment evidence, allowlisted Docker workload state, and in-workspace list/show navigation history.
 - Tables and storage paths: none.
-- Routes and UI paths: owns application service cards, Overview, Failures and Deployment console tabs, independent API/Web logs, deployment target settings, manual verification capture, and immutable deployment history.
+- Routes and UI paths: owns application service cards, Overview, Failures and Deployment console tabs, independent API/Web logs, deployment target settings, manual verification capture, immutable deployment history, and local labelled Docker workload controls.
 - Permissions and settings: respects API-provided `controllable` and `protected` flags.
 
 ## Public contracts

@@ -30,6 +30,7 @@ import { ProjectLogo, ProjectSwitcher, useProjects, type ZetroProject } from '..
 import { useCodexConnection } from '../settings'
 import { DeveloperToolsPanel } from '../developer-tools'
 import { GitDeliveryFlowBuilder } from '../git-delivery'
+import { SystemTasksPanel } from '../system-tasks'
 
 export function ZetroProjectSidebar() {
   const chat = useAgentChat()
@@ -133,7 +134,14 @@ export function ZetroProjectWorkspace() {
       <div className="min-h-0 flex-1">
         {view === 'tasks' ? <ProjectTasksWorkspace /> : <AgentChatWorkspace />}
       </div>
-      <DeveloperToolsPanel topContent={<GitDeliveryFlowBuilder />} />
+      <DeveloperToolsPanel
+        topContent={
+          <>
+            <GitDeliveryFlowBuilder />
+            <SystemTasksPanel />
+          </>
+        }
+      />
     </div>
   )
 }

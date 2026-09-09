@@ -31,6 +31,8 @@ Use `npm.cmd run runtime:plan -- platform-only` to inspect the resolved framewor
 
 Root `.env` owns `PLATFORM_API_HOST`, `PLATFORM_API_PORT`, `PLATFORM_WEB_HOST`, `PLATFORM_WEB_PORT`, `PLATFORM_WEB_ORIGIN`, `VITE_PLATFORM_API_URL`, logging, shutdown, MariaDB, module runtime, and storage settings. Safe examples are in [root `.env.example`](../../.env.example).
 
+Identity adds one canonical group: authentication mode, development login, regular registration, session TTL and renewal window, and the initial super-administrator name, email, and password. Current `SUPER_ADMIN_*`, `AUTH_SESSION_*`, and `DEV_AUTO_TENANT_LOGIN` names remain explicit compatibility aliases. New deployments must use the `IDENTITY_*` names.
+
 `PlatformEnvironmentLoader` reads the root file once and publishes its values to the process environment. Process values take precedence. Explicit aliases provide compatibility, and safe defaults fill missing values. Platform then validates its application-owned Zod schema.
 
 Use `npm.cmd run mariadb:setup` to provision `DB_MASTER_NAME` and its dedicated `DB_USER`. Application runtimes and database tools use the same `DB_*` variables. Optional `MARIADB_ADMIN_*` values let the setup tool use separate administrator credentials; the Platform runtime never parses them.
@@ -60,6 +62,12 @@ Run `npm.cmd run test:mariadb:foundation` with the database-scoped MariaDB appli
 
 Run `npm.cmd run mariadb:smoke` for a direct connection check. `dev:api` runs the same check during preflight.
 
+## Identity portals
+
+Platform composes three separate browser desks: regular `/`, administrator `/admin`, and super administrator `/sa`. Their sign-in routes are `/login`, `/admin/login`, and `/sa/login`.
+
+Set `IDENTITY_DEV_LOGIN_ENABLED=true` only for local development. It exposes a super-admin development sign-in action and never activates in production. `IDENTITY_REGISTRATION_ENABLED` controls the regular registration endpoint and link. The configured super administrator is created by the Identity module seed on first installation.
+
 ## Module catalog
 
 The Platform module catalog is [assist/modules/platform.md](../../assist/modules/platform.md). Each catalog entry links its authoritative module README.
@@ -74,3 +82,4 @@ The Platform module catalog is [assist/modules/platform.md](../../assist/modules
 - [2026-09-09 Build and observability foundation](../../assist/records/platform/2026-09-09-build-observability-foundation.md)
 - [2026-09-09 Pre-Identity hardening](../../assist/records/platform/2026-09-09-pre-identity-hardening.md)
 - [2026-09-09 Migration preflight and schema integrity](../../assist/records/platform/2026-09-09-migration-preflight-schema-integrity.md)
+- [2026-09-09 Identity portals](../../assist/records/platform/2026-09-09-identity-portals.md)

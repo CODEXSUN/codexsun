@@ -15,20 +15,30 @@
 
 ## Version State
 
-- Current version: 0.1.8
-- Release tag: v-0.1.8
-- Changelog label: v 0.1.8
+- Current version: 0.1.9
+- Release tag: v-0.1.9
+- Changelog label: v 0.1.9
+
+## v-0.1.9
+
+### [v 0.1.9] 2026-09-09 - Zetro SQLite, recoverable tasks, and repository tooling
+
+### [v 0.1.9] 2026-09-09 2:47 pm - Identity portal foundation
+
+- Database Changes: Added module-owned Identity tables, an immutable default super-administrator seed, and a live schema fingerprint.
+- App Codebase Changes: Added three isolated portals, Argon2 credentials, hashed sliding sessions, registration control, development login, canonical environment settings with explicit aliases, and shared presentation-only auth blocks. Bumped to 0.1.9. See `assist/records/platform/2026-09-09-identity-portals.md`.
+- Verification: Identity tests, Platform builds and E2E, MariaDB foundation tests, module checks, live portal smoke, browser checks, and `git diff --check` passed. The full check is blocked by concurrent Zetro persistence tests that still call old repository constructors.
 
 ## v-0.1.8
 
 ### [v 0.1.8] 2026-09-09 1:46 pm - Identity foundation readiness
 
 - Database update: Yes. Added and verified the database-scoped `codexsun@localhost` account while keeping administrator access setup-only.
-- Bumped the workspace to 0.1.8 and aligned npm, Tauri, and Cargo versions. Fixed runtime-holder IPC shutdown and Windows process-tree cleanup. MariaDB and Platform lifecycle checks passed. See `assist/records/platform/2026-09-09-identity-foundation-readiness.md`.
+- Bumped the workspace to 0.1.8 and aligned npm, Tauri, and Cargo versions. Fixed runtime-holder IPC shutdown, Windows process-tree cleanup, and Button gallery build errors. MariaDB and Platform lifecycle checks passed. See `assist/records/platform/2026-09-09-identity-foundation-readiness.md`.
 
 ### [v 0.1.8] 2026-09-09 - Shared Button system
 
-- Database update: No. Added 40px semantic and special Button variants with shared tokens, numbered live specimens, copy actions, and code dialogs. See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
+- Database update: No. Added matching `Default Version` cards for Button and Button Group with 40px controls in three borderless, scrollbar-free rows. See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
 ## v-0.1.7
 

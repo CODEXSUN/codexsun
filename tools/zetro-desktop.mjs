@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { copyFile, mkdir } from 'node:fs/promises'
+import { copyFile, cp, mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { build } from 'esbuild'
@@ -39,11 +39,21 @@ async function prepare() {
     bundle: true,
     entryPoints: [resolve(root, 'apps/zetro/api/src/server.ts')],
     format: 'esm',
+    external: ['better-sqlite3'],
     outfile: resolve(runtime, 'zetro-api.mjs'),
     platform: 'node',
     target: 'node20',
   })
+  await copyRuntimePackage('better-sqlite3')
+  await copyRuntimePackage('bindings')
+  await copyRuntimePackage('file-uri-to-path')
   await copyFile(process.execPath, resolve(runtime, 'node.exe'))
+}
+
+async function copyRuntimePackage(name) {
+  await cp(resolve(root, 'node_modules', name), resolve(runtime, 'node_modules', name), {
+    recursive: true,
+  })
 }
 
 async function check() {

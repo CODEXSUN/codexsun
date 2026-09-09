@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { DeveloperToolsService } from '../developer-tools/index.js'
 import type { ProjectService } from '../projects/index.js'
+import type { SystemTaskContext, SystemTaskService } from '../system-tasks/index.js'
 import type { GitDeliveryRepository } from './git-delivery.repository.js'
 import {
   appendRepositoryChangelog,
@@ -22,7 +23,12 @@ export class GitDeliveryService {
     private readonly repository: GitDeliveryRepository,
     private readonly projects: ProjectService,
     private readonly developerTools: DeveloperToolsService,
-  ) {}
+    private readonly systemTasks: SystemTaskService,
+  ) {
+    systemTasks.register('git-delivery.flow', (input, context) =>
+      this.execute(readFlowTaskId(input), context),
+    )
+  }
 
   public getGlobalSettings() {
     return { settings: this.repository.getGlobal() }
@@ -74,61 +80,172 @@ export class GitDeliveryService {
   }
 
   public async run(projectId: string, input: GitDeliveryFlowInput): Promise<GitDeliveryFlowRecord> {
-    const project = this.projects.get(projectId)
+    this.projects.get(projectId)
     const settings = this.effective(this.repository.getProject(projectId))
     if (!settings.enabled) throw new GitDeliveryPolicyError('Git delivery is disabled.')
     await this.requireReviewedState(projectId, input)
 
     const flow = createFlow(projectId, input)
     await this.repository.saveFlow(flow)
+    const task = await this.systemTasks.enqueue({
+      input: { flowId: flow.id },
+      projectId,
+      title: input.title,
+      type: 'git-delivery.flow',
+    })
+    flow.systemTaskId = task.id
+    await this.repository.saveFlow(flow)
+    return flow
+  }
+
+  private async execute(
+    flowId: string,
+    context: SystemTaskContext,
+  ): Promise<GitDeliveryFlowRecord> {
+    const flow = this.repository.findFlow(flowId)
+    if (!flow) throw new GitDeliveryPolicyError('Git delivery flow not found.')
+    const project = this.projects.get(flow.projectId)
+    flow.status = 'running'
+    await this.repository.saveFlow(flow)
+
     try {
+      await this.requireReviewedState(flow.projectId, flow.input)
       const release = await readReleaseProfile(project.repositoryPath)
-      if (input.bumpVersion && !release.canBumpVersion)
-        throw new GitDeliveryPolicyError('This repository does not expose version:bump.')
-      if (input.writeChangelog && !release.canWriteChangelog)
-        throw new GitDeliveryPolicyError('This repository does not expose changelog:append.')
+      this.validateReleaseCommands(flow, release)
 
-      if (input.bumpVersion) {
-        await bumpRepositoryVersion(project.repositoryPath, input)
-        flow.steps.push(
-          complete('version', `Updated ${release.currentVersion} to ${release.nextVersion}.`),
-        )
-      } else flow.steps.push(skipped('version', 'Version update was not selected.'))
-
-      if (input.writeChangelog) {
-        await appendRepositoryChangelog(project.repositoryPath, input)
-        flow.steps.push(complete('changelog', 'Added the release note to the changelog.'))
-      } else flow.steps.push(skipped('changelog', 'Changelog update was not selected.'))
-
-      if (input.syncStrategy !== 'none') {
-        await this.developerTools.runAction(projectId, {
-          action: 'sync',
-          strategy: input.syncStrategy,
-        })
-        flow.steps.push(complete('sync', `Pulled with ${input.syncStrategy}.`))
-      } else flow.steps.push(skipped('sync', 'Remote synchronization was not selected.'))
-
-      await this.developerTools.runAction(projectId, {
-        action: 'commit',
-        message: input.commitMessage,
-        stageAll: true,
-      })
-      flow.steps.push(complete('commit', `Committed as ${input.commitMessage}.`))
-
-      if (input.push) {
-        await this.developerTools.runAction(projectId, { action: 'push', forceWithLease: false })
-        flow.steps.push(complete('push', 'Pushed the reviewed branch.'))
-      } else flow.steps.push(skipped('push', 'Push was not selected.'))
+      await this.runStep(
+        flow,
+        context,
+        'version',
+        flow.input.bumpVersion,
+        async () => {
+          await bumpRepositoryVersion(project.repositoryPath, flow.input)
+          return `Updated ${release.currentVersion} to ${release.nextVersion}.`
+        },
+        'Version update was not selected.',
+      )
+      await this.runStep(
+        flow,
+        context,
+        'changelog',
+        flow.input.writeChangelog,
+        async () => {
+          await appendRepositoryChangelog(project.repositoryPath, flow.input)
+          return 'Added the release note to the changelog.'
+        },
+        'Changelog update was not selected.',
+      )
+      await this.runStep(
+        flow,
+        context,
+        'sync',
+        flow.input.syncStrategy !== 'none',
+        async () => {
+          await this.developerTools.runAction(flow.projectId, {
+            action: 'sync',
+            strategy: flow.input.syncStrategy === 'none' ? 'rebase' : flow.input.syncStrategy,
+          })
+          return `Pulled with ${flow.input.syncStrategy}.`
+        },
+        'Remote synchronization was not selected.',
+      )
+      await this.runStep(
+        flow,
+        context,
+        'commit',
+        true,
+        async () => {
+          await this.developerTools.runAction(flow.projectId, {
+            action: 'commit',
+            message: flow.input.commitMessage,
+            stageAll: true,
+          })
+          return `Committed as ${flow.input.commitMessage}.`
+        },
+        '',
+      )
+      await this.runStep(
+        flow,
+        context,
+        'push',
+        flow.input.push,
+        async () => {
+          await this.developerTools.runAction(flow.projectId, {
+            action: 'push',
+            forceWithLease: false,
+          })
+          return 'Pushed the reviewed branch.'
+        },
+        'Push was not selected.',
+      )
 
       flow.status = 'complete'
       flow.completedAt = new Date().toISOString()
       await this.repository.saveFlow(flow)
       return flow
     } catch (error) {
-      flow.status = 'failed'
+      flow.status = context.signal.aborted
+        ? 'stopped'
+        : hasInterruptedStep(flow)
+          ? 'blocked'
+          : 'failed'
       flow.error = toMessage(error)
       flow.completedAt = new Date().toISOString()
       await this.repository.saveFlow(flow)
+      throw error
+    }
+  }
+
+  private validateReleaseCommands(
+    flow: GitDeliveryFlowRecord,
+    release: Awaited<ReturnType<typeof readReleaseProfile>>,
+  ): void {
+    if (flow.input.bumpVersion && !release.canBumpVersion) {
+      throw new GitDeliveryPolicyError('This repository does not expose version:bump.')
+    }
+    if (flow.input.writeChangelog && !release.canWriteChangelog) {
+      throw new GitDeliveryPolicyError('This repository does not expose changelog:append.')
+    }
+  }
+
+  private async runStep(
+    flow: GitDeliveryFlowRecord,
+    context: SystemTaskContext,
+    id: GitDeliveryStepResult['id'],
+    selected: boolean,
+    action: () => Promise<string>,
+    skippedMessage: string,
+  ): Promise<void> {
+    const existing = flow.steps.find((step) => step.id === id)
+    if (existing?.status === 'complete' || existing?.status === 'skipped') return
+    if (existing?.status === 'running') {
+      existing.status = 'blocked'
+      existing.message = 'Zetro stopped during this step. Review repository state before retrying.'
+      await this.repository.saveFlow(flow)
+      throw new GitDeliveryPolicyError(existing.message)
+    }
+    if (context.signal.aborted) throw new Error('Git delivery stopped.')
+    if (!selected) {
+      flow.steps.push({ id, message: skippedMessage, status: 'skipped' })
+      await this.repository.saveFlow(flow)
+      await context.step('skipped', skippedMessage)
+      return
+    }
+
+    const step: GitDeliveryStepResult = { id, message: `Running ${id}.`, status: 'running' }
+    flow.steps.push(step)
+    await this.repository.saveFlow(flow)
+    await context.step('info', step.message)
+    try {
+      step.message = await action()
+      step.status = 'complete'
+      await this.repository.saveFlow(flow)
+      await context.step('completed', step.message)
+    } catch (error) {
+      step.message = toMessage(error)
+      step.status = 'failed'
+      await this.repository.saveFlow(flow)
+      await context.step('failed', step.message)
       throw error
     }
   }
@@ -160,17 +277,21 @@ function createFlow(projectId: string, input: GitDeliveryFlowInput): GitDelivery
     id: randomUUID(),
     input,
     projectId,
-    status: 'running',
+    status: 'pending',
     steps: [],
+    systemTaskId: null,
   }
 }
 
-function complete(id: GitDeliveryStepResult['id'], message: string): GitDeliveryStepResult {
-  return { id, message, status: 'complete' }
+function readFlowTaskId(value: unknown): string {
+  if (typeof value === 'object' && value && 'flowId' in value && typeof value.flowId === 'string') {
+    return value.flowId
+  }
+  throw new GitDeliveryPolicyError('The Git delivery task input is invalid.')
 }
 
-function skipped(id: GitDeliveryStepResult['id'], message: string): GitDeliveryStepResult {
-  return { id, message, status: 'skipped' }
+function hasInterruptedStep(flow: GitDeliveryFlowRecord): boolean {
+  return flow.steps.some(({ status }) => status === 'blocked')
 }
 
 function sameFiles(left: string[], right: string[]): boolean {

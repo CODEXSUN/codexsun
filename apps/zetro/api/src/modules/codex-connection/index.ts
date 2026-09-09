@@ -1,4 +1,5 @@
 export { CodexAppServerClient } from './codex-app-server.client.js'
+export { CodexConnectionService } from './codex-connection.service.js'
 export { CodexWorktreeService } from './codex-worktree.service.js'
 export {
   deliveryOutputJsonSchema,

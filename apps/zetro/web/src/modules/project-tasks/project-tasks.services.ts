@@ -1,12 +1,13 @@
 import { taskListResponseSchema, taskResponseSchema } from './project-tasks.schema'
 import type { TaskPriority, TaskUpdate } from './project-tasks.types'
+import { zetroFetch } from '../../lib/zetro-api'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
 
 export async function listTasks(projectId: string, archived = false) {
   const query = new URLSearchParams({ archived: String(archived), projectId })
   return readResponse(
-    await fetch(`${apiBaseUrl}/api/v1/tasks?${query}`),
+    await zetroFetch(`${apiBaseUrl}/api/v1/tasks?${query}`),
     taskListResponseSchema,
   ).then(({ tasks }) => tasks)
 }
@@ -17,7 +18,7 @@ export async function createTask(input: {
   projectId: string
   title: string
 }) {
-  const response = await fetch(`${apiBaseUrl}/api/v1/tasks`, {
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/tasks`, {
     body: JSON.stringify(input),
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
@@ -26,7 +27,7 @@ export async function createTask(input: {
 }
 
 export async function updateTask(projectId: string, taskId: string, update: TaskUpdate) {
-  const response = await fetch(
+  const response = await zetroFetch(
     `${apiBaseUrl}/api/v1/tasks/${taskId}?${new URLSearchParams({ projectId })}`,
     {
       body: JSON.stringify(update),

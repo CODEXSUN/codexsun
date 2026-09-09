@@ -7,7 +7,7 @@ export const projectTasksModuleManifest = {
     'project-task-archive',
     'project-task-planning-actions',
   ],
-  dependencies: { 'zetro.projects.web': '^0.5.0', 'zetro.tasks.api': '^0.3.0' },
+  dependencies: { 'zetro.projects.web': '^0.5.0', 'zetro.tasks.api': '^0.4.0' },
   id: 'zetro.project-tasks.web',
   lifecycle: {
     activate: 'Load selected-project tasks and mount the task workspace.',

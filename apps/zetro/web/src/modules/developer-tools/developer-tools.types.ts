@@ -2,12 +2,16 @@ export type EditorId = 'auto' | 'cursor' | 'vscode' | 'windsurf'
 
 export type ToolSettings = {
   allowForceWithLease: boolean
+  allowPullRequests: boolean
   allowPush: boolean
   autoRefreshSeconds: 5 | 15 | 30 | 60
   branchPrefix: string
   commitInstructions: string
   compareBranch: string
+  desktopNotifications: boolean
   editor: EditorId
+  protectedBranches: string[]
+  trustedRepository: boolean
 }
 
 export type ProjectToolSettings = ToolSettings & { inheritGlobal: boolean }
@@ -48,3 +52,29 @@ export type GitAction =
   | { action: 'commit'; message: string; stageAll: boolean }
   | { action: 'push'; forceWithLease: boolean }
   | { action: 'revert'; commit: string }
+
+export type GitChangedFile = {
+  conflict: boolean
+  indexStatus: string
+  path: string
+  worktreeStatus: string
+}
+export type GitFileDiff = {
+  after: string
+  before: string
+  hunks: number
+  patch: string
+  path: string
+  staged: boolean
+}
+export type GitBranchSummary = { current: boolean; merged: boolean; name: string }
+export type GitStashSummary = { index: number; message: string; reference: string }
+export type GitFileHistoryEntry = GitCommitSummary & { author: string }
+export type GitBlameLine = {
+  author: string
+  authoredAt: string
+  commit: string
+  content: string
+  line: number
+}
+export type GitConflictFile = { content: string; path: string }

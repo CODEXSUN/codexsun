@@ -11,9 +11,9 @@ export const projectsModuleManifest = {
     'repository-binding',
   ],
   dependencies: {
-    'zetro.developer-tools.web': '^0.2.0',
+    'zetro.developer-tools.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',
-    'zetro.projects.api': '^0.4.0',
+    'zetro.projects.api': '^0.5.0',
     'zetro.desk.web': '^0.7.0',
   },
   id: 'zetro.projects.web',

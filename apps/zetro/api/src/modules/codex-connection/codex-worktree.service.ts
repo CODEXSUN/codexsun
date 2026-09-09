@@ -1,10 +1,19 @@
 import { spawn } from 'node:child_process'
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 export interface CodexWorktree {
   path: string
   revision: string
+}
+
+export interface CodexWorktreeStatus {
+  conversationId: string
+  dirty: boolean
+  modifiedAt: string
+  path: string
+  projectId: string | null
+  sizeBytes: number
 }
 
 export class CodexWorktreeService {
@@ -64,6 +73,38 @@ export class CodexWorktreeService {
     return workingDirectory
   }
 
+  public async list(): Promise<CodexWorktreeStatus[]> {
+    const paths = await findWorktrees(this.worktreeRoot)
+    return Promise.all(paths.map((path) => inspectWorktree(this.worktreeRoot, path)))
+  }
+
+  public async remove(path: string): Promise<void> {
+    const target = resolve(path)
+    assertContainedPath(this.worktreeRoot, target)
+    const root = await runGit(target, ['rev-parse', '--show-toplevel'])
+    if (!samePath(root, target)) throw new Error('The selected folder is not a Zetro worktree.')
+    const status = await runGit(target, ['status', '--porcelain=v1'])
+    if (status) throw new Error('Commit or discard worktree changes before cleanup.')
+    const commonDirectory = await runGit(target, [
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-common-dir',
+    ])
+    await runGit(dirname(commonDirectory), ['worktree', 'remove', target])
+    await runGit(dirname(commonDirectory), ['worktree', 'prune'])
+  }
+
+  public async sweep(retentionDays: number): Promise<CodexWorktreeStatus[]> {
+    const cutoff = Date.now() - retentionDays * 86_400_000
+    const removed: CodexWorktreeStatus[] = []
+    for (const worktree of await this.list()) {
+      if (worktree.dirty || Date.parse(worktree.modifiedAt) >= cutoff) continue
+      await this.remove(worktree.path)
+      removed.push(worktree)
+    }
+    return removed
+  }
+
   private async createOrLoad(
     conversationId: string,
     repositoryRoot: string,
@@ -89,6 +130,46 @@ export class CodexWorktreeService {
       revision: await runGit(worktreePath, ['rev-parse', 'HEAD']),
     }
   }
+}
+
+async function findWorktrees(root: string): Promise<string[]> {
+  if (!(await exists(root))) return []
+  const result: string[] = []
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name === '.inputs') continue
+    const path = join(root, entry.name)
+    if (await exists(join(path, '.git'))) result.push(path)
+    else {
+      for (const child of await readdir(path, { withFileTypes: true })) {
+        const childPath = join(path, child.name)
+        if (child.isDirectory() && (await exists(join(childPath, '.git')))) result.push(childPath)
+      }
+    }
+  }
+  return result
+}
+
+async function inspectWorktree(root: string, path: string): Promise<CodexWorktreeStatus> {
+  const relation = relative(root, path).split(/[\\/]/u)
+  const details = await stat(path)
+  return {
+    conversationId: relation.at(-1) ?? basename(path),
+    dirty: Boolean(await runGit(path, ['status', '--porcelain=v1'])),
+    modifiedAt: details.mtime.toISOString(),
+    path,
+    projectId: relation.length > 1 ? (relation[0] ?? null) : null,
+    sizeBytes: await directorySize(path),
+  }
+}
+
+async function directorySize(root: string): Promise<number> {
+  let total = 0
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const path = join(root, entry.name)
+    if (entry.isDirectory()) total += await directorySize(path)
+    else if (entry.isFile()) total += (await lstat(path)).size
+  }
+  return total
 }
 
 function samePath(left: string, right: string): boolean {

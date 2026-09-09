@@ -64,7 +64,7 @@ test('Platform API reports composed modules and readiness components', async () 
     assert.equal(runtime.statusCode, 200)
     assert.deepEqual(
       runtime.json().data.modules.map(({ id }) => id),
-      ['module-runtime', 'system'],
+      ['module-runtime', 'identity', 'system'],
     )
     assert.equal(readiness.statusCode, 200)
     assert.deepEqual(readiness.json().data.components, [

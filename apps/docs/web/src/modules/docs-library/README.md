@@ -23,7 +23,8 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 - Reader navigation: the shared UI template navigation block provides previous and next document links at the bottom of each document.
 - Page tone: the Index and Ideas views use a centered 80-percent content lane. The reader uses the full available workspace: a flexible article column and a fixed, sticky outline column at the right edge. The narrow-screen layout hides the outline and retains one readable column.
 - Client behavior: the web module preserves a rendered-document cache during navigation and aborts stale requests to prevent reader flicker.
-- Reader styling: inline snippets use compact muted pills; fenced code samples use a separate high-contrast, scrollable code surface.
+- Reader styling: GitHub-Flavored Markdown tables use a scrollable table surface. Inline snippets use compact muted pills. Fenced code samples use highlighted, copyable, high-contrast surfaces. Mermaid flowchart fences render as safe Docs-owned SVG diagrams.
+- Article assets: Markdown image paths resolve through the Docs API. Store repository-owned images below an `assets` folder near their articles. See [article assets](../../../../../../assist/assets/README.md).
 - Settings: `VITE_DOCS_API_URL` overrides the local Docs API; development defaults to `http://127.0.0.1:6030`.
 
 ## Public contracts and verification

@@ -2,6 +2,7 @@
 
 ## Records
 
+- [2026-09-09 Identity portals](2026-09-09-identity-portals.md)
 - [2026-09-09 Assist discovery and skill routing](2026-09-09-assist-discovery.md)
 - [2026-09-09 MariaDB and environment foundation](2026-09-09-mariadb-environment-foundation.md)
 - [2026-09-09 Pre-Identity hardening](2026-09-09-pre-identity-hardening.md)

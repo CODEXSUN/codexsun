@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import type { ZetroEnvironment } from '../../config.js'
+import type { ZetroDatabase } from '../../infrastructure/zetro-database.js'
 import type { CodexAppServerClient } from '../codex-connection/index.js'
 import { defaultProjectId, type ProjectService } from '../projects/index.js'
 import { ChatConversationRepository } from './chat.conversation.repository.js'
@@ -26,14 +27,15 @@ export const chatModuleManifest = {
     'delivery-tool-catalog',
     'delivery-record-persistence',
   ],
-  dependencies: { 'zetro.codex-connection.api': '^0.5.3', 'zetro.projects.api': '^0.4.0' },
+  dataSchema: { checksum: 'chat-001-conversations-v1', version: 1 },
+  dependencies: { 'zetro.codex-connection.api': '^0.6.0', 'zetro.projects.api': '^0.5.0' },
   id: 'zetro.chat.api',
   lifecycle: {
     activate: 'Register the validated HTTP route and provider adapter.',
     deactivate: 'Stop accepting new chat turns with the API runtime.',
-    install: 'Create the private Zetro conversation history file on first start.',
+    install: 'Create the module-owned conversation table and import legacy history once.',
     uninstall: 'Keep conversation history unless an explicit data removal flow runs.',
-    upgrade: 'Version 0.10.0 adds an active provider turn stop route.',
+    upgrade: 'Version 0.11.0 migrates conversation history to SQLite or MariaDB.',
   },
   publicContracts: [
     'POST /api/v1/chat/responses',
@@ -46,7 +48,7 @@ export const chatModuleManifest = {
     'DELETE /api/v1/chat/conversations/archived',
   ],
   scope: 'zetro-api',
-  version: '0.10.0',
+  version: '0.11.0',
 } as const
 
 export async function registerChatModule(
@@ -55,10 +57,12 @@ export async function registerChatModule(
   appServerClient: CodexAppServerClient,
   projectRoot: string,
   projects: ProjectService,
+  database: ZetroDatabase,
 ) {
   const provider = new CodexAppServerProvider(appServerClient)
 
   const repository = new ChatConversationRepository(
+    database,
     resolve(projectRoot, environment.STORAGE_ROOT, 'private', 'zetro', 'conversations.json'),
     defaultProjectId,
   )

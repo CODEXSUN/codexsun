@@ -42,7 +42,7 @@ export type GitDeliveryFlowInput = {
 export type GitDeliveryStepResult = {
   id: 'changelog' | 'commit' | 'push' | 'sync' | 'version'
   message: string
-  status: 'complete' | 'failed' | 'skipped'
+  status: 'blocked' | 'complete' | 'failed' | 'running' | 'skipped'
 }
 
 export type GitDeliveryFlowRecord = {
@@ -52,6 +52,7 @@ export type GitDeliveryFlowRecord = {
   id: string
   input: GitDeliveryFlowInput
   projectId: string
-  status: 'complete' | 'failed' | 'running'
+  status: 'blocked' | 'complete' | 'failed' | 'pending' | 'running' | 'stopped'
   steps: GitDeliveryStepResult[]
+  systemTaskId: string | null
 }

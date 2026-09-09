@@ -2,7 +2,7 @@
   "name": "codexsun",
   "private": true,
   "type": "module",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "packageManager": "npm@12.0.2",
   "workspaces": [
     "apps/*/*",
@@ -38,7 +38,7 @@
     "build:workspaces": "node tools/run-turbo.mjs run build",
     "build:api": "npm run build --workspace @codexsun/framework && npm run build --workspace @codexsun/platform-contracts && npm run build --workspace @codexsun/platform-core-api && npm run build --workspace @codexsun/platform-api",
     "build:zetro": "npm run build --workspace @codexsun/zetro-web && npm run build --workspace @codexsun/zetro-api",
-    "test:zetro": "npm run test --workspace @codexsun/zetro-web && npm run test:connection --workspace @codexsun/zetro-api && npm run test:developer-tools --workspace @codexsun/zetro-api && npm run test:git-delivery --workspace @codexsun/zetro-api && npm run test:chat-service --workspace @codexsun/zetro-api && npm run test:history --workspace @codexsun/zetro-api && npm run test:projects --workspace @codexsun/zetro-api && npm run test:tasks --workspace @codexsun/zetro-api && npm run test:workflow --workspace @codexsun/zetro-api && npm run test:worktree --workspace @codexsun/zetro-api",
+    "test:zetro": "npm run test --workspace @codexsun/zetro-web && npm run test --workspace @codexsun/zetro-api",
     "test:orship": "npm run test --workspace @codexsun/orship-api",
     "typecheck": "node tools/run-turbo.mjs run typecheck",
     "lint": "node tools/run-turbo.mjs run lint && npm run lint:root",
@@ -66,12 +66,13 @@
     "runtime:smoke": "npm run runtime:prepare && node tools/runtime-profile-smoke.mjs",
     "test:runtime-holder": "npm run runtime:prepare && node --test tools/runtime-holder.test.mjs tools/runtime-log-capture.test.mjs tools/service-lifecycle.test.mjs",
     "test:platform-runtime": "npm run build:api && node --test tools/platform-core-api.test.mjs tools/platform-module-runtime.test.mjs",
+    "test:identity": "npm run test --workspace @codexsun/platform-api",
     "mariadb:setup": "npm run build --workspace @codexsun/platform-core-api && node tools/mariadb-setup.mjs",
     "mariadb:smoke": "npm run build --workspace @codexsun/platform-core-api && node tools/mariadb-smoke.mjs",
     "test:mariadb:foundation": "npm run build --workspace @codexsun/platform-core-api && node --import tsx tools/platform-mariadb.integration.mjs",
     "test:platform-web": "npm run build --workspace @codexsun/platform-core-web && node --test tools/platform-web-composition.test.mjs",
     "test:e2e:server": "npm run build:api && node --test tools/platform-api-composition.test.mjs tools/e2e/server-lifecycle.e2e.mjs",
-    "check": "npm run check:workspace-layout && npm run check:versions && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run check:module-boundaries && npm run check:module-dependencies && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:tooling && npm run test:framework && npm run test:runtime-holder && npm run test:orship && npm run test:zetro && npm run test:platform-runtime && npm run test:platform-web && npm run test:e2e:server"
+    "check": "npm run check:workspace-layout && npm run check:versions && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run check:module-boundaries && npm run check:module-dependencies && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:tooling && npm run test:framework && npm run test:runtime-holder && npm run test:orship && npm run test:zetro && npm run test:platform-runtime && npm run test:platform-web && npm run test:identity && npm run test:e2e:server"
   },
   "devDependencies": {
     "@eslint/js": "latest",
@@ -91,6 +92,7 @@
     "node": ">=20.19.0"
   },
   "allowScripts": {
+    "better-sqlite3@12.11.1": true,
     "esbuild@0.28.2": true,
     "msgpackr-extract@3.0.4": true,
     "protobufjs@7.6.6": true

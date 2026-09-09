@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/ui",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "main": "../../../dist/packages/ui/index.js",
   "types": "../../../dist/packages/ui/index.d.ts",
@@ -11,6 +11,7 @@
     "./components/*": "./src/components/*.tsx",
     "./blocks/loader": "./src/blocks/loader/index.ts",
     "./blocks/form": "./src/blocks/form/index.ts",
+    "./blocks/auth": "./src/blocks/auth/index.ts",
     "./blocks/workspace": "./src/blocks/workspace/index.ts",
     "./blocks/table": "./src/blocks/table/index.ts",
     "./lib/*": "./src/lib/*.ts",

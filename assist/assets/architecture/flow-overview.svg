@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
+  <title id="title">CODEXSUN architecture flow</title>
+  <desc id="description">Browser applications use public contracts to reach owning APIs and module-owned storage.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="360" rx="24" fill="#f8fafc"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="600" y="48" font-size="22" font-weight="700" fill="#0f172a">CODEXSUN public dependency flow</text>
+    <line x1="260" y1="176" x2="385" y2="176" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+    <line x1="560" y1="176" x2="685" y2="176" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+    <line x1="860" y1="176" x2="985" y2="176" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+    <g>
+      <rect x="55" y="120" width="205" height="112" rx="16" fill="#e0f2fe" stroke="#38bdf8"/>
+      <text x="158" y="164" font-size="17" font-weight="700" fill="#0c4a6e">Browser apps</text>
+      <text x="158" y="192" font-size="14" fill="#075985">Docs · DevKit · Zetro</text>
+    </g>
+    <g>
+      <rect x="385" y="120" width="175" height="112" rx="16" fill="#ede9fe" stroke="#8b5cf6"/>
+      <text x="473" y="164" font-size="17" font-weight="700" fill="#4c1d95">Public contracts</text>
+      <text x="473" y="192" font-size="14" fill="#5b21b6">HTTP and schemas</text>
+    </g>
+    <g>
+      <rect x="685" y="120" width="175" height="112" rx="16" fill="#dcfce7" stroke="#22c55e"/>
+      <text x="773" y="164" font-size="17" font-weight="700" fill="#14532d">Owning API</text>
+      <text x="773" y="192" font-size="14" fill="#166534">Validation and routes</text>
+    </g>
+    <g>
+      <rect x="985" y="120" width="160" height="112" rx="16" fill="#ffedd5" stroke="#f97316"/>
+      <text x="1065" y="164" font-size="17" font-weight="700" fill="#7c2d12">Module storage</text>
+      <text x="1065" y="192" font-size="14" fill="#9a3412">Data and jobs</text>
+    </g>
+    <text x="600" y="310" font-size="15" fill="#475569">Shared framework, Platform Core, and UI expose contracts. They do not own product behavior.</text>
+  </g>
+</svg>

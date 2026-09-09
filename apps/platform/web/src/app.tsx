@@ -29,7 +29,11 @@ const blockIcons = {
 } as const
 
 export function App() {
+  const isAuthPage = /\/(?:login|register|password\/forgot)$/u.test(window.location.pathname)
+  if (isAuthPage) return <RouterProvider router={platformRouter} />
+
   const isUiWorkspace = window.location.pathname === '/ui'
+  const portalIdentity = resolvePortalIdentity(window.location.pathname)
   const search = new URLSearchParams(window.location.search)
   const selectedLayout = search.get('layout')
   const selectedComponent = search.get('component')
@@ -71,8 +75,8 @@ export function App() {
 
   return (
     <MdiMain
-      applicationId="platform"
-      applicationName={isUiWorkspace ? 'UI' : 'Platform'}
+      applicationId={portalIdentity.id}
+      applicationName={isUiWorkspace ? 'UI' : portalIdentity.name}
       navigation={navigation}
       primaryAction={{
         icon: LayoutDashboardIcon,
@@ -88,4 +92,11 @@ export function App() {
       <RouterProvider router={platformRouter} />
     </MdiMain>
   )
+}
+
+function resolvePortalIdentity(path: string) {
+  if (path === '/sa' || path.startsWith('/sa/')) return { id: 'platform-sa', name: 'Super Admin' }
+  if (path === '/admin' || path.startsWith('/admin/'))
+    return { id: 'platform-admin', name: 'Admin' }
+  return { id: 'platform', name: 'Platform' }
 }

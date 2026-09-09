@@ -1,23 +1,21 @@
 import { composeWebModules } from '@codexsun/platform-core-web'
 import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
 import { LoadingPage, NotFound, RouteError } from './app-router.messages'
+import { identityWebModule } from './modules/identity'
 import { systemWebModule } from './modules/system'
-import { SystemWorkspace } from './modules/system/system.workspace'
 import { uiGalleryWebModule } from './modules/ui-gallery'
 
-export const platformWebComposition = composeWebModules([systemWebModule, uiGalleryWebModule])
+export const platformWebComposition = composeWebModules([
+  identityWebModule,
+  systemWebModule,
+  uiGalleryWebModule,
+])
 
 const rootRoute = createRootRoute({
   component: Outlet,
   errorComponent: RouteError,
   notFoundComponent: NotFound,
   pendingComponent: LoadingPage,
-})
-
-const homeRoute = createRoute({
-  component: SystemWorkspace,
-  getParentRoute: () => rootRoute,
-  path: '/',
 })
 
 const overviewRoute = createRoute({
@@ -34,7 +32,7 @@ const moduleRoutes = platformWebComposition.routes.map((route) =>
   }),
 )
 
-const routeTree = rootRoute.addChildren([homeRoute, overviewRoute, ...moduleRoutes])
+const routeTree = rootRoute.addChildren([overviewRoute, ...moduleRoutes])
 
 export const platformRouter = createRouter({
   defaultPreload: 'intent',

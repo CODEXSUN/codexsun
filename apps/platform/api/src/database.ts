@@ -2,8 +2,9 @@ import { Kysely, MysqlDialect, sql } from 'kysely'
 import { createPool } from 'mysql2'
 import type { Environment } from './config.js'
 import type { ModuleRuntimeDatabaseSchema } from './modules/module-runtime/module-runtime.database.js'
+import type { IdentityDatabaseSchema } from './modules/identity/index.js'
 
-export type DatabaseSchema = ModuleRuntimeDatabaseSchema
+export type DatabaseSchema = IdentityDatabaseSchema & ModuleRuntimeDatabaseSchema
 export type Database = Kysely<DatabaseSchema>
 
 export interface PlatformDatabase {

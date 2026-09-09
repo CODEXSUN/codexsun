@@ -6,7 +6,7 @@ export const deskModuleManifest = {
     'chat-workspace-context',
   ],
   dependencies: {
-    'zetro.developer-tools.web': '^0.2.0',
+    'zetro.developer-tools.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',
     'zetro.settings.web': '^0.3.0',
   },

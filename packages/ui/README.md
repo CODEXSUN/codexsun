@@ -31,6 +31,11 @@ Icon, icon-and-text, loading, and split compositions use the same height contrac
 Compact named sizes remain available for dense toolbars and icon controls. Every enabled
 native button, pagination action, select control, and dropdown action uses a pointer cursor
 through shared primitives and the base theme.
+The Button documentation groups the complete set in one `Default Version` card. Its
+borderless specimen uses three balanced rows and responsive wrapping without a scrollbar.
+The Button Group documentation follows the same pattern with nine practical compositions
+in three borderless rows. Its horizontal, vertical, split, icon, text, and semantic groups
+use the shared 40px Button contract and wrap without a scrollbar.
 
 ## Included templates
 
@@ -54,6 +59,7 @@ through shared primitives and the base theme.
 
 ## Included blocks
 
+- `@codexsun/ui/blocks/auth` provides presentation-only client, administrator, and super-administrator login, recovery, registration, and portal blocks. Applications own routes, API calls, session state, and policy.
 - `@codexsun/ui/blocks/form` provides the reusable form frame, animated shared tabs,
   active-state strip, icon actions, and searchable lookup field. Applications supply
   fields, validation, lookup options, values, and persistence callbacks.

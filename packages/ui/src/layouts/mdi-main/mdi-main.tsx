@@ -40,6 +40,7 @@ const defaultUser: MdiUser = {
 
 export function MdiMain({
   applicationIcon = BoxesIcon,
+  applicationLogoUrl,
   applicationId = 'platform',
   applicationName = 'Workspace',
   apps,
@@ -108,6 +109,7 @@ export function MdiMain({
           {features.topMenu ? (
             <MdiTopMenu
               applicationIcon={applicationIcon}
+              applicationLogoUrl={applicationLogoUrl}
               applicationName={applicationName}
               apps={applicationApps}
               features={features}

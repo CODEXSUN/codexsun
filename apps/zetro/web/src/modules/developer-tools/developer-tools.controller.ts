@@ -15,6 +15,7 @@ export type DeveloperToolsContextValue = {
   error: string | null
   global: ToolSettings | null
   project: ProjectToolSettings | null
+  projectId: string | null
   status: GitWorkspaceStatus | null
   compare(base: string): Promise<GitComparison>
   launch(target: 'editor' | 'files' | 'terminal'): Promise<void>

@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.developer-tools.web`
-- Version: `0.2.0`
+- Version: `1.0.0`
 - Owner: Zetro web
 
 The module owns the floating repository monitor and all developer tool controls.
@@ -19,6 +19,10 @@ panel shows staged files, untracked files, ahead and behind counts, and request 
 
 Users can refresh, fetch, create a branch, compare, commit, push, revert a commit, open an editor,
 open the file browser, or open Windows Terminal. Remote actions require confirmation.
+
+The repository workspace adds changed-file navigation, side-by-side review, file
+and hunk staging, file history, blame, conflict resolution, test and build tasks,
+merged-branch cleanup, stash management, and draft pull-request creation.
 
 Monitoring runs at the effective project interval. It pauses while the document is
 hidden and resumes after the user returns to Zetro.

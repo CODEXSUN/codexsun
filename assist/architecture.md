@@ -22,6 +22,23 @@ applications that use that foundation.
 
 The web app must use documented HTTP contracts to communicate with the API. It must not import API source files. The API owns input validation, persistence integration, and background-job registration.
 
+## Application flow
+
+```mermaid
+flowchart LR
+  Browser[Browser applications] --> Contracts[Public HTTP contracts]
+  Contracts --> Api[Owning API application]
+  Api --> Modules[Versioned business modules]
+  Modules --> Storage[Module-owned storage]
+  Shared[Framework, Platform Core, and UI] -. public contracts .-> Browser
+  Shared -. public contracts .-> Api
+```
+
+The diagram shows dependency direction. Browser applications use public HTTP
+contracts. They do not import private API or module source files.
+
+![CODEXSUN architecture flow](assets/architecture/flow-overview.svg)
+
 ## Future product boundaries
 
 ```text

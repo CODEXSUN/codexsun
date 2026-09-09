@@ -20,6 +20,7 @@ export const codexConnectionModuleManifest = {
     'task-workflows',
     'governed-delivery-pipeline',
     'structured-delivery-records',
+    'worktree-lifecycle',
   ],
   dependencies: {},
   id: 'zetro.codex-connection.api',
@@ -28,7 +29,7 @@ export const codexConnectionModuleManifest = {
     deactivate: 'Close the local Codex App Server process.',
     install: 'No Zetro credentials or persistent records are created.',
     uninstall: 'Leave Codex-managed credentials untouched.',
-    upgrade: 'Version 0.5.3 can interrupt an active Codex turn.',
+    upgrade: 'Version 0.6.0 exposes managed worktrees through its public service.',
   },
   publicContracts: [
     'GET /api/v1/settings/codex',
@@ -38,7 +39,7 @@ export const codexConnectionModuleManifest = {
     'CodexAppServerClient',
   ],
   scope: 'zetro-api',
-  version: '0.5.3',
+  version: '0.6.0',
 } as const
 
 export async function registerCodexConnectionModule(
@@ -61,5 +62,5 @@ export async function registerCodexConnectionModule(
   const service = new CodexConnectionService(client, environment)
   await registerCodexConnectionRoutes(server, service)
   server.addHook('onClose', () => client.close())
-  return { client, service }
+  return { client, service, worktrees }
 }

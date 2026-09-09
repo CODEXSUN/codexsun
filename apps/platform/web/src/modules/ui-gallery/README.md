@@ -51,8 +51,10 @@ blocks, and components.
   persist either variant as the default. Each card can copy or open its own code.
 - The Alert page renders success, information, warning, and error callouts through one
   fixed-width live default specimen.
-- The Button page renders each basic and special composition as a numbered live variant.
-  Primary is the initial default. Every standard specimen is 40px high.
+- The Button page renders one `Default Version` card. Its borderless three-row specimen
+  contains all Button compositions without a scrollbar. Every specimen is 40px high.
+- The Button Group page uses the same card pattern for nine live compositions across three
+  borderless rows. Its groups wrap responsively without horizontal scrolling.
 - Events published or consumed: None.
 
 ## Verification

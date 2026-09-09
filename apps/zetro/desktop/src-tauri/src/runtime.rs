@@ -9,6 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tauri::{path::BaseDirectory, AppHandle, Manager};
+use rand::RngCore;
 
 pub const API_URL: &str = "http://127.0.0.1:6050";
 const API_ADDRESS: &str = "127.0.0.1:6050";
@@ -23,23 +24,29 @@ pub struct DesktopRuntime {
     child: Mutex<Option<Child>>,
     owner: &'static str,
     paths: RuntimePaths,
+    session_token: String,
 }
 
 impl DesktopRuntime {
     pub fn start(app: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
         let paths = prepare_paths(app)?;
+        let session_token = create_session_token();
         if api_is_ready() {
+            if !cfg!(debug_assertions) {
+                return Err("Port 6050 is already used by another Zetro API process.".into());
+            }
             return Ok(Self {
                 child: Mutex::new(None),
                 owner: "existing",
                 paths,
+                session_token,
             });
         }
         if cfg!(debug_assertions) {
             return Err("The Zetro development API did not start on port 6050.".into());
         }
 
-        let child = spawn_api(app, &paths)?;
+        let child = spawn_api(app, &paths, &session_token)?;
         if !wait_for_api(Duration::from_secs(20)) {
             let mut child = child;
             stop_process_tree(&mut child);
@@ -53,6 +60,7 @@ impl DesktopRuntime {
             child: Mutex::new(Some(child)),
             owner: "desktop",
             paths,
+            session_token,
         })
     }
 
@@ -62,6 +70,10 @@ impl DesktopRuntime {
 
     pub fn paths(&self) -> &RuntimePaths {
         &self.paths
+    }
+
+    pub fn session_token(&self) -> &str {
+        &self.session_token
     }
 
     fn stop(&self) {
@@ -94,7 +106,11 @@ fn prepare_paths(app: &AppHandle) -> Result<RuntimePaths, Box<dyn std::error::Er
     })
 }
 
-fn spawn_api(app: &AppHandle, paths: &RuntimePaths) -> Result<Child, Box<dyn std::error::Error>> {
+fn spawn_api(
+    app: &AppHandle,
+    paths: &RuntimePaths,
+    session_token: &str,
+) -> Result<Child, Box<dyn std::error::Error>> {
     let runtime_directory = app.path().resolve("runtime", BaseDirectory::Resource)?;
     let node = runtime_directory.join("node.exe");
     let app_data = app.path().app_data_dir()?;
@@ -109,12 +125,14 @@ fn spawn_api(app: &AppHandle, paths: &RuntimePaths) -> Result<Child, Box<dyn std
         .current_dir(runtime_directory)
         .env("HOST", "127.0.0.1")
         .env("NODE_ENV", "production")
+        .env("DB_DRIVER", "sqlite")
         .env("STORAGE_ROOT", app_data.join("storage"))
         .env(
             "ZETRO_ALLOWED_ORIGINS",
             "http://tauri.localhost,https://tauri.localhost",
         )
         .env("ZETRO_API_PORT", "6050")
+        .env("ZETRO_DESKTOP_SESSION_TOKEN", session_token)
         .env("ZETRO_DESKTOP_PARENT_PID", std::process::id().to_string())
         .env("ZETRO_PROJECT_ROOT", app_data.join("workspace"))
         .env("ZETRO_WEB_PORT", "6060")
@@ -128,6 +146,12 @@ fn spawn_api(app: &AppHandle, paths: &RuntimePaths) -> Result<Child, Box<dyn std
         command.creation_flags(0x08000000);
     }
     Ok(command.spawn()?)
+}
+
+fn create_session_token() -> String {
+    let mut bytes = [0_u8; 32];
+    rand::rng().fill_bytes(&mut bytes);
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn wait_for_api(timeout: Duration) -> bool {
@@ -192,5 +216,13 @@ mod tests {
     fn desktop_api_url_is_loopback_only() {
         assert_eq!(API_URL, "http://127.0.0.1:6050");
         assert_eq!(API_ADDRESS, "127.0.0.1:6050");
+    }
+
+    #[test]
+    fn session_tokens_are_random_and_long() {
+        let first = create_session_token();
+        let second = create_session_token();
+        assert_eq!(first.len(), 64);
+        assert_ne!(first, second);
     }
 }

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "orship-only",
+  "customer": "Orship standalone operations",
+  "version": "0.1.0",
+  "environment": "production",
+  "buildEnvironment": {
+    "VITE_ORSHIP_API_URL": "http://127.0.0.1:6090"
+  },
+  "applications": ["orship"],
+  "addons": [],
+  "portOverrides": {}
+}

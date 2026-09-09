@@ -1,0 +1,52 @@
+name: codexsun-orship
+
+services:
+  orship-api:
+    build:
+      context: ../..
+      dockerfile: .container/docker/Dockerfile.node
+      args:
+        PROFILE_ID: orship-only
+        COMPONENT_ID: orship-api
+    environment:
+      ORSHIP_API_HOST: 0.0.0.0
+      ORSHIP_API_PORT: 6090
+      ORSHIP_CONTROL_ENABLED: 'false'
+      ORSHIP_DOCKER_CONTROL_ENABLED: 'true'
+      ORSHIP_DOCKER_SOCKET_PATH: /var/run/docker.sock
+      ORSHIP_DOCKER_MANAGED_LABEL: codexsun.orship.manage=true
+      ORSHIP_WEB_PORT: 6091
+    ports:
+      - '6090:6090'
+    volumes:
+      - orship-storage:/app/storage/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:6090/health/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 4s
+      retries: 5
+
+  orship-web:
+    build:
+      context: ../..
+      dockerfile: .container/docker/Dockerfile.static
+      args:
+        PROFILE_ID: orship-only
+        COMPONENT_ID: orship-web
+    environment:
+      PORT: 6091
+    depends_on:
+      orship-api:
+        condition: service_healthy
+    ports:
+      - '6091:6091'
+
+volumes:
+  orship-storage:

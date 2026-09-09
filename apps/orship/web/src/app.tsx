@@ -10,6 +10,7 @@ export function App() {
   return (
     <MdiMain
       applicationIcon={Network}
+      applicationLogoUrl="/orship-logo.png"
       applicationId="orship"
       applicationName="Orship"
       navigation={[

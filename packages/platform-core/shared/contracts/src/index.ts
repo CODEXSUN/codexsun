@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export * from './identity.js'
+
 export const responseMetaSchema = z.object({
   correlationId: z.string().min(1),
   requestId: z.string().min(1),

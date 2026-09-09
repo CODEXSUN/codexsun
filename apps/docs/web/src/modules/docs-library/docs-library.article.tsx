@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { renderMermaidFlowcharts } from './docs-library.mermaid'
 import { getDocumentAssetUrl } from './docs-library.services'
 import { getDocumentHeadings } from './docs-library.utils'
 
@@ -22,17 +23,16 @@ export function DocsLibraryArticle({
     resolveArticleImages(content, path)
     addCodeControls(content)
 
-    let disposed = false
-    void renderMermaidDiagrams(content, () => disposed)
-    return () => {
-      disposed = true
-    }
+    renderMermaidFlowcharts(content)
   }, [headings, html, path])
 
   return <div ref={contentRef} dangerouslySetInnerHTML={{ __html: html }} />
 }
 
-function assignHeadingIds(content: HTMLDivElement, headings: ReturnType<typeof getDocumentHeadings>) {
+function assignHeadingIds(
+  content: HTMLDivElement,
+  headings: ReturnType<typeof getDocumentHeadings>,
+) {
   content.querySelectorAll('h2, h3').forEach((element, index) => {
     const heading = headings[index]
     if (heading) element.id = heading.id
@@ -92,39 +92,6 @@ function createCopyButton(code: HTMLElement): HTMLButtonElement {
     })
   })
   return button
-}
-
-async function renderMermaidDiagrams(content: HTMLDivElement, isDisposed: () => boolean) {
-  const blocks = [...content.querySelectorAll('pre > code')].filter(isMermaidBlock)
-  if (!blocks.length) return
-
-  const { default: mermaid } = await import('mermaid')
-  mermaid.initialize({
-    securityLevel: 'strict',
-    startOnLoad: false,
-    theme: 'neutral',
-  })
-
-  await Promise.all(
-    blocks.map(async (code, index) => {
-      const pre = code.parentElement
-      if (!pre || isDisposed()) return
-
-      const diagram = document.createElement('div')
-      diagram.className = 'docs-mermaid-diagram'
-      try {
-        const { svg } = await mermaid.render(`docs-mermaid-${Date.now()}-${index}`, code.textContent ?? '')
-        if (!isDisposed()) {
-          diagram.innerHTML = svg
-          pre.replaceWith(diagram)
-        }
-      } catch {
-        diagram.className = 'docs-mermaid-error'
-        diagram.textContent = 'This Mermaid diagram has invalid syntax.'
-        if (!isDisposed()) pre.replaceWith(diagram)
-      }
-    }),
-  )
 }
 
 function getCodeLanguage(code: Element): string | undefined {

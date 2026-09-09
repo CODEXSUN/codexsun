@@ -194,6 +194,63 @@ function ToolSettingsForm<T extends ToolSettings>({
           />
         </SettingRow>
         <SettingRow
+          description="Allow Zetro to create pull requests through GitHub CLI."
+          label="Pull requests"
+        >
+          <Switch
+            aria-label="Allow pull requests"
+            checked={value.allowPullRequests}
+            disabled={disabled}
+            onCheckedChange={(allowPullRequests) => onChange({ ...value, allowPullRequests } as T)}
+          />
+        </SettingRow>
+        <SettingRow
+          description="Required before Zetro can run repository scripts."
+          label="Trusted repository"
+        >
+          <Switch
+            aria-label="Trust repository"
+            checked={value.trustedRepository}
+            disabled={disabled}
+            onCheckedChange={(trustedRepository) => onChange({ ...value, trustedRepository } as T)}
+          />
+        </SettingRow>
+        <SettingRow
+          description="Notify when a system task completes or needs attention."
+          label="Desktop notifications"
+        >
+          <Switch
+            aria-label="Desktop notifications"
+            checked={value.desktopNotifications}
+            disabled={disabled}
+            onCheckedChange={(desktopNotifications) => {
+              if (desktopNotifications && 'Notification' in window) {
+                void Notification.requestPermission()
+              }
+              onChange({ ...value, desktopNotifications } as T)
+            }}
+          />
+        </SettingRow>
+        <SettingRow
+          description="Comma-separated branch names that reject direct pushes."
+          label="Protected branches"
+        >
+          <Input
+            className="w-48"
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                protectedBranches: event.target.value
+                  .split(',')
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              } as T)
+            }
+            value={value.protectedBranches.join(', ')}
+          />
+        </SettingRow>
+        <SettingRow
           description="Allow force-with-lease only; unrestricted force push is never used."
           label="Force-with-lease"
         >

@@ -1,5 +1,7 @@
 # Zetro Development Records
 
+- [2026-09-09 Production foundation](2026-09-09-production-foundation.md)
+- [2026-09-09 System Tasks foundation](2026-09-09-system-tasks-foundation.md)
 - [2026-09-09 Git delivery flow](2026-09-09-git-delivery-flow.md)
 - [2026-09-09 Build version status](2026-09-09-build-version-status.md)
 - [2026-09-09 Developer tools](2026-09-09-developer-tools.md)

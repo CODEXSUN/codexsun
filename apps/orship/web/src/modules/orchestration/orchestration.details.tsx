@@ -11,6 +11,8 @@ import type {
   DeploymentEvidence,
   DeploymentRecord,
   DeploymentRecordCreate,
+  DockerContainerAction,
+  DockerContainerList,
   RuntimeFailureOverview,
   ServiceAction,
   ServiceLogsResponse,
@@ -24,12 +26,16 @@ export function OrchestrationDetails({
   deploymentRecordError,
   deploymentRecordPending,
   deploymentRecords,
+  dockerActionError,
+  dockerActionPending,
+  dockerWorkloads,
   failures,
   logsByService,
   logsFetching,
   services,
   onAction,
   onCreateDeploymentRecord,
+  onDockerAction,
   onOpenDeploymentSettings,
   onRefreshLogs,
 }: {
@@ -39,12 +45,16 @@ export function OrchestrationDetails({
   deploymentRecordError: string | undefined
   deploymentRecordPending: boolean
   deploymentRecords: readonly DeploymentRecord[]
+  dockerActionError: string | undefined
+  dockerActionPending: boolean
+  dockerWorkloads: DockerContainerList | undefined
   failures: RuntimeFailureOverview | undefined
   logsByService: Readonly<Record<string, ServiceLogsResponse | undefined>>
   logsFetching: boolean
   services: readonly ServiceSnapshot[]
   onAction: (serviceId: string, action: ServiceAction) => void
   onCreateDeploymentRecord: (record: DeploymentRecordCreate) => void
+  onDockerAction: (containerId: string, action: DockerContainerAction) => void
   onOpenDeploymentSettings: () => void
   onRefreshLogs: (serviceId: string) => void
 }) {
@@ -137,8 +147,12 @@ export function OrchestrationDetails({
           recordError={deploymentRecordError}
           recordPending={deploymentRecordPending}
           records={deploymentRecords}
+          dockerActionError={dockerActionError}
+          dockerActionPending={dockerActionPending}
+          dockerWorkloads={dockerWorkloads}
           services={services}
           onCreateRecord={onCreateDeploymentRecord}
+          onDockerAction={onDockerAction}
           onOpenSettings={onOpenDeploymentSettings}
         />
       )}

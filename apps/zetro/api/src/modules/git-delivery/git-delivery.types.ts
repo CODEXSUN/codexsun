@@ -47,7 +47,7 @@ export interface GitDeliveryFlowInput {
 }
 
 export type GitDeliveryStepId = 'changelog' | 'commit' | 'push' | 'sync' | 'version'
-export type GitDeliveryStepStatus = 'complete' | 'failed' | 'skipped'
+export type GitDeliveryStepStatus = 'blocked' | 'complete' | 'failed' | 'running' | 'skipped'
 
 export interface GitDeliveryStepResult {
   id: GitDeliveryStepId
@@ -62,6 +62,7 @@ export interface GitDeliveryFlowRecord {
   id: string
   input: GitDeliveryFlowInput
   projectId: string
-  status: 'complete' | 'failed' | 'running'
+  status: 'blocked' | 'complete' | 'failed' | 'pending' | 'running' | 'stopped'
   steps: GitDeliveryStepResult[]
+  systemTaskId: string | null
 }

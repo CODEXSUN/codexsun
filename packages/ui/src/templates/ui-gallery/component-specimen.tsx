@@ -25,5 +25,5 @@ export function ComponentSpecimen({
   if (component.category === 'Data display' || component.category === 'Layout') {
     return <DataSpecimen {...props} />
   }
-  return <ActionsSpecimen {...props} variant={variant} />
+  return <ActionsSpecimen {...props} />
 }

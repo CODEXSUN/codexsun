@@ -10,18 +10,27 @@ import {
   ChatConversationService,
 } from '../src/modules/chat/chat.conversation.service.js'
 import { validateChatWorkspaceScope } from '../src/modules/chat/chat.scope.js'
+import { openTestDatabase } from './test-database.js'
 
 const projectId = '00000000-0000-4000-8000-000000000001'
+const databases = new Map<string, Awaited<ReturnType<typeof openTestDatabase>>>()
+test.after(async () => Promise.all([...databases.values()].map((database) => database.close())))
+
+async function repository(directory: string, filePath = join(directory, 'conversations.json')) {
+  let database = databases.get(directory)
+  if (!database) {
+    database = await openTestDatabase(directory)
+    databases.set(directory, database)
+  }
+  return new ChatConversationRepository(database, filePath, projectId)
+}
 
 test('creates short titles and orders pinned conversations first', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-history-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
-  const repository = new ChatConversationRepository(
-    join(directory, 'conversations.json'),
-    projectId,
-  )
-  await repository.initialize()
-  const service = new ChatConversationService(repository)
+  const chatRepository = await repository(directory)
+  await chatRepository.initialize()
+  const service = new ChatConversationService(chatRepository)
 
   const first = await service.create(projectId, [
     {
@@ -56,9 +65,9 @@ test('persists a delivery record with its assistant message', async (context) =>
   const directory = await mkdtemp(join(tmpdir(), 'zetro-delivery-history-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
   const filePath = join(directory, 'conversations.json')
-  const repository = new ChatConversationRepository(filePath, projectId)
-  await repository.initialize()
-  const service = new ChatConversationService(repository)
+  const chatRepository = await repository(directory, filePath)
+  await chatRepository.initialize()
+  const service = new ChatConversationService(chatRepository)
   const stages = [
     'plan',
     'observe',
@@ -97,7 +106,7 @@ test('persists a delivery record with its assistant message', async (context) =>
     },
   ])
 
-  const restoredRepository = new ChatConversationRepository(filePath, projectId)
+  const restoredRepository = await repository(directory, filePath)
   await restoredRepository.initialize()
   const restored = new ChatConversationService(restoredRepository).get(conversation.id)
   assert.equal(restored.messages[0]?.execution?.delivery?.publicationReady, true)
@@ -107,12 +116,9 @@ test('persists a delivery record with its assistant message', async (context) =>
 test('archives, restores, and permanently deletes conversations', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-archive-history-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
-  const repository = new ChatConversationRepository(
-    join(directory, 'conversations.json'),
-    projectId,
-  )
-  await repository.initialize()
-  const service = new ChatConversationService(repository)
+  const chatRepository = await repository(directory)
+  await chatRepository.initialize()
+  const service = new ChatConversationService(chatRepository)
   const conversation = await service.create(projectId, [
     {
       attachments: [],
@@ -145,12 +151,9 @@ test('archives, restores, and permanently deletes conversations', async (context
 test('permanently deletes every archived conversation and keeps active history', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-delete-archive-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
-  const repository = new ChatConversationRepository(
-    join(directory, 'conversations.json'),
-    projectId,
-  )
-  await repository.initialize()
-  const service = new ChatConversationService(repository)
+  const chatRepository = await repository(directory)
+  await chatRepository.initialize()
+  const service = new ChatConversationService(chatRepository)
   const first = await service.create(projectId, [
     {
       attachments: [],
@@ -179,12 +182,9 @@ test('permanently deletes every archived conversation and keeps active history',
 test('keeps project conversations isolated', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-project-history-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
-  const repository = new ChatConversationRepository(
-    join(directory, 'conversations.json'),
-    projectId,
-  )
-  await repository.initialize()
-  const service = new ChatConversationService(repository)
+  const chatRepository = await repository(directory)
+  await chatRepository.initialize()
+  const service = new ChatConversationService(chatRepository)
   const otherProjectId = '11111111-1111-4111-8111-111111111111'
 
   await service.create(projectId, [
@@ -215,12 +215,9 @@ test('stores and validates a chat workspace scope inside the project', async (co
   context.after(() => rm(directory, { force: true, recursive: true }))
   const modulePath = join(directory, 'apps', 'zetro')
   await mkdir(modulePath, { recursive: true })
-  const repository = new ChatConversationRepository(
-    join(directory, 'conversations.json'),
-    projectId,
-  )
-  await repository.initialize()
-  const service = new ChatConversationService(repository)
+  const chatRepository = await repository(directory)
+  await chatRepository.initialize()
+  const service = new ChatConversationService(chatRepository)
   const scope = await validateChatWorkspaceScope(directory, {
     application: 'zetro',
     folderPath: 'apps\\zetro',
@@ -274,8 +271,11 @@ test('adds conversation timestamps to legacy messages during startup', async (co
     ]),
   )
 
-  const repository = new ChatConversationRepository(filePath, projectId)
-  await repository.initialize()
+  const chatRepository = await repository(directory, filePath)
+  await chatRepository.initialize()
 
-  assert.equal(repository.find(conversationId)?.messages[0]?.createdAt, '2026-09-07T10:30:00.000Z')
+  assert.equal(
+    chatRepository.find(conversationId)?.messages[0]?.createdAt,
+    '2026-09-07T10:30:00.000Z',
+  )
 })

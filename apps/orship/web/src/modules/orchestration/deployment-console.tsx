@@ -2,7 +2,7 @@ import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
 import { Label } from '@codexsun/ui/components/label'
 import { Textarea } from '@codexsun/ui/components/textarea'
-import { Check, Clipboard, FileCode2, GitBranch, Settings2, Terminal } from 'lucide-react'
+import { Check, Clipboard, FileCode2, GitBranch, RotateCw, Settings2, Terminal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type {
   CloudTarget,
@@ -10,6 +10,8 @@ import type {
   DeploymentEvidence,
   DeploymentRecord,
   DeploymentRecordCreate,
+  DockerContainerAction,
+  DockerContainerList,
   ServiceSnapshot,
 } from './orchestration.types'
 
@@ -18,20 +20,28 @@ const actions: readonly DeploymentAction[] = ['verify', 'pull', 'prepare', 'depl
 export function DeploymentConsole({
   cloudTarget,
   evidence,
+  dockerActionError,
+  dockerActionPending,
+  dockerWorkloads,
   recordError,
   recordPending,
   records,
   services,
   onCreateRecord,
+  onDockerAction,
   onOpenSettings,
 }: {
   cloudTarget: CloudTarget | undefined
   evidence: DeploymentEvidence | undefined
+  dockerActionError: string | undefined
+  dockerActionPending: boolean
+  dockerWorkloads: DockerContainerList | undefined
   recordError: string | undefined
   recordPending: boolean
   records: readonly DeploymentRecord[]
   services: readonly ServiceSnapshot[]
   onCreateRecord: (record: DeploymentRecordCreate) => void
+  onDockerAction: (containerId: string, action: DockerContainerAction) => void
   onOpenSettings: () => void
 }) {
   const [action, setAction] = useState<DeploymentAction>('verify')
@@ -124,8 +134,95 @@ export function DeploymentConsole({
         ) : null}
 
         <DeploymentHistory records={records} />
+        <DockerWorkloads
+          error={dockerActionError}
+          pending={dockerActionPending}
+          workloads={dockerWorkloads}
+          onAction={onDockerAction}
+        />
       </section>
     </div>
+  )
+}
+
+function DockerWorkloads({
+  error,
+  pending,
+  workloads,
+  onAction,
+}: {
+  error: string | undefined
+  pending: boolean
+  workloads: DockerContainerList | undefined
+  onAction: (containerId: string, action: DockerContainerAction) => void
+}) {
+  return (
+    <section className="rounded-lg border border-border bg-background p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h3 className="font-semibold">Managed Docker workloads</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Only containers labelled <code>codexsun.orship.manage=true</code> are exposed.
+          </p>
+        </div>
+        <Badge variant="outline">Local socket only</Badge>
+      </div>
+      {!workloads ? <p className="mt-4 text-sm text-muted-foreground">Reading Docker…</p> : null}
+      {workloads && !workloads.available ? (
+        <p className="mt-4 text-sm text-muted-foreground">{workloads.reason}</p>
+      ) : null}
+      {workloads?.available && workloads.containers.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">No labelled workloads are available.</p>
+      ) : null}
+      {workloads?.containers.length ? (
+        <div className="mt-4 grid gap-2">
+          {workloads.containers.map((workload) => (
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
+              key={workload.id}
+            >
+              <div className="min-w-0">
+                <p className="font-medium">{workload.name}</p>
+                <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                  {workload.image}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={workload.state === 'running' ? 'secondary' : 'outline'}>
+                  {workload.state}
+                </Badge>
+                <Button
+                  disabled={pending}
+                  onClick={() => onAction(workload.id, 'start')}
+                  size="sm"
+                  variant="outline"
+                >
+                  Start
+                </Button>
+                <Button
+                  disabled={pending}
+                  onClick={() => onAction(workload.id, 'restart')}
+                  size="sm"
+                  variant="outline"
+                >
+                  <RotateCw />
+                  Restart
+                </Button>
+                <Button
+                  disabled={pending}
+                  onClick={() => onAction(workload.id, 'stop')}
+                  size="sm"
+                  variant="outline"
+                >
+                  Stop
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+    </section>
   )
 }
 

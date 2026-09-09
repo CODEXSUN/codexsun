@@ -116,7 +116,7 @@ async function assertHealthy(runtime, port) {
   assert.equal(runtimeResponse.status, 200)
   assert.deepEqual(
     runtimeBody.data.modules.map(({ id }) => id),
-    ['module-runtime', 'system'],
+    ['module-runtime', 'identity', 'system'],
   )
 
   const missingResponse = await fetch(`http://${host}:${port}/missing`, {

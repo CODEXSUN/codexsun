@@ -16,9 +16,10 @@ synchronizes document metadata to MariaDB.
 
 - Entities and records: repository document and `docs_documents` index record.
 - Tables and storage paths: `docs_documents`; `apps/docs/content` is the default vault.
-- Routes: `GET /api/docs/v1/documents`, `GET /api/docs/v1/documents/:slug`, `PUT /api/docs/v1/documents/:slug`, and `POST /api/docs/v1/index/sync`.
+- Routes: `GET /api/docs/v1/assets/:path`, `GET /api/docs/v1/documents`, `GET /api/docs/v1/documents/:slug`, `PUT /api/docs/v1/documents/:slug`, and `POST /api/docs/v1/index/sync`.
 - Editing: updates keep Markdown/MDX source under its existing owner path, preserve existing front matter, update an optional title, and require the loaded source hash to prevent stale edits from overwriting newer content.
-- Link behavior: Obsidian wiki-links are rendered as hash deep-links for the Docs browser. Executable MDX remains rejected, while fenced and inline code are treated as documentation.
+- Document behavior: Obsidian wiki-links render as hash deep-links. GitHub-Flavored Markdown renders tables. Fenced code receives server-side language highlighting. Mermaid fences remain source code for the web reader to render safely.
+- Article assets: the route serves only supported image files inside the repository. It rejects unsafe paths and non-image extensions.
 - Permissions and settings: no authentication is implemented yet; `DOCS_INDEX_MODE` and `DOCS_VAULT_PATH` control runtime behavior.
 
 ## Public contracts

@@ -1,14 +1,16 @@
 {
   "name": "@codexsun/zetro-api",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-api.eslintcache",
-    "test": "npm run test:connection && npm run test:developer-tools && npm run test:git-delivery && npm run test:history && npm run test:projects && npm run test:tasks && npm run test:workflow && npm run test:worktree",
+    "test": "npm run test:connection && npm run test:security && npm run test:system-tasks && npm run test:developer-tools && npm run test:git-delivery && npm run test:history && npm run test:projects && npm run test:tasks && npm run test:workflow && npm run test:worktree",
     "test:connection": "node --test --import tsx tests/codex-app-server.client.test.ts",
+    "test:security": "node --test --import tsx tests/desktop-session-auth.test.ts",
+    "test:system-tasks": "node --test --import tsx tests/system-tasks.test.ts",
     "test:developer-tools": "node --test --import tsx tests/developer-tools.git.test.ts",
     "test:git-delivery": "node --test --import tsx tests/git-delivery.service.test.ts",
     "test:chat-service": "node --test --import tsx tests/chat.service.test.ts",
@@ -21,11 +23,19 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.8",
+    "@codexsun/platform-core-api": "^0.1.9",
+    "archiver": "^8.0.0",
+    "better-sqlite3": "^12.11.1",
+    "bullmq": "^6.3.4",
     "fastify": "^5.12.1",
+    "ioredis": "^6.0.0",
+    "kysely": "^0.28.17",
+    "mysql2": "^3.23.4",
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/archiver": "^8.0.0",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "latest",
     "tsx": "latest",
     "typescript": "latest"

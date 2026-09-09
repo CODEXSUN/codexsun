@@ -10,25 +10,26 @@ import type {
   GitDeliverySettings,
   ProjectGitDeliverySettings,
 } from './git-delivery.types'
+import { zetroFetch } from '../../lib/zetro-api'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
 
 export async function getGlobalGitDeliverySettings() {
   return read(
-    await fetch(`${apiBaseUrl}/api/v1/git-delivery/settings`),
+    await zetroFetch(`${apiBaseUrl}/api/v1/git-delivery/settings`),
     globalSettingsResponseSchema,
   )
 }
 
 export async function updateGlobalGitDeliverySettings(settings: GitDeliverySettings) {
   return read(
-    await fetch(`${apiBaseUrl}/api/v1/git-delivery/settings`, request('PATCH', settings)),
+    await zetroFetch(`${apiBaseUrl}/api/v1/git-delivery/settings`, request('PATCH', settings)),
     globalSettingsResponseSchema,
   )
 }
 
 export async function getProjectGitDeliverySettings(projectId: string) {
-  return read(await fetch(projectUrl(projectId, 'settings')), projectSettingsResponseSchema)
+  return read(await zetroFetch(projectUrl(projectId, 'settings')), projectSettingsResponseSchema)
 }
 
 export async function updateProjectGitDeliverySettings(
@@ -36,23 +37,26 @@ export async function updateProjectGitDeliverySettings(
   settings: ProjectGitDeliverySettings,
 ) {
   return read(
-    await fetch(projectUrl(projectId, 'settings'), request('PATCH', settings)),
+    await zetroFetch(projectUrl(projectId, 'settings'), request('PATCH', settings)),
     projectSettingsResponseSchema,
   )
 }
 
 export async function previewGitDelivery(projectId: string, title: string) {
   const query = new URLSearchParams({ title })
-  return read(await fetch(`${projectUrl(projectId, 'preview')}?${query}`), gitDeliveryPreviewSchema)
+  return read(
+    await zetroFetch(`${projectUrl(projectId, 'preview')}?${query}`),
+    gitDeliveryPreviewSchema,
+  )
 }
 
 export async function listGitDeliveryFlows(projectId: string) {
-  return read(await fetch(projectUrl(projectId, 'flows')), gitDeliveryFlowListSchema)
+  return read(await zetroFetch(projectUrl(projectId, 'flows')), gitDeliveryFlowListSchema)
 }
 
 export async function runGitDeliveryFlow(projectId: string, input: GitDeliveryFlowInput) {
   return read(
-    await fetch(projectUrl(projectId, 'flows'), request('POST', input)),
+    await zetroFetch(projectUrl(projectId, 'flows'), request('POST', input)),
     gitDeliveryFlowSchema,
   )
 }

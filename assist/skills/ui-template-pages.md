@@ -72,8 +72,10 @@ Do not put business fields, workflows, or application routes in the template.
   Use the shared panel-height, opacity, and chevron transition with reduced-motion support.
 - Present Alert as one `max-w-lg` stack with success, information, warning, and error
   callouts. Pair every semantic tone with an icon and a short action-focused title.
-- Present Button variants as numbered cards. Include the semantic text variants and the
-  icon, icon-and-text, loading, and split compositions. Use Primary as the initial default.
+- Present Button as one numbered `Default Version` card. Arrange its semantic and special
+  compositions in three borderless rows on wide screens. Wrap without horizontal scrolling.
+- Present Button Group with the same one-card pattern. Arrange nine practical horizontal,
+  vertical, split, icon, text, and semantic compositions in three borderless rows.
 - Keep standard Button specimens 40px high. Use content width, `px-5` text padding, and
   a 40px square icon size. Use compact named sizes only in dense tool strips.
 - Give a long documentation sidebar a stable `sidebarStateKey`. Preserve expanded groups

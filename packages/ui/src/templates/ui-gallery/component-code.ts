@@ -4,7 +4,8 @@ import type { UiComponentVariantId } from './component-variants'
 export function createComponentCode(component: UiComponentDoc, variant: UiComponentVariantId) {
   if (component.id === 'accordion') return createAccordionCode(component.source, variant)
   if (component.id === 'alert') return createAlertCode(component.source)
-  if (component.id === 'button') return createButtonCode(component.source, variant)
+  if (component.id === 'button') return createButtonCode(component.source)
+  if (component.id === 'button-group') return createButtonGroupCode(component.source)
 
   const namespace = `${component.name.replaceAll(' ', '')}Ui`
   return `import * as ${namespace} from '${component.source}'
@@ -14,92 +15,104 @@ export function createComponentCode(component: UiComponentDoc, variant: UiCompon
 export { ${namespace} }`
 }
 
-function createButtonCode(source: string, variant: UiComponentVariantId) {
-  if (variant === 'icon') {
-    return `import { Plus } from 'lucide-react'
-import { Button } from '${source}'
+function createButtonGroupCode(source: string) {
+  return `import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Archive,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  MoreHorizontal,
+  Share2,
+  Trash2,
+} from 'lucide-react'
+import { Button } from '@codexsun/ui/components/button'
+import {
+  ButtonGroup,
+  ButtonGroupSeparator,
+  ButtonGroupText,
+} from '${source}'
 
-export function AddWorkspaceButton() {
+export function ButtonGroupSet() {
   return (
-    <Button aria-label="Add workspace" size="icon">
-      <Plus />
-    </Button>
+    <div className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <ButtonGroup>
+        <Button>Save draft</Button>
+        <Button variant="outline">Preview</Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button aria-label="Previous page" size="icon" variant="outline"><ChevronLeft /></Button>
+        <Button variant="outline">Page 2</Button>
+        <Button aria-label="Next page" size="icon" variant="outline"><ChevronRight /></Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button aria-label="Align left" size="icon" variant="outline"><AlignLeft /></Button>
+        <Button aria-label="Align center" size="icon" variant="outline"><AlignCenter /></Button>
+        <Button aria-label="Align right" size="icon" variant="outline"><AlignRight /></Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button>Publish <Share2 /></Button>
+        <Button aria-label="More publish options" size="icon" variant="outline"><ChevronDown /></Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <ButtonGroupText>Workspace</ButtonGroupText>
+        <Button variant="outline">Open</Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button variant="secondary"><Copy /> Duplicate</Button>
+        <Button variant="secondary"><Download /> Export</Button>
+      </ButtonGroup>
+      <ButtonGroup orientation="vertical">
+        <Button variant="outline">Move to archive</Button>
+        <Button variant="outline">Restore workspace</Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button aria-label="Archive workspace" size="icon" variant="outline"><Archive /></Button>
+        <ButtonGroupSeparator />
+        <Button aria-label="Delete workspace" size="icon" variant="destructive"><Trash2 /></Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button variant="success">Approve</Button>
+        <Button aria-label="More approval options" size="icon" variant="success"><MoreHorizontal /></Button>
+      </ButtonGroup>
+    </div>
   )
 }`
-  }
-  if (variant === 'icon-text') {
-    return `import { Star } from 'lucide-react'
-import { Button } from '${source}'
+}
 
-export function FavoriteButton() {
-  return (
-    <Button>
-      <Star data-icon="inline-start" />
-      Add to favorites
-    </Button>
-  )
-}`
-  }
-  if (variant === 'loading') {
-    return `import { LoaderCircle } from 'lucide-react'
-import { Button } from '${source}'
-
-export function SavingButton() {
-  return (
-    <Button disabled>
-      <LoaderCircle className="animate-spin motion-reduce:animate-none" />
-      Saving
-    </Button>
-  )
-}`
-  }
-  if (variant === 'split') {
-    return `import { ChevronDown } from 'lucide-react'
+function createButtonCode(source: string) {
+  return `import { ChevronDown, LoaderCircle, Plus, Star } from 'lucide-react'
 import { Button } from '${source}'
 import { ButtonGroup } from '@codexsun/ui/components/button-group'
 
-export function PublishButton() {
+export function ButtonSet() {
   return (
-    <ButtonGroup>
-      <Button>Publish</Button>
-      <Button aria-label="More publish options" size="icon" variant="outline">
-        <ChevronDown />
-      </Button>
-    </ButtonGroup>
+    <div className="grid grid-cols-2 place-items-center gap-4 sm:grid-cols-3 xl:grid-cols-5">
+      <Button variant="primary">Primary</Button>
+      <Button variant="neutral">Neutral</Button>
+      <Button variant="secondary">Secondary</Button>
+      <Button variant="success">Approve</Button>
+      <Button variant="warning">Review warning</Button>
+      <Button variant="info">View details</Button>
+      <Button variant="destructive">Delete workspace</Button>
+      <Button variant="outline">Outline</Button>
+      <Button variant="ghost">Ghost</Button>
+      <Button variant="link">Read documentation</Button>
+      <Button aria-label="Add workspace" size="icon"><Plus /></Button>
+      <Button><Star /> Add to favorites</Button>
+      <Button disabled><LoaderCircle className="animate-spin" /> Saving</Button>
+      <ButtonGroup>
+        <Button>Publish</Button>
+        <Button aria-label="More publish options" size="icon" variant="outline">
+          <ChevronDown />
+        </Button>
+      </ButtonGroup>
+    </div>
   )
-}`
-  }
-
-  const variants: Partial<Record<UiComponentVariantId, string>> = {
-    default: 'primary',
-    destructive: 'destructive',
-    ghost: 'ghost',
-    info: 'info',
-    link: 'link',
-    neutral: 'neutral',
-    outline: 'outline',
-    secondary: 'secondary',
-    success: 'success',
-    warning: 'warning',
-  }
-  const labels: Partial<Record<UiComponentVariantId, string>> = {
-    default: 'Primary',
-    destructive: 'Delete workspace',
-    ghost: 'Ghost',
-    info: 'View details',
-    link: 'Read documentation',
-    neutral: 'Neutral',
-    outline: 'Outline',
-    secondary: 'Secondary',
-    success: 'Approve',
-    warning: 'Review warning',
-  }
-  const variantProperty = variants[variant] ? ` variant="${variants[variant]}"` : ''
-
-  return `import { Button } from '${source}'
-
-export function ButtonDemo() {
-  return <Button${variantProperty}>${labels[variant] ?? 'Button'}</Button>
 }`
 }
 

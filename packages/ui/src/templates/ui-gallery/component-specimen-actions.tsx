@@ -1,14 +1,9 @@
 import {
-  ArrowRight,
-  ChevronDown,
   CircleFadingArrowUpIcon,
   FileText,
-  LoaderCircle,
   OctagonAlert,
-  Plus,
   ShieldAlert,
   Sparkles,
-  Star,
 } from 'lucide-react'
 import { Alert, AlertTitle } from '../../components/alert'
 import {
@@ -20,7 +15,6 @@ import {
 } from '../../components/attachment'
 import { Bubble, BubbleContent, BubbleGroup, BubbleReactions } from '../../components/bubble'
 import { Button } from '../../components/button'
-import { ButtonGroup } from '../../components/button-group'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '../../components/empty'
 import {
   Message,
@@ -44,36 +38,21 @@ import { Toaster as Sonner } from '../../components/sonner'
 import { toast, Toaster as ToastHost } from '../../components/toast'
 import { Toggle } from '../../components/toggle'
 import { ToggleGroup, ToggleGroupItem } from '../../components/toggle-group'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/tooltip'
-import type { UiComponentVariantId } from './component-variants'
+import { ButtonGroupVariantSpecimen } from './component-specimen-button-groups'
+import { ButtonVariantSpecimen } from './component-specimen-buttons'
 import { SpecimenStage } from './component-specimen-stage'
 
-export function ActionsSpecimen({ componentId, compact, variant }: SpecimenProps) {
+export function ActionsSpecimen({ componentId, compact }: SpecimenProps) {
   if (componentId === 'alert') return <AlertCalloutSpecimen />
+  if (componentId === 'button') return <ButtonVariantSpecimen />
+  if (componentId === 'button-group') return <ButtonGroupVariantSpecimen />
 
-  return (
-    <SpecimenStage compact={compact}>{renderSpecimen(componentId, compact, variant)}</SpecimenStage>
-  )
+  return <SpecimenStage compact={compact}>{renderSpecimen(componentId, compact)}</SpecimenStage>
 }
 
-type SpecimenProps = {
-  compact: boolean
-  componentId: string
-  variant: UiComponentVariantId
-}
+type SpecimenProps = { compact: boolean; componentId: string }
 
-function renderSpecimen(componentId: string, compact: boolean, variant: UiComponentVariantId) {
-  if (componentId === 'button') return <ButtonVariantSpecimen variant={variant} />
-  if (componentId === 'button-group') {
-    return (
-      <ButtonGroup>
-        <Button size={compact ? 'sm' : 'default'}>Save</Button>
-        <Button size={compact ? 'sm' : 'default'} variant="outline">
-          Publish
-        </Button>
-      </ButtonGroup>
-    )
-  }
+function renderSpecimen(componentId: string, compact: boolean) {
   if (componentId === 'toggle')
     return (
       <Toggle defaultPressed size={compact ? 'sm' : 'default'}>
@@ -201,89 +180,6 @@ function renderSpecimen(componentId: string, compact: boolean, variant: UiCompon
     )
   }
   return <p className="text-sm text-muted-foreground">Dedicated preview is being prepared.</p>
-}
-
-function ButtonVariantSpecimen({ variant }: { variant: UiComponentVariantId }) {
-  if (variant === 'icon') {
-    return (
-      <Tooltip>
-        <TooltipTrigger render={<Button aria-label="Add workspace" size="icon" />}>
-          <Plus />
-        </TooltipTrigger>
-        <TooltipContent>Add workspace</TooltipContent>
-      </Tooltip>
-    )
-  }
-  if (variant === 'icon-text') {
-    return (
-      <Button>
-        <Star data-icon="inline-start" />
-        Add to favorites
-      </Button>
-    )
-  }
-  if (variant === 'loading') {
-    return (
-      <Button disabled>
-        <LoaderCircle className="animate-spin motion-reduce:animate-none" />
-        Saving
-      </Button>
-    )
-  }
-  if (variant === 'split') {
-    return (
-      <ButtonGroup>
-        <Button>
-          Publish
-          <ArrowRight data-icon="inline-end" />
-        </Button>
-        <Button aria-label="More publish options" size="icon" variant="outline">
-          <ChevronDown />
-        </Button>
-      </ButtonGroup>
-    )
-  }
-
-  const labels: Partial<Record<UiComponentVariantId, string>> = {
-    default: 'Primary',
-    destructive: 'Delete workspace',
-    ghost: 'Ghost',
-    info: 'View details',
-    link: 'Read documentation',
-    neutral: 'Neutral',
-    outline: 'Outline',
-    secondary: 'Secondary',
-    success: 'Approve',
-    warning: 'Review warning',
-  }
-  const buttonStyles: Partial<
-    Record<
-      UiComponentVariantId,
-      | 'default'
-      | 'destructive'
-      | 'ghost'
-      | 'info'
-      | 'link'
-      | 'neutral'
-      | 'outline'
-      | 'secondary'
-      | 'success'
-      | 'warning'
-    >
-  > = {
-    default: 'default',
-    destructive: 'destructive',
-    ghost: 'ghost',
-    info: 'info',
-    link: 'link',
-    neutral: 'neutral',
-    outline: 'outline',
-    secondary: 'secondary',
-    success: 'success',
-    warning: 'warning',
-  }
-
-  return <Button variant={buttonStyles[variant] ?? 'default'}>{labels[variant] ?? 'Button'}</Button>
 }
 
 function AlertCalloutSpecimen() {

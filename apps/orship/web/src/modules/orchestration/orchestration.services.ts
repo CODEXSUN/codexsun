@@ -3,6 +3,9 @@ import {
   cloudTargetUpdateSchema,
   deploymentEvidenceSchema,
   deploymentRecordSchema,
+  dockerContainerActionRequestSchema,
+  dockerContainerActionResponseSchema,
+  dockerContainerListSchema,
   deploymentRecordCreateSchema,
   deploymentRecordListSchema,
   orchestrationOverviewSchema,
@@ -12,6 +15,7 @@ import {
   type ServiceAction,
   type CloudTargetUpdate,
   type DeploymentRecordCreate,
+  type DockerContainerAction,
 } from '@codexsun/orship-contracts'
 
 const baseUrl = (import.meta.env.VITE_ORSHIP_API_URL ?? 'http://127.0.0.1:6090').replace(/\/$/u, '')
@@ -80,6 +84,27 @@ export async function createDeploymentRecord(record: DeploymentRecordCreate) {
   })
   return deploymentRecordSchema.parse(
     await readResponse(response, 'Could not save deployment evidence'),
+  )
+}
+
+export async function fetchDockerContainers() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/docker/containers`)
+  return dockerContainerListSchema.parse(
+    await readResponse(response, 'Could not load managed Docker workloads'),
+  )
+}
+
+export async function runDockerContainerAction(containerId: string, action: DockerContainerAction) {
+  const response = await fetch(
+    `${baseUrl}/api/orship/v1/docker/containers/${containerId}/actions`,
+    {
+      body: JSON.stringify(dockerContainerActionRequestSchema.parse({ action })),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    },
+  )
+  return dockerContainerActionResponseSchema.parse(
+    await readResponse(response, `Could not ${action} Docker workload`),
   )
 }
 

@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ServiceAction } from './orchestration.types'
+import type { DockerContainerAction, ServiceAction } from './orchestration.types'
 import {
   fetchCloudTarget,
   createDeploymentRecord,
+  fetchDockerContainers,
   fetchDeploymentEvidence,
   fetchDeploymentRecords,
   fetchOrchestrationOverview,
   fetchRuntimeFailures,
   fetchServiceLogs,
   runServiceAction,
+  runDockerContainerAction,
 } from './orchestration.services'
 
 const overviewKey = ['orship', 'services'] as const
@@ -52,6 +54,23 @@ export function useDeploymentRecord() {
         queryKey: ['orship', 'deployment-records', 'platform'],
       })
     },
+  })
+}
+
+export function useDockerContainers() {
+  return useQuery({
+    queryFn: fetchDockerContainers,
+    queryKey: ['orship', 'docker-containers'],
+    refetchInterval: 5_000,
+  })
+}
+
+export function useDockerContainerAction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ action, containerId }: { action: DockerContainerAction; containerId: string }) =>
+      runDockerContainerAction(containerId, action),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orship', 'docker-containers'] }),
   })
 }
 

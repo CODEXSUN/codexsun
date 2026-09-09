@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
+import { openTestDatabase } from './test-database.js'
 import { ProjectRepository } from '../src/modules/projects/projects.repository.js'
 import {
   createDefaultProject,
@@ -28,7 +29,9 @@ test('registers a local git repository once', async (context) => {
   await execute('git', ['init', replacementRoot], { windowsHide: true })
   const nestedReplacementPath = join(replacementRoot, 'apps', 'web')
   await mkdir(nestedReplacementPath, { recursive: true })
-  const repository = new ProjectRepository(join(directory, 'projects.json'))
+  const database = await openTestDatabase(directory)
+  context.after(() => database.close())
+  const repository = new ProjectRepository(database, join(directory, 'projects.json'))
   await repository.initialize(createDefaultProject(defaultRoot))
   const service = new ProjectService(repository)
 
@@ -68,7 +71,9 @@ test('registers a local git repository once', async (context) => {
 test('supports an empty registry when the startup folder is not a Git repository', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-empty-projects-'))
   context.after(() => rm(directory, { force: true, recursive: true }))
-  const repository = new ProjectRepository(join(directory, 'projects.json'))
+  const database = await openTestDatabase(directory)
+  context.after(() => database.close())
+  const repository = new ProjectRepository(database, join(directory, 'projects.json'))
 
   await repository.initialize()
 

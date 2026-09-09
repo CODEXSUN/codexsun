@@ -121,6 +121,41 @@ export const deploymentRecordListSchema = z.object({
   records: z.array(deploymentRecordSchema),
 })
 
+export const dockerContainerStateSchema = z.enum([
+  'created',
+  'running',
+  'paused',
+  'restarting',
+  'exited',
+])
+export const dockerContainerActionSchema = z.enum(['start', 'stop', 'restart'])
+
+export const dockerContainerSchema = z.object({
+  createdAt: z.iso.datetime(),
+  id: z.string().min(12).max(128),
+  image: z.string().min(1).max(500),
+  name: z.string().min(1).max(255),
+  ports: z.array(z.string().max(160)),
+  state: dockerContainerStateSchema,
+  status: z.string().min(1).max(500),
+})
+
+export const dockerContainerListSchema = z.object({
+  available: z.boolean(),
+  containers: z.array(dockerContainerSchema),
+  reason: z.string().max(300).nullable(),
+  updatedAt: z.iso.datetime(),
+})
+
+export const dockerContainerActionRequestSchema = z.strictObject({
+  action: dockerContainerActionSchema,
+})
+
+export const dockerContainerActionResponseSchema = z.object({
+  container: dockerContainerSchema,
+  message: z.string().min(1).max(300),
+})
+
 export const serviceSnapshotSchema = z.object({
   applicationId: z.string().min(1),
   checkedAt: z.iso.datetime(),
@@ -207,3 +242,7 @@ export type DeploymentRecord = z.infer<typeof deploymentRecordSchema>
 export type DeploymentRecordCreate = z.infer<typeof deploymentRecordCreateSchema>
 export type DeploymentRecordList = z.infer<typeof deploymentRecordListSchema>
 export type DeploymentStatus = z.infer<typeof deploymentStatusSchema>
+export type DockerContainer = z.infer<typeof dockerContainerSchema>
+export type DockerContainerAction = z.infer<typeof dockerContainerActionSchema>
+export type DockerContainerActionResponse = z.infer<typeof dockerContainerActionResponseSchema>
+export type DockerContainerList = z.infer<typeof dockerContainerListSchema>

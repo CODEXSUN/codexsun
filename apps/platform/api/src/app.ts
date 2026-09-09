@@ -1,4 +1,5 @@
 import fastifyCors from '@fastify/cors'
+import fastifyCookie from '@fastify/cookie'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifySensible from '@fastify/sensible'
@@ -44,6 +45,7 @@ import {
   moduleRuntimeApiModule,
   moduleRuntimeMigrations,
 } from './modules/module-runtime/index.js'
+import { createIdentityRuntime } from './modules/identity/index.js'
 import { systemApiModule } from './modules/system/index.js'
 import { createStorage, type StorageDirectories } from './storage.js'
 
@@ -79,13 +81,17 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
   observability.start()
   const storage = options.storage ?? (await createStorage(environment, getProjectRoot()))
   const database = options.database ?? createDatabase(environment)
-  const modules = options.modules ?? [moduleRuntimeApiModule, systemApiModule]
+  const identity = createIdentityRuntime(database.client, environment)
+  const modules = options.modules ?? [moduleRuntimeApiModule, identity.module, systemApiModule]
   const server = createServer(environment, storage, observability)
   const shutdown = new PlatformShutdownRegistry()
   const diagnostics = new PlatformDiagnosticRegistry()
   const readiness = new PlatformReadinessRegistry()
   const requestContext = new PlatformRequestContextStore()
-  const authorizer = options.authorizer ?? new DenyByDefaultPlatformAuthorizer()
+  const identityEnabled = modules.some(({ manifest }) => manifest.id === 'identity')
+  const authorizer =
+    options.authorizer ??
+    (identityEnabled ? identity.authorizer : new DenyByDefaultPlatformAuthorizer())
   const lifecycleAbort = new AbortController()
   const composition = createComposition(modules)
   const events = new DeclaredPlatformEventBus(
@@ -125,7 +131,11 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
   )
   let runtimeStartup: Promise<void> | undefined
 
-  registerHttpLifecycle(server, requestContext, options.resolveActor)
+  registerHttpLifecycle(
+    server,
+    requestContext,
+    options.resolveActor ?? (identityEnabled ? identity.resolveActor : undefined),
+  )
   await registerPlatformModules(
     server,
     modules,
@@ -221,6 +231,7 @@ function createServer(
   observability.register(server)
 
   void server.register(fastifySensible)
+  void server.register(fastifyCookie)
   void server.register(fastifyHelmet)
   void server.register(fastifyCors, {
     credentials: true,

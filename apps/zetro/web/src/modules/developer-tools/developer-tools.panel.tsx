@@ -39,6 +39,7 @@ import {
 import { Input } from '@codexsun/ui/components/input'
 import { useDeveloperTools } from './developer-tools.controller'
 import type { GitCommitSummary, GitComparison } from './developer-tools.types'
+import { RepositoryWorkspace } from './developer-tools.workspace'
 
 export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) {
   const tools = useDeveloperTools()
@@ -48,6 +49,7 @@ export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) 
   const [branchOpen, setBranchOpen] = useState(false)
   const [pushOpen, setPushOpen] = useState(false)
   const [revertCommit, setRevertCommit] = useState<GitCommitSummary | null>(null)
+  const [workspaceOpen, setWorkspaceOpen] = useState(false)
   if (!tools.project) return null
   const status = tools.status
   const changed = status?.files ?? 0
@@ -142,6 +144,7 @@ export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) 
             />
           </section>
           <section className="grid grid-cols-2 gap-1 border-b p-2">
+            <ToolButton icon={FileCode2} label="Changes" onClick={() => setWorkspaceOpen(true)} />
             <ToolButton
               icon={GitCompareArrows}
               label="Compare"
@@ -198,6 +201,7 @@ export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) 
         ) : null}
       </aside>
       <CommitDialog onOpenChange={setCommitOpen} open={commitOpen} />
+      <RepositoryWorkspace onOpenChange={setWorkspaceOpen} open={workspaceOpen} />
       <CompareDialog onOpenChange={setCompareOpen} open={compareOpen} />
       <BranchDialog onOpenChange={setBranchOpen} open={branchOpen} />
       <PushDialog

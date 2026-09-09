@@ -9,6 +9,8 @@ import { CloudTargetStore } from './infrastructure/cloud-target.store.js'
 import { DeploymentRecordStore } from './infrastructure/deployment-record.store.js'
 import { LocalProcessGateway } from './infrastructure/local-process.gateway.js'
 import { LocalDeploymentInspector } from './infrastructure/local-deployment.inspector.js'
+import { DockerControlGateway } from './infrastructure/docker-control.gateway.js'
+import { DockerControlStore } from './infrastructure/docker-control.store.js'
 import { registerOrchestrationRoutes } from './presentation/orchestration.routes.js'
 
 export const orchestrationManifest: FrameworkModule = {
@@ -16,6 +18,8 @@ export const orchestrationManifest: FrameworkModule = {
     'orchestration.failures.read',
     'orchestration.deployments.read',
     'orchestration.deployments.record',
+    'orchestration.docker.read',
+    'orchestration.docker.control',
     'orchestration.services.read',
     'orchestration.services.control',
   ],
@@ -39,10 +43,11 @@ export const orchestrationManifest: FrameworkModule = {
   publicContracts: [
     { id: 'orship.services', version: '1.1.0' },
     { id: 'orship.deployments', version: '1.0.0' },
+    { id: 'orship.docker', version: '1.0.0' },
   ],
   publishes: [],
   scope: 'app',
-  version: '1.2.0',
+  version: '1.3.0',
 }
 
 export async function registerOrchestrationModule(
@@ -61,5 +66,12 @@ export async function registerOrchestrationModule(
     new CloudTargetStore(projectRoot),
     Boolean(environment.ORSHIP_CLOUD_SSH_KEY_PATH),
   )
-  await registerOrchestrationRoutes(server, service, cloudTarget, deploymentEvidence)
+  const docker = new DockerControlGateway(
+    environment.ORSHIP_DOCKER_SOCKET_PATH,
+    environment.ORSHIP_DOCKER_MANAGED_LABEL,
+    environment.ORSHIP_DOCKER_CONTROL_ENABLED === 'true',
+    new DockerControlStore(projectRoot),
+  )
+  await registerOrchestrationRoutes(server, service, cloudTarget, deploymentEvidence, docker)
+  server.addHook('onClose', () => docker.close())
 }

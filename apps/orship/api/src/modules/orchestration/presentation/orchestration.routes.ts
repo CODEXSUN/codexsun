@@ -5,6 +5,9 @@ import {
   deploymentRecordCreateSchema,
   deploymentRecordListSchema,
   deploymentRecordSchema,
+  dockerContainerActionRequestSchema,
+  dockerContainerActionResponseSchema,
+  dockerContainerListSchema,
   orchestrationErrorSchema,
   orchestrationOverviewSchema,
   serviceActionRequestSchema,
@@ -17,6 +20,7 @@ import { z } from 'zod'
 import { OrchestrationError, OrchestrationService } from '../application/orchestration.service.js'
 import { CloudTargetService } from '../application/cloud-target.service.js'
 import { DeploymentEvidenceService } from '../application/deployment-evidence.service.js'
+import { DockerControlGateway } from '../infrastructure/docker-control.gateway.js'
 
 const serviceParamsSchema = z.strictObject({ serviceId: z.string().min(1).max(80) })
 const logQuerySchema = z.strictObject({
@@ -28,7 +32,35 @@ export async function registerOrchestrationRoutes(
   service: OrchestrationService,
   cloudTarget: CloudTargetService,
   deployments: DeploymentEvidenceService,
+  docker: DockerControlGateway,
 ): Promise<void> {
+  server.get(
+    '/api/orship/v1/docker/containers',
+    { schema: { response: { 200: z.toJSONSchema(dockerContainerListSchema) } } },
+    () => docker.list(),
+  )
+
+  server.post(
+    '/api/orship/v1/docker/containers/:containerId/actions',
+    {
+      schema: {
+        response: {
+          200: z.toJSONSchema(dockerContainerActionResponseSchema),
+          403: z.toJSONSchema(orchestrationErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!isLoopback(request)) {
+        return reply.status(403).send(errorBody('LOOPBACK_REQUIRED', 'Use a local browser.'))
+      }
+      const { serviceId: containerId } = serviceParamsSchema.parse({
+        serviceId: (request.params as { containerId?: unknown }).containerId,
+      })
+      const { action } = dockerContainerActionRequestSchema.parse(request.body)
+      return docker.act(containerId, action)
+    },
+  )
   server.get(
     '/api/orship/v1/deployments/platform/evidence',
     { schema: { response: { 200: z.toJSONSchema(deploymentEvidenceSchema) } } },

@@ -1,6 +1,8 @@
 import { resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import type { ZetroEnvironment } from '../../config.js'
+import type { ZetroDatabase } from '../../infrastructure/zetro-database.js'
+import type { SystemTaskService } from '../system-tasks/index.js'
 import type { DeveloperToolsService } from '../developer-tools/index.js'
 import type { ProjectService } from '../projects/index.js'
 import { GitDeliveryRepository } from './git-delivery.repository.js'
@@ -20,8 +22,9 @@ export const gitDeliveryModuleManifest = {
     'project-settings',
   ],
   dependencies: {
-    'zetro.developer-tools.api': '^0.2.0',
-    'zetro.projects.api': '^0.4.1',
+    'zetro.developer-tools.api': '^1.0.0',
+    'zetro.projects.api': '^0.5.0',
+    'zetro.system-tasks.api': '^1.0.0',
   },
   id: 'zetro.git-delivery.api',
   lifecycle: {
@@ -33,7 +36,7 @@ export const gitDeliveryModuleManifest = {
   },
   publicContracts: ['GitDeliveryService', '/api/v1/git-delivery/*'],
   scope: 'zetro-api',
-  version: '0.1.0',
+  version: '1.0.0',
 } as const
 
 export async function registerGitDeliveryModule(
@@ -42,12 +45,15 @@ export async function registerGitDeliveryModule(
   projectRoot: string,
   projects: ProjectService,
   developerTools: DeveloperToolsService,
+  database: ZetroDatabase,
+  systemTasks: SystemTaskService,
 ) {
   const repository = new GitDeliveryRepository(
+    database,
     resolve(projectRoot, environment.STORAGE_ROOT, 'private', 'zetro', 'git-delivery.json'),
   )
   await repository.initialize()
-  const service = new GitDeliveryService(repository, projects, developerTools)
+  const service = new GitDeliveryService(repository, projects, developerTools, systemTasks)
   await registerGitDeliveryRoutes(server, service)
   return service
 }

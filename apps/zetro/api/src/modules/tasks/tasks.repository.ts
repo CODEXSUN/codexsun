@@ -1,43 +1,48 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import type { Kysely } from 'kysely'
+import type { ZetroDatabase } from '../../infrastructure/zetro-database.js'
+import type { TasksDatabase } from './tasks.database.js'
+import { tasksMigrations } from './tasks.migrations.js'
 import type { ZetroTask } from './tasks.types.js'
 
 export class TaskRepository {
   private tasks: ZetroTask[] = []
+  private readonly database: Kysely<TasksDatabase>
 
   public constructor(
-    private readonly filePath: string,
+    private readonly databaseProvider: ZetroDatabase,
+    private readonly legacyFilePath: string,
     private readonly defaultProjectId: string,
-  ) {}
+  ) {
+    this.database = databaseProvider.forModule<TasksDatabase>()
+  }
 
   public async initialize(): Promise<void> {
-    await mkdir(dirname(this.filePath), { recursive: true })
-
+    await this.databaseProvider.migrate('zetro.tasks.api', tasksMigrations)
+    const rows = await this.database.selectFrom('zetro_tasks').select('data').execute()
+    this.tasks = rows.map(({ data }) => JSON.parse(data) as ZetroTask)
+    if (this.tasks.length > 0) return
     try {
-      const stored = JSON.parse(await readFile(this.filePath, 'utf8')) as Array<
+      const stored = JSON.parse(await readFile(this.legacyFilePath, 'utf8')) as Array<
         Omit<ZetroTask, 'archived' | 'pinned' | 'projectId'> & {
           archived?: boolean
           pinned?: boolean
           projectId?: string
         }
       >
-      const needsMigration = stored.some(
-        ({ archived, pinned, projectId }) =>
-          archived === undefined || pinned === undefined || !projectId,
-      )
       this.tasks = stored.map((task) => ({
         ...task,
         archived: task.archived ?? false,
         pinned: task.pinned ?? false,
         projectId: task.projectId ?? this.defaultProjectId,
       }))
-      if (needsMigration) await this.persist()
+      for (const task of this.tasks) await this.insert(task)
     } catch (error) {
       if (!isMissingFile(error)) {
         throw error
       }
 
-      await this.persist()
+      return
     }
   }
 
@@ -59,17 +64,33 @@ export class TaskRepository {
       this.tasks[index] = task
     }
 
-    await this.persist()
+    if (index === -1) await this.insert(task)
+    else {
+      await this.database
+        .updateTable('zetro_tasks')
+        .set(toRow(task))
+        .where('id', '=', task.id)
+        .execute()
+    }
   }
 
   public find(taskId: string): ZetroTask | undefined {
     return this.tasks.find((task) => task.id === taskId)
   }
 
-  private async persist(): Promise<void> {
-    const temporaryPath = `${this.filePath}.tmp`
-    await writeFile(temporaryPath, `${JSON.stringify(this.tasks, null, 2)}\n`, 'utf8')
-    await rename(temporaryPath, this.filePath)
+  private async insert(task: ZetroTask): Promise<void> {
+    await this.database.insertInto('zetro_tasks').values(toRow(task)).execute()
+  }
+}
+
+function toRow(task: ZetroTask) {
+  return {
+    archived: task.archived ? 1 : 0,
+    data: JSON.stringify(task),
+    id: task.id,
+    pinned: task.pinned ? 1 : 0,
+    project_id: task.projectId,
+    updated_at: task.updatedAt,
   }
 }
 

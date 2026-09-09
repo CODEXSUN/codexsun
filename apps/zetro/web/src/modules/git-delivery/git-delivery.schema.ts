@@ -32,7 +32,7 @@ export const gitDeliveryPreviewSchema = z.object({
 const flowStepSchema = z.object({
   id: z.enum(['changelog', 'commit', 'push', 'sync', 'version']),
   message: z.string(),
-  status: z.enum(['complete', 'failed', 'skipped']),
+  status: z.enum(['blocked', 'complete', 'failed', 'running', 'skipped']),
 })
 export const gitDeliveryFlowSchema = z.object({
   completedAt: z.string(),
@@ -52,7 +52,8 @@ export const gitDeliveryFlowSchema = z.object({
     writeChangelog: z.boolean(),
   }),
   projectId: z.string(),
-  status: z.enum(['complete', 'failed', 'running']),
+  status: z.enum(['blocked', 'complete', 'failed', 'pending', 'running', 'stopped']),
   steps: z.array(flowStepSchema),
+  systemTaskId: z.string().nullable(),
 })
 export const gitDeliveryFlowListSchema = z.object({ flows: z.array(gitDeliveryFlowSchema) })

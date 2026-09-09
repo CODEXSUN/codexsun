@@ -5,6 +5,8 @@ import { OrchestrationDetails } from './orchestration.details'
 import {
   useCloudTarget,
   useDeploymentEvidence,
+  useDockerContainerAction,
+  useDockerContainers,
   useDeploymentRecord,
   useDeploymentRecords,
   useOrchestrationOverview,
@@ -28,6 +30,8 @@ export function OrchestrationWorkspace({
   const deploymentEvidence = useDeploymentEvidence()
   const deploymentRecord = useDeploymentRecord()
   const deploymentRecords = useDeploymentRecords()
+  const dockerContainers = useDockerContainers()
+  const dockerAction = useDockerContainerAction()
   const action = useServiceAction()
   const failures = useRuntimeFailures()
   const [history, setHistory] = useState<WorkspaceView[]>([{ page: 'list' }])
@@ -90,6 +94,9 @@ export function OrchestrationWorkspace({
               deploymentRecordError={deploymentRecord.error?.message}
               deploymentRecordPending={deploymentRecord.isPending}
               deploymentRecords={deploymentRecords.data?.records ?? []}
+              dockerActionError={dockerAction.error?.message}
+              dockerActionPending={dockerAction.isPending}
+              dockerWorkloads={dockerContainers.data}
               failures={failures.data}
               logsByService={{
                 ...(apiService ? { [apiService.id]: apiLogs.data } : {}),
@@ -99,6 +106,9 @@ export function OrchestrationWorkspace({
               services={selectedServices}
               onAction={runAction}
               onCreateDeploymentRecord={(record) => deploymentRecord.mutate(record)}
+              onDockerAction={(containerId, dockerActionName) =>
+                dockerAction.mutate({ action: dockerActionName, containerId })
+              }
               onOpenDeploymentSettings={onOpenDeploymentSettings}
               onRefreshLogs={(serviceId) => {
                 if (serviceId === apiService?.id) void apiLogs.refetch()

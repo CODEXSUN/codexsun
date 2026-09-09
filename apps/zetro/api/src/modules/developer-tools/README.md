@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.developer-tools.api`
-- Version: `0.2.0`
+- Version: `1.0.0`
 - Owner: Zetro API
 - Dependency: `zetro.projects.api@^0.4.1`
 
@@ -18,13 +18,17 @@ and persisted developer tool settings.
 - `GET /api/v1/projects/:projectId/developer-tools/compare` compares the current HEAD with a base.
 - `POST /api/v1/projects/:projectId/developer-tools/actions` runs fetch, pull, branch, commit, push, or revert.
 - `POST /api/v1/projects/:projectId/developer-tools/launch` opens an editor, file browser, or terminal.
+- `changes`, `diff`, and `stage` routes own changed-file navigation and file or hunk staging.
+- `history`, `blame`, and `conflicts` routes own repository review and conflict resolution.
+- `branches`, `stashes`, `scripts`, and `pull-requests` routes own recovery and delivery tools.
 
 ## Safety
 
 All Git commands use argument arrays and the registered repository root. The API
 does not use shell command strings. Revert creates a new commit and keeps history.
 
-Push requires an enabled effective setting. Force push is unavailable. A separate
+Push and pull-request creation require enabled effective settings. Protected
+branches reject direct pushes. Force push is unavailable. A separate
 setting can permit `--force-with-lease` for an explicit request.
 
 The editor launcher uses a fixed application allowlist. File and terminal launchers
@@ -35,8 +39,9 @@ Delivery. Git Delivery does not execute Git commands directly.
 
 ## Persistence
 
-The module stores settings in `storage/app/private/zetro/developer-tools.json`.
-Project settings can inherit global defaults or store an isolated configuration.
+The module stores settings in module-owned SQLite or MariaDB tables. It imports
+legacy JSON settings once when the table is empty. Project settings can inherit
+global defaults or store an isolated configuration.
 
 ## Verification
 

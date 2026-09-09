@@ -30,6 +30,8 @@ This change preserves the concurrent Zetro Git Delivery release at `0.1.7`. The 
 
 The root version tool keeps npm, Tauri, Cargo package, and Cargo lock metadata aligned.
 
+The final gate also found concurrent Button gallery wiring errors. The cleanup connected the declared Button variants and mapped the primary specimen to the shared `default` variant.
+
 No Identity entity, route, migration, seed, policy, or UI was added. Identity remains the next module-owned workstream.
 
 ## Verification

@@ -13,12 +13,15 @@ Zetro is a standalone development desk with task execution and provider-backed a
 - `api/src/modules/projects` owns registered local repository workspaces.
 - `api/src/modules/developer-tools` owns Git actions, monitoring, and trusted tool launchers.
 - `api/src/modules/git-delivery` owns reviewed release system tasks and their settings.
+- `api/src/modules/system-tasks` owns durable execution, recovery, cancellation, retries, and queues.
+- `api/src/modules/operations` owns runtime metrics, connected app status, retention, and diagnostics.
 - `api/src/modules/tasks` owns project-scoped task records and private file persistence.
 - `web/src/modules/desk` owns the Zetro Desk shell, workspace, and sidebar surfaces.
 - `web/src/modules/agent-chat` owns active and archived history, messages, and prompt input.
 - `web/src/modules/projects` owns the active project and sidebar project switcher.
 - `web/src/modules/developer-tools` owns shared repository tools and their settings.
 - `web/src/modules/git-delivery` owns the interactive GitHub delivery flow builder.
+- `web/src/modules/operations` owns the metrics control, worktree manager, and retention settings.
 - `web/src/modules/project-tasks` owns project task management.
 - `web/src/modules/settings` owns centralized application preferences,
   appearance, ITO visibility, connection status, and device activation UI.
@@ -53,6 +56,10 @@ The Tauri workspace packages the existing web and API components for Windows. It
 
 Root `.env` owns `ZETRO_API_PORT`, `ZETRO_WEB_PORT`, and optional Codex provider settings. The API owns local Codex account connection endpoints. The mounted Settings web module owns browser-local application preferences and composes shared MDI appearance controls.
 
+Zetro uses `ZETRO_DB_DRIVER=sqlite` by default with WAL enabled. Set it to
+`mariadb` for server-scale storage. Set `ZETRO_QUEUE_DRIVER=bullmq` with
+`REDIS_URL` for a shared backend queue.
+
 The API uses the shared Platform Core observability adapter for Pino logs, request correlation, HTTP telemetry, and safe shutdown. Production JSON output is captured by the runtime holder for Orship.
 
 `ZETRO_CODEX_API_KEY` supplies a separate API credential to the local Codex App Server. `ZETRO_WORKTREE_ROOT` selects the parent directory for task worktrees.
@@ -64,12 +71,17 @@ it is not a Git repository. The desktop app and browser use the same project
 connection flow. The desktop host allows only the Tauri origin to call the
 bundled loopback API.
 
+The desktop host generates a random session token for every API process and sends
+it through each non-health request. CORS is not used as authentication.
+
 On Windows, the default `codex` command resolves the newest executable from the Codex desktop installation. Set `ZETRO_CODEX_COMMAND` to a full path to override discovery.
 
 Each conversation gets one detached Git worktree below `ZETRO_WORKTREE_ROOT`.
 The worktree starts from the selected project's repository `HEAD`.
 
-Zetro does not copy uncommitted main-checkout changes into a new worktree. Zetro keeps task worktrees after conversation deletion until a separate cleanup flow removes them.
+Zetro does not copy uncommitted main-checkout changes into a new worktree. The
+operations manager shows disk usage and removes only clean validated worktrees
+through an explicit action or a configured retention sweep.
 
 ## Provider workflows
 

@@ -15,9 +15,16 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             {
-              name: 'vendor',
+              name(moduleId) {
+                const packagePath = moduleId.match(
+                  /node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/,
+                )?.[1]
+                return packagePath
+                  ? `vendor-${packagePath.replaceAll('/', '-').replaceAll('\\', '-')}`
+                  : null
+              },
               test: /node_modules/,
-              maxSize: 400_000,
+              maxSize: 360_000,
             },
           ],
         },

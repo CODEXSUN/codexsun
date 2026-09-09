@@ -3,6 +3,7 @@ export interface ZetroDesktopStatus {
   appDataDirectory: string
   logFile: string
   runtimeOwner: 'desktop' | 'existing'
+  sessionToken: string
   version: string
   worktreeDirectory: string
 }
