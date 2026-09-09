@@ -14,16 +14,9 @@
 
 ## v-0.1.12
 
-### [v 0.1.12] 2026-09-09 5:07 pm - version update
+### [v 0.1.12] 2026-09-09 5:07 pm - Zetro desktop startup and compact repository indicators
 
-- Database update: No (auto-check).
-- Bumped workspace version to 0.1.12.
-
-## v-0.1.11
-
-### [v 0.1.11] 2026-09-09 4:56 pm - Zetro desktop startup and compact repository indicators
-
-- Database update: No (manual). Bumped workspace version to 0.1.11.
+- Database update: No (auto-check). Bumped workspace version to 0.1.12.
 - App Codebase Changes: The packaged Zetro API now prefers loopback port `16050` and falls back to a free port. The shared UI uses the live desktop address. Startup failures show a Windows dialog. Repository and operations controls now show compact icons and counts without branch or memory labels.
 - Verification: Zetro API, web, and desktop tests passed. The packaged application stayed responsive with development port `6050` active. Health passed on port `16050`, and the owned API stopped with the desktop process.
 

@@ -32,7 +32,7 @@ The authored-file check excludes Tauri's generated `src-tauri/gen` schemas. Auth
 | ------------- | ----------------- | ------------------------ | ---------------------------- |
 | Zetro desktop | Zetro web         | Tauri `frontendDist`     | `dist/apps/zetro/web`        |
 | Zetro desktop | Zetro API         | Bundled loopback process | `http://127.0.0.1:16050`     |
-| Zetro desktop | Windows Installer | WiX MSI                  | `Zetro_0.1.11_x64_en-US.msi` |
+| Zetro desktop | Windows Installer | WiX MSI                  | `Zetro_0.1.12_x64_en-US.msi` |
 | Zetro web     | Tauri host        | Native folder command    | `pick_repository_folder`     |
 | Zetro API     | Tauri host        | Parent process watcher   | `ZETRO_DESKTOP_PARENT_PID`   |
 
