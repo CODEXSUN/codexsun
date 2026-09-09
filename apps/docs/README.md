@@ -4,9 +4,9 @@ Reference: [Application standard](../../assist/architecture/application-standard
 
 ## Purpose
 
-Docs is a connected documentation application. It indexes repository Markdown and
-MDX files, includes its Obsidian-compatible vault, and maintains a MariaDB
-metadata index.
+Docs is a connected documentation application. It indexes repository Markdown,
+MDX, and text files, includes its Obsidian-compatible vault, and maintains a
+MariaDB metadata index.
 
 ## Ownership
 
@@ -41,9 +41,10 @@ Root `.env` owns `DOCS_API_HOST`, `DOCS_API_PORT`, `DOCS_WEB_PORT`, `VITE_DOCS_A
 
 The API uses the shared Platform Core observability adapter for Pino logs, request correlation, HTTP telemetry, and safe shutdown. Production JSON output is captured by the runtime holder for Orship.
 
-The default vault is `apps/docs/content`. The API also discovers Markdown and MDX
-files below the repository root, excluding generated, dependency, storage, and Git
-directories. Executable MDX expressions and imports are rejected before server rendering.
+The default vault is `apps/docs/content`. The API also discovers Markdown, MDX, and text
+files below the repository root, excluding generated, dependency, storage, and Git directories.
+Executable MDX expressions and imports are rejected before server rendering. Docs Settings provides
+a read-only health scan for missing owned README files and unorganized document sources.
 
 ## Health and shutdown
 

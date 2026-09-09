@@ -1,4 +1,8 @@
-import type { DocumentSummary, DocumentUpdateRequest } from '@codexsun/docs-contracts'
+import type {
+  DocumentationScanResponse,
+  DocumentSummary,
+  DocumentUpdateRequest,
+} from '@codexsun/docs-contracts'
 import type { DocsEnvironment } from '../../config.js'
 import { DocsRenderer } from './docs-library.renderer.js'
 import { DocsIndexRepository } from './docs-library.repository.js'
@@ -29,6 +33,10 @@ export class DocsLibraryService {
 
   public getAsset(assetPath: string) {
     return this.vault.getAsset(assetPath)
+  }
+
+  public scanDocumentation(): Promise<DocumentationScanResponse> {
+    return this.vault.scan()
   }
 
   public async updateDocument(

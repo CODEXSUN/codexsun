@@ -88,18 +88,18 @@ The console does not run Git, Docker Compose, or SSH. It only records the operat
 On Ubuntu, run this command:
 
 ```sh
-bash ./.container/orship/setup.sh
+bash ./.container/orship/setup-orship.sh
 ```
 
 If Docker is missing, the script installs it. Sign out and sign in after the installer updates the `docker` group. Then run these commands from Git Bash, WSL, or Ubuntu:
 
 ```sh
 bash ./.container/orship/build.sh
-bash ./.container/orship/setup.sh
+bash ./.container/orship/setup-orship.sh
 bash ./.container/orship/verify.sh
 ```
 
-Docker builds the `orship-only` profile inside its image builder. `build.sh` checks Compose syntax and builds both images. `setup.sh` builds, starts, and lists the stack. The verification script checks API readiness and the Docker workload endpoint.
+Docker builds the `orship-only` profile inside its image builder. `build.sh` checks Compose syntax and builds both images. `setup-orship.sh` builds, starts, and lists the stack. The verification script checks API readiness and the Docker workload endpoint.
 
 The image builder installs and verifies npm `12.0.2` before dependency installation. The runtime image installs production dependencies from the pinned lockfile.
 
@@ -108,11 +108,11 @@ The image builder installs and verifies npm `12.0.2` before dependency installat
 First update and review the repository source yourself. Then run:
 
 ```sh
-bash ./update.sh --check
-bash ./update.sh
+bash ./.container/orship/update-orship.sh --check
+bash ./.container/orship/update-orship.sh
 ```
 
-The update command does not pull source. It refuses a dirty worktree unless `--allow-dirty` is supplied, rebuilds only the Orship Compose services, preserves the named `orship-storage` volume, waits for the replacement containers, and verifies the local APIs. If the replacement fails, it restores the images used by the previous containers. Use `--yes` to skip the confirmation prompt or `--no-cache` to force an uncached rebuild.
+The update command does not pull source. It refuses a dirty worktree unless `--allow-dirty` is supplied, rebuilds only the Orship Compose services, preserves the named `orship-storage` volume, waits for the replacement containers, and verifies the local APIs. It can recover the unit when Docker Desktop has left its existing containers stopped. If the replacement fails, it restores the images used by the previous containers. It builds the API and web images one at a time to avoid competing for Docker's npm cache. Use `--no-cache` to force an uncached rebuild.
 
 ### Manage a local Docker workload
 

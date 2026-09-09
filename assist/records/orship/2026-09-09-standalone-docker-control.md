@@ -20,9 +20,11 @@ Orship now has an independent Compose setup under `.container/orship`. It can ob
 
 ## Installation flow
 
-`setup.sh` installs Ubuntu Docker packages when they are missing and configures the Docker group. `build.sh` checks Compose syntax and builds the images. `setup.sh` builds and starts the Compose unit. `verify.sh` checks the API readiness endpoint and workload list API.
+`setup-orship.sh` installs Ubuntu Docker packages when they are missing and configures the Docker group. `build.sh` checks Compose syntax and builds the images. `setup-orship.sh` builds and starts the Compose unit. `verify.sh` checks the API readiness endpoint and workload list API.
 
-`update.sh` is the root operator entry point. It never pulls source. After an operator has updated and reviewed the checkout, it checks the worktree and Compose ownership, rebuilds only the Orship services, preserves `orship-storage`, waits for readiness, and verifies the local APIs. A failed replacement retags and restarts the images used by the previous containers.
+`update-orship.sh` is the Orship operator entry point under `.container/orship`. It never pulls source. After an operator has updated and reviewed the checkout, it checks the worktree and Compose ownership, rebuilds only the Orship services one at a time, preserves `orship-storage`, waits for readiness, and verifies the local APIs. A failed replacement retags and restarts the images used by the previous containers. Serial builds avoid concurrent npm-cache contention on Docker Desktop.
+
+The standalone web container proxies `/api` requests to the private API container. The browser has no direct API origin or Docker socket access. The API image includes only the deployment catalog and Platform-only profile required for read-only local deployment evidence.
 
 ## Version
 

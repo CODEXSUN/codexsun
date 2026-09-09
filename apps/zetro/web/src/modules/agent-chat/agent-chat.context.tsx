@@ -20,9 +20,11 @@ import type {
   ChatWorkflow,
 } from './agent-chat.types'
 import { useProjects } from '../projects'
+import { toCodexTurnSelection, useZetroPreferences } from '../settings'
 
 export function AgentChatProvider({ children }: { children: ReactNode }) {
   const { activeProject } = useProjects()
+  const { preferences } = useZetroPreferences()
   const activeIdRef = useRef<string | null>(null)
   const historyRequestRef = useRef(0)
   const responseAbortRef = useRef<AbortController | null>(null)
@@ -35,6 +37,7 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [model, setModel] = useState('Codex')
+  const [preparedDraft, setPreparedDraft] = useState<string | null>(null)
   const [scope, setScope] = useState<ChatWorkspaceScope | null>(null)
   const [scopeOpen, setScopeOpen] = useState(false)
   const [summaries, setSummaries] = useState<ChatConversationSummary[]>([])
@@ -234,6 +237,7 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
         activeProject.id,
         pendingMessages,
         workflow,
+        toCodexTurnSelection(preferences),
         responseAbort.signal,
       )
       const completedMessages: ChatMessage[] = [
@@ -325,6 +329,7 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
         isLoadingHistory,
         messages,
         model,
+        preparedDraft,
         scope,
         scopeOpen,
         summaries,
@@ -342,10 +347,12 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
         openArchive,
         openConversation,
         openScope,
+        prepareDraft: setPreparedDraft,
         renameConversation: (conversationId, title) =>
           changeConversation(conversationId, { title: title.trim() }),
         sendMessage,
         saveScope,
+        clearPreparedDraft: () => setPreparedDraft(null),
         setScopeOpen,
         restoreConversation,
         showChat: () => setView('chat'),

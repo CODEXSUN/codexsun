@@ -1,6 +1,17 @@
 import type { PlatformWebModule } from '@codexsun/platform-core-web'
-import { UiGallery } from '@codexsun/ui/templates/ui-gallery'
-import type { FC } from 'react'
+import { lazy, Suspense, type FC } from 'react'
+
+const UiGallery = lazy(() =>
+  import('@codexsun/ui/templates/ui-gallery/page').then((module) => ({
+    default: module.UiGallery,
+  })),
+)
+
+const UiGalleryRoute: FC = () => (
+  <Suspense fallback={<div className="min-h-full bg-background" />}>
+    <UiGallery />
+  </Suspense>
+)
 
 export const uiGalleryWebModule: PlatformWebModule<FC> = {
   id: 'ui-gallery',
@@ -14,11 +25,11 @@ export const uiGalleryWebModule: PlatformWebModule<FC> = {
   ],
   routes: [
     {
-      component: UiGallery,
+      component: UiGalleryRoute,
       id: 'ui-gallery.components',
       path: '/ui',
       title: 'Overview workspace',
     },
   ],
-  version: '1.0.0',
+  version: '1.2.0',
 }

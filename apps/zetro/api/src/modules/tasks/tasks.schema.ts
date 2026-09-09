@@ -4,6 +4,8 @@ export const createTaskSchema = z.strictObject({
   description: z.string().trim().max(2_000).default(''),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   projectId: z.string().uuid(),
+  parentTaskId: z.string().uuid().nullable().optional(),
+  planningKind: z.enum(['task', 'phase', 'subtask']).default('task'),
   title: z.string().trim().min(1).max(160),
 })
 
@@ -15,6 +17,7 @@ export const updateTaskSchema = z
     pinned: z.boolean().optional(),
     status: z.enum(['todo', 'in_progress', 'done']).optional(),
     title: z.string().trim().min(1).max(160).optional(),
+    workflow: z.enum(['review']).nullable().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, 'Provide at least one task change.')
 

@@ -8,7 +8,7 @@ blocks, and components.
 ## Identity and version
 
 - Module ID: `ui-gallery`
-- Version: `1.0.0`
+- Version: `1.2.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -17,6 +17,8 @@ blocks, and components.
 - The module owns the `/ui` route and its Overview navigation contribution.
 - `packages/ui` owns the Overview showcase, layout registry, previews, code examples, and reusable components.
 - The module owns no entities, tables, settings, or browser storage.
+- `packages/ui/src/design-system` owns component metadata, supported variants, pinned
+  defaults, and validated programmatic selection.
 
 ## Public contracts
 
@@ -26,9 +28,12 @@ blocks, and components.
 - Primary sidebar action: `Overview`.
 - Browser title and MDI command-bar identity: `UI` on every `/ui` route.
 - Layout selection: `/ui?layout=<layout-id>`.
+- Page selection: `/ui?page=<page-id>`.
 - Component selection: `/ui?component=<component-id>`.
 - Block selection: `/ui?block=<block-id>`.
-- Layout ID: `mdi-main`.
+- Layout IDs: `mdi-main` and `agent-workspace`.
+- Page IDs: `login-v1`, `login-v2`, `register-v1`, `register-v2`,
+  `forgot-password`, and `notifications`.
 - Block IDs: `table` and `form`.
 - Component IDs come from the complete shared component catalog. Table is represented
   by its composed block page instead of a duplicate primitive page.
@@ -44,6 +49,13 @@ blocks, and components.
   section sampler, or scaffold.
 - The MDI Main page uses the shared template-page header, 90-percent live preview,
   usage and code section, and named documentation navigation.
+- The Agent Workspace page renders the package-owned fixed activity rails inside MDI Main.
+  Its live rail items update the selected tool and expose accessible tooltips.
+- MDI Feature Settings shows independent Primary Activity Rail and Secondary Utility Rail switches.
+- The sidebar exposes one nested Authentication group with Login v1, Login v2, Register v1,
+  Register v2, and Forgot Password. Notifications Page remains a direct page action.
+- Every page route renders the real package-owned block in the shared numbered specimen card.
+  Login and Register defaults persist per page family and every page exposes copy and code actions.
 - The Table page renders ten live sample rows through `@codexsun/ui/blocks/table`.
 - The Form page renders live animated tabs, lookup fields, active state, and actions
   through `@codexsun/ui/blocks/form`.
@@ -55,6 +67,10 @@ blocks, and components.
   contains all Button compositions without a scrollbar. Every specimen is 40px high.
 - The Button Group page uses the same card pattern for nine live compositions across three
   borderless rows. Its groups wrap responsively without horizontal scrolling.
+- The Overview derives all component sections from the design-system registry. Each card
+  renders the real package-owned default. Block cards open the real Table and Form pages.
+- Applications cannot define shared primitives or variants. The root `check:ui-system`
+  command rejects private UI imports, direct primitive-library imports, and local UI copies.
 - Events published or consumed: None.
 
 ## Verification
@@ -69,3 +85,4 @@ blocks, and components.
 - [2026-09-08 Shared design system and workspace blocks](../../../../../../assist/records/platform/2026-09-08-shared-design-system.md)
 - [2026-09-08 UI workspace reset](../../../../../../assist/records/platform/2026-09-08-ui-workspace-reset.md)
 - [2026-09-08 UI layout documentation workspace](../../../../../../assist/records/platform/2026-09-08-ui-layout-documentation.md)
+- [2026-09-09 Agent Workspace layout](../../../../../../assist/records/platform/2026-09-09-agent-workspace-layout.md)

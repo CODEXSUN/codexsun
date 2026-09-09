@@ -1,18 +1,20 @@
 {
   "name": "@codexsun/zetro-api",
   "private": true,
-  "version": "0.1.13",
+  "version": "0.1.14",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-api.eslintcache",
-    "test": "npm run test:connection && npm run test:security && npm run test:system-tasks && npm run test:developer-tools && npm run test:git-delivery && npm run test:history && npm run test:projects && npm run test:tasks && npm run test:workflow && npm run test:worktree",
+    "test": "npm run test:connection && npm run test:security && npm run test:system-tasks && npm run test:developer-tools && npm run test:git-delivery && npm run test:model-selection && npm run test:attachment-guidance && npm run test:history && npm run test:projects && npm run test:tasks && npm run test:workflow && npm run test:worktree",
     "test:connection": "node --test --import tsx tests/codex-app-server.client.test.ts",
     "test:security": "node --test --import tsx tests/desktop-session-auth.test.ts",
     "test:system-tasks": "node --test --import tsx tests/system-tasks.test.ts",
-    "test:developer-tools": "node --test --import tsx tests/developer-tools.git.test.ts",
+    "test:developer-tools": "node --test --import tsx tests/developer-tools.git.test.ts tests/developer-tools.scripts.test.ts",
     "test:git-delivery": "node --test --import tsx tests/git-delivery.service.test.ts",
+    "test:model-selection": "node --test --import tsx tests/chat-model-selection.test.ts",
+    "test:attachment-guidance": "node --test --import tsx tests/chat-attachment-guidance.test.ts",
     "test:chat-service": "node --test --import tsx tests/chat.service.test.ts",
     "test:history": "node --test --import tsx tests/chat-conversation.service.test.ts",
     "test:projects": "node --test --import tsx tests/project.service.test.ts",
@@ -23,7 +25,7 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.13",
+    "@codexsun/platform-core-api": "^0.1.14",
     "archiver": "^8.0.0",
     "better-sqlite3": "^12.11.1",
     "bullmq": "^6.3.4",

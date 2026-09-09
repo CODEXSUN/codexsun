@@ -8,7 +8,14 @@ import { TaskService } from './tasks.service.js'
 import { defaultProjectId, type ProjectService } from '../projects/index.js'
 
 export const tasksModuleManifest = {
-  capabilities: ['task-create', 'task-list', 'task-update', 'task-archive', 'task-pin'],
+  capabilities: [
+    'task-create',
+    'task-list',
+    'task-update',
+    'task-archive',
+    'task-pin',
+    'task-plan',
+  ],
   dataSchema: { checksum: 'tasks-001-tasks-v1', version: 1 },
   dependencies: { 'zetro.projects.api': '^0.5.0' },
   id: 'zetro.tasks.api',
@@ -21,7 +28,7 @@ export const tasksModuleManifest = {
   },
   publicContracts: ['GET /api/v1/tasks', 'POST /api/v1/tasks', 'PATCH /api/v1/tasks/:taskId'],
   scope: 'zetro-api',
-  version: '0.4.0',
+  version: '0.5.0',
 } as const
 
 export async function registerTasksModule(

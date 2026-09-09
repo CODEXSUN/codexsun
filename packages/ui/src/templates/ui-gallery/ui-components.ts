@@ -1,21 +1,11 @@
-import { galleryComponents, type GalleryCategory } from './gallery-catalog'
+import { designSystemComponents, type DesignSystemComponentDefinition } from '../../design-system'
 
-export type UiComponentDoc = {
-  category: GalleryCategory
-  id: string
-  name: string
-  source: string
-}
+export type UiComponentDoc = DesignSystemComponentDefinition
 
-export const uiComponentDocs: readonly UiComponentDoc[] = galleryComponents
-  .filter(({ name }) => name !== 'Table')
-  .map((component) => ({ ...component, id: toId(component.name) }))
+export const uiComponentDocs: readonly UiComponentDoc[] = designSystemComponents
+  .filter(({ id }) => id !== 'table')
   .sort((left, right) => left.name.localeCompare(right.name))
 
 export function findUiComponent(componentId: string | null): UiComponentDoc | undefined {
   return uiComponentDocs.find(({ id }) => id === componentId)
-}
-
-function toId(name: string) {
-  return name.toLowerCase().replaceAll(' ', '-')
 }

@@ -8,7 +8,6 @@ COMPOSE_FILE="$SCRIPT_DIR/compose.yaml"
 COMPOSE=(docker compose -f "$COMPOSE_FILE")
 
 CHECK_ONLY=false
-ASSUME_YES=false
 ALLOW_DIRTY=false
 NO_CACHE=false
 LOCK_DIR="${TMPDIR:-/tmp}/codexsun-orship-update.lock"
@@ -27,7 +26,7 @@ fail() { printf "${red}[failed]${reset} %s\n" "$*" >&2; exit 1; }
 
 usage() {
   cat <<'EOF'
-Usage: bash ./update.sh [options]
+Usage: bash ./.container/orship/update-orship.sh [options]
 
 Rebuild and safely restart the standalone Orship Docker Compose deployment.
 The command never pulls Git source. Update the repository yourself, review it,
@@ -35,7 +34,6 @@ then run this command from the repository root.
 
 Options:
   --check          Run preflight checks without building or restarting.
-  --yes            Do not ask for confirmation.
   --allow-dirty    Permit a build from a dirty Git worktree.
   --no-cache       Rebuild Docker images without the Docker build cache.
   --help           Show this help text.
@@ -63,10 +61,6 @@ require_docker() {
 }
 
 confirm_update() {
-  if [ "$ASSUME_YES" = true ]; then
-    return
-  fi
-
   printf 'Build and restart Orship now? [y/N] '
   read -r answer
   case "$answer" in
@@ -113,11 +107,10 @@ rollback() {
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --check) CHECK_ONLY=true ;;
-    --yes) ASSUME_YES=true ;;
     --allow-dirty) ALLOW_DIRTY=true ;;
     --no-cache) NO_CACHE=true ;;
     --help|-h) usage; exit 0 ;;
-    *) fail "Unknown option: $1. Run bash ./update.sh --help." ;;
+    *) fail "Unknown option: $1. Run bash ./.container/orship/update-orship.sh --help." ;;
   esac
   shift
 done
@@ -143,8 +136,8 @@ fi
 
 declare -A CONTAINERS
 for service in orship-api orship-web; do
-  container="$("${COMPOSE[@]}" ps -q "$service")"
-  [ -n "$container" ] || fail "Orship service $service is not running. Run bash ./.container/orship/setup.sh first."
+  container="$("${COMPOSE[@]}" ps -aq "$service")"
+  [ -n "$container" ] || fail "Orship service $service does not exist. Run bash ./.container/orship/setup-orship.sh first."
   CONTAINERS[$service]="$container"
 done
 assert_compose_ownership
@@ -171,8 +164,10 @@ if [ "$NO_CACHE" = true ]; then
   BUILD_OPTIONS+=(--no-cache)
 fi
 
-info "Building Orship images"
-"${COMPOSE[@]}" build "${BUILD_OPTIONS[@]}"
+info "Building Orship API image"
+"${COMPOSE[@]}" build "${BUILD_OPTIONS[@]}" orship-api
+info "Building Orship web image"
+"${COMPOSE[@]}" build "${BUILD_OPTIONS[@]}" orship-web
 info "Restarting Orship containers"
 "${COMPOSE[@]}" up -d --no-build --force-recreate --wait --wait-timeout 120 orship-api orship-web
 info "Verifying Orship API and Docker workload access"

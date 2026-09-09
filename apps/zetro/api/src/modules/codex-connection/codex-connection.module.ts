@@ -12,6 +12,7 @@ export const codexConnectionModuleManifest = {
     'codex-device-login',
     'codex-logout',
     'codex-turns',
+    'codex-turn-model-selection',
     'codex-turn-interrupt',
     'ephemeral-codex-threads',
     'isolated-git-worktrees',
@@ -29,7 +30,7 @@ export const codexConnectionModuleManifest = {
     deactivate: 'Close the local Codex App Server process.',
     install: 'No Zetro credentials or persistent records are created.',
     uninstall: 'Leave Codex-managed credentials untouched.',
-    upgrade: 'Version 0.6.0 exposes managed worktrees through its public service.',
+    upgrade: 'Version 0.7.0 adds validated model and reasoning selection for each turn.',
   },
   publicContracts: [
     'GET /api/v1/settings/codex',
@@ -39,7 +40,7 @@ export const codexConnectionModuleManifest = {
     'CodexAppServerClient',
   ],
   scope: 'zetro-api',
-  version: '0.6.0',
+  version: '0.7.0',
 } as const
 
 export async function registerCodexConnectionModule(

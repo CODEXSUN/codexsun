@@ -1,16 +1,15 @@
-import { AuthShell } from './auth-shell'
-import { AuthLoginForm, type AuthLoginFormProps } from './login-form'
+import { LoginPage, type LoginPageProps } from './login-page'
 
 export function SuperAdminLoginPage(
-  props: Omit<AuthLoginFormProps, 'forgotHref' | 'registerHref'>,
+  props: Omit<LoginPageProps, 'description' | 'forgotHref' | 'registerHref' | 'title' | 'variant'>,
 ) {
   return (
-    <AuthShell
-      eyebrow="System control"
-      title="Super administrator sign in"
+    <LoginPage
+      {...props}
       description="This desk controls system-wide identity and policy."
-    >
-      <AuthLoginForm {...props} forgotHref="/sa/password/forgot" />
-    </AuthShell>
+      forgotHref="/sa/password/forgot"
+      registerHref={undefined}
+      title="Super administrator sign in"
+    />
   )
 }

@@ -13,7 +13,7 @@ Docker BuildKit caches npm downloads between local rebuilds. The first build sti
 On Ubuntu, run this command:
 
 ```sh
-bash ./.container/orship/setup.sh
+bash ./.container/orship/setup-orship.sh
 ```
 
 If Docker is missing, the script installs the Ubuntu Docker packages and adds your user to the `docker` group. Sign out and sign in, then run the same command again.
@@ -24,13 +24,13 @@ Run from Git Bash, WSL, or another POSIX shell with Docker available:
 
 ```sh
 bash ./.container/orship/build.sh
-bash ./.container/orship/setup.sh
+bash ./.container/orship/setup-orship.sh
 bash ./.container/orship/verify.sh
 ```
 
 Open `http://127.0.0.1:6091`.
 
-`setup.sh` runs the same image build before it starts the stack. Run `build.sh` when you want to build and inspect the images without starting containers.
+`setup-orship.sh` runs the same image build before it starts the stack. Run `build.sh` when you want to build and inspect the images without starting containers.
 
 On Docker Desktop for Windows, cancel an older build that is stalled at `chown -R node:node /app`. The current Dockerfile changes ownership only for `storage`, which avoids a slow recursive file walk through application dependencies.
 
@@ -39,13 +39,13 @@ On Docker Desktop for Windows, cancel an older build that is stalled at `chown -
 After you have manually pulled and reviewed source changes, update the running Compose unit from the repository root:
 
 ```sh
-bash ./update.sh --check
-bash ./update.sh
+bash ./.container/orship/update-orship.sh --check
+bash ./.container/orship/update-orship.sh
 ```
 
-`update.sh` validates Docker, Compose ownership, the current Git worktree, and the existing Orship containers before it makes a change. It rebuilds only the Orship API and web images, preserves the `orship-storage` volume, waits for the services, and checks the readiness and Docker workload APIs. If the new containers fail, it retags and restarts the previous images.
+`update-orship.sh` validates Docker, Compose ownership, the current Git worktree, and the existing Orship containers before it makes a change. It can update the unit whether its existing containers are running or stopped. It rebuilds only the Orship API and web images, preserves the `orship-storage` volume, waits for the services, and checks the readiness and Docker workload APIs. If the new containers fail, it retags and restarts the previous images.
 
-The command never runs `git pull`. It rejects a dirty worktree by default, so updates remain reproducible. Use `--allow-dirty` only when you intentionally need to build local, uncommitted changes. Use `--yes` for a non-interactive confirmation and `--no-cache` for a fully uncached Docker build.
+The command never runs `git pull`. It rejects a dirty worktree by default, so updates remain reproducible. Use `--allow-dirty` only when you intentionally need to build local, uncommitted changes. It builds the API and web images one at a time to avoid competing for Docker's npm cache. Use `--no-cache` for a fully uncached Docker build.
 
 ## Managed Docker workloads
 

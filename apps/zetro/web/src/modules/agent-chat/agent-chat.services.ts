@@ -15,6 +15,7 @@ import type {
   ChatWorkflow,
 } from './agent-chat.types'
 import { zetroFetch } from '../../lib/zetro-api'
+import type { ZetroCodexModel, ZetroReasoningEffort } from '../settings'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
 
@@ -108,6 +109,10 @@ export async function requestChatTurn(
   projectId: string,
   messages: readonly ChatMessage[],
   workflow: ChatWorkflow,
+  selection: {
+    model?: Exclude<ZetroCodexModel, 'default'>
+    reasoningEffort: ZetroReasoningEffort
+  },
   signal?: AbortSignal,
 ): Promise<ChatTurnResponse> {
   const response = await zetroFetch(`${apiBaseUrl}/api/v1/chat/responses`, {
@@ -120,6 +125,7 @@ export async function requestChatTurn(
       })),
       previousDelivery: findLatestDelivery(messages),
       projectId,
+      ...selection,
       workflow,
     }),
     headers: { 'Content-Type': 'application/json' },

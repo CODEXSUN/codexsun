@@ -21,11 +21,13 @@ Zetro is a standalone development desk with task execution and provider-backed a
 - `web/src/modules/projects` owns the active project and sidebar project switcher.
 - `web/src/modules/developer-tools` owns shared repository tools and their settings.
 - `web/src/modules/git-delivery` owns the interactive GitHub delivery flow builder.
+- `web/src/modules/automation` owns deterministic run controls and reviewed diagnostic handoff.
 - `web/src/modules/operations` owns the metrics control, worktree manager, and retention settings.
 - `web/src/modules/project-tasks` owns project task management.
 - `web/src/modules/settings` owns centralized application preferences,
   appearance, ITO visibility, connection status, and device activation UI.
 - `desktop` owns the Tauri window, bundled API process, native folder picker, and WiX MSI.
+- `cli` owns the terminal client for the shared Zetro API contracts.
 - The web `app.tsx` is the thin composition root.
 
 The composition root supplies Zetro identity and runtime status to the shared
@@ -41,6 +43,7 @@ Desk. Project Chat, Tasks, and Settings switch inside this one Desk route.
 | `@codexsun/zetro-api`     | Agent and task API | `npm.cmd run dev:zetro-api`     | `http://127.0.0.1:6050`       |
 | `@codexsun/zetro-web`     | Agent workspace    | `npm.cmd run dev:zetro`         | `http://127.0.0.1:6060/zetro` |
 | `@codexsun/zetro-desktop` | Windows host       | `npm.cmd run desktop:zetro:dev` | Local Windows application     |
+| `@codexsun/zetro-cli`     | Automation client  | `npm.cmd run zetro -- help`     | Local terminal                |
 
 Build the Windows installer with `npm.cmd run desktop:zetro:msi`.
 
@@ -73,6 +76,20 @@ bundled loopback API.
 
 The desktop host generates a random session token for every API process and sends
 it through each non-health request. CORS is not used as authentication.
+
+The shared web workspace provides one Codex model and reasoning selector in the
+context bar. The same stored choice controls browser and desktop chat turns.
+
+The shared chat composer also owns one input pipeline for browser and desktop.
+It accepts picker, drag-and-drop, and clipboard files. Images remain multimodal
+inputs. Long clipboard text becomes a scoped text attachment so the editor stays
+responsive and Codex can inspect the complete source.
+
+The Automation workspace and CLI use the same API contracts. Repository scripts,
+Git delivery, diagnostics, worktree retention, and durable run history stay
+deterministic. An agent enters the flow only after a user selects a failed run
+and requests diagnosis. That handoff prepares a review prompt and does not rerun,
+publish, clean, or modify the repository automatically.
 
 On Windows, the default `codex` command resolves the newest executable from the Codex desktop installation. Set `ZETRO_CODEX_COMMAND` to a full path to override discovery.
 

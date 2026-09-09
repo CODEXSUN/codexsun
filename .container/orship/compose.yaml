@@ -36,10 +36,9 @@ services:
   orship-web:
     build:
       context: ../..
-      dockerfile: .container/docker/Dockerfile.static
-      args:
-        PROFILE_ID: orship-only
-        COMPONENT_ID: orship-web
+      dockerfile: .container/orship/Dockerfile.web
+      additional_contexts:
+        orship_web_dist: ../../dist/apps/orship/web
     environment:
       PORT: 6091
     depends_on:

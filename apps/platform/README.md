@@ -31,7 +31,7 @@ Use `npm.cmd run runtime:plan -- platform-only` to inspect the resolved framewor
 
 Root `.env` owns `PLATFORM_API_HOST`, `PLATFORM_API_PORT`, `PLATFORM_WEB_HOST`, `PLATFORM_WEB_PORT`, `PLATFORM_WEB_ORIGIN`, `VITE_PLATFORM_API_URL`, logging, shutdown, MariaDB, module runtime, and storage settings. Safe examples are in [root `.env.example`](../../.env.example).
 
-Identity adds one canonical group: authentication mode, development login, regular registration, session TTL and renewal window, and the initial super-administrator name, email, and password. Current `SUPER_ADMIN_*`, `AUTH_SESSION_*`, and `DEV_AUTO_TENANT_LOGIN` names remain explicit compatibility aliases. New deployments must use the `IDENTITY_*` names.
+Identity adds one canonical group: authentication mode, development login, regular registration, provider selection, session TTL and renewal, and the initial super-administrator account. Current aliases remain available for copied configurations. New deployments must use the `IDENTITY_*` names.
 
 `PlatformEnvironmentLoader` reads the root file once and publishes its values to the process environment. Process values take precedence. Explicit aliases provide compatibility, and safe defaults fill missing values. Platform then validates its application-owned Zod schema.
 
@@ -74,6 +74,8 @@ The Platform module catalog is [assist/modules/platform.md](../../assist/modules
 
 ## Development records
 
+- [2026-09-09 UI page templates](../../assist/records/platform/2026-09-09-ui-page-templates.md)
+- [2026-09-09 Identity cross-client security](../../assist/records/platform/2026-09-09-identity-cross-client-security.md)
 - [2026-09-09 Assist discovery and skill routing](../../assist/records/platform/2026-09-09-assist-discovery.md)
 - [2026-09-08 Platform and framework foundation](../../assist/records/platform/2026-09-08-platform-framework-foundation.md)
 - [2026-09-08 Durable module runtime preparation](../../assist/records/platform/2026-09-08-module-runtime-preparation.md)

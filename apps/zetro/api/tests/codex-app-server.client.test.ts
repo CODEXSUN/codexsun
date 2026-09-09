@@ -4,9 +4,23 @@ import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { CodexAppServerClient } from '../src/modules/codex-connection/codex-app-server.client.js'
+import {
+  CodexAppServerClient,
+  resolveCodexTurnConfiguration,
+} from '../src/modules/codex-connection/codex-app-server.client.js'
 import { resolveCodexCommand } from '../src/modules/codex-connection/codex-command.js'
 import type { CodexWorktreeService } from '../src/modules/codex-connection/codex-worktree.service.js'
+
+test('a turn selection overrides the configured model and maps its reasoning effort', () => {
+  assert.deepEqual(
+    resolveCodexTurnConfiguration({ model: 'gpt-6-astra', reasoningEffort: 'high' }, 'gpt-5.6-sol'),
+    { effort: 'high', model: 'gpt-6-astra' },
+  )
+  assert.deepEqual(resolveCodexTurnConfiguration({ reasoningEffort: 'low' }, 'gpt-5.6-sol'), {
+    effort: 'low',
+    model: 'gpt-5.6-sol',
+  })
+})
 
 test('Windows command discovery selects the newest desktop Codex executable', async () => {
   const localAppData = await mkdtemp(join(tmpdir(), 'zetro-codex-command-'))

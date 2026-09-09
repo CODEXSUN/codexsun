@@ -8,31 +8,56 @@ import { TopologyMarker, TopologyRegion } from '../../features/interface-topolog
 import type { MdiFeatureKey, MdiFeatures } from './mdi-types'
 import { useMdiTopology } from './mdi-topology'
 
-const featureOptions: Array<{ description: string; key: MdiFeatureKey; label: string }> = [
+const featureOptions: Array<{
+  agentWorkspaceOnly?: boolean
+  description: string
+  key: MdiFeatureKey
+  label: string
+  topologyId: string
+}> = [
   {
     key: 'topMenu',
     label: 'Top menu',
     description: 'Show the application context, search, and account actions.',
+    topologyId: '06.2.1',
   },
   {
     key: 'notifications',
     label: 'Notifications',
     description: 'Show the notification action in the top menu.',
+    topologyId: '06.2.2',
   },
   {
     key: 'appSwitcher',
     label: 'Application switcher',
     description: 'Show the grid used to move between available applications.',
+    topologyId: '06.2.3',
   },
   {
     key: 'profileMenu',
     label: 'Profile menu',
     description: 'Show the current user and account actions.',
+    topologyId: '06.2.4',
   },
   {
     key: 'statusBar',
     label: 'Workspace status bar',
     description: 'Show workspace state along the bottom edge.',
+    topologyId: '06.2.5',
+  },
+  {
+    agentWorkspaceOnly: true,
+    key: 'primaryActivityRail',
+    label: 'Primary activity rail',
+    description: 'Show the fixed agent tools along the left edge of the workspace.',
+    topologyId: '06.2.6',
+  },
+  {
+    agentWorkspaceOnly: true,
+    key: 'secondaryUtilityRail',
+    label: 'Secondary utility rail',
+    description: 'Show supporting agent tools along the right edge of the workspace.',
+    topologyId: '06.2.7',
   },
 ]
 
@@ -40,10 +65,19 @@ type MdiFeatureSettingsProps = {
   features: MdiFeatures
   onBack: () => void
   onFeatureChange: (feature: MdiFeatureKey, enabled: boolean) => void
+  showAgentWorkspaceOptions?: boolean
 }
 
-export function MdiFeatureSettings({ features, onBack, onFeatureChange }: MdiFeatureSettingsProps) {
+export function MdiFeatureSettings({
+  features,
+  onBack,
+  onFeatureChange,
+  showAgentWorkspaceOptions = false,
+}: MdiFeatureSettingsProps) {
   const topology = useMdiTopology()
+  const visibleOptions = featureOptions.filter(
+    (option) => !option.agentWorkspaceOnly || showAgentWorkspaceOptions,
+  )
   return (
     <section
       className="relative h-full overflow-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
@@ -69,8 +103,8 @@ export function MdiFeatureSettings({ features, onBack, onFeatureChange }: MdiFea
           </div>
         </div>
         <TopologyRegion as="div" className="flex flex-col" id="06.2" topology={topology}>
-          {featureOptions.map((option, index) => (
-            <TopologyRegion as="div" id={`06.2.${index + 1}`} key={option.key} topology={topology}>
+          {visibleOptions.map((option, index) => (
+            <TopologyRegion as="div" id={option.topologyId} key={option.key} topology={topology}>
               {index > 0 ? <Separator /> : null}
               <div className="flex items-center gap-6 py-5">
                 <span className="flex min-w-0 flex-1 flex-col gap-1">

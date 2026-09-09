@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { ProjectUpdate, ZetroProject } from './projects.types'
 
-export type ProjectView = 'chat' | 'tasks'
+export type ProjectView = 'automation' | 'chat' | 'tasks'
 
 export type ProjectController = {
   activeProject: ZetroProject | null

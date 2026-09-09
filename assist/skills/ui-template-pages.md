@@ -16,7 +16,9 @@ Also read [Web UI](web-ui.md) when the change affects an application workspace.
   `kind="Layout"` for application shells.
 - Keep Table and Form in the `Blocks` navigation group. Keep package primitives in
   the `Components` group.
-- Keep MDI Main as the single documented item in the `Layouts` navigation group.
+- Keep MDI Main and Agent Workspace in the `Layouts` navigation group.
+- Keep Login, Register, Forgot Password, and Notifications in the page registry. Group the
+  authentication pages below one nested Authentication action and keep Notifications Page direct.
 - Build the component navigation from the package gallery catalog. Do not maintain
   a second handwritten component list.
 - Give each component route its own live specimen. Do not reuse one category preview
@@ -31,6 +33,14 @@ Also read [Web UI](web-ui.md) when the change affects an application workspace.
   a live specimen, a copy action, a code dialog, and a Set default action when needed.
 - Keep component variant browsing on component pages. Blocks must compose only the
   resolved defaults unless a future block contract explicitly supports variants.
+- Read the shared registry from `@codexsun/ui/design-system`. Do not maintain names,
+  package paths, supported variants, or pinned defaults in a template-only catalog.
+- Render real package-owned components and blocks. Do not use a scaffold or a second
+  template implementation as the live specimen.
+- Render each page variant through its public block export. Give it the same numbered card,
+  persistent default, copy action, and code dialog used by component variants.
+- Render only pinned component defaults on the UI Overview. Resolve them through the
+  design-system registry instead of handwritten Overview compositions.
 
 ## Required page slots
 
@@ -57,6 +67,8 @@ Do not put business fields, workflows, or application routes in the template.
 - Do not use screenshots when the shared item can render as a live component.
 - Render the MDI Main layout page with the package-owned `MdiMain` composition. Its
   preview must include the real top menu, sidebar, workspace canvas, and status bar.
+- Render Agent Workspace through the package-owned `AgentWorkspace` composition inside MDI Main.
+  Show both fixed icon rails, the center canvas, and their built-in feature switches.
 - Keep the MDI Main documentation canvas plain. Do not place Overview content or
   sample application cards inside the layout preview.
 - Title the MDI Main explanation `MDI Main structure`. Use a numbered list for the

@@ -34,7 +34,14 @@ import { SettingsConnection } from './settings.connection'
 import { GlobalDeveloperToolSettings } from '../developer-tools'
 import { GlobalGitDeliverySettings } from '../git-delivery'
 import { OperationsSettingsView } from '../operations'
-import { useZetroPreferences, type ZetroDefaultWorkflow } from './settings.preferences'
+import {
+  useZetroPreferences,
+  zetroCodexModels,
+  zetroReasoningLevels,
+  type ZetroCodexModel,
+  type ZetroDefaultWorkflow,
+  type ZetroReasoningLevel,
+} from './settings.preferences'
 
 type SettingsSection =
   'appearance' | 'connection' | 'developer-tools' | 'general' | 'git-delivery' | 'operations'
@@ -173,6 +180,46 @@ function GeneralSettings() {
         title="General"
       />
       <SettingsRows>
+        <SettingsRow description="Model used for new Codex turns." label="Codex model">
+          <Select
+            items={zetroCodexModels}
+            onValueChange={(value) =>
+              value && setPreference('codexModel', value as ZetroCodexModel)
+            }
+            value={preferences.codexModel}
+          >
+            <SelectTrigger className="w-52" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {zetroCodexModels.map((model) => (
+                <SelectItem key={model.value} value={model.value}>
+                  {model.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+        <SettingsRow description="Reasoning depth used for new Codex turns." label="Reasoning">
+          <Select
+            items={zetroReasoningLevels}
+            onValueChange={(value) =>
+              value && setPreference('reasoningLevel', value as ZetroReasoningLevel)
+            }
+            value={preferences.reasoningLevel}
+          >
+            <SelectTrigger className="w-40" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {zetroReasoningLevels.map((level) => (
+                <SelectItem key={level.value} value={level.value}>
+                  {level.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
         <SettingsRow
           description="Workflow selected when a new chat composer opens."
           label="Default workflow"

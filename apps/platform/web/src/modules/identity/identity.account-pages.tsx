@@ -9,13 +9,26 @@ import { registerAccount, requestPasswordReset } from './identity.services'
 
 export function IdentityRegisterPage() {
   const registration = useMutation({
-    mutationFn: ({ email, name, password }: { email: string; name: string; password: string }) =>
-      registerAccount(name, email, password),
+    mutationFn: ({
+      email,
+      mobile,
+      name,
+      password,
+      username,
+    }: {
+      email: string
+      mobile?: string
+      name: string
+      password: string
+      username?: string
+    }) => registerAccount(name, email, password, username, mobile),
     onSuccess: () => window.location.assign('/login'),
   })
   return (
     <RegisterPage
-      onSubmit={(name, email, password) => registration.mutate({ email, name, password })}
+      onSubmit={(name, email, password, username, mobile) =>
+        registration.mutate({ email, mobile, name, password, username })
+      }
     />
   )
 }

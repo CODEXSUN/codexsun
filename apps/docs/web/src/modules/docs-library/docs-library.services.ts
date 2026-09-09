@@ -2,9 +2,11 @@ import {
   documentListResponseSchema,
   documentResponseSchema,
   documentUpdateResponseSchema,
+  documentationScanResponseSchema,
   syncResponseSchema,
   type Document,
   type DocumentListResponse,
+  type DocumentationScanResponse,
   type DocumentUpdateRequest,
 } from '@codexsun/docs-contracts'
 
@@ -36,6 +38,15 @@ export async function fetchDocuments(signal?: AbortSignal): Promise<DocumentList
   }
 
   return documentListResponseSchema.parse(await response.json())
+}
+
+export async function scanDocumentation(): Promise<DocumentationScanResponse> {
+  const response = await fetch(`${getApiUrl()}/api/docs/v1/scan`)
+  if (!response.ok) {
+    throw new Error(`Could not scan repository documentation (${response.status}).`)
+  }
+
+  return documentationScanResponseSchema.parse(await response.json())
 }
 
 export async function updateDocument(

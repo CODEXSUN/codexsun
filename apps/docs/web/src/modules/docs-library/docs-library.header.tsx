@@ -88,15 +88,17 @@ export function DocsLibraryHeader({
             {document.path}
           </code>
           <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger
-                render={<Button aria-label="Edit document" size="icon-sm" variant="ghost" />}
-                onClick={onEdit}
-              >
-                <FilePenLine />
-              </TooltipTrigger>
-              <TooltipContent>Edit document</TooltipContent>
-            </Tooltip>
+            {onEdit ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={<Button aria-label="Edit document" size="icon-sm" variant="ghost" />}
+                  onClick={onEdit}
+                >
+                  <FilePenLine />
+                </TooltipTrigger>
+                <TooltipContent>Edit document</TooltipContent>
+              </Tooltip>
+            ) : null}
             <Tooltip>
               <TooltipTrigger
                 render={<Button aria-label={shareLabel} size="icon-sm" variant="ghost" />}

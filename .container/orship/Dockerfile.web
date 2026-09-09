@@ -1,0 +1,5 @@
+# syntax=docker/dockerfile:1.7
+FROM nginx:1.29-alpine
+
+COPY .container/docker/nginx.conf /etc/nginx/templates/default.conf.template
+COPY --from=orship_web_dist . /usr/share/nginx/html/

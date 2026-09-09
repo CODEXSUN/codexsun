@@ -281,6 +281,20 @@ export const mdiTopologySections: readonly InterfaceTopologySection[] = [
     scope: 'Feature option list',
     description: 'Shows or hides the status bar.',
   },
+  {
+    id: '06.2.6',
+    technicalName: 'mdi.features.primaryActivityRailSwitch',
+    name: 'Primary activity rail switch',
+    scope: 'Feature option list',
+    description: 'Shows or hides the primary Agent Workspace activity rail.',
+  },
+  {
+    id: '06.2.7',
+    technicalName: 'mdi.features.secondaryUtilityRailSwitch',
+    name: 'Secondary utility rail switch',
+    scope: 'Feature option list',
+    description: 'Shows or hides the secondary Agent Workspace utility rail.',
+  },
 ]
 
 export function MdiTopologyProvider({

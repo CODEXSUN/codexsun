@@ -1,5 +1,13 @@
-import { useCallback, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
-import { ArrowUp, File, Image, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
+import {
+  useCallback,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type DragEvent,
+  type KeyboardEvent,
+} from 'react'
+import { ArrowUp, File, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
 import { Button } from '@codexsun/ui/components/button'
 import {
   Select,
@@ -13,6 +21,12 @@ import { Textarea } from '@codexsun/ui/components/textarea'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { useAgentChat } from './agent-chat.controller'
+import {
+  createPastedTextAttachment,
+  maxChatAttachments,
+  readChatAttachment,
+  shouldAttachPastedText,
+} from './agent-chat.attachments'
 import type { ChatAttachment, ChatWorkflow } from './agent-chat.types'
 import { useVoiceInput } from './agent-chat.voice'
 import { useZetroPreferences } from '../settings'
@@ -37,6 +51,7 @@ export function AgentChatComposer({
   const { preferences, setPreference } = useZetroPreferences()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const workflow = preferences.defaultWorkflow as ChatWorkflow
   const isWorking = chat.workingSince !== null
@@ -62,17 +77,57 @@ export function AgentChatComposer({
     }
   }
 
-  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).slice(0, 4 - attachments.length)
+  async function addFiles(files: readonly File[]) {
+    const capacity = maxChatAttachments - attachments.length
+    if (capacity <= 0) {
+      setLocalError(`You can attach up to ${maxChatAttachments} files.`)
+      return
+    }
+
+    const selected = files.slice(0, capacity)
     setLocalError(null)
     try {
-      const encoded = await Promise.all(files.map(readAttachment))
-      setAttachments((current) => [...current, ...encoded].slice(0, 4))
+      const encoded = await Promise.all(selected.map(readChatAttachment))
+      setAttachments((current) => [...current, ...encoded].slice(0, maxChatAttachments))
+      if (files.length > capacity) {
+        setLocalError(`Only the first ${capacity} files were attached.`)
+      }
     } catch (reason) {
       setLocalError(reason instanceof Error ? reason.message : 'The attachment could not be read.')
-    } finally {
-      event.target.value = ''
     }
+  }
+
+  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    await addFiles(Array.from(event.target.files ?? []))
+    event.target.value = ''
+  }
+
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = clipboardFiles(event.clipboardData)
+    if (files.length) void addFiles(files)
+
+    const text = event.clipboardData.getData('text/plain')
+    if (!shouldAttachPastedText(text)) return
+
+    event.preventDefault()
+    if (attachments.length >= maxChatAttachments) {
+      setLocalError(`You can attach up to ${maxChatAttachments} files.`)
+      return
+    }
+    try {
+      const attachment = createPastedTextAttachment(text)
+      setAttachments((current) => [...current, attachment].slice(0, maxChatAttachments))
+      setLocalError(null)
+    } catch (reason) {
+      setLocalError(reason instanceof Error ? reason.message : 'The pasted text could not be read.')
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsDragging(false)
+    const files = Array.from(event.dataTransfer.files)
+    if (files.length) void addFiles(files)
   }
 
   const error = localError ?? voice.error ?? chat.error
@@ -96,7 +151,11 @@ export function AgentChatComposer({
               className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs"
               key={attachment.id}
             >
-              {attachment.mimeType.startsWith('image/') ? <Image /> : <File />}
+              {attachment.mimeType.startsWith('image/') ? (
+                <img alt="" className="size-6 rounded object-cover" src={attachment.dataUrl} />
+              ) : (
+                <File />
+              )}
               <span className="max-w-36 truncate">{attachment.name}</span>
               <button
                 aria-label={`Remove ${attachment.name}`}
@@ -111,7 +170,26 @@ export function AgentChatComposer({
           ))}
         </div>
       ) : null}
-      <div className="rounded-2xl border bg-background p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/40">
+      <div
+        className={`relative rounded-2xl border bg-background p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/40 ${
+          isDragging ? 'border-primary ring-2 ring-primary/20' : ''
+        }`}
+        onDragEnter={(event) => {
+          event.preventDefault()
+          setIsDragging(true)
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+            setIsDragging(false)
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
+      >
+        {isDragging ? (
+          <div className="pointer-events-none absolute inset-1 z-10 grid place-items-center rounded-xl border border-dashed border-primary bg-background/95 text-sm font-medium text-primary">
+            Drop images or files here
+          </div>
+        ) : null}
         <Textarea
           aria-label="Message Zetro"
           className="max-h-48 min-h-20 resize-none border-0 bg-transparent px-2 py-2 shadow-none focus-visible:ring-0"
@@ -119,6 +197,7 @@ export function AgentChatComposer({
           maxLength={20_000}
           onChange={(event) => onDraftChange(event.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Ask Zetro to plan, review, document, or build..."
           value={draft}
         />
@@ -132,9 +211,10 @@ export function AgentChatComposer({
           />
           <Button
             aria-label="Attach files"
-            disabled={chat.isBusy || attachments.length >= 4}
+            disabled={chat.isBusy || attachments.length >= maxChatAttachments}
             onClick={() => fileInputRef.current?.click()}
             size="icon"
+            title="Attach images or files"
             variant="ghost"
           >
             <Paperclip />
@@ -199,21 +279,10 @@ export function AgentChatComposer({
   )
 }
 
-async function readAttachment(file: File): Promise<ChatAttachment> {
-  if (file.size > 4_000_000) throw new Error(`${file.name} is larger than 4 MB.`)
-  return {
-    dataUrl: await readDataUrl(file),
-    id: crypto.randomUUID(),
-    mimeType: file.type || 'application/octet-stream',
-    name: file.name,
-  }
-}
-
-function readDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`))
-    reader.onload = () => resolve(String(reader.result))
-    reader.readAsDataURL(file)
-  })
+function clipboardFiles(clipboard: DataTransfer): File[] {
+  const itemFiles = Array.from(clipboard.items)
+    .filter(({ kind }) => kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null)
+  return itemFiles.length ? itemFiles : Array.from(clipboard.files)
 }

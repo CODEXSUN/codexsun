@@ -1,11 +1,11 @@
 import {
-  Bot,
   ChevronRight,
   EllipsisVertical,
   FolderKanban,
   ListTodo,
   LoaderCircle,
   MessageSquare,
+  Workflow,
 } from 'lucide-react'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
@@ -24,18 +24,25 @@ import {
   DropdownMenuTrigger,
 } from '@codexsun/ui/components/dropdown-menu'
 import { Button } from '@codexsun/ui/components/button'
-import { AgentChatHistory, AgentChatWorkspace, useAgentChat } from '../agent-chat'
+import {
+  AgentChatHistory,
+  AgentChatWorkspace,
+  CodexModelSelector,
+  useAgentChat,
+} from '../agent-chat'
 import { ProjectTaskList, ProjectTasksWorkspace, useProjectTasks } from '../project-tasks'
 import { ProjectLogo, ProjectSwitcher, useProjects, type ZetroProject } from '../projects'
 import { useCodexConnection } from '../settings'
 import { DeveloperToolsPanel } from '../developer-tools'
 import { GitDeliveryFlowBuilder } from '../git-delivery'
-import { SystemTasksPanel } from '../system-tasks'
+import { SystemTasksPanel, useSystemTasks } from '../system-tasks'
+import { AutomationSidebar, AutomationWorkspace } from '../automation'
 
 export function ZetroProjectSidebar() {
   const chat = useAgentChat()
   const projects = useProjects()
   const tasks = useProjectTasks()
+  const automation = useSystemTasks()
   const topology = useMdiTopology()
   const openTaskCount = tasks.tasks.filter(({ status }) => status !== 'done').length
 
@@ -59,7 +66,7 @@ export function ZetroProjectSidebar() {
       <TopologyRegion as="div" id="15.2.5" topology={topology}>
         <SidebarGroup className="border-b p-1.5">
           <SidebarGroupContent>
-            <SidebarMenu aria-label="Project features" className="grid grid-cols-2 gap-1">
+            <SidebarMenu aria-label="Project features" className="grid grid-cols-3 gap-1">
               <SidebarMenuItem>
                 <SidebarMenuButton
                   aria-label="Chat"
@@ -86,12 +93,37 @@ export function ZetroProjectSidebar() {
                   <SidebarMenuBadge>{openTaskCount}</SidebarMenuBadge>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  aria-label="Automation"
+                  className="h-9 cursor-pointer justify-center pr-7"
+                  isActive={projects.view === 'automation'}
+                  onClick={() => projects.setView('automation')}
+                  title="Automation"
+                >
+                  <Workflow />
+                  <span className="sr-only">Automation</span>
+                  <SidebarMenuBadge>
+                    {
+                      automation.tasks.filter(({ status }) =>
+                        ['blocked', 'failed', 'pending', 'running'].includes(status),
+                      ).length
+                    }
+                  </SidebarMenuBadge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </TopologyRegion>
       <div className="min-h-0 flex-1">
-        {projects.view === 'chat' ? <AgentChatHistory /> : <ProjectTaskList />}
+        {projects.view === 'chat' ? (
+          <AgentChatHistory />
+        ) : projects.view === 'tasks' ? (
+          <ProjectTaskList />
+        ) : (
+          <AutomationSidebar />
+        )}
       </div>
     </div>
   )
@@ -120,19 +152,27 @@ export function ZetroProjectWorkspace() {
     <div className="flex size-full min-h-0 flex-col">
       <WorkspaceContextBar
         connectionState={isLoadingConnection ? 'checking' : (connection?.state ?? 'disconnected')}
-        model={chat.model}
+        modelSelectionDisabled={chat.isBusy}
         project={activeProject}
         title={
-          view === 'tasks' && tasks.view === 'archive'
-            ? 'Archived tasks'
-            : view === 'tasks'
-              ? 'Tasks'
-              : 'Chat'
+          view === 'automation'
+            ? 'Automation'
+            : view === 'tasks' && tasks.view === 'archive'
+              ? 'Archived tasks'
+              : view === 'tasks'
+                ? 'Tasks'
+                : 'Chat'
         }
         onOpenScope={view === 'chat' ? () => void chat.openScope() : undefined}
       />
       <div className="min-h-0 flex-1">
-        {view === 'tasks' ? <ProjectTasksWorkspace /> : <AgentChatWorkspace />}
+        {view === 'automation' ? (
+          <AutomationWorkspace />
+        ) : view === 'tasks' ? (
+          <ProjectTasksWorkspace />
+        ) : (
+          <AgentChatWorkspace />
+        )}
       </div>
       <DeveloperToolsPanel
         topContent={
@@ -148,13 +188,13 @@ export function ZetroProjectWorkspace() {
 
 function WorkspaceContextBar({
   connectionState,
-  model,
+  modelSelectionDisabled,
   project,
   title,
   onOpenScope,
 }: {
   connectionState: 'checking' | 'connected' | 'disconnected' | 'error' | 'pending'
-  model: string
+  modelSelectionDisabled: boolean
   project: ZetroProject
   title: string
   onOpenScope?: () => void
@@ -167,21 +207,14 @@ function WorkspaceContextBar({
       <span className="max-w-48 truncate text-muted-foreground">{project.name}</span>
       <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="font-medium">{title}</span>
-      <div
-        className="ml-auto flex min-w-0 items-center gap-2 text-xs"
-        title={`${connectionState} provider: Codex; model: ${model}`}
-      >
+      <div className="ml-auto flex min-w-0 items-center gap-1 text-xs">
         <span
           aria-label={connected ? 'Connected' : connectionState}
           className={
             connected ? 'size-2 rounded-full bg-emerald-500' : 'size-2 rounded-full bg-amber-500'
           }
         />
-        <Bot className="size-3.5 text-muted-foreground" />
-        <span className="text-muted-foreground">Provider</span>
-        <span className="font-medium">Codex</span>
-        <span className="text-muted-foreground">Model</span>
-        <span className="font-medium">{model}</span>
+        <CodexModelSelector disabled={modelSelectionDisabled} />
         {onOpenScope ? (
           <DropdownMenu>
             <DropdownMenuTrigger

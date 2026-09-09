@@ -1,3 +1,5 @@
+import { designSystemBlocks } from '../../design-system'
+
 export type UiBlockId = 'form' | 'table'
 
 export type UiBlockDoc = {
@@ -6,10 +8,13 @@ export type UiBlockDoc = {
   source: string
 }
 
-export const uiBlockDocs: readonly UiBlockDoc[] = [
-  { id: 'table', name: 'Table', source: '@codexsun/ui/blocks/table' },
-  { id: 'form', name: 'Form', source: '@codexsun/ui/blocks/form' },
-]
+export const uiBlockDocs: readonly UiBlockDoc[] = designSystemBlocks.map(
+  ({ id, name, source }) => ({
+    id: id as UiBlockId,
+    name,
+    source,
+  }),
+)
 
 export function findUiBlock(blockId: string | null): UiBlockDoc | undefined {
   return uiBlockDocs.find(({ id }) => id === blockId)

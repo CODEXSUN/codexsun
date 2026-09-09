@@ -33,7 +33,21 @@ export const documentUpdateRequestSchema = z
 export const documentUpdateResponseSchema = z.object({ document: documentSchema })
 export const syncResponseSchema = z.object({ indexed: z.number(), status: z.literal('ok') })
 
+export const documentationIssueSchema = z.object({
+  description: z.string(),
+  kind: z.enum(['missing-readme', 'unorganized-source']),
+  path: z.string(),
+})
+
+export const documentationScanResponseSchema = z.object({
+  missingDocumentation: z.array(documentationIssueSchema),
+  scannedAt: z.string(),
+  unorganizedFiles: z.array(documentationIssueSchema),
+})
+
 export type Document = z.infer<typeof documentSchema>
 export type DocumentSummary = z.infer<typeof documentSummarySchema>
 export type DocumentListResponse = z.infer<typeof documentListResponseSchema>
 export type DocumentUpdateRequest = z.infer<typeof documentUpdateRequestSchema>
+export type DocumentationIssue = z.infer<typeof documentationIssueSchema>
+export type DocumentationScanResponse = z.infer<typeof documentationScanResponseSchema>

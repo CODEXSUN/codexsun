@@ -62,5 +62,25 @@ export function createIdentitySeeds(
           .execute()
       },
     },
+    {
+      checksum: 'sha256:dace052708d5291edbd07dfa3c654a1d20e20b059ac3e087d26ca2c4d723ba3e',
+      id: '0002-default-super-admin-identifier',
+      version: '1.1.0',
+      async run(database) {
+        const now = new Date()
+        await database
+          .insertInto('identity_user_identifiers')
+          .values({
+            created_at: now,
+            id: '00000000-0000-4000-8000-000000000004',
+            identifier_type: 'email',
+            identifier_value: environment.IDENTITY_SUPER_ADMIN_EMAIL.toLowerCase(),
+            user_id: superAdminUserId,
+            verified_at: now,
+          })
+          .onDuplicateKeyUpdate({ user_id: superAdminUserId })
+          .execute()
+      },
+    },
   ]
 }

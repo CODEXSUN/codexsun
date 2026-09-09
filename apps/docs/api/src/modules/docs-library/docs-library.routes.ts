@@ -1,4 +1,5 @@
 import {
+  documentationScanResponseSchema,
   documentListResponseSchema,
   documentResponseSchema,
   documentUpdateRequestSchema,
@@ -36,6 +37,10 @@ export async function registerDocsLibraryRoutes(
       documents: await service.listDocuments(),
       mode: environment.DOCS_INDEX_MODE,
     })
+  })
+
+  server.get('/api/docs/v1/scan', async () => {
+    return documentationScanResponseSchema.parse(await service.scanDocumentation())
   })
 
   server.get('/api/docs/v1/assets/*', async (request, reply) => {

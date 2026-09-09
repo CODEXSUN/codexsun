@@ -4,13 +4,17 @@ import {
   uiComponentDocs,
   uiGalleryTopologySections,
   uiLayoutDocs,
-} from '@codexsun/ui/templates/ui-gallery'
+  uiPageDocs,
+} from '@codexsun/ui/templates/ui-gallery/catalog'
 import { RouterProvider } from '@tanstack/react-router'
 import {
   BoxIcon,
+  BotIcon,
+  BellIcon,
   BlocksIcon,
   ComponentIcon,
   FilePenLineIcon,
+  FingerprintIcon,
   LayoutDashboardIcon,
   LayoutTemplateIcon,
   PanelsTopLeftIcon,
@@ -20,6 +24,7 @@ import { platformRouter } from './app-router'
 import { systemTopologySections } from './modules/system/system.topology'
 
 const layoutIcons = {
+  'agent-workspace': BotIcon,
   'mdi-main': PanelsTopLeftIcon,
 } as const
 
@@ -36,6 +41,7 @@ export function App() {
   const portalIdentity = resolvePortalIdentity(window.location.pathname)
   const search = new URLSearchParams(window.location.search)
   const selectedLayout = search.get('layout')
+  const selectedPage = search.get('page')
   const selectedComponent = search.get('component')
   const selectedBlock = search.get('block') ?? (selectedComponent === 'table' ? 'table' : null)
   const navigation = isUiWorkspace
@@ -49,6 +55,29 @@ export function App() {
             icon: layoutIcons[layout.id],
             label: layout.name,
           })),
+        },
+        {
+          items: [
+            {
+              active: selectedPage !== null && selectedPage !== 'notifications',
+              children: uiPageDocs
+                .filter(({ id }) => id !== 'notifications')
+                .map((page) => ({
+                  active: selectedPage === page.id,
+                  href: `/ui?page=${page.id}`,
+                  label: page.name,
+                })),
+              defaultOpen: selectedPage !== null && selectedPage !== 'notifications',
+              icon: FingerprintIcon,
+              label: 'Authentication',
+            },
+            {
+              active: selectedPage === 'notifications',
+              href: '/ui?page=notifications',
+              icon: BellIcon,
+              label: 'Notifications Page',
+            },
+          ],
         },
         {
           icon: BlocksIcon,

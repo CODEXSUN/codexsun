@@ -16,6 +16,7 @@ export type AgentChatController = {
   isLoadingHistory: boolean
   messages: ChatMessage[]
   model: string
+  preparedDraft: string | null
   scope: ChatWorkspaceScope | null
   scopeOpen: boolean
   summaries: ChatConversationSummary[]
@@ -28,10 +29,12 @@ export type AgentChatController = {
   openArchive(): Promise<void>
   openConversation(conversationId: string): Promise<void>
   openScope(conversationId?: string): Promise<void>
+  prepareDraft(value: string): void
   renameConversation(conversationId: string, title: string): Promise<void>
   restoreConversation(summary: ChatConversationSummary): Promise<void>
   saveScope(scope: ChatWorkspaceScope): Promise<void>
   setScopeOpen(open: boolean): void
+  clearPreparedDraft(): void
   showChat(): void
   stopWorking(): Promise<void>
   sendMessage(content: string, attachments: ChatAttachment[], workflow: ChatWorkflow): Promise<void>

@@ -5,7 +5,7 @@
 - Module ID: `zetro.worktrees.api`
 - Version: `1.0.0`
 - Owner: Zetro API
-- Dependency: `zetro.codex-connection.api@^0.6.0`
+- Dependency: `zetro.codex-connection.api@^0.7.0`
 
 The module owns worktree inventory, disk usage, safe cleanup, and retention sweeps.
 

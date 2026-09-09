@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const allowedScriptPattern = /^(build|check|lint|test|typecheck)(:|$)/u
+const allowedScriptPattern = /^(build|check|clean|lint|release|test|typecheck)(:|$)/u
 
 export async function listRepositoryScripts(repositoryPath: string): Promise<string[]> {
   const pkg = JSON.parse(await readFile(join(repositoryPath, 'package.json'), 'utf8')) as {

@@ -18,7 +18,9 @@ import {
   type DockerContainerAction,
 } from '@codexsun/orship-contracts'
 
-const baseUrl = (import.meta.env.VITE_ORSHIP_API_URL ?? 'http://127.0.0.1:6090').replace(/\/$/u, '')
+const baseUrl = (
+  import.meta.env.PROD ? '' : (import.meta.env.VITE_ORSHIP_API_URL ?? 'http://127.0.0.1:6090')
+).replace(/\/$/u, '')
 
 export async function fetchOrchestrationOverview() {
   const response = await fetch(`${baseUrl}/api/orship/v1/services`)

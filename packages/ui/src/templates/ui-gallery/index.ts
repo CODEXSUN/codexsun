@@ -1,4 +1,5 @@
-export { UiGallery, uiGalleryTopologySections } from './ui-gallery'
+export { UiGallery } from './ui-gallery'
+export { uiGalleryTopologySections } from './ui-gallery-topology'
 export { galleryCategories, galleryComponents } from './gallery-catalog'
 export type { GalleryCategory, GalleryComponent } from './gallery-catalog'
 export { uiBlockDocs } from './ui-blocks'
@@ -15,3 +16,5 @@ export {
 export type { UiComponentVariant, UiComponentVariantId } from './component-variants'
 export { uiLayoutDocs } from './ui-layouts'
 export type { UiLayoutDoc, UiLayoutId } from './ui-layouts'
+export { uiPageDocs } from './ui-pages'
+export type { UiPageDoc, UiPageId } from './ui-pages'

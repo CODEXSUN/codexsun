@@ -20,7 +20,7 @@ export class TaskRepository {
   public async initialize(): Promise<void> {
     await this.databaseProvider.migrate('zetro.tasks.api', tasksMigrations)
     const rows = await this.database.selectFrom('zetro_tasks').select('data').execute()
-    this.tasks = rows.map(({ data }) => JSON.parse(data) as ZetroTask)
+    this.tasks = rows.map(({ data }) => normalizeTask(JSON.parse(data) as ZetroTask))
     if (this.tasks.length > 0) return
     try {
       const stored = JSON.parse(await readFile(this.legacyFilePath, 'utf8')) as Array<
@@ -30,12 +30,14 @@ export class TaskRepository {
           projectId?: string
         }
       >
-      this.tasks = stored.map((task) => ({
-        ...task,
-        archived: task.archived ?? false,
-        pinned: task.pinned ?? false,
-        projectId: task.projectId ?? this.defaultProjectId,
-      }))
+      this.tasks = stored
+        .map((task) => ({
+          ...task,
+          archived: task.archived ?? false,
+          pinned: task.pinned ?? false,
+          projectId: task.projectId ?? this.defaultProjectId,
+        }))
+        .map(normalizeTask)
       for (const task of this.tasks) await this.insert(task)
     } catch (error) {
       if (!isMissingFile(error)) {
@@ -80,6 +82,15 @@ export class TaskRepository {
 
   private async insert(task: ZetroTask): Promise<void> {
     await this.database.insertInto('zetro_tasks').values(toRow(task)).execute()
+  }
+}
+
+function normalizeTask(task: ZetroTask): ZetroTask {
+  return {
+    ...task,
+    parentTaskId: task.parentTaskId ?? null,
+    planningKind: task.planningKind ?? 'task',
+    workflow: task.workflow ?? null,
   }
 }
 

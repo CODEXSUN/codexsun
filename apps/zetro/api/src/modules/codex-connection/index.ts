@@ -7,6 +7,8 @@ export {
   parseDeliveryOutput,
 } from './codex-delivery.js'
 export { codexWorkflows, createDeveloperInstructions } from './codex-workflow.js'
+export { codexModels, codexReasoningEfforts } from './codex-model.js'
+export type { CodexModel, CodexReasoningEffort } from './codex-model.js'
 export {
   codexConnectionModuleManifest,
   registerCodexConnectionModule,

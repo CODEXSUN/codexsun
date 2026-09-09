@@ -1,46 +1,60 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '../../components/button'
 import { Input } from '../../components/input'
-import { Label } from '../../components/label'
-import { AuthShell } from './auth-shell'
+import { Field, FieldGroup, FieldLabel } from '../../components/field'
+import { AuthPageLayout } from './auth-page-layout'
 
 export interface PasswordForgotPageProps {
   backHref: string
+  embedded?: boolean
   onSubmit(email: string): void
 }
 
-export function PasswordForgotPage({ backHref, onSubmit }: PasswordForgotPageProps) {
+export function PasswordForgotPage({
+  backHref,
+  embedded = false,
+  onSubmit,
+}: PasswordForgotPageProps) {
   const [email, setEmail] = useState('')
   return (
-    <AuthShell
-      eyebrow="Account recovery"
-      title="Reset your password"
-      description="Enter your email address. The response does not reveal whether an account exists."
-    >
+    <AuthPageLayout embedded={embedded} variant="v1">
       <form
-        className="space-y-5"
+        className="grid gap-6"
         onSubmit={(event: FormEvent) => {
           event.preventDefault()
           onSubmit(email)
         }}
       >
-        <div className="space-y-2">
-          <Label htmlFor="recovery-email">Email</Label>
-          <Input
-            id="recovery-email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-        </div>
-        <Button className="w-full" type="submit">
-          Request reset
-        </Button>
-        <a className="block text-center text-sm text-muted-foreground" href={backHref}>
-          Back to sign in
-        </a>
+        <header className="grid gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Enter your email address. The response does not reveal whether an account exists.
+          </p>
+        </header>
+        <div className="border-t" />
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="recovery-email">Email</FieldLabel>
+            <Input
+              className="h-11"
+              id="recovery-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </Field>
+          <Button className="w-full" type="submit">
+            Request reset
+          </Button>
+          <a
+            className="text-center text-sm text-muted-foreground hover:text-foreground"
+            href={backHref}
+          >
+            Back to sign in
+          </a>
+        </FieldGroup>
       </form>
-    </AuthShell>
+    </AuthPageLayout>
   )
 }

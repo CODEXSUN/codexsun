@@ -3,13 +3,14 @@
 ## Contract
 
 - Module ID: `zetro.tasks.api`
-- Version: `0.3.0`
+- Version: `0.5.0`
 - Owner: Zetro API
 - Entity: `Task`
 - Routes: list, create, and update under `/api/v1/tasks`
 
 A task has a stable ID, project ID, title, optional description, status,
-priority, pinned state, archived state, and timestamps. List and update routes
+priority, pinned state, archived state, planning kind, optional parent task,
+optional workflow binding, and timestamps. List and update routes
 require the project ID. The list route accepts the `archived` query filter.
 
 The `zetro.project-tasks.web` module consumes this contract inside `/zetro`.
@@ -20,11 +21,11 @@ The `zetro.project-tasks.web` module consumes this contract inside `/zetro`.
 
 ## Persistence
 
-Tasks are stored in `storage/app/private/zetro/tasks.json`. Writes replace the
-file atomically. Existing records receive the default project ID during
-initialization. Existing records receive false pinned and archived values. The
-module does not use database tables, migrations, seeds, events, or jobs in
-version `0.3.0`.
+Tasks are stored in the module-owned `zetro_tasks` database table. The legacy
+`storage/app/private/zetro/tasks.json` file imports once when no database rows
+exist. Existing records receive false pinned and archived values, a root planning
+kind, and empty parent and workflow values. The module does not use events or
+jobs in version `0.5.0`.
 
 ## Lifecycle
 
@@ -45,3 +46,4 @@ Future changes must be recorded in the [Zetro development records](../../../../.
 - [2026-09-08 Task System master-detail workflow](../../../../../../assist/records/zetro/2026-09-08-task-system.md)
 - [2026-09-08 Empty Desk reset](../../../../../../assist/records/zetro/2026-09-08-empty-desk-reset.md)
 - [2026-09-08 Task sidebar actions](../../../../../../assist/records/zetro/2026-09-08-task-sidebar-actions.md)
+- [2026-09-09 Task planning actions](../../../../../../assist/records/zetro/2026-09-09-task-planning-actions.md)

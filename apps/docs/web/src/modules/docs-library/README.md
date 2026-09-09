@@ -7,7 +7,7 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 ## Identity and version
 
 - Module ID: `docs.library.web`
-- Version: `0.1.1`
+- Version: `0.1.2`
 - Scope: `docs`
 - Status: `active`
 
@@ -19,13 +19,14 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 - Sidebar tree: shared MDI navigation supports nested, keyboard-operable child headers. Opening a deep-linked document expands every ancestor; the global search palette indexes selectable leaves only.
 - Sidebar identity: every top-level documentation group uses a semantic icon for its owned area instead of the shared fallback grid icon.
 - Reader header: the header strip shows the selected document name and repository path. Tooltip-backed icon actions open the editor, share the document link with a clipboard fallback, and copy the source path.
+- Ideas header: each code-owned Idea shows its source path and supports sharing or copying that path. It does not expose a document editor because Ideas are not vault documents.
 - Editor: the header Edit action opens a Docs-owned drill-down upsert page. It uses the DevKit TipTap write pattern with an authoritative Markdown mode, explicit Save and Back controls, and a stale-source conflict message.
 - Reader navigation: the shared UI template navigation block provides previous and next document links at the bottom of each document.
 - Page tone: the Index and Ideas views use a centered 80-percent content lane. The reader uses the full available workspace: a flexible article column and a fixed, sticky outline column at the right edge. The narrow-screen layout hides the outline and retains one readable column.
 - Client behavior: the web module preserves a rendered-document cache during navigation and aborts stale requests to prevent reader flicker.
 - Reader styling: GitHub-Flavored Markdown tables use a scrollable table surface. Inline snippets use compact muted pills. Fenced code samples use highlighted, copyable, high-contrast surfaces. Mermaid flowchart fences render as safe Docs-owned SVG diagrams.
 - Article assets: Markdown image paths resolve through the Docs API. Store repository-owned images below an `assets` folder near their articles. See [article assets](../../../../../../assist/assets/README.md).
-- Settings: `VITE_DOCS_API_URL` overrides the local Docs API; development defaults to `http://127.0.0.1:6030`.
+- Settings: `VITE_DOCS_API_URL` overrides the local Docs API; development defaults to `http://127.0.0.1:6030`. The shared Settings entry opens the read-only Documentation health scan. It reports missing README files and unorganized Markdown, MDX, and text sources without moving or changing them.
 
 ## Public contracts and verification
 
@@ -36,8 +37,9 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 ## Interface topology
 
 The module owns the Library, reader, overview, unavailable, and Ideas topology.
-The registry includes outlines, connections, metrics, flow, ownership, delivery,
-and guardrail child items.
+Ideas navigation includes Development plan, Architecture standards, and Multi-app
+monorepo. The registry includes reader connections, overview metrics, delivery,
+architecture, and monorepo child items.
 
 ## Development records
 

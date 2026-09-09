@@ -9,9 +9,8 @@ export function renderDockerCompose(plan: DeploymentPlan): string {
     lines.push(...renderService(plan.profile.id, plan.profile.environment, component, addons))
   }
   const volumes = new Set(['codexsun-storage'])
-  for (const component of plan.components) {
+  for (const component of plan.components)
     for (const volume of component.volumes) volumes.add(volume.name)
-  }
   lines.push('volumes:', ...[...volumes].map((name) => `  ${name}:`))
   return `${lines.join('\n')}\n`
 }
@@ -69,10 +68,8 @@ function renderService(
   }
   if (component.runtime === 'node') {
     lines.push('    volumes:', '      - codexsun-storage:/app/storage/app')
-    for (const volume of component.volumes) {
-      const suffix = volume.readOnly ? ':ro' : ''
-      lines.push(`      - ${volume.name}:${volume.containerPath}${suffix}`)
-    }
+    for (const volume of component.volumes)
+      lines.push(`      - ${volume.name}:${volume.containerPath}${volume.readOnly ? ':ro' : ''}`)
   }
   return lines
 }

@@ -1,22 +1,20 @@
-import { AuthShell } from './auth-shell'
-import { AuthLoginForm, type AuthLoginFormProps } from './login-form'
+import { LoginPage, type LoginPageProps } from './login-page'
 
 export function ClientLoginPage(
-  props: Omit<AuthLoginFormProps, 'forgotHref' | 'registerHref'> & {
+  props: Omit<
+    LoginPageProps,
+    'description' | 'forgotHref' | 'registerHref' | 'title' | 'variant'
+  > & {
     registrationEnabled?: boolean
   },
 ) {
   return (
-    <AuthShell
-      eyebrow="Client portal"
-      title="Welcome back"
+    <LoginPage
+      {...props}
       description="Sign in to your workspace."
-    >
-      <AuthLoginForm
-        {...props}
-        forgotHref="/password/forgot"
-        registerHref={props.registrationEnabled ? '/register' : undefined}
-      />
-    </AuthShell>
+      forgotHref="/password/forgot"
+      registerHref={props.registrationEnabled ? '/register' : undefined}
+      title="Welcome back"
+    />
   )
 }

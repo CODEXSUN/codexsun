@@ -10,6 +10,7 @@ import {
   useInterfaceTopology,
 } from '../../features/interface-topology'
 import { ThemeProvider } from '../../theme'
+import { AgentActivityRail, AgentWorkspace } from '../agent-workspace'
 
 import { MdiEmptyWorkspace } from './mdi-empty-workspace'
 import { createDefaultMdiApps } from './mdi-app-catalog'
@@ -39,6 +40,7 @@ const defaultUser: MdiUser = {
 }
 
 export function MdiMain({
+  agentWorkspace,
   applicationIcon = BoxesIcon,
   applicationLogoUrl,
   applicationId = 'platform',
@@ -46,6 +48,7 @@ export function MdiMain({
   apps,
   children,
   defaultFeatures,
+  defaultSidebarOpen = true,
   deskRegionId,
   embedded = false,
   navigation = defaultNavigation,
@@ -96,6 +99,7 @@ export function MdiMain({
     <ThemeProvider>
       <MdiTopologyProvider value={topology}>
         <SidebarProvider
+          defaultOpen={defaultSidebarOpen}
           className={cn(
             'min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground',
             embedded ? 'h-full' : 'h-svh',
@@ -103,6 +107,10 @@ export function MdiMain({
           style={
             {
               '--sidebar-width': density === 'comfortable' ? '18rem' : '16rem',
+              '--sidebar-left-offset':
+                agentWorkspace && view === 'workspace' && features.primaryActivityRail
+                  ? '3.5rem'
+                  : '0rem',
             } as CSSProperties
           }
         >
@@ -131,6 +139,13 @@ export function MdiMain({
             {...(deskRegionId ? topology.regionProps(deskRegionId) : {})}
           >
             {deskRegionId ? <TopologyMarker id={deskRegionId} topology={topology} /> : null}
+            {view === 'workspace' && agentWorkspace ? (
+              <AgentActivityRail
+                rail={agentWorkspace.primaryRail}
+                side="left"
+                visible={features.primaryActivityRail}
+              />
+            ) : null}
             {view === 'workspace' ? (
               <MdiSidebar
                 navigation={navigation}
@@ -160,11 +175,20 @@ export function MdiMain({
                     onFeatureChange: setFeature,
                   }) ?? (
                     <MdiFeatureSettings
+                      showAgentWorkspaceOptions={Boolean(agentWorkspace)}
                       features={features}
                       onBack={() => setView('workspace')}
                       onFeatureChange={setFeature}
                     />
                   ))
+                ) : agentWorkspace ? (
+                  <AgentWorkspace
+                    {...agentWorkspace}
+                    showPrimaryRail={false}
+                    showSecondaryRail={features.secondaryUtilityRail}
+                  >
+                    {children ?? <MdiEmptyWorkspace workspaceTitle={workspaceTitle} />}
+                  </AgentWorkspace>
                 ) : children ? (
                   <div className="relative size-full min-h-0 min-w-0 overflow-hidden">
                     {children}

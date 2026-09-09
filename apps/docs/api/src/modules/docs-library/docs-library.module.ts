@@ -10,7 +10,12 @@ import { DocsLibraryService } from './docs-library.service.js'
 import { DocsVault } from './docs-library.source.js'
 
 export const docsLibraryModuleManifest = {
-  capabilities: ['obsidian-vault-reading', 'mdx-html-rendering', 'mariadb-document-indexing'],
+  capabilities: [
+    'documentation-health-scan',
+    'obsidian-vault-reading',
+    'mdx-html-rendering',
+    'mariadb-document-indexing',
+  ],
   dependencies: {},
   id: 'docs.library.api',
   lifecycle: {
@@ -18,17 +23,18 @@ export const docsLibraryModuleManifest = {
     deactivate: 'Stops Docs route handling with the API runtime.',
     install: 'Creates the docs_documents index when an administrator requests a sync.',
     uninstall: 'Does not remove source vault files or indexed documents automatically.',
-    upgrade: 'Version 0.1.1 indexes repository Markdown and MDX sources.',
+    upgrade: 'Version 0.1.2 indexes repository Markdown, MDX, and text sources.',
   },
   publicContracts: [
     'GET /api/docs/v1/assets/:path',
     'GET /api/docs/v1/documents',
+    'GET /api/docs/v1/scan',
     'GET /api/docs/v1/documents/:slug',
     'PUT /api/docs/v1/documents/:slug',
     'POST /api/docs/v1/index/sync',
   ],
   scope: 'docs',
-  version: '0.1.1',
+  version: '0.1.2',
 } as const
 
 export async function registerDocsLibraryModule(

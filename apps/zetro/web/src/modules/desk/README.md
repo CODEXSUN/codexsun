@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.desk.web`
-- Version: `0.7.0`
+- Version: `0.7.1`
 - Owner: Zetro web
 - Flow: open one Zetro Desk canvas inside the shared MDI shell
 
@@ -29,7 +29,8 @@ The Desk sidebar shows Chat and Tasks as compact icon tabs. Each tab keeps an
 accessible label, a hover title, and its current count.
 
 The workspace context bar shows the selected project and active Chat or Tasks
-view. It shows the Codex connection state, provider, and model on the right.
+view. It shows the Codex connection state and the compact model selector on the
+right. The selector replaces the static Provider and Model labels.
 The Chat three-dot menu opens the connected-folder drawer. The context bar does
 not show a separate folder action.
 
@@ -62,6 +63,7 @@ Agent Chat owns the child regions inside the workspace and sidebar.
 
 Future changes must update the [Zetro development records](../../../../../../assist/records/zetro/README.md).
 
+- [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
 - [2026-09-08 Zetro Desk workspace](../../../../../../assist/records/zetro/2026-09-08-zetro-desk-workspace.md)
 - [2026-09-08 Legacy frontend cleanup](../../../../../../assist/records/zetro/2026-09-08-legacy-frontend-cleanup.md)
 - [2026-09-08 Empty Desk reset](../../../../../../assist/records/zetro/2026-09-08-empty-desk-reset.md)

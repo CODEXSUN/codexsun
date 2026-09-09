@@ -1,11 +1,26 @@
 import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
 import { Button } from '@codexsun/ui/components/button'
-import { Activity, Network, Settings2 } from 'lucide-react'
-import { useState } from 'react'
-import { CloudSettingsWorkspace, OrchestrationWorkspace } from './modules/orchestration'
+import { Activity, FolderGit2, Network, Settings2 } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
+
+const CloudSettingsWorkspace = lazy(async () => {
+  const module = await import('./modules/orchestration/cloud-settings.workspace')
+  return { default: module.CloudSettingsWorkspace }
+})
+
+const OrchestrationWorkspace = lazy(async () => {
+  const module = await import('./modules/orchestration/orchestration.workspace')
+  return { default: module.OrchestrationWorkspace }
+})
+const RepositoryWorkspace = lazy(async () => {
+  const module = await import('./modules/orchestration/repository.workspace')
+  return { default: module.RepositoryWorkspace }
+})
 
 export function App() {
-  const [workspace, setWorkspace] = useState<'cloud-settings' | 'services'>('services')
+  const [workspace, setWorkspace] = useState<'cloud-settings' | 'repositories' | 'services'>(
+    'services',
+  )
 
   return (
     <MdiMain
@@ -23,6 +38,12 @@ export function App() {
               icon: Activity,
               label: 'Live services',
               onSelect: () => setWorkspace('services'),
+            },
+            {
+              active: workspace === 'repositories',
+              icon: FolderGit2,
+              label: 'Repository manager',
+              onSelect: () => setWorkspace('repositories'),
             },
           ],
         },
@@ -43,11 +64,17 @@ export function App() {
       statusLabel="Live orchestration"
       workspaceTitle="Orship"
     >
-      {workspace === 'services' ? (
-        <OrchestrationWorkspace onOpenDeploymentSettings={() => setWorkspace('cloud-settings')} />
-      ) : (
-        <CloudSettingsWorkspace onBack={() => setWorkspace('services')} />
-      )}
+      <Suspense
+        fallback={<div className="p-6 text-sm text-muted-foreground">Loading workspace…</div>}
+      >
+        {workspace === 'services' ? (
+          <OrchestrationWorkspace onOpenDeploymentSettings={() => setWorkspace('cloud-settings')} />
+        ) : workspace === 'repositories' ? (
+          <RepositoryWorkspace />
+        ) : (
+          <CloudSettingsWorkspace onBack={() => setWorkspace('services')} />
+        )}
+      </Suspense>
     </MdiMain>
   )
 }

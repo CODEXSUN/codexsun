@@ -11,6 +11,12 @@ persistence, or workflows.
   public layout contract. Applications can provide a controlled search value
   and change callback; the layout renders the field but does not own search
   state or result behavior.
+- `agent-workspace` provides a fixed Primary Activity Rail, a center Workspace Canvas,
+  and a fixed Secondary Utility Rail. Applications supply typed icon items and actions.
+
+Pass `agentWorkspace` to `MdiMain` to connect the Agent Workspace inside the shared shell.
+The built-in feature settings show one visibility switch for each activity rail.
+MDI places the Primary Activity Rail before the default sidebar and keeps the utility rail rightmost.
 
 Applications can replace the standard primary action and navigation area with
 `sidebarContent`. They can replace the footer with a React node or pass `null`

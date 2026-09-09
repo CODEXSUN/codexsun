@@ -3,17 +3,21 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.10.0`
+- Version: `0.12.1`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
 
-The response route requires a Zetro conversation ID. The service sends text and images through the public App Server client.
+The response route requires a Zetro conversation ID. The service sends text and
+images through the public App Server client. Images remain multimodal inputs.
+Other files are written to the isolated conversation input directory and named
+in the prompt. The prompt asks Codex to identify each file format and inspect
+visible text, screenshots, diagrams, and drawings before acting.
 
 ## Dependency bindings
 
-- `zetro.codex-connection.api`: `^0.5.3`
-- `zetro.projects.api`: `^0.4.0`
+- `zetro.codex-connection.api`: `^0.7.0`
+- `zetro.projects.api`: `^0.5.0`
 
 The required project ID scopes conversation lists and creation. The API resolves
 the registered repository before a provider turn. The conversation ID and
@@ -24,6 +28,10 @@ module label, and repository-relative folder. A provider turn requires this
 scope. The API rejects root, missing, absolute, and out-of-project folders.
 
 The response route accepts a `workflow` value. Valid values are `deliver`, `develop`, `document`, `review`, and `test`. The route defaults to `develop` for older clients.
+
+The response route also accepts an optional supported Codex `model` and a
+`reasoningEffort` value. The effort accepts `low`, `medium`, or `high` and
+defaults to `medium`. An omitted model uses the account or environment default.
 
 Delivery responses expose an expanded tool catalog for assignment, documentation, changelog, versioning, commit, and push work. Tool availability does not bypass the publication gate.
 
@@ -70,7 +78,10 @@ The module has no tables, migrations, seeds, events, or jobs. Uninstall keeps co
 
 ## Safety and limits
 
-The route accepts at most 24 messages and four attachments per user message. Each encoded attachment is limited to 6 MB. Zetro returns visible final output only and does not expose provider reasoning.
+The route accepts at most 24 messages and four attachments per user message.
+Each encoded attachment is limited to 6 MB. The web composer applies a stricter
+4 MB source-file limit before Data URL encoding. Zetro returns visible final
+output only and does not expose provider reasoning.
 
 ## Verification
 
@@ -78,4 +89,6 @@ Run the Zetro API typecheck, conversation tests, workflow tests, and worktree te
 
 ## Development records
 
+- [2026-09-09 Chat input capture](../../../../../../assist/records/zetro/2026-09-09-chat-input-capture.md)
+- [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
 - [2026-09-09 Chat turn stop](../../../../../../assist/records/zetro/2026-09-09-chat-turn-stop.md)

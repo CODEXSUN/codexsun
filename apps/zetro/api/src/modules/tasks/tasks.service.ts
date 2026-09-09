@@ -19,8 +19,11 @@ export class TaskService {
       createdAt: now,
       id: randomUUID(),
       pinned: false,
+      parentTaskId: input.parentTaskId ?? null,
+      planningKind: input.planningKind ?? 'task',
       status: 'todo',
       updatedAt: now,
+      workflow: null,
     }
 
     await this.repository.save(task)

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { codexWorkflows } from '../codex-connection/index.js'
+import { codexModels, codexReasoningEfforts, codexWorkflows } from '../codex-connection/index.js'
 
 const attachmentSchema = z.strictObject({
   dataUrl: z.string().startsWith('data:').max(6_000_000),
@@ -51,8 +51,10 @@ const deliveryRunSchema = z.strictObject({
 export const chatTurnRequestSchema = z.strictObject({
   conversationId: z.string().uuid(),
   messages: z.array(messageSchema).min(1).max(24),
+  model: z.enum(codexModels).optional(),
   previousDelivery: deliveryRunSchema.optional(),
   projectId: z.string().uuid(),
+  reasoningEffort: z.enum(codexReasoningEfforts).default('medium'),
   workflow: z.enum(codexWorkflows).default('develop'),
 })
 

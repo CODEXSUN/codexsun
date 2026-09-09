@@ -37,9 +37,11 @@ export class CodexAppServerProvider implements ChatProvider {
             .filter((attachment) => attachment.mimeType.startsWith('image/'))
             .map((attachment) => attachment.dataUrl),
         ),
+        model: request.model,
         text: toCodexPrompt(request.messages, request.scope, request.previousDelivery),
         projectId: request.projectId,
         projectRoot: request.projectRoot,
+        reasoningEffort: request.reasoningEffort,
         scope: request.scope,
         workflow: request.workflow,
       })
@@ -54,7 +56,7 @@ export class CodexAppServerProvider implements ChatProvider {
           workflow: result.workflow,
         },
         message: { content: result.content, role: 'assistant' },
-        model: 'codex-app-server',
+        model: result.model,
         responseId: randomUUID(),
       }
     } catch (error) {
@@ -83,7 +85,7 @@ export class ChatProviderError extends Error {
   }
 }
 
-function toCodexPrompt(
+export function toCodexPrompt(
   messages: readonly ChatMessage[],
   scope: ChatTurnRequest['scope'],
   previousDelivery?: ChatTurnRequest['previousDelivery'],
@@ -93,8 +95,19 @@ function toCodexPrompt(
       const files = message.attachments
         .filter((attachment) => !attachment.mimeType.startsWith('image/'))
         .map((attachment) => attachment.name)
-      const fileNote = files.length ? `\nAttached files: ${files.join(', ')}` : ''
-      return `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content}${fileNote}`
+      const images = message.attachments
+        .filter((attachment) => attachment.mimeType.startsWith('image/'))
+        .map((attachment) => attachment.name)
+      const attachmentNotes = [
+        files.length ? `Attached files: ${files.join(', ')}` : '',
+        files.length ? 'Open each file and identify its format before using it.' : '',
+        images.length ? `Attached images: ${images.join(', ')}` : '',
+        images.length
+          ? 'Inspect each image directly. Read visible text, screenshots, diagrams, and drawings before acting.'
+          : '',
+      ].filter(Boolean)
+      const attachmentNote = attachmentNotes.length ? `\n${attachmentNotes.join('\n')}` : ''
+      return `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content}${attachmentNote}`
     })
     .join('\n\n')
 

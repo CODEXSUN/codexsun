@@ -33,7 +33,9 @@ export async function createServer() {
         signal: AbortSignal.timeout(2_000),
       })
       if (response.ok) return { service: 'agent-crew-api', status: 'ready', worker: 'ready' }
-    } catch {}
+    } catch {
+      // The response below reports the bounded worker failure.
+    }
     return reply
       .code(503)
       .send({ service: 'agent-crew-api', status: 'not-ready', worker: 'unavailable' })

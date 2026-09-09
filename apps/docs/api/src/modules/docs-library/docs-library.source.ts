@@ -2,6 +2,7 @@ import matter from 'gray-matter'
 import { createHash } from 'node:crypto'
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path'
+import type { DocumentationIssue, DocumentationScanResponse } from '@codexsun/docs-contracts'
 import type { DocumentRecord } from './docs-library.types.js'
 
 type FrontMatter = {
@@ -28,6 +29,9 @@ const assetContentTypes = new Map([
   ['.svg', 'image/svg+xml'],
   ['.webp', 'image/webp'],
 ])
+const documentExtensions = new Set(['.md', '.mdx', '.txt'])
+const organizedRoots = new Set(['.container', 'apps', 'assist', 'packages'])
+const rootDocuments = new Set(['agents.md', 'readme.md'])
 
 export type DocsAsset = {
   content: Buffer
@@ -52,6 +56,24 @@ export class DocsVault {
     return documents
       .map((document) => ({ ...document, links: this.resolveLinks(document.source, slugs) }))
       .sort((left, right) => left.title.localeCompare(right.title))
+  }
+
+  public async scan(): Promise<DocumentationScanResponse> {
+    const documents = await this.list()
+    const missingDocumentation = await this.findMissingReadmes()
+    const unorganizedFiles = documents
+      .filter((document) => this.isUnorganizedDocument(document.path))
+      .map((document) => ({
+        description: 'Place this source below assist, an application, a package, or .container.',
+        kind: 'unorganized-source' as const,
+        path: document.path,
+      }))
+
+    return {
+      missingDocumentation,
+      scannedAt: new Date().toISOString(),
+      unorganizedFiles,
+    }
   }
 
   public async update(
@@ -93,7 +115,7 @@ export class DocsVault {
           return this.isIgnoredDirectory(entry.name) ? [] : this.collectDocumentPaths(path)
         }
 
-        return ['.md', '.mdx'].includes(extname(entry.name).toLowerCase()) ? [path] : []
+        return documentExtensions.has(extname(entry.name).toLowerCase()) ? [path] : []
       }),
     )
 
@@ -139,6 +161,62 @@ export class DocsVault {
       tags: this.readStringList(metadata.tags),
       title,
       updatedAt: fileInfo.mtime.toISOString(),
+    }
+  }
+
+  private async findMissingReadmes(): Promise<DocumentationIssue[]> {
+    const candidates = [
+      ...(await this.collectOwnedDirectories(resolve(this.projectRoot, 'apps'))),
+      ...(await this.collectModuleDirectories(resolve(this.projectRoot, 'apps'))),
+      ...(await this.collectOwnedDirectories(resolve(this.projectRoot, 'packages'))),
+    ]
+    const missing = await Promise.all(
+      candidates.map(async (directory) => {
+        try {
+          const readme = await stat(resolve(directory, 'README.md'))
+          return readme.isFile() ? undefined : this.toMissingReadmeIssue(directory)
+        } catch {
+          return this.toMissingReadmeIssue(directory)
+        }
+      }),
+    )
+    return missing
+      .filter((issue): issue is DocumentationIssue => Boolean(issue))
+      .sort((left, right) => left.path.localeCompare(right.path))
+  }
+
+  private async collectOwnedDirectories(root: string): Promise<string[]> {
+    try {
+      const entries = await readdir(root, { withFileTypes: true })
+      return entries
+        .filter((entry) => entry.isDirectory() && !this.isIgnoredDirectory(entry.name))
+        .map((entry) => resolve(root, entry.name))
+    } catch {
+      return []
+    }
+  }
+
+  private async collectModuleDirectories(appsRoot: string): Promise<string[]> {
+    const applications = await this.collectOwnedDirectories(appsRoot)
+    const moduleRoots = applications.flatMap((application) => [
+      resolve(application, 'api', 'src', 'modules'),
+      resolve(application, 'web', 'src', 'modules'),
+    ])
+    const modules = await Promise.all(moduleRoots.map((root) => this.collectOwnedDirectories(root)))
+    return modules.flat()
+  }
+
+  private isUnorganizedDocument(documentPath: string): boolean {
+    const [root] = documentPath.split('/')
+    return !organizedRoots.has(root) && !rootDocuments.has(documentPath.toLowerCase())
+  }
+
+  private toMissingReadmeIssue(directory: string): DocumentationIssue {
+    const path = relative(this.projectRoot, directory).replaceAll(sep, '/')
+    return {
+      description: 'Add a README.md that explains this owned source area.',
+      kind: 'missing-readme',
+      path,
     }
   }
 

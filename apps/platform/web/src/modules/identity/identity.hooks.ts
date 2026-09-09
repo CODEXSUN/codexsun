@@ -1,4 +1,4 @@
-import type { IdentityLoginInput, IdentityPortal } from '@codexsun/platform-contracts'
+import type { IdentityPortal } from '@codexsun/platform-contracts'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { devLogin, login, readIdentityConfig, readSession } from './identity.services'
@@ -6,7 +6,8 @@ import { devLogin, login, readIdentityConfig, readSession } from './identity.ser
 export function useIdentityLogin(portal: IdentityPortal, destination: string) {
   const config = useQuery({ queryKey: ['identity', 'config'], queryFn: readIdentityConfig })
   const loginMutation = useMutation({
-    mutationFn: (input: IdentityLoginInput) => login(portal, input),
+    mutationFn: (input: { identifier: string; password: string }) =>
+      login(portal, input.identifier, input.password),
     onSuccess: () => window.location.assign(destination),
   })
   const devMutation = useMutation({
@@ -18,7 +19,7 @@ export function useIdentityLogin(portal: IdentityPortal, destination: string) {
     devLogin: portal === 'super-admin' ? () => devMutation.mutate() : undefined,
     devLoginEnabled: portal === 'super-admin' && Boolean(config.data?.devLoginEnabled),
     error: loginMutation.error?.message ?? devMutation.error?.message,
-    login: (email: string, password: string) => loginMutation.mutate({ email, password }),
+    login: (identifier: string, password: string) => loginMutation.mutate({ identifier, password }),
     registrationEnabled: Boolean(config.data?.registrationEnabled),
   }
 }

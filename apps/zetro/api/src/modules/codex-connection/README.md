@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.5.3`
+- Version: `0.7.0`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -24,6 +24,10 @@ A missing or invalid command returns a controlled service error. It does not sto
 ## Task execution
 
 The public client starts one ephemeral Codex thread for each turn. Ephemeral threads do not enter the durable Codex task history.
+
+Each turn can select a supported Codex model and a low, medium, or high
+reasoning effort. The model overrides `ZETRO_CODEX_MODEL` for that turn. The
+account or environment default still applies when the request omits a model.
 
 Each Zetro conversation uses one detached Git worktree. The worktree path is `<ZETRO_WORKTREE_ROOT>/<conversation-id>` and starts from repository `HEAD`.
 
@@ -56,7 +60,7 @@ The documentation workflow uses current code and repository documents as evidenc
 
 Install creates no data. Activate starts the App Server lazily. Version 0.5.3 needs no data migration.
 
-Deactivate closes the child process. Uninstall leaves credentials and worktrees untouched. The module has no tables, seeds, events, or jobs.
+Deactivate closes the child process. Uninstall leaves credentials and worktrees untouched. Version 0.7.0 needs no data migration.
 
 ## Verification
 
@@ -66,4 +70,5 @@ A complete activation requires user sign-in in the browser. A live coding turn m
 
 ## Development records
 
+- [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
 - [2026-09-09 Chat turn stop](../../../../../../assist/records/zetro/2026-09-09-chat-turn-stop.md)

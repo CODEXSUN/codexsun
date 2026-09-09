@@ -15,6 +15,8 @@ export async function listTasks(projectId: string, archived = false) {
 export async function createTask(input: {
   description: string
   priority: TaskPriority
+  parentTaskId?: string | null
+  planningKind?: 'phase' | 'subtask' | 'task'
   projectId: string
   title: string
 }) {

@@ -37,6 +37,8 @@ const environmentSchema = z
     STORAGE_ROOT: z.literal('storage/app').default('storage/app'),
     IDENTITY_AUTH_MODE: z.literal('session').default('session'),
     IDENTITY_DEV_LOGIN_ENABLED: z.enum(['true', 'false']).default('false'),
+    IDENTITY_EMAIL_PROVIDER: z.literal('disabled').default('disabled'),
+    IDENTITY_OTP_PROVIDER: z.literal('disabled').default('disabled'),
     IDENTITY_REGISTRATION_ENABLED: z.enum(['true', 'false']).default('true'),
     IDENTITY_SESSION_RENEWAL_HOURS: z.coerce.number().int().min(1).max(720).default(24),
     IDENTITY_SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(8760).default(168),
@@ -52,11 +54,7 @@ const environmentSchema = z
         path: ['DB_PASSWORD'],
       })
     }
-    if (
-      value.APP_ENV === 'production' &&
-      (value.IDENTITY_SUPER_ADMIN_PASSWORD === 'ChangeMe!1234' ||
-        value.IDENTITY_SUPER_ADMIN_PASSWORD.length < 12)
-    ) {
+    if (value.APP_ENV === 'production' && value.IDENTITY_SUPER_ADMIN_PASSWORD === 'ChangeMe!1234') {
       context.addIssue({
         code: 'custom',
         message: 'IDENTITY_SUPER_ADMIN_PASSWORD must be changed in production.',

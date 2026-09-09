@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.agent-chat.web`
-- Version: `0.10.1`
+- Version: `0.12.0`
 - Owner: Zetro web
 - Flow: open history, select a conversation, and send a provider-backed turn
 
@@ -17,11 +17,11 @@ The Zetro Desk module only supplies the sidebar and workspace surfaces.
 
 ## Dependency bindings
 
-- `zetro.chat.api`: `^0.10.0`
+- `zetro.chat.api`: `^0.12.0`
 - `zetro.desk.web`: `^0.7.0`
 - `zetro.projects.web`: `^0.5.0`
 - `zetro.project-tasks.web`: `^0.4.1`
-- `zetro.settings.web`: `^0.3.0`
+- `zetro.settings.web`: `^0.4.0`
 
 ## API bindings
 
@@ -50,10 +50,20 @@ and Delete all. Destructive actions require confirmation. Permanent deletion
 removes conversation history but preserves the isolated worktree.
 
 The workspace uses 80 percent of the available canvas width. It contains a
-scrolling message stream and a bottom prompt composer. The composer supports
-text, files, images, voice input, workflow selection, and keyboard submission.
-The shared workspace context bar shows Chat on the left and the connected Codex
-provider and current model on the right.
+scrolling message stream and a bottom prompt composer. The composer accepts
+images and files from the picker, drag and drop, and the clipboard. It shows an
+image preview before submission. A paste of 4,000 or more characters becomes a
+named text attachment instead of filling the editor. The composer accepts at
+most four attachments of 4 MB each.
+
+The same shared composer runs in the browser and the Tauri desktop application.
+It sends images through the multimodal input path. Other files, including long
+pastes, become isolated conversation inputs that Codex can open from the scoped
+worktree. No browser-only OCR or duplicate desktop upload path is used.
+The shared workspace context bar shows Chat on the left. A compact Codex control
+on the right selects the model and the Light, Medium, or Hard reasoning level.
+The control is disabled during an active turn. Light maps to `low`, Medium maps
+to `medium`, and Hard maps to `high` in the API request.
 
 Assistant responses render CommonMark and GitHub Flavored Markdown as semantic
 HTML. The renderer styles headings, paragraphs, lists, links, quotes, code,
@@ -106,7 +116,8 @@ The composer send button changes to the same stop control while that turn runs.
 
 The API owns conversation persistence, workspace scope, and isolated task worktrees. This web
 module owns no table, migration, seed, event, job, or browser storage record.
-The web module does not store a display-density preference.
+The web module does not store a display-density preference. The Settings module
+stores the selected model and reasoning level for both web and desktop use.
 
 ## Verification
 
@@ -115,11 +126,13 @@ history, empty state, prompt composer, attachment control, voice control, and
 80-percent workspace width. Also verify hover archive, archive search, restore,
 and deletion confirmation. A live turn needs the Zetro API and Codex connection.
 
-Run `npm.cmd run test --workspace @codexsun/zetro-web` to verify semantic HTML
-output and raw HTML removal.
+Run `npm.cmd run test --workspace @codexsun/zetro-web` to verify attachment
+conversion, semantic HTML output, raw HTML removal, and model selection.
 
 ## Development records
 
+- [2026-09-09 Chat input capture](../../../../../../assist/records/zetro/2026-09-09-chat-input-capture.md)
+- [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
 - [2026-09-08 Agent chat foundation](../../../../../../assist/records/zetro/2026-09-08-agent-chat-foundation.md)
 - [2026-09-08 Archived chats](../../../../../../assist/records/zetro/2026-09-08-archived-chats.md)
 - [2026-09-08 Compact sidebar navigation](../../../../../../assist/records/zetro/2026-09-08-compact-sidebar-navigation.md)

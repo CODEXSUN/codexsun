@@ -5,7 +5,7 @@ export function SpecimenStage({ compact, children }: { compact: boolean; childre
     <div
       className={
         compact
-          ? 'mx-auto flex min-h-44 max-w-2xl items-center justify-center rounded-lg border bg-muted/20 p-4'
+          ? 'mx-auto flex min-h-44 max-w-2xl items-center justify-center p-4'
           : 'mx-auto flex min-h-64 max-w-4xl items-center justify-center rounded-xl border bg-background p-8 shadow-sm'
       }
     >

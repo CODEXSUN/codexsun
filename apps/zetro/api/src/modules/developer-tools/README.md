@@ -22,6 +22,10 @@ and persisted developer tool settings.
 - `history`, `blame`, and `conflicts` routes own repository review and conflict resolution.
 - `branches`, `stashes`, `scripts`, and `pull-requests` routes own recovery and delivery tools.
 
+The script route exposes only repository-owned `build`, `check`, `clean`, `lint`,
+`release`, `test`, and `typecheck` script families. Execution creates a durable
+System Task. Cleanup and release callers must require explicit user confirmation.
+
 ## Safety
 
 All Git commands use argument arrays and the registered repository root. The API

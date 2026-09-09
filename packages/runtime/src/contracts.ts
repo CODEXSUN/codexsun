@@ -17,10 +17,10 @@ export const runtimeBindingSchema = z.strictObject({
 
 export const deploymentComponentSchema = z.strictObject({
   buildWorkspaces: z.array(workspaceSchema).min(1),
-  environment: z.record(z.string().regex(/^[A-Z][A-Z0-9_]*$/), z.string()).default({}),
   defaultPort: z.number().int().min(6000).max(6999),
   dependsOn: z.array(identifierSchema),
   dockerfile: dockerfileSchema.optional(),
+  environment: z.record(z.string().regex(/^[A-Z][A-Z0-9_]*$/), z.string()).default({}),
   healthPath: z.string().startsWith('/'),
   hostEnvironmentKey: z
     .string()

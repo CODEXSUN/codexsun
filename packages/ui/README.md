@@ -24,6 +24,25 @@ Use Tailwind utilities for layout, spacing, color, type, state, and responsive b
 Do not add component stylesheets when Tailwind provides the required utility.
 Use custom values only for runtime data or behavior that Tailwind cannot express.
 
+## Design-system registry
+
+`@codexsun/ui/design-system` is the public registry for component and block names,
+package paths, supported variants, and pinned defaults. `createDesignSystemSelection`
+validates programmatic app overrides and rejects unknown items or variants.
+
+The registry also owns reusable page families. Login and Register each expose `v1` and `v2`;
+Forgot Password and Notifications Page expose one default. Applications select these variants
+through the same validated design-system selection instead of copying page markup.
+
+Keep a small control as one physical primitive with typed properties. Use Button with
+`variant` and `size`. Do not create separate PrimaryButton or SecondaryButton wrappers.
+Move a larger reusable surface into an owned block folder with typed data, slots, and
+callbacks. Applications keep business fields, routes, persistence, and workflows.
+
+Use `resolveActionVariant` when business code starts with an action intent. For example,
+`primary` resolves to the pinned Button default and `alternative` resolves to `secondary`.
+This keeps intent names stable without adding wrapper components or conditional classes.
+
 The standard shared Button is 40px high and uses content width with `px-5` text padding.
 The standard icon button is 40px square. Primary, neutral, secondary, success, warning,
 info, destructive, outline, ghost, and link variants use shared semantic tokens.
@@ -46,6 +65,10 @@ use the shared 40px Button contract and wrap without a scrollbar.
   documentation previews, usage guidance, and copyable code examples.
 - `@codexsun/ui/templates/ui-page` exports `UiTemplatePage`, the required component
   and block documentation composition.
+- The Layout documentation includes a live Agent Workspace with two package-owned activity rails.
+- The UI Gallery includes live Login v1, Login v2, Register v1, Register v2, Forgot Password,
+  and Notifications Page entries. Each page is a real public block with copyable code and a
+  persisted default selection for multi-variant page families.
 - `UiTemplatePage` owns the kind and title header, copyable import path, 90-percent
   live preview lane, code space, and named documentation navigation.
 - UI template pages keep 48px between the tool strip and live preview.
@@ -60,6 +83,8 @@ use the shared 40px Button contract and wrap without a scrollbar.
 ## Included blocks
 
 - `@codexsun/ui/blocks/auth` provides presentation-only client, administrator, and super-administrator login, recovery, registration, and portal blocks. Applications own routes, API calls, session state, and policy.
+- `@codexsun/ui/blocks/notifications` provides a presentation-only notification inbox with typed
+  records and application-owned actions.
 - `@codexsun/ui/blocks/form` provides the reusable form frame, animated shared tabs,
   active-state strip, icon actions, and searchable lookup field. Applications supply
   fields, validation, lookup options, values, and persistence callbacks.
@@ -101,6 +126,9 @@ copy its code or open that code in a dialog. The selected default persists local
 Both variants use the shared content-height, opacity, and chevron motion contract.
 The Alert page uses one default callout stack for success, information, warning, and
 error messages. Each callout combines a semantic tone, icon, and short title.
+The UI Overview reads the central registry and renders every component's real pinned
+default. It links to the live default Table and Form block pages. It does not maintain
+a separate sampler implementation.
 
 ## Theme system
 
@@ -118,6 +146,13 @@ error messages. Each callout combines a semantic tone, icon, and short title.
 
 ## Included layouts
 
+- `@codexsun/ui/layouts/agent-workspace` exports the shared Agent Workspace composition.
+  It fixes a Primary Activity Rail and Secondary Utility Rail around one center canvas.
+  Applications supply typed icon items, active state, badges, and selection callbacks.
+- `MdiMain` accepts `agentWorkspace` to place this composition inside the MDI canvas.
+  Its feature settings show independent switches for both rails when this option is present.
+- MDI orders this layout as Primary Activity Rail, default sidebar, center canvas, then
+  Secondary Utility Rail. The standard navigation toggle still controls the default sidebar.
 - `@codexsun/ui/layouts/mdi-main` exports the composed layout and its separate
   top-menu, app-switcher, profile, sidebar, status, empty-state, and feature
   settings components.

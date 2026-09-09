@@ -22,3 +22,8 @@ export type {
   MdiSettingsContentProps,
   MdiUser,
 } from './mdi-types'
+export type {
+  AgentWorkspaceProps,
+  AgentWorkspaceRail,
+  AgentWorkspaceRailItem,
+} from '../agent-workspace'

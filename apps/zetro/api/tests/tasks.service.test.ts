@@ -35,7 +35,10 @@ test('isolates task lists and updates by project', async (context) => {
   assert.equal(service.list(firstProjectId).length, 1)
   assert.equal(service.list(secondProjectId).length, 1)
   assert.equal(first.archived, false)
+  assert.equal(first.parentTaskId, null)
   assert.equal(first.pinned, false)
+  assert.equal(first.planningKind, 'task')
+  assert.equal(first.workflow, null)
   await assert.rejects(
     service.update(first.id, secondProjectId, { status: 'done' }),
     TaskNotFoundError,
@@ -43,6 +46,10 @@ test('isolates task lists and updates by project', async (context) => {
   assert.equal((await service.update(first.id, firstProjectId, { status: 'done' })).status, 'done')
   assert.equal((await service.update(first.id, firstProjectId, { pinned: true })).pinned, true)
   assert.equal((await service.update(first.id, firstProjectId, { archived: true })).archived, true)
+  assert.equal(
+    (await service.update(first.id, firstProjectId, { workflow: 'review' })).workflow,
+    'review',
+  )
   assert.equal(service.list(firstProjectId).length, 0)
   assert.equal(service.list(firstProjectId, true).length, 1)
 })

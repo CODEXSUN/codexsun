@@ -33,6 +33,7 @@ record for a change. It does not duplicate source-owned documentation.
 | Module lifecycle         | `packages/framework`                | [framework roadmap](architecture/framework-capability-roadmap.md)   |
 | Shared runtime contracts | `packages/platform-core`            | [runtime foundation](architecture/runtime-foundation.md)            |
 | Shared web UI            | `packages/ui`                       | [web UI skill](skills/web-ui.md)                                    |
+| UI design system         | `packages/ui/src/design-system`     | [UI design system standard](architecture/ui-design-system.md)       |
 | Deployment assembly      | `packages/runtime` and `.container` | [deployment standard](architecture/deployment-assembly-standard.md) |
 | Repository documents     | `assist` and source-owned READMEs   | [Docs application](../apps/docs/README.md)                          |
 

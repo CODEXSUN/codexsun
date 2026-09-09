@@ -12,6 +12,15 @@ const inlineCodePattern = /`[^`\n]*`/g
 
 export class DocsRenderer {
   public async render(document: DocumentRecord): Promise<string> {
+    if (document.path.endsWith('.txt')) {
+      return renderToStaticMarkup(
+        createElement(
+          'pre',
+          null,
+          createElement('code', { className: 'language-text' }, document.source),
+        ),
+      )
+    }
     this.assertSafe(document.source)
     const source = this.replaceWikiLinks(document.source)
     const module = await evaluate(source, {

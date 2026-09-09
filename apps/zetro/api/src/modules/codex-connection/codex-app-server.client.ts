@@ -29,6 +29,7 @@ interface PendingRequest {
 interface TurnCollector {
   activities: CodexToolActivity[]
   content: string
+  model: string
   reject(reason: Error): void
   resolve(value: CodexTurnResult): void
   timeout: NodeJS.Timeout
@@ -148,6 +149,7 @@ export class CodexAppServerClient {
   }
 
   private async executeTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
+    const turnConfiguration = resolveCodexTurnConfiguration(input, this.model)
     const worktree = await this.worktrees.ensure(
       input.conversationId,
       input.projectRoot,
@@ -172,7 +174,7 @@ export class CodexAppServerClient {
           input.scope,
         ),
         ephemeral: true,
-        model: this.model,
+        model: turnConfiguration.model,
         sandbox: 'workspace-write',
         serviceName: 'zetro',
         threadSource: 'zetro',
@@ -180,7 +182,12 @@ export class CodexAppServerClient {
     )
     const thread = asRecord(threadResult.thread)
     const threadId = readString(thread, 'id')
-    const completion = this.collectTurn(threadId, worktree.path, input.workflow)
+    const completion = this.collectTurn(
+      threadId,
+      worktree.path,
+      input.workflow,
+      readString(threadResult, 'model'),
+    )
 
     let activeTurn: ActiveTurn | undefined
     try {
@@ -190,6 +197,7 @@ export class CodexAppServerClient {
             { text: addFilePaths(input.text, filePaths), type: 'text' },
             ...input.images.map((url) => ({ type: 'image', url })),
           ],
+          effort: turnConfiguration.effort,
           outputSchema: input.workflow === 'deliver' ? deliveryOutputJsonSchema : undefined,
           threadId,
         }),
@@ -366,6 +374,7 @@ export class CodexAppServerClient {
     threadId: string,
     worktreePath: string,
     workflow: CodexTurnInput['workflow'],
+    model: string,
   ): Promise<CodexTurnResult> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(
@@ -375,6 +384,7 @@ export class CodexAppServerClient {
       this.turns.set(threadId, {
         activities: [],
         content: '',
+        model,
         reject,
         resolve,
         timeout,
@@ -412,6 +422,7 @@ export class CodexAppServerClient {
       activities: collector.activities.slice(0, 20),
       content: output.content,
       delivery: output.delivery,
+      model: collector.model,
       threadId,
       worktreePath: collector.worktreePath,
       workflow: collector.workflow,
@@ -444,6 +455,13 @@ export class CodexAppServerClient {
     this.pendingRequests.clear()
     this.process = null
   }
+}
+
+export function resolveCodexTurnConfiguration(
+  input: Pick<CodexTurnInput, 'model' | 'reasoningEffort'>,
+  defaultModel?: string,
+): { effort: CodexTurnInput['reasoningEffort']; model?: string } {
+  return { effort: input.reasoningEffort, model: input.model ?? defaultModel }
 }
 
 function waitForSpawn(child: ChildProcessWithoutNullStreams, command: string): Promise<void> {

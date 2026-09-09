@@ -1,4 +1,5 @@
 import type { CodexWorkflow } from './codex-workflow.js'
+import type { CodexModel, CodexReasoningEffort } from './codex-model.js'
 
 export type CodexConnectionMode = 'api_key' | 'chatgpt' | 'none'
 export type CodexConnectionState = 'connected' | 'disconnected' | 'error' | 'pending'
@@ -25,6 +26,7 @@ export interface CodexTurnInput {
     name: string
   }[]
   images: readonly string[]
+  model?: CodexModel
   projectId: string
   projectRoot: string
   scope: {
@@ -33,6 +35,7 @@ export interface CodexTurnInput {
     module: string
   }
   text: string
+  reasoningEffort: CodexReasoningEffort
   workflow: CodexWorkflow
 }
 
@@ -71,6 +74,7 @@ export interface CodexTurnResult {
   activities: readonly CodexToolActivity[]
   content: string
   delivery?: CodexDeliveryRun
+  model: string
   threadId: string
   worktreePath: string
   workflow: CodexWorkflow

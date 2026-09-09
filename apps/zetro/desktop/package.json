@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/zetro-desktop",
   "private": true,
-  "version": "0.1.13",
+  "version": "0.1.14",
   "type": "module",
   "scripts": {
     "build": "node ../../../tools/zetro-desktop.mjs build",
@@ -12,8 +12,8 @@
     "typecheck": "node ../../../tools/zetro-desktop.mjs check"
   },
   "dependencies": {
-    "@codexsun/zetro-api": "^0.1.13",
-    "@codexsun/zetro-web": "^0.1.13"
+    "@codexsun/zetro-api": "^0.1.14",
+    "@codexsun/zetro-web": "^0.1.14"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.11.4",

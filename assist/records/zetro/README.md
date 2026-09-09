@@ -1,5 +1,9 @@
 # Zetro Development Records
 
+- [2026-09-09 Deterministic automation CLI](2026-09-09-deterministic-automation-cli.md)
+- [2026-09-09 Desktop 0.1.13 build](2026-09-09-desktop-0.1.13-build.md)
+- [2026-09-09 Chat input capture](2026-09-09-chat-input-capture.md)
+- [2026-09-09 Codex model selection](2026-09-09-codex-model-selection.md)
 - [2026-09-09 Production foundation](2026-09-09-production-foundation.md)
 - [2026-09-09 System Tasks foundation](2026-09-09-system-tasks-foundation.md)
 - [2026-09-09 Git delivery flow](2026-09-09-git-delivery-flow.md)

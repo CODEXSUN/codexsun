@@ -1,11 +1,14 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { InterfaceTopologySection } from '../../features/interface-topology'
+import type { AgentWorkspaceProps } from '../agent-workspace'
 
 export type MdiFeatures = {
   appSwitcher: boolean
   notifications: boolean
+  primaryActivityRail: boolean
   profileMenu: boolean
+  secondaryUtilityRail: boolean
   statusBar: boolean
   topMenu: boolean
 }
@@ -63,6 +66,7 @@ export type MdiUser = {
 }
 
 export type MdiMainProps = {
+  agentWorkspace?: Omit<AgentWorkspaceProps, 'children' | 'showPrimaryRail' | 'showSecondaryRail'>
   applicationIcon?: LucideIcon
   applicationLogoUrl?: string
   applicationId?: string
@@ -70,6 +74,7 @@ export type MdiMainProps = {
   apps?: MdiAppItem[]
   children?: ReactNode
   defaultFeatures?: Partial<MdiFeatures>
+  defaultSidebarOpen?: boolean
   deskRegionId?: string
   embedded?: boolean
   navigation?: MdiNavigationSection[]
@@ -104,7 +109,9 @@ export type MdiSettingsContentProps = {
 export const defaultMdiFeatures: MdiFeatures = {
   appSwitcher: true,
   notifications: true,
+  primaryActivityRail: true,
   profileMenu: true,
+  secondaryUtilityRail: true,
   statusBar: true,
   topMenu: true,
 }

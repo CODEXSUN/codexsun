@@ -12,6 +12,10 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 - Keep React views, client routing, client state, and browser interactions in the owning web application.
 - Put reusable web UI primitives, application layouts, composition-ready templates, hooks, and theme assets in `packages/ui`.
 - Use `@codexsun/ui/layouts/mdi-main` as the base frame for CODEXSUN web applications. Keep each application's workspace content in its owning app.
+- Use `@codexsun/ui/layouts/agent-workspace` for agent screens with fixed tool rails.
+  Pass its typed rail configuration through `MdiMain.agentWorkspace`.
+- Call the left rail the Primary Activity Rail. Call the right rail the Secondary Utility Rail.
+  Keep agent business state and actions in the owning application.
 - Use labeled MDI navigation sections for grouped links. Indent child links on the
   shared vertical rail instead of drawing application-specific menu trees.
 - Keep the MDI primary action close to the command bar. Use the primary action group's
@@ -24,6 +28,12 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 - Keep the HTML document title equal to the application name supplied to the shared MDI layout.
 - Put colors, spacing, typography, and other visual values in `packages/ui/src/tokens`.
 - Use Tailwind CSS and shadcn/ui conventions. Configure each app `components.json` to install reusable items in `packages/ui`; keep application composition in the app.
+- Read the [UI design system standard](../architecture/ui-design-system.md) before adding a
+  component, block, layout, variant, or app-local visual abstraction.
+- Search `@codexsun/ui/design-system` before writing UI. Use one typed primitive for a small
+  control. Use a package-owned block for a large reusable surface.
+- Do not create app-local shared primitives, copy package variant classes, or import Base UI,
+  CVA, or private `packages/ui/src` paths from an application.
 - Use `@codexsun/ui/templates/ui-page` for UI component and block documentation.
   Read [ui-template-pages.md](ui-template-pages.md) before changing those pages.
 - Use TanStack Query for server-state caching and TanStack Router for application routes.
@@ -44,7 +54,8 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 
 ## Verify
 
-Run `npm.cmd run typecheck` and `npm.cmd run build`. Confirm changed UI in a browser when a dev server is available.
+Run `npm.cmd run check:ui-system`, `npm.cmd run typecheck`, and `npm.cmd run build`.
+Confirm changed UI in a browser when a dev server is available.
 
 ## Development record
 

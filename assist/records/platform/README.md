@@ -2,6 +2,9 @@
 
 ## Records
 
+- [2026-09-09 Agent Workspace layout](2026-09-09-agent-workspace-layout.md)
+- [2026-09-09 Identity cross-client security](2026-09-09-identity-cross-client-security.md)
+- [2026-09-09 UI design system registry](2026-09-09-ui-design-system-registry.md)
 - [2026-09-09 Identity portals](2026-09-09-identity-portals.md)
 - [2026-09-09 Assist discovery and skill routing](2026-09-09-assist-discovery.md)
 - [2026-09-09 MariaDB and environment foundation](2026-09-09-mariadb-environment-foundation.md)

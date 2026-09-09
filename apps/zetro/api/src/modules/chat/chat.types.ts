@@ -1,4 +1,9 @@
-import type { CodexDeliveryRun, CodexWorkflow } from '../codex-connection/index.js'
+import type {
+  CodexDeliveryRun,
+  CodexModel,
+  CodexReasoningEffort,
+  CodexWorkflow,
+} from '../codex-connection/index.js'
 import type { ChatWorkspaceScope } from './chat.conversation.types.js'
 
 export type ChatRole = 'assistant' | 'user'
@@ -19,9 +24,11 @@ export interface ChatMessage {
 export interface ChatTurnRequest {
   conversationId: string
   messages: readonly ChatMessage[]
+  model?: CodexModel
   previousDelivery?: CodexDeliveryRun
   projectId: string
   projectRoot: string
+  reasoningEffort: CodexReasoningEffort
   scope: ChatWorkspaceScope
   workflow: CodexWorkflow
 }

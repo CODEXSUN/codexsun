@@ -39,12 +39,14 @@ import {
   matchesDocument,
 } from './docs-library.utils'
 import { IdeasWorkspace } from './ideas.workspace'
+import { ideasPages, type IdeasPageId } from './ideas.types'
 import { docsTopologySections } from './docs-library.topology'
+import { DocsLibrarySettings } from './docs-library.settings'
 
 export function DocsWorkspace() {
   const library = useDocsLibrary()
   const [editing, setEditing] = useState(false)
-  const [view, setView] = useState<'docs' | 'ideas'>('docs')
+  const [view, setView] = useState<'docs' | IdeasPageId>('docs')
   const [query, setQuery] = useState('')
   const visibleDocuments = useMemo(
     () => library.documents.filter((document) => matchesDocument(document, query)),
@@ -67,17 +69,15 @@ export function DocsWorkspace() {
         ],
       },
       {
-        defaultOpen: view === 'ideas',
+        defaultOpen: view !== 'docs',
         icon: LightbulbIcon,
         label: 'Ideas',
-        items: [
-          {
-            active: view === 'ideas',
-            icon: LightbulbIcon,
-            label: 'Development plan',
-            onSelect: () => setView('ideas'),
-          },
-        ],
+        items: ideasPages.map((idea) => ({
+          active: view === idea.id,
+          icon: LightbulbIcon,
+          label: idea.label,
+          onSelect: () => setView(idea.id),
+        })),
       },
       ...getDocsIndexGroups(visibleDocuments).map((group) => ({
         defaultOpen: group.documents.some(
@@ -107,11 +107,12 @@ export function DocsWorkspace() {
       searchPlaceholder="Search titles, tags, and paths"
       searchValue={query}
       sidebarContentClassName="docs-sidebar-scroll"
+      settingsContent={({ onBack }) => <DocsLibrarySettings onBack={onBack} />}
       topologySections={docsTopologySections}
       workspaceTitle="Documentation"
     >
-      {view === 'ideas' ? (
-        <IdeasWorkspace />
+      {view !== 'docs' ? (
+        <IdeasWorkspace page={view} />
       ) : editing && library.activeDocument ? (
         <DocsLibraryEditor
           document={library.activeDocument}
@@ -131,6 +132,7 @@ function getDocsGroupIcon(groupId: string): LucideIcon {
   if (groupId === 'assists') return FileText
   if (groupId === 'runtime') return ServerIcon
   if (groupId === 'repository') return FolderTreeIcon
+  if (groupId === 'unorganized') return FileText
   if (groupId.startsWith('packages-')) return PackageIcon
 
   switch (groupId) {
@@ -193,7 +195,10 @@ function DocsLibraryView({
       topology={topology}
     >
       <TopologyRegion as="div" id="10.1" topology={topology}>
-        <DocsLibraryHeader document={activeDocument} onEdit={onEdit} />
+        <DocsLibraryHeader
+          document={activeDocument}
+          onEdit={activeDocument && isEditableDocument(activeDocument.path) ? onEdit : undefined}
+        />
       </TopologyRegion>
       <TopologyRegion
         as="div"
@@ -255,6 +260,10 @@ function DocsLibraryView({
       </TopologyRegion>
     </TopologyRegion>
   )
+}
+
+function isEditableDocument(path: string): boolean {
+  return /\.(md|mdx)$/i.test(path)
 }
 
 function DocumentNavigation({

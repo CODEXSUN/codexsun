@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AgentChatArchive } from './agent-chat.archive'
 import { AgentChatComposer } from './agent-chat.composer'
 import { useAgentChat } from './agent-chat.controller'
@@ -8,6 +8,13 @@ import { AgentChatScopeSheet } from './agent-chat.scope-sheet'
 export function AgentChatWorkspace() {
   const chat = useAgentChat()
   const [draft, setDraft] = useState('')
+  const preparedDraft = chat.preparedDraft
+
+  useEffect(() => {
+    if (!preparedDraft) return
+    setDraft(preparedDraft)
+    chat.clearPreparedDraft()
+  }, [chat, preparedDraft])
 
   if (chat.view === 'archive') return <AgentChatArchive />
 

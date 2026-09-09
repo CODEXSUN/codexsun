@@ -1,4 +1,4 @@
-export type UiLayoutId = 'mdi-main'
+export type UiLayoutId = 'agent-workspace' | 'mdi-main'
 
 export type UiLayoutDoc = {
   code: string
@@ -44,6 +44,57 @@ export function ApplicationShell() {
       workspaceTitle="Overview"
     >
       <AccountsOverview />
+    </MdiMain>
+  )
+}`,
+  },
+  {
+    id: 'agent-workspace',
+    name: 'Agent Workspace',
+    packageName: '@codexsun/ui/layouts/agent-workspace',
+    summary: 'Agent canvas with fixed primary and secondary icon activity rails.',
+    description:
+      'Use Agent Workspace inside MDI Main when an agent needs persistent tools on both sides of a focused center canvas.',
+    code: `import {
+  BotIcon,
+  BookOpenIcon,
+  FolderOpenIcon,
+  MessageCircleIcon,
+  SettingsIcon,
+  SlidersHorizontalIcon,
+} from 'lucide-react'
+import type { AgentWorkspaceRail } from '@codexsun/ui/layouts/agent-workspace'
+import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
+
+const primaryRail: AgentWorkspaceRail = {
+  label: 'Agent activities',
+  items: [
+    { active: true, icon: MessageCircleIcon, id: 'conversation', label: 'Conversation' },
+    { icon: BotIcon, id: 'agents', label: 'Agents' },
+    { icon: FolderOpenIcon, id: 'files', label: 'Files' },
+  ],
+  footerItems: [{ icon: SettingsIcon, id: 'settings', label: 'Agent settings' }],
+}
+
+const secondaryRail: AgentWorkspaceRail = {
+  label: 'Workspace utilities',
+  items: [
+    { icon: BookOpenIcon, id: 'context', label: 'Context' },
+    { icon: SlidersHorizontalIcon, id: 'controls', label: 'Run controls' },
+  ],
+}
+
+const agentWorkspace = { primaryRail, secondaryRail }
+
+export function AgentApplication() {
+  return (
+    <MdiMain
+      agentWorkspace={agentWorkspace}
+      applicationId="agent-console"
+      applicationName="Agent Console"
+      workspaceTitle="Agent workspace"
+    >
+      <AgentConversation />
     </MdiMain>
   )
 }`,

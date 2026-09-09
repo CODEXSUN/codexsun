@@ -2,6 +2,7 @@ import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
+import { buttonGroupDefaultOrientation } from '../design-system/defaults'
 
 import { Separator } from '@codexsun/ui/components/separator'
 
@@ -17,14 +18,14 @@ const buttonGroupVariants = cva(
       },
     },
     defaultVariants: {
-      orientation: 'horizontal',
+      orientation: buttonGroupDefaultOrientation,
     },
   },
 )
 
 function ButtonGroup({
   className,
-  orientation,
+  orientation = buttonGroupDefaultOrientation,
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof buttonGroupVariants>) {
   return (

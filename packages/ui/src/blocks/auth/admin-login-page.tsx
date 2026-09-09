@@ -1,14 +1,15 @@
-import { AuthShell } from './auth-shell'
-import { AuthLoginForm, type AuthLoginFormProps } from './login-form'
+import { LoginPage, type LoginPageProps } from './login-page'
 
-export function AdminLoginPage(props: Omit<AuthLoginFormProps, 'forgotHref' | 'registerHref'>) {
+export function AdminLoginPage(
+  props: Omit<LoginPageProps, 'description' | 'forgotHref' | 'registerHref' | 'title' | 'variant'>,
+) {
   return (
-    <AuthShell
-      eyebrow="Administration"
-      title="Administrator sign in"
+    <LoginPage
+      {...props}
       description="Use an administrator account for this isolated desk."
-    >
-      <AuthLoginForm {...props} forgotHref="/admin/password/forgot" />
-    </AuthShell>
+      forgotHref="/admin/password/forgot"
+      registerHref={undefined}
+      title="Administrator sign in"
+    />
   )
 }

@@ -154,9 +154,8 @@ function runCommand(
     })
     child.once('exit', (code) => {
       clearTimeout(timer)
-      code === 0
-        ? resolvePromise(output.trim())
-        : reject(new Error(error.trim() || `${command} exited with code ${code}.`))
+      if (code === 0) resolvePromise(output.trim())
+      else reject(new Error(error.trim() || `${command} exited with code ${code}.`))
     })
   })
 }

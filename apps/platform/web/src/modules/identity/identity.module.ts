@@ -77,5 +77,5 @@ export const identityWebModule: PlatformWebModule<FC> = {
       title: 'Reset password',
     },
   ],
-  version: '1.0.0',
+  version: '1.1.0',
 }

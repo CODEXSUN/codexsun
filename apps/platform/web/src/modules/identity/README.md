@@ -7,7 +7,7 @@ The Identity web module composes three isolated portal desks and their account r
 ## Identity and version
 
 - Module ID: `identity`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -19,11 +19,13 @@ The Identity web module composes three isolated portal desks and their account r
 | Administrator       | `/admin` | `/admin/login` | `/admin/password/forgot` |
 | Super administrator | `/sa`    | `/sa/login`    | `/sa/password/forgot`    |
 
-`/register` creates regular accounts only. `/admin/login` is the only administrator sign-in route.
+`/register` creates regular accounts only. `/admin/login` is the only administrator sign-in route. Login accepts a username, email address, or mobile number.
 
 ## Boundaries
 
-The module owns routes, React Query hooks, API services, and portal compositions. Shared visual blocks live in `@codexsun/ui/blocks/auth`. No portal imports another portal page, credential state, or cookie. The API remains the authority for portal access.
+The module owns routes, React Query hooks, API services, device identity, and portal compositions. Shared visual blocks live in `@codexsun/ui/blocks/auth`. No portal imports another portal page, credential state, or cookie. The API remains the authority for portal access.
+
+The administrator desk lists regular users and supports status, reset-request, role, and permission work. The super-administrator desk lists all users and recent security activity. Other portals cannot call those API routes.
 
 ## Verification
 
@@ -31,4 +33,5 @@ Run Platform web typecheck and build checks. Browser verification must cover all
 
 ## Development records
 
+- [2026-09-09 Identity cross-client security](../../../../../../assist/records/platform/2026-09-09-identity-cross-client-security.md)
 - [2026-09-09 Identity portals](../../../../../../assist/records/platform/2026-09-09-identity-portals.md)

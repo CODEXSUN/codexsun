@@ -136,6 +136,7 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
     requestContext,
     options.resolveActor ?? (identityEnabled ? identity.resolveActor : undefined),
   )
+  if (identityEnabled) identity.registerActivityMonitor(server)
   await registerPlatformModules(
     server,
     modules,

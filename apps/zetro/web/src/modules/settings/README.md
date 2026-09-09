@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.settings.web`
-- Version: `0.3.0`
+- Version: `0.4.0`
 - Owner: Zetro web
 - Flow: inspect or disconnect Codex, connect another account, open verification, copy or paste the device code, and refresh activation
 
@@ -14,7 +14,7 @@ contract.
 
 Settings uses five application-owned sections:
 
-- General controls the default chat workflow and ITO visibility.
+- General controls the Codex model, reasoning level, default chat workflow, and ITO visibility.
 - Appearance controls theme and shared MDI command bar, app switcher,
   notifications, profile menu, and status bar visibility.
 - Developer tools controls global Git, monitoring, and external editor defaults.
@@ -28,13 +28,15 @@ custom stylesheet.
 
 ## Dependency bindings
 
-- `zetro.codex-connection.api`: `^0.5.0`
+- `zetro.codex-connection.api`: `^0.7.0`
 - `zetro.developer-tools.web`: `^0.2.0`
 - `zetro.git-delivery.web`: `^0.1.0`
 
 Zetro does not store Codex account tokens or API keys in browser storage. The device code is held only in component memory for the current page session. Codex owns the durable authenticated session.
 
-Application preferences use `zetro.settings.preferences.v1`. Shared MDI feature
+Application preferences use `zetro.settings.preferences.v1`. The same record
+stores the global Codex model and the Light, Medium, or Hard reasoning level.
+The web and desktop applications use this shared frontend record. Shared MDI feature
 visibility keeps using its established application-specific storage contract.
 The first read imports the former `zetro.agent-chat.workflow` value when no
 central default exists.
@@ -55,5 +57,6 @@ and inspector render only when the General toggle is enabled.
 
 Future changes must be recorded in the [Zetro development records](../../../../../../assist/records/zetro/README.md).
 
+- [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
 - [2026-09-08 Cross-app interface topology](../../../../../../assist/records/platform/2026-09-08-cross-app-interface-topology.md)
 - [2026-09-09 Centralized Zetro settings](../../../../../../assist/records/zetro/2026-09-09-centralized-settings.md)

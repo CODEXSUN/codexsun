@@ -1,21 +1,14 @@
-import { useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
-import { CheckCircle2, Circle, CircleDot, ListTree, LoaderCircle, ScanSearch } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { CheckCircle2, Circle, CircleDot, LoaderCircle } from 'lucide-react'
 import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@codexsun/ui/components/dropdown-menu'
 import { Input } from '@codexsun/ui/components/input'
 import { Textarea } from '@codexsun/ui/components/textarea'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { ProjectTaskArchive } from './project-tasks.archive'
 import { useProjectTasks } from './project-tasks.controller'
+import { TaskPlanningActions } from './project-tasks.planning'
 import type { TaskPriority, TaskStatus, ZetroTask } from './project-tasks.types'
 
 const nextStatus: Record<TaskStatus, TaskStatus> = {
@@ -132,7 +125,7 @@ function TaskDetails({ task }: { task: ZetroTask }) {
           <h1 className="pt-2 text-2xl font-semibold tracking-tight">{task.title}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <TaskPlanningActions />
+          <TaskPlanningActions task={task} />
           <Badge className="ml-2" variant="outline">
             {task.priority} priority
           </Badge>
@@ -162,54 +155,6 @@ function TaskDetails({ task }: { task: ZetroTask }) {
         </Button>
       </div>
     </article>
-  )
-}
-
-function TaskPlanningActions() {
-  return (
-    <>
-      <PlanningMenu icon={ScanSearch} label="Review task">
-        <DropdownMenuItem disabled>Review workflow binding follows</DropdownMenuItem>
-      </PlanningMenu>
-      <PlanningMenu icon={ListTree} label="Split task">
-        <DropdownMenuItem disabled>Split into phases</DropdownMenuItem>
-        <DropdownMenuItem disabled>Split into subtasks</DropdownMenuItem>
-      </PlanningMenu>
-    </>
-  )
-}
-
-function PlanningMenu({
-  children,
-  icon: Icon,
-  label,
-}: {
-  children: ReactNode
-  icon: ComponentType<{ className?: string }>
-  label: string
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            aria-label={label}
-            className="cursor-pointer"
-            size="icon-sm"
-            title={label}
-            variant="ghost"
-          />
-        }
-      >
-        <Icon />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>{label}</DropdownMenuLabel>
-          {children}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 

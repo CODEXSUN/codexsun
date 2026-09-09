@@ -8,41 +8,34 @@
 
 ## Version State
 
-- Current version: 0.1.13
-- Release tag: v-0.1.13
-- Changelog label: v 0.1.13
+- Current version: 0.1.14
+- Release tag: v-0.1.14. Changelog label: v 0.1.14.
+
+## v-0.1.14
+
+### [v 0.1.14] 2026-09-09 9:23 pm - Automation, agent operations, and platform foundations
+
+- Database Changes: Added Identity device, session, role, verification, and security-event persistence. App Codebase Changes: Added Agent Crew runtimes, Orship repository operations, Docs architecture views, shared Agent Workspace and UI design-system controls, Zetro model and attachment input, task planning, the Automation CLI/workspace, desktop `0.1.14` metadata, real Login/Register page variants, Forgot Password, Notifications Page, validated page defaults, and route-level gallery code splitting. Verification: The complete repository check, runtime validation, and MariaDB foundation test passed. The Zetro desktop executable reports `0.1.14`. The platform-only smoke did not run because an active `platform-web` service owns port `6021`; installation and live application checks did not run. See `assist/records/platform/2026-09-09-ui-page-templates.md` and the linked application development records.
 
 ## v-0.1.13
 
-### [v 0.1.13] 2026-09-09 8:02 pm - Guard Zetro release batches and recovery checkpoints
+### [v 0.1.13] 2026-09-09 8:12 pm - Identity security and Zetro Windows desktop build
 
-- Database update: No (manual).
-- Bumped workspace version to 0.1.13.
+- Database Changes: Added module-owned identifiers, devices, session binding, security events, and a seed. App Codebase Changes: Added three-identifier login, cross-client sessions, device approval, monitoring, administrator controls, provider ports, origin checks, and timing protection. Built the Zetro `0.1.13` executable and WiX MSI with the shared chat input pipeline. Added the shared Agent Workspace layout and a deterministic Automation CLI/workspace with durable run monitoring and reviewed agent diagnosis. Verification: Focused Identity, Zetro, UI, and Platform checks passed. CLI and script allowlist tests passed. The MSI and executable report `0.1.13`. Installation, live multimodal, and live automation checks did not run. See `assist/records/platform/2026-09-09-identity-cross-client-security.md`, `assist/records/platform/2026-09-09-agent-workspace-layout.md`, `assist/records/zetro/2026-09-09-desktop-0.1.13-build.md`, and `assist/records/zetro/2026-09-09-deterministic-automation-cli.md`.
 
 ## v-0.1.12
 
-### [v 0.1.12] 2026-09-09 5:07 pm - Zetro desktop startup and compact repository indicators
+### [v 0.1.12] 2026-09-09 5:07 pm - Zetro desktop, model selection, and chat input capture
 
-- Database update: No (auto-check). Bumped workspace version to 0.1.12.
-- App Codebase Changes: The packaged Zetro API now prefers loopback port `16050` and falls back to a free port. The shared UI uses the live desktop address. Startup failures show a Windows dialog. Repository and operations controls now show compact icons and counts without branch or memory labels.
-- Verification: Zetro API, web, and desktop tests passed. The packaged application stayed responsive with development port `6050` active. Health passed on port `16050`, and the owned API stopped with the desktop process.
-
-## v-0.1.9
-
-### [v 0.1.9] 2026-09-09 - Zetro SQLite, recoverable tasks, and repository tooling
+- Database update: No (auto-check). Bumped to 0.1.12. Added desktop port `16050`, Codex model selection, multimodal chat input, compact repository indicators, and the UI Design System registry. Zetro API, web, desktop, model selector, UI, and browser checks passed. Live model, multimodal, and packaged desktop checks did not run. See `assist/records/platform/2026-09-09-ui-design-system-registry.md`, `assist/records/zetro/2026-09-09-codex-model-selection.md`, and `assist/records/zetro/2026-09-09-chat-input-capture.md`.
 
 ### [v 0.1.9] 2026-09-09 2:47 pm - Identity portal foundation
 
-- Database Changes: Added module-owned Identity tables, an immutable default super-administrator seed, and a live schema fingerprint.
-- App Codebase Changes: Added three isolated portals, Argon2 credentials, hashed sliding sessions, registration control, development login, canonical environment settings with explicit aliases, and shared presentation-only auth blocks. Bumped to 0.1.9. See `assist/records/platform/2026-09-09-identity-portals.md`.
-- Verification: Identity tests, Platform builds and E2E, MariaDB foundation tests, module checks, live portal smoke, browser checks, and `git diff --check` passed. The full check is blocked by concurrent Zetro persistence tests that still call old repository constructors.
-
-## v-0.1.8
+- Database and App Changes: Added module-owned Identity tables, the default super-administrator seed, three isolated portals, Argon2 credentials, hashed sessions, registration control, and shared auth blocks. Bumped to 0.1.9. Identity tests, Platform builds and E2E, MariaDB tests, module checks, portal smoke, browser checks, and `git diff --check` passed. The full check was blocked by concurrent Zetro persistence tests. See `assist/records/platform/2026-09-09-identity-portals.md`.
 
 ### [v 0.1.8] 2026-09-09 1:46 pm - Identity foundation readiness
 
-- Database update: Yes. Added and verified the database-scoped `codexsun@localhost` account while keeping administrator access setup-only.
-- Bumped the workspace to 0.1.8 and aligned npm, Tauri, and Cargo versions. Fixed runtime-holder IPC shutdown, Windows process-tree cleanup, and Button gallery build errors. MariaDB and Platform lifecycle checks passed. See `assist/records/platform/2026-09-09-identity-foundation-readiness.md`.
+- Database update: Yes. Added the database-scoped `codexsun@localhost` account. Bumped to 0.1.8 and aligned npm, Tauri, and Cargo versions. Fixed runtime-holder shutdown, Windows process cleanup, and Button gallery errors. MariaDB and Platform lifecycle checks passed. See `assist/records/platform/2026-09-09-identity-foundation-readiness.md`.
 
 ### [v 0.1.8] 2026-09-09 - Shared Button system
 

@@ -9,3 +9,14 @@ export class IdentityConflictError extends Error {
 export class IdentityPortalError extends Error {
   readonly code = 'PORTAL_ACCESS_DENIED'
 }
+
+export class IdentityDeviceActivationError extends Error {
+  readonly code = 'DEVICE_ACTIVATION_REQUIRED'
+
+  constructor(
+    message: string,
+    readonly deviceToken?: string,
+  ) {
+    super(message)
+  }
+}

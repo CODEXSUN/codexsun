@@ -14,6 +14,7 @@ import { identityCookieName, registerIdentityRoutes } from './presentation/ident
 export interface IdentityRuntime {
   authorizer: IdentityAuthorizer
   module: PlatformApiModule<Database, Database>
+  registerActivityMonitor(server: import('fastify').FastifyInstance): void
   resolveActor(request: FastifyRequest): Promise<PlatformActor>
 }
 
@@ -38,6 +39,32 @@ export function createIdentityRuntime(
       schema: identitySchema,
       seeds: createIdentitySeeds(environment, passwords),
     },
+    registerActivityMonitor(server) {
+      server.addHook('onResponse', async (request, reply) => {
+        if (!request.url.startsWith('/api/') || request.url.includes('/security-events')) return
+        try {
+          const session = await findRequestSession(service, request)
+          if (!session && reply.statusCode < 400) return
+          await service.security.record({
+            actorUserId: session?.user.id ?? null,
+            clientType: session?.device.clientType ?? null,
+            deviceId: session?.device.deviceId ?? null,
+            eventType: `http.${request.method.toLowerCase()}`,
+            evidence: {
+              ipAddress: request.ip,
+              path: request.url.split('?')[0],
+              userAgent: request.headers['user-agent'],
+            },
+            outcome:
+              reply.statusCode < 400 ? 'allowed' : reply.statusCode < 500 ? 'denied' : 'failed',
+            risk: reply.statusCode >= 500 ? 'high' : reply.statusCode >= 400 ? 'medium' : 'low',
+            subjectUserId: session?.user.id ?? null,
+          })
+        } catch (error) {
+          request.log.warn({ err: error }, 'identity activity record failed')
+        }
+      })
+    },
     async resolveActor(request) {
       for (const portal of ['super-admin', 'administrator', 'regular'] as const) {
         const session = await service.resolveSession(
@@ -52,7 +79,15 @@ export function createIdentityRuntime(
 }
 
 export const identityManifest: FrameworkModule = {
-  capabilities: ['identity.authenticate', 'identity.authorize', 'identity.session.manage'],
+  capabilities: [
+    'identity.authenticate',
+    'identity.authorize',
+    'identity.device.activate',
+    'identity.role.manage',
+    'identity.security.observe',
+    'identity.session.manage',
+    'identity.user.manage',
+  ],
   configuration: [
     { key: 'IDENTITY_SESSION_TTL_HOURS', required: true },
     { key: 'IDENTITY_SUPER_ADMIN_EMAIL', required: true },
@@ -69,8 +104,23 @@ export const identityManifest: FrameworkModule = {
   lifecycle: { activate() {}, deactivate() {}, install() {}, uninstall() {}, upgrade() {} },
   owner: 'platform',
   platformVersionRange: '^0.1.0',
-  publicContracts: [{ id: 'identity.sessions', version: '1.0.0' }],
+  publicContracts: [
+    { id: 'identity.devices', version: '1.0.0' },
+    { id: 'identity.security-events', version: '1.0.0' },
+    { id: 'identity.sessions', version: '1.1.0' },
+  ],
   publishes: [],
   scope: 'platform',
-  version: '1.0.0',
+  version: '1.1.0',
+}
+
+async function findRequestSession(service: IdentityService, request: FastifyRequest) {
+  const authorization = request.headers.authorization
+  const bearer = authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined
+  for (const portal of ['super-admin', 'administrator', 'regular'] as const) {
+    const token = bearer ?? request.cookies[identityCookieName(portal)]
+    const session = await service.resolveSession(portal, token)
+    if (session) return session
+  }
+  return undefined
 }

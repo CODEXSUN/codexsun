@@ -4,11 +4,12 @@ export const deskModuleManifest = {
     'dynamic-sidebar-content',
     'grouped-interface-topology',
     'chat-workspace-context',
+    'codex-model-context-control',
   ],
   dependencies: {
     'zetro.developer-tools.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',
-    'zetro.settings.web': '^0.3.0',
+    'zetro.settings.web': '^0.4.0',
   },
   id: 'zetro.desk.web',
   lifecycle: {
@@ -16,9 +17,9 @@ export const deskModuleManifest = {
     deactivate: 'Unmount the Zetro Desk workspace.',
     install: 'No persistent business data is created.',
     uninstall: 'No business data is removed.',
-    upgrade: 'Compose the Git delivery flow inside repository tools.',
+    upgrade: 'Version 0.7.1 replaces the static provider label with the Codex selector.',
   },
   publicContracts: ['ZetroDeskSidebar', 'ZetroDeskWorkspace'],
   scope: 'zetro-web',
-  version: '0.7.0',
+  version: '0.7.1',
 } as const

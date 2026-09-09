@@ -16,5 +16,20 @@ export default defineConfig({
     outDir: '../../../dist/apps/agent-crew/web',
     emptyOutDir: true,
     chunkSizeWarningLimit: 400,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'react-runtime', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            { name: 'base-ui', test: /node_modules[\\/]@base-ui[\\/]/ },
+            { name: 'icons', test: /node_modules[\\/](lucide-react|@tabler)[\\/]/ },
+            {
+              name: 'motion',
+              test: /node_modules[\\/](framer-motion|motion-dom|motion-utils)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
 })

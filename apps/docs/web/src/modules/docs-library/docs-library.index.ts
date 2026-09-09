@@ -99,12 +99,29 @@ function getGroupDefinitions(documents: DocumentSummary[]): DocsGroupDefinition[
       matches: (path) => path.startsWith('.container/'),
     },
     {
+      description: 'Markdown, MDX, and text sources outside a recognized documentation owner.',
+      id: 'unorganized',
+      label: 'Unorganized files',
+      matches: (path) => !isOrganizedPath(path),
+    },
+    {
       description: 'Repository-wide notes and entry documents.',
       id: 'repository',
       label: 'Repository',
       matches: () => true,
     },
   ]
+}
+
+function isOrganizedPath(path: string): boolean {
+  return (
+    path === 'AGENTS.md' ||
+    path === 'README.md' ||
+    path.startsWith('assist/') ||
+    path.startsWith('apps/') ||
+    path.startsWith('packages/') ||
+    path.startsWith('.container/')
+  )
 }
 
 function getOwnedGroups(
@@ -221,7 +238,7 @@ function toNavigationNode(node: MutableDocsNavigationNode): DocsNavigationNode {
 }
 
 function removeExtension(value: string): string {
-  return value.replace(/\.(md|mdx)$/i, '')
+  return value.replace(/\.(md|mdx|txt)$/i, '')
 }
 
 function toDisplayName(value: string): string {

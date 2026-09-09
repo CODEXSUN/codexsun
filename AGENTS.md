@@ -73,6 +73,11 @@ Do not start implementation until this onboarding is complete.
 - Import a sibling module only through its public `index.ts`. Never import a sibling private file or write its tables directly.
 - Treat applied migration and seed checksums as immutable. Add a new ordered declaration instead of editing an applied one.
 - Do not overwrite or revert changes that you did not make.
+- Import shared web UI only from public `@codexsun/ui` exports. Search its design-system
+  registry before creating a primitive, composition, block, layout, or visual variant.
+- Keep small controls as one typed component with named variants. Put larger reusable
+  surfaces in package-owned block folders. Do not create app-local shared primitive copies.
+- Run `npm.cmd run check:ui-system` after a web UI change.
 
 ## Validation and handoff
 
