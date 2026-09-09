@@ -52,12 +52,13 @@ export function OperationsMonitor() {
     <>
       <button
         aria-label="Open Zetro operations metrics"
-        className="fixed bottom-24 right-4 z-40 flex h-9 cursor-pointer items-center gap-2 rounded-full border bg-background px-3 text-xs shadow-md hover:border-orange-400"
+        className="fixed bottom-20 right-2 z-40 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-background px-2.5 text-xs shadow-md hover:border-orange-400"
         onClick={() => setOpen(true)}
+        title="Operations metrics"
         type="button"
       >
         <Activity className="size-3.5 text-emerald-500" />
-        <span>{memoryPercent}% memory</span>
+        <span>{memoryPercent}%</span>
         <span className="text-muted-foreground">
           {metrics?.api.uptimeSeconds.toFixed(0) ?? '—'}s
         </span>

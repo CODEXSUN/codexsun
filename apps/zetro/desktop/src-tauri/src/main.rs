@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager, State};
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopStatus {
-    api_url: &'static str,
+    api_url: String,
     app_data_directory: String,
     log_file: String,
     runtime_owner: String,
@@ -26,7 +26,7 @@ fn desktop_status(
 ) -> Result<DesktopStatus, String> {
     let paths = runtime.paths();
     Ok(DesktopStatus {
-        api_url: runtime::API_URL,
+        api_url: runtime.api_url().to_string(),
         app_data_directory: display(app.path().app_data_dir().map_err(display_error)?),
         log_file: display(paths.log_file.clone()),
         runtime_owner: runtime.owner(),
@@ -48,9 +48,20 @@ fn pick_repository_folder(start_path: Option<String>) -> Option<String> {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let runtime = DesktopRuntime::start(app.handle())?;
-            app.manage(runtime);
-            Ok(())
+            match DesktopRuntime::start(app.handle()) {
+                Ok(runtime) => {
+                    app.manage(runtime);
+                    Ok(())
+                }
+                Err(error) => {
+                    rfd::MessageDialog::new()
+                        .set_level(rfd::MessageLevel::Error)
+                        .set_title("Zetro could not start")
+                        .set_description(error.to_string())
+                        .show();
+                    Err(error)
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             desktop_status,

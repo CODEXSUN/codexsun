@@ -58,16 +58,13 @@ export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) 
     return (
       <button
         aria-label="Open repository tools"
-        className="fixed bottom-10 right-4 z-40 flex h-10 cursor-pointer items-center gap-2 rounded-full border bg-background px-3 text-sm font-medium shadow-lg transition hover:-translate-y-0.5 hover:border-orange-400"
+        className="fixed bottom-10 right-2 z-40 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-background px-2.5 text-xs font-medium shadow-md transition hover:-translate-y-0.5 hover:border-orange-400"
         onClick={() => setOpen(true)}
-        title="Repository tools"
+        title={`Repository tools · ${status?.branch ?? 'Git'}`}
         type="button"
       >
-        <GitBranch className="size-4" />
-        <span className="max-w-36 truncate">{status?.branch ?? 'Git'}</span>
-        {changed ? (
-          <span className="rounded-full bg-orange-500 px-1.5 text-xs text-white">{changed}</span>
-        ) : null}
+        <GitBranch className="size-3.5" />
+        <span className={changed ? 'text-orange-600' : 'text-muted-foreground'}>{changed}</span>
       </button>
     )
   }

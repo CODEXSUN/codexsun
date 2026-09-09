@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Zetro",
-  "version": "0.1.9",
+  "version": "0.1.12",
   "identifier": "in.codexsun.zetro",
   "build": {
     "beforeDevCommand": "npm.cmd run dev:zetro",
@@ -22,14 +22,16 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:6050; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:*; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
     }
   },
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
     "copyright": "Copyright CODEXSUN",
-    "icon": ["icons/icon.ico"],
+    "icon": [
+      "icons/icon.ico"
+    ],
     "longDescription": "Zetro is a local desktop workspace for project chat and task execution.",
     "resources": {
       "../../../../dist/apps/zetro/desktop/runtime/node.exe": "runtime/node.exe",
@@ -37,7 +39,9 @@
       "../../../../dist/apps/zetro/desktop/runtime/node_modules": "runtime/node_modules"
     },
     "shortDescription": "Local agent workspace",
-    "targets": ["msi"],
+    "targets": [
+      "msi"
+    ],
     "windows": {
       "wix": {
         "language": "en-US"

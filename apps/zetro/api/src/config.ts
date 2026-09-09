@@ -24,7 +24,7 @@ const environmentSchema = z
     ZETRO_ALLOWED_ORIGINS: z
       .string()
       .default('http://127.0.0.1:6060,http://tauri.localhost,https://tauri.localhost'),
-    ZETRO_API_PORT: z.coerce.number().int().min(6000).max(6999).default(6050),
+    ZETRO_API_PORT: z.coerce.number().int().min(1024).max(65535).default(6050),
     ZETRO_CONNECTED_APP_TOKEN: z.string().min(32).optional(),
     ZETRO_DESKTOP_SESSION_TOKEN: z.string().min(32).optional(),
     ZETRO_QUEUE_DRIVER: z.enum(['bullmq', 'local']).default('local'),

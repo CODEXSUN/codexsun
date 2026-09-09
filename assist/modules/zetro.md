@@ -21,4 +21,4 @@ Zetro is a standalone product application composed from isolated web and API mod
 | `zetro.developer-tools.web`  | 0.2.0   | Zetro web | Active      | [Developer Tools web](../../apps/zetro/web/src/modules/developer-tools/README.md) |
 | `zetro.git-delivery.web`     | 0.1.0   | Zetro web | Active      | [Git Delivery web](../../apps/zetro/web/src/modules/git-delivery/README.md)       |
 | `zetro.operations.web`       | 1.0.0   | Zetro web | Active      | [Operations web](../../apps/zetro/web/src/modules/operations/README.md)           |
-| `zetro.desktop`              | 0.1.9   | Tauri 2   | Active      | [Zetro desktop](../../apps/zetro/desktop/README.md)                               |
+| `zetro.desktop`              | 0.1.11  | Tauri 2   | Active      | [Zetro desktop](../../apps/zetro/desktop/README.md)                               |

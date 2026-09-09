@@ -1,25 +1,34 @@
 import { invoke } from '@tauri-apps/api/core'
 
 interface DesktopStatus {
+  apiUrl: string
   sessionToken: string
 }
 
-let desktopToken: Promise<string | null> | null = null
+let desktopStatus: Promise<DesktopStatus | null> | null = null
 
 export async function zetroFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers)
-  const token = await getDesktopSessionToken()
-  if (token) headers.set('X-Zetro-Session-Token', token)
-  return fetch(input, { ...init, headers })
+  const status = await getDesktopStatus()
+  if (status?.sessionToken) headers.set('X-Zetro-Session-Token', status.sessionToken)
+  return fetch(status ? useDesktopApi(input, status.apiUrl) : input, { ...init, headers })
 }
 
-function getDesktopSessionToken(): Promise<string | null> {
-  if (!desktopToken) desktopToken = readDesktopSessionToken()
-  return desktopToken
+function getDesktopStatus(): Promise<DesktopStatus | null> {
+  if (!desktopStatus) desktopStatus = readDesktopStatus()
+  return desktopStatus
 }
 
-async function readDesktopSessionToken(): Promise<string | null> {
+async function readDesktopStatus(): Promise<DesktopStatus | null> {
   if (!('__TAURI_INTERNALS__' in window)) return null
-  const status = await invoke<DesktopStatus>('desktop_status')
-  return status.sessionToken || null
+  return invoke<DesktopStatus>('desktop_status')
+}
+
+function useDesktopApi(input: RequestInfo | URL, apiUrl: string): RequestInfo | URL {
+  const originalUrl = input instanceof Request ? input.url : input.toString()
+  const requestUrl = new URL(originalUrl, window.location.origin)
+  const desktopUrl = new URL(apiUrl)
+  requestUrl.protocol = desktopUrl.protocol
+  requestUrl.host = desktopUrl.host
+  return input instanceof Request ? new Request(requestUrl, input) : requestUrl
 }

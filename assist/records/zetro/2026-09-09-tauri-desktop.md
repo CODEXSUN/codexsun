@@ -28,13 +28,13 @@ The authored-file check excludes Tauri's generated `src-tauri/gen` schemas. Auth
 
 ## Binding properties
 
-| Producer      | Consumer          | Binding                  | Version or key              |
-| ------------- | ----------------- | ------------------------ | --------------------------- |
-| Zetro desktop | Zetro web         | Tauri `frontendDist`     | `dist/apps/zetro/web`       |
-| Zetro desktop | Zetro API         | Bundled loopback process | `http://127.0.0.1:6050`     |
-| Zetro desktop | Windows Installer | WiX MSI                  | `Zetro_0.1.5_x64_en-US.msi` |
-| Zetro web     | Tauri host        | Native folder command    | `pick_repository_folder`    |
-| Zetro API     | Tauri host        | Parent process watcher   | `ZETRO_DESKTOP_PARENT_PID`  |
+| Producer      | Consumer          | Binding                  | Version or key               |
+| ------------- | ----------------- | ------------------------ | ---------------------------- |
+| Zetro desktop | Zetro web         | Tauri `frontendDist`     | `dist/apps/zetro/web`        |
+| Zetro desktop | Zetro API         | Bundled loopback process | `http://127.0.0.1:16050`     |
+| Zetro desktop | Windows Installer | WiX MSI                  | `Zetro_0.1.11_x64_en-US.msi` |
+| Zetro web     | Tauri host        | Native folder command    | `pick_repository_folder`     |
+| Zetro API     | Tauri host        | Parent process watcher   | `ZETRO_DESKTOP_PARENT_PID`   |
 
 Desktop data uses the Tauri application data directory. API logs use the Tauri application log directory.
 
@@ -52,6 +52,8 @@ The API startup and CORS edits extend the current server composition. They do no
 - Rejected alternative: Require a system Node installation. That would make the installer depend on developer machine setup.
 - Decision: Split production JavaScript by stable dependency ownership instead of an arbitrary vendor-size boundary.
 - Reason: Size-based vendor splitting created a circular React import graph that rendered a blank installed WebView.
+- Decision: Keep development on port `6050`, while the packaged desktop prefers port `16050` and falls back to a free loopback port.
+- Reason: A running development API must not make the installed application exit during startup.
 
 ## Verification
 
@@ -59,7 +61,7 @@ The API startup and CORS edits extend the current server composition. They do no
 - `npm.cmd run test --workspace @codexsun/zetro-desktop`: Passed, one Rust lifecycle contract test.
 - `npm.cmd run lint --workspace @codexsun/zetro-desktop`: Passed after adding the standard Clippy component.
 - `npm.cmd run desktop:zetro:msi`: Passed.
-- Release executable and bundled API lifecycle: Passed with port `6050` released after desktop termination.
+- Release executable and bundled API lifecycle: Passed with the packaged loopback port released after desktop termination.
 - Bundled API health: Passed at `GET /health/live`.
 - Packaged WebView smoke test: Passed at `tauri.localhost/zetro`; the Zetro workspace rendered with no runtime exceptions.
 - Production chunk budget and static import cycle check: Passed.

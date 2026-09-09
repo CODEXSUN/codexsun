@@ -44,7 +44,7 @@ The MSI command writes the installer under `dist/apps/zetro/desktop/target/relea
 
 The main window uses a restricted Content Security Policy. It can connect only to the bundled local Zetro API.
 
-The API listens on `127.0.0.1`. CORS allows the local web server and the Tauri application origin.
+The packaged API prefers `127.0.0.1:16050` and selects another free loopback port if that port is unavailable. Development keeps using port `6050`. The webview reads the packaged runtime address from `desktop_status`, and CORS allows the local web server and the Tauri application origin.
 
 The desktop process uses typed native commands. Add a scoped command before any new operating-system access.
 

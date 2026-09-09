@@ -2,22 +2,30 @@
 
 ## Changelog Rules
 
-- Keep this file as the only CODEXSUN changelog.
-- Add the newest root release section immediately after this rules section.
-- Use this exact entry heading: `### [v X.Y.Z] YYYY-MM-DD - Title`.
-- Use the root package version in the heading. State a module version in the title or body.
-- Write completed work only. Do not log plans, guesses, or unverified outcomes.
-- Include Database Changes, App Codebase Changes, and Verification for a detailed entry.
-- State commands that passed. State checks that did not run.
-- Keep entries concise and link the owning development record for details.
-- Run `npm.cmd run github:now -- --dry-run` before a release commit.
-- Keep this file at 700 lines or fewer.
+- Keep this as the only CODEXSUN changelog; add the newest root release after these rules with the exact heading `### [v X.Y.Z] YYYY-MM-DD - Title`, using the root version and stating module versions in the title or body.
+- Log completed work only. For a detailed entry, include Database Changes, App Codebase Changes, and Verification with passed and unrun checks.
+- Keep entries concise and link the owning record. Run `npm.cmd run github:now -- --dry-run` before a release commit, and keep this file at 700 lines or fewer.
 
 ## Version State
 
-- Current version: 0.1.9
-- Release tag: v-0.1.9
-- Changelog label: v 0.1.9
+- Current version: 0.1.12
+- Release tag: v-0.1.12
+- Changelog label: v 0.1.12
+
+## v-0.1.12
+
+### [v 0.1.12] 2026-09-09 5:07 pm - version update
+
+- Database update: No (auto-check).
+- Bumped workspace version to 0.1.12.
+
+## v-0.1.11
+
+### [v 0.1.11] 2026-09-09 4:56 pm - Zetro desktop startup and compact repository indicators
+
+- Database update: No (manual). Bumped workspace version to 0.1.11.
+- App Codebase Changes: The packaged Zetro API now prefers loopback port `16050` and falls back to a free port. The shared UI uses the live desktop address. Startup failures show a Windows dialog. Repository and operations controls now show compact icons and counts without branch or memory labels.
+- Verification: Zetro API, web, and desktop tests passed. The packaged application stayed responsive with development port `6050` active. Health passed on port `16050`, and the owned API stopped with the desktop process.
 
 ## v-0.1.9
 
