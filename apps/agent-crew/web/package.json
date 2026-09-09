@@ -1,0 +1,30 @@
+{
+  "name": "@codexsun/agent-crew-web",
+  "private": true,
+  "version": "0.1.13",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 6110",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/agent-crew-web.eslintcache",
+    "test": "node --test",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "preview": "vite preview --port 6110"
+  },
+  "dependencies": {
+    "@codexsun/ui": "file:../../../packages/ui",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "^1.33.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "^4.3.3",
+    "typescript": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "vite": "latest"
+  }
+}

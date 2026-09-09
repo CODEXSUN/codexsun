@@ -189,6 +189,68 @@
       ]
     },
     {
+      "id": "agent-crew",
+      "version": "0.1.0",
+      "requires": ["platform"],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "agent-crew-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/agent-crew-api",
+          "buildWorkspaces": ["@codexsun/platform-core-api", "@codexsun/agent-crew-api"],
+          "outputPath": "dist/apps/agent-crew/api",
+          "startFile": "dist/apps/agent-crew/api/server.js",
+          "environment": { "AGENT_CREW_WORKER_URL": "http://agent-crew-worker:6120" },
+          "portEnvironmentKey": "AGENT_CREW_API_PORT",
+          "hostEnvironmentKey": "AGENT_CREW_API_HOST",
+          "defaultPort": 6100,
+          "healthPath": "/health",
+          "dependsOn": ["agent-crew-worker"]
+        },
+        {
+          "id": "agent-crew-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/agent-crew-web",
+          "buildWorkspaces": ["@codexsun/ui", "@codexsun/agent-crew-web"],
+          "outputPath": "dist/apps/agent-crew/web",
+          "portEnvironmentKey": "AGENT_CREW_WEB_PORT",
+          "defaultPort": 6110,
+          "healthPath": "/",
+          "dependsOn": ["agent-crew-api"]
+        },
+        {
+          "id": "agent-crew-worker",
+          "kind": "worker",
+          "runtime": "node",
+          "dockerfile": ".container/docker/Dockerfile.agent-worker",
+          "workspace": "@codexsun/agent-crew-worker",
+          "buildWorkspaces": ["@codexsun/agent-crew-worker"],
+          "outputPath": "dist/apps/agent-crew/worker",
+          "startFile": "dist/apps/agent-crew/worker/server.js",
+          "portEnvironmentKey": "AGENT_CREW_RUNNER_PORT",
+          "defaultPort": 6120,
+          "healthPath": "/internal/health",
+          "dependsOn": [],
+          "security": "strict",
+          "volumes": [
+            { "name": "agent-crew-workspaces", "containerPath": "/workspaces" },
+            {
+              "name": "agent-crew-credentials",
+              "containerPath": "/app/storage/app/private/agent-crew/credentials"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "orship",
       "version": "0.1.0",
       "requires": ["platform"],

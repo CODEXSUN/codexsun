@@ -3,6 +3,7 @@ import { z } from 'zod'
 const identifierSchema = z.string().regex(/^[a-z][a-z0-9-]*$/)
 const workspaceSchema = z.string().regex(/^@codexsun\/[a-z0-9-]+$/)
 const relativePathSchema = z.string().min(1).refine(isSafeRelativePath, 'Use a safe relative path.')
+const dockerfileSchema = z.string().regex(/^\.container\/docker\/Dockerfile\.[a-z0-9-]+$/)
 
 export const runtimePackageSchema = z.strictObject({
   id: workspaceSchema,
@@ -16,8 +17,10 @@ export const runtimeBindingSchema = z.strictObject({
 
 export const deploymentComponentSchema = z.strictObject({
   buildWorkspaces: z.array(workspaceSchema).min(1),
+  environment: z.record(z.string().regex(/^[A-Z][A-Z0-9_]*$/), z.string()).default({}),
   defaultPort: z.number().int().min(6000).max(6999),
   dependsOn: z.array(identifierSchema),
+  dockerfile: dockerfileSchema.optional(),
   healthPath: z.string().startsWith('/'),
   hostEnvironmentKey: z
     .string()
@@ -28,7 +31,17 @@ export const deploymentComponentSchema = z.strictObject({
   outputPath: relativePathSchema,
   portEnvironmentKey: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
   runtime: z.enum(['node', 'static']),
+  security: z.enum(['standard', 'strict']).default('standard'),
   startFile: relativePathSchema.optional(),
+  volumes: z
+    .array(
+      z.strictObject({
+        containerPath: z.string().startsWith('/'),
+        name: identifierSchema,
+        readOnly: z.boolean().default(false),
+      }),
+    )
+    .default([]),
   workspace: workspaceSchema,
 })
 
