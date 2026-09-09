@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/ui",
   "private": true,
-  "version": "0.1.12",
+  "version": "0.1.13",
   "type": "module",
   "main": "../../../dist/packages/ui/index.js",
   "types": "../../../dist/packages/ui/index.d.ts",
