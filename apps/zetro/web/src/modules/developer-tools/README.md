@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.developer-tools.web`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Owner: Zetro web
 
 The module owns the floating repository monitor and all developer tool controls.
@@ -11,6 +11,8 @@ The same React bundle runs in the browser and the Tauri desktop app.
 
 The panel accepts a composition slot below its header. Zetro Desk uses this slot
 for the separately owned Git Delivery flow builder.
+It also accepts controlled open state so the shared Agent Workspace utility rail
+and the existing floating monitor operate one panel.
 
 ## Workspace surface
 

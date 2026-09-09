@@ -56,5 +56,6 @@ The MSI requires the Windows WiX prerequisites that Tauri documents.
 
 ## Development record
 
+- [Zetro Agent Workspace rails](../../../assist/records/zetro/2026-09-09-agent-workspace-rails.md)
 - [First Windows desktop build](../../../assist/records/zetro/2026-09-09-tauri-desktop.md)
 - [Desktop project onboarding](../../../assist/records/zetro/2026-09-09-desktop-project-onboarding.md)

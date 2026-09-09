@@ -6,6 +6,7 @@ source README. Do not copy module behavior into a catalog.
 | Application | Catalog                    |
 | ----------- | -------------------------- |
 | Platform    | [platform.md](platform.md) |
+| UI          | [ui.md](ui.md)             |
 | Docs        | [docs.md](docs.md)         |
 | DevKit      | [devkit.md](devkit.md)     |
 | Zetro       | [zetro.md](zetro.md)       |

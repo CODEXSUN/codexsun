@@ -61,6 +61,29 @@
       ]
     },
     {
+      "id": "ui",
+      "version": "0.1.0",
+      "requires": [],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "ui-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/ui-web",
+          "buildWorkspaces": ["@codexsun/ui", "@codexsun/ui-web"],
+          "outputPath": "dist/apps/ui/web",
+          "portEnvironmentKey": "UI_WEB_PORT",
+          "defaultPort": 6130,
+          "healthPath": "/",
+          "dependsOn": []
+        }
+      ]
+    },
+    {
       "id": "docs",
       "version": "0.1.0",
       "requires": ["platform"],

@@ -37,11 +37,13 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 ## Interface topology
 
 The module owns the Library, reader, overview, unavailable, and Ideas topology.
-Ideas navigation includes Development plan, Architecture standards, and Multi-app
-monorepo. The registry includes reader connections, overview metrics, delivery,
-architecture, and monorepo child items.
+Ideas navigation includes Development plan, Architecture standards, and Shared packages and apps.
+The registry includes reader connections, overview metrics, delivery, architecture, shared UI,
+application ownership, and monorepo child items.
 
 ## Development records
+
+- [Documentation Workspace layout](../../../../../../assist/records/docs/2026-09-09-documentation-workspace-layout.md)
 
 Future changes must be recorded in the [Docs development records](../../../../../../assist/records/docs/README.md).
 

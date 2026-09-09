@@ -3,13 +3,8 @@ import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/re
 import { LoadingPage, NotFound, RouteError } from './app-router.messages'
 import { identityWebModule } from './modules/identity'
 import { systemWebModule } from './modules/system'
-import { uiGalleryWebModule } from './modules/ui-gallery'
 
-export const platformWebComposition = composeWebModules([
-  identityWebModule,
-  systemWebModule,
-  uiGalleryWebModule,
-])
+export const platformWebComposition = composeWebModules([identityWebModule, systemWebModule])
 
 const rootRoute = createRootRoute({
   component: Outlet,

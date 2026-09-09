@@ -27,8 +27,8 @@ const mdiApplicationCatalog: readonly MdiCatalogEntry[] = [
     icon: PanelsTopLeftIcon,
     id: 'ui',
     label: 'UI',
-    localPort: '6021',
-    path: '/ui',
+    localPort: '6130',
+    path: '/',
   },
   {
     icon: BookOpenIcon,
@@ -65,18 +65,14 @@ export function createDefaultMdiApps(applicationId: string): MdiAppItem[] {
 
   return mdiApplicationCatalog.map(({ id, localPort, path, ...app }) => ({
     ...app,
-    active: isApplicationActive(id, applicationId, currentLocation?.pathname),
+    active: isApplicationActive(id, applicationId),
     href: createApplicationHref(localPort, path, currentLocation),
   }))
 }
 
-function isApplicationActive(
-  id: MdiCatalogEntry['id'],
-  applicationId: string,
-  pathname = '',
-): boolean {
-  if (id === 'ui') return applicationId === 'platform' && pathname.startsWith('/ui')
-  if (id === 'platform') return applicationId === 'platform' && !pathname.startsWith('/ui')
+function isApplicationActive(id: MdiCatalogEntry['id'], applicationId: string): boolean {
+  if (id === 'ui') return applicationId === 'ui'
+  if (id === 'platform') return applicationId === 'platform'
   return id === applicationId
 }
 

@@ -59,10 +59,17 @@ function readArg(name) {
 
 async function setVersionState(version) {
   const changelog = await readFile(changelogPath, 'utf8')
-  const updated = changelog
+  let updated = changelog
     .replace(/Current version: .*/u, `Current version: ${version}`)
     .replace(/Release tag: .*/u, `Release tag: v-${version}`)
     .replace(/Changelog label: .*/u, `Changelog label: v ${version}`)
+
+  if (!updated.includes('Changelog label:')) {
+    updated = updated.replace(
+      `Release tag: v-${version}`,
+      `Release tag: v-${version}\n- Changelog label: v ${version}`,
+    )
+  }
 
   await writeFile(changelogPath, updated)
 }

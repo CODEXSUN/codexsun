@@ -223,6 +223,13 @@ function updateChangelog(rootDir, nextVersion, title, databaseUpdate) {
     .replace(/Release tag: .*/u, `Release tag: ${tag}`)
     .replace(/Changelog label: .*/u, `Changelog label: ${label}`)
 
+  if (!content.includes('Changelog label:')) {
+    content = content.replace(
+      `Release tag: ${tag}`,
+      `Release tag: ${tag}\n- Changelog label: ${label}`,
+    )
+  }
+
   const entry = [
     `## ${tag}`,
     '',

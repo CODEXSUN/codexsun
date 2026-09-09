@@ -2,7 +2,8 @@ import { GlobalLoader } from '@codexsun/ui/blocks/loader'
 import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
-import { MdiMain, type MdiNavigationItem, useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
+import { DocumentationWorkspace } from '@codexsun/ui/layouts/documentation-workspace'
+import { type MdiNavigationItem, useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { UiTemplateNavigation } from '@codexsun/ui/templates/ui-page'
 import {
   BookOpen,
@@ -97,19 +98,13 @@ export function DocsWorkspace() {
   )
 
   return (
-    <MdiMain
-      applicationIcon={BookOpen}
-      applicationId="docs"
-      applicationName="Docs"
+    <DocumentationWorkspace
       navigation={navigation}
       onSearchChange={setQuery}
-      primaryAction={null}
       searchPlaceholder="Search titles, tags, and paths"
       searchValue={query}
-      sidebarContentClassName="docs-sidebar-scroll"
       settingsContent={({ onBack }) => <DocsLibrarySettings onBack={onBack} />}
       topologySections={docsTopologySections}
-      workspaceTitle="Documentation"
     >
       {view !== 'docs' ? (
         <IdeasWorkspace page={view} />
@@ -124,7 +119,7 @@ export function DocsWorkspace() {
       ) : (
         <DocsLibraryView library={library} onEdit={() => setEditing(true)} />
       )}
-    </MdiMain>
+    </DocumentationWorkspace>
   )
 }
 

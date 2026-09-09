@@ -41,9 +41,17 @@ import { useDeveloperTools } from './developer-tools.controller'
 import type { GitCommitSummary, GitComparison } from './developer-tools.types'
 import { RepositoryWorkspace } from './developer-tools.workspace'
 
-export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) {
+export function DeveloperToolsPanel({
+  open: controlledOpen,
+  topContent,
+  onOpenChange,
+}: {
+  open?: boolean
+  topContent?: ReactNode
+  onOpenChange?(open: boolean): void
+}) {
   const tools = useDeveloperTools()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [commitOpen, setCommitOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
   const [branchOpen, setBranchOpen] = useState(false)
@@ -53,6 +61,12 @@ export function DeveloperToolsPanel({ topContent }: { topContent?: ReactNode }) 
   if (!tools.project) return null
   const status = tools.status
   const changed = status?.files ?? 0
+  const open = controlledOpen ?? internalOpen
+
+  function setOpen(nextOpen: boolean) {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen)
+    onOpenChange?.(nextOpen)
+  }
 
   if (!open) {
     return (

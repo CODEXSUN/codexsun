@@ -32,6 +32,9 @@ Zetro is a standalone development desk with task execution and provider-backed a
 
 The composition root supplies Zetro identity and runtime status to the shared
 `@codexsun/ui/layouts/mdi-main` frame. Codex settings remain app-owned content.
+It supplies project activities and utilities to
+`@codexsun/ui/layouts/agent-workspace`, which keeps fixed icon rails around the
+project sidebar and workspace without moving Zetro state into the UI package.
 
 The only public product route is `/zetro`. It opens the agent chat inside Zetro
 Desk. Project Chat, Tasks, and Settings switch inside this one Desk route.

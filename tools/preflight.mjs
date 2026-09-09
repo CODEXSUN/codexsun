@@ -47,6 +47,17 @@ const services = {
       '@codexsun/ui',
     ],
   },
+  'ui-web': {
+    args: [resolve(projectRoot, 'node_modules/vite/bin/vite.js'), '--strictPort'],
+    command: process.execPath,
+    cwd: resolve(projectRoot, 'apps/ui/web'),
+    defaultPort: 6130,
+    hostKey: 'UI_WEB_HOST',
+    label: 'UI web',
+    portKey: 'UI_WEB_PORT',
+    healthPath: '/',
+    prepareWorkspaces: ['@codexsun/ui'],
+  },
   'docs-api': {
     args: ['--import', 'tsx', resolve(projectRoot, 'apps/docs/api/src/server.ts')],
     command: process.execPath,

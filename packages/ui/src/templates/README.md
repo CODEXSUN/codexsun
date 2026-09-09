@@ -8,7 +8,8 @@ routes, business entities, persistence, or workflows.
 - `sidebar-07` contains the shadcn collapsible navigation template.
 - `documentation-sidebar` contains the data-driven documentation navigation
   template shared by documentation applications.
-- `ui-gallery` contains live component previews, the complete component source
-  inventory, template references, and Interface Topology Inspection.
-  Applications import a template through its public package entry point and own
-  the surrounding screen composition.
+- `ui-page` contains the generic documentation-page composition shared by UI and
+  Docs applications.
+
+The UI Gallery website, its catalogs, live specimens, and code samples belong to
+`apps/ui/web/src/modules/gallery`; they are not package templates.

@@ -1,8 +1,10 @@
 # Web UI
 
-This package is the centralized UI owner for every CODEXSUN web application.
-It contains reusable primitives, application layouts, UI templates, hooks, design tokens, and the
-Tailwind theme. It must not contain business forms, routes, or workflows.
+This package is the centralized shared UI library for every CODEXSUN web application.
+It contains reusable primitives, blocks, application layouts, generic templates, hooks,
+design-system contracts, design tokens, and the Tailwind theme. It must not contain application
+routes, showcase catalogs, gallery specimens, business forms, persistence, or workflows. The
+independent UI application owns the website that documents and previews these public exports.
 
 ## shadcn/ui
 
@@ -61,14 +63,11 @@ use the shared 40px Button contract and wrap without a scrollbar.
 - `@codexsun/ui/templates/dashboard-01`
 - `@codexsun/ui/templates/sidebar-07`
 - `@codexsun/ui/templates/documentation-sidebar`
-- `@codexsun/ui/templates/ui-gallery` provides the Platform UI Overview, layout registry,
-  documentation previews, usage guidance, and copyable code examples.
 - `@codexsun/ui/templates/ui-page` exports `UiTemplatePage`, the required component
   and block documentation composition.
 - The Layout documentation includes a live Agent Workspace with two package-owned activity rails.
-- The UI Gallery includes live Login v1, Login v2, Register v1, Register v2, Forgot Password,
-  and Notifications Page entries. Each page is a real public block with copyable code and a
-  persisted default selection for multi-variant page families.
+- `apps/ui/web/src/modules/gallery` owns the UI Gallery pages, catalogs, previews, usage guidance,
+  example data, and copyable examples. It renders this package only through public exports.
 - `UiTemplatePage` owns the kind and title header, copyable import path, 90-percent
   live preview lane, code space, and named documentation navigation.
 - UI template pages keep 48px between the tool strip and live preview.
@@ -153,6 +152,9 @@ a separate sampler implementation.
   Its feature settings show independent switches for both rails when this option is present.
 - MDI orders this layout as Primary Activity Rail, default sidebar, center canvas, then
   Secondary Utility Rail. The standard navigation toggle still controls the default sidebar.
+- `@codexsun/ui/layouts/documentation-workspace` supplies shared Docs identity, search, sidebar
+  persistence, status, and workspace defaults. Documentation applications retain navigation,
+  content, editing, repository discovery, and persistence ownership.
 - `@codexsun/ui/layouts/mdi-main` exports the composed layout and its separate
   top-menu, app-switcher, profile, sidebar, status, empty-state, and feature
   settings components.

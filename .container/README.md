@@ -12,7 +12,7 @@ Each application remains an independent source owner. A deployment profile combi
 .container/
   catalog.json                 # every available application, component, add-on, and runtime binding
   profiles/
-    development.json           # Platform, Docs, Zetro, DevKit, and Orship
+    development.json           # Platform, UI, Docs, Zetro, DevKit, Agent Crew, and Orship
     main-development.json      # default local stack without Orship
     platform-only.json         # minimal production example
   docker/
@@ -46,7 +46,7 @@ npm.cmd run runtime:start -- main-development
 npm.cmd run runtime:start -- development
 ```
 
-`npm.cmd run dev` starts `main-development` without Orship. Start Orship with `npm.cmd run dev:orship`.
+`npm.cmd run dev` starts Platform, UI, Docs, Zetro, and DevKit without Orship. Start Orship with `npm.cmd run dev:orship`.
 
 `npm.cmd run dev:all` starts the complete `development` profile through the same holder.
 

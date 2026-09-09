@@ -9,4 +9,5 @@ not render credentials or claim a provider is connected until the worker probe p
 
 ## Development records
 
-[Agent Crew foundation](../../../../../assist/records/agent-crew/2026-09-09-foundation.md)
+- [Shared UI alignment](../../../../../assist/records/agent-crew/2026-09-09-shared-ui-alignment.md)
+- [Agent Crew foundation](../../../../../assist/records/agent-crew/2026-09-09-foundation.md)

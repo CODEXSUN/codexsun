@@ -10,7 +10,7 @@
     "VITE_ZETRO_API_URL": "http://127.0.0.1:6050",
     "VITE_DEVKIT_API_URL": "http://127.0.0.1:6070"
   },
-  "applications": ["platform", "docs", "zetro", "devkit"],
+  "applications": ["platform", "ui", "docs", "zetro", "devkit"],
   "addons": [],
   "portOverrides": {}
 }

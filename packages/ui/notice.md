@@ -12,16 +12,16 @@ The `./components/*` package export makes each component part of the public pack
 
 ## Confirmed unreachable files
 
-These files are not reachable from a public package entry point or the current UI implementation:
+These application-owned legacy gallery compositions remain cleanup candidates when the active
+gallery no longer references them:
 
-- `src/templates/ui-gallery/gallery-card.tsx`
-- `src/templates/ui-gallery/gallery-data.tsx`
-- `src/templates/ui-gallery/gallery-forms.tsx`
-- `src/templates/ui-gallery/gallery-foundations.tsx`
-- `src/templates/ui-gallery/gallery-overlays.tsx`
-- `src/templates/ui-gallery/gallery-workspace-blocks.tsx`
+- `apps/ui/web/src/modules/gallery/gallery-card.tsx`
+- `apps/ui/web/src/modules/gallery/gallery-data.tsx`
+- `apps/ui/web/src/modules/gallery/gallery-forms.tsx`
+- `apps/ui/web/src/modules/gallery/gallery-foundations.tsx`
+- `apps/ui/web/src/modules/gallery/gallery-overlays.tsx`
+- `apps/ui/web/src/modules/gallery/gallery-workspace-blocks.tsx`
 
-These files belong to the previous gallery implementation. They are the safest cleanup candidates.
 Review the final diff before removal because the working tree can contain concurrent changes.
 
 ## Gallery-only public components

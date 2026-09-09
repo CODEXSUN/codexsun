@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.desk.web`
-- Version: `0.7.1`
+- Version: `0.8.0`
 - Owner: Zetro web
 - Flow: open one Zetro Desk canvas inside the shared MDI shell
 
@@ -25,8 +25,14 @@ Project Chat, Tasks, and Settings use internal Desk views. Settings replaces
 the project sidebar with its application settings navigation and returns to the
 active workspace without adding a public route.
 
-The Desk sidebar shows Chat and Tasks as compact icon tabs. Each tab keeps an
-accessible label, a hover title, and its current count.
+The Desk composes `@codexsun/ui/layouts/agent-workspace` through the shared MDI
+shell. Its fixed Primary Activity Rail switches Chat, Tasks, and Automation and
+shows their current counts. The standard sidebar stays focused on the active
+project's conversation, task, or automation list.
+
+The fixed Secondary Utility Rail opens the connected-folder scope and the
+repository tools panel. Both rails use accessible labels, tooltips, active
+states, and the shared MDI feature visibility settings.
 
 The workspace context bar shows the selected project and active Chat or Tasks
 view. It shows the Codex connection state and the compact model selector on the
@@ -38,7 +44,7 @@ The Zetro Settings action has no top divider. Other shared MDI applications
 keep the standard footer divider unless they provide their own footer style.
 The right status slot shows the Zetro package version in gray 600 text.
 The repository tools panel composes the Git Delivery flow builder in its top slot.
-Zetro Desk owns only this placement.
+Zetro Desk controls that panel from the Secondary Utility Rail and owns only this placement.
 
 The Desk module has no services, queries, schemas, persistence records,
 migrations, permissions, events, or jobs.
@@ -64,6 +70,7 @@ Agent Chat owns the child regions inside the workspace and sidebar.
 Future changes must update the [Zetro development records](../../../../../../assist/records/zetro/README.md).
 
 - [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
+- [2026-09-09 Agent Workspace rails](../../../../../../assist/records/zetro/2026-09-09-agent-workspace-rails.md)
 - [2026-09-08 Zetro Desk workspace](../../../../../../assist/records/zetro/2026-09-08-zetro-desk-workspace.md)
 - [2026-09-08 Legacy frontend cleanup](../../../../../../assist/records/zetro/2026-09-08-legacy-frontend-cleanup.md)
 - [2026-09-08 Empty Desk reset](../../../../../../assist/records/zetro/2026-09-08-empty-desk-reset.md)

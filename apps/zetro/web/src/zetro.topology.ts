@@ -68,9 +68,9 @@ export const zetroTopologySections: readonly InterfaceTopologySection[] = [
   {
     id: '15.2.5',
     technicalName: 'zetro.project.navigation',
-    name: 'Project navigation',
-    scope: 'Zetro Desk sidebar',
-    description: 'Switches between project chat and task management.',
+    name: 'Project activity rail',
+    scope: 'Zetro Desk',
+    description: 'Switches between project chat, tasks, and deterministic automation.',
   },
   ...agentChatTopologySections,
 ]

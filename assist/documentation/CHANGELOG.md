@@ -8,14 +8,29 @@
 
 ## Version State
 
-- Current version: 0.1.14
-- Release tag: v-0.1.14. Changelog label: v 0.1.14.
+- Current version: 0.1.15
+- Release tag: v-0.1.15
+- Changelog label: v 0.1.15
+
+## v-0.1.15
+
+### [v 0.1.15] 2026-09-09 10:39 pm - Independent UI application
+
+- Database Changes: None. App Codebase Changes: Added the independent UI app on port `6130`; kept
+  reusable components, blocks, layouts, and generic templates in `packages/ui`; moved gallery
+  pages, catalogs, previews, and specimens into `apps/ui/web`; added the shared Documentation
+  Workspace layout; and wired runtime profiles, Orship discovery, and the application map. Zetro
+  now uses the shared Agent Workspace rails for project activities and utilities. Verification:
+  UI, Docs, Agent Crew, and Zetro focused checks passed, and the
+  Zetro `0.1.15` WiX MSI was built. Installation and signing did not run. The largest UI production
+  chunk is 386.57 KB. See `assist/records/ui/2026-09-09-independent-ui-application.md` and
+  `assist/records/zetro/2026-09-09-agent-workspace-rails.md`.
 
 ## v-0.1.14
 
 ### [v 0.1.14] 2026-09-09 9:23 pm - Automation, agent operations, and platform foundations
 
-- Database Changes: Added Identity device, session, role, verification, and security-event persistence. App Codebase Changes: Added Agent Crew runtimes, Orship repository operations, Docs architecture views, shared Agent Workspace and UI design-system controls, Zetro model and attachment input, task planning, the Automation CLI/workspace, desktop `0.1.14` metadata, real Login/Register page variants, Forgot Password, Notifications Page, validated page defaults, and route-level gallery code splitting. Verification: The complete repository check, runtime validation, and MariaDB foundation test passed. The Zetro desktop executable reports `0.1.14`. The platform-only smoke did not run because an active `platform-web` service owns port `6021`; installation and live application checks did not run. See `assist/records/platform/2026-09-09-ui-page-templates.md` and the linked application development records.
+- Database Changes: Added Identity device, session, role, verification, and security-event persistence. App Codebase Changes: Added Agent Crew runtimes, Orship repository operations, Docs architecture views, shared Agent Workspace and UI design-system controls, Zetro model and attachment input, task planning, the Automation CLI/workspace, desktop `0.1.14` metadata, real Login/Register page variants, Forgot Password, Notifications Page, validated page defaults, and the independent UI showcase application on port `6130`. Shared components, blocks, pages, layouts, templates, gallery specimens, example data, and design-system contracts remain package-owned. Verification: The complete repository check, runtime validation, and MariaDB foundation test passed before the UI extraction; focused UI checks are recorded in `assist/records/ui/2026-09-09-independent-ui-application.md`. The Zetro desktop executable reports `0.1.14`. The platform-only smoke did not run because an active `platform-web` service owns port `6021`; installation and live application checks did not run. See `assist/records/platform/2026-09-09-ui-page-templates.md` and the linked application development records.
 
 ## v-0.1.13
 
@@ -638,27 +653,17 @@
 - Passed Zetro focused checks and browser reviews recorded in the Zetro development records.
 - Zetro project workspaces
 - Added project identity and tagline settings, repository browsing, project workspaces, chat and task lists, archived-task restore, provider context, and Codex worktrees.
-- DevKit hierarchical module planning
-- Added project-to-module drill-down, guarded node upserts, profile entry upserts, and profile tabs.
-- DevKit terminal module profiles
-- Made modules terminal and opened profiles directly from module names.
+- **DevKit hierarchical module planning:** Added project-to-module drill-down, guarded node upserts, profile entry upserts, and profile tabs.
+- **DevKit terminal module profiles:** Made modules terminal and opened profiles directly from module names.
 - Migrated legacy planning records without changing their IDs.
-- DevKit access-control registry
-- Moved User endpoint data into User and added Role, Permission, User role, and Role permission profiles.
-- Zetro response actions
-- Simplified message actions and removed workflow and worktree details from user-facing chat messages.
-- Zetro archived chats
-- Added archive, restore, and archived-chat navigation behavior.
-- Zetro Codex launch recovery
-- Added recovery states for failed Codex launch and worktree setup.
-- Zetro agent chat foundation
-- Added the agent-chat module, typed fallback behavior, and shared workspace integration.
-- UI layout documentation workspace
-- Added UI layout documentation, live previews, and copyable usage examples.
-- UI workspace reset
-- Reset the workspace composition and removed obsolete local layout behavior.
-- Dynamic MDI sidebar and isolated ITO desks
-- Added application-owned MDI navigation and isolated interface topology desks.
+- **DevKit access-control registry:** Moved User endpoint data into User and added Role, Permission, User role, and Role permission profiles.
+- **Zetro response actions:** Simplified message actions and removed workflow and worktree details from user-facing chat messages.
+- **Zetro archived chats:** Added archive, restore, and archived-chat navigation behavior.
+- **Zetro Codex launch recovery:** Added recovery states for failed Codex launch and worktree setup.
+- **Zetro agent chat foundation:** Added the agent-chat module, typed fallback behavior, and shared workspace integration.
+- **UI layout documentation workspace:** Added UI layout documentation, live previews, and copyable usage examples.
+- **UI workspace reset:** Reset the workspace composition and removed obsolete local layout behavior.
+- **Dynamic MDI sidebar and isolated ITO desks:** Added application-owned MDI navigation and isolated interface topology desks.
 - ITO desk selector
 - Added a selector for shared and application interface topology desks.
 - Shared design system and workspace blocks
@@ -673,27 +678,15 @@
 - Added shared global search, notifications, app switching, and profile controls.
 - DevKit project registry
 - Added the DevKit API, web workspace, JSON registry, preflight startup, and planning confirmation flow.
-- Cross-app interface topology
-- Added shared cross-application topology contracts and browser-visible inspections.
-- Durable module runtime preparation
-- Prepared durable module runtime ownership, repository contracts, and migration boundaries.
-- Docs library experience
-- Added connected Docs navigation, rendering, loading, retry, and empty states.
-- Safe runtime manifest boundary
-- Added manifest validation and composition safeguards for runtime modules.
-- Extensible application and add-on foundation
-- Added extension points, compatibility checks, and add-on composition rules.
-- Docs Ideas development plan
-- Added the Docs Ideas page with planning flow charts and linked development phases.
-- Smooth global Docs loader
-- Added the shared Docs loader and reduced refresh flicker.
-- Shared UI gallery and interface topology
-- Added shared UI Gallery documentation and interface topology controls.
-- Docs global loading transition
-- Added Docs loading transitions for route and document refreshes.
-- Framework capability roadmap
-- Added the framework capability roadmap and implementation guidance.
-- Docs navigation refinement
-- Refined Docs navigation, grouping, and reader width.
-- Centralized UI and MDI application layout
-- Centralized shared MDI layout ownership in `@codexsun/ui`.
+- **Cross-app interface topology:** Added shared contracts and browser-visible inspections.
+- **Durable module runtime preparation:** Prepared runtime ownership, repository contracts, and migration boundaries.
+- **Docs library experience:** Added connected navigation, rendering, loading, retry, and empty states.
+- **Safe runtime manifest boundary:** Added manifest validation and composition safeguards.
+- **Extensible application and add-on foundation:** Added extension points, compatibility checks, and add-on composition rules.
+- **Docs Ideas development plan:** Added planning flow charts and linked development phases.
+- **Smooth global Docs loader:** Added the shared loader and reduced refresh flicker.
+- **Shared UI gallery and interface topology:** Added gallery documentation and topology controls.
+- **Docs global loading transition:** Added loading transitions for route and document refreshes.
+- **Framework capability roadmap:** Added the capability roadmap and implementation guidance.
+- **Docs navigation refinement:** Refined navigation, grouping, and reader width.
+- **Centralized UI and MDI application layout:** Centralized shared MDI ownership in `@codexsun/ui`.

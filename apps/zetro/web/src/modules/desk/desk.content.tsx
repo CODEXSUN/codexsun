@@ -1,22 +1,6 @@
-import {
-  ChevronRight,
-  EllipsisVertical,
-  FolderKanban,
-  ListTodo,
-  LoaderCircle,
-  MessageSquare,
-  Workflow,
-} from 'lucide-react'
+import { ChevronRight, EllipsisVertical, FolderKanban, LoaderCircle } from 'lucide-react'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '@codexsun/ui/components/sidebar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,21 +19,13 @@ import { ProjectLogo, ProjectSwitcher, useProjects, type ZetroProject } from '..
 import { useCodexConnection } from '../settings'
 import { DeveloperToolsPanel } from '../developer-tools'
 import { GitDeliveryFlowBuilder } from '../git-delivery'
-import { SystemTasksPanel, useSystemTasks } from '../system-tasks'
+import { SystemTasksPanel } from '../system-tasks'
 import { AutomationSidebar, AutomationWorkspace } from '../automation'
 
 export function ZetroProjectSidebar() {
   const chat = useAgentChat()
   const projects = useProjects()
-  const tasks = useProjectTasks()
-  const automation = useSystemTasks()
   const topology = useMdiTopology()
-  const openTaskCount = tasks.tasks.filter(({ status }) => status !== 'done').length
-
-  function showChat() {
-    projects.setView('chat')
-    chat.showChat()
-  }
 
   return (
     <div className="flex size-full min-h-0 flex-col">
@@ -62,59 +38,6 @@ export function ZetroProjectSidebar() {
         ) : (
           <ProjectSwitcher disabled={chat.isBusy} />
         )}
-      </TopologyRegion>
-      <TopologyRegion as="div" id="15.2.5" topology={topology}>
-        <SidebarGroup className="border-b p-1.5">
-          <SidebarGroupContent>
-            <SidebarMenu aria-label="Project features" className="grid grid-cols-3 gap-1">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  aria-label="Chat"
-                  className="h-9 cursor-pointer justify-center pr-7"
-                  isActive={projects.view === 'chat'}
-                  onClick={showChat}
-                  title="Chat"
-                >
-                  <MessageSquare />
-                  <span className="sr-only">Chat</span>
-                  <SidebarMenuBadge>{chat.summaries.length}</SidebarMenuBadge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  aria-label="Tasks"
-                  className="h-9 cursor-pointer justify-center pr-7"
-                  isActive={projects.view === 'tasks'}
-                  onClick={() => projects.setView('tasks')}
-                  title="Tasks"
-                >
-                  <ListTodo />
-                  <span className="sr-only">Tasks</span>
-                  <SidebarMenuBadge>{openTaskCount}</SidebarMenuBadge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  aria-label="Automation"
-                  className="h-9 cursor-pointer justify-center pr-7"
-                  isActive={projects.view === 'automation'}
-                  onClick={() => projects.setView('automation')}
-                  title="Automation"
-                >
-                  <Workflow />
-                  <span className="sr-only">Automation</span>
-                  <SidebarMenuBadge>
-                    {
-                      automation.tasks.filter(({ status }) =>
-                        ['blocked', 'failed', 'pending', 'running'].includes(status),
-                      ).length
-                    }
-                  </SidebarMenuBadge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </TopologyRegion>
       <div className="min-h-0 flex-1">
         {projects.view === 'chat' ? (
@@ -129,7 +52,13 @@ export function ZetroProjectSidebar() {
   )
 }
 
-export function ZetroProjectWorkspace() {
+export function ZetroProjectWorkspace({
+  repositoryToolsOpen,
+  onRepositoryToolsOpenChange,
+}: {
+  repositoryToolsOpen: boolean
+  onRepositoryToolsOpenChange(open: boolean): void
+}) {
   const { activeProject, error, isLoading, view } = useProjects()
   const chat = useAgentChat()
   const tasks = useProjectTasks()
@@ -175,12 +104,14 @@ export function ZetroProjectWorkspace() {
         )}
       </div>
       <DeveloperToolsPanel
+        open={repositoryToolsOpen}
         topContent={
           <>
             <GitDeliveryFlowBuilder />
             <SystemTasksPanel />
           </>
         }
+        onOpenChange={onRepositoryToolsOpenChange}
       />
     </div>
   )

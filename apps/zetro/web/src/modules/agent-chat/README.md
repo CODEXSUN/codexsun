@@ -18,7 +18,7 @@ The Zetro Desk module only supplies the sidebar and workspace surfaces.
 ## Dependency bindings
 
 - `zetro.chat.api`: `^0.12.0`
-- `zetro.desk.web`: `^0.7.0`
+- `zetro.desk.web`: `^0.8.0`
 - `zetro.projects.web`: `^0.5.0`
 - `zetro.project-tasks.web`: `^0.4.1`
 - `zetro.settings.web`: `^0.4.0`

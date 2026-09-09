@@ -13,9 +13,9 @@ export const ideasPages = [
   },
   {
     id: 'monorepo',
-    label: 'Multi-app monorepo',
+    label: 'Shared packages and apps',
     path: 'apps/docs/web/src/modules/docs-library/ideas.monorepo.tsx',
-    title: 'Multi-app monorepo',
+    title: 'Shared packages and application ownership',
   },
 ] as const
 

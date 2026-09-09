@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/zetro-api",
   "private": true,
-  "version": "0.1.14",
+  "version": "0.1.15",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -25,13 +25,13 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.14",
+    "@codexsun/platform-core-api": "^0.1.15",
     "archiver": "^8.0.0",
     "better-sqlite3": "^12.11.1",
     "bullmq": "^6.3.4",
     "fastify": "^5.12.1",
     "ioredis": "^6.0.0",
-    "kysely": "^0.28.17",
+    "kysely": "^0.29.5",
     "mysql2": "^3.23.4",
     "zod": "^4.5.4"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/ui",
   "private": true,
-  "version": "0.1.14",
+  "version": "0.1.15",
   "type": "module",
   "main": "../../../dist/packages/ui/index.js",
   "types": "../../../dist/packages/ui/index.d.ts",
@@ -20,13 +20,11 @@
     "./hooks/*": "./src/hooks/*.ts",
     "./features/interface-topology": "./src/features/interface-topology/index.ts",
     "./layouts/agent-workspace": "./src/layouts/agent-workspace/index.ts",
+    "./layouts/documentation-workspace": "./src/layouts/documentation-workspace/index.ts",
     "./layouts/mdi-main": "./src/layouts/mdi-main/index.ts",
     "./tokens": "./src/tokens/index.ts",
     "./templates/dashboard-01": "./src/templates/dashboard-01/index.ts",
     "./templates/documentation-sidebar": "./src/templates/documentation-sidebar/index.ts",
-    "./templates/ui-gallery": "./src/templates/ui-gallery/index.ts",
-    "./templates/ui-gallery/catalog": "./src/templates/ui-gallery/catalog.ts",
-    "./templates/ui-gallery/page": "./src/templates/ui-gallery/page.ts",
     "./templates/ui-page": "./src/templates/ui-page/index.ts",
     "./templates/sidebar-07": "./src/templates/sidebar-07/index.ts",
     "./theme": "./src/theme/index.ts"

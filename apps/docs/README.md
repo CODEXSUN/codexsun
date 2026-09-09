@@ -16,8 +16,9 @@ MariaDB metadata index.
 - `content` is the application-owned source vault.
 
 The web workspace supplies Docs navigation and content to the shared
-`@codexsun/ui/layouts/mdi-main` frame. It does not maintain a second application
-header or sidebar shell.
+`@codexsun/ui/layouts/documentation-workspace` frame. It does not maintain a second application
+header or sidebar shell. The layout delegates to MDI Main and applies documentation-specific
+identity, search, sidebar persistence, status, and workspace defaults.
 
 ## Workspaces and commands
 

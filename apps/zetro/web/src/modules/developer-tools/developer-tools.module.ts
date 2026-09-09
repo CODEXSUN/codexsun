@@ -27,7 +27,7 @@ export const developerToolsModuleManifest = {
     deactivate: 'Stop polling and unmount developer tool controls.',
     install: 'Load API-owned global and project settings.',
     uninstall: 'Leave repositories and settings unchanged.',
-    upgrade: 'Version 1.0.0 adds the complete repository review and recovery workspace.',
+    upgrade: 'Version 1.1.0 adds controlled panel state for shared utility rails.',
   },
   publicContracts: [
     'DeveloperToolsProvider',
@@ -37,5 +37,5 @@ export const developerToolsModuleManifest = {
     'useDeveloperTools',
   ],
   scope: 'zetro-web',
-  version: '1.0.0',
+  version: '1.1.0',
 } as const

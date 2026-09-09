@@ -1,4 +1,19 @@
 import { useEffect, useState } from 'react'
+import { Alert, AlertDescription } from '@codexsun/ui/components/alert'
+import { Badge } from '@codexsun/ui/components/badge'
+import { Button } from '@codexsun/ui/components/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@codexsun/ui/components/card'
+import { Field, FieldGroup, FieldLabel } from '@codexsun/ui/components/field'
+import { Input } from '@codexsun/ui/components/input'
+import { NativeSelect, NativeSelectOption } from '@codexsun/ui/components/native-select'
+import { Switch } from '@codexsun/ui/components/switch'
+import { Textarea } from '@codexsun/ui/components/textarea'
+import {
+  WorkspaceMetricCard,
+  WorkspaceMetricGrid,
+  WorkspacePageHeader,
+  WorkspaceSectionCard,
+} from '@codexsun/ui/blocks/workspace'
 
 type Provider = { id: 'codex' | 'opencode' | 'ollama'; model: string; status: string }
 type Run = {
@@ -73,113 +88,130 @@ export function CrewDashboard() {
     }
   }
   return (
-    <main className={compact ? 'crew crew-compact' : 'crew'}>
-      <section className="crew-heading">
-        <div>
-          <p className="eyebrow">Docker-isolated execution</p>
-          <h1>Agent Crew</h1>
-          <p>Codex, OpenCode, and local Ollama work only inside scoped mounted workspaces.</p>
-        </div>
-        <button onClick={() => void load()}>Refresh status</button>
-      </section>
-      {error && (
-        <p className="crew-error" role="alert">
-          {error}
-        </p>
-      )}
-      <section className="provider-grid">
+    <main
+      className={
+        compact
+          ? 'mx-auto flex w-full max-w-7xl flex-col gap-4 p-4'
+          : 'mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 lg:p-8'
+      }
+    >
+      <WorkspacePageHeader
+        actions={<Button onClick={() => void load()}>Refresh status</Button>}
+        description="Codex, OpenCode, and local Ollama work only inside scoped mounted workspaces."
+        eyebrow="Docker-isolated execution"
+        title="Agent Crew"
+      />
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      <section className="grid gap-4 md:grid-cols-3" aria-label="Provider status">
         {overview?.providers.map((item) => (
-          <article className="provider-card" key={item.id}>
-            <span className={`dot ${item.status === 'ready' ? 'ready' : ''}`} />
-            <h2>{item.id}</h2>
-            <p>{item.model}</p>
-            <small>{item.status}</small>
-          </article>
+          <Card key={item.id} size="sm">
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle className="capitalize">{item.id}</CardTitle>
+              <Badge variant={item.status === 'ready' ? 'default' : 'secondary'}>
+                {item.status}
+              </Badge>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">{item.model}</CardContent>
+          </Card>
         )) ?? <p>Loading worker status…</p>}
       </section>
-      <section className="metric-grid">
-        <Metric label="Runs" value={overview?.metrics.total ?? 0} />
-        <Metric label="Completed" value={overview?.metrics.completed ?? 0} />
-        <Metric label="Failed" value={overview?.metrics.failed ?? 0} />
+      <WorkspaceMetricGrid className="md:grid-cols-3 xl:grid-cols-3">
+        <WorkspaceMetricCard label="Runs" value={overview?.metrics.total ?? 0} />
+        <WorkspaceMetricCard
+          label="Completed"
+          tone="success"
+          value={overview?.metrics.completed ?? 0}
+        />
+        <WorkspaceMetricCard label="Failed" tone="danger" value={overview?.metrics.failed ?? 0} />
+      </WorkspaceMetricGrid>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <WorkspaceSectionCard
+          description="Choose an isolated provider and mounted workspace."
+          title="Start controlled run"
+        >
+          <form className="grid gap-5" onSubmit={submit}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="crew-provider">Provider</FieldLabel>
+                <NativeSelect
+                  id="crew-provider"
+                  className="w-full"
+                  value={provider}
+                  onChange={(event) => setProvider(event.target.value as Provider['id'])}
+                >
+                  {(['codex', 'opencode', 'ollama'] as const).map((item) => (
+                    <NativeSelectOption key={item}>{item}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="crew-workspace">Mounted workspace ID</FieldLabel>
+                <Input
+                  id="crew-workspace"
+                  value={workspaceId}
+                  onChange={(event) => setWorkspaceId(event.target.value)}
+                  pattern="[a-z0-9-]+"
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="crew-prompt">Task prompt</FieldLabel>
+                <Textarea
+                  id="crew-prompt"
+                  className="min-h-32"
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  required
+                />
+              </Field>
+            </FieldGroup>
+            <Button type="submit">Run in worker</Button>
+          </form>
+        </WorkspaceSectionCard>
+        <WorkspaceSectionCard title="Latest output">
+          <pre className="max-h-80 min-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-4 text-sm">
+            {result || 'No completed run in this browser session.'}
+          </pre>
+        </WorkspaceSectionCard>
       </section>
-      <section className="work-grid">
-        <form className="run-form" onSubmit={submit}>
-          <h2>Start controlled run</h2>
-          <label>
-            Provider
-            <select
-              value={provider}
-              onChange={(event) => setProvider(event.target.value as Provider['id'])}
-            >
-              {(['codex', 'opencode', 'ollama'] as const).map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Mounted workspace ID
-            <input
-              value={workspaceId}
-              onChange={(event) => setWorkspaceId(event.target.value)}
-              pattern="[a-z0-9-]+"
-              required
-            />
-          </label>
-          <label>
-            Task prompt
-            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} required />
-          </label>
-          <button type="submit">Run in worker</button>
-        </form>
-        <section className="run-output">
-          <h2>Latest output</h2>
-          <pre>{result || 'No completed run in this browser session.'}</pre>
-        </section>
-      </section>
-      <section className="recent">
-        <h2>Recent worker metrics</h2>
+      <WorkspaceSectionCard title="Recent worker metrics">
         {overview?.recentRuns.length ? (
-          <ul>
+          <ul className="grid gap-2 text-sm">
             {overview.recentRuns.map((run) => (
-              <li key={run.id}>
-                <strong>{run.provider}</strong> · {run.workspaceId} · {run.status} ·{' '}
-                {run.durationMs} ms{run.error ? ` · ${run.error}` : ''}
+              <li
+                key={run.id}
+                className="flex flex-wrap items-center gap-2 border-b py-2 last:border-0"
+              >
+                <strong>{run.provider}</strong>
+                <span className="text-muted-foreground">
+                  {run.workspaceId} · {run.status} · {run.durationMs} ms
+                  {run.error ? ` · ${run.error}` : ''}
+                </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p>No runs have been recorded by this worker.</p>
+          <p className="text-sm text-muted-foreground">
+            No runs have been recorded by this worker.
+          </p>
         )}
-      </section>
-      <aside className="tweak-panel">
+      </WorkspaceSectionCard>
+      <aside className="fixed right-4 bottom-4 z-20 grid min-w-52 gap-3 rounded-xl border bg-popover p-4 text-sm text-popover-foreground shadow-lg">
         <strong>Dashboard controls</strong>
-        <label>
-          <input
-            type="checkbox"
-            checked={autoRefresh}
-            onChange={(event) => setAutoRefresh(event.target.checked)}
-          />{' '}
+        <label className="flex items-center justify-between gap-4">
           Auto refresh
+          <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
         </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={compact}
-            onChange={(event) => setCompact(event.target.checked)}
-          />{' '}
+        <label className="flex items-center justify-between gap-4">
           Compact view
+          <Switch checked={compact} onCheckedChange={setCompact} />
         </label>
       </aside>
     </main>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <article className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
   )
 }
 function readError(value: unknown) {

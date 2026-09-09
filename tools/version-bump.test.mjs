@@ -31,7 +31,7 @@ test('version bump aligns npm, Tauri, and Rust package versions', async () => {
     )
     await writeFile(
       join(assistRoot, 'CHANGELOG.md'),
-      '# Changelog\n\nCurrent version: 1.2.3\nRelease tag: v-1.2.3\nChangelog label: v 1.2.3\n\n## v-1.2.3\n',
+      '# Changelog\n\nCurrent version: 1.2.3\nRelease tag: v-1.2.3\n\n## v-1.2.3\n',
     )
 
     const result = bumpNextVersion(root, 'Desktop version test', { databaseUpdate: false })
@@ -43,6 +43,10 @@ test('version bump aligns npm, Tauri, and Rust package versions', async () => {
     )
     assert.match(await readFile(join(desktopRoot, 'Cargo.toml'), 'utf8'), /version = "1\.2\.4"/u)
     assert.match(await readFile(join(desktopRoot, 'Cargo.lock'), 'utf8'), /version = "1\.2\.4"/u)
+    assert.match(
+      await readFile(join(assistRoot, 'CHANGELOG.md'), 'utf8'),
+      /Changelog label: v 1\.2\.4/u,
+    )
     assert.deepEqual(checkVersions(root).failures, [])
   } finally {
     await rm(root, { force: true, recursive: true })

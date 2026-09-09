@@ -3,14 +3,36 @@ import path from 'node:path'
 
 const root = process.cwd()
 const appsRoot = path.join(root, 'apps')
+const packageGalleryRoot = path.join(root, 'packages', 'ui', 'src', 'templates', 'ui-gallery')
 const sourceExtensions = new Set(['.js', '.jsx', '.ts', '.tsx'])
 const forbiddenImports = [
   '@base-ui/react',
+  '@chakra-ui/',
   '@codexsun/ui/src',
+  '@mantine/',
+  '@mui/',
+  '@radix-ui/',
+  '@shadcn/',
+  'antd',
+  'bootstrap',
   'class-variance-authority',
   'packages/ui/src',
+  'radix-ui',
+  'react-bootstrap',
+  'semantic-ui',
 ]
 const violations = []
+
+try {
+  const packageGalleryEntries = await readdir(packageGalleryRoot)
+  if (packageGalleryEntries.length > 0) {
+    violations.push(
+      'packages/ui/src/templates/ui-gallery: showcase code belongs to apps/ui/web/src/modules/gallery',
+    )
+  }
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error
+}
 
 for (const filePath of await listWebSourceFiles()) {
   const relativePath = path.relative(root, filePath).replaceAll('\\', '/')
@@ -23,6 +45,19 @@ for (const filePath of await listWebSourceFiles()) {
   for (const specifier of readImportSpecifiers(source)) {
     if (forbiddenImports.some((prefix) => specifier.startsWith(prefix))) {
       violations.push(`${relativePath}: import ${specifier} through @codexsun/ui public exports`)
+    }
+  }
+}
+
+for (const packagePath of await listWebWorkspacePackages()) {
+  const manifest = JSON.parse(await readFile(packagePath, 'utf8'))
+  const dependencies = { ...manifest.dependencies, ...manifest.devDependencies }
+  for (const dependency of Object.keys(dependencies)) {
+    if (forbiddenImports.some((prefix) => dependency.startsWith(prefix))) {
+      const relativePath = path.relative(root, packagePath).replaceAll('\\', '/')
+      violations.push(
+        `${relativePath}: depend on shared UI through @codexsun/ui, not ${dependency}`,
+      )
     }
   }
 }
@@ -48,6 +83,22 @@ async function listWebSourceFiles() {
     }
   }
   return files
+}
+
+async function listWebWorkspacePackages() {
+  const applications = await readdir(appsRoot, { withFileTypes: true })
+  const packages = []
+  for (const application of applications) {
+    if (!application.isDirectory()) continue
+    const packagePath = path.join(appsRoot, application.name, 'web', 'package.json')
+    try {
+      await readFile(packagePath)
+      packages.push(packagePath)
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error
+    }
+  }
+  return packages
 }
 
 async function listSourceFiles(directory) {

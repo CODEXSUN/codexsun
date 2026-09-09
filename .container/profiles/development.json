@@ -12,7 +12,7 @@
     "VITE_DEVKIT_API_URL": "http://127.0.0.1:6070",
     "VITE_ORSHIP_API_URL": "http://127.0.0.1:6090"
   },
-  "applications": ["platform", "docs", "zetro", "devkit", "agent-crew", "orship"],
+  "applications": ["platform", "ui", "docs", "zetro", "devkit", "agent-crew", "orship"],
   "addons": [],
   "portOverrides": {}
 }

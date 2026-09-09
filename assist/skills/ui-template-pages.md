@@ -2,8 +2,8 @@
 
 ## Use this when
 
-Use this guide when you add or change a component, block, form, table, layout,
-or UI Gallery documentation page in `packages/ui`.
+Use this guide when you add or change a component, block, form, table, layout, or UI Gallery
+documentation page in `apps/ui/web`.
 
 Also read [Web UI](web-ui.md) when the change affects an application workspace.
 
@@ -11,23 +11,27 @@ Also read [Web UI](web-ui.md) when the change affects an application workspace.
 
 - Use `UiTemplatePage` from `@codexsun/ui/templates/ui-page`.
 - Keep the template source in `packages/ui/src/templates/ui-page`.
+- Keep gallery pages, catalogs, previews, examples, and code samples in
+  `apps/ui/web/src/modules/gallery`.
+- Keep reusable primitives, blocks, pages, layouts, and generic templates in `packages/ui`.
+- Import live specimens only through public `@codexsun/ui` exports; never package-private source.
 - Do not recreate the page header, width, spacing, code panel, or navigation in a documentation page.
 - Use `kind="Component"` for primitives, `kind="Block"` for composed shared UI, and
   `kind="Layout"` for application shells.
 - Keep Table and Form in the `Blocks` navigation group. Keep package primitives in
   the `Components` group.
-- Keep MDI Main and Agent Workspace in the `Layouts` navigation group.
+- Keep MDI Main, Documentation Workspace, and Agent Workspace in the `Layouts` navigation group.
 - Keep Login, Register, Forgot Password, and Notifications in the page registry. Group the
   authentication pages below one nested Authentication action and keep Notifications Page direct.
-- Build the component navigation from the package gallery catalog. Do not maintain
-  a second handwritten component list.
+- Build component navigation from the app-owned gallery catalog backed by
+  `@codexsun/ui/design-system`. Do not maintain a second component-name registry.
 - Give each component route its own live specimen. Do not reuse one category preview
   as the body of several component pages.
 - Register only variants that the component actually implements through the shared
   component-variant resolver. Do not create generic display-density variants.
 - Mark one variant as Default and fall back to it for missing or invalid selections.
   When a component has one variant, render it as `01. Default` with a green badge.
-- Use the package-owned `UiComponentDisplayPage` for every component route. Pass only
+- Use the gallery-owned `UiComponentDisplayPage` for every component route. Pass only
   the selected `UiComponentDoc` catalog record. Do not rebuild its page composition.
 - Show all component variants as numbered cards in one vertical gallery. Give each card
   a live specimen, a copy action, a code dialog, and a Set default action when needed.

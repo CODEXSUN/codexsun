@@ -2,7 +2,7 @@
   "name": "codexsun",
   "private": true,
   "type": "module",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "packageManager": "npm@12.0.2",
   "workspaces": [
     "apps/*/*",
@@ -15,6 +15,7 @@
     "dev:all": "npm run runtime:start -- development",
     "dev:api": "node tools/preflight.mjs platform-api",
     "dev:web": "node tools/preflight.mjs platform-web",
+    "dev:ui": "node tools/preflight.mjs ui-web",
     "start:api": "npm run start --workspace @codexsun/platform-api",
     "dev:docs": "node tools/dev-stack.mjs docs",
     "dev:docs-api": "node tools/preflight.mjs docs-api",
