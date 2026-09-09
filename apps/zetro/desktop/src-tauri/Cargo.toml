@@ -1,6 +1,6 @@
 [package]
 name = "zetro-desktop"
-version = "0.1.12"
+version = "0.1.13"
 description = "Zetro Windows desktop application"
 authors = ["CODEXSUN"]
 edition = "2021"

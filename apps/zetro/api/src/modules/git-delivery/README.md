@@ -22,6 +22,7 @@ It runs only repository-owned npm scripts for release updates.
 
 The request includes the reviewed HEAD and changed-file list. The service rejects a run
 when the repository changes after preview. Git execution stays in Developer Tools.
+The flow also requires a `release/*` batch branch. It rejects `main` and task branches.
 
 The module stores settings and the latest 50 flow records in
 `storage/app/private/zetro/git-delivery.json`. It does not store credentials.

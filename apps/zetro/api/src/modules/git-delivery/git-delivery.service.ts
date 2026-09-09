@@ -252,6 +252,11 @@ export class GitDeliveryService {
 
   private async requireReviewedState(projectId: string, input: GitDeliveryFlowInput) {
     const current = await this.developerTools.deliverySnapshot(projectId)
+    if (!current.branch.startsWith('release/')) {
+      throw new GitDeliveryPolicyError(
+        'Create and review a release/* batch branch before running Git delivery. Zetro never releases directly from main or a task branch.',
+      )
+    }
     if (
       current.head !== input.expectedHead ||
       !sameFiles(current.changedFiles, input.expectedFiles)

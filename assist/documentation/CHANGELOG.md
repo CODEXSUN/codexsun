@@ -8,9 +8,16 @@
 
 ## Version State
 
-- Current version: 0.1.12
-- Release tag: v-0.1.12
-- Changelog label: v 0.1.12
+- Current version: 0.1.13
+- Release tag: v-0.1.13
+- Changelog label: v 0.1.13
+
+## v-0.1.13
+
+### [v 0.1.13] 2026-09-09 8:02 pm - Guard Zetro release batches and recovery checkpoints
+
+- Database update: No (manual).
+- Bumped workspace version to 0.1.13.
 
 ## v-0.1.12
 

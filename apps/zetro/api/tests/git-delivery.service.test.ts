@@ -50,11 +50,11 @@ test('Git delivery records a reviewed local commit system task', async () => {
     await repository.initialize()
     const actions: unknown[] = []
     const snapshot = {
-      branch: 'codex/delivery',
+      branch: 'release/1.0.0-batch',
       changedFiles: ['README.md'],
       head: 'a'.repeat(40),
       remoteUrl: 'https://github.com/CODEXSUN/codexsun.git',
-      upstream: 'origin/codex/delivery',
+      upstream: 'origin/release/1.0.0-batch',
     }
     const projects = {
       get: () => ({ githubUrl: snapshot.remoteUrl, repositoryPath: root }),
@@ -99,7 +99,11 @@ test('Git delivery rejects repository changes after preview', async () => {
   } as unknown as GitDeliveryRepository
   const projects = { get: () => ({ repositoryPath: 'unused' }) } as unknown as ProjectService
   const developerTools = {
-    deliverySnapshot: async () => ({ changedFiles: ['new.ts'], head: 'b'.repeat(40) }),
+    deliverySnapshot: async () => ({
+      branch: 'release/1.0.0-batch',
+      changedFiles: ['new.ts'],
+      head: 'b'.repeat(40),
+    }),
   } as unknown as DeveloperToolsService
   const systemTasks = { register() {} } as unknown as SystemTaskService
   const service = new GitDeliveryService(repository, projects, developerTools, systemTasks)
@@ -117,6 +121,34 @@ test('Git delivery rejects repository changes after preview', async () => {
       writeChangelog: false,
     }),
     GitDeliveryPolicyError,
+  )
+})
+
+test('Git delivery rejects direct releases from main', async () => {
+  const repository = {
+    getGlobal: () => ({ enabled: true }),
+    getProject: () => ({ enabled: true, inheritGlobal: true }),
+  } as unknown as GitDeliveryRepository
+  const projects = { get: () => ({ repositoryPath: 'unused' }) } as unknown as ProjectService
+  const developerTools = {
+    deliverySnapshot: async () => ({ branch: 'main', changedFiles: [], head: 'a'.repeat(40) }),
+  } as unknown as DeveloperToolsService
+  const systemTasks = { register() {} } as unknown as SystemTaskService
+  const service = new GitDeliveryService(repository, projects, developerTools, systemTasks)
+  await assert.rejects(
+    service.run('00000000-0000-4000-8000-000000000001', {
+      bumpVersion: false,
+      commitMessage: 'Direct release',
+      databaseUpdate: 'no',
+      expectedFiles: [],
+      expectedHead: 'a'.repeat(40),
+      note: 'Direct release.',
+      push: false,
+      syncStrategy: 'none',
+      title: 'Direct release',
+      writeChangelog: false,
+    }),
+    /release\/\* batch branch/,
   )
 })
 
