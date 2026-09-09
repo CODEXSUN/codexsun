@@ -161,7 +161,7 @@ Cross-module events must be declared by publisher and consumer with compatible v
 
 ## Deployment selection
 
-- Register a deployable add-on in `deployments/catalog.json` only after its public extension contract is stable.
+- Register a deployable add-on in `.container/catalog.json` only after its public extension contract is stable.
 - Declare the target application and exact target component identifiers.
 - Select the add-on in a versioned deployment profile. Do not modify the target application source for one customer.
 - Stage the add-on only into its declared component images.

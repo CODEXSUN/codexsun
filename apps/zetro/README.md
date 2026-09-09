@@ -11,27 +11,35 @@ Zetro is a standalone development desk with task execution and provider-backed a
 - `api/src/modules/codex-connection` owns local Codex account status, device authorization, and App Server turns.
 - `api/src/modules/chat` owns provider-backed turns, private conversation history, archive state, and permanent conversation deletion.
 - `api/src/modules/projects` owns registered local repository workspaces.
+- `api/src/modules/developer-tools` owns Git actions, monitoring, and trusted tool launchers.
+- `api/src/modules/git-delivery` owns reviewed release system tasks and their settings.
 - `api/src/modules/tasks` owns project-scoped task records and private file persistence.
 - `web/src/modules/desk` owns the Zetro Desk shell, workspace, and sidebar surfaces.
 - `web/src/modules/agent-chat` owns active and archived history, messages, and prompt input.
 - `web/src/modules/projects` owns the active project and sidebar project switcher.
+- `web/src/modules/developer-tools` owns shared repository tools and their settings.
+- `web/src/modules/git-delivery` owns the interactive GitHub delivery flow builder.
 - `web/src/modules/project-tasks` owns project task management.
-- `web/src/modules/settings` owns connection status and device activation UI.
+- `web/src/modules/settings` owns centralized application preferences,
+  appearance, ITO visibility, connection status, and device activation UI.
+- `desktop` owns the Tauri window, bundled API process, native folder picker, and WiX MSI.
 - The web `app.tsx` is the thin composition root.
 
 The composition root supplies Zetro identity and runtime status to the shared
 `@codexsun/ui/layouts/mdi-main` frame. Codex settings remain app-owned content.
 
 The only public product route is `/zetro`. It opens the agent chat inside Zetro
-Desk. Settings remains a source module without a public route or visible
-navigation. Project Chat and Tasks switch inside this one Desk route.
+Desk. Project Chat, Tasks, and Settings switch inside this one Desk route.
 
 ## Workspaces and commands
 
-| Workspace             | Purpose            | Development command         | Default address               |
-| --------------------- | ------------------ | --------------------------- | ----------------------------- |
-| `@codexsun/zetro-api` | Agent and task API | `npm.cmd run dev:zetro-api` | `http://127.0.0.1:6050`       |
-| `@codexsun/zetro-web` | Agent workspace    | `npm.cmd run dev:zetro`     | `http://127.0.0.1:6060/zetro` |
+| Workspace                 | Purpose            | Development command             | Default address               |
+| ------------------------- | ------------------ | ------------------------------- | ----------------------------- |
+| `@codexsun/zetro-api`     | Agent and task API | `npm.cmd run dev:zetro-api`     | `http://127.0.0.1:6050`       |
+| `@codexsun/zetro-web`     | Agent workspace    | `npm.cmd run dev:zetro`         | `http://127.0.0.1:6060/zetro` |
+| `@codexsun/zetro-desktop` | Windows host       | `npm.cmd run desktop:zetro:dev` | Local Windows application     |
+
+Build the Windows installer with `npm.cmd run desktop:zetro:msi`.
 
 ## Deployment assembly
 
@@ -39,11 +47,22 @@ The shared runtime holder registers `zetro-api` and `zetro-web`. Zetro requires 
 
 The API and web remain separate component and container boundaries. Selecting Zetro does not move provider credentials into the profile; secrets remain deployment environment bindings.
 
+The Tauri workspace packages the existing web and API components for Windows. It is not a container component and does not enter the Compose catalog.
+
 ## Runtime configuration
 
-Root `.env` owns `ZETRO_API_PORT`, `ZETRO_WEB_PORT`, and optional Codex provider settings. The API owns local Codex account connection endpoints. The unmounted Settings web module is available for a later approved Desk region.
+Root `.env` owns `ZETRO_API_PORT`, `ZETRO_WEB_PORT`, and optional Codex provider settings. The API owns local Codex account connection endpoints. The mounted Settings web module owns browser-local application preferences and composes shared MDI appearance controls.
+
+The API uses the shared Platform Core observability adapter for Pino logs, request correlation, HTTP telemetry, and safe shutdown. Production JSON output is captured by the runtime holder for Orship.
 
 `ZETRO_CODEX_API_KEY` supplies a separate API credential to the local Codex App Server. `ZETRO_WORKTREE_ROOT` selects the parent directory for task worktrees.
+
+The desktop host sets `ZETRO_PROJECT_ROOT`, `STORAGE_ROOT`, and
+`ZETRO_WORKTREE_ROOT` to Tauri application data paths. The generated project
+root is only a startup marker. Zetro does not register it as a project because
+it is not a Git repository. The desktop app and browser use the same project
+connection flow. The desktop host allows only the Tauri origin to call the
+bundled loopback API.
 
 On Windows, the default `codex` command resolves the newest executable from the Codex desktop installation. Set `ZETRO_CODEX_COMMAND` to a full path to override discovery.
 
@@ -92,9 +111,11 @@ The API provides `/health`, `/health/live`, and `/health/ready`. The root `dev:z
 
 The API handles `SIGINT`, `SIGTERM`, and supervisor IPC. Shutdown closes Fastify and the local Codex App Server process.
 
+The desktop host owns its bundled API process. It stops the process tree on normal exit. The API also stops when its desktop parent exits.
+
 ## Verification
 
-Run `npm.cmd run test:zetro`, `npm.cmd run build:zetro`, lint, formatting, type checks, and documentation gates after a Zetro change.
+Run `npm.cmd run test:zetro`, `npm.cmd run build:zetro`, lint, formatting, type checks, and documentation gates after a Zetro change. The root `check` gate includes the complete Zetro API test suite and validates declared module dependency ranges.
 
 The worktree integration test creates two temporary Git worktrees. Zetro still needs a production-artifact lifecycle E2E test.
 

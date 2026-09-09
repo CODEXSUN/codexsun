@@ -253,6 +253,7 @@ function snapshotModule(module: FrameworkModule): FrameworkModule {
     configuration: Object.freeze(module.configuration.map((value) => Object.freeze({ ...value }))),
     consumes: Object.freeze(module.consumes.map((value) => Object.freeze({ ...value }))),
     dependencies: Object.freeze(module.dependencies.map((value) => Object.freeze({ ...value }))),
+    dataSchema: module.dataSchema ? Object.freeze({ ...module.dataSchema }) : undefined,
     extensionPoints: Object.freeze(
       module.extensionPoints.map((value) => Object.freeze({ ...value })),
     ),

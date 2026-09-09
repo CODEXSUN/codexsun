@@ -2,21 +2,27 @@
 
 ## Purpose
 
-CODEXSUN will be a web, desktop, and mobile application platform. The current foundation contains a Platform host, a generic framework, and reusable Platform Core packages.
+CODEXSUN is a web, desktop, and mobile application platform. Platform provides
+the shared foundation. Docs, DevKit, Zetro, and Orship are source-owned
+applications that use that foundation.
 
 ## Current boundaries
 
-```text
-apps/platform/web  -> Platform browser host
-apps/platform/api  -> Platform HTTP host
-packages/framework -> module lifecycle and dependency registry
-packages/platform-core -> reusable API, web, desktop, and shared packages
-packages/ui -> shared shadcn primitives, application layouts, templates, hooks, tokens, and Tailwind theme
-```
+| Boundary                            | Owner            | Purpose                                                                         |
+| ----------------------------------- | ---------------- | ------------------------------------------------------------------------------- |
+| `apps/platform`                     | Platform         | Technical browser and HTTP composition host                                     |
+| `apps/docs`                         | Docs             | Repository documentation indexing, reading, and editing                         |
+| `apps/devkit`                       | DevKit           | Project planning registry and development confirmation                          |
+| `apps/zetro`                        | Zetro            | Agent chat, tasks, projects, and desktop host                                   |
+| `apps/orship`                       | Orship           | Local service observation and guarded controls                                  |
+| `packages/framework`                | Framework        | Module lifecycle and dependency registry                                        |
+| `packages/platform-core`            | Platform Core    | Reusable API, web, desktop, and shared contracts                                |
+| `packages/ui`                       | UI               | Shared shadcn primitives, layouts, templates, hooks, tokens, and Tailwind theme |
+| `packages/runtime` and `.container` | Runtime assembly | Deployment catalog, profile validation, and immutable plans                     |
 
 The web app must use documented HTTP contracts to communicate with the API. It must not import API source files. The API owns input validation, persistence integration, and background-job registration.
 
-## Planned boundaries
+## Future product boundaries
 
 ```text
 apps/platform/{api,web}          -> current deployable Platform host

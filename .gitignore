@@ -146,6 +146,11 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Tauri generated files
+**/src-tauri/gen/
+apps/zetro/desktop/src-tauri/icons/*
+!apps/zetro/desktop/src-tauri/icons/icon.ico
+
 /.idea/*
 /.vscode/
 /.idea/

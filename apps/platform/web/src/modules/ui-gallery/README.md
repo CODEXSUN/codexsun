@@ -24,17 +24,35 @@ blocks, and components.
 - Route: `/ui`.
 - Application launcher entry: `UI`.
 - Primary sidebar action: `Overview`.
+- Browser title and MDI command-bar identity: `UI` on every `/ui` route.
 - Layout selection: `/ui?layout=<layout-id>`.
 - Component selection: `/ui?component=<component-id>`.
 - Block selection: `/ui?block=<block-id>`.
-- Layout IDs: `mdi-main`, `dashboard-01`, `sidebar-07`, and `documentation-sidebar`.
+- Layout ID: `mdi-main`.
 - Block IDs: `table` and `form`.
 - Component IDs come from the complete shared component catalog. Table is represented
   by its composed block page instead of a duplicate primitive page.
-- MDI preview sections: command bar, navigation, workspace canvas, and status bar.
+- Every component route passes one catalog record to the package-owned
+  `UiComponentDisplayPage`. It renders each owned variant as a numbered card in one
+  vertical gallery. A single composition renders as `01. Default` with a green badge.
+- Block pages render their composed default controls only. They do not inherit the
+  component-page variant selector.
+- UI navigation preserves expanded groups and its scroll position across page selection
+  and browser refreshes. A new Overview session still starts with all groups collapsed.
+- The MDI preview renders the package-owned `MdiMain` shell with the real top menu,
+  navigation sidebar, plain workspace canvas, and status bar. It does not use an image,
+  section sampler, or scaffold.
+- The MDI Main page uses the shared template-page header, 90-percent live preview,
+  usage and code section, and named documentation navigation.
 - The Table page renders ten live sample rows through `@codexsun/ui/blocks/table`.
 - The Form page renders live animated tabs, lookup fields, active state, and actions
   through `@codexsun/ui/blocks/form`.
+- The Accordion page renders fixed-width Borderless and Boxed FAQ variants. A user can
+  persist either variant as the default. Each card can copy or open its own code.
+- The Alert page renders success, information, warning, and error callouts through one
+  fixed-width live default specimen.
+- The Button page renders each basic and special composition as a numbered live variant.
+  Primary is the initial default. Every standard specimen is 40px high.
 - Events published or consumed: None.
 
 ## Verification

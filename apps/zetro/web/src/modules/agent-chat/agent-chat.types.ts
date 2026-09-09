@@ -45,6 +45,7 @@ export type ChatExecution = {
 export type ChatMessage = {
   attachments: ChatAttachment[]
   content: string
+  createdAt: string
   execution?: ChatExecution
   id: string
   role: ChatRole
@@ -63,10 +64,17 @@ export type ChatConversationSummary = {
   id: string
   pinned: boolean
   projectId: string
+  scope?: ChatWorkspaceScope
   title: string
   updatedAt: string
 }
 
 export type ChatConversation = ChatConversationSummary & {
   messages: ChatMessage[]
+}
+
+export type ChatWorkspaceScope = {
+  application: string
+  folderPath: string
+  module: string
 }

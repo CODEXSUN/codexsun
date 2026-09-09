@@ -1,13 +1,15 @@
 import { Separator } from '@codexsun/ui/components/separator'
+import type { ReactNode } from 'react'
 import { TopologyMarker } from '../../features/interface-topology'
 import { useMdiTopology } from './mdi-topology'
 
 type MdiStatusBarProps = {
   statusLabel: string
+  statusEnd?: ReactNode
   workspaceTitle: string
 }
 
-export function MdiStatusBar({ statusLabel, workspaceTitle }: MdiStatusBarProps) {
+export function MdiStatusBar({ statusEnd, statusLabel, workspaceTitle }: MdiStatusBarProps) {
   const topology = useMdiTopology()
   return (
     <footer
@@ -18,6 +20,7 @@ export function MdiStatusBar({ statusLabel, workspaceTitle }: MdiStatusBarProps)
       <span>{statusLabel}</span>
       <Separator orientation="vertical" className="mx-2 h-3" />
       <span className="truncate">{workspaceTitle}</span>
+      {statusEnd ? <span className="ml-auto shrink-0">{statusEnd}</span> : null}
     </footer>
   )
 }

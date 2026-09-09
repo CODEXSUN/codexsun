@@ -27,6 +27,11 @@ export interface CodexTurnInput {
   images: readonly string[]
   projectId: string
   projectRoot: string
+  scope: {
+    application: string
+    folderPath: string
+    module: string
+  }
   text: string
   workflow: CodexWorkflow
 }

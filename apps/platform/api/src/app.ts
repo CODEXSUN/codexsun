@@ -11,11 +11,17 @@ import {
 } from '@codexsun/framework'
 import {
   DeclaredPlatformEventBus,
+  DenyByDefaultPlatformAuthorizer,
+  PlatformApiObservability,
   PlatformDiagnosticRegistry,
+  PlatformReadinessRegistry,
   PlatformRequestContextStore,
   PlatformShutdownRegistry,
+  type PlatformActor,
   type PlatformApiModule,
   type PlatformApiModuleContext,
+  type PlatformAuthorizer,
+  type PlatformReadinessProbe,
 } from '@codexsun/platform-core-api'
 import {
   livenessDataSchema,
@@ -29,17 +35,16 @@ import { z } from 'zod'
 import { getProjectRoot, readEnvironment, type Environment } from './config.js'
 import { createDatabase, type Database, type PlatformDatabase } from './database.js'
 import { createResponseMeta, registerHttpLifecycle } from './http.js'
-import { createLoggerOptions } from './logger.js'
 import {
   KyselyModuleDataTransactionRunner,
   MariaDbModuleRuntimeLock,
   MariaDbModuleRuntimeRepository,
+  type ModulePreparationResult,
   ModuleRuntimeCoordinator,
   moduleRuntimeApiModule,
   moduleRuntimeMigrations,
 } from './modules/module-runtime/index.js'
 import { systemApiModule } from './modules/system/index.js'
-import { runReadinessProbes, type ReadinessProbe } from './readiness.js'
 import { createStorage, type StorageDirectories } from './storage.js'
 
 const platformVersion = '0.1.0'
@@ -51,25 +56,36 @@ export interface PlatformApi {
 }
 
 export interface PlatformApiOptions {
+  authorizer?: PlatformAuthorizer
   clock?: () => Date
   createId?: () => string
   database?: PlatformDatabase
   environment?: Environment
   moduleRuntime?: boolean
   modules?: readonly PlatformApiModule<Database, Database>[]
-  readinessProbes?: readonly ReadinessProbe[]
+  readinessProbes?: readonly (Omit<PlatformReadinessProbe, 'moduleId'> & { moduleId?: string })[]
+  resolveActor?: (
+    request: import('fastify').FastifyRequest,
+  ) => Promise<PlatformActor> | PlatformActor
   storage?: StorageDirectories
 }
 
 export async function buildPlatformApi(options: PlatformApiOptions = {}): Promise<PlatformApi> {
   const environment = options.environment ?? readEnvironment()
+  const observability = new PlatformApiObservability(
+    { application: 'platform', component: 'platform-api' },
+    { ...process.env, APP_ENV: environment.APP_ENV },
+  )
+  observability.start()
   const storage = options.storage ?? (await createStorage(environment, getProjectRoot()))
   const database = options.database ?? createDatabase(environment)
   const modules = options.modules ?? [moduleRuntimeApiModule, systemApiModule]
-  const server = createServer(environment, storage)
+  const server = createServer(environment, storage, observability)
   const shutdown = new PlatformShutdownRegistry()
   const diagnostics = new PlatformDiagnosticRegistry()
+  const readiness = new PlatformReadinessRegistry()
   const requestContext = new PlatformRequestContextStore()
+  const authorizer = options.authorizer ?? new DenyByDefaultPlatformAuthorizer()
   const lifecycleAbort = new AbortController()
   const composition = createComposition(modules)
   const events = new DeclaredPlatformEventBus(
@@ -109,7 +125,7 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
   )
   let runtimeStartup: Promise<void> | undefined
 
-  registerHttpLifecycle(server, requestContext)
+  registerHttpLifecycle(server, requestContext, options.resolveActor)
   await registerPlatformModules(
     server,
     modules,
@@ -120,43 +136,89 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
         composition,
         diagnostics,
         events.forModule(moduleId),
+        authorizer,
+        readiness,
         requestContext,
         shutdown,
         lifecycleAbort.signal,
       ),
     (moduleId) => moduleRuntime?.canServe(moduleId) ?? true,
   )
-  const readinessProbes = [
-    ...(options.readinessProbes ?? [
-      { check: () => database.check(), name: 'database' },
-      { check: () => storage.check(), name: 'storage' },
-    ]),
-    ...(moduleRuntime ? [{ check: () => moduleRuntime.check(), name: 'module-runtime' }] : []),
-  ]
-  registerHealthRoutes(server, readinessProbes, diagnostics, options.clock ?? (() => new Date()))
+  for (const module of modules) {
+    for (const probe of module.readiness ?? []) readiness.register(probe)
+  }
+  for (const probe of options.readinessProbes ?? [
+    {
+      check: () => database.check(),
+      failureMessage: 'MariaDB is unavailable.',
+      moduleId: 'platform',
+      name: 'database',
+    },
+    {
+      check: () => storage.check(),
+      failureMessage: 'Central storage is unavailable.',
+      moduleId: 'platform',
+      name: 'storage',
+    },
+  ]) {
+    readiness.register({ ...probe, moduleId: probe.moduleId ?? 'platform' })
+  }
+  if (moduleRuntime) {
+    readiness.register({
+      check: () => moduleRuntime.check(),
+      failureMessage: 'Module preparation is incomplete.',
+      moduleId: 'module-runtime',
+      name: 'module-runtime',
+    })
+  }
+  registerHealthRoutes(server, readiness, diagnostics, options.clock ?? (() => new Date()))
   server.addHook('onReady', async () => {
     if (!moduleRuntime) await lifecycle.activate()
   })
   server.addHook('onListen', () => {
     if (!moduleRuntime) return
-    runtimeStartup = startModuleRuntime(moduleRuntime, lifecycle).catch((error: unknown) => {
-      server.log.error({ err: error }, 'module runtime preparation failed')
-    })
+    runtimeStartup = startModuleRuntime(moduleRuntime, lifecycle)
+      .then((preparation) => {
+        server.log.info(
+          {
+            migrations: preparation.appliedMigrationIds,
+            migrationCount: preparation.appliedMigrationIds.length,
+            seedCount: preparation.appliedSeedIds.length,
+            seeds: preparation.appliedSeedIds,
+          },
+          'module migration queue applied',
+        )
+      })
+      .catch((error: unknown) => {
+        server.log.error({ err: error }, 'module runtime preparation failed')
+      })
   })
   server.addHook('onClose', () =>
-    closeResources(lifecycleAbort, lifecycle, moduleRuntime, runtimeStartup, shutdown, database),
+    closeResources(
+      lifecycleAbort,
+      lifecycle,
+      moduleRuntime,
+      runtimeStartup,
+      shutdown,
+      database,
+      observability,
+    ),
   )
 
   return { composition, environment, server }
 }
 
-function createServer(environment: Environment, storage: StorageDirectories): FastifyInstance {
+function createServer(
+  environment: Environment,
+  storage: StorageDirectories,
+  observability: PlatformApiObservability,
+): FastifyInstance {
   const server = Fastify({
+    ...observability.fastifyOptions(),
     bodyLimit: environment.BODY_LIMIT_BYTES,
-    logger: createLoggerOptions(environment),
-    requestIdHeader: 'x-request-id',
     trustProxy: false,
   })
+  observability.register(server)
 
   void server.register(fastifySensible)
   void server.register(fastifyHelmet)
@@ -195,11 +257,14 @@ function createModuleContext(
   composition: ModuleCompositionPlan,
   diagnostics: PlatformDiagnosticRegistry,
   events: PlatformApiModuleContext['events'],
+  authorization: PlatformAuthorizer,
+  readiness: PlatformReadinessRegistry,
   requestContext: PlatformRequestContextStore,
   shutdown: PlatformShutdownRegistry,
   signal: AbortSignal,
 ): PlatformApiModuleContext {
   return {
+    authorization,
     clock: options.clock ?? (() => new Date()),
     createId: options.createId ?? randomUUID,
     diagnostics,
@@ -215,6 +280,7 @@ function createModuleContext(
       id: module.id,
       version: module.version,
     })),
+    readiness,
     registerShutdown: (task) => shutdown.register(task),
     requestContext,
     signal,
@@ -266,7 +332,9 @@ function createModuleRuntime(
     diagnostics,
     events.forModule('module-runtime'),
     clock,
-    () => moduleRuntimeMigrations[0]!.up(database.client),
+    async () => {
+      for (const migration of moduleRuntimeMigrations) await migration.up(database.client)
+    },
     new MariaDbModuleRuntimeLock(database.client),
   )
 }
@@ -274,17 +342,18 @@ function createModuleRuntime(
 async function startModuleRuntime(
   moduleRuntime: ModuleRuntimeCoordinator<Database>,
   lifecycle: ModuleLifecycleExecutor,
-): Promise<void> {
+): Promise<ModulePreparationResult> {
   const preparation = await moduleRuntime.prepare()
   await lifecycle.install(preparation.newModuleIds)
   await lifecycle.upgrade(preparation.previousVersions)
   await lifecycle.activate()
   await moduleRuntime.markActive()
+  return preparation
 }
 
 function registerHealthRoutes(
   server: FastifyInstance,
-  probes: readonly ReadinessProbe[],
+  readiness: PlatformReadinessRegistry,
   diagnostics: PlatformDiagnosticRegistry,
   clock: () => Date,
 ): void {
@@ -312,7 +381,7 @@ function registerHealthRoutes(
     '/health/ready',
     { schema: { response: { 200: readinessResponse, 503: readinessFailure } } },
     async (request, reply) => {
-      const components = await runReadinessProbes(probes)
+      const components = await readiness.checkAll()
       const ready = components.every(({ status }) => status === 'ready')
       const data = { components, status: ready ? ('ready' as const) : ('not-ready' as const) }
 
@@ -343,6 +412,7 @@ async function closeResources(
   runtimeStartup: Promise<void> | undefined,
   shutdown: PlatformShutdownRegistry,
   database: PlatformDatabase,
+  observability: PlatformApiObservability,
 ): Promise<void> {
   lifecycleAbort.abort('platform shutdown')
   const failures: unknown[] = []
@@ -352,6 +422,7 @@ async function closeResources(
     () => moduleRuntime?.markDisabled(),
     () => shutdown.closeAll(),
     () => database.close(),
+    () => observability.shutdown(),
   ]) {
     try {
       await close()

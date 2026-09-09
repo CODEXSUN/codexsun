@@ -26,7 +26,7 @@ The Runtime Holder owns complete-profile startup and shared log capture. Observe
 | Orship API         | Orship web | Service overview                    | `GET /api/orship/v1/services`                     |
 | Orship API         | Orship web | Service log tail                    | `GET /api/orship/v1/services/:serviceId/logs`     |
 | Orship API         | Orship web | Local start or stop                 | `POST /api/orship/v1/services/:serviceId/actions` |
-| Orship web         | Shared UI  | MDI shell and primitives            | `@codexsun/ui` `^0.1.0`                           |
+| Orship web         | Shared UI  | MDI shell and primitives            | `@codexsun/ui` workspace `0.1.1`                  |
 
 ## Parallel work
 
@@ -48,6 +48,7 @@ The repository contains active Platform, Docs, DevKit, Zetro, and shared UI work
 - Passed Orship service tests and Runtime Holder tests.
 - Passed deployment catalog validation with five applications and ten components.
 - Proved an owned Docs API stop and restart through the Orship action endpoint. The replacement process received a new process ID and exposed its central log tail.
+- Proved the root Orship stack handles Ctrl+C, forwards IPC shutdown, releases ports `6090` and `6091`, and removes its process markers.
 - Verified that Orship components are protected and legacy listeners without a root marker remain read-only.
 - Browser QA confirmed the live operations workspace loads without console warnings or errors.
 - Not run: Docker engine, remote deployment, authenticated production controls, and historical metric persistence.

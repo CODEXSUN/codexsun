@@ -1,29 +1,28 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { config as loadDotenv } from 'dotenv'
-import { createWriteStream } from 'node:fs'
-import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { hiddenWindowsProcessOptions } from './service-lifecycle.mjs'
 
 export async function startLocalDeployment(plan, projectRoot) {
   loadDotenv({ path: join(projectRoot, '.env'), quiet: true })
   const children = new Map()
-  const logRoot = join(projectRoot, 'storage/app/private/runtime/logs')
-  await mkdir(logRoot, { recursive: true })
   let stopping = false
 
   const shutdown = async (exitCode) => {
     if (stopping) return
     stopping = true
     process.stdout.write(`[runtime] stopping profile ${plan.profile.id}.\n`)
-    await Promise.all([...children.values()].map(({ child }) => stopChild(child)))
+    await Promise.all([...children.values()].map(stopChild))
     process.exitCode = exitCode
+    if (process.connected && typeof process.disconnect === 'function') {
+      process.disconnect()
+    }
   }
 
   try {
     for (const component of plan.components) {
-      const runtime = startComponent(component, projectRoot, logRoot)
-      const { child } = runtime
-      children.set(component.id, runtime)
+      const child = startComponent(component, projectRoot)
+      children.set(component.id, child)
       await waitForStart(component, child)
       await waitForHealth(component, child)
     }
@@ -37,25 +36,26 @@ export async function startLocalDeployment(plan, projectRoot) {
   for (const signal of ['SIGINT', 'SIGTERM']) {
     process.once(signal, () => void shutdown(0))
   }
+  process.on('message', (message) => {
+    if (message?.type === 'codexsun:shutdown') void shutdown(0)
+  })
 }
 
-function startComponent(component, projectRoot, logRoot) {
+function startComponent(component, projectRoot) {
   const environment = {
     ...process.env,
     [component.portEnvironmentKey]: String(component.port),
   }
   const child = spawn(process.execPath, ['tools/preflight.mjs', component.id], {
     cwd: projectRoot,
+    detached: process.platform === 'win32',
     env: environment,
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    windowsHide: true,
   })
-  const log = createWriteStream(join(logRoot, `${component.id}.log`), { flags: 'a' })
   child.stdout.pipe(process.stdout)
   child.stderr.pipe(process.stderr)
-  child.stdout.pipe(log, { end: false })
-  child.stderr.pipe(log, { end: false })
-  child.once('close', () => log.end())
-  return { child, log }
+  return child
 }
 
 function waitForStart(component, child) {
@@ -98,7 +98,11 @@ async function stopChild(child) {
   if (await exited) return
 
   if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+    spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
+      ...hiddenWindowsProcessOptions,
+      stdio: 'ignore',
+    })
+    if (child.exitCode === null) await waitForExit(child, 5_000)
   } else {
     child.kill('SIGKILL')
   }

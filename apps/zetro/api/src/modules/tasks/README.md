@@ -14,6 +14,10 @@ require the project ID. The list route accepts the `archived` query filter.
 
 The `zetro.project-tasks.web` module consumes this contract inside `/zetro`.
 
+## Dependency bindings
+
+- `zetro.projects.api`: `^0.4.0`
+
 ## Persistence
 
 Tasks are stored in `storage/app/private/zetro/tasks.json`. Writes replace the

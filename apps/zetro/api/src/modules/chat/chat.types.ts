@@ -1,4 +1,5 @@
 import type { CodexDeliveryRun, CodexWorkflow } from '../codex-connection/index.js'
+import type { ChatWorkspaceScope } from './chat.conversation.types.js'
 
 export type ChatRole = 'assistant' | 'user'
 
@@ -21,6 +22,7 @@ export interface ChatTurnRequest {
   previousDelivery?: CodexDeliveryRun
   projectId: string
   projectRoot: string
+  scope: ChatWorkspaceScope
   workflow: CodexWorkflow
 }
 
@@ -49,4 +51,5 @@ export interface ChatTurnExecution {
 
 export interface ChatProvider {
   respond(request: ChatTurnRequest): Promise<ChatTurnResponse>
+  stop(conversationId: string): Promise<boolean>
 }

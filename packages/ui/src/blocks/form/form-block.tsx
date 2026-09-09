@@ -43,57 +43,70 @@ export function FormBlock({
   const firstTab = defaultTab ?? tabs[0]?.id
 
   return (
-    <section className="grid w-full gap-5">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="grid min-w-0 gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-        <Button className={actionMotion} onClick={onBack} variant="outline">
-          <ArrowLeft /> Back
-        </Button>
-      </header>
-
+    <section className="w-full">
       <form
-        className="overflow-hidden rounded-md border bg-card shadow-sm"
+        className="grid gap-3"
         onSubmit={(event) => {
           event.preventDefault()
           onSubmit()
         }}
       >
-        <Tabs className="gap-0" defaultValue={firstTab}>
-          <TabsList
-            className="h-auto w-full justify-start overflow-x-auto rounded-none border-b bg-transparent px-6 pt-4"
-            variant="line"
-          >
+        <header className="flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-md border bg-card px-4 py-2 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button
+              className={actionMotion}
+              onClick={onBack}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <ArrowLeft /> Back
+            </Button>
+            <h1 className="truncate text-sm font-semibold">{title}</h1>
+            <p className="sr-only">{description}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              className={actionMotion}
+              onClick={onCancel}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <X /> Cancel
+            </Button>
+            <Button className={actionMotion} size="sm" type="submit">
+              <Save /> {submitLabel}
+            </Button>
+          </div>
+        </header>
+
+        <div className="overflow-hidden rounded-md border bg-card shadow-sm">
+          <Tabs className="gap-0" defaultValue={firstTab}>
+            <TabsList
+              className="h-auto w-full justify-start overflow-x-auto rounded-none border-b bg-transparent px-4 pt-2"
+              variant="line"
+            >
+              {tabs.map((tab) => (
+                <TabsTrigger className="min-h-10 flex-none px-3" key={tab.id} value={tab.id}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
             {tabs.map((tab) => (
-              <TabsTrigger className="min-h-10 flex-none px-3" key={tab.id} value={tab.id}>
-                {tab.label}
-              </TabsTrigger>
+              <TabsContent className="p-4" key={tab.id} value={tab.id}>
+                {tab.content}
+              </TabsContent>
             ))}
-          </TabsList>
-          {tabs.map((tab) => (
-            <TabsContent className="p-6" key={tab.id} value={tab.id}>
-              {tab.content}
-            </TabsContent>
-          ))}
-        </Tabs>
+          </Tabs>
 
-        <div className="px-6 pb-6">
-          <label className="flex min-h-12 items-center justify-between gap-4 rounded-md border border-success/35 bg-success/10 px-4 py-2.5 transition-colors hover:bg-success/15">
-            <span className="font-medium">{activeLabel}</span>
-            <Switch aria-label={activeLabel} checked={active} onCheckedChange={onActiveChange} />
-          </label>
+          <div className="px-4 pb-4">
+            <label className="flex min-h-12 items-center justify-between gap-4 rounded-md border border-success/35 bg-success/10 px-4 py-2.5 transition-colors hover:bg-success/15">
+              <span className="font-medium">{activeLabel}</span>
+              <Switch aria-label={activeLabel} checked={active} onCheckedChange={onActiveChange} />
+            </label>
+          </div>
         </div>
-
-        <footer className="flex flex-wrap gap-3 border-t px-6 py-4">
-          <Button className={actionMotion} type="submit">
-            <Save /> {submitLabel}
-          </Button>
-          <Button className={actionMotion} onClick={onCancel} type="button" variant="outline">
-            <X /> Cancel
-          </Button>
-        </footer>
       </form>
     </section>
   )

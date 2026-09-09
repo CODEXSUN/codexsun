@@ -36,12 +36,20 @@ interface TurnCollector {
   workflow: CodexTurnInput['workflow']
 }
 
+interface ActiveTurn {
+  threadId: string
+  turnId: string
+}
+
 export class CodexAppServerClient {
   private nextRequestId = 1
   private process: ChildProcessWithoutNullStreams | null = null
   private startPromise: Promise<void> | null = null
   private readonly pendingRequests = new Map<number, PendingRequest>()
   private readonly turns = new Map<string, TurnCollector>()
+  private readonly activeTurns = new Map<string, ActiveTurn>()
+  private readonly pendingInterruptions = new Set<string>()
+  private readonly runningTurns = new Set<string>()
   private readonly loginResults = new Map<string, { error?: string; success: boolean }>()
   private readonly deviceCodes = new Map<string, string>()
 
@@ -131,7 +139,15 @@ export class CodexAppServerClient {
     return { mode: 'none', state: 'pending' }
   }
 
-  public async runTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
+  public runTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
+    this.runningTurns.add(input.conversationId)
+    return this.executeTurn(input).finally(() => {
+      this.runningTurns.delete(input.conversationId)
+      this.pendingInterruptions.delete(input.conversationId)
+    })
+  }
+
+  private async executeTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
     const worktree = await this.worktrees.ensure(
       input.conversationId,
       input.projectRoot,
@@ -142,11 +158,19 @@ export class CodexAppServerClient {
       input.files,
       input.projectId,
     )
+    const workingDirectory = await this.worktrees.resolveWorkingDirectory(
+      worktree.path,
+      input.scope.folderPath,
+    )
     const threadResult = asRecord(
       await this.request('thread/start', {
         approvalPolicy: 'never',
-        cwd: worktree.path,
-        developerInstructions: createDeveloperInstructions(worktree.path, input.workflow),
+        cwd: workingDirectory,
+        developerInstructions: createDeveloperInstructions(
+          worktree.path,
+          input.workflow,
+          input.scope,
+        ),
         ephemeral: true,
         model: this.model,
         sandbox: 'workspace-write',
@@ -158,20 +182,44 @@ export class CodexAppServerClient {
     const threadId = readString(thread, 'id')
     const completion = this.collectTurn(threadId, worktree.path, input.workflow)
 
+    let activeTurn: ActiveTurn | undefined
     try {
-      await this.request('turn/start', {
-        input: [
-          { text: addFilePaths(input.text, filePaths), type: 'text' },
-          ...input.images.map((url) => ({ type: 'image', url })),
-        ],
-        outputSchema: input.workflow === 'deliver' ? deliveryOutputJsonSchema : undefined,
-        threadId,
-      })
+      const turnResult = asRecord(
+        await this.request('turn/start', {
+          input: [
+            { text: addFilePaths(input.text, filePaths), type: 'text' },
+            ...input.images.map((url) => ({ type: 'image', url })),
+          ],
+          outputSchema: input.workflow === 'deliver' ? deliveryOutputJsonSchema : undefined,
+          threadId,
+        }),
+      )
+      const turn = asRecord(turnResult.turn)
+      activeTurn = { threadId, turnId: readString(turn, 'id') }
+      this.activeTurns.set(input.conversationId, activeTurn)
+      if (this.pendingInterruptions.delete(input.conversationId)) {
+        await this.interruptActiveTurn(activeTurn)
+      }
       return await completion
     } catch (error) {
       this.rejectTurn(threadId, toError(error))
       throw error
+    } finally {
+      if (this.activeTurns.get(input.conversationId) === activeTurn) {
+        this.activeTurns.delete(input.conversationId)
+      }
     }
+  }
+
+  public async interruptTurn(conversationId: string): Promise<boolean> {
+    const activeTurn = this.activeTurns.get(conversationId)
+    if (!activeTurn) {
+      if (!this.runningTurns.has(conversationId)) return false
+      this.pendingInterruptions.add(conversationId)
+      return true
+    }
+    await this.interruptActiveTurn(activeTurn)
+    return true
   }
 
   public async close(): Promise<void> {
@@ -378,6 +426,11 @@ export class CodexAppServerClient {
     collector.reject(error)
   }
 
+  private async interruptActiveTurn(activeTurn: ActiveTurn): Promise<void> {
+    await this.request('turn/interrupt', activeTurn)
+    this.rejectTurn(activeTurn.threadId, new Error('Codex turn stopped.'))
+  }
+
   private handleProcessFailure(child: ChildProcessWithoutNullStreams, error: Error): void {
     if (this.process !== child) return
     for (const pending of this.pendingRequests.values()) {
@@ -385,6 +438,9 @@ export class CodexAppServerClient {
       pending.reject(error)
     }
     for (const threadId of this.turns.keys()) this.rejectTurn(threadId, error)
+    this.activeTurns.clear()
+    this.pendingInterruptions.clear()
+    this.runningTurns.clear()
     this.pendingRequests.clear()
     this.process = null
   }

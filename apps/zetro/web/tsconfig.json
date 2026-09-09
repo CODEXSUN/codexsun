@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "incremental": true,
     "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/zetro-web.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,

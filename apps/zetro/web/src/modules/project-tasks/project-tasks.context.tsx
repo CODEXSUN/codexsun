@@ -49,7 +49,7 @@ export function ProjectTasksProvider({ children }: { children: ReactNode }) {
   )
 
   async function addTask(input: { description: string; priority: TaskPriority; title: string }) {
-    if (!activeProject) return
+    if (!activeProject) throw new Error('Select a project before creating a task.')
     const projectId = activeProject.id
     try {
       const task = await createTask({ ...input, projectId })
@@ -57,8 +57,10 @@ export function ProjectTasksProvider({ children }: { children: ReactNode }) {
         setTasks((current) => [task, ...current])
         setSelectedTaskId(task.id)
         setIsCreating(false)
+        setView('tasks')
       }
       setError(null)
+      return task
     } catch (reason) {
       setError(toMessage(reason))
       throw reason

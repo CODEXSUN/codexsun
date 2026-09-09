@@ -20,11 +20,11 @@ export function createDatabase(environment: DocsEnvironment): Kysely<DocsDatabas
   return new Kysely<DocsDatabase>({
     dialect: new MysqlDialect({
       pool: createPool({
-        database: environment.DATABASE_NAME,
-        host: environment.DATABASE_HOST,
-        password: environment.DATABASE_PASSWORD,
-        port: environment.DATABASE_PORT,
-        user: environment.DATABASE_USER,
+        database: environment.DB_MASTER_NAME,
+        host: environment.DB_HOST,
+        password: environment.DB_PASSWORD,
+        port: environment.DB_PORT,
+        user: environment.DB_USER,
       }),
     }),
   })

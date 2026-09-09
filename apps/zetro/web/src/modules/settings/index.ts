@@ -1,3 +1,6 @@
 export { settingsModuleManifest } from './settings.module'
 export { SettingsWorkspace } from './settings.workspace'
 export { useCodexConnection } from './settings.hooks'
+export { ZetroSettingsProvider } from './settings.preferences-provider'
+export { useZetroPreferences } from './settings.preferences'
+export type { ZetroDefaultWorkflow, ZetroPreferences } from './settings.preferences'

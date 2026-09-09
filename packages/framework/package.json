@@ -1,12 +1,13 @@
 {
   "name": "@codexsun/framework",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "main": "../../../dist/packages/framework/index.js",
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../node_modules/.cache/eslint/framework.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {

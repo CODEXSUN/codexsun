@@ -1,45 +1,47 @@
-# Assist Documentation
+# Assist
 
-This folder is the repository-owned context for people and coding agents. It records what the project is, how its parts are owned, and the local skills that must guide implementation.
+`assist` is the repository guide for people and coding agents. It points to
+the authoritative rule, owner, application, module, skill, and development
+record for a change. It does not duplicate source-owned documentation.
 
-## Read in this order
+## Start in this order
 
-1. [../AGENTS.md](../AGENTS.md)
-2. [../README.md](../README.md)
-3. [architecture.md](architecture.md)
-4. [governance/golden-rules.md](governance/golden-rules.md)
-5. [architecture/module-standard.md](architecture/module-standard.md)
-6. [architecture/application-standard.md](architecture/application-standard.md) for application or runtime work
-7. [architecture/deployment-assembly-standard.md](architecture/deployment-assembly-standard.md) for deployable application, add-on, profile, or container work
-8. The relevant guide in [skills](skills)
+1. Read [AGENTS.md](../AGENTS.md) and [README.md](../README.md).
+2. Read [architecture.md](architecture.md) and [governance/golden-rules.md](governance/golden-rules.md).
+3. Use the [skill router](skills/README.md) to select every required skill.
+4. Read the target application README, module README, catalog, and latest development record.
+5. Inspect the affected source and run `git status --short` before editing.
 
-## Documents
+## Find the right guidance
 
-- [architecture.md](architecture.md) — current system boundary and planned clients.
-- [governance/golden-rules.md](governance/golden-rules.md) — mandatory modular-monolith, DDD, documentation, and file-size rules.
-- [governance/development-records.md](governance/development-records.md) — required notes, references, bindings, and parallel-work records.
-- [architecture/module-standard.md](architecture/module-standard.md) — module folders, ownership, lifecycle, and versioning structure.
-- [architecture/application-standard.md](architecture/application-standard.md) — required application ownership, runtime, documentation, and verification baseline.
-- [architecture/runtime-foundation.md](architecture/runtime-foundation.md) — server ports, logging, health, preflight, and shutdown contracts.
-- [architecture/framework-capability-roadmap.md](architecture/framework-capability-roadmap.md) — framework feature ownership, preferred classes, reference patterns, and staged growth plan.
-- [architecture/extension-standard.md](architecture/extension-standard.md) — application, module, add-on, adapter, extension-point, and compatibility rules.
-- [architecture/deployment-assembly-standard.md](architecture/deployment-assembly-standard.md) — shared runtime holder, catalog, customer-profile, artifact, and container rules.
-- [templates/application-readme.md](templates/application-readme.md) — required README structure for every application.
-- [templates/development-record.md](templates/development-record.md) — required structure for module and feature work notes.
-- [templates/addon-readme.md](templates/addon-readme.md) — required documentation structure for reusable add-ons.
-- [records/README.md](records/README.md) — index of completed development records.
-- [modules/README.md](modules/README.md) — external app and module catalog.
-- [modules/zetro.md](modules/zetro.md) — Zetro chat and task module composition.
-- [modules/devkit.md](modules/devkit.md) — DevKit project planning module composition.
-- [modules/orship.md](modules/orship.md) — Orship live service and process-control composition.
-- [skills/web-ui.md](skills/web-ui.md) — rules for React web work.
-- [skills/ui-template-pages.md](skills/ui-template-pages.md) — standard component and block documentation page composition.
-- [skills/api.md](skills/api.md) — rules for Fastify API work.
-- [skills/modular-monolith.md](skills/modular-monolith.md) — module audit and composition rules.
-- [skills/framework-development.md](skills/framework-development.md) — framework and Platform Core ownership, class design, and verification rules.
-- [skills/deployment-assembly.md](skills/deployment-assembly.md) — catalog, profile, selected-build, and Docker assembly workflow.
-- [skills/server-runtime.md](skills/server-runtime.md) — verified local server startup, shutdown, and restart rules.
-- [../deployments/README.md](../deployments/README.md) — runnable deployment profile and container commands.
-- [operations/versioning.md](operations/versioning.md) — version, changelog, and interactive GitHub release workflow.
+| Change                                            | Read first                                                                   | Then read                                                                                               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Any module                                        | [module standard](architecture/module-standard.md)                           | [modular monolith skill](skills/modular-monolith.md), app catalog, module README                        |
+| API, route, contract, or database                 | [application standard](architecture/application-standard.md)                 | [API skill](skills/api.md), [server runtime skill](skills/server-runtime.md)                            |
+| React screen, navigation, shared UI, or Docs      | [web UI skill](skills/web-ui.md)                                             | [UI template skill](skills/ui-template-pages.md) for a shared UI page                                   |
+| Framework or Platform Core                        | [framework roadmap](architecture/framework-capability-roadmap.md)            | [framework development skill](skills/framework-development.md)                                          |
+| Add-on or extension point                         | [extension standard](architecture/extension-standard.md)                     | [deployment assembly skill](skills/deployment-assembly.md) when it ships                                |
+| Profile, container, runtime holder, or deployment | [deployment assembly standard](architecture/deployment-assembly-standard.md) | [deployment assembly skill](skills/deployment-assembly.md), [.container guide](../.container/README.md) |
+| Local server, health, shutdown, logs, or MariaDB  | [runtime foundation](architecture/runtime-foundation.md)                     | [server runtime skill](skills/server-runtime.md), [MariaDB guide](operations/mariadb-local.md)          |
+| Version, changelog, commit, or GitHub push        | [versioning workflow](operations/versioning.md)                              | the current [changelog](documentation/CHANGELOG.md)                                                     |
 
-Keep this index current when adding a new application, package, system integration, or local skill.
+## Repository map
+
+| Area                     | Owner                               | Reference                                                           |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------------- |
+| Application runtimes     | `apps/<app>`                        | [application standard](architecture/application-standard.md)        |
+| Module lifecycle         | `packages/framework`                | [framework roadmap](architecture/framework-capability-roadmap.md)   |
+| Shared runtime contracts | `packages/platform-core`            | [runtime foundation](architecture/runtime-foundation.md)            |
+| Shared web UI            | `packages/ui`                       | [web UI skill](skills/web-ui.md)                                    |
+| Deployment assembly      | `packages/runtime` and `.container` | [deployment standard](architecture/deployment-assembly-standard.md) |
+| Repository documents     | `assist` and source-owned READMEs   | [Docs application](../apps/docs/README.md)                          |
+
+## Catalogs and records
+
+- [Application and module catalogs](modules/README.md) identify the source owner.
+- [Development records](records/README.md) record completed decisions and verification.
+- [Templates](templates) define new application, module, add-on, and record documents.
+- [Changelog](documentation/CHANGELOG.md) records versioned release notes.
+
+Update this index and the skill router when a new application, package, integration,
+or repeatable workflow is added.

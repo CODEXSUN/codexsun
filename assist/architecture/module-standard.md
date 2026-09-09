@@ -14,6 +14,7 @@ Each module exposes a module manifest from `{module}.module.ts`. The manifest de
 - A clear owner and short description.
 - Install, activate, upgrade, deactivate, and uninstall behavior.
 - Owned extension points and supplied extension contributions.
+- The owned data schema version and structural checksum when the module owns tables.
 
 The manifest is the plug-and-play contract. It must not hide dependencies through imports of application singletons.
 
@@ -57,7 +58,9 @@ Use the role files only when they contain real executable behavior. Record an in
 
 Presentation may depend on application. Application may depend on domain. Infrastructure implements ports defined by domain or application. Domain imports none of the outer layers. The composition root constructs adapters and registers only the module public entry point.
 
-Migrations and seeds are versioned module declarations. They stay below the owning module folder, run in stable order, execute through an application-supplied transaction, and record immutable checksums. A central business migration or seed directory is forbidden.
+Migrations, seeds, and schema guards are versioned module declarations. They stay below the owning module folder. Migrations run in stable order through an application transaction and record immutable checksums. Startup compares the live schema fingerprint after migrations run. A central business migration or seed directory is forbidden.
+
+Add a forward migration when the expected schema changes. Never change an applied migration checksum to accept manual schema drift. Schema fingerprints cover structure, not mutable business rows.
 
 Use events for cross-module facts. Keep the event schema and publisher with the source module, and keep each handler with the consuming module. Both sides declare compatible event versions in their manifests. Synchronous behavior within one module does not need an event.
 

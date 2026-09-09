@@ -1,8 +1,17 @@
 import {
+  cloudTargetSchema,
+  cloudTargetUpdateSchema,
+  deploymentEvidenceSchema,
+  deploymentRecordSchema,
+  deploymentRecordCreateSchema,
+  deploymentRecordListSchema,
   orchestrationOverviewSchema,
+  runtimeFailureOverviewSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
   type ServiceAction,
+  type CloudTargetUpdate,
+  type DeploymentRecordCreate,
 } from '@codexsun/orship-contracts'
 
 const baseUrl = (import.meta.env.VITE_ORSHIP_API_URL ?? 'http://127.0.0.1:6090').replace(/\/$/u, '')
@@ -26,6 +35,52 @@ export async function runServiceAction(serviceId: string, action: ServiceAction)
 export async function fetchServiceLogs(serviceId: string) {
   const response = await fetch(`${baseUrl}/api/orship/v1/services/${serviceId}/logs?limit=180`)
   return serviceLogsResponseSchema.parse(await readResponse(response, 'Could not load logs'))
+}
+
+export async function fetchRuntimeFailures() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/failures?limit=500`)
+  return runtimeFailureOverviewSchema.parse(
+    await readResponse(response, 'Could not load runtime failures'),
+  )
+}
+
+export async function fetchCloudTarget() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/cloud-target`)
+  return cloudTargetSchema.parse(await readResponse(response, 'Could not load cloud settings'))
+}
+
+export async function saveCloudTarget(target: CloudTargetUpdate) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/cloud-target`, {
+    body: JSON.stringify(cloudTargetUpdateSchema.parse(target)),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PUT',
+  })
+  return cloudTargetSchema.parse(await readResponse(response, 'Could not save cloud settings'))
+}
+
+export async function fetchDeploymentEvidence() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/deployments/platform/evidence`)
+  return deploymentEvidenceSchema.parse(
+    await readResponse(response, 'Could not inspect deployment'),
+  )
+}
+
+export async function fetchDeploymentRecords() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/deployments/platform/records`)
+  return deploymentRecordListSchema.parse(
+    await readResponse(response, 'Could not load deployment history'),
+  )
+}
+
+export async function createDeploymentRecord(record: DeploymentRecordCreate) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/deployments/platform/records`, {
+    body: JSON.stringify(deploymentRecordCreateSchema.parse(record)),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+  return deploymentRecordSchema.parse(
+    await readResponse(response, 'Could not save deployment evidence'),
+  )
 }
 
 async function readResponse(response: Response, action: string): Promise<unknown> {

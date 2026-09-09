@@ -24,10 +24,13 @@ Use Tailwind utilities for layout, spacing, color, type, state, and responsive b
 Do not add component stylesheets when Tailwind provides the required utility.
 Use custom values only for runtime data or behavior that Tailwind cannot express.
 
-The standard shared Button is 40px high. Compact named sizes remain available for
-dense toolbars and icon controls. Every enabled native button, pagination action,
-select control, and dropdown action uses a pointer cursor through shared primitives
-and the base theme.
+The standard shared Button is 40px high and uses content width with `px-5` text padding.
+The standard icon button is 40px square. Primary, neutral, secondary, success, warning,
+info, destructive, outline, ghost, and link variants use shared semantic tokens.
+Icon, icon-and-text, loading, and split compositions use the same height contract.
+Compact named sizes remain available for dense toolbars and icon controls. Every enabled
+native button, pagination action, select control, and dropdown action uses a pointer cursor
+through shared primitives and the base theme.
 
 ## Included templates
 
@@ -40,14 +43,22 @@ and the base theme.
   and block documentation composition.
 - `UiTemplatePage` owns the kind and title header, copyable import path, 90-percent
   live preview lane, code space, and named documentation navigation.
-- The MDI documentation preview is a live section browser. It separates the
-  command bar, navigation, workspace canvas, and status bar into interactive views.
+- UI template pages keep 48px between the tool strip and live preview.
+- The MDI documentation preview embeds the package-owned `MdiMain` shell. It renders
+  the real top menu, navigation sidebar, plain workspace canvas, and status bar together.
+- The MDI Main code section uses a numbered structure list for each shared shell region.
+- Each MDI structure row opens the existing ITO inspector. Region rows select their
+  matching topology section and expose its numbered child items.
+- The UI gallery lists MDI Main as its only Layout page. The page uses the same
+  shared documentation structure as the Table and Form block pages.
 
 ## Included blocks
 
 - `@codexsun/ui/blocks/form` provides the reusable form frame, animated shared tabs,
   active-state strip, icon actions, and searchable lookup field. Applications supply
   fields, validation, lookup options, values, and persistence callbacks.
+- The Form frame keeps Back, title, Cancel, and Save in one compact toolbar. Tabs start
+  in a separate body surface below it. A small gap separates both surfaces.
 - `@codexsun/ui/blocks/table` provides the reusable TanStack Table surface: page header,
   search and column controls, shadcn table rendering, status badges, three-dot row actions,
   horizontal totals, and compact numbered pagination. Applications supply their data,
@@ -69,6 +80,21 @@ and the base theme.
 The UI workspace lists Form and Table under Blocks. It derives the Components
 documentation list from the complete package catalog and renders each entry through
 the standard live template page rather than a screenshot.
+
+Each component route resolves a dedicated live specimen instead of rendering a
+category-wide gallery. `UiComponentDisplayPage` is the central component-documentation
+composition. A route passes only its `UiComponentDoc` catalog record. The display page owns
+the shared header, numbered cards, default state, code dialogs, usage, and navigation.
+Component pages expose only variants owned by that component. Every variant, including a
+single Default variant, uses the same numbered card. `resolveUiComponentVariant` is the
+shared default-resolution contract. Block pages do not expose component variant galleries
+and continue to compose the selected defaults.
+The Accordion page provides Borderless and Boxed FAQ variants at a stable `max-w-lg`
+width. It shows both variants as numbered cards in one vertical gallery. Each card can
+copy its code or open that code in a dialog. The selected default persists locally.
+Both variants use the shared content-height, opacity, and chevron motion contract.
+The Alert page uses one default callout stack for success, information, warning, and
+error messages. Each callout combines a semantic tone, icon, and short title.
 
 ## Theme system
 
@@ -116,6 +142,15 @@ the standard live template page rather than a screenshot.
 - The appearance panel contains the shared mode and color selector.
 - The MDI sidebar starts with application navigation. It does not repeat the
   application identity from the command bar.
+- The MDI sidebar uses the primary action group inset directly below the command bar.
+  It does not add a separate empty band above the primary action.
+- The shared Overview action uses a neutral gray secondary surface and foreground text.
+- Labeled navigation sections use compact headers. Their child links sit on an
+  indented vertical rail.
+- Navigation sections accept a related header icon. Their rail uses a smooth 300ms
+  open and close transition with reduced-motion support.
+- `sidebarStateKey` lets an application preserve expanded navigation groups and the
+  sidebar scroll position for the current browser tab.
 - Applications can supply any React content through `sidebarContent`. An
   omitted `sidebarFooter` keeps Feature settings, `null` removes the footer,
   and a React node supplies an application-owned footer.

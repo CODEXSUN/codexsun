@@ -1,15 +1,27 @@
 export const settingsModuleManifest = {
-  capabilities: ['codex-account-status', 'codex-device-activation', 'codex-disconnect'],
-  dependencies: { 'zetro.codex-connection.api': '^0.1.0' },
+  capabilities: [
+    'centralized-application-preferences',
+    'codex-account-status',
+    'codex-device-activation',
+    'codex-disconnect',
+    'default-chat-workflow',
+    'interface-topology-visibility',
+    'workspace-appearance',
+  ],
+  dependencies: {
+    'zetro.codex-connection.api': '^0.5.0',
+    'zetro.developer-tools.web': '^0.2.0',
+    'zetro.git-delivery.web': '^0.1.0',
+  },
   id: 'zetro.settings.web',
   lifecycle: {
-    activate: 'Mount Settings and read the local Codex connection.',
+    activate: 'Mount Settings and read application preferences and the local Codex connection.',
     deactivate: 'Unmount Settings and clear the in-memory device code.',
     install: 'No browser credentials or business data are created.',
     uninstall: 'Leave Codex-managed credentials untouched.',
-    upgrade: 'No migration is required for version 0.1.0.',
+    upgrade: 'Add global Git delivery defaults to centralized Settings.',
   },
-  publicContracts: ['SettingsWorkspace'],
+  publicContracts: ['SettingsWorkspace', 'ZetroSettingsProvider', 'useZetroPreferences'],
   scope: 'zetro-web',
-  version: '0.1.0',
+  version: '0.3.0',
 } as const

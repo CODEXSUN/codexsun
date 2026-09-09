@@ -2,6 +2,14 @@
 
 ## Records
 
+- [2026-09-09 Assist discovery and skill routing](2026-09-09-assist-discovery.md)
+- [2026-09-09 MariaDB and environment foundation](2026-09-09-mariadb-environment-foundation.md)
+- [2026-09-09 Pre-Identity hardening](2026-09-09-pre-identity-hardening.md)
+- [2026-09-09 Runtime log organization](2026-09-09-runtime-log-organization.md)
+- [2026-09-09 Build and observability foundation](2026-09-09-build-observability-foundation.md)
+- [2026-09-08 Repository boundary audit](2026-09-08-repository-boundary-audit.md)
+- [2026-09-08 Application browser titles](2026-09-08-application-browser-titles.md)
+- [2026-09-08 Container source root](2026-09-08-container-source-root.md)
 - [2026-09-08 Deployment assembly runtime](2026-09-08-deployment-assembly-runtime.md)
 - [2026-09-08 UI layout documentation workspace](2026-09-08-ui-layout-documentation.md)
 - [2026-09-08 UI workspace reset](2026-09-08-ui-workspace-reset.md)

@@ -31,10 +31,16 @@ npm.cmd run runtime:plan
 npm.cmd run runtime:compose
 npm.cmd run runtime:build
 npm.cmd run dev
+npm.cmd run dev:all
 ```
 
 Pass another profile after `--`, for example `npm.cmd run runtime:plan -- platform-only`.
 
+The default `dev` command uses `main-development` and excludes Orship. Use `dev:orship` for Orship or `dev:all` for the complete profile.
+
+Root preflight is the single local log owner. It writes readable and structured component logs below `storage/app/private/runtime/logs` and failure-only JSONL below `storage/app/private/runtime/failures`. Run `npm.cmd run logs:failures` for a compact cross-application summary. `RUNTIME_LOG_MAX_BYTES` controls rotation and defaults to 5 MiB.
+
 ## Development records
 
 - [2026-09-08 Deployment assembly runtime](../../assist/records/platform/2026-09-08-deployment-assembly-runtime.md)
+- [2026-09-09 Runtime log organization](../../assist/records/platform/2026-09-09-runtime-log-organization.md)

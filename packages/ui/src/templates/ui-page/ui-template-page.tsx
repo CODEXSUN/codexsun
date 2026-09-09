@@ -7,6 +7,7 @@ import { UiTemplateNavigation, type UiTemplateNavigationItem } from './ui-templa
 
 export type UiTemplatePageProps = {
   code: string
+  codeCopyLabel?: string
   importPath: string
   kind: UiTemplateKind
   name: string
@@ -16,6 +17,7 @@ export type UiTemplatePageProps = {
   }
   preview: ReactNode
   previewClassName?: string
+  showCode?: boolean
   topology: InterfaceTopologyController
   topologyIds: {
     page: string
@@ -23,19 +25,23 @@ export type UiTemplatePageProps = {
     usage: string
   }
   usageDescription: ReactNode
+  usageTitle?: string
 }
 
 export function UiTemplatePage({
   code,
+  codeCopyLabel,
   importPath,
   kind,
   name,
   navigation,
   preview,
   previewClassName,
+  showCode = true,
   topology,
   topologyIds,
   usageDescription,
+  usageTitle,
 }: UiTemplatePageProps) {
   return (
     <TopologyRegion
@@ -50,7 +56,7 @@ export function UiTemplatePage({
         name={name}
         topologyLabelsVisible={topology.labelsVisible}
       />
-      <div className="grid min-w-0 gap-10 py-8">
+      <div className="grid min-w-0 gap-10 pt-12 pb-8">
         <TopologyRegion
           as="section"
           className={cn('mx-auto w-[90%] min-w-0', previewClassName)}
@@ -68,13 +74,13 @@ export function UiTemplatePage({
         >
           <div className="grid gap-1.5">
             <h2 className="text-xl font-semibold tracking-tight">
-              Use the shared {name} {kind.toLowerCase()}
+              {usageTitle ?? `Use the shared ${name} ${kind.toLowerCase()}`}
             </h2>
             <div className="max-w-3xl text-sm leading-6 text-muted-foreground">
               {usageDescription}
             </div>
           </div>
-          <UiTemplateCode code={code} />
+          {showCode ? <UiTemplateCode code={code} copyLabel={codeCopyLabel} /> : null}
           {navigation ? (
             <UiTemplateNavigation next={navigation.next} previous={navigation.previous} />
           ) : null}

@@ -19,7 +19,7 @@ Create these files with the application:
 
 The application README must remain accurate for commands, addresses, environment keys, health behavior, shutdown behavior, and verification. `npm.cmd run check:app-docs` enforces its required sections and links.
 
-Register each runnable API, web server, or worker as one component in `deployments/catalog.json`. Bind the application to compatible framework, Platform Core, contract, UI, and runtime-holder versions. Add it to the complete `development` profile before the application is considered available to the shared local runtime.
+Register each runnable API, web server, or worker as one component in `.container/catalog.json`. Bind the application to compatible framework, Platform Core, contract, UI, and runtime-holder versions. Add it to the complete `development` profile before the application is considered available to the shared local runtime.
 
 ## Runtime ownership
 
@@ -37,6 +37,7 @@ Read [the runtime foundation](runtime-foundation.md) before creating or changing
 - Record the allocation in root `.env.example`, the root README, and the application README.
 - Read all local settings from the root `.env`. Keep safe defaults in validated application configuration.
 - Add every local service to `tools/preflight.mjs`. Add a named stack to `tools/dev-stack.mjs` when API and web must start together.
+- Declare each service's local package build dependencies in preflight. Preflight must build them before it changes the active listener, so a failed dependency build leaves the running service untouched.
 - Give each deployable component a catalog entry with its workspace, build dependencies, root-dist output, health path, and port environment key.
 - Never stop an unrelated listener. A restart may stop only a listener verified as belonging to this workspace.
 
@@ -61,6 +62,7 @@ A new web workspace must:
 
 - Use React, TypeScript, Vite, Tailwind, and shared primitives from `packages/ui`.
 - Keep the root component as a thin composition shell.
+- Set the HTML document title to the exact application name used by the shared MDI shell.
 - Read its API origin from a documented Vite environment key.
 - Use a strict Vite port and write build output only below root `dist`.
 - Split production chunks before they exceed 400 KB.

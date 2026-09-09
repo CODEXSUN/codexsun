@@ -1,6 +1,12 @@
 # Modular Monolith Skill
 
-Use this guide when creating, changing, reviewing, or composing a module.
+## Use this when
+
+Use this guide when creating, changing, reviewing, or composing a business module.
+Match module manifests, lifecycle, events, migrations, repositories, dependencies,
+or module boundaries.
+
+Also read the API or Web UI skill for the module surface that changes.
 
 ## Before code
 
@@ -29,8 +35,9 @@ Use this guide when creating, changing, reviewing, or composing a module.
 
 ## Before completion
 
-1. Run `npm.cmd run check:module-boundaries`, then scan for wrappers, aliases, generic CRUD, and direct sibling table writes.
-2. Check the module manifest, lifecycle, dependency ranges, and version impact.
-3. Run focused tests, TypeScript, build, and relevant persistence checks.
-4. Run the module documentation gate.
-5. Report checks that did not run.
+1. Run `npm.cmd run check:module-boundaries` and `npm.cmd run check:module-dependencies`.
+2. Scan for wrappers, aliases, generic CRUD, and direct sibling table writes.
+3. Check the module manifest, lifecycle, dependency ranges, and version impact.
+4. Run focused tests, TypeScript, build, and relevant persistence checks.
+5. Run the module documentation gate.
+6. Report checks that did not run.

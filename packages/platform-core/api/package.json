@@ -1,20 +1,33 @@
 {
   "name": "@codexsun/platform-core-api",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "main": "../../../dist/packages/platform-core/api/index.js",
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/platform-core-api.eslintcache",
+    "test": "node --test --import tsx tests/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",
+    "fastify": "^5.12.3",
+    "tsx": "latest",
     "typescript": "latest"
   },
   "dependencies": {
-    "@codexsun/framework": "^0.1.1"
+    "@codexsun/framework": "^0.1.8",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.222.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "dotenv": "latest",
+    "pino": "^10.3.1",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "fastify": "^5.12.1"

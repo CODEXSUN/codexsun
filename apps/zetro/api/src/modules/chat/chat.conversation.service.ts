@@ -3,6 +3,7 @@ import type { ChatConversationRepository } from './chat.conversation.repository.
 import type {
   ChatConversation,
   ChatConversationSummary,
+  ChatWorkspaceScope,
   ConversationUpdate,
   StoredChatMessage,
 } from './chat.conversation.types.js'
@@ -27,6 +28,7 @@ export class ChatConversationService {
   public async create(
     projectId: string,
     messages: readonly StoredChatMessage[],
+    scope?: ChatWorkspaceScope,
   ): Promise<ChatConversation> {
     const timestamp = new Date().toISOString()
     const conversation: ChatConversation = {
@@ -35,6 +37,7 @@ export class ChatConversationService {
       messages,
       pinned: false,
       projectId,
+      scope,
       title: createShortTitle(messages),
       updatedAt: timestamp,
     }

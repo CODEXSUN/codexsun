@@ -1,4 +1,5 @@
 import type { PlatformModuleMigration } from '@codexsun/platform-core-api'
+import { sql } from 'kysely'
 import type { Database } from '../../database.js'
 
 export const moduleRuntimeMigrations: readonly PlatformModuleMigration<Database>[] = [
@@ -44,6 +45,17 @@ export const moduleRuntimeMigrations: readonly PlatformModuleMigration<Database>
         .addColumn('applied_at', 'datetime(3)', (column) => column.notNull())
         .addPrimaryKeyConstraint('pk_platform_module_seeds', ['module_id', 'seed_id'])
         .execute()
+    },
+  },
+  {
+    checksum: 'sha256:b4716a0a7c8618c39739369f5d37623e17d9f2f15ab7f417a570ebfc41aaeaec',
+    id: '0002-module-schema-checksum',
+    version: '1.1.0',
+    async up(database) {
+      await sql`
+        alter table platform_module_state
+        add column if not exists schema_checksum varchar(128) null after runtime_state
+      `.execute(database)
     },
   },
 ]

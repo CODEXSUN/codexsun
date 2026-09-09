@@ -1,6 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
+import type { PlatformActor } from './authorization.js'
 
 export interface PlatformRequestContext {
+  actor: PlatformActor
   correlationId: string
   locale?: string
   requestId: string

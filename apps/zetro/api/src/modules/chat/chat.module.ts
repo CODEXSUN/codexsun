@@ -16,6 +16,8 @@ export const chatModuleManifest = {
     'conversation-rename',
     'conversation-archive',
     'conversation-permanent-delete',
+    'conversation-workspace-scope',
+    'conversation-turn-stop',
     'multimodal-chat',
     'codex-app-server',
     'isolated-worktree-execution',
@@ -24,17 +26,18 @@ export const chatModuleManifest = {
     'delivery-tool-catalog',
     'delivery-record-persistence',
   ],
-  dependencies: { 'zetro.codex-connection.api': '^0.5.0', 'zetro.projects.api': '^0.1.0' },
+  dependencies: { 'zetro.codex-connection.api': '^0.5.3', 'zetro.projects.api': '^0.4.0' },
   id: 'zetro.chat.api',
   lifecycle: {
     activate: 'Register the validated HTTP route and provider adapter.',
     deactivate: 'Stop accepting new chat turns with the API runtime.',
     install: 'Create the private Zetro conversation history file on first start.',
     uninstall: 'Keep conversation history unless an explicit data removal flow runs.',
-    upgrade: 'Version 0.7.0 assigns existing records to the default project.',
+    upgrade: 'Version 0.10.0 adds an active provider turn stop route.',
   },
   publicContracts: [
     'POST /api/v1/chat/responses',
+    'POST /api/v1/chat/responses/:conversationId/stop',
     'GET /api/v1/chat/conversations',
     'GET /api/v1/chat/conversations/:conversationId',
     'POST /api/v1/chat/conversations',
@@ -43,7 +46,7 @@ export const chatModuleManifest = {
     'DELETE /api/v1/chat/conversations/archived',
   ],
   scope: 'zetro-api',
-  version: '0.7.0',
+  version: '0.10.0',
 } as const
 
 export async function registerChatModule(

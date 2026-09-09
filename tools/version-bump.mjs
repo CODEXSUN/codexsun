@@ -18,6 +18,8 @@ export function bumpNextVersion(rootDir, title = 'version update', options = {})
     updatePackageVersion(file, currentVersion, nextVersion)
   }
 
+  updateDesktopVersions(rootDir, currentVersion, nextVersion)
+
   updatePackageLock(
     resolve(rootDir, 'package-lock.json'),
     rootDir,
@@ -25,6 +27,8 @@ export function bumpNextVersion(rootDir, title = 'version update', options = {})
     currentVersion,
     nextVersion,
   )
+  updateEnvironmentVersion(resolve(rootDir, '.env.example'), nextVersion)
+  updateEnvironmentVersion(resolve(rootDir, '.env'), nextVersion)
   updateChangelog(rootDir, nextVersion, title, databaseUpdate)
 
   return {
@@ -34,6 +38,51 @@ export function bumpNextVersion(rootDir, title = 'version update', options = {})
     reference: Number(nextVersion.split('.')[2] ?? '0'),
     title,
   }
+}
+
+function updateDesktopVersions(rootDir, currentVersion, nextVersion) {
+  const tauriConfig = resolve(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri', 'tauri.conf.json')
+  if (existsSync(tauriConfig)) {
+    const config = JSON.parse(readFileSync(tauriConfig, 'utf8'))
+    if (config.version === currentVersion) {
+      config.version = nextVersion
+      writeFileSync(tauriConfig, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+    }
+  }
+
+  updateRustPackageVersion(
+    resolve(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri', 'Cargo.toml'),
+    currentVersion,
+    nextVersion,
+  )
+  updateRustPackageVersion(
+    resolve(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri', 'Cargo.lock'),
+    currentVersion,
+    nextVersion,
+    'zetro-desktop',
+  )
+}
+
+function updateRustPackageVersion(file, currentVersion, nextVersion, packageName) {
+  if (!existsSync(file)) return
+  const content = readFileSync(file, 'utf8')
+  const packagePrefix = packageName
+    ? `(\\[\\[package\\]\\]\\r?\\nname = "${packageName}"\\r?\\nversion = )`
+    : `(\\[package\\]\\r?\\nname = "zetro-desktop"\\r?\\nversion = )`
+  const pattern = new RegExp(`${packagePrefix}"${escapePattern(currentVersion)}"`, 'u')
+  const updated = content.replace(pattern, `$1"${nextVersion}"`)
+  if (updated !== content) writeFileSync(file, updated, 'utf8')
+}
+
+function escapePattern(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
+
+function updateEnvironmentVersion(file, nextVersion) {
+  if (!existsSync(file)) return
+  const content = readFileSync(file, 'utf8')
+  const updated = content.replace(/^CODEXSUN_VERSION=.*$/mu, `CODEXSUN_VERSION=${nextVersion}`)
+  if (updated !== content) writeFileSync(file, updated, 'utf8')
 }
 
 export function findWorkspacePackageFiles(rootDir) {
@@ -179,14 +228,9 @@ function updateChangelog(rootDir, nextVersion, title, databaseUpdate) {
     '',
     `### [${label}] ${formatLocalTimestamp(new Date())} - ${title}`,
     '',
-    '#### Database Changes',
-    '',
     `- Database update: ${databaseUpdate.hasUpdate ? 'Yes' : 'No'}${
       databaseUpdate.mode === 'auto' ? ' (auto-check)' : ' (manual)'
     }.`,
-    '',
-    '#### App Codebase Changes',
-    '',
     `- Bumped workspace version to ${nextVersion}.`,
     '',
   ].join('\n')

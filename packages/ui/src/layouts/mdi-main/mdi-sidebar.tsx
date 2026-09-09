@@ -1,21 +1,13 @@
-import { ChevronRightIcon, LayoutDashboardIcon, PlusIcon, Settings2Icon } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { PlusIcon, Settings2Icon } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { Button } from '@codexsun/ui/components/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@codexsun/ui/components/collapsible'
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -23,8 +15,10 @@ import {
 import { cn } from '@codexsun/ui/lib/utils'
 import { TopologyMarker, TopologyRegion } from '../../features/interface-topology'
 
-import type { MdiNavigationItem, MdiNavigationSection, MdiPrimaryAction } from './mdi-types'
+import { NavigationSection } from './mdi-sidebar-navigation'
+import type { MdiNavigationSection, MdiPrimaryAction } from './mdi-types'
 import { useMdiTopology } from './mdi-topology'
+import { usePersistentScrollPosition } from './use-mdi-sidebar-state'
 
 type MdiSidebarProps = {
   navigation: MdiNavigationSection[]
@@ -33,6 +27,8 @@ type MdiSidebarProps = {
   sidebarContent?: ReactNode
   sidebarContentClassName?: string
   sidebarFooter?: ReactNode | null
+  sidebarFooterClassName?: string
+  stateKey?: string
 }
 
 export function MdiSidebar({
@@ -42,9 +38,14 @@ export function MdiSidebar({
   sidebarContent,
   sidebarContentClassName,
   sidebarFooter,
+  sidebarFooterClassName,
+  stateKey,
 }: MdiSidebarProps) {
   const topology = useMdiTopology()
   const PrimaryActionIcon = primaryAction?.icon ?? PlusIcon
+  const scrollPosition = usePersistentScrollPosition(
+    stateKey ? `${stateKey}:scroll-position` : undefined,
+  )
 
   return (
     <Sidebar
@@ -53,14 +54,21 @@ export function MdiSidebar({
       {...topology.regionProps('02')}
     >
       <TopologyMarker id="02" topology={topology} />
-      <SidebarContent className={cn('scrollbar-gutter-stable pt-8', sidebarContentClassName)}>
+      <SidebarContent
+        className={cn('scrollbar-gutter-stable pt-0', sidebarContentClassName)}
+        {...scrollPosition}
+      >
         {sidebarContent !== undefined ? (
           sidebarContent
         ) : (
           <>
             {primaryAction ? (
               <TopologyRegion as={SidebarGroup} className="px-3 pt-3" id="02.2" topology={topology}>
-                <Button className="w-full justify-start" onClick={primaryAction.onSelect}>
+                <Button
+                  className="w-full justify-start"
+                  variant="secondary"
+                  onClick={primaryAction.onSelect}
+                >
                   <PrimaryActionIcon />
                   {primaryAction.label}
                 </Button>
@@ -68,25 +76,36 @@ export function MdiSidebar({
             ) : null}
             <TopologyRegion as="div" className="min-h-0 flex-1" id="02.3" topology={topology}>
               {navigation.map((section, index) => (
-                <NavigationSection key={section.label ?? index} section={section} />
+                <NavigationSection
+                  key={section.label ?? index}
+                  section={section}
+                  stateKey={stateKey ? `${stateKey}:section:${section.label ?? index}` : undefined}
+                />
               ))}
             </TopologyRegion>
           </>
         )}
       </SidebarContent>
       {sidebarFooter === undefined ? (
-        <TopologyRegion as={SidebarFooter} className="border-t p-3" id="02.4" topology={topology}>
+        <TopologyRegion
+          as={SidebarFooter}
+          className={cn('border-t p-3', sidebarFooterClassName)}
+          id="02.4"
+          topology={topology}
+        >
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton render={<button type="button" />} onClick={onOpenFeatures}>
                 <Settings2Icon />
-                <span>Feature settings</span>
+                <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </TopologyRegion>
       ) : sidebarFooter === null ? null : (
-        <SidebarFooter className="border-t p-3">{sidebarFooter}</SidebarFooter>
+        <SidebarFooter className={cn('border-t p-3', sidebarFooterClassName)}>
+          {sidebarFooter}
+        </SidebarFooter>
       )}
       <TopologyRegion
         as="div"
@@ -97,87 +116,5 @@ export function MdiSidebar({
         <SidebarRail className="pointer-events-auto" />
       </TopologyRegion>
     </Sidebar>
-  )
-}
-
-function NavigationSection({ section }: { section: MdiNavigationSection }) {
-  const [open, setOpen] = useState(section.defaultOpen ?? section.items.some((item) => item.active))
-
-  useEffect(() => {
-    if (section.items.some((item) => item.active)) {
-      setOpen(true)
-    }
-  }, [section.items])
-
-  if (!section.label) {
-    return (
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <NavigationItems items={section.items} />
-        </SidebarGroupContent>
-      </SidebarGroup>
-    )
-  }
-
-  return (
-    <Collapsible open={open} onOpenChange={setOpen} className="group/navigation-section">
-      <SidebarGroup className="px-2 py-0.5">
-        <SidebarGroupLabel
-          render={
-            <CollapsibleTrigger className="w-full cursor-pointer gap-2 rounded-md px-2.5 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
-          }
-        >
-          <LayoutDashboardIcon className="size-4" />
-          <span>{section.label}</span>
-          <ChevronRightIcon className="ml-auto size-4 transition-transform duration-200 ease-out group-data-open/navigation-section:rotate-90" />
-        </SidebarGroupLabel>
-        <CollapsibleContent className="overflow-hidden transition-[height] duration-200 ease-out">
-          <SidebarGroupContent>
-            <NavigationItems items={section.items} />
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </SidebarGroup>
-    </Collapsible>
-  )
-}
-
-function NavigationItems({ items }: { items: MdiNavigationItem[] }) {
-  return (
-    <SidebarMenu>
-      {items.map((item) => (
-        <SidebarMenuItem key={`${item.label}-${item.href ?? 'action'}`}>
-          <NavigationButton item={item} />
-          {item.badge !== undefined ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  )
-}
-
-function NavigationButton({ item }: { item: MdiNavigationItem }) {
-  const Icon = item.icon
-  const content = (
-    <>
-      {Icon ? <Icon /> : <span className="size-4 shrink-0" />}
-      <span>{item.label}</span>
-    </>
-  )
-
-  return item.href ? (
-    <SidebarMenuButton
-      isActive={item.active}
-      render={<a href={item.href} />}
-      onClick={item.onSelect}
-    >
-      {content}
-    </SidebarMenuButton>
-  ) : (
-    <SidebarMenuButton
-      isActive={item.active}
-      render={<button type="button" />}
-      onClick={item.onSelect}
-    >
-      {content}
-    </SidebarMenuButton>
   )
 }

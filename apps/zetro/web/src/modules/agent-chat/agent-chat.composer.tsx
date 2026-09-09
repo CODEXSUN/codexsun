@@ -15,6 +15,7 @@ import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { useAgentChat } from './agent-chat.controller'
 import type { ChatAttachment, ChatWorkflow } from './agent-chat.types'
 import { useVoiceInput } from './agent-chat.voice'
+import { useZetroPreferences } from '../settings'
 
 const workflows: Array<{ label: string; value: ChatWorkflow }> = [
   { label: 'Develop', value: 'develop' },
@@ -33,10 +34,12 @@ export function AgentChatComposer({
 }) {
   const chat = useAgentChat()
   const topology = useMdiTopology()
+  const { preferences, setPreference } = useZetroPreferences()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const [localError, setLocalError] = useState<string | null>(null)
-  const [workflow, setWorkflow] = useState<ChatWorkflow>(readWorkflow)
+  const workflow = preferences.defaultWorkflow as ChatWorkflow
+  const isWorking = chat.workingSince !== null
   const addTranscript = useCallback(
     (value: string) => onDraftChange([draft, value].filter(Boolean).join(' ')),
     [draft, onDraftChange],
@@ -138,7 +141,9 @@ export function AgentChatComposer({
           </Button>
           <Select
             items={workflows}
-            onValueChange={(value) => value && changeWorkflow(value as ChatWorkflow, setWorkflow)}
+            onValueChange={(value) =>
+              value && setPreference('defaultWorkflow', value as ChatWorkflow)
+            }
             value={workflow}
           >
             <SelectTrigger aria-label="Select workflow" className="border-0" size="sm">
@@ -165,29 +170,33 @@ export function AgentChatComposer({
             {voice.isListening ? <Square /> : <Mic />}
           </Button>
           <Button
-            aria-label="Send message"
-            disabled={chat.isBusy || (!draft.trim() && attachments.length === 0)}
-            onClick={() => void send()}
+            aria-label={isWorking ? 'Stop response' : 'Send message'}
+            aria-live={isWorking ? 'off' : undefined}
+            className={
+              isWorking
+                ? 'group/stop cursor-pointer hover:bg-orange-50 focus-visible:ring-orange-500/50 dark:hover:bg-orange-950/30'
+                : undefined
+            }
+            disabled={!isWorking && (chat.isBusy || (!draft.trim() && attachments.length === 0))}
+            onClick={isWorking ? () => void chat.stopWorking() : () => void send()}
             size="icon"
+            title={isWorking ? 'Stop response' : undefined}
           >
-            {chat.isBusy ? <LoaderCircle className="animate-spin" /> : <ArrowUp />}
+            {isWorking ? (
+              <>
+                <LoaderCircle className="animate-spin group-hover/stop:hidden group-focus-visible/stop:hidden" />
+                <Square className="hidden fill-orange-500 text-orange-500 group-hover/stop:block group-focus-visible/stop:block" />
+              </>
+            ) : chat.isBusy ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              <ArrowUp />
+            )}
           </Button>
         </div>
       </div>
     </TopologyRegion>
   )
-}
-
-function changeWorkflow(value: ChatWorkflow, setWorkflow: (value: ChatWorkflow) => void) {
-  setWorkflow(value)
-  window.localStorage.setItem('zetro.agent-chat.workflow', value)
-}
-
-function readWorkflow(): ChatWorkflow {
-  const value = window.localStorage.getItem('zetro.agent-chat.workflow')
-  return workflows.some((workflow) => workflow.value === value)
-    ? (value as ChatWorkflow)
-    : 'develop'
 }
 
 async function readAttachment(file: File): Promise<ChatAttachment> {

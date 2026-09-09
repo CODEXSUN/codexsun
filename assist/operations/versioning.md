@@ -18,7 +18,8 @@ npm.cmd run github:now
 
 `version:bump` increases the patch version, updates CODEXSUN workspace package
 versions and internal `@codexsun/*` dependency ranges, then records a changelog
-entry. Provide one database flag when the impact is known.
+entry. It also updates the Zetro Tauri and Rust package versions. Provide one
+database flag when the impact is known.
 
 `github:now` first shows the current version, proposed commit subject, and
 changed-file count. It optionally asks for a version bump and title, then asks

@@ -51,6 +51,17 @@ test('registry resolves dependencies before consumers', () => {
   )
 })
 
+test('framework validates and preserves a module data schema contract', () => {
+  const module = moduleDefinition('schema-owner', '1.1.0')
+  module.dataSchema = { checksum: `sha256:${'a'.repeat(64)}`, version: '1.1.0' }
+
+  const parsed = parseModuleManifest(module)
+  assert.deepEqual(parsed.dataSchema, module.dataSchema)
+
+  module.dataSchema.checksum = 'changed'
+  assert.throws(() => parseModuleManifest(module), ModuleCompositionError)
+})
+
 test('composition resolves compatible add-on extensions in stable order', () => {
   const registry = new ModuleRegistry()
   const system = moduleDefinition('system', '1.0.0')

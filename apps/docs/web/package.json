@@ -1,11 +1,12 @@
 {
   "name": "@codexsun/docs-web",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/docs-web.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "preview": "vite preview"
   },
@@ -13,8 +14,12 @@
     "@codexsun/docs-contracts": "file:../contracts",
     "@codexsun/ui": "file:../../../packages/ui",
     "@tailwindcss/vite": "^4.3.3",
+    "@tiptap/extension-placeholder": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "^1.33.0",
+    "mermaid": "^11.12.3",
     "react": "latest",
     "react-dom": "latest",
     "typescript": "latest",

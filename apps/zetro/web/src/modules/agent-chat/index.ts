@@ -9,6 +9,7 @@ export type {
   ChatConversation,
   ChatConversationSummary,
   ChatMessage,
+  ChatWorkspaceScope,
   ChatWorkflow,
 } from './agent-chat.types'
 export { AgentChatWorkspace } from './agent-chat.workspace'

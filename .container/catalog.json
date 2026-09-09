@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "runtimePackages": [
+    { "id": "@codexsun/framework", "version": "0.1.0" },
+    { "id": "@codexsun/platform-contracts", "version": "0.1.0" },
+    { "id": "@codexsun/platform-core-api", "version": "0.1.0" },
+    { "id": "@codexsun/platform-core-web", "version": "0.1.0" },
+    { "id": "@codexsun/runtime", "version": "0.1.0" },
+    { "id": "@codexsun/ui", "version": "0.1.0" }
+  ],
+  "applications": [
+    {
+      "id": "platform",
+      "version": "0.1.0",
+      "requires": [],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/framework", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-contracts", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "platform-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/platform-api",
+          "buildWorkspaces": [
+            "@codexsun/framework",
+            "@codexsun/platform-contracts",
+            "@codexsun/platform-core-api",
+            "@codexsun/platform-api"
+          ],
+          "outputPath": "dist/apps/platform/api",
+          "startFile": "dist/apps/platform/api/server.js",
+          "portEnvironmentKey": "PLATFORM_API_PORT",
+          "hostEnvironmentKey": "PLATFORM_API_HOST",
+          "defaultPort": 6010,
+          "healthPath": "/health",
+          "dependsOn": []
+        },
+        {
+          "id": "platform-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/platform-web",
+          "buildWorkspaces": [
+            "@codexsun/platform-contracts",
+            "@codexsun/platform-core-web",
+            "@codexsun/ui",
+            "@codexsun/platform-web"
+          ],
+          "outputPath": "dist/apps/platform/web",
+          "portEnvironmentKey": "PLATFORM_WEB_PORT",
+          "defaultPort": 6021,
+          "healthPath": "/",
+          "dependsOn": ["platform-api"]
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "version": "0.1.0",
+      "requires": ["platform"],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/framework", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "docs-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/docs-api",
+          "buildWorkspaces": [
+            "@codexsun/platform-core-api",
+            "@codexsun/docs-contracts",
+            "@codexsun/docs-api"
+          ],
+          "outputPath": "dist/apps/docs/api",
+          "startFile": "dist/apps/docs/api/server.js",
+          "portEnvironmentKey": "DOCS_API_PORT",
+          "hostEnvironmentKey": "DOCS_API_HOST",
+          "defaultPort": 6030,
+          "healthPath": "/health",
+          "dependsOn": ["platform-api"]
+        },
+        {
+          "id": "docs-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/docs-web",
+          "buildWorkspaces": ["@codexsun/docs-contracts", "@codexsun/ui", "@codexsun/docs-web"],
+          "outputPath": "dist/apps/docs/web",
+          "portEnvironmentKey": "DOCS_WEB_PORT",
+          "defaultPort": 6040,
+          "healthPath": "/",
+          "dependsOn": ["docs-api"]
+        }
+      ]
+    },
+    {
+      "id": "zetro",
+      "version": "0.1.0",
+      "requires": ["platform"],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/framework", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "zetro-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/zetro-api",
+          "buildWorkspaces": ["@codexsun/platform-core-api", "@codexsun/zetro-api"],
+          "outputPath": "dist/apps/zetro/api",
+          "startFile": "dist/apps/zetro/api/server.js",
+          "portEnvironmentKey": "ZETRO_API_PORT",
+          "hostEnvironmentKey": "HOST",
+          "defaultPort": 6050,
+          "healthPath": "/health/live",
+          "dependsOn": ["platform-api"]
+        },
+        {
+          "id": "zetro-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/zetro-web",
+          "buildWorkspaces": ["@codexsun/ui", "@codexsun/zetro-web"],
+          "outputPath": "dist/apps/zetro/web",
+          "portEnvironmentKey": "ZETRO_WEB_PORT",
+          "defaultPort": 6060,
+          "healthPath": "/",
+          "dependsOn": ["zetro-api"]
+        }
+      ]
+    },
+    {
+      "id": "devkit",
+      "version": "0.1.0",
+      "requires": ["platform"],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/framework", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "devkit-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/devkit-api",
+          "buildWorkspaces": [
+            "@codexsun/platform-core-api",
+            "@codexsun/devkit-contracts",
+            "@codexsun/devkit-api"
+          ],
+          "outputPath": "dist/apps/devkit/api",
+          "startFile": "dist/apps/devkit/api/server.js",
+          "portEnvironmentKey": "DEVKIT_API_PORT",
+          "hostEnvironmentKey": "DEVKIT_API_HOST",
+          "defaultPort": 6070,
+          "healthPath": "/health",
+          "dependsOn": ["platform-api"]
+        },
+        {
+          "id": "devkit-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/devkit-web",
+          "buildWorkspaces": ["@codexsun/devkit-contracts", "@codexsun/ui", "@codexsun/devkit-web"],
+          "outputPath": "dist/apps/devkit/web",
+          "portEnvironmentKey": "DEVKIT_WEB_PORT",
+          "defaultPort": 6080,
+          "healthPath": "/",
+          "dependsOn": ["devkit-api"]
+        }
+      ]
+    },
+    {
+      "id": "orship",
+      "version": "0.1.0",
+      "requires": ["platform"],
+      "runtimeBindings": [
+        { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/framework", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-contracts", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
+      ],
+      "components": [
+        {
+          "id": "orship-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/orship-api",
+          "buildWorkspaces": [
+            "@codexsun/framework",
+            "@codexsun/platform-contracts",
+            "@codexsun/platform-core-api",
+            "@codexsun/platform-core-web",
+            "@codexsun/runtime",
+            "@codexsun/orship-contracts",
+            "@codexsun/orship-api"
+          ],
+          "outputPath": "dist/apps/orship/api",
+          "startFile": "dist/apps/orship/api/server.js",
+          "portEnvironmentKey": "ORSHIP_API_PORT",
+          "hostEnvironmentKey": "ORSHIP_API_HOST",
+          "defaultPort": 6090,
+          "healthPath": "/health",
+          "dependsOn": ["platform-api"]
+        },
+        {
+          "id": "orship-web",
+          "kind": "web",
+          "runtime": "static",
+          "workspace": "@codexsun/orship-web",
+          "buildWorkspaces": ["@codexsun/orship-contracts", "@codexsun/ui", "@codexsun/orship-web"],
+          "outputPath": "dist/apps/orship/web",
+          "portEnvironmentKey": "ORSHIP_WEB_PORT",
+          "defaultPort": 6091,
+          "healthPath": "/",
+          "dependsOn": ["orship-api"]
+        }
+      ]
+    }
+  ],
+  "addons": []
+}

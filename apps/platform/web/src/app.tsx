@@ -7,22 +7,20 @@ import {
 } from '@codexsun/ui/templates/ui-gallery'
 import { RouterProvider } from '@tanstack/react-router'
 import {
-  BookOpenIcon,
   BoxIcon,
+  BlocksIcon,
+  ComponentIcon,
   FilePenLineIcon,
   LayoutDashboardIcon,
+  LayoutTemplateIcon,
   PanelsTopLeftIcon,
-  SidebarIcon,
   Table2Icon,
 } from 'lucide-react'
 import { platformRouter } from './app-router'
 import { systemTopologySections } from './modules/system/system.topology'
 
 const layoutIcons = {
-  'dashboard-01': LayoutDashboardIcon,
-  'documentation-sidebar': BookOpenIcon,
   'mdi-main': PanelsTopLeftIcon,
-  'sidebar-07': SidebarIcon,
 } as const
 
 const blockIcons = {
@@ -39,7 +37,7 @@ export function App() {
   const navigation = isUiWorkspace
     ? [
         {
-          defaultOpen: true,
+          icon: LayoutTemplateIcon,
           label: 'Layouts',
           items: uiLayoutDocs.map((layout) => ({
             active: selectedLayout === layout.id,
@@ -49,7 +47,7 @@ export function App() {
           })),
         },
         {
-          defaultOpen: true,
+          icon: BlocksIcon,
           label: 'Blocks',
           items: uiBlockDocs.map((block) => ({
             active: selectedBlock === block.id,
@@ -59,7 +57,7 @@ export function App() {
           })),
         },
         {
-          defaultOpen: true,
+          icon: ComponentIcon,
           label: 'Components',
           items: uiComponentDocs.map((component) => ({
             active: selectedComponent === component.id,
@@ -74,7 +72,7 @@ export function App() {
   return (
     <MdiMain
       applicationId="platform"
-      applicationName="Platform"
+      applicationName={isUiWorkspace ? 'UI' : 'Platform'}
       navigation={navigation}
       primaryAction={{
         icon: LayoutDashboardIcon,
@@ -82,6 +80,7 @@ export function App() {
         onSelect: () => window.location.assign('/ui'),
       }}
       searchPlaceholder="Search workspace"
+      sidebarStateKey={isUiWorkspace ? 'codexsun.platform.ui.sidebar' : undefined}
       showMdiOverview={window.location.pathname === '/overview'}
       topologySections={isUiWorkspace ? uiGalleryTopologySections : systemTopologySections}
       workspaceTitle={isUiWorkspace ? 'Overview' : 'System'}

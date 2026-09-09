@@ -37,7 +37,7 @@ async function inspectDirectory(directory) {
     const path = join(directory, entry.name)
 
     if (entry.isDirectory()) {
-      if (!ignoredDirectories.has(entry.name)) {
+      if (!ignoredDirectories.has(entry.name) && !isGeneratedTauriDirectory(path)) {
         await inspectDirectory(path)
       }
 
@@ -48,6 +48,10 @@ async function inspectDirectory(directory) {
       await inspectFile(path)
     }
   }
+}
+
+function isGeneratedTauriDirectory(path) {
+  return path.endsWith(join('src-tauri', 'gen'))
 }
 
 async function inspectFile(path) {

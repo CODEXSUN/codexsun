@@ -1,17 +1,18 @@
 {
   "name": "@codexsun/platform-web",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/platform-web.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@codexsun/platform-contracts": "^0.1.1",
-    "@codexsun/platform-core-web": "^0.1.1",
+    "@codexsun/platform-contracts": "^0.1.8",
+    "@codexsun/platform-core-web": "^0.1.8",
     "@codexsun/ui": "file:../../../packages/ui",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.101.4",

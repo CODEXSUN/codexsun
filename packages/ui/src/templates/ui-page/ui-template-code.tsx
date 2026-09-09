@@ -2,7 +2,13 @@ import { Check, Copy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '../../components/button'
 
-export function UiTemplateCode({ code }: { code: string }) {
+export function UiTemplateCode({
+  code,
+  copyLabel = 'Copy code',
+}: {
+  code: string
+  copyLabel?: string
+}) {
   const [copyState, setCopyState] = useState<'copied' | 'failed' | 'idle'>('idle')
 
   useEffect(() => {
@@ -31,7 +37,7 @@ export function UiTemplateCode({ code }: { code: string }) {
           variant="ghost"
         >
           {copyState === 'copied' ? <Check /> : <Copy />}
-          {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy code'}
+          {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : copyLabel}
         </Button>
       </div>
       <pre className="max-h-96 overflow-auto p-5 text-[13px] leading-6">

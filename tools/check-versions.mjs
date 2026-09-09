@@ -19,8 +19,42 @@ export function checkVersions(rootDir) {
   }
 
   checkLockfile(rootDir, rootVersion, failures)
+  checkEnvironmentExample(rootDir, rootVersion, failures)
   checkChangelog(rootDir, rootVersion, failures)
+  checkZetroDesktop(rootDir, rootVersion, failures)
   return { failures, rootVersion }
+}
+
+function checkZetroDesktop(rootDir, rootVersion, failures) {
+  const desktopRoot = join(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri')
+  const configFile = join(desktopRoot, 'tauri.conf.json')
+  if (!existsSync(configFile)) return
+  const configVersion = String(readJson(configFile).version)
+  if (configVersion !== rootVersion) {
+    failures.push(`Zetro Tauri version is ${configVersion}; expected ${rootVersion}.`)
+  }
+
+  for (const [name, file] of [
+    ['Cargo package', join(desktopRoot, 'Cargo.toml')],
+    ['Cargo lock package', join(desktopRoot, 'Cargo.lock')],
+  ]) {
+    const content = readFileSync(file, 'utf8')
+    const match = content.match(
+      /(?:\[package\]|name = "zetro-desktop")\r?\n(?:name = "zetro-desktop"\r?\n)?version = "([^"]+)"/u,
+    )
+    if (match?.[1] !== rootVersion) {
+      failures.push(`Zetro ${name} version is ${match?.[1] ?? 'missing'}; expected ${rootVersion}.`)
+    }
+  }
+}
+
+function checkEnvironmentExample(rootDir, rootVersion, failures) {
+  const file = join(rootDir, '.env.example')
+  if (!existsSync(file)) return
+  const content = readFileSync(file, 'utf8')
+  if (!content.includes(`CODEXSUN_VERSION=${rootVersion}`)) {
+    failures.push(`.env.example CODEXSUN_VERSION must be ${rootVersion}.`)
+  }
 }
 
 function readJson(file) {

@@ -27,7 +27,7 @@ Prefer a small explicit class with constructor dependencies. Do not use reflecti
 | AdonisJS      | Service providers, request-scoped dependencies, health checks, events, queues, and adapters   | Use explicit provider factories and application-owned adapters. Keep request context and infrastructure outside the kernel. |
 | Hono          | Small middleware surface and typed validation at runtime boundaries                           | Keep adapters thin and share stable request and response schemas. Do not make the kernel depend on one HTTP runtime.        |
 | Node.js       | Async context, diagnostics channels, abort signals, test runner, and process signals          | Use Node primitives inside Platform Core runtime packages. Expose narrow CODEXSUN contracts to modules.                     |
-| OpenTelemetry | Standard traces, metrics, context propagation, resources, and exporters                       | Add opt-in application instrumentation after request context exists. Keep exporters out of business modules.                |
+| OpenTelemetry | Standard traces, metrics, context propagation, resources, and exporters                       | Use opt-in application instrumentation through Platform Core. Keep exporters out of business modules.                       |
 
 These are design references, not dependencies that CODEXSUN must install.
 
@@ -147,12 +147,16 @@ Do not create one large `FrameworkManager`, `BaseService`, or `BaseRepository`. 
 - Fastify response schemas for Platform health, readiness, and runtime routes.
 - Read-only capability, contract, event, and extension discovery through the System runtime contract.
 - Profile-driven deployment planning with selected builds and one-container-per-process Compose output.
+- Shared Pino logging, request correlation, OpenTelemetry HTTP traces, metrics, and OTLP export.
+- Module-owned readiness probes with owner metadata and bounded timeouts.
+- Neutral actor context, deny-by-default authorization contracts, and application resolver hooks.
+- Application-owned Zod configuration through a shared parse and public-selection contract.
 
 ### Remaining before Identity
 
-1. Add module-owned health contributions instead of application-only readiness probes.
-2. Add actor and authorization contracts at application and route boundaries without adding tenant policy to the kernel.
-3. Prove the durable runtime against a configured MariaDB instance, including clean install, restart, lock contention, rollback, and recovery.
+1. Configure a password-authenticated MariaDB application account.
+2. Run the live foundation test for clean install, restart, lock contention, rollback, and recovery.
+3. Stop the active Platform profile and run the complete startup and shutdown smoke cycle.
 
 Identity may then add authentication and authorization through application and module contracts. Actor, role, permission, session, and tenant rules must not enter the generic kernel.
 
@@ -161,7 +165,6 @@ Identity may then add authentication and authorization through application and m
 - Transactional outbox and idempotent inbox.
 - BullMQ jobs, workers, schedules, retry policy, and dead-letter handling.
 - Redis cache and distributed locks.
-- OpenTelemetry traces and metrics.
 - API rate limits, pagination conventions, conditional requests, and idempotency keys.
 - Audit records owned by the module that performs the regulated action.
 - Web localization, offline state, and client telemetry.

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "main-development",
+  "customer": "CODEXSUN main local development",
+  "version": "0.1.0",
+  "environment": "development",
+  "buildEnvironment": {
+    "VITE_PLATFORM_API_URL": "http://127.0.0.1:6010",
+    "VITE_DOCS_API_URL": "http://127.0.0.1:6030",
+    "VITE_ZETRO_API_URL": "http://127.0.0.1:6050",
+    "VITE_DEVKIT_API_URL": "http://127.0.0.1:6070"
+  },
+  "applications": ["platform", "docs", "zetro", "devkit"],
+  "addons": [],
+  "portOverrides": {}
+}

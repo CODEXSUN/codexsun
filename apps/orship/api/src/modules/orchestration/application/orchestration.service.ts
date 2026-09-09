@@ -3,6 +3,7 @@ import type {
   ServiceAction,
   ServiceActionResponse,
   ServiceLogsResponse,
+  RuntimeFailureOverview,
 } from '@codexsun/orship-contracts'
 import type {
   OrchestrationProcessGateway,
@@ -46,6 +47,10 @@ export class OrchestrationService {
 
   async getLogs(serviceId: string, limit: number): Promise<ServiceLogsResponse> {
     return this.processes.readLogs(await this.getTarget(serviceId), limit)
+  }
+
+  getFailures(limit: number): Promise<RuntimeFailureOverview> {
+    return this.processes.readFailures(limit)
   }
 
   private async getTarget(serviceId: string): Promise<OrchestrationTarget> {

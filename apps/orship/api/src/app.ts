@@ -4,6 +4,7 @@ import rateLimit from '@fastify/rate-limit'
 import sensible from '@fastify/sensible'
 import underPressure from '@fastify/under-pressure'
 import { ModuleRegistry } from '@codexsun/framework'
+import { PlatformApiObservability } from '@codexsun/platform-core-api'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { ZodError, z } from 'zod'
 import { getProjectRoot, readEnvironment, type OrshipEnvironment } from './config.js'
@@ -14,12 +15,19 @@ import {
 
 export async function buildOrshipApi(
   environment: OrshipEnvironment = readEnvironment(),
+  observability = new PlatformApiObservability({
+    application: 'orship',
+    component: 'orship-api',
+  }),
 ): Promise<FastifyInstance> {
+  observability.start()
   const registry = new ModuleRegistry()
   registry.register(orchestrationManifest)
   registry.createCompositionPlan('0.1.0')
 
-  const server = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } })
+  const server = Fastify(observability.fastifyOptions())
+  observability.register(server)
+  server.addHook('onClose', () => observability.shutdown())
   await server.register(sensible)
   await server.register(helmet)
   await server.register(cors, {

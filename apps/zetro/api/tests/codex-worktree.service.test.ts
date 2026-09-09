@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -64,8 +64,10 @@ test('creates project worktrees from the selected repository', async () => {
     const service = new CodexWorktreeService(defaultRoot, worktreeRoot)
 
     const worktree = await service.ensure(conversationId, selectedRoot, projectId)
+    const workingDirectory = await service.resolveWorkingDirectory(worktree.path, 'apps/zetro')
 
     assert.equal(worktree.path, selectedWorktree)
+    assert.equal(workingDirectory, join(selectedWorktree, 'apps', 'zetro'))
     assert.equal((await readFile(join(worktree.path, 'README.md'), 'utf8')).trim(), '# selected')
   } finally {
     await git(selectedRoot, ['worktree', 'remove', '--force', selectedWorktree]).catch(
@@ -80,7 +82,9 @@ async function initializeRepository(repositoryRoot: string, name: string): Promi
   await git(repositoryRoot, ['config', 'user.email', 'zetro@example.test'])
   await git(repositoryRoot, ['config', 'user.name', 'Zetro Test'])
   await writeFile(join(repositoryRoot, 'README.md'), `# ${name}\n`, 'utf8')
-  await git(repositoryRoot, ['add', 'README.md'])
+  await mkdir(join(repositoryRoot, 'apps', 'zetro'), { recursive: true })
+  await writeFile(join(repositoryRoot, 'apps', 'zetro', 'README.md'), `# ${name} app\n`, 'utf8')
+  await git(repositoryRoot, ['add', '.'])
   await git(repositoryRoot, ['commit', '-m', 'Initial fixture'])
 }
 

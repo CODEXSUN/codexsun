@@ -37,9 +37,10 @@ export class CodexAppServerProvider implements ChatProvider {
             .filter((attachment) => attachment.mimeType.startsWith('image/'))
             .map((attachment) => attachment.dataUrl),
         ),
-        text: toCodexPrompt(request.messages, request.previousDelivery),
+        text: toCodexPrompt(request.messages, request.scope, request.previousDelivery),
         projectId: request.projectId,
         projectRoot: request.projectRoot,
+        scope: request.scope,
         workflow: request.workflow,
       })
 
@@ -63,6 +64,10 @@ export class CodexAppServerProvider implements ChatProvider {
       )
     }
   }
+
+  public stop(conversationId: string): Promise<boolean> {
+    return this.client.interruptTurn(conversationId)
+  }
 }
 
 function toolsForWorkflow(workflow: CodexWorkflow): readonly string[] {
@@ -80,6 +85,7 @@ export class ChatProviderError extends Error {
 
 function toCodexPrompt(
   messages: readonly ChatMessage[],
+  scope: ChatTurnRequest['scope'],
   previousDelivery?: ChatTurnRequest['previousDelivery'],
 ): string {
   const transcript = messages
@@ -95,6 +101,10 @@ function toCodexPrompt(
   return [
     'Act as Zetro, a concise agentic AI collaborator. Help the user plan and complete work.',
     'Return only the final user-visible answer. Do not expose private reasoning.',
+    `Connected application: ${scope.application}`,
+    scope.module ? `Connected module: ${scope.module}` : '',
+    `Connected folder: ${scope.folderPath}`,
+    'Treat the connected folder as the task scope. Read outside it only for required repository guidance or declared dependencies.',
     formatPreviousDelivery(previousDelivery),
     '',
     transcript,

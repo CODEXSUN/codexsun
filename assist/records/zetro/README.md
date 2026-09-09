@@ -1,5 +1,16 @@
 # Zetro Development Records
 
+- [2026-09-09 Git delivery flow](2026-09-09-git-delivery-flow.md)
+- [2026-09-09 Build version status](2026-09-09-build-version-status.md)
+- [2026-09-09 Developer tools](2026-09-09-developer-tools.md)
+- [2026-09-09 Markdown chat rendering](2026-09-09-markdown-chat-rendering.md)
+- [2026-09-09 Desktop project onboarding](2026-09-09-desktop-project-onboarding.md)
+- [2026-09-09 Centralized Zetro settings](2026-09-09-centralized-settings.md)
+- [2026-09-09 Tauri Windows desktop](2026-09-09-tauri-desktop.md)
+- [2026-09-09 Chat task handoff](2026-09-09-chat-task-handoff.md)
+- [2026-09-09 Chat turn stop](2026-09-09-chat-turn-stop.md)
+- [2026-09-09 Dated chat timeline](2026-09-09-dated-chat-timeline.md)
+- [2026-09-08 Chat workspace scope](2026-09-08-chat-workspace-scope.md)
 - [2026-09-08 Project properties layer](2026-09-08-project-properties-layer.md)
 - [2026-09-08 Project workspace binding](2026-09-08-project-workspace-binding.md)
 - [2026-09-08 Compact sidebar navigation](2026-09-08-compact-sidebar-navigation.md)

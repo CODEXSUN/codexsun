@@ -1,12 +1,13 @@
 {
   "name": "@codexsun/platform-core-desktop",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "main": "../../../dist/packages/platform-core/desktop/index.js",
   "types": "../../../dist/packages/platform-core/desktop/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/platform-core-desktop.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {

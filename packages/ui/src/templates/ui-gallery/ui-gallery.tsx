@@ -1,5 +1,5 @@
 import { findUiBlock } from './ui-blocks'
-import { UiComponentDocumentation } from './ui-component-doc'
+import { UiComponentDisplayPage } from './ui-component-display-page'
 import { findUiComponent } from './ui-components'
 import { UiFormDocumentation } from './ui-form-doc'
 import { UiLayoutDocumentation } from './ui-layout-doc'
@@ -31,17 +31,10 @@ export const uiGalleryTopologySections = [
   },
   {
     id: '21.2',
-    technicalName: 'ui.layouts.usage',
-    name: 'Layout usage',
+    technicalName: 'ui.layouts.usageCode',
+    name: 'Layout usage code',
     scope: 'Layout documentation',
-    description: 'Explains the shared and application ownership boundary.',
-  },
-  {
-    id: '21.3',
-    technicalName: 'ui.layouts.code',
-    name: 'Layout code',
-    scope: 'Layout documentation',
-    description: 'Provides a copyable TypeScript starting point.',
+    description: 'Explains MDI Main ownership and provides a copyable TypeScript example.',
   },
   {
     id: '22',
@@ -118,6 +111,6 @@ export function UiGallery() {
   const component = findUiComponent(requestedComponent)
   if (block?.id === 'table') return <UiTableDocumentation />
   if (block?.id === 'form') return <UiFormDocumentation />
-  if (component) return <UiComponentDocumentation component={component} />
+  if (component) return <UiComponentDisplayPage component={component} />
   return layout ? <UiLayoutDocumentation layout={layout} /> : <UiOverview />
 }

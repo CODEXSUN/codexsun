@@ -55,6 +55,15 @@ export class CodexWorktreeService {
     )
   }
 
+  public async resolveWorkingDirectory(worktreePath: string, folderPath: string): Promise<string> {
+    const workingDirectory = resolve(worktreePath, folderPath)
+    assertNestedPath(worktreePath, workingDirectory)
+    if (!(await exists(workingDirectory))) {
+      throw new Error('The connected folder is not available in the isolated worktree.')
+    }
+    return workingDirectory
+  }
+
   private async createOrLoad(
     conversationId: string,
     repositoryRoot: string,
@@ -118,6 +127,13 @@ function assertContainedPath(root: string, candidate: string): void {
   const relation = relative(resolve(root), resolve(candidate))
   if (!relation || relation.startsWith('..') || isAbsolute(relation)) {
     throw new Error('The Zetro worktree path is outside its configured root.')
+  }
+}
+
+function assertNestedPath(root: string, candidate: string): void {
+  const relation = relative(resolve(root), resolve(candidate))
+  if (!relation || relation.startsWith('..') || isAbsolute(relation)) {
+    throw new Error('The connected folder must stay inside the isolated worktree.')
   }
 }
 

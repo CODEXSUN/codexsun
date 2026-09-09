@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.5.1`
+- Version: `0.5.3`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -27,9 +27,18 @@ The public client starts one ephemeral Codex thread for each turn. Ephemeral thr
 
 Each Zetro conversation uses one detached Git worktree. The worktree path is `<ZETRO_WORKTREE_ROOT>/<conversation-id>` and starts from repository `HEAD`.
 
+The chat workspace scope maps its repository-relative folder into this
+worktree. The App Server starts from that folder. Its instructions limit normal
+inspection to the connected application or module. Repository guidance and
+declared dependencies remain readable when the task needs them.
+
 The thread uses workspace-write access for its worktree. Codex can read and search files, edit files, run commands, run tests, and review Git changes.
 
 The client collects completed command, file-change, and MCP activity. It returns this activity with the final visible response.
+
+The client tracks the App Server thread and turn for each active conversation.
+An interrupt calls `turn/interrupt` with both IDs. An interrupt requested while
+the turn starts runs as soon as the App Server returns the turn ID.
 
 Each turn uses one workflow: `deliver`, `develop`, `document`, `review`, or `test`. The workflow adds focused instructions to the common repository and worktree rules.
 
@@ -45,7 +54,7 @@ The documentation workflow uses current code and repository documents as evidenc
 
 ## Lifecycle and persistence
 
-Install creates no data. Activate starts the App Server lazily. Version 0.5.1 needs no data migration.
+Install creates no data. Activate starts the App Server lazily. Version 0.5.3 needs no data migration.
 
 Deactivate closes the child process. Uninstall leaves credentials and worktrees untouched. The module has no tables, seeds, events, or jobs.
 
@@ -57,4 +66,4 @@ A complete activation requires user sign-in in the browser. A live coding turn m
 
 ## Development records
 
-Future changes must be recorded in the [Zetro development records](../../../../../../assist/records/zetro/README.md).
+- [2026-09-09 Chat turn stop](../../../../../../assist/records/zetro/2026-09-09-chat-turn-stop.md)

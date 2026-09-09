@@ -87,7 +87,7 @@ These rules are mandatory for every application, package, module, and agent.
 ## Deployment assembly
 
 - Treat applications and add-ons as selectable source-owned units. Do not fork business code for a customer deployment.
-- Register every deployable application and component in `deployments/catalog.json` with explicit runtime bindings and dependencies.
+- Register every deployable application and component in `.container/catalog.json` with explicit runtime bindings and dependencies.
 - Use `packages/runtime` to produce one immutable plan before local startup, build, or container composition.
 - Use the `development` profile to run every registered application locally. Use a versioned customer profile to select or omit production units.
 - Keep one process boundary per container. Combine selected containers as one generated Compose deployment.

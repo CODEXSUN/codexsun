@@ -19,9 +19,9 @@ export function OrchestrationSummary({ overview }: { overview: OrchestrationOver
   return (
     <div className="grid grid-cols-2 border-y border-border sm:grid-cols-4">
       {metrics.map((metric) => (
-        <div className="flex min-h-20 flex-col justify-center gap-1 px-5 py-3" key={metric.label}>
+        <div className="flex min-h-16 items-center gap-3 px-6 py-2" key={metric.label}>
           <span className="text-sm text-muted-foreground">{metric.label}</span>
-          <strong className={`text-2xl font-semibold tracking-tight ${metric.tone ?? ''}`}>
+          <strong className={`text-xl font-semibold tracking-tight ${metric.tone ?? ''}`}>
             {metric.value}
           </strong>
         </div>

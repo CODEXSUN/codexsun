@@ -1,6 +1,12 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import type { ChatConversation } from './chat.conversation.types.js'
+import type { ChatConversation, StoredChatMessage } from './chat.conversation.types.js'
+
+type LegacyStoredMessage = Omit<StoredChatMessage, 'createdAt'> & { createdAt?: string }
+type LegacyConversation = Omit<ChatConversation, 'messages' | 'projectId'> & {
+  messages: readonly LegacyStoredMessage[]
+  projectId?: string
+}
 
 export class ChatConversationRepository {
   private conversations: ChatConversation[] = []
@@ -13,12 +19,16 @@ export class ChatConversationRepository {
   public async initialize(): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true })
     try {
-      const stored = JSON.parse(await readFile(this.filePath, 'utf8')) as Array<
-        Omit<ChatConversation, 'projectId'> & { projectId?: string }
-      >
-      const needsMigration = stored.some(({ projectId }) => !projectId)
+      const stored = JSON.parse(await readFile(this.filePath, 'utf8')) as LegacyConversation[]
+      const needsMigration = stored.some(
+        ({ messages, projectId }) => !projectId || messages.some(({ createdAt }) => !createdAt),
+      )
       this.conversations = stored.map((conversation) => ({
         ...conversation,
+        messages: conversation.messages.map((message) => ({
+          ...message,
+          createdAt: message.createdAt ?? conversation.createdAt,
+        })),
         projectId: conversation.projectId ?? this.defaultProjectId,
       }))
       if (needsMigration) await this.persist()

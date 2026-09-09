@@ -25,6 +25,7 @@ export const livenessDataSchema = z.object({
 
 export const readinessComponentSchema = z.object({
   message: z.string().optional(),
+  moduleId: z.string().min(1),
   name: z.string().min(1),
   status: z.enum(['ready', 'not-ready']),
 })

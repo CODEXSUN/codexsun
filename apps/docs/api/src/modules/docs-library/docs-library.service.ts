@@ -1,4 +1,4 @@
-import type { DocumentSummary } from '@codexsun/docs-contracts'
+import type { DocumentSummary, DocumentUpdateRequest } from '@codexsun/docs-contracts'
 import type { DocsEnvironment } from '../../config.js'
 import { DocsRenderer } from './docs-library.renderer.js'
 import { DocsIndexRepository } from './docs-library.repository.js'
@@ -25,6 +25,25 @@ export class DocsLibraryService {
   public async listDocuments(): Promise<DocumentSummary[]> {
     const documents = await this.vault.list()
     return documents.map(({ source, sourceHash, ...summary }) => summary)
+  }
+
+  public getAsset(assetPath: string) {
+    return this.vault.getAsset(assetPath)
+  }
+
+  public async updateDocument(
+    slug: string,
+    input: DocumentUpdateRequest,
+  ): Promise<RenderedDocument | undefined> {
+    const currentDocument = await this.vault.find(slug)
+    if (!currentDocument) return undefined
+
+    const document = await this.vault.update(currentDocument, input)
+    if (this.environment.DOCS_INDEX_MODE !== 'filesystem') {
+      await this.index.migrate()
+      await this.index.replace(await this.vault.list())
+    }
+    return { ...document, html: await this.renderer.render(document) }
   }
 
   public async syncIndex(): Promise<number> {

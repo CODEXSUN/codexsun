@@ -49,9 +49,16 @@ const executionSchema = z.strictObject({
 const messageSchema = z.strictObject({
   attachments: z.array(attachmentSchema),
   content: z.string(),
+  createdAt: z.iso.datetime(),
   execution: executionSchema.optional(),
   id: z.string().min(1),
   role: z.enum(['assistant', 'user']),
+})
+
+const workspaceScopeSchema = z.strictObject({
+  application: z.string().min(1),
+  folderPath: z.string().min(1),
+  module: z.string(),
 })
 
 const summarySchema = z.strictObject({
@@ -60,6 +67,7 @@ const summarySchema = z.strictObject({
   id: z.uuid(),
   pinned: z.boolean(),
   projectId: z.uuid(),
+  scope: workspaceScopeSchema.optional(),
   title: z.string().min(1),
   updatedAt: z.iso.datetime(),
 })
@@ -84,3 +92,5 @@ export const deleteConversationResponseSchema = z.strictObject({ deletedId: z.uu
 export const deleteArchivedResponseSchema = z.strictObject({
   deletedCount: z.number().int().min(0),
 })
+
+export const stopChatResponseSchema = z.strictObject({ stopped: z.boolean() })

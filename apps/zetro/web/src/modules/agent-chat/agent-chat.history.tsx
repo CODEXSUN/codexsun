@@ -3,6 +3,8 @@ import {
   Archive,
   Check,
   ChevronRight,
+  EllipsisVertical,
+  FolderKanban,
   LoaderCircle,
   Pencil,
   Pin,
@@ -17,6 +19,13 @@ import {
   CollapsibleTrigger,
 } from '@codexsun/ui/components/collapsible'
 import { Input } from '@codexsun/ui/components/input'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@codexsun/ui/components/dropdown-menu'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { useAgentChat } from './agent-chat.controller'
@@ -168,36 +177,40 @@ function HistoryRow({ conversation }: { conversation: ChatConversationSummary })
           >
             {conversation.title}
           </button>
-          <div className="flex shrink-0 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100">
-            <Button
-              aria-label={`Archive ${conversation.title}`}
-              disabled={chat.isBusy}
-              onClick={() => void chat.archiveConversation(conversation)}
-              size="icon-xs"
-              title={`Archive ${conversation.title}`}
-              variant="ghost"
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  aria-label={`Chat actions for ${conversation.title}`}
+                  className="shrink-0 cursor-pointer opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100"
+                  disabled={chat.isBusy}
+                  size="icon-xs"
+                  variant="ghost"
+                />
+              }
             >
-              <Archive />
-            </Button>
-            <Button
-              aria-label={`Rename ${conversation.title}`}
-              disabled={chat.isBusy}
-              onClick={() => setRenaming(true)}
-              size="icon-xs"
-              variant="ghost"
-            >
-              <Pencil />
-            </Button>
-            <Button
-              aria-label={`${conversation.pinned ? 'Unpin' : 'Pin'} ${conversation.title}`}
-              disabled={chat.isBusy}
-              onClick={() => void chat.togglePin(conversation)}
-              size="icon-xs"
-              variant="ghost"
-            >
-              {conversation.pinned ? <PinOff /> : <Pin />}
-            </Button>
-          </div>
+              <EllipsisVertical />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+              <DropdownMenuItem onClick={() => void chat.openScope(conversation.id)}>
+                <FolderKanban /> Connected folder
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setRenaming(true)}>
+                <Pencil /> Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void chat.togglePin(conversation)}>
+                {conversation.pinned ? <PinOff /> : <Pin />}
+                {conversation.pinned ? 'Unpin' : 'Pin'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => void chat.archiveConversation(conversation)}
+                variant="destructive"
+              >
+                <Archive /> Archive
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </>
       )}
     </div>

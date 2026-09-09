@@ -23,6 +23,8 @@ export type MdiAppItem = {
 export type MdiNavigationItem = {
   active?: boolean
   badge?: string | number
+  children?: MdiNavigationItem[]
+  defaultOpen?: boolean
   href?: string
   icon?: LucideIcon
   label: string
@@ -31,6 +33,7 @@ export type MdiNavigationItem = {
 
 export type MdiNavigationSection = {
   defaultOpen?: boolean
+  icon?: LucideIcon
   items: MdiNavigationItem[]
   label?: string
 }
@@ -67,6 +70,7 @@ export type MdiMainProps = {
   children?: ReactNode
   defaultFeatures?: Partial<MdiFeatures>
   deskRegionId?: string
+  embedded?: boolean
   navigation?: MdiNavigationSection[]
   notificationCount?: number
   notifications?: readonly MdiNotification[]
@@ -75,14 +79,25 @@ export type MdiMainProps = {
   searchValue?: string
   showAppearancePanel?: boolean
   showMdiOverview?: boolean
+  showTopologyTools?: boolean
+  settingsContent?: (props: MdiSettingsContentProps) => ReactNode
   sidebarContent?: ReactNode
   sidebarContentClassName?: string
   sidebarFooter?: ReactNode | null
+  sidebarFooterClassName?: string
+  sidebarStateKey?: string
   statusLabel?: string
+  statusEnd?: ReactNode
   topologySections?: readonly InterfaceTopologySection[]
   user?: MdiUser
   workspaceTitle?: string
   onSearchChange?: (value: string) => void
+}
+
+export type MdiSettingsContentProps = {
+  features: MdiFeatures
+  onBack: () => void
+  onFeatureChange: (feature: MdiFeatureKey, enabled: boolean) => void
 }
 
 export const defaultMdiFeatures: MdiFeatures = {

@@ -3,6 +3,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { config as loadDotenv } from 'dotenv'
 import { resolve } from 'node:path'
+import { hiddenWindowsProcessOptions } from './service-lifecycle.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '..')
 loadDotenv({ path: resolve(projectRoot, '.env'), quiet: true })
@@ -115,9 +116,13 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 function startService(service) {
   const child = spawn(process.execPath, ['tools/preflight.mjs', service.name], {
     cwd: projectRoot,
+    detached: process.platform === 'win32',
     env: process.env,
-    stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    windowsHide: true,
   })
+  child.stdout.pipe(process.stdout)
+  child.stderr.pipe(process.stderr)
 
   child.once('exit', (code, signal) => {
     if (stopping) return
@@ -196,6 +201,7 @@ async function restartExistingDocsStack() {
     'ForEach-Object { $_.ProcessId } | ConvertTo-Json -Compress',
   ].join(' ')
   const result = spawnSync('powershell.exe', ['-NoProfile', '-Command', query], {
+    ...hiddenWindowsProcessOptions,
     encoding: 'utf8',
   })
   const processIds = result.stdout.trim() ? JSON.parse(result.stdout) : []
@@ -205,7 +211,10 @@ async function restartExistingDocsStack() {
 
   for (const processId of priorProcessIds) {
     process.stdout.write(`[stack] stopping previous Docs stack ${processId}\n`)
-    spawnSync('taskkill.exe', ['/PID', String(processId), '/T', '/F'], { stdio: 'ignore' })
+    spawnSync('taskkill.exe', ['/PID', String(processId), '/T', '/F'], {
+      ...hiddenWindowsProcessOptions,
+      stdio: 'ignore',
+    })
   }
 
   const deadline = Date.now() + 10_000
@@ -232,7 +241,10 @@ async function stopChild(child) {
   if (await exited) return
 
   if (process.platform === 'win32') {
-    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      ...hiddenWindowsProcessOptions,
+      stdio: 'ignore',
+    })
   } else {
     child.kill('SIGKILL')
   }

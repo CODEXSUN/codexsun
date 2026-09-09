@@ -5,6 +5,7 @@ import {
   Clipboard,
   Ellipsis,
   ListTodo,
+  LoaderCircle,
   MessageSquareText,
   ScanSearch,
   Sparkles,
@@ -23,6 +24,8 @@ import {
 } from '@codexsun/ui/components/dropdown-menu'
 import { useAgentChat } from './agent-chat.controller'
 import type { ChatMessage } from './agent-chat.types'
+import { useProjectTasks } from '../project-tasks'
+import { useProjects } from '../projects'
 
 type ActionIcon = ComponentType<{ className?: string }>
 
@@ -30,18 +33,35 @@ const responseActions = [
   { icon: Sparkles, label: 'Actions' },
   { icon: ScanSearch, label: 'Review prompt' },
   { icon: MessageSquareText, label: 'Review chat' },
-  { icon: ListTodo, label: 'Send to task' },
 ] as const
 
 export function AgentChatMessageActions({ message }: { message: ChatMessage }) {
   const chat = useAgentChat()
+  const projects = useProjects()
+  const tasks = useProjectTasks()
   const [copied, setCopied] = useState(false)
+  const [isSendingToTask, setIsSendingToTask] = useState(false)
+  const [taskSendFailed, setTaskSendFailed] = useState(false)
   const activeConversation = chat.summaries.find(({ id }) => id === chat.activeId)
 
   async function copyResponse() {
     await copyText(message.content)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1600)
+  }
+
+  async function sendToTask() {
+    const input = taskInputFromMessage(message.content)
+    setIsSendingToTask(true)
+    setTaskSendFailed(false)
+    try {
+      await tasks.addTask(input)
+      projects.setView('tasks')
+    } catch {
+      setTaskSendFailed(true)
+    } finally {
+      setIsSendingToTask(false)
+    }
   }
 
   return (
@@ -61,6 +81,21 @@ export function AgentChatMessageActions({ message }: { message: ChatMessage }) {
             <PendingActionMenu icon={action.icon} key={action.label} label={action.label} />
           ))
         : null}
+      {message.role === 'assistant' ? (
+        <ActionButton
+          disabled={isSendingToTask || chat.isBusy}
+          icon={isSendingToTask ? LoaderCircle : ListTodo}
+          iconClassName={isSendingToTask ? 'animate-spin' : undefined}
+          label={
+            isSendingToTask
+              ? 'Sending to task'
+              : taskSendFailed
+                ? 'Task send failed'
+                : 'Send to task'
+          }
+          onClick={() => void sendToTask()}
+        />
+      ) : null}
       {message.role === 'assistant' ? (
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -105,11 +140,15 @@ export function AgentChatMessageActions({ message }: { message: ChatMessage }) {
 }
 
 function ActionButton({
+  disabled,
   icon: Icon,
+  iconClassName,
   label,
   onClick,
 }: {
+  disabled?: boolean
   icon: ActionIcon
+  iconClassName?: string
   label: string
   onClick(): void
 }) {
@@ -117,14 +156,50 @@ function ActionButton({
     <Button
       aria-label={label}
       className="cursor-pointer"
+      disabled={disabled}
       onClick={onClick}
       size="icon-xs"
       title={label}
       variant="ghost"
     >
-      <Icon />
+      <Icon className={iconClassName} />
     </Button>
   )
+}
+
+function taskInputFromMessage(content: string) {
+  const title = findLabeledValue(content, 'Title') ?? firstContentLine(content) ?? 'Chat follow-up'
+  const description = findLabeledSection(content, 'Task') ?? content
+  return {
+    description: description.trim().slice(0, 2_000),
+    priority: 'medium' as const,
+    title: cleanMarkdown(title).slice(0, 160),
+  }
+}
+
+function findLabeledValue(content: string, label: string): string | null {
+  const match = content.match(new RegExp(`^\\s*(?:\\*\\*)?${label}:(?:\\*\\*)?\\s*(.+)$`, 'im'))
+  return match?.[1]?.trim() || null
+}
+
+function findLabeledSection(content: string, label: string): string | null {
+  const match = content.match(
+    new RegExp(`^\\s*(?:\\*\\*)?${label}:(?:\\*\\*)?\\s*([\\s\\S]+)$`, 'im'),
+  )
+  return match?.[1]?.trim() || null
+}
+
+function firstContentLine(content: string): string | null {
+  return (
+    content
+      .split('\n')
+      .map((line) => cleanMarkdown(line).trim())
+      .find(Boolean) ?? null
+  )
+}
+
+function cleanMarkdown(value: string): string {
+  return value.replace(/[*_`#]/g, '').trim()
 }
 
 function PendingActionMenu({ icon: Icon, label }: { icon: ActionIcon; label: string }) {

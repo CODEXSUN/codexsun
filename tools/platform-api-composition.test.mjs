@@ -68,9 +68,39 @@ test('Platform API reports composed modules and readiness components', async () 
     )
     assert.equal(readiness.statusCode, 200)
     assert.deepEqual(readiness.json().data.components, [
-      { name: 'database', status: 'ready' },
-      { name: 'storage', status: 'ready' },
+      { moduleId: 'platform', name: 'database', status: 'ready' },
+      { moduleId: 'platform', name: 'storage', status: 'ready' },
     ])
+  } finally {
+    await server.close()
+  }
+})
+
+test('Platform modules contribute owned readiness probes', async () => {
+  const module = createModule('search', '1.0.0', [], [])
+  module.readiness = [
+    {
+      check: async () => {},
+      moduleId: 'search',
+      name: 'search-index',
+      timeoutMs: 50,
+    },
+  ]
+  const { server } = await buildPlatformApi({
+    database: fakeDatabase(),
+    environment: testEnvironment(),
+    moduleRuntime: false,
+    modules: [module],
+    storage: fakeStorage(),
+  })
+
+  try {
+    const response = await server.inject({ method: 'GET', url: '/health/ready' })
+    assert.equal(response.statusCode, 200)
+    assert.deepEqual(
+      response.json().data.components.find(({ name }) => name === 'search-index'),
+      { moduleId: 'search', name: 'search-index', status: 'ready' },
+    )
   } finally {
     await server.close()
   }
@@ -109,6 +139,7 @@ test('Platform request context carries correlation, locale, request, and cancell
     server.get('/context', async () => {
       const active = context.requestContext.require()
       return {
+        actorKind: active.actor.kind,
         correlationId: active.correlationId,
         locale: active.locale,
         requestId: active.requestId,
@@ -121,6 +152,7 @@ test('Platform request context carries correlation, locale, request, and cancell
     environment: testEnvironment(),
     moduleRuntime: false,
     modules: [contextModule],
+    resolveActor: () => ({ id: 'test-user', kind: 'user' }),
     storage: fakeStorage(),
   })
 
@@ -132,6 +164,7 @@ test('Platform request context carries correlation, locale, request, and cancell
     })
     assert.equal(response.statusCode, 200)
     assert.deepEqual(response.json(), {
+      actorKind: 'user',
       correlationId: 'context-test',
       locale: 'en-IN',
       requestId: response.headers['x-request-id'],

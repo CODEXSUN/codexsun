@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import type { PlatformRequestContextStore } from '@codexsun/platform-core-api'
+import {
+  anonymousPlatformActor,
+  type PlatformActor,
+  type PlatformRequestContextStore,
+} from '@codexsun/platform-core-api'
 import { randomUUID } from 'node:crypto'
 import { ZodError } from 'zod'
 
@@ -8,6 +12,8 @@ const correlationIdPattern = /^[a-zA-Z0-9._:-]{1,128}$/
 export function registerHttpLifecycle(
   server: FastifyInstance,
   requestContext: PlatformRequestContextStore,
+  resolveActor: (request: FastifyRequest) => Promise<PlatformActor> | PlatformActor = () =>
+    anonymousPlatformActor,
 ): void {
   const requestControllers = new Map<string, AbortController>()
 
@@ -17,13 +23,18 @@ export function registerHttpLifecycle(
     requestControllers.set(request.id, controller)
     reply.header('x-correlation-id', correlationId)
     reply.header('x-request-id', request.id)
-    requestContext.run(
-      {
-        correlationId,
-        locale: getLocale(request),
-        requestId: request.id,
-        signal: controller.signal,
-      },
+    Promise.resolve(resolveActor(request)).then(
+      (actor) =>
+        requestContext.run(
+          {
+            actor,
+            correlationId,
+            locale: getLocale(request),
+            requestId: request.id,
+            signal: controller.signal,
+          },
+          done,
+        ),
       done,
     )
   })

@@ -1,9 +1,9 @@
-import { config as loadDotenv } from 'dotenv'
+import { PlatformConfiguration, PlatformEnvironmentLoader } from '@codexsun/platform-core-api'
 import { resolve } from 'node:path'
 import { z } from 'zod'
 
-const projectRoot = resolve(process.cwd(), '../../..')
-loadDotenv({ path: resolve(projectRoot, '.env'), quiet: true })
+const projectRoot = resolve(import.meta.dirname, '../../../..')
+const environmentSource = PlatformEnvironmentLoader.load({ path: resolve(projectRoot, '.env') })
 
 const environmentSchema = z.object({
   DEVKIT_API_HOST: z.string().default('127.0.0.1'),
@@ -14,4 +14,5 @@ const environmentSchema = z.object({
 
 export type DevkitEnvironment = z.infer<typeof environmentSchema>
 export const getProjectRoot = () => projectRoot
-export const readEnvironment = (): DevkitEnvironment => environmentSchema.parse(process.env)
+export const readEnvironment = (source: NodeJS.ProcessEnv = environmentSource): DevkitEnvironment =>
+  PlatformConfiguration.parse(environmentSchema, source).values

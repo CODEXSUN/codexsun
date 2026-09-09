@@ -40,10 +40,22 @@ const workflowInstructions: Record<CodexWorkflow, readonly string[]> = {
   ],
 }
 
-export function createDeveloperInstructions(worktreePath: string, workflow: CodexWorkflow): string {
+export function createDeveloperInstructions(
+  worktreePath: string,
+  workflow: CodexWorkflow,
+  scope?: { application: string; folderPath: string; module: string },
+): string {
   return [
     `You are the coding agent for one Zetro ${workflow} task.`,
     `Work only in the isolated Git worktree at ${worktreePath}.`,
+    ...(scope
+      ? [
+          `The connected application is ${scope.application}.`,
+          ...(scope.module ? [`The connected module is ${scope.module}.`] : []),
+          `Start in ${scope.folderPath} and keep repository inspection focused on that folder.`,
+          'Read outside the connected folder only for repository guidance or declared dependencies.',
+        ]
+      : []),
     'Read AGENTS.md, the root README, and relevant repository guidance before acting.',
     'Infer intent from repository evidence. Continue until the authorized task is complete or truly blocked.',
     ...workflowInstructions[workflow],

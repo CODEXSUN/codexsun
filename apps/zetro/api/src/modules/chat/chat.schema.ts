@@ -18,6 +18,12 @@ const messageSchema = z.strictObject(messageFields).refine(hasMessageContent, {
   message: 'A message needs text or an attachment.',
 })
 
+export const chatWorkspaceScopeSchema = z.strictObject({
+  application: z.string().trim().min(1).max(80),
+  folderPath: z.string().trim().min(1).max(1_024),
+  module: z.string().trim().max(120),
+})
+
 const deliveryRunSchema = z.strictObject({
   publicationReady: z.boolean(),
   stages: z
@@ -70,6 +76,7 @@ const executionSchema = z.strictObject({
 const storedMessageSchema = z
   .strictObject({
     ...messageFields,
+    createdAt: z.iso.datetime(),
     execution: executionSchema.optional(),
     id: z.string().min(1).max(80),
   })
@@ -90,6 +97,7 @@ export const conversationListQuerySchema = z.strictObject({
 export const createConversationSchema = z.strictObject({
   messages: z.array(storedMessageSchema).min(1).max(100),
   projectId: z.string().uuid(),
+  scope: chatWorkspaceScopeSchema.optional(),
 })
 
 export const updateConversationSchema = z
@@ -97,6 +105,7 @@ export const updateConversationSchema = z
     archived: z.boolean().optional(),
     messages: z.array(storedMessageSchema).min(1).max(100).optional(),
     pinned: z.boolean().optional(),
+    scope: chatWorkspaceScopeSchema.optional(),
     title: z.string().trim().min(1).max(60).optional(),
   })
   .refine((update) => Object.values(update).some((value) => value !== undefined), {

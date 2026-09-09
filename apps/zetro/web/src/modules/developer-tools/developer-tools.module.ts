@@ -1,0 +1,33 @@
+export const developerToolsModuleManifest = {
+  capabilities: [
+    'floating-git-monitor',
+    'branch-compare',
+    'branch-create',
+    'commit',
+    'push',
+    'revert-commit',
+    'external-editor',
+    'file-browser',
+    'terminal-launch',
+    'global-settings',
+    'project-settings',
+  ],
+  dependencies: { 'zetro.developer-tools.api': '^0.2.0' },
+  id: 'zetro.developer-tools.web',
+  lifecycle: {
+    activate: 'Monitor the selected repository while Zetro is visible.',
+    deactivate: 'Stop polling and unmount developer tool controls.',
+    install: 'Load API-owned global and project settings.',
+    uninstall: 'Leave repositories and settings unchanged.',
+    upgrade: 'Add the shared web and desktop repository tool surface.',
+  },
+  publicContracts: [
+    'DeveloperToolsProvider',
+    'DeveloperToolsPanel',
+    'GlobalDeveloperToolSettings',
+    'ProjectDeveloperToolSettings',
+    'useDeveloperTools',
+  ],
+  scope: 'zetro-web',
+  version: '0.2.0',
+} as const

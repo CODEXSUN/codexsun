@@ -19,5 +19,6 @@ export type {
   MdiNavigationSection,
   MdiNotification,
   MdiPrimaryAction,
+  MdiSettingsContentProps,
   MdiUser,
 } from './mdi-types'

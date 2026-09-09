@@ -1,12 +1,13 @@
 {
   "name": "@codexsun/docs-contracts",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "main": "../../../dist/apps/docs/contracts/index.js",
   "types": "../../../dist/apps/docs/contracts/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/docs-contracts.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {

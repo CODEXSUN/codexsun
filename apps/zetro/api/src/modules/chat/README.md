@@ -3,16 +3,25 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.7.0`
+- Version: `0.10.0`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
 
 The response route requires a Zetro conversation ID. The service sends text and images through the public App Server client.
 
+## Dependency bindings
+
+- `zetro.codex-connection.api`: `^0.5.3`
+- `zetro.projects.api`: `^0.4.0`
+
 The required project ID scopes conversation lists and creation. The API resolves
 the registered repository before a provider turn. The conversation ID and
 project select an isolated worktree.
+
+Each conversation can store one workspace scope with an application label,
+module label, and repository-relative folder. A provider turn requires this
+scope. The API rejects root, missing, absolute, and out-of-project folders.
 
 The response route accepts a `workflow` value. Valid values are `deliver`, `develop`, `document`, `review`, and `test`. The route defaults to `develop` for older clients.
 
@@ -21,6 +30,13 @@ Delivery responses expose an expanded tool catalog for assignment, documentation
 A delivery response includes nine validated stage records. Each record contains its stage ID, status, evidence, and server timestamp.
 
 The web client sends the latest validated delivery record with the next turn. Codex can continue from that evidence and must recheck stale facts.
+
+## Turn stop
+
+`POST /api/v1/chat/responses/:conversationId/stop?projectId=...` stops the active
+provider turn. The API verifies that the conversation belongs to the project.
+The Codex connection then sends `turn/interrupt` with the active thread and turn
+IDs. A stop requested during turn startup runs when the turn ID becomes available.
 
 ## Archive and deletion
 
@@ -45,8 +61,10 @@ The API rejects permanent deletion for an active conversation. Archiving clears 
 The module stores conversations in `storage/app/private/zetro/conversations.json`. Writes replace the file atomically.
 
 Assistant messages can store optional execution metadata, the selected workflow,
-and a delivery record. Existing records receive the default project ID during
-repository initialization.
+and a delivery record. Every stored message includes its creation time. During
+repository initialization, existing messages receive their conversation creation
+time and existing records receive the default project ID. Existing conversations
+remain unscoped until the user connects a folder.
 
 The module has no tables, migrations, seeds, events, or jobs. Uninstall keeps conversation history unless a separate data removal flow runs.
 
@@ -60,4 +78,4 @@ Run the Zetro API typecheck, conversation tests, workflow tests, and worktree te
 
 ## Development records
 
-Future changes must be recorded in the [Zetro development records](../../../../../../assist/records/zetro/README.md).
+- [2026-09-09 Chat turn stop](../../../../../../assist/records/zetro/2026-09-09-chat-turn-stop.md)

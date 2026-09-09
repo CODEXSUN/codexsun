@@ -12,6 +12,7 @@ export interface DurableModuleRecord {
   manifestChecksum: string
   moduleId: string
   requestedVersion: string
+  schemaChecksum?: string
   state: DurableModuleState
   updatedAt: Date
 }

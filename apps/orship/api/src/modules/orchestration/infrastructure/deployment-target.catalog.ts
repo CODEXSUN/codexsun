@@ -15,7 +15,7 @@ export class DeploymentTargetCatalog implements OrchestrationTargetCatalog {
 
   async list(): Promise<readonly OrchestrationTarget[]> {
     const input: unknown = JSON.parse(
-      await readFile(join(this.projectRoot, 'deployments/catalog.json'), 'utf8'),
+      await readFile(join(this.projectRoot, '.container/catalog.json'), 'utf8'),
     )
     const catalog = deploymentCatalogSchema.parse(input)
 

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify'
 import { ZodError } from 'zod'
 import {
   createProjectSchema,
+  projectDirectoryQuerySchema,
   projectListQuerySchema,
   projectParametersSchema,
   updateProjectSchema,
@@ -19,6 +20,15 @@ export async function registerProjectRoutes(server: FastifyInstance, service: Pr
     try {
       const { archived } = projectListQuerySchema.parse(request.query)
       return { projects: service.list(archived) }
+    } catch (error) {
+      return handleProjectError(error, request, reply)
+    }
+  })
+
+  server.get('/api/v1/projects/directories', async (request, reply) => {
+    try {
+      const { path } = projectDirectoryQuerySchema.parse(request.query)
+      return await service.browseDirectories(path)
     } catch (error) {
       return handleProjectError(error, request, reply)
     }

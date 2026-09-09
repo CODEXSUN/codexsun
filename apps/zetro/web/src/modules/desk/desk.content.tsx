@@ -1,4 +1,12 @@
-import { Bot, ChevronRight, ListTodo, LoaderCircle, MessageSquare } from 'lucide-react'
+import {
+  Bot,
+  ChevronRight,
+  EllipsisVertical,
+  FolderKanban,
+  ListTodo,
+  LoaderCircle,
+  MessageSquare,
+} from 'lucide-react'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import {
@@ -9,10 +17,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@codexsun/ui/components/sidebar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@codexsun/ui/components/dropdown-menu'
+import { Button } from '@codexsun/ui/components/button'
 import { AgentChatHistory, AgentChatWorkspace, useAgentChat } from '../agent-chat'
 import { ProjectTaskList, ProjectTasksWorkspace, useProjectTasks } from '../project-tasks'
-import { ProjectSwitcher, useProjects } from '../projects'
+import { ProjectLogo, ProjectSwitcher, useProjects, type ZetroProject } from '../projects'
 import { useCodexConnection } from '../settings'
+import { DeveloperToolsPanel } from '../developer-tools'
+import { GitDeliveryFlowBuilder } from '../git-delivery'
 
 export function ZetroProjectSidebar() {
   const chat = useAgentChat()
@@ -29,13 +46,13 @@ export function ZetroProjectSidebar() {
   return (
     <div className="flex size-full min-h-0 flex-col">
       <TopologyRegion as="div" className="border-b p-2" id="15.2.4" topology={topology}>
-        {projects.activeProject ? (
-          <ProjectSwitcher disabled={chat.isBusy} />
-        ) : (
+        {projects.isLoading ? (
           <div className="flex h-12 items-center gap-2 px-2 text-sm text-muted-foreground">
-            {projects.isLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            {projects.isLoading ? 'Loading projects' : 'No project available'}
+            <LoaderCircle className="size-4 animate-spin" />
+            Loading projects
           </div>
+        ) : (
+          <ProjectSwitcher disabled={chat.isBusy} />
         )}
       </TopologyRegion>
       <TopologyRegion as="div" id="15.2.5" topology={topology}>
@@ -94,7 +111,7 @@ export function ZetroProjectWorkspace() {
   if (!activeProject) {
     return (
       <div className="grid size-full place-items-center px-6 text-sm text-destructive">
-        {error ?? 'No project is available.'}
+        {error ?? 'Connect a Git repository from the project switcher.'}
       </div>
     )
   }
@@ -103,7 +120,7 @@ export function ZetroProjectWorkspace() {
       <WorkspaceContextBar
         connectionState={isLoadingConnection ? 'checking' : (connection?.state ?? 'disconnected')}
         model={chat.model}
-        projectName={activeProject.name}
+        project={activeProject}
         title={
           view === 'tasks' && tasks.view === 'archive'
             ? 'Archived tasks'
@@ -111,10 +128,12 @@ export function ZetroProjectWorkspace() {
               ? 'Tasks'
               : 'Chat'
         }
+        onOpenScope={view === 'chat' ? () => void chat.openScope() : undefined}
       />
       <div className="min-h-0 flex-1">
         {view === 'tasks' ? <ProjectTasksWorkspace /> : <AgentChatWorkspace />}
       </div>
+      <DeveloperToolsPanel topContent={<GitDeliveryFlowBuilder />} />
     </div>
   )
 }
@@ -122,19 +141,22 @@ export function ZetroProjectWorkspace() {
 function WorkspaceContextBar({
   connectionState,
   model,
-  projectName,
+  project,
   title,
+  onOpenScope,
 }: {
   connectionState: 'checking' | 'connected' | 'disconnected' | 'error' | 'pending'
   model: string
-  projectName: string
+  project: ZetroProject
   title: string
+  onOpenScope?: () => void
 }) {
   const connected = connectionState === 'connected'
 
   return (
     <header className="flex h-11 shrink-0 items-center gap-3 border-b px-4 text-sm">
-      <span className="max-w-48 truncate text-muted-foreground">{projectName}</span>
+      <ProjectLogo className="size-5 rounded text-[9px]" project={project} />
+      <span className="max-w-48 truncate text-muted-foreground">{project.name}</span>
       <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="font-medium">{title}</span>
       <div
@@ -152,6 +174,27 @@ function WorkspaceContextBar({
         <span className="font-medium">Codex</span>
         <span className="text-muted-foreground">Model</span>
         <span className="font-medium">{model}</span>
+        {onOpenScope ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  aria-label="Chat actions"
+                  className="cursor-pointer"
+                  size="icon-xs"
+                  variant="ghost"
+                />
+              }
+            >
+              <EllipsisVertical />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onOpenScope}>
+                <FolderKanban /> Connected folder
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </div>
     </header>
   )

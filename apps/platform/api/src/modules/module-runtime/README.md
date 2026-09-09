@@ -8,7 +8,7 @@ The module owns durable Platform module state, migration history, seed history, 
 
 - Module ID: `module-runtime`
 - Kind: `core`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -43,17 +43,23 @@ The module owns durable Platform module state, migration history, seed history, 
 ## Persistence
 
 - Migrations: `module-runtime.migrations.ts` owns ordered schema changes.
+- Schema guard: `module-runtime.schema.ts` owns the current structural fingerprint.
 - Seeds: `module-runtime.seeds.ts` owns repeatable runtime self-registration.
 - Upgrade compatibility: Applied migration and seed checksums cannot change.
 
-Each persistent module must keep its migrations and seeds inside its own module folder. The composition root only supplies the database transaction adapter.
+Each persistent module must keep its migrations, seeds, and schema guard inside its own module folder. The framework manifest declares the schema version and checksum. Startup applies queued migrations, then compares live MariaDB column metadata with the declared checksum.
+
+The schema guard checks table names, column order, exact types, nullability, defaults, keys, and extra attributes. It does not checksum business rows.
 
 ## Verification
 
-- Unit tests cover dependency ordering, restart idempotency, checksum rejection, durable state, declared events, and diagnostics.
+- Unit tests cover dependency ordering, restart idempotency, migration checksum rejection, schema drift rejection, durable state, declared events, and diagnostics.
 - The production API lifecycle test covers the compiled server, degraded liveness while module preparation fails, readiness, signal and IPC shutdown, and port release.
-- A live MariaDB integration test remains required when a configured database is available.
+- `npm.cmd run test:mariadb:foundation` creates a PID-scoped test database. It verifies clean install, restart idempotency, schema drift rejection and repair, lock contention, rollback, recovery, and cleanup.
+- Live MariaDB proof passed with the configured application account. The test used administrator credentials only to create, grant, and remove the temporary database.
 
 ## Development records
 
 - [2026-09-08 Durable module runtime](../../../../../../assist/records/platform/2026-09-08-durable-module-runtime.md)
+- [2026-09-09 Pre-Identity hardening](../../../../../../assist/records/platform/2026-09-09-pre-identity-hardening.md)
+- [2026-09-09 Migration preflight and schema integrity](../../../../../../assist/records/platform/2026-09-09-migration-preflight-schema-integrity.md)

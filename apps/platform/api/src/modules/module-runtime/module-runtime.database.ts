@@ -12,6 +12,7 @@ export interface ModuleRuntimeStateTable {
   module_id: string
   requested_version: string
   runtime_state: string
+  schema_checksum: string | null
   updated_at: DatabaseTimestamp
 }
 

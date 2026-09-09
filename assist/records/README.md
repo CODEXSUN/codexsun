@@ -4,6 +4,7 @@ Development records explain completed changes and their integration decisions. T
 
 ## Applications
 
+- [DevKit](devkit/README.md)
 - [Docs](docs/README.md)
 - [Orship](orship/README.md)
 - [Platform](platform/README.md)

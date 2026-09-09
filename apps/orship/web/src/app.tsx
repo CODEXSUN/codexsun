@@ -1,8 +1,12 @@
 import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
-import { Activity, Network } from 'lucide-react'
-import { OrchestrationWorkspace } from './modules/orchestration'
+import { Button } from '@codexsun/ui/components/button'
+import { Activity, Network, Settings2 } from 'lucide-react'
+import { useState } from 'react'
+import { CloudSettingsWorkspace, OrchestrationWorkspace } from './modules/orchestration'
 
 export function App() {
+  const [workspace, setWorkspace] = useState<'cloud-settings' | 'services'>('services')
+
   return (
     <MdiMain
       applicationIcon={Network}
@@ -12,16 +16,37 @@ export function App() {
         {
           defaultOpen: true,
           label: 'Operations',
-          items: [{ active: true, icon: Activity, label: 'Live services' }],
+          items: [
+            {
+              active: workspace === 'services',
+              icon: Activity,
+              label: 'Live services',
+              onSelect: () => setWorkspace('services'),
+            },
+          ],
         },
       ]}
       notificationCount={0}
       primaryAction={null}
       searchPlaceholder="Search services"
+      sidebarFooter={
+        <Button
+          className="w-full justify-start"
+          onClick={() => setWorkspace('cloud-settings')}
+          variant="ghost"
+        >
+          <Settings2 />
+          Deployment targets
+        </Button>
+      }
       statusLabel="Live orchestration"
       workspaceTitle="Orship"
     >
-      <OrchestrationWorkspace />
+      {workspace === 'services' ? (
+        <OrchestrationWorkspace onOpenDeploymentSettings={() => setWorkspace('cloud-settings')} />
+      ) : (
+        <CloudSettingsWorkspace onBack={() => setWorkspace('services')} />
+      )}
     </MdiMain>
   )
 }

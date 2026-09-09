@@ -32,7 +32,7 @@ Do not start implementation until this onboarding is complete.
 - `packages/runtime` owns deployment catalog validation, dependency resolution, and immutable assembly plans.
 - `packages/ui` owns shared web UI primitives, templates, hooks, tokens, and Tailwind theme assets.
 - `packages/addons` owns independently shipped reusable add-ons after their public contracts become stable.
-- `deployments` owns the deployable catalog, customer profiles, and common container templates.
+- `.container` owns the deployable catalog, customer profiles, and common container templates.
 - `assist` owns project context, architecture decisions, and local skill guides.
 - Future product apps use `apps/<product>/{api,web,desktop,mobile}`.
 
@@ -51,13 +51,18 @@ Do not start implementation until this onboarding is complete.
 - Use root preflight commands for local servers. Do not start a service when its configured port is occupied.
 - Keep API and web ports in the 6000 series. The defaults are API `6010` and web `6021`.
 - Keep API shutdown safe for `SIGINT`, `SIGTERM`, and supervisor IPC.
+- Give each readiness probe a module owner, a safe failure message, and a bounded timeout.
+- Keep actor and authorization contracts neutral. Identity owns roles, permissions, sessions, and policy.
+- Keep application environment schemas with their application. Use the shared parser for consistent validation.
+- Load the root `.env` through `PlatformEnvironmentLoader`. Process values override file values, and explicit aliases precede safe defaults.
+- Keep MariaDB administrator credentials in setup tools only. Application runtimes must use a database-scoped application account.
 - Keep process control local and fail closed. A stop action requires a matching root-owned process marker; orchestration components must protect themselves from self-stop.
 - Keep files focused, use strict TypeScript, and avoid speculative abstractions.
 - Keep every authored source and documentation file at 700 lines or fewer.
 - Every module needs its own README and an entry in `assist/modules/<app>.md`.
 - Do not centralize business entities, CRUD behavior, schemas, forms, routes, or workflows.
 - Treat each module as an installable versioned unit with explicit dependencies and lifecycle behavior.
-- Register every deployable application and process component in `deployments/catalog.json`.
+- Register every deployable application and process component in `.container/catalog.json`.
 - Use the `development` profile for the complete local application set. Use versioned customer profiles to select or omit applications and add-ons without changing their source.
 - Treat one generated Compose project as the deployment unit and keep one API, web server, or worker process per container.
 - Keep secrets out of deployment profiles. Supply them through `environment.env` or the deployment secret manager.
@@ -83,12 +88,16 @@ npm.cmd run check:lines
 npm.cmd run check:app-docs
 npm.cmd run check:module-docs
 npm.cmd run check:module-boundaries
+npm.cmd run check:module-dependencies
 npm.cmd run check:workspace-layout
+npm.cmd run check:versions
 npm.cmd run check:build-output
 npm.cmd run runtime:validate
 npm.cmd run test:framework
 npm.cmd run test:runtime-holder
 npm.cmd run test:e2e:server
+npm.cmd run test:mariadb:foundation
+npm.cmd run runtime:smoke -- platform-only
 npm.cmd run check
 git diff --check
 ```

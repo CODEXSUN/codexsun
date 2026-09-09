@@ -1,112 +1,116 @@
 import { Badge } from '@codexsun/ui/components/badge'
-import { Button } from '@codexsun/ui/components/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@codexsun/ui/components/table'
-import { Play, Square } from 'lucide-react'
-import type { ServiceAction, ServiceSnapshot } from './orchestration.types'
+import { ArrowRight, Radio } from 'lucide-react'
+import type { ServiceSnapshot } from './orchestration.types'
 
-type OrchestrationListProps = {
-  actionPending: boolean
-  selectedId?: string
+type ApplicationGroup = {
+  applicationId: string
   services: readonly ServiceSnapshot[]
-  onAction: (serviceId: string, action: ServiceAction) => void
-  onSelect: (serviceId: string) => void
 }
 
 export function OrchestrationList({
-  actionPending,
-  selectedId,
   services,
-  onAction,
   onSelect,
-}: OrchestrationListProps) {
+}: {
+  services: readonly ServiceSnapshot[]
+  onSelect: (applicationId: string) => void
+}) {
+  const groups = groupServices(services)
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Service</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Latency</TableHead>
-          <TableHead>Memory</TableHead>
-          <TableHead>Uptime</TableHead>
-          <TableHead className="w-28 text-right">Control</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {services.map((service) => (
-          <TableRow
-            data-state={selectedId === service.id ? 'selected' : undefined}
-            key={service.id}
-          >
-            <TableCell>
-              <button
-                className="flex w-full cursor-pointer items-center gap-3 text-left"
-                onClick={() => onSelect(service.id)}
-                type="button"
-              >
-                <span className={`size-2.5 shrink-0 rounded-full ${statusColor(service.state)}`} />
-                <span className="min-w-0">
-                  <span className="block font-medium">{service.id}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {service.applicationId} · {service.kind} · :{service.port}
-                  </span>
-                </span>
-              </button>
-            </TableCell>
-            <TableCell>
-              <Badge variant={service.state === 'offline' ? 'outline' : 'secondary'}>
-                {service.state}
-              </Badge>
-            </TableCell>
-            <TableCell>{service.latencyMs === null ? '—' : `${service.latencyMs} ms`}</TableCell>
-            <TableCell>{formatBytes(service.memoryBytes)}</TableCell>
-            <TableCell>{formatDuration(service.uptimeSeconds)}</TableCell>
-            <TableCell className="text-right">
-              {service.controllable ? (
-                <Button
-                  aria-label={`${service.state === 'offline' ? 'Start' : 'Stop'} ${service.id}`}
-                  disabled={actionPending}
-                  onClick={() =>
-                    onAction(service.id, service.state === 'offline' ? 'start' : 'stop')
-                  }
-                  size="icon-sm"
-                  variant={service.state === 'offline' ? 'outline' : 'ghost'}
-                >
-                  {service.state === 'offline' ? <Play /> : <Square />}
-                </Button>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  {service.protected ? 'Protected' : 'Read only'}
-                </span>
-              )}
-            </TableCell>
-          </TableRow>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">Service desk</p>
+          <p className="text-sm text-muted-foreground">
+            Select an application to inspect its combined runtime report and component logs.
+          </p>
+        </div>
+        <p className="font-mono text-xs text-muted-foreground">
+          {services.length} monitored processes
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {groups.map((group) => (
+          <ApplicationCard group={group} key={group.applicationId} onSelect={onSelect} />
         ))}
-      </TableBody>
-    </Table>
+      </div>
+    </div>
   )
 }
 
+function ApplicationCard({
+  group,
+  onSelect,
+}: {
+  group: ApplicationGroup
+  onSelect: (applicationId: string) => void
+}) {
+  const online = group.services.filter((service) => service.state === 'online').length
+
+  return (
+    <button
+      aria-label={`Open ${group.applicationId} combined service report`}
+      className="w-full cursor-pointer overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-foreground/25 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={() => onSelect(group.applicationId)}
+      type="button"
+    >
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3">
+        <div>
+          <h2 className="font-semibold capitalize">{group.applicationId}</h2>
+          <p className="text-xs text-muted-foreground">Application runtime</p>
+        </div>
+        <Badge variant="outline">
+          {online}/{group.services.length} online
+        </Badge>
+      </header>
+      <div className="divide-y divide-border">
+        {group.services.map((service) => (
+          <div className="flex w-full items-center gap-3 px-4 py-3" key={service.id}>
+            <span className={`size-2.5 shrink-0 rounded-full ${statusColor(service.state)}`} />
+            <Radio className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-2">
+                <strong className="text-sm font-semibold uppercase">{service.kind}</strong>
+                <span className="font-mono text-xs text-muted-foreground">:{service.port}</span>
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">{service.id}</span>
+            </span>
+            <Badge
+              className="shrink-0"
+              variant={service.state === 'offline' ? 'outline' : 'secondary'}
+            >
+              {service.state}
+            </Badge>
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          </div>
+        ))}
+      </div>
+    </button>
+  )
+}
+
+function groupServices(services: readonly ServiceSnapshot[]): ApplicationGroup[] {
+  const groups = new Map<string, ServiceSnapshot[]>()
+  for (const service of services) {
+    const group = groups.get(service.applicationId) ?? []
+    group.push(service)
+    groups.set(service.applicationId, group)
+  }
+  return [...groups].map(([applicationId, groupedServices]) => ({
+    applicationId,
+    services: groupedServices.sort((left, right) => serviceOrder(left) - serviceOrder(right)),
+  }))
+}
+
+function serviceOrder(service: ServiceSnapshot): number {
+  if (service.kind === 'api') return 0
+  if (service.kind === 'web') return 1
+  return 2
+}
+
 function statusColor(state: ServiceSnapshot['state']): string {
-  if (state === 'online') return 'bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129/0.12)]'
-  if (state === 'degraded') return 'bg-amber-500 shadow-[0_0_0_3px_rgb(245_158_11/0.12)]'
+  if (state === 'online') return 'bg-emerald-500'
+  if (state === 'degraded') return 'bg-amber-500'
   return 'bg-muted-foreground/40'
-}
-
-function formatBytes(bytes: number | null): string {
-  if (bytes === null) return '—'
-  return `${(bytes / 1_048_576).toFixed(1)} MB`
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null) return '—'
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3_600) return `${Math.floor(seconds / 60)}m`
-  return `${Math.floor(seconds / 3_600)}h ${Math.floor((seconds % 3_600) / 60)}m`
 }

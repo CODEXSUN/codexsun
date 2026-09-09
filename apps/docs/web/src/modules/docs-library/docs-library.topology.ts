@@ -44,6 +44,13 @@ export const docsTopologySections: readonly InterfaceTopologySection[] = [
     description: 'Shows linked notes, backlinks, and tag-related documents.',
   },
   {
+    id: '10.2.4',
+    technicalName: 'docs.reader.documentNavigation',
+    name: 'Document navigation',
+    scope: 'Reader canvas',
+    description: 'Opens the previous or next document in the repository index order.',
+  },
+  {
     id: '10.3',
     technicalName: 'docs.overview.banner',
     name: 'Docs overview banner',

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "cacheDir": "node_modules/.cache/turbo",
+  "globalEnv": [
+    "APP_ENV",
+    "NODE_ENV",
+    "VITE_DEVKIT_API_URL",
+    "VITE_DOCS_API_URL",
+    "VITE_ORSHIP_API_URL",
+    "VITE_PLATFORM_API_URL",
+    "VITE_ZETRO_API_URL"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "outputLogs": "new-only"
+    },
+    "lint": {
+      "outputs": [],
+      "outputLogs": "new-only"
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "outputLogs": "new-only"
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": [],
+      "outputLogs": "new-only"
+    }
+  }
+}

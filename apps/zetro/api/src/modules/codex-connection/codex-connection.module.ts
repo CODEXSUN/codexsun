@@ -12,8 +12,10 @@ export const codexConnectionModuleManifest = {
     'codex-device-login',
     'codex-logout',
     'codex-turns',
+    'codex-turn-interrupt',
     'ephemeral-codex-threads',
     'isolated-git-worktrees',
+    'scoped-working-directory',
     'coding-tools',
     'task-workflows',
     'governed-delivery-pipeline',
@@ -26,7 +28,7 @@ export const codexConnectionModuleManifest = {
     deactivate: 'Close the local Codex App Server process.',
     install: 'No Zetro credentials or persistent records are created.',
     uninstall: 'Leave Codex-managed credentials untouched.',
-    upgrade: 'Version 0.5.1 adds safe Windows command discovery without a data migration.',
+    upgrade: 'Version 0.5.3 can interrupt an active Codex turn.',
   },
   publicContracts: [
     'GET /api/v1/settings/codex',
@@ -36,7 +38,7 @@ export const codexConnectionModuleManifest = {
     'CodexAppServerClient',
   ],
   scope: 'zetro-api',
-  version: '0.5.1',
+  version: '0.5.3',
 } as const
 
 export async function registerCodexConnectionModule(

@@ -18,15 +18,17 @@ export const docsLibraryModuleManifest = {
     deactivate: 'Stops Docs route handling with the API runtime.',
     install: 'Creates the docs_documents index when an administrator requests a sync.',
     uninstall: 'Does not remove source vault files or indexed documents automatically.',
-    upgrade: 'Version 0.1.0 has one additive, repeatable index migration.',
+    upgrade: 'Version 0.1.1 indexes repository Markdown and MDX sources.',
   },
   publicContracts: [
+    'GET /api/docs/v1/assets/:path',
     'GET /api/docs/v1/documents',
     'GET /api/docs/v1/documents/:slug',
+    'PUT /api/docs/v1/documents/:slug',
     'POST /api/docs/v1/index/sync',
   ],
   scope: 'docs',
-  version: '0.1.0',
+  version: '0.1.1',
 } as const
 
 export async function registerDocsLibraryModule(

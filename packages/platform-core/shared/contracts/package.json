@@ -1,12 +1,13 @@
 {
   "name": "@codexsun/platform-contracts",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.8",
   "type": "module",
   "main": "../../../dist/packages/platform-core/shared/contracts/index.js",
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../../../node_modules/.cache/eslint/platform-contracts.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {

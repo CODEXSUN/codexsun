@@ -5,6 +5,7 @@ import { copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/p
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { DeploymentPlanner, renderDockerCompose } from '../dist/packages/runtime/index.js'
 import { startLocalDeployment } from './runtime-local.mjs'
+import { hiddenWindowsProcessOptions } from './service-lifecycle.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '..')
 const command = process.argv[2] ?? 'validate'
@@ -37,9 +38,9 @@ if (command === 'validate') {
 }
 
 async function loadPlan(selectedProfileId) {
-  const catalog = await readJson(join(projectRoot, 'deployments/catalog.json'))
+  const catalog = await readJson(join(projectRoot, '.container/catalog.json'))
   const profile = await readJson(
-    join(projectRoot, 'deployments/profiles', `${selectedProfileId}.json`),
+    join(projectRoot, '.container/profiles', `${selectedProfileId}.json`),
   )
   return new DeploymentPlanner(catalog).createPlan(profile)
 }
@@ -150,6 +151,7 @@ function collectExternalDependencies(target, source = {}) {
 function runWorkspaceBuild(workspace, buildEnvironment) {
   const { argumentsList, executable } = npmCommand(['run', 'build', '--workspace', workspace])
   const result = spawnSync(executable, argumentsList, {
+    ...hiddenWindowsProcessOptions,
     cwd: projectRoot,
     encoding: 'utf8',
     env: { ...process.env, ...buildEnvironment },
@@ -169,6 +171,7 @@ function createProductionLock(root) {
     '--no-audit',
   ])
   const result = spawnSync(executable, argumentsList, {
+    ...hiddenWindowsProcessOptions,
     cwd: root,
     encoding: 'utf8',
     stdio: 'inherit',

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { createPlatformLogger } from '@codexsun/platform-core-api'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { buildPlatformApi } from './app.js'
@@ -81,12 +82,9 @@ function isMainModule(): boolean {
 
 if (isMainModule()) {
   startPlatformApi().catch((error: unknown) => {
-    process.stderr.write(
-      `${JSON.stringify({
-        level: 'fatal',
-        message: 'platform API startup failed',
-        error: error instanceof Error ? error.message : String(error),
-      })}\n`,
+    createPlatformLogger({ application: 'platform', component: 'platform-api' }).fatal(
+      { err: error },
+      'platform-api startup failed',
     )
     process.exitCode = 1
   })

@@ -1,7 +1,15 @@
-import { useState, type FormEvent } from 'react'
-import { CheckCircle2, Circle, CircleDot, LoaderCircle } from 'lucide-react'
+import { useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
+import { CheckCircle2, Circle, CircleDot, ListTree, LoaderCircle, ScanSearch } from 'lucide-react'
 import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@codexsun/ui/components/dropdown-menu'
 import { Input } from '@codexsun/ui/components/input'
 import { Textarea } from '@codexsun/ui/components/textarea'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
@@ -123,7 +131,12 @@ function TaskDetails({ task }: { task: ZetroTask }) {
           </div>
           <h1 className="pt-2 text-2xl font-semibold tracking-tight">{task.title}</h1>
         </div>
-        <Badge variant="outline">{task.priority} priority</Badge>
+        <div className="flex shrink-0 items-center gap-1">
+          <TaskPlanningActions />
+          <Badge className="ml-2" variant="outline">
+            {task.priority} priority
+          </Badge>
+        </div>
       </header>
 
       <section className="border-b py-6">
@@ -152,6 +165,54 @@ function TaskDetails({ task }: { task: ZetroTask }) {
   )
 }
 
+function TaskPlanningActions() {
+  return (
+    <>
+      <PlanningMenu icon={ScanSearch} label="Review task">
+        <DropdownMenuItem disabled>Review workflow binding follows</DropdownMenuItem>
+      </PlanningMenu>
+      <PlanningMenu icon={ListTree} label="Split task">
+        <DropdownMenuItem disabled>Split into phases</DropdownMenuItem>
+        <DropdownMenuItem disabled>Split into subtasks</DropdownMenuItem>
+      </PlanningMenu>
+    </>
+  )
+}
+
+function PlanningMenu({
+  children,
+  icon: Icon,
+  label,
+}: {
+  children: ReactNode
+  icon: ComponentType<{ className?: string }>
+  label: string
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            aria-label={label}
+            className="cursor-pointer"
+            size="icon-sm"
+            title={label}
+            variant="ghost"
+          />
+        }
+      >
+        <Icon />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{label}</DropdownMenuLabel>
+          {children}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function TaskField({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -164,7 +225,7 @@ function TaskField({ label, value }: { label: string; value: string }) {
 function statusLabel(status: TaskStatus) {
   if (status === 'in_progress') return 'In progress'
   if (status === 'done') return 'Done'
-  return 'To do'
+  return 'Waiting to start'
 }
 
 function nextActionLabel(status: TaskStatus) {

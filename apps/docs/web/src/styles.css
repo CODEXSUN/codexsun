@@ -110,8 +110,7 @@ body,
   display: grid;
   align-items: start;
   gap: calc(var(--spacing) * 12);
-  grid-template-columns: minmax(0, 75ch) minmax(12rem, 16rem);
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem);
 }
 
 .docs-outline {

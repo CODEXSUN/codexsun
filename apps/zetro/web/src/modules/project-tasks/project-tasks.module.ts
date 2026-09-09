@@ -5,15 +5,16 @@ export const projectTasksModuleManifest = {
     'project-task-status',
     'project-task-actions',
     'project-task-archive',
+    'project-task-planning-actions',
   ],
-  dependencies: { 'zetro.projects.web': '^0.1.0', 'zetro.tasks.api': '^0.3.0' },
+  dependencies: { 'zetro.projects.web': '^0.5.0', 'zetro.tasks.api': '^0.3.0' },
   id: 'zetro.project-tasks.web',
   lifecycle: {
     activate: 'Load selected-project tasks and mount the task workspace.',
     deactivate: 'Unmount task controls and discard transient form state.',
     install: 'No browser business data is created.',
     uninstall: 'No API task records are removed.',
-    upgrade: 'Version 0.3.0 adds hover actions and archived task restore.',
+    upgrade: 'Version 0.4.0 adds waiting-state labels and task planning actions.',
   },
   publicContracts: [
     'ProjectTasksProvider',
@@ -22,5 +23,5 @@ export const projectTasksModuleManifest = {
     'useProjectTasks',
   ],
   scope: 'zetro-web',
-  version: '0.3.0',
+  version: '0.4.1',
 } as const

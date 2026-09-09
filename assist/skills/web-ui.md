@@ -1,13 +1,27 @@
 # Web UI Skill
 
-Use this guide for work in `apps/platform/web` and future product web apps.
+## Use this when
+
+Use this guide for any `apps/<app>/web` change. Match React workspaces, routes,
+navigation, browser state, loading states, shared UI composition, and MDI layout use.
+
+Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentation page.
 
 ## Responsibilities
 
 - Keep React views, client routing, client state, and browser interactions in the owning web application.
 - Put reusable web UI primitives, application layouts, composition-ready templates, hooks, and theme assets in `packages/ui`.
 - Use `@codexsun/ui/layouts/mdi-main` as the base frame for CODEXSUN web applications. Keep each application's workspace content in its owning app.
+- Use labeled MDI navigation sections for grouped links. Indent child links on the
+  shared vertical rail instead of drawing application-specific menu trees.
+- Keep the MDI primary action close to the command bar. Use the primary action group's
+  standard inset instead of adding top padding to the complete sidebar content area.
+- Use the neutral secondary button tone for the MDI Overview action. Keep its text on
+  the standard foreground color instead of using the black primary treatment.
+- Supply a related icon for each labeled navigation section. Use the shared smooth
+  collapse motion and preserve reduced-motion behavior.
 - Supply application identity, navigation contributions, search copy, and user actions through the MDI layout contract. Do not recreate top menus, app switchers, profile popovers, feature settings, or status bars inside applications.
+- Keep the HTML document title equal to the application name supplied to the shared MDI layout.
 - Put colors, spacing, typography, and other visual values in `packages/ui/src/tokens`.
 - Use Tailwind CSS and shadcn/ui conventions. Configure each app `components.json` to install reusable items in `packages/ui`; keep application composition in the app.
 - Use `@codexsun/ui/templates/ui-page` for UI component and block documentation.

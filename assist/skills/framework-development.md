@@ -1,6 +1,12 @@
 # Framework Development Skill
 
-Use this guide for changes to `packages/framework` or shared runtime contracts in `packages/platform-core`.
+## Use this when
+
+Use this guide for `packages/framework`, `packages/platform-core`, shared runtime
+contracts, module lifecycle, or public versioned capability changes.
+
+Do not use it for application business behavior. Read [Modular Monolith](modular-monolith.md)
+when a business module consumes the capability.
 
 ## Before code
 

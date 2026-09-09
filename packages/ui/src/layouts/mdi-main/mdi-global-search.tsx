@@ -133,7 +133,7 @@ function NavigationGroup({
   navigation: MdiNavigationSection[]
   onClose: () => void
 }) {
-  const items = navigation.flatMap((section) => section.items)
+  const items = navigation.flatMap((section) => getNavigationLeaves(section.items))
   if (items.length === 0) return null
 
   return (
@@ -143,6 +143,13 @@ function NavigationGroup({
       ))}
     </CommandGroup>
   )
+}
+
+function getNavigationLeaves(items: MdiNavigationItem[]): MdiNavigationItem[] {
+  return items.flatMap((item) => {
+    const children = item.children ?? []
+    return children.length > 0 ? getNavigationLeaves(children) : [item]
+  })
 }
 
 function ApplicationGroup({ apps, onClose }: { apps: MdiAppItem[]; onClose: () => void }) {

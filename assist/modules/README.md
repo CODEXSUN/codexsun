@@ -1,7 +1,15 @@
 # Module Catalog
 
-This folder contains one catalog file for each application. A catalog records module identity, version, composition status, and a link to the module README.
+Each catalog identifies module ownership, version, status, and the authoritative
+source README. Do not copy module behavior into a catalog.
 
-Do not copy module behavior into this catalog. The README beside the module source remains authoritative.
+| Application | Catalog                    |
+| ----------- | -------------------------- |
+| Platform    | [platform.md](platform.md) |
+| Docs        | [docs.md](docs.md)         |
+| DevKit      | [devkit.md](devkit.md)     |
+| Zetro       | [zetro.md](zetro.md)       |
+| Orship      | [orship.md](orship.md)     |
 
-Create `assist/modules/<app>.md` before the first module for an application. Keep one row for each backend or frontend module pair.
+Create `assist/modules/<app>.md` before an application gains its first module.
+Keep one row for each backend or frontend module pair.

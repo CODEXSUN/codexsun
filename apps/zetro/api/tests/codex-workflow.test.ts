@@ -75,6 +75,7 @@ test('stored execution records without a workflow default to develop', () => {
       {
         attachments: [],
         content: 'Completed.',
+        createdAt: '2026-09-09T02:00:00.000Z',
         execution: {
           activities: [],
           isolation: 'ephemeral-thread',

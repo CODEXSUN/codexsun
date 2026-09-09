@@ -152,6 +152,7 @@ export class MariaDbModuleRuntimeRepository implements ModuleRuntimeRepository {
       module_id: record.moduleId,
       requested_version: record.requestedVersion,
       runtime_state: record.state,
+      schema_checksum: record.schemaChecksum ?? null,
       updated_at: record.updatedAt,
     }
     await this.database
@@ -172,6 +173,7 @@ function mapModuleRecord(row: {
   module_id: string
   requested_version: string
   runtime_state: string
+  schema_checksum: string | null
   updated_at: Date
 }): DurableModuleRecord {
   return {
@@ -183,6 +185,7 @@ function mapModuleRecord(row: {
     manifestChecksum: row.manifest_checksum,
     moduleId: row.module_id,
     requestedVersion: row.requested_version,
+    schemaChecksum: row.schema_checksum ?? undefined,
     state: row.runtime_state as DurableModuleState,
     updatedAt: row.updated_at,
   }

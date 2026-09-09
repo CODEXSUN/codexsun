@@ -2,7 +2,8 @@
   "name": "codexsun",
   "private": true,
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.8",
+  "packageManager": "npm@12.0.2",
   "workspaces": [
     "apps/*/*",
     "packages/*",
@@ -10,7 +11,8 @@
     "packages/*/*/*"
   ],
   "scripts": {
-    "dev": "npm run runtime:start -- development",
+    "dev": "npm run runtime:start -- main-development",
+    "dev:all": "npm run runtime:start -- development",
     "dev:api": "node tools/preflight.mjs platform-api",
     "dev:web": "node tools/preflight.mjs platform-web",
     "start:api": "npm run start --workspace @codexsun/platform-api",
@@ -23,6 +25,9 @@
     "dev:zetro": "node tools/dev-stack.mjs zetro",
     "dev:zetro-api": "node tools/preflight.mjs zetro-api",
     "dev:zetro-web": "node tools/preflight.mjs zetro-web",
+    "desktop:zetro:dev": "npm run dev --workspace @codexsun/zetro-desktop",
+    "desktop:zetro:msi": "npm run bundle:msi --workspace @codexsun/zetro-desktop",
+    "logs:failures": "node tools/runtime-failures.mjs",
     "version:show": "node tools/version/version.mjs show",
     "version:bump": "node tools/version-bump.mjs",
     "changelog:append": "node tools/version/version.mjs append",
@@ -30,18 +35,23 @@
     "github:now": "node tools/github-helper.mjs",
     "github:ssh-key": "node tools/github-ssh-key.mjs",
     "build": "npm run build:workspaces && npm run check:build-output",
-    "build:workspaces": "npm run build --workspaces --if-present",
+    "build:workspaces": "node tools/run-turbo.mjs run build",
     "build:api": "npm run build --workspace @codexsun/framework && npm run build --workspace @codexsun/platform-contracts && npm run build --workspace @codexsun/platform-core-api && npm run build --workspace @codexsun/platform-api",
     "build:zetro": "npm run build --workspace @codexsun/zetro-web && npm run build --workspace @codexsun/zetro-api",
-    "test:zetro": "npm run test:connection --workspace @codexsun/zetro-api && npm run test:history --workspace @codexsun/zetro-api && npm run test:projects --workspace @codexsun/zetro-api && npm run test:tasks --workspace @codexsun/zetro-api && npm run test:workflow --workspace @codexsun/zetro-api && npm run test:worktree --workspace @codexsun/zetro-api",
+    "test:zetro": "npm run test --workspace @codexsun/zetro-web && npm run test:connection --workspace @codexsun/zetro-api && npm run test:developer-tools --workspace @codexsun/zetro-api && npm run test:git-delivery --workspace @codexsun/zetro-api && npm run test:chat-service --workspace @codexsun/zetro-api && npm run test:history --workspace @codexsun/zetro-api && npm run test:projects --workspace @codexsun/zetro-api && npm run test:tasks --workspace @codexsun/zetro-api && npm run test:workflow --workspace @codexsun/zetro-api && npm run test:worktree --workspace @codexsun/zetro-api",
     "test:orship": "npm run test --workspace @codexsun/orship-api",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "eslint .",
+    "typecheck": "node tools/run-turbo.mjs run typecheck",
+    "lint": "node tools/run-turbo.mjs run lint && npm run lint:root",
+    "lint:root": "eslint eslint.config.js tools --cache --cache-location node_modules/.cache/eslint/root.eslintcache",
+    "test:workspaces": "node tools/run-turbo.mjs run test",
+    "test:tooling": "node --test tools/turbo-config.test.mjs tools/version-bump.test.mjs",
+    "ci:affected": "node tools/run-turbo.mjs run lint typecheck test build --affected --filter=!//",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "check:lines": "node tools/check-file-lengths.mjs",
     "check:module-docs": "node tools/check-module-documentation.mjs",
     "check:module-boundaries": "node tools/check-module-boundaries.mjs",
+    "check:module-dependencies": "node tools/check-module-dependencies.mjs",
     "check:app-docs": "node tools/check-application-documentation.mjs",
     "check:workspace-layout": "node tools/check-workspace-layout.mjs",
     "check:build-output": "node tools/check-build-output.mjs",
@@ -53,19 +63,28 @@
     "runtime:build": "npm run runtime:prepare && node tools/runtime-holder.mjs build",
     "runtime:component": "npm run runtime:prepare && node tools/runtime-holder.mjs build-component",
     "runtime:start": "npm run runtime:prepare && node tools/runtime-holder.mjs start",
-    "test:runtime-holder": "npm run runtime:prepare && node --test tools/runtime-holder.test.mjs",
+    "runtime:smoke": "npm run runtime:prepare && node tools/runtime-profile-smoke.mjs",
+    "test:runtime-holder": "npm run runtime:prepare && node --test tools/runtime-holder.test.mjs tools/runtime-log-capture.test.mjs tools/service-lifecycle.test.mjs",
     "test:platform-runtime": "npm run build:api && node --test tools/platform-core-api.test.mjs tools/platform-module-runtime.test.mjs",
+    "mariadb:setup": "npm run build --workspace @codexsun/platform-core-api && node tools/mariadb-setup.mjs",
+    "mariadb:smoke": "npm run build --workspace @codexsun/platform-core-api && node tools/mariadb-smoke.mjs",
+    "test:mariadb:foundation": "npm run build --workspace @codexsun/platform-core-api && node --import tsx tools/platform-mariadb.integration.mjs",
     "test:platform-web": "npm run build --workspace @codexsun/platform-core-web && node --test tools/platform-web-composition.test.mjs",
     "test:e2e:server": "npm run build:api && node --test tools/platform-api-composition.test.mjs tools/e2e/server-lifecycle.e2e.mjs",
-    "check": "npm run check:workspace-layout && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run check:module-boundaries && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:framework && npm run test:runtime-holder && npm run test:orship && npm run test:platform-runtime && npm run test:platform-web && npm run test:e2e:server"
+    "check": "npm run check:workspace-layout && npm run check:versions && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run check:module-boundaries && npm run check:module-dependencies && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:tooling && npm run test:framework && npm run test:runtime-holder && npm run test:orship && npm run test:zetro && npm run test:platform-runtime && npm run test:platform-web && npm run test:e2e:server"
   },
   "devDependencies": {
     "@eslint/js": "latest",
     "eslint": "latest",
     "eslint-config-prettier": "latest",
+    "dotenv": "latest",
     "fastify": "^5.12.3",
     "globals": "latest",
+    "mysql2": "^3.23.4",
+    "pino-pretty": "^13.1.3",
     "prettier": "latest",
+    "turbo": "^2.10.12",
+    "zod": "^4.4.3",
     "typescript-eslint": "latest"
   },
   "engines": {
@@ -73,6 +92,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
-    "msgpackr-extract@3.0.4": true
+    "msgpackr-extract@3.0.4": true,
+    "protobufjs@7.6.6": true
   }
 }

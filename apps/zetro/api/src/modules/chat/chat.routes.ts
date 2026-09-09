@@ -14,6 +14,7 @@ import {
   updateConversationSchema,
 } from './chat.schema.js'
 import type { ChatService } from './chat.service.js'
+import { InvalidChatWorkspaceScopeError, validateChatWorkspaceScope } from './chat.scope.js'
 import { ProjectNotFoundError, type ProjectService } from '../projects/index.js'
 
 export async function registerChatRoutes(
@@ -30,7 +31,11 @@ export async function registerChatRoutes(
       if (conversation.projectId !== project.id) {
         return reply.code(409).send({ error: 'Conversation does not belong to this project.' })
       }
-      return await service.respond({ ...input, projectRoot: project.repositoryPath })
+      if (!conversation.scope) {
+        return reply.code(409).send({ error: 'Connect this chat to a project folder first.' })
+      }
+      const scope = await validateChatWorkspaceScope(project.repositoryPath, conversation.scope)
+      return await service.respond({ ...input, projectRoot: project.repositoryPath, scope })
     } catch (error) {
       if (error instanceof ZodError) {
         return reply.code(400).send({ error: 'Invalid chat request.', issues: error.issues })
@@ -38,6 +43,10 @@ export async function registerChatRoutes(
 
       if (error instanceof ChatProviderError) {
         return reply.code(error.statusCode).send({ error: error.message })
+      }
+
+      if (error instanceof InvalidChatWorkspaceScopeError) {
+        return reply.code(400).send({ error: error.message })
       }
 
       request.log.error(error)
@@ -50,6 +59,20 @@ export async function registerChatRoutes(
       const { archived, projectId } = conversationListQuerySchema.parse(request.query)
       projects.get(projectId)
       return { conversations: conversations.list(projectId, archived) }
+    } catch (error) {
+      return handleConversationError(error, request, reply)
+    }
+  })
+
+  server.post('/api/v1/chat/responses/:conversationId/stop', async (request, reply) => {
+    try {
+      const { conversationId } = conversationParametersSchema.parse(request.params)
+      const { projectId } = conversationListQuerySchema.parse(request.query)
+      projects.get(projectId)
+      if (conversations.get(conversationId).projectId !== projectId) {
+        return reply.code(404).send({ error: 'Conversation not found.' })
+      }
+      return { stopped: await service.stop(conversationId) }
     } catch (error) {
       return handleConversationError(error, request, reply)
     }
@@ -81,9 +104,18 @@ export async function registerChatRoutes(
 
   server.post('/api/v1/chat/conversations', async (request, reply) => {
     try {
-      const { messages, projectId } = createConversationSchema.parse(request.body)
-      projects.get(projectId)
-      return reply.code(201).send({ conversation: await conversations.create(projectId, messages) })
+      const {
+        messages,
+        projectId,
+        scope: requestedScope,
+      } = createConversationSchema.parse(request.body)
+      const project = projects.get(projectId)
+      const scope = requestedScope
+        ? await validateChatWorkspaceScope(project.repositoryPath, requestedScope)
+        : undefined
+      return reply
+        .code(201)
+        .send({ conversation: await conversations.create(projectId, messages, scope) })
     } catch (error) {
       return handleConversationError(error, request, reply)
     }
@@ -98,7 +130,15 @@ export async function registerChatRoutes(
         return reply.code(404).send({ error: 'Conversation not found.' })
       }
       const update = updateConversationSchema.parse(request.body)
-      return { conversation: await conversations.update(conversationId, update) }
+      const scope = update.scope
+        ? await validateChatWorkspaceScope(projects.get(projectId).repositoryPath, update.scope)
+        : undefined
+      return {
+        conversation: await conversations.update(conversationId, {
+          ...update,
+          ...(scope ? { scope } : {}),
+        }),
+      }
     } catch (error) {
       return handleConversationError(error, request, reply)
     }
@@ -135,6 +175,9 @@ function handleConversationError(
     return reply.code(409).send({ error: error.message })
   }
   if (error instanceof ProjectNotFoundError) return reply.code(404).send({ error: error.message })
+  if (error instanceof InvalidChatWorkspaceScopeError) {
+    return reply.code(400).send({ error: error.message })
+  }
   request.log.error(error)
   return reply.code(500).send({ error: 'Zetro could not save conversation history.' })
 }

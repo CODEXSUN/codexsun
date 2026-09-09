@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Archive, FolderGit2, Pencil, Settings } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Archive, Check, Pencil, Settings, Wrench, X } from 'lucide-react'
 import { Button } from '@codexsun/ui/components/button'
 import { Input } from '@codexsun/ui/components/input'
 import {
@@ -9,131 +9,209 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@codexsun/ui/components/sheet'
+import { ProjectLogo } from './project-logo'
+import { ProjectSettingsForm, type ProjectSettingsValue } from './project-settings.form'
 import { useProjects } from './projects.controller'
-import type { ZetroProject } from './projects.types'
+import type { ProjectUpdate, ZetroProject } from './projects.types'
+import { ProjectDeveloperToolSettings } from '../developer-tools'
+import { ProjectGitDeliverySettings } from '../git-delivery'
 
-export type ProjectPropertiesSection = 'archive' | 'rename' | 'settings'
+export type ProjectPropertiesSection = 'archive' | 'settings' | 'tools'
 
 export function ProjectPropertiesSheet({
   onClose,
-  project,
+  projectId,
   section,
 }: {
   onClose(): void
-  project: ZetroProject | null
+  projectId: string | null
   section: ProjectPropertiesSection
 }) {
   const projects = useProjects()
+  const project = useMemo(
+    () => projects.projects.find(({ id }) => id === projectId) ?? null,
+    [projectId, projects.projects],
+  )
   const [activeSection, setActiveSection] = useState(section)
+  const [editingName, setEditingName] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [name, setName] = useState(project?.name ?? '')
+  const [form, setForm] = useState(() => createForm(project))
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     setActiveSection(section)
-    setName(project?.name ?? '')
+    setEditingName(false)
     setError(null)
+    setForm(createForm(project))
   }, [project, section])
 
-  async function saveName(event: FormEvent) {
+  async function saveLabel() {
+    if (!project || !form.name.trim() || form.name.trim() === project.name) {
+      setEditingName(false)
+      return
+    }
+    if (await changeProject({ name: form.name.trim() })) setEditingName(false)
+  }
+
+  async function saveSettings(event: FormEvent) {
     event.preventDefault()
-    if (!project || !name.trim() || name.trim() === project.name) return
-    await runChange(() => projects.updateProject(project.id, { name: name.trim() }))
+    if (!project) return
+    await changeProject({
+      githubUrl: form.githubUrl.trim(),
+      logoColor: form.logoColor,
+      logoText: form.logoText.trim(),
+      repositoryPath: form.repositoryPath.trim(),
+      tagline: form.tagline.trim(),
+    })
   }
 
   async function archiveProject() {
     if (!project) return
-    await runChange(() => projects.updateProject(project.id, { archived: true }))
+    if (await changeProject({ archived: true })) onClose()
   }
 
-  async function runChange(change: () => Promise<ZetroProject>) {
+  async function changeProject(input: ProjectUpdate) {
+    if (!project) return false
     setSubmitting(true)
     try {
-      await change()
-      onClose()
+      await projects.updateProject(project.id, input)
+      setError(null)
+      return true
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Zetro could not update this project.')
+      return false
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <Sheet open={project !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg">
-        <SheetHeader className="border-b pr-12">
-          <SheetTitle>Project properties</SheetTitle>
-          <SheetDescription>{project?.name}</SheetDescription>
-        </SheetHeader>
-        <nav aria-label="Project property sections" className="grid grid-cols-3 gap-1 px-4">
-          <SectionButton
-            active={activeSection === 'rename'}
-            icon={Pencil}
-            label="Rename"
-            onClick={() => setActiveSection('rename')}
-          />
-          <SectionButton
-            active={activeSection === 'settings'}
-            icon={Settings}
-            label="Settings"
-            onClick={() => setActiveSection('settings')}
-          />
-          <SectionButton
-            active={activeSection === 'archive'}
-            icon={Archive}
-            label="Archive"
-            onClick={() => setActiveSection('archive')}
-          />
-        </nav>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-          {activeSection === 'rename' ? (
-            <form className="grid gap-4 pt-4" onSubmit={(event) => void saveName(event)}>
-              <label className="grid gap-1.5 text-sm font-medium">
-                Project name
-                <Input
-                  autoFocus
-                  maxLength={80}
-                  onChange={(event) => setName(event.target.value)}
-                  value={name}
-                />
-              </label>
-              <Button
-                className="w-fit cursor-pointer"
-                disabled={submitting || !name.trim() || name.trim() === project?.name}
-                type="submit"
-              >
-                Save name
-              </Button>
-            </form>
-          ) : null}
-          {activeSection === 'settings' && project ? <ProjectSettings project={project} /> : null}
-          {activeSection === 'archive' ? (
-            <div className="grid gap-4 pt-4">
-              <div>
-                <h2 className="font-medium">Archive project</h2>
-                <p className="pt-1 text-sm text-muted-foreground">
-                  Remove this project from the active project switcher.
-                </p>
-              </div>
-              <Button
-                className="w-fit cursor-pointer"
-                disabled={submitting || projects.projects.length === 1}
-                onClick={() => void archiveProject()}
-                variant="destructive"
-              >
-                <Archive /> Archive project
-              </Button>
-              {projects.projects.length === 1 ? (
-                <p className="text-sm text-muted-foreground">
-                  Add another project before archiving this project.
-                </p>
-              ) : null}
+    <>
+      <Sheet open={project !== null} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="w-full gap-2 sm:max-w-lg">
+          <SheetHeader className="gap-0 border-b p-3 pr-12">
+            <div className="flex h-8 min-w-0 items-center gap-1">
+              <ProjectLogo className="size-7" project={project ?? fallbackProject} />
+              {editingName ? (
+                <>
+                  <SheetTitle className="sr-only">{project?.name}</SheetTitle>
+                  <Input
+                    aria-label="Project label"
+                    autoFocus
+                    className="h-8 min-w-0 flex-1 font-semibold"
+                    maxLength={80}
+                    onChange={(event) => setForm({ ...form, name: event.target.value })}
+                    value={form.name}
+                  />
+                  <Button
+                    aria-label="Save project label"
+                    className="cursor-pointer"
+                    disabled={submitting || !form.name.trim()}
+                    onClick={() => void saveLabel()}
+                    size="icon-xs"
+                    variant="ghost"
+                  >
+                    <Check />
+                  </Button>
+                  <Button
+                    aria-label="Cancel project label edit"
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setForm({ ...form, name: project?.name ?? '' })
+                      setEditingName(false)
+                    }}
+                    size="icon-xs"
+                    variant="ghost"
+                  >
+                    <X />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <SheetTitle className="min-w-0 flex-1 truncate font-semibold">
+                    {project?.name}
+                  </SheetTitle>
+                  <Button
+                    aria-label="Edit project label"
+                    className="cursor-pointer"
+                    onClick={() => setEditingName(true)}
+                    size="icon-xs"
+                    title="Edit project label"
+                    variant="ghost"
+                  >
+                    <Pencil />
+                  </Button>
+                </>
+              )}
             </div>
-          ) : null}
-          {error ? <p className="pt-4 text-sm text-destructive">{error}</p> : null}
-        </div>
-      </SheetContent>
-    </Sheet>
+            <SheetDescription className="sr-only">
+              Project settings and archive controls.
+            </SheetDescription>
+          </SheetHeader>
+          <nav aria-label="Project property sections" className="grid grid-cols-3 gap-1 px-3">
+            <SectionButton
+              active={activeSection === 'settings'}
+              icon={Settings}
+              label="Settings"
+              onClick={() => setActiveSection('settings')}
+            />
+            <SectionButton
+              active={activeSection === 'tools'}
+              icon={Wrench}
+              label="Tools"
+              onClick={() => setActiveSection('tools')}
+            />
+            <SectionButton
+              active={activeSection === 'archive'}
+              icon={Archive}
+              label="Archive"
+              onClick={() => setActiveSection('archive')}
+            />
+          </nav>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+            {activeSection === 'settings' && project ? (
+              <ProjectSettingsForm
+                form={form}
+                onChange={setForm}
+                onSubmit={(event) => void saveSettings(event)}
+                project={project}
+                submitting={submitting}
+              />
+            ) : null}
+            {activeSection === 'archive' ? (
+              <div className="grid gap-4 pt-2">
+                <div>
+                  <h2 className="font-medium">Archive project</h2>
+                  <p className="pt-1 text-sm text-muted-foreground">
+                    Remove this project from the active project switcher.
+                  </p>
+                </div>
+                <Button
+                  className="w-fit cursor-pointer"
+                  disabled={submitting || projects.projects.length === 1}
+                  onClick={() => void archiveProject()}
+                  variant="destructive"
+                >
+                  <Archive /> Archive project
+                </Button>
+                {projects.projects.length === 1 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Add another project before archiving this project.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {activeSection === 'tools' ? (
+              <div className="grid gap-6">
+                <ProjectDeveloperToolSettings />
+                <ProjectGitDeliverySettings />
+              </div>
+            ) : null}
+            {error ? <p className="pt-3 text-sm text-destructive">{error}</p> : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
 
@@ -144,14 +222,14 @@ function SectionButton({
   onClick,
 }: {
   active: boolean
-  icon: typeof Pencil
+  icon: typeof Settings
   label: string
   onClick(): void
 }) {
   return (
     <Button
       aria-current={active ? 'page' : undefined}
-      className="cursor-pointer justify-start"
+      className="h-9 cursor-pointer"
       onClick={onClick}
       variant={active ? 'secondary' : 'ghost'}
     >
@@ -160,34 +238,15 @@ function SectionButton({
   )
 }
 
-function ProjectSettings({ project }: { project: ZetroProject }) {
-  return (
-    <dl className="grid gap-4 pt-4">
-      <div className="flex items-center gap-2">
-        <FolderGit2 className="size-4 text-muted-foreground" />
-        <div className="min-w-0">
-          <dt className="text-xs text-muted-foreground">Repository</dt>
-          <dd className="truncate font-medium" title={project.repositoryPath}>
-            {project.repositoryPath}
-          </dd>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4 border-t pt-4">
-        <div>
-          <dt className="text-xs text-muted-foreground">Created</dt>
-          <dd className="pt-1">{formatDate(project.createdAt)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Updated</dt>
-          <dd className="pt-1">{formatDate(project.updatedAt)}</dd>
-        </div>
-      </div>
-    </dl>
-  )
+function createForm(project: ZetroProject | null): ProjectSettingsValue {
+  return {
+    githubUrl: project?.githubUrl ?? '',
+    logoColor: project?.logoColor ?? '#18181b',
+    logoText: project?.logoText ?? '',
+    name: project?.name ?? '',
+    repositoryPath: project?.repositoryPath ?? '',
+    tagline: project?.tagline ?? '',
+  }
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(value),
-  )
-}
+const fallbackProject = { logoColor: '#18181b', logoText: '', name: '' }

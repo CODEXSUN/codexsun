@@ -3,6 +3,7 @@ import { AgentChatArchive } from './agent-chat.archive'
 import { AgentChatComposer } from './agent-chat.composer'
 import { useAgentChat } from './agent-chat.controller'
 import { AgentChatMessages } from './agent-chat.messages'
+import { AgentChatScopeSheet } from './agent-chat.scope-sheet'
 
 export function AgentChatWorkspace() {
   const chat = useAgentChat()
@@ -16,6 +17,7 @@ export function AgentChatWorkspace() {
         <AgentChatMessages onStarter={setDraft} />
         <AgentChatComposer draft={draft} onDraftChange={setDraft} />
       </div>
+      <AgentChatScopeSheet />
     </section>
   )
 }

@@ -8,15 +8,15 @@ This module presents live service health, process metrics, runtime logs, and loc
 
 - Module ID: `orchestration`
 - Kind: `feature`
-- Version: `1.0.0`
+- Version: `1.2.0`
 - Scope: `app`
 - Status: `active`
 
 ## Ownership
 
-- Entities and records: browser service snapshots and selected-service state.
+- Entities and records: browser service snapshots, application-level reports, independent component logs, deployment-target settings, read-only deployment evidence, and in-workspace list/show navigation history.
 - Tables and storage paths: none.
-- Routes and UI paths: owns the Orship root workspace.
+- Routes and UI paths: owns application service cards, Overview, Failures and Deployment console tabs, independent API/Web logs, deployment target settings, manual verification capture, and immutable deployment history.
 - Permissions and settings: respects API-provided `controllable` and `protected` flags.
 
 ## Public contracts
@@ -49,9 +49,13 @@ This module presents live service health, process metrics, runtime logs, and loc
 ## Verification
 
 - Unit and integration tests: covered by strict contract parsing and production build.
-- Browser, desktop, or mobile checks: verify status rows, selection, logs, controls, responsive layout, and the tweak panel.
+- Browser, desktop, or mobile checks: verify whole-card application selection, combined API/web metrics and controls, independent component log tabs with refresh and copy, local Docker command previews, real repository and file evidence, manual record states, terminal-output history, back and forward history, and responsive layout.
 - Database checks: not applicable.
 
 ## Development records
 
 - [2026-09-08 Orship operations foundation](../../../../../../../assist/records/orship/2026-09-08-operations-foundation.md)
+- [2026-09-08 Grouped service operations](../../../../../../../assist/records/orship/2026-09-08-grouped-service-operations.md)
+- [2026-09-09 Service desk](../../../../../../../assist/records/orship/2026-09-09-service-desk.md)
+- [2026-09-09 Failure center](../../../../../../../assist/records/orship/2026-09-09-failure-center.md)
+- [2026-09-09 Local deployment evidence desk](../../../../../../../assist/records/orship/2026-09-09-local-deployment-evidence-desk.md)

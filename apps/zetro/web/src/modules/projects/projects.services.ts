@@ -1,4 +1,8 @@
-import { projectListResponseSchema, projectResponseSchema } from './projects.schema'
+import {
+  projectDirectoryListingSchema,
+  projectListResponseSchema,
+  projectResponseSchema,
+} from './projects.schema'
 import type { ProjectUpdate } from './projects.types'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
@@ -25,6 +29,12 @@ export async function updateProject(projectId: string, input: ProjectUpdate) {
     method: 'PATCH',
   })
   return readResponse(response, projectResponseSchema).then(({ project }) => project)
+}
+
+export async function listProjectDirectories(path: string) {
+  const query = new URLSearchParams({ path })
+  const response = await fetch(`${apiBaseUrl}/api/v1/projects/directories?${query}`)
+  return readResponse(response, projectDirectoryListingSchema)
 }
 
 async function readResponse<T>(

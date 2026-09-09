@@ -5,9 +5,10 @@ import test from 'node:test'
 import { DeploymentPlanner, renderDockerCompose } from '../dist/packages/runtime/index.js'
 
 const projectRoot = resolve(import.meta.dirname, '..')
-const catalog = await readJson('deployments/catalog.json')
-const developmentProfile = await readJson('deployments/profiles/development.json')
-const platformProfile = await readJson('deployments/profiles/platform-only.json')
+const catalog = await readJson('.container/catalog.json')
+const developmentProfile = await readJson('.container/profiles/development.json')
+const mainDevelopmentProfile = await readJson('.container/profiles/main-development.json')
+const platformProfile = await readJson('.container/profiles/platform-only.json')
 
 test('development profile composes every registered application and component', async () => {
   const plan = new DeploymentPlanner(catalog).createPlan(developmentProfile)
@@ -49,6 +50,19 @@ test('platform-only profile omits unselected application artifacts', () => {
   assert.equal(plan.buildWorkspaces.includes('@codexsun/zetro-api'), false)
   assert.equal(plan.buildWorkspaces.includes('@codexsun/docs-api'), false)
   assert.equal(plan.buildWorkspaces.includes('@codexsun/orship-api'), false)
+})
+
+test('main development keeps Orship separate', () => {
+  const plan = new DeploymentPlanner(catalog).createPlan(mainDevelopmentProfile)
+
+  assert.deepEqual(
+    plan.applications.map(({ id }) => id),
+    ['platform', 'docs', 'zetro', 'devkit'],
+  )
+  assert.equal(
+    plan.components.some(({ id }) => id.startsWith('orship-')),
+    false,
+  )
 })
 
 test('required applications resolve before the selected consumer', () => {
@@ -98,6 +112,8 @@ test('Docker Compose contains one service per selected process boundary', () => 
   assert.match(compose, /Dockerfile\.node/u)
   assert.match(compose, /Dockerfile\.static/u)
   assert.match(compose, /PLATFORM_API_HOST: 0\.0\.0\.0/u)
+  assert.match(compose, /APP_ENV: production/u)
+  assert.match(compose, /LOG_PRETTY: "false"/u)
 })
 
 test('selected add-ons bind only to declared target components', () => {

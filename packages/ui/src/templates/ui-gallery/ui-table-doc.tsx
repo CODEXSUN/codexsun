@@ -201,8 +201,8 @@ export function UiTableDocumentation() {
       navigation={{
         next: { href: '/ui?block=form', name: 'Form' },
         previous: {
-          href: '/ui?layout=documentation-sidebar',
-          name: 'Documentation sidebar',
+          href: '/ui?layout=mdi-main',
+          name: 'MDI Main',
         },
       }}
       preview={

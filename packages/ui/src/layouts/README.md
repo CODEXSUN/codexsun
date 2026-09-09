@@ -26,9 +26,15 @@ Feature visibility is stored per `applicationId`. The shared feature settings
 screen can toggle the top menu, notifications, application switcher, profile
 menu, and bottom status bar. Product routes and workflows remain app-owned.
 
+Applications can pass `statusEnd` to place compact metadata at the right edge
+of the status bar. The application owns the content and its text style.
+
 `MdiMain` binds `@codexsun/ui/theme` for every application. The appearance
 control changes light, dark, or system mode and the shared accent composition.
 Applications must use semantic tokens instead of storing their own shell theme.
+
+`MdiMain` also sets the browser document title from `applicationName`. Shared
+templates and application routes must not replace this title.
 
 Applications import layouts through their public `@codexsun/ui/layouts/*`
 entry points.

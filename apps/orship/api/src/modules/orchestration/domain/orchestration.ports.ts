@@ -2,6 +2,7 @@ import type {
   ServiceAction,
   ServiceLogsResponse,
   ServiceSnapshot,
+  RuntimeFailureOverview,
 } from '@codexsun/orship-contracts'
 
 export type OrchestrationTarget = {
@@ -22,4 +23,5 @@ export interface OrchestrationProcessGateway {
   act(target: OrchestrationTarget, action: ServiceAction): Promise<void>
   inspect(targets: readonly OrchestrationTarget[]): Promise<ServiceSnapshot[]>
   readLogs(target: OrchestrationTarget, limit: number): Promise<ServiceLogsResponse>
+  readFailures(limit: number): Promise<RuntimeFailureOverview>
 }

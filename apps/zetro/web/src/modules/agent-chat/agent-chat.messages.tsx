@@ -1,11 +1,15 @@
-import { useEffect, useRef } from 'react'
-import { Bot, File, LoaderCircle, User } from 'lucide-react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Bot, File, LoaderCircle, Square, User } from 'lucide-react'
 import { ScrollArea } from '@codexsun/ui/components/scroll-area'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { useAgentChat } from './agent-chat.controller'
 import { AgentChatMessageActions } from './agent-chat.message-actions'
 import type { ChatMessage } from './agent-chat.types'
+
+const AgentChatMarkdown = lazy(() =>
+  import('./agent-chat.markdown').then((module) => ({ default: module.AgentChatMarkdown })),
+)
 
 const starters = [
   'Review this repository and propose the next change',
@@ -17,10 +21,11 @@ export function AgentChatMessages({ onStarter }: { onStarter(value: string): voi
   const topology = useMdiTopology()
   const endRef = useRef<HTMLDivElement>(null)
   const turns = groupMessagesByTurn(chat.messages)
+  const workingSince = chat.workingSince
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
-  }, [chat.isBusy, chat.messages])
+  }, [chat.isBusy, chat.messages, chat.workingSince])
 
   return (
     <TopologyRegion
@@ -32,24 +37,68 @@ export function AgentChatMessages({ onStarter }: { onStarter(value: string): voi
     >
       <div className="flex min-h-full flex-col gap-7 px-1 py-8">
         {chat.messages.length === 0 ? <EmptyConversation onStarter={onStarter} /> : null}
-        {turns.map((turn) => (
-          <section className="flex flex-col gap-7 border-b pb-3" key={turn[0]?.id}>
-            {turn.map((message) => (
-              <Message key={message.id} message={message} />
-            ))}
-          </section>
-        ))}
-        {chat.isBusy ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <LoaderCircle className="size-4 animate-spin" />
-            <span className="shimmer shimmer-color-orange-500 text-foreground/40">
-              Zetro is working
-            </span>
-          </div>
-        ) : null}
+        {turns.map((turn, index) => {
+          const isActiveTurn = index === turns.length - 1 && workingSince !== null
+          const closesDay = turnClosesDay(turns, index)
+          return (
+            <section className="flex flex-col gap-7" key={turn[0]?.id}>
+              {showDateSection(turns, index) ? <DateSection message={turn[0]} /> : null}
+              <div className={`flex flex-col gap-7 pb-3 ${closesDay ? '' : 'border-b'}`}>
+                {turn.map((message) => (
+                  <Message key={message.id} message={message} />
+                ))}
+                {isActiveTurn ? (
+                  <WorkingElapsed onStop={chat.stopWorking} startedAt={workingSince} />
+                ) : null}
+              </div>
+            </section>
+          )
+        })}
         <div ref={endRef} />
       </div>
     </TopologyRegion>
+  )
+}
+
+function DateSection({ message }: { message: ChatMessage | undefined }) {
+  if (!message) return null
+  return (
+    <div
+      aria-label={formatFullDate(message.createdAt)}
+      className="flex items-center gap-3 text-xs font-medium text-muted-foreground"
+      role="separator"
+    >
+      <span className="h-px flex-1 bg-border" />
+      <span>{formatDateSection(message.createdAt)}</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  )
+}
+
+function WorkingElapsed({ onStop, startedAt }: { onStop(): Promise<void>; startedAt: number }) {
+  const [seconds, setSeconds] = useState(() => elapsedSeconds(startedAt))
+
+  useEffect(() => {
+    setSeconds(elapsedSeconds(startedAt))
+    const timer = window.setInterval(() => setSeconds(elapsedSeconds(startedAt)), 1_000)
+    return () => window.clearInterval(timer)
+  }, [startedAt])
+
+  return (
+    <button
+      aria-label="Stop response"
+      aria-live="off"
+      className="group/stop flex w-fit cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm text-muted-foreground transition-colors hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 dark:hover:bg-orange-950/30"
+      onClick={() => void onStop()}
+      title="Stop response"
+      type="button"
+    >
+      <LoaderCircle className="size-4 animate-spin group-hover/stop:hidden group-focus-visible/stop:hidden" />
+      <Square className="hidden size-4 fill-orange-500 text-orange-500 group-hover/stop:block group-focus-visible/stop:block" />
+      <span className="shimmer shimmer-color-orange-500 text-foreground/40 group-hover/stop:text-orange-600 group-focus-visible/stop:text-orange-600">
+        Working for {formatElapsed(seconds)}
+      </span>
+    </button>
   )
 }
 
@@ -94,9 +143,21 @@ function Message({ message }: { message: ChatMessage }) {
       ) : null}
       <div className={user ? 'max-w-[78%] min-w-0' : 'min-w-0 flex-1'}>
         <div className={user ? 'rounded-2xl bg-muted px-4 py-3' : 'py-1'}>
-          <div className="whitespace-pre-wrap text-sm leading-6">
-            {message.content || 'Shared attachments'}
-          </div>
+          {user ? (
+            <div className="whitespace-pre-wrap text-sm leading-6">
+              {message.content || 'Shared attachments'}
+            </div>
+          ) : (
+            <Suspense
+              fallback={
+                <div className="whitespace-pre-wrap text-sm leading-6">
+                  {message.content || 'Shared attachments'}
+                </div>
+              }
+            >
+              <AgentChatMarkdown content={message.content || 'Shared attachments'} />
+            </Suspense>
+          )}
           {message.attachments.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {message.attachments.map((attachment) =>
@@ -141,4 +202,63 @@ function groupMessagesByTurn(messages: ChatMessage[]): ChatMessage[][] {
     turns.at(-1)?.push(message)
     return turns
   }, [])
+}
+
+function showDateSection(turns: ChatMessage[][], index: number): boolean {
+  if (index === 0) return true
+  const current = turns[index]?.[0]
+  const previous = turns[index - 1]?.[0]
+  return Boolean(current && previous && dateKey(current.createdAt) !== dateKey(previous.createdAt))
+}
+
+function turnClosesDay(turns: ChatMessage[][], index: number): boolean {
+  const current = turns[index]?.[0]
+  const next = turns[index + 1]?.[0]
+  return Boolean(current && next && dateKey(current.createdAt) !== dateKey(next.createdAt))
+}
+
+function formatDateSection(value: string): string {
+  const date = new Date(value)
+  const day = relativeDay(date)
+  const label =
+    day ??
+    new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+    }).format(date)
+  return `${label} · ${new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)}`
+}
+
+function formatFullDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'short' }).format(
+    new Date(value),
+  )
+}
+
+function relativeDay(date: Date): 'Today' | 'Yesterday' | null {
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (dateKey(date.toISOString()) === dateKey(today.toISOString())) return 'Today'
+  if (dateKey(date.toISOString()) === dateKey(yesterday.toISOString())) return 'Yesterday'
+  return null
+}
+
+function dateKey(value: string): string {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
+function elapsedSeconds(startedAt: number): number {
+  return Math.max(0, Math.floor((Date.now() - startedAt) / 1_000))
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}m ${seconds % 60}s`
 }

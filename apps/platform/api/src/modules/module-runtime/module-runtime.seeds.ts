@@ -20,6 +20,7 @@ export const moduleRuntimeSeeds: readonly PlatformModuleSeed<Database>[] = [
           module_id: 'module-runtime',
           requested_version: '1.0.0',
           runtime_state: 'installed',
+          schema_checksum: null,
           updated_at: now,
         })
         .onDuplicateKeyUpdate({ updated_at: now })

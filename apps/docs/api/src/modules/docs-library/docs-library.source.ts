@@ -1,7 +1,7 @@
 import matter from 'gray-matter'
 import { createHash } from 'node:crypto'
-import { readdir, readFile, stat } from 'node:fs/promises'
-import { extname, relative, resolve, sep } from 'node:path'
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { extname, isAbsolute, relative, resolve, sep } from 'node:path'
 import type { DocumentRecord } from './docs-library.types.js'
 
 type FrontMatter = {
@@ -9,6 +9,29 @@ type FrontMatter = {
   description?: unknown
   tags?: unknown
   title?: unknown
+}
+
+const ignoredDirectories = new Set([
+  '.git',
+  '.obsidian',
+  'coverage',
+  'dist',
+  'node_modules',
+  'storage',
+])
+const assetContentTypes = new Map([
+  ['.avif', 'image/avif'],
+  ['.gif', 'image/gif'],
+  ['.jpeg', 'image/jpeg'],
+  ['.jpg', 'image/jpeg'],
+  ['.png', 'image/png'],
+  ['.svg', 'image/svg+xml'],
+  ['.webp', 'image/webp'],
+])
+
+export type DocsAsset = {
+  content: Buffer
+  contentType: string
 }
 
 export class DocsVault {
@@ -31,13 +54,43 @@ export class DocsVault {
       .sort((left, right) => left.title.localeCompare(right.title))
   }
 
+  public async update(
+    document: DocumentRecord,
+    input: { source: string; sourceHash: string; title?: string },
+  ): Promise<DocumentRecord> {
+    if (document.sourceHash !== input.sourceHash) {
+      throw new DocsDocumentConflictError()
+    }
+
+    const sourcePath = this.resolveDocumentPath(document.path)
+    const parsed = matter(await readFile(sourcePath, 'utf8'))
+    const metadata = parsed.data as FrontMatter
+    if (input.title) metadata.title = input.title
+    await writeFile(sourcePath, matter.stringify(input.source, metadata), 'utf8')
+    return this.readDocument(sourcePath)
+  }
+
+  public async getAsset(assetPath: string): Promise<DocsAsset | undefined> {
+    const contentType = assetContentTypes.get(extname(assetPath).toLowerCase())
+    if (!contentType) return undefined
+
+    try {
+      const sourcePath = this.resolveDocumentPath(assetPath)
+      const asset = await stat(sourcePath)
+      if (!asset.isFile()) return undefined
+      return { content: await readFile(sourcePath), contentType }
+    } catch {
+      return undefined
+    }
+  }
+
   private async collectDocumentPaths(directory: string): Promise<string[]> {
     const entries = await readdir(directory, { withFileTypes: true })
     const results = await Promise.all(
       entries.map(async (entry) => {
         const path = resolve(directory, entry.name)
         if (entry.isDirectory()) {
-          return entry.name === '.obsidian' ? [] : this.collectDocumentPaths(path)
+          return this.isIgnoredDirectory(entry.name) ? [] : this.collectDocumentPaths(path)
         }
 
         return ['.md', '.mdx'].includes(extname(entry.name).toLowerCase()) ? [path] : []
@@ -49,27 +102,21 @@ export class DocsVault {
 
   private async collectSourcePaths(): Promise<string[]> {
     const vaultPaths = await this.collectDocumentPaths(this.vaultPath)
-    const assistPaths = await this.collectDocumentPaths(resolve(this.projectRoot, 'assist'))
-    const readmes = await this.collectReadmes(this.projectRoot)
-    return [...new Set([...vaultPaths, ...assistPaths, ...readmes])]
+    const repositoryPaths = await this.collectDocumentPaths(this.projectRoot)
+    return [...new Set([...vaultPaths, ...repositoryPaths])]
   }
 
-  private async collectReadmes(directory: string): Promise<string[]> {
-    const entries = await readdir(directory, { withFileTypes: true })
-    const results = await Promise.all(
-      entries.map(async (entry) => {
-        const path = resolve(directory, entry.name)
-        if (entry.isDirectory()) {
-          return ['apps', 'packages'].includes(entry.name) || directory !== this.projectRoot
-            ? this.collectReadmes(path)
-            : []
-        }
+  private isIgnoredDirectory(name: string): boolean {
+    return ignoredDirectories.has(name)
+  }
 
-        return entry.name.toLowerCase() === 'readme.md' ? [path] : []
-      }),
-    )
-
-    return results.flat()
+  private resolveDocumentPath(documentPath: string): string {
+    const sourcePath = resolve(this.projectRoot, documentPath)
+    const projectRelativePath = relative(this.projectRoot, sourcePath)
+    if (isAbsolute(projectRelativePath) || projectRelativePath.startsWith('..')) {
+      throw new Error('Document source path is outside the repository.')
+    }
+    return sourcePath
   }
 
   private async readDocument(sourcePath: string): Promise<DocumentRecord> {
@@ -135,5 +182,11 @@ export class DocsVault {
         ?.replaceAll('-', ' ')
         .replace(/\b\w/g, (character) => character.toUpperCase()) ?? 'Untitled'
     )
+  }
+}
+
+export class DocsDocumentConflictError extends Error {
+  public constructor() {
+    super('This document changed after the editor opened it.')
   }
 }

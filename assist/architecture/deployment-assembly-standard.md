@@ -15,7 +15,7 @@ Applications, modules, add-ons, and runtime packages stay independent. A deploym
 | `packages/runtime`         | Deployment catalog parsing, profile validation, dependency resolution, and immutable plans |
 | `apps/<app>`               | Business or technical application behavior and its deployable components                   |
 | `packages/addons/<addon>`  | Stable reusable extension behavior and target bindings                                     |
-| `deployments`              | Available component catalog, customer profiles, and Docker templates                       |
+| `.container`               | Available component catalog, customer profiles, and Docker templates                       |
 | `tools/runtime-holder.mjs` | Local start, selected builds, artifact staging, and Compose generation                     |
 
 The runtime holder contains no business behavior. An application does not read another application's private source.
@@ -33,7 +33,7 @@ Do not run several unrelated API processes under one container supervisor. Keep 
 
 ## Catalog rules
 
-- Register every deployable application and component in `deployments/catalog.json`.
+- Register every deployable application and component in `.container/catalog.json`.
 - Give every application, component, and add-on a stable identifier and semantic version.
 - Declare required applications and component dependencies.
 - Declare every framework and Platform runtime binding with a compatible version range.
@@ -65,7 +65,9 @@ Do not run several unrelated API processes under one container supervisor. Keep 
 
 ## Local development
 
-The `development` profile selects every registered application. `npm.cmd run dev` starts its components through root preflight.
+The `development` profile selects every registered application. `npm.cmd run dev:all` starts its components through root preflight.
+
+The `main-development` profile omits Orship. `npm.cmd run dev` starts this profile, and `npm.cmd run dev:orship` starts Orship separately.
 
 Preflight keeps port ownership checks, health checks, signal handling, and controlled shutdown. Developers can still start one application with its focused root command.
 
@@ -78,6 +80,8 @@ Preflight keeps port ownership checks, health checks, signal handling, and contr
 - Serve web artifacts through the common static image.
 - Mount central application storage at `storage/app` only for components that need it.
 - Inject runtime secrets during deployment.
+- Force `APP_ENV=production` and `LOG_PRETTY=false` for production Node components.
+- Configure OTLP endpoints through deployment environment or secret bindings.
 - Run database migrations through module lifecycle before a business module becomes active.
 
 ## Acceptance gate

@@ -23,6 +23,11 @@ export interface ModuleConfigurationRequirement {
   required: boolean
 }
 
+export interface ModuleDataSchema {
+  checksum: string
+  version: string
+}
+
 export type ModuleKind = 'adapter' | 'addon' | 'core' | 'feature'
 
 export interface ModuleExtensionPoint {
@@ -62,6 +67,7 @@ export interface FrameworkModule {
   consumes: readonly ModuleConsumedEvent[]
   dependencies: readonly ModuleDependency[]
   description: string
+  dataSchema?: ModuleDataSchema
   extensionPoints: readonly ModuleExtensionPoint[]
   extensions: readonly ModuleExtensionContribution[]
   id: string

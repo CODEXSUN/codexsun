@@ -2,10 +2,35 @@ import { GlobalLoader } from '@codexsun/ui/blocks/loader'
 import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
-import { MdiMain, type MdiNavigationSection, useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
-import { BookOpen, ChevronRight, FileText, LightbulbIcon, ListTree, Network } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { MdiMain, type MdiNavigationItem, useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
+import { UiTemplateNavigation } from '@codexsun/ui/templates/ui-page'
+import {
+  BookOpen,
+  BotIcon,
+  ChevronRight,
+  FileText,
+  FolderTreeIcon,
+  LightbulbIcon,
+  ListTree,
+  MonitorIcon,
+  Network,
+  PackageIcon,
+  ServerIcon,
+  WorkflowIcon,
+  WrenchIcon,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { DocsLibraryArticle } from './docs-library.article'
 import { useDocsLibrary } from './docs-library.hooks'
+import { DocsLibraryHeader } from './docs-library.header'
+import { DocsLibraryEditor } from './docs-library.editor'
+import {
+  getAdjacentDocuments,
+  getDocsIndexGroups,
+  getDocsNavigationNodes,
+} from './docs-library.index'
+import { DocsIndexPage } from './docs-library.index-page'
 import type { DocsState } from './docs-library.types'
 import {
   getBacklinks,
@@ -18,16 +43,32 @@ import { docsTopologySections } from './docs-library.topology'
 
 export function DocsWorkspace() {
   const library = useDocsLibrary()
+  const [editing, setEditing] = useState(false)
   const [view, setView] = useState<'docs' | 'ideas'>('docs')
   const [query, setQuery] = useState('')
   const visibleDocuments = useMemo(
     () => library.documents.filter((document) => matchesDocument(document, query)),
     [library.documents, query],
   )
+  useEffect(() => setEditing(false), [library.activeDocument?.slug])
   const navigation = useMemo(
     () => [
       {
+        items: [
+          {
+            active: view === 'docs' && !library.activeDocument,
+            icon: BookOpen,
+            label: 'Overview',
+            onSelect: () => {
+              setView('docs')
+              library.selectDocument()
+            },
+          },
+        ],
+      },
+      {
         defaultOpen: view === 'ideas',
+        icon: LightbulbIcon,
         label: 'Ideas',
         items: [
           {
@@ -38,10 +79,19 @@ export function DocsWorkspace() {
           },
         ],
       },
-      ...toNavigation(visibleDocuments, library.activeDocument?.slug, (slug) => {
-        setView('docs')
-        library.selectDocument(slug)
-      }),
+      ...getDocsIndexGroups(visibleDocuments).map((group) => ({
+        defaultOpen: group.documents.some(
+          (document) => document.slug === library.activeDocument?.slug,
+        ),
+        icon: getDocsGroupIcon(group.id),
+        items: toMdiNavigationItems(
+          getDocsNavigationNodes(group),
+          library.activeDocument?.slug,
+          library.selectDocument,
+          setView,
+        ),
+        label: group.label,
+      })),
     ],
     [library, view, visibleDocuments],
   )
@@ -60,17 +110,75 @@ export function DocsWorkspace() {
       topologySections={docsTopologySections}
       workspaceTitle="Documentation"
     >
-      {view === 'ideas' ? <IdeasWorkspace /> : <DocsLibraryView library={library} query={query} />}
+      {view === 'ideas' ? (
+        <IdeasWorkspace />
+      ) : editing && library.activeDocument ? (
+        <DocsLibraryEditor
+          document={library.activeDocument}
+          onBack={() => setEditing(false)}
+          onSave={async (input) => {
+            await library.saveDocument(library.activeDocument!.slug, input)
+          }}
+        />
+      ) : (
+        <DocsLibraryView library={library} onEdit={() => setEditing(true)} />
+      )}
     </MdiMain>
   )
 }
 
+function getDocsGroupIcon(groupId: string): LucideIcon {
+  if (groupId === 'assists') return FileText
+  if (groupId === 'runtime') return ServerIcon
+  if (groupId === 'repository') return FolderTreeIcon
+  if (groupId.startsWith('packages-')) return PackageIcon
+
+  switch (groupId) {
+    case 'apps-platform':
+      return MonitorIcon
+    case 'apps-docs':
+      return BookOpen
+    case 'apps-devkit':
+      return WrenchIcon
+    case 'apps-zetro':
+      return BotIcon
+    case 'apps-orship':
+      return WorkflowIcon
+    default:
+      return FolderTreeIcon
+  }
+}
+
+function toMdiNavigationItems(
+  nodes: ReturnType<typeof getDocsNavigationNodes>,
+  activeSlug: string | undefined,
+  selectDocument: (slug?: string) => void,
+  setView: (view: 'docs') => void,
+): MdiNavigationItem[] {
+  return nodes.map((node) => ({
+    active: node.document?.slug === activeSlug,
+    badge: node.document?.tags.length || undefined,
+    children: node.children
+      ? toMdiNavigationItems(node.children, activeSlug, selectDocument, setView)
+      : undefined,
+    defaultOpen: node.children?.some((child) => child.document?.slug === activeSlug),
+    href: node.document ? `#${node.document.slug}` : undefined,
+    label: node.label,
+    onSelect: node.document
+      ? () => {
+          setView('docs')
+          selectDocument(node.document?.slug)
+        }
+      : undefined,
+  }))
+}
+
 function DocsLibraryView({
   library,
-  query,
+  onEdit,
 }: {
   library: ReturnType<typeof useDocsLibrary>
-  query: string
+  onEdit: () => void
 }) {
   const topology = useMdiTopology()
   const { activeDocument, documents, error, loading, selectDocument } = library
@@ -84,21 +192,8 @@ function DocsLibraryView({
       id="10"
       topology={topology}
     >
-      <TopologyRegion
-        as="header"
-        className="flex h-16 shrink-0 items-center gap-3 border-b px-5"
-        id="10.1"
-        topology={topology}
-      >
-        <BookOpen className="size-4 text-muted-foreground" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">Docs library</p>
-          <p className="text-xs text-muted-foreground">
-            {query
-              ? `${documents.filter((document) => matchesDocument(document, query)).length} matching documents`
-              : `${documents.length} connected documents`}
-          </p>
-        </div>
+      <TopologyRegion as="div" id="10.1" topology={topology}>
+        <DocsLibraryHeader document={activeDocument} onEdit={onEdit} />
       </TopologyRegion>
       <TopologyRegion
         as="div"
@@ -107,13 +202,19 @@ function DocsLibraryView({
         topology={topology}
         aria-busy={loading}
       >
-        <div className="mx-auto min-h-full w-[90%] max-w-[120rem] px-6 py-10 lg:px-10">
+        <div
+          className={
+            activeDocument
+              ? 'min-h-full w-full px-6 py-10 lg:px-10 xl:px-14'
+              : 'mx-auto min-h-full w-4/5 max-w-[120rem] px-6 py-10 lg:px-10'
+          }
+        >
           {error ? <UnavailablePage error={error} /> : null}
           {!error && activeDocument ? (
             <div className="docs-reading-layout">
               <TopologyRegion
                 as="article"
-                className="docs-content min-w-0 max-w-[75ch]"
+                className="docs-content min-w-0 max-w-none"
                 id="10.2.1"
                 topology={topology}
               >
@@ -124,7 +225,11 @@ function DocsLibraryView({
                     </Badge>
                   ))}
                 </div>
-                <DocumentBody html={activeDocument.html} source={activeDocument.source} />
+                <DocsLibraryArticle
+                  html={activeDocument.html}
+                  path={activeDocument.path}
+                  source={activeDocument.source}
+                />
                 <DocumentConnections
                   backlinks={backlinks}
                   documents={documents}
@@ -132,12 +237,13 @@ function DocsLibraryView({
                   onSelect={selectDocument}
                   related={related}
                 />
+                <DocumentNavigation documents={documents} slug={activeDocument.slug} />
               </TopologyRegion>
               <DocumentOutline source={activeDocument.source} />
             </div>
           ) : null}
           {!error && !activeDocument ? (
-            <OverviewPage count={documents.length} onSelect={selectDocument} />
+            <DocsIndexPage documents={documents} onSelect={selectDocument} />
           ) : null}
         </div>
         <GlobalLoader
@@ -151,18 +257,25 @@ function DocsLibraryView({
   )
 }
 
-function DocumentBody({ html, source }: { html: string; source: string }) {
-  const headings = getDocumentHeadings(source)
-  const contentRef = useRef<HTMLDivElement>(null)
+function DocumentNavigation({
+  documents,
+  slug,
+}: {
+  documents: DocsState['documents']
+  slug: string
+}) {
+  const topology = useMdiTopology()
+  const { next, previous } = getAdjacentDocuments(documents, slug)
+  if (!previous && !next) return null
 
-  useEffect(() => {
-    contentRef.current?.querySelectorAll('h2, h3').forEach((element, index) => {
-      const heading = headings[index]
-      if (heading) element.id = heading.id
-    })
-  }, [headings])
-
-  return <div ref={contentRef} dangerouslySetInnerHTML={{ __html: html }} />
+  return (
+    <TopologyRegion as="div" className="mt-12" id="10.2.4" topology={topology}>
+      <UiTemplateNavigation
+        next={next ? { href: `#${next.slug}`, name: next.title } : undefined}
+        previous={previous ? { href: `#${previous.slug}`, name: previous.title } : undefined}
+      />
+    </TopologyRegion>
+  )
 }
 
 function DocumentOutline({ source }: { source: string }) {
@@ -260,86 +373,6 @@ function ConnectionList({
         ))}
       </div>
     </section>
-  )
-}
-
-function toNavigation(
-  documents: DocsState['documents'],
-  activeSlug: string | undefined,
-  selectDocument: (slug: string) => void,
-): MdiNavigationSection[] {
-  const sections = new Map<string, MdiNavigationSection['items']>()
-  for (const document of documents) {
-    const section = getSection(document.path)
-    const items = sections.get(section) ?? []
-    items.push({
-      active: document.slug === activeSlug,
-      badge: document.tags.length || undefined,
-      href: `#${document.slug}`,
-      label: document.title,
-      onSelect: () => selectDocument(document.slug),
-    })
-    sections.set(section, items)
-  }
-  return [...sections.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([label, items]) => ({ defaultOpen: items.some((item) => item.active), items, label }))
-}
-
-function getSection(path: string): string {
-  if (path.startsWith('assist/')) return 'Assist'
-  if (path.startsWith('apps/docs/content/')) return 'Docs vault'
-  if (path.startsWith('apps/docs/')) return 'Docs application'
-  if (path.startsWith('apps/')) return 'Applications'
-  if (path.startsWith('packages/')) return 'Packages'
-  return 'Repository'
-}
-
-function OverviewPage({ count, onSelect }: { count: number; onSelect: (slug?: string) => void }) {
-  const topology = useMdiTopology()
-  return (
-    <TopologyRegion
-      as="article"
-      className="docs-content max-w-[75ch]"
-      id="10.3"
-      topology={topology}
-    >
-      <Badge variant="secondary">Overview</Badge>
-      <h1 className="mt-5">CODEXSUN documentation</h1>
-      <p>
-        A source-linked library for application guides, module contracts, architecture decisions,
-        and operating records.
-      </p>
-      <TopologyRegion
-        as="div"
-        className="mt-10 grid gap-4 sm:grid-cols-3"
-        id="10.3.1"
-        topology={topology}
-      >
-        <OverviewMetric label="Documents" value={count} />
-        <OverviewMetric label="Source model" value="Markdown + MDX" />
-        <OverviewMetric label="Connections" value="Tags + wiki-links" />
-      </TopologyRegion>
-      <h2>Start here</h2>
-      <p>
-        Use search to find a title, tag, alias, description, or source path. Open any document to
-        see its outline, linked notes, backlinks, and related guidance.
-      </p>
-      <TopologyRegion as="div" id="10.3.2" topology={topology}>
-        <Button className="mt-5" onClick={() => onSelect('architecture')}>
-          Open architecture
-        </Button>
-      </TopologyRegion>
-    </TopologyRegion>
-  )
-}
-
-function OverviewMetric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border bg-muted/20 p-4">
-      <p className="text-lg font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
-    </div>
   )
 }
 

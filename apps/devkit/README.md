@@ -35,6 +35,8 @@ The root `.env` owns `DEVKIT_API_HOST`, `DEVKIT_API_PORT`, `DEVKIT_WEB_PORT`,
 `VITE_DEVKIT_API_URL`, and `DEVKIT_REGISTRY_PATH`. The first registry read
 creates an empty `storage/app/private/devkit/project-registry.json`.
 
+The API uses the shared Platform Core observability adapter for Pino logs, request correlation, HTTP telemetry, and safe shutdown. Production JSON output is captured by the runtime holder for Orship.
+
 ## Health and shutdown
 
 The API exposes `/health`, `/health/live`, and `/health/ready`. The preflight

@@ -14,6 +14,7 @@ export const documentSummarySchema = z.object({
 export const documentSchema = documentSummarySchema.extend({
   html: z.string(),
   source: z.string(),
+  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
 })
 
 export const documentListResponseSchema = z.object({
@@ -22,8 +23,17 @@ export const documentListResponseSchema = z.object({
 })
 
 export const documentResponseSchema = z.object({ document: documentSchema })
+export const documentUpdateRequestSchema = z
+  .object({
+    source: z.string().max(1_000_000),
+    sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+    title: z.string().trim().min(1).max(255).optional(),
+  })
+  .strict()
+export const documentUpdateResponseSchema = z.object({ document: documentSchema })
 export const syncResponseSchema = z.object({ indexed: z.number(), status: z.literal('ok') })
 
 export type Document = z.infer<typeof documentSchema>
 export type DocumentSummary = z.infer<typeof documentSummarySchema>
 export type DocumentListResponse = z.infer<typeof documentListResponseSchema>
+export type DocumentUpdateRequest = z.infer<typeof documentUpdateRequestSchema>

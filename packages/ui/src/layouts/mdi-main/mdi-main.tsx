@@ -1,5 +1,5 @@
 import { BoxesIcon, FilesIcon, LayoutDashboardIcon, MessageSquareIcon } from 'lucide-react'
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import { SidebarInset, SidebarProvider } from '@codexsun/ui/components/sidebar'
 import { cn } from '@codexsun/ui/lib/utils'
@@ -46,27 +46,37 @@ export function MdiMain({
   children,
   defaultFeatures,
   deskRegionId,
+  embedded = false,
   navigation = defaultNavigation,
   notificationCount = 1,
   notifications = [],
   primaryAction = { label: 'New workspace' },
   searchPlaceholder = `Search ${applicationName}`,
   searchValue,
+  settingsContent,
   showAppearancePanel = true,
   showMdiOverview = false,
+  showTopologyTools = true,
   sidebarContent,
   sidebarContentClassName,
   sidebarFooter,
+  sidebarFooterClassName,
+  sidebarStateKey,
   statusLabel = 'Ready',
+  statusEnd,
   topologySections = [],
   user = defaultUser,
   workspaceTitle = 'MDI Workspace',
   onSearchChange,
 }: MdiMainProps) {
+  useEffect(() => {
+    if (!embedded) document.title = applicationName
+  }, [applicationName, embedded])
+
   const [canvas, setCanvas] = useState<MdiCanvas>('plain')
   const [density, setDensity] = useState<MdiDensity>('compact')
   const [features, setFeature] = useMdiFeatures(applicationId, defaultFeatures)
-  const [view, setView] = useState<'features' | 'workspace'>('workspace')
+  const [view, setView] = useState<'settings' | 'workspace'>('workspace')
   const topologyDesks = useMemo(
     () => [
       ...(showMdiOverview
@@ -85,7 +95,10 @@ export function MdiMain({
     <ThemeProvider>
       <MdiTopologyProvider value={topology}>
         <SidebarProvider
-          className="h-svh min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground"
+          className={cn(
+            'min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground',
+            embedded ? 'h-full' : 'h-svh',
+          )}
           style={
             {
               '--sidebar-width': density === 'comfortable' ? '18rem' : '16rem',
@@ -116,14 +129,18 @@ export function MdiMain({
             {...(deskRegionId ? topology.regionProps(deskRegionId) : {})}
           >
             {deskRegionId ? <TopologyMarker id={deskRegionId} topology={topology} /> : null}
-            <MdiSidebar
-              navigation={navigation}
-              onOpenFeatures={() => setView('features')}
-              primaryAction={primaryAction}
-              sidebarContent={sidebarContent}
-              sidebarContentClassName={sidebarContentClassName}
-              sidebarFooter={sidebarFooter}
-            />
+            {view === 'workspace' ? (
+              <MdiSidebar
+                navigation={navigation}
+                onOpenFeatures={() => setView('settings')}
+                primaryAction={primaryAction}
+                sidebarContent={sidebarContent}
+                sidebarContentClassName={sidebarContentClassName}
+                sidebarFooter={sidebarFooter}
+                sidebarFooterClassName={sidebarFooterClassName}
+                stateKey={sidebarStateKey}
+              />
+            ) : null}
             <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
               <main
                 className={cn(
@@ -134,12 +151,18 @@ export function MdiMain({
                 {...topology.regionProps('03')}
               >
                 <TopologyMarker id="03" topology={topology} />
-                {view === 'features' ? (
-                  <MdiFeatureSettings
-                    features={features}
-                    onBack={() => setView('workspace')}
-                    onFeatureChange={setFeature}
-                  />
+                {view === 'settings' ? (
+                  (settingsContent?.({
+                    features,
+                    onBack: () => setView('workspace'),
+                    onFeatureChange: setFeature,
+                  }) ?? (
+                    <MdiFeatureSettings
+                      features={features}
+                      onBack={() => setView('workspace')}
+                      onFeatureChange={setFeature}
+                    />
+                  ))
                 ) : children ? (
                   <div className="relative size-full min-h-0 min-w-0 overflow-hidden">
                     {children}
@@ -149,7 +172,11 @@ export function MdiMain({
                 )}
               </main>
               {features.statusBar ? (
-                <MdiStatusBar statusLabel={statusLabel} workspaceTitle={workspaceTitle} />
+                <MdiStatusBar
+                  statusEnd={statusEnd}
+                  statusLabel={statusLabel}
+                  workspaceTitle={workspaceTitle}
+                />
               ) : null}
             </SidebarInset>
           </div>
@@ -160,11 +187,15 @@ export function MdiMain({
               density={density}
               onCanvasChange={setCanvas}
               onDensityChange={setDensity}
-              onOpenFeatures={() => setView('features')}
+              onOpenFeatures={() => setView('settings')}
             />
           ) : null}
-          <TopologyInspector topology={topology} />
-          <TopologyInspectionControl topology={topology} />
+          {showTopologyTools ? (
+            <>
+              <TopologyInspector topology={topology} />
+              <TopologyInspectionControl topology={topology} />
+            </>
+          ) : null}
         </SidebarProvider>
       </MdiTopologyProvider>
     </ThemeProvider>

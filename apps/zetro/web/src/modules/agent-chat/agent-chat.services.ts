@@ -4,12 +4,14 @@ import {
   conversationResponseSchema,
   deleteArchivedResponseSchema,
   deleteConversationResponseSchema,
+  stopChatResponseSchema,
 } from './agent-chat.schema'
 import type {
   ChatConversation,
   ChatConversationSummary,
   ChatMessage,
   ChatTurnResponse,
+  ChatWorkspaceScope,
   ChatWorkflow,
 } from './agent-chat.types'
 
@@ -43,9 +45,13 @@ export async function getConversation(
   return readResponse(response, conversationResponseSchema).then(({ conversation }) => conversation)
 }
 
-export async function createConversation(projectId: string, messages: readonly ChatMessage[]) {
+export async function createConversation(
+  projectId: string,
+  messages: readonly ChatMessage[],
+  scope?: ChatWorkspaceScope,
+) {
   const response = await fetch(`${apiBaseUrl}/api/v1/chat/conversations`, {
-    body: JSON.stringify({ messages, projectId }),
+    body: JSON.stringify({ messages, projectId, scope }),
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   })
@@ -59,6 +65,7 @@ export async function updateConversation(
     archived?: boolean
     messages?: readonly ChatMessage[]
     pinned?: boolean
+    scope?: ChatWorkspaceScope
     title?: string
   },
 ) {
@@ -98,6 +105,7 @@ export async function requestChatTurn(
   projectId: string,
   messages: readonly ChatMessage[],
   workflow: ChatWorkflow,
+  signal?: AbortSignal,
 ): Promise<ChatTurnResponse> {
   const response = await fetch(`${apiBaseUrl}/api/v1/chat/responses`, {
     body: JSON.stringify({
@@ -113,8 +121,17 @@ export async function requestChatTurn(
     }),
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
+    signal,
   })
   return readResponse(response, chatTurnResponseSchema)
+}
+
+export async function stopChatTurn(conversationId: string, projectId: string): Promise<boolean> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/chat/responses/${conversationId}/stop?${projectQuery(projectId)}`,
+    { method: 'POST' },
+  )
+  return readResponse(response, stopChatResponseSchema).then(({ stopped }) => stopped)
 }
 
 function projectQuery(projectId: string, archived = false) {

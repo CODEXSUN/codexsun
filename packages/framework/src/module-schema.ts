@@ -5,10 +5,12 @@ import type { ModuleIssue } from './module-errors.js'
 const identifier = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
 const semanticVersion = z.string().min(1)
 const semanticVersionRange = z.string().min(1)
+const checksum = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
 const lifecycleAction = z.custom<ModuleLifecycle['activate']>(isFunction)
 const upgradeAction = z.custom<ModuleLifecycle['upgrade']>(isFunction)
 
 const dependencySchema = z.object({ id: identifier, versionRange: semanticVersionRange }).strict()
+const dataSchema = z.object({ checksum, version: semanticVersion }).strict()
 const publicContractSchema = z.object({ id: identifier, version: semanticVersion }).strict()
 const publishedEventSchema = z.object({ id: identifier, version: semanticVersion }).strict()
 const consumedEventSchema = z
@@ -49,6 +51,7 @@ const frameworkModuleSchema = z
     consumes: z.array(consumedEventSchema),
     dependencies: z.array(dependencySchema),
     description: z.string().trim().min(1),
+    dataSchema: dataSchema.optional(),
     extensionPoints: z.array(extensionPointSchema),
     extensions: z.array(extensionSchema),
     id: identifier,

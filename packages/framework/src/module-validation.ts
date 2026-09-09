@@ -20,6 +20,7 @@ export function validateModuleManifest(module: FrameworkModule): readonly Module
   check(Boolean(module.scope.trim()), 'scope', moduleId, issues)
   check(Boolean(module.owner.trim()), 'owner', moduleId, issues)
   check(Boolean(module.description.trim()), 'description', moduleId, issues)
+  validateDataSchema(module, issues)
   validateNamedVersions(module.publicContracts, 'contract', moduleId, issues)
   validateNamedVersions(module.publishes, 'published event', moduleId, issues)
   validateConsumedEvents(module, issues)
@@ -32,6 +33,16 @@ export function validateModuleManifest(module: FrameworkModule): readonly Module
   validateLifecycle(module, issues)
 
   return issues
+}
+
+function validateDataSchema(module: FrameworkModule, issues: ModuleIssue[]): void {
+  if (!module.dataSchema) return
+  if (
+    !valid(module.dataSchema.version) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(module.dataSchema.checksum)
+  ) {
+    addInvalid(module.id, 'data schema', issues)
+  }
 }
 
 function validateExtensionPoints(module: FrameworkModule, issues: ModuleIssue[]): void {

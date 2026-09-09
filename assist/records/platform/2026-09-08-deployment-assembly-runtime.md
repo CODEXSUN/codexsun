@@ -9,17 +9,17 @@ The holder treats applications and add-ons as selectable units. It resolves thei
 ## References
 
 - Runtime owner: [CODEXSUN Runtime Holder](../../../packages/runtime/README.md).
-- Deployment source: [Deployment assemblies](../../../deployments/README.md).
+- Deployment source: [Container assemblies](../../../.container/README.md).
 - Architecture: [Deployment assembly standard](../../architecture/deployment-assembly-standard.md).
 - Application rules: [Application standard](../../architecture/application-standard.md).
 - Extension rules: [Extension standard](../../architecture/extension-standard.md).
 
 ## Binding properties
 
-- `deployments/catalog.json` registers Platform, Docs, Zetro, DevKit, and Orship with ten process or static-server components.
+- `.container/catalog.json` registers Platform, Docs, Zetro, DevKit, and Orship with ten process or static-server components.
 - Each application declares compatible framework, Platform Core, contract, UI, and runtime-holder versions.
-- `deployments/profiles/development.json` selects all registered applications for local work.
-- `deployments/profiles/platform-only.json` proves that a deployment can omit Docs, Zetro, and DevKit.
+- `.container/profiles/development.json` selects all registered applications for local work.
+- `.container/profiles/platform-only.json` proves that a deployment can omit Docs, Zetro, and DevKit.
 - `DeploymentPlanner` resolves required applications, add-ons, runtime packages, components, ports, and build workspaces into an immutable plan.
 - The root runtime tool validates profiles, starts local components through preflight, builds selected workspaces, stages selected artifacts, and generates Docker Compose.
 - Node component staging creates a production-only package manifest and lock. Static component staging copies only its web build.
@@ -57,6 +57,8 @@ The tests cover all-application development composition, Platform-only omission,
 The Platform-only build staged only its API and web components. Docs, DevKit, and Zetro component artifacts were absent. The staged API production install reported zero vulnerabilities and loaded its compiled dependency graph. The temporary staged `node_modules` was removed after this check to preserve the one-root-`node_modules` rule.
 
 The shared holder started all eight development components and reached its ready state. A terminal interrupt stopped the combined runtime, and ports `6010` through `6080` were released. Platform liveness passed while MariaDB-backed module preparation reported the existing `auth_gssapi_client` mismatch; database readiness is therefore not verified.
+
+Windows preflight now force-stops only a verified repository-owned listener. This avoids the interactive `Terminate batch job` prompt during automatic port replacement. The Windows lifecycle test creates an owned listener and confirms that preflight replaces it without user input. A live development-profile restart reached ready state for all ten current components after the process fix.
 
 ## Not yet verified
 

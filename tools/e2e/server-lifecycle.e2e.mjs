@@ -82,7 +82,7 @@ function startServer(port, useIpc, moduleRuntimeEnabled = false) {
     env: {
       ...process.env,
       APP_ENV: 'test',
-      DATABASE_PORT: moduleRuntimeEnabled ? '1' : process.env.DATABASE_PORT,
+      DB_PORT: moduleRuntimeEnabled ? '1' : process.env.DB_PORT,
       LOG_PRETTY: 'false',
       MODULE_RUNTIME_ENABLED: String(moduleRuntimeEnabled),
       PLATFORM_API_HOST: host,

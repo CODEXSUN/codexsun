@@ -1,0 +1,196 @@
+use std::{
+    fs::{self, OpenOptions},
+    io::{Read, Write},
+    net::{Shutdown, TcpStream},
+    path::PathBuf,
+    process::{Child, Command, Stdio},
+    sync::Mutex,
+    thread,
+    time::{Duration, Instant},
+};
+use tauri::{path::BaseDirectory, AppHandle, Manager};
+
+pub const API_URL: &str = "http://127.0.0.1:6050";
+const API_ADDRESS: &str = "127.0.0.1:6050";
+
+#[derive(Clone)]
+pub struct RuntimePaths {
+    pub log_file: PathBuf,
+    pub worktree_directory: PathBuf,
+}
+
+pub struct DesktopRuntime {
+    child: Mutex<Option<Child>>,
+    owner: &'static str,
+    paths: RuntimePaths,
+}
+
+impl DesktopRuntime {
+    pub fn start(app: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
+        let paths = prepare_paths(app)?;
+        if api_is_ready() {
+            return Ok(Self {
+                child: Mutex::new(None),
+                owner: "existing",
+                paths,
+            });
+        }
+        if cfg!(debug_assertions) {
+            return Err("The Zetro development API did not start on port 6050.".into());
+        }
+
+        let child = spawn_api(app, &paths)?;
+        if !wait_for_api(Duration::from_secs(20)) {
+            let mut child = child;
+            stop_process_tree(&mut child);
+            return Err(format!(
+                "The bundled Zetro API did not start. Read {}.",
+                paths.log_file.display()
+            )
+            .into());
+        }
+        Ok(Self {
+            child: Mutex::new(Some(child)),
+            owner: "desktop",
+            paths,
+        })
+    }
+
+    pub fn owner(&self) -> String {
+        self.owner.to_string()
+    }
+
+    pub fn paths(&self) -> &RuntimePaths {
+        &self.paths
+    }
+
+    fn stop(&self) {
+        if let Ok(mut guard) = self.child.lock() {
+            if let Some(child) = guard.as_mut() {
+                stop_process_tree(child);
+            }
+            *guard = None;
+        }
+    }
+}
+
+impl Drop for DesktopRuntime {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+fn prepare_paths(app: &AppHandle) -> Result<RuntimePaths, Box<dyn std::error::Error>> {
+    let app_data = app.path().app_data_dir()?;
+    let worktree_directory = app_data.join("worktrees");
+    fs::create_dir_all(app_data.join("storage"))?;
+    fs::create_dir_all(app_data.join("workspace"))?;
+    fs::create_dir_all(&worktree_directory)?;
+    let log_directory = app.path().app_log_dir()?;
+    fs::create_dir_all(&log_directory)?;
+    Ok(RuntimePaths {
+        log_file: log_directory.join("zetro-api.log"),
+        worktree_directory,
+    })
+}
+
+fn spawn_api(app: &AppHandle, paths: &RuntimePaths) -> Result<Child, Box<dyn std::error::Error>> {
+    let runtime_directory = app.path().resolve("runtime", BaseDirectory::Resource)?;
+    let node = runtime_directory.join("node.exe");
+    let app_data = app.path().app_data_dir()?;
+    let output = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&paths.log_file)?;
+    let errors = output.try_clone()?;
+    let mut command = Command::new(node);
+    command
+        .arg("zetro-api.mjs")
+        .current_dir(runtime_directory)
+        .env("HOST", "127.0.0.1")
+        .env("NODE_ENV", "production")
+        .env("STORAGE_ROOT", app_data.join("storage"))
+        .env(
+            "ZETRO_ALLOWED_ORIGINS",
+            "http://tauri.localhost,https://tauri.localhost",
+        )
+        .env("ZETRO_API_PORT", "6050")
+        .env("ZETRO_DESKTOP_PARENT_PID", std::process::id().to_string())
+        .env("ZETRO_PROJECT_ROOT", app_data.join("workspace"))
+        .env("ZETRO_WEB_PORT", "6060")
+        .env("ZETRO_WORKTREE_ROOT", &paths.worktree_directory)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(output))
+        .stderr(Stdio::from(errors));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    Ok(command.spawn()?)
+}
+
+fn wait_for_api(timeout: Duration) -> bool {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        if api_is_ready() {
+            return true;
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+    false
+}
+
+fn api_is_ready() -> bool {
+    let Ok(mut stream) = TcpStream::connect_timeout(
+        &API_ADDRESS.parse().expect("valid API address"),
+        Duration::from_millis(250),
+    ) else {
+        return false;
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+    if stream
+        .write_all(
+            b"GET /health/live HTTP/1.1\r\nHost: 127.0.0.1:6050\r\nConnection: close\r\n\r\n",
+        )
+        .is_err()
+    {
+        return false;
+    }
+    let _ = stream.shutdown(Shutdown::Write);
+    let mut response = String::new();
+    stream.read_to_string(&mut response).is_ok()
+        && response.contains("200 OK")
+        && response.contains("\"service\":\"zetro-api\"")
+}
+
+#[cfg(windows)]
+fn stop_process_tree(child: &mut Child) {
+    let mut command = Command::new("taskkill");
+    command
+        .args(["/PID", &child.id().to_string(), "/T", "/F"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    use std::os::windows::process::CommandExt;
+    command.creation_flags(0x08000000);
+    let _ = command.status();
+    let _ = child.wait();
+}
+
+#[cfg(not(windows))]
+fn stop_process_tree(child: &mut Child) {
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn desktop_api_url_is_loopback_only() {
+        assert_eq!(API_URL, "http://127.0.0.1:6050");
+        assert_eq!(API_ADDRESS, "127.0.0.1:6050");
+    }
+}

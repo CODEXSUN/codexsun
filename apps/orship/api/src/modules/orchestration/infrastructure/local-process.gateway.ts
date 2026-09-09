@@ -1,11 +1,13 @@
 import type {
+  RuntimeFailure,
+  RuntimeFailureOverview,
   ServiceAction,
   ServiceLogsResponse,
   ServiceSnapshot,
 } from '@codexsun/orship-contracts'
 import { spawn, spawnSync } from 'node:child_process'
 import { closeSync, existsSync, openSync } from 'node:fs'
-import { mkdir, open, readFile, stat } from 'node:fs/promises'
+import { mkdir, open, readFile, readdir, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type {
   OrchestrationProcessGateway,
@@ -27,9 +29,11 @@ type ProcessMarker = {
 }
 
 export class LocalProcessGateway implements OrchestrationProcessGateway {
+  private readonly failureRoot: string
   private readonly logRoot: string
 
   constructor(private readonly projectRoot: string) {
+    this.failureRoot = join(projectRoot, 'storage/app/private/runtime/failures')
     this.logRoot = join(projectRoot, 'storage/app/private/runtime/logs')
   }
 
@@ -62,6 +66,24 @@ export class LocalProcessGateway implements OrchestrationProcessGateway {
       return { lines, serviceId: target.id, updatedAt: new Date().toISOString() }
     } finally {
       await file.close()
+    }
+  }
+
+  async readFailures(limit: number): Promise<RuntimeFailureOverview> {
+    const files = await this.failureFiles()
+    const records = await Promise.all(
+      files.map(async (file) =>
+        parseFailureRecords(
+          await readFile(join(this.failureRoot, file), 'utf8'),
+          file.replace(/\.jsonl$/u, ''),
+        ),
+      ),
+    )
+    const allFailures = records.flat().sort((left, right) => right.time.localeCompare(left.time))
+    return {
+      failures: allFailures.slice(0, limit),
+      total: allFailures.length,
+      updatedAt: new Date().toISOString(),
     }
   }
 
@@ -144,6 +166,15 @@ export class LocalProcessGateway implements OrchestrationProcessGateway {
     return join(this.logRoot, `${serviceId}.log`)
   }
 
+  private async failureFiles(): Promise<readonly string[]> {
+    try {
+      return (await readdir(this.failureRoot)).filter((file) => file.endsWith('.jsonl'))
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return []
+      throw error
+    }
+  }
+
   private async readMarker(serviceId: string): Promise<ProcessMarker | undefined> {
     try {
       const value: unknown = JSON.parse(
@@ -156,6 +187,44 @@ export class LocalProcessGateway implements OrchestrationProcessGateway {
     } catch {
       return undefined
     }
+  }
+}
+
+function parseFailureRecords(content: string, fallbackComponent: string): RuntimeFailure[] {
+  return content
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        const value = JSON.parse(line) as Record<string, unknown>
+        const failure = normalizeFailure(value, fallbackComponent)
+        return failure ? [failure] : []
+      } catch {
+        return []
+      }
+    })
+}
+
+function normalizeFailure(
+  value: Record<string, unknown>,
+  fallbackComponent: string,
+): RuntimeFailure | undefined {
+  const level = Number(value.level)
+  if (!Number.isFinite(level) || level < 40 || typeof value.msg !== 'string') return undefined
+  const component = typeof value.component === 'string' ? value.component : fallbackComponent
+  const application =
+    typeof value.application === 'string' ? value.application : component.split('-')[0]
+  const date = new Date(typeof value.time === 'number' ? value.time : String(value.time))
+  if (!application || Number.isNaN(date.valueOf())) return undefined
+  return {
+    application,
+    component,
+    ...(typeof value.correlationId === 'string' ? { correlationId: value.correlationId } : {}),
+    event: typeof value.event === 'string' ? value.event : 'runtime.failure',
+    level,
+    msg: value.msg,
+    ...(typeof value.requestId === 'string' ? { requestId: value.requestId } : {}),
+    time: date.toISOString(),
   }
 }
 

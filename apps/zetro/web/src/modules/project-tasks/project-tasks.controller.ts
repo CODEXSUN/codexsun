@@ -10,7 +10,7 @@ export type TaskController = {
   isLoading: boolean
   tasks: ZetroTask[]
   view: 'archive' | 'tasks'
-  addTask(input: { description: string; priority: TaskPriority; title: string }): Promise<void>
+  addTask(input: { description: string; priority: TaskPriority; title: string }): Promise<ZetroTask>
   archiveTask(task: ZetroTask): Promise<void>
   closeCreateTask(): void
   changeStatus(taskId: string, status: TaskStatus): Promise<void>

@@ -1,13 +1,22 @@
 import {
+  cloudTargetSchema,
+  cloudTargetUpdateSchema,
+  deploymentEvidenceSchema,
+  deploymentRecordCreateSchema,
+  deploymentRecordListSchema,
+  deploymentRecordSchema,
   orchestrationErrorSchema,
   orchestrationOverviewSchema,
   serviceActionRequestSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
+  runtimeFailureOverviewSchema,
 } from '@codexsun/orship-contracts'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { OrchestrationError, OrchestrationService } from '../application/orchestration.service.js'
+import { CloudTargetService } from '../application/cloud-target.service.js'
+import { DeploymentEvidenceService } from '../application/deployment-evidence.service.js'
 
 const serviceParamsSchema = z.strictObject({ serviceId: z.string().min(1).max(80) })
 const logQuerySchema = z.strictObject({
@@ -17,7 +26,72 @@ const logQuerySchema = z.strictObject({
 export async function registerOrchestrationRoutes(
   server: FastifyInstance,
   service: OrchestrationService,
+  cloudTarget: CloudTargetService,
+  deployments: DeploymentEvidenceService,
 ): Promise<void> {
+  server.get(
+    '/api/orship/v1/deployments/platform/evidence',
+    { schema: { response: { 200: z.toJSONSchema(deploymentEvidenceSchema) } } },
+    () => deployments.getEvidence(),
+  )
+
+  server.get(
+    '/api/orship/v1/deployments/platform/records',
+    { schema: { response: { 200: z.toJSONSchema(deploymentRecordListSchema) } } },
+    () => deployments.listRecords(),
+  )
+
+  server.post(
+    '/api/orship/v1/deployments/platform/records',
+    {
+      schema: {
+        response: {
+          200: z.toJSONSchema(deploymentRecordSchema),
+          403: z.toJSONSchema(orchestrationErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!isLoopback(request)) {
+        return reply.status(403).send(errorBody('LOOPBACK_REQUIRED', 'Use a local browser.'))
+      }
+      return deployments.createRecord(deploymentRecordCreateSchema.parse(request.body))
+    },
+  )
+
+  server.get(
+    '/api/orship/v1/failures',
+    { schema: { response: { 200: z.toJSONSchema(runtimeFailureOverviewSchema) } } },
+    async (request) => {
+      const { limit } = logQuerySchema.parse(request.query)
+      return service.getFailures(limit)
+    },
+  )
+
+  server.get(
+    '/api/orship/v1/cloud-target',
+    { schema: { response: { 200: z.toJSONSchema(cloudTargetSchema) } } },
+    () => cloudTarget.get(),
+  )
+
+  server.put(
+    '/api/orship/v1/cloud-target',
+    {
+      schema: {
+        response: {
+          200: z.toJSONSchema(cloudTargetSchema),
+          403: z.toJSONSchema(orchestrationErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!isLoopback(request)) {
+        return reply.status(403).send(errorBody('LOOPBACK_REQUIRED', 'Use a local browser.'))
+      }
+      return cloudTarget.update(cloudTargetUpdateSchema.parse(request.body))
+    },
+  )
+
   server.get(
     '/api/orship/v1/services',
     { schema: { response: { 200: z.toJSONSchema(orchestrationOverviewSchema) } } },

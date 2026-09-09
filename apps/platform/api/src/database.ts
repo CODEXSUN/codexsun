@@ -15,12 +15,12 @@ export interface PlatformDatabase {
 export function createDatabase(environment: Environment): PlatformDatabase {
   const pool = createPool({
     connectionLimit: 10,
-    database: environment.DATABASE_NAME,
+    database: environment.DB_MASTER_NAME,
     enableKeepAlive: true,
-    host: environment.DATABASE_HOST,
-    password: environment.DATABASE_PASSWORD,
-    port: environment.DATABASE_PORT,
-    user: environment.DATABASE_USER,
+    host: environment.DB_HOST,
+    password: environment.DB_PASSWORD,
+    port: environment.DB_PORT,
+    user: environment.DB_USER,
   })
 
   const client = new Kysely<DatabaseSchema>({

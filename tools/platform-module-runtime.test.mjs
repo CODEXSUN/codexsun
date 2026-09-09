@@ -19,6 +19,8 @@ test('module runtime applies module-owned data in dependency order and skips it 
   const first = coordinator(plan, [feature, runtime], repository, operations)
 
   const preparation = await first.prepare()
+  assert.deepEqual(preparation.appliedMigrationIds, ['feature:0001-feature'])
+  assert.deepEqual(preparation.appliedSeedIds, ['feature:0001-feature-defaults'])
   assert.equal(first.canServe('feature'), false)
   assert.deepEqual([...preparation.newModuleIds], ['runtime', 'feature'])
   assert.deepEqual(operations, ['migration:feature', 'seed:feature'])
@@ -36,6 +38,8 @@ test('module runtime applies module-owned data in dependency order and skips it 
 
   const restarted = coordinator(plan, [feature, runtime], repository, operations)
   const restartPreparation = await restarted.prepare()
+  assert.deepEqual(restartPreparation.appliedMigrationIds, [])
+  assert.deepEqual(restartPreparation.appliedSeedIds, [])
   assert.deepEqual([...restartPreparation.newModuleIds], [])
   assert.deepEqual(
     [...restartPreparation.previousVersions],
@@ -63,6 +67,31 @@ test('module runtime blocks changed migration checksums and records module failu
   const record = await repository.getModule('feature')
   assert.equal(record.state, 'failed')
   assert.equal(record.lastFailureCode, 'MODULE_PREPARATION_FAILED')
+})
+
+test('module runtime blocks schema drift after queued migrations run', async () => {
+  const operations = []
+  const repository = new MemoryModuleRuntimeRepository()
+  const runtime = runtimeModule()
+  const feature = featureModule('feature', 'checksum-a', operations)
+  feature.manifest.dataSchema = { checksum: `sha256:${'a'.repeat(64)}`, version: '1.0.0' }
+  feature.schema = {
+    checksum: `sha256:${'a'.repeat(64)}`,
+    inspect: async () => `sha256:${'b'.repeat(64)}`,
+    version: '1.0.0',
+  }
+
+  await assert.rejects(
+    () =>
+      coordinator(
+        composition([runtime, feature]),
+        [runtime, feature],
+        repository,
+        operations,
+      ).prepare(),
+    /schema checksum mismatch/u,
+  )
+  assert.equal((await repository.getModule('feature')).state, 'failed')
 })
 
 function coordinator(plan, modules, repository, operations) {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -9,6 +9,7 @@ import {
   ChatConversationNotFoundError,
   ChatConversationService,
 } from '../src/modules/chat/chat.conversation.service.js'
+import { validateChatWorkspaceScope } from '../src/modules/chat/chat.scope.js'
 
 const projectId = '00000000-0000-4000-8000-000000000001'
 
@@ -26,6 +27,7 @@ test('creates short titles and orders pinned conversations first', async (contex
     {
       attachments: [],
       content: 'Plan a focused launch checklist with owners, dates, risks, and clear outcomes',
+      createdAt: '2026-09-08T12:00:00.000Z',
       id: 'message-1',
       role: 'user',
     },
@@ -34,6 +36,7 @@ test('creates short titles and orders pinned conversations first', async (contex
     {
       attachments: [],
       content: 'Review today tasks',
+      createdAt: '2026-09-08T12:01:00.000Z',
       id: 'message-2',
       role: 'user',
     },
@@ -72,6 +75,7 @@ test('persists a delivery record with its assistant message', async (context) =>
     {
       attachments: [],
       content: 'Delivery complete.',
+      createdAt: '2026-09-08T12:00:00.000Z',
       execution: {
         activities: [],
         delivery: {
@@ -110,7 +114,13 @@ test('archives, restores, and permanently deletes conversations', async (context
   await repository.initialize()
   const service = new ChatConversationService(repository)
   const conversation = await service.create(projectId, [
-    { attachments: [], content: 'Archive this chat', id: 'message-archive', role: 'user' },
+    {
+      attachments: [],
+      content: 'Archive this chat',
+      createdAt: '2026-09-08T12:00:00.000Z',
+      id: 'message-archive',
+      role: 'user',
+    },
   ])
 
   await assert.rejects(
@@ -142,10 +152,22 @@ test('permanently deletes every archived conversation and keeps active history',
   await repository.initialize()
   const service = new ChatConversationService(repository)
   const first = await service.create(projectId, [
-    { attachments: [], content: 'First chat', id: 'message-first', role: 'user' },
+    {
+      attachments: [],
+      content: 'First chat',
+      createdAt: '2026-09-08T12:00:00.000Z',
+      id: 'message-first',
+      role: 'user',
+    },
   ])
   const second = await service.create(projectId, [
-    { attachments: [], content: 'Second chat', id: 'message-second', role: 'user' },
+    {
+      attachments: [],
+      content: 'Second chat',
+      createdAt: '2026-09-08T12:01:00.000Z',
+      id: 'message-second',
+      role: 'user',
+    },
   ])
 
   await service.update(first.id, { archived: true })
@@ -166,12 +188,94 @@ test('keeps project conversations isolated', async (context) => {
   const otherProjectId = '11111111-1111-4111-8111-111111111111'
 
   await service.create(projectId, [
-    { attachments: [], content: 'Default project', id: 'default-message', role: 'user' },
+    {
+      attachments: [],
+      content: 'Default project',
+      createdAt: '2026-09-08T12:00:00.000Z',
+      id: 'default-message',
+      role: 'user',
+    },
   ])
   await service.create(otherProjectId, [
-    { attachments: [], content: 'Other project', id: 'other-message', role: 'user' },
+    {
+      attachments: [],
+      content: 'Other project',
+      createdAt: '2026-09-08T12:01:00.000Z',
+      id: 'other-message',
+      role: 'user',
+    },
   ])
 
   assert.equal(service.list(projectId).length, 1)
   assert.equal(service.list(otherProjectId).length, 1)
+})
+
+test('stores and validates a chat workspace scope inside the project', async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), 'zetro-chat-scope-'))
+  context.after(() => rm(directory, { force: true, recursive: true }))
+  const modulePath = join(directory, 'apps', 'zetro')
+  await mkdir(modulePath, { recursive: true })
+  const repository = new ChatConversationRepository(
+    join(directory, 'conversations.json'),
+    projectId,
+  )
+  await repository.initialize()
+  const service = new ChatConversationService(repository)
+  const scope = await validateChatWorkspaceScope(directory, {
+    application: 'zetro',
+    folderPath: 'apps\\zetro',
+    module: 'agent-chat',
+  })
+  const conversation = await service.create(
+    projectId,
+    [
+      {
+        attachments: [],
+        content: 'Scoped chat',
+        createdAt: '2026-09-08T12:00:00.000Z',
+        id: 'message-scope',
+        role: 'user',
+      },
+    ],
+    scope,
+  )
+
+  assert.deepEqual(conversation.scope, {
+    application: 'zetro',
+    folderPath: 'apps/zetro',
+    module: 'agent-chat',
+  })
+  await assert.rejects(
+    validateChatWorkspaceScope(directory, {
+      application: 'outside',
+      folderPath: '..',
+      module: '',
+    }),
+  )
+})
+
+test('adds conversation timestamps to legacy messages during startup', async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), 'zetro-message-time-'))
+  context.after(() => rm(directory, { force: true, recursive: true }))
+  const filePath = join(directory, 'conversations.json')
+  const conversationId = '22222222-2222-4222-8222-222222222222'
+  await writeFile(
+    filePath,
+    JSON.stringify([
+      {
+        createdAt: '2026-09-07T10:30:00.000Z',
+        id: conversationId,
+        messages: [{ attachments: [], content: 'Legacy chat', id: 'legacy', role: 'user' }],
+        pinned: false,
+        projectId,
+        title: 'Legacy chat',
+        updatedAt: '2026-09-07T10:30:00.000Z',
+      },
+    ]),
+  )
+
+  const repository = new ChatConversationRepository(filePath, projectId)
+  await repository.initialize()
+
+  assert.equal(repository.find(conversationId)?.messages[0]?.createdAt, '2026-09-07T10:30:00.000Z')
 })

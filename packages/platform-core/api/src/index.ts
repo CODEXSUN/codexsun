@@ -2,13 +2,26 @@ import type { FrameworkModule } from '@codexsun/framework'
 import type { FastifyPluginAsync } from 'fastify'
 import type { PlatformDiagnostics } from './diagnostics.js'
 import type { PlatformModuleEventBus } from './events.js'
-import type { PlatformModuleMigration, PlatformModuleSeed } from './module-data.js'
+import type {
+  PlatformModuleMigration,
+  PlatformModuleSchema,
+  PlatformModuleSeed,
+} from './module-data.js'
 import type { PlatformRequestContextAccessor } from './request-context.js'
+import type { PlatformReadinessProbe, PlatformReadinessRegistrar } from './readiness.js'
+import type { PlatformAuthorizer } from './authorization.js'
 
+export * from './authorization.js'
+export * from './configuration.js'
 export * from './diagnostics.js'
+export * from './api-observability.js'
 export * from './events.js'
+export * from './environment.js'
+export * from './logging.js'
 export * from './module-data.js'
 export * from './request-context.js'
+export * from './readiness.js'
+export * from './telemetry.js'
 
 export interface PlatformModuleSummary {
   capabilities: readonly string[]
@@ -28,11 +41,13 @@ export interface PlatformShutdownTask {
 }
 
 export interface PlatformApiModuleContext {
+  authorization: PlatformAuthorizer
   clock: () => Date
   createId: () => string
   diagnostics: PlatformDiagnostics
   events: PlatformModuleEventBus
   modules: readonly PlatformModuleSummary[]
+  readiness: PlatformReadinessRegistrar
   requestContext: PlatformRequestContextAccessor
   registerShutdown(task: PlatformShutdownTask): void
   signal: AbortSignal
@@ -42,6 +57,8 @@ export interface PlatformApiModule<TMigrationContext = never, TSeedContext = TMi
   createPlugin(context: PlatformApiModuleContext): FastifyPluginAsync
   manifest: FrameworkModule
   migrations?: readonly PlatformModuleMigration<TMigrationContext>[]
+  readiness?: readonly PlatformReadinessProbe[]
+  schema?: PlatformModuleSchema<TMigrationContext>
   seeds?: readonly PlatformModuleSeed<TSeedContext>[]
 }
 

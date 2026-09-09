@@ -6,7 +6,7 @@ export function renderDockerCompose(plan: DeploymentPlan): string {
     const addons = plan.addons
       .filter(({ componentIds }) => componentIds.includes(component.id))
       .map(({ id }) => id)
-    lines.push(...renderService(plan.profile.id, component, addons))
+    lines.push(...renderService(plan.profile.id, plan.profile.environment, component, addons))
   }
   lines.push('volumes:', '  codexsun-storage:')
   return `${lines.join('\n')}\n`
@@ -14,13 +14,14 @@ export function renderDockerCompose(plan: DeploymentPlan): string {
 
 function renderService(
   profileId: string,
+  profileEnvironment: 'development' | 'production',
   component: PlannedComponent,
   addons: readonly string[],
 ): string[] {
   const dockerfile =
     component.runtime === 'node'
-      ? 'deployments/docker/Dockerfile.node'
-      : 'deployments/docker/Dockerfile.static'
+      ? '.container/docker/Dockerfile.node'
+      : '.container/docker/Dockerfile.static'
   const lines = [
     `  ${component.id}:`,
     '    build:',
@@ -37,6 +38,10 @@ function renderService(
 
   if (component.hostEnvironmentKey) lines.push(`      ${component.hostEnvironmentKey}: 0.0.0.0`)
   if (component.runtime === 'static') lines.push(`      PORT: ${component.port}`)
+  if (component.runtime === 'node') {
+    lines.push(`      APP_ENV: ${profileEnvironment}`)
+    if (profileEnvironment === 'production') lines.push('      LOG_PRETTY: "false"')
+  }
   if (addons.length > 0) lines.push(`      CODEXSUN_ADDONS: ${addons.join(',')}`)
   lines.push('    ports:', `      - "${component.port}:${component.port}"`)
 

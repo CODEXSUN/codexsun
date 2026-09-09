@@ -12,6 +12,12 @@ export interface PlatformModuleSeed<TContext> {
   version: string
 }
 
+export interface PlatformModuleSchema<TContext> {
+  checksum: string
+  inspect(context: TContext): Promise<string>
+  version: string
+}
+
 export function validateModuleDataDeclarations(
   moduleId: string,
   migrations: readonly PlatformModuleMigration<unknown>[],
@@ -19,6 +25,16 @@ export function validateModuleDataDeclarations(
 ): void {
   validateDeclarations(moduleId, 'migration', migrations)
   validateDeclarations(moduleId, 'seed', seeds)
+}
+
+export function validateModuleSchemaDeclaration(
+  moduleId: string,
+  schema: PlatformModuleSchema<unknown> | undefined,
+): void {
+  if (!schema) return
+  if (!schema.version || !/^sha256:[a-f0-9]{64}$/u.test(schema.checksum)) {
+    throw new Error(`Module "${moduleId}" has an invalid schema declaration.`)
+  }
 }
 
 function validateDeclarations(

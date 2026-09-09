@@ -8,7 +8,7 @@ import { defaultProjectId, type ProjectService } from '../projects/index.js'
 
 export const tasksModuleManifest = {
   capabilities: ['task-create', 'task-list', 'task-update', 'task-archive', 'task-pin'],
-  dependencies: { 'zetro.projects.api': '^0.1.0' },
+  dependencies: { 'zetro.projects.api': '^0.4.0' },
   id: 'zetro.tasks.api',
   lifecycle: {
     activate: 'Initialize the repository and register task routes.',

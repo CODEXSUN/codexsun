@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchDocument, fetchDocuments } from './docs-library.services'
+import { fetchDocument, fetchDocuments, updateDocument } from './docs-library.services'
 import type { DocsState } from './docs-library.types'
 
 const initialState: DocsState = { documents: [], loading: true }
@@ -29,6 +29,12 @@ export function useDocsLibrary() {
 
   useEffect(() => {
     if (!selectedSlug) {
+      setState((current) => ({
+        ...current,
+        activeDocument: undefined,
+        error: undefined,
+        loading: false,
+      }))
       return
     }
 
@@ -74,7 +80,30 @@ export function useDocsLibrary() {
     }
   }, [])
 
-  return { ...state, selectDocument }
+  const saveDocument = useCallback(
+    async (slug: string, input: { source: string; sourceHash: string; title?: string }) => {
+      const document = await updateDocument(slug, input)
+      documentCache.current.set(slug, document)
+      setState((current) => ({
+        ...current,
+        activeDocument: current.activeDocument?.slug === slug ? document : current.activeDocument,
+        documents: current.documents.map((item) =>
+          item.slug === slug
+            ? {
+                ...item,
+                description: document.description,
+                title: document.title,
+                updatedAt: document.updatedAt,
+              }
+            : item,
+        ),
+      }))
+      return document
+    },
+    [],
+  )
+
+  return { ...state, saveDocument, selectDocument }
 }
 
 function readSlugFromLocation(): string | undefined {

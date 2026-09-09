@@ -12,7 +12,7 @@ import { Button } from '../../components/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/tooltip'
 import { cn } from '../../lib/utils'
 
-export type UiTemplateKind = 'Block' | 'Component'
+export type UiTemplateKind = 'Block' | 'Component' | 'Layout'
 
 export function UiTemplateHeader({
   importPath,
