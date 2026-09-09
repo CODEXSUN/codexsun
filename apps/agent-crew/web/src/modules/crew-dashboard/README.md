@@ -1,6 +1,6 @@
 # Agent Crew dashboard module
 
-Version: `0.1.0`  
+Version: `0.1.0`
 Development record: [Agent Crew foundation](../../../../../assist/records/agent-crew/2026-09-09-foundation.md)
 
 This module owns the Agent Crew dashboard. It shows safe provider status, local

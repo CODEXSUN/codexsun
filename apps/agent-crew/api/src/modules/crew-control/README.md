@@ -1,6 +1,6 @@
 # Agent Crew control API module
 
-Version: `0.1.0`  
+Version: `0.1.0`
 Development record: [Agent Crew foundation](../../../../../assist/records/agent-crew/2026-09-09-foundation.md)
 
 This module owns the dashboard-facing proxy to the isolated worker. It validates
