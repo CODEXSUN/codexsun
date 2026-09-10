@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/framework",
   "private": true,
-  "version": "0.1.29",
+  "version": "0.1.30",
   "type": "module",
   "main": "../../../dist/packages/framework/index.js",
   "types": "./src/index.ts",

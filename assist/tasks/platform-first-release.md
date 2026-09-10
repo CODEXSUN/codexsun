@@ -43,6 +43,11 @@ Email/OTP and password-reset delivery remain unavailable without owned providers
 
 ## Next fixture task
 
+0.1.30 adds the reviewed test-only bootstrap and safety tests.
+See the [experiment record](../records/platform/2026-09-10-p001-fixture-experiment.md).
+The originating Zetro job failed inspection commands. The supervisor corrected its candidate patch.
+Live database provisioning, isolated origins, browser scenarios, and cleanup remain pending.
+
 Zetro completed read-only fixture planning in job `5db6e77f-b7f8-468f-8063-55f282f9c6a0`.
 Use the supervisor corrections in the [0.1.24 record](../records/zetro/2026-09-10-desktop-0.1.24.md).
 Build Identity-owned test bootstrap support for a disposable database and three portal accounts.

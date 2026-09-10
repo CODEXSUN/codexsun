@@ -83,6 +83,8 @@ Run `npm.cmd run test:identity`, `npm.cmd run test:identity:mariadb`, `npm.cmd r
 
 ## Development records
 
+- [2026-09-10 P001 fixture experiment](../../../../../../assist/records/platform/2026-09-10-p001-fixture-experiment.md)
+
 - [2026-09-10 Public client](../../../../../../assist/records/platform/2026-09-10-identity-public-client.md)
 - [2026-09-10 Permission HTTP verification](../../../../../../assist/records/platform/2026-09-10-identity-permission-http.md)
 - [2026-09-10 Identity concurrency](../../../../../../assist/records/platform/2026-09-10-identity-concurrency.md)
@@ -90,3 +92,21 @@ Run `npm.cmd run test:identity`, `npm.cmd run test:identity:mariadb`, `npm.cmd r
 
 - [2026-09-09 Identity cross-client security](../../../../../../assist/records/platform/2026-09-09-identity-cross-client-security.md)
 - [2026-09-09 Identity portals](../../../../../../assist/records/platform/2026-09-09-identity-portals.md)
+
+## Disposable browser fixture foundation
+
+`test-support/p001-browser-fixture.ts` is test-only and is not a public runtime export or HTTP endpoint.
+It accepts a caller-owned database, test environment, password, and matching random suffix.
+The database name must use `codexsun_p001_identity_fixture_<pid>_<12 lowercase alphanumeric characters>`.
+The caller must provision a fresh database with a database-scoped account and exclusive ownership.
+The helper checks the actual selected database and rejects every nonempty schema before mutations.
+It applies Identity migrations and creates three portal accounts through the Identity repository and Argon2 adapter.
+It does not create devices, grant roles, or bypass activation rules.
+
+This bootstrap does not write the production module-runtime migration ledger.
+Do not run the normal module-runtime migration coordinator against this fixture afterward.
+The future isolated browser harness must disable that coordinator and development login explicitly.
+The harness must provision test permissions explicitly when a scenario needs them.
+It must also reserve separate API/web ports and remove only its own disposable database after all connections close.
+A failed bootstrap can leave partial test data. Never retry it against the same database.
+Run `npm.cmd run test:identity` for the fixture safety tests. Live MariaDB/browser acceptance remains pending.

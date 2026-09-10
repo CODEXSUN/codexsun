@@ -1,21 +1,21 @@
 {
   "name": "@codexsun/platform-api",
   "private": true,
-  "version": "0.1.29",
+  "version": "0.1.30",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/platform-api.eslintcache",
-    "test": "tsx --test tests/identity.service.test.ts",
+    "test": "tsx --test tests/identity.service.test.ts tests/identity.browser-fixture.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "start": "node ../../../dist/apps/platform/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-identity-client": "^0.1.29",
-    "@codexsun/framework": "^0.1.29",
-    "@codexsun/platform-contracts": "^0.1.29",
-    "@codexsun/platform-core-api": "^0.1.29",
+    "@codexsun/platform-identity-client": "^0.1.30",
+    "@codexsun/framework": "^0.1.30",
+    "@codexsun/platform-contracts": "^0.1.30",
+    "@codexsun/platform-core-api": "^0.1.30",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",

@@ -1,5 +1,7 @@
 # Zetro Development Records
 
+- [2026-09-10 Desktop 0.1.30 build](2026-09-10-desktop-0.1.30.md)
+
 - [2026-09-10 Sandbox path repair](2026-09-10-sandbox-path-repair.md)
 
 - [2026-09-10 Desktop 0.1.28 release candidate](2026-09-10-desktop-0.1.28.md)

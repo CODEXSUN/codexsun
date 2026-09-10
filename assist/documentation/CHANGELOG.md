@@ -8,26 +8,27 @@
 
 ## Version State
 
-- Current version: 0.1.29
-- Release tag: v-0.1.29
-- Changelog label: v 0.1.29
+- Current version: 0.1.30
+- Release tag: v-0.1.30
+- Changelog label: v 0.1.30
 
-## v-0.1.29
+## v-0.1.30
+
+### [v 0.1.30] 2026-09-10 5:42 pm - Platform Identity fixture experiment through Zetro
+
+- No database changes. Identity 1.3.0 gains test-only disposable three-portal fixture support with connection and empty-schema guards.
+- Zetro's candidate run failed inspection commands. The supervisor corrected the patch. See the [experiment record](../records/platform/2026-09-10-p001-fixture-experiment.md). The unsigned 0.1.30 MSI build and packaged runtime test passed. See the [desktop release log](../records/zetro/2026-09-10-desktop-0.1.30.md).
 
 ### [v 0.1.29] 2026-09-10 5:14 pm - Zetro sandbox working directory repair
 
 - No database changes. Codex Connection 0.10.1 resolves physical sandbox paths. Desktop probes use home storage instead of protected MSIX AppData.
 - Regression tests and both live execution probes passed. See the [repair record](../records/zetro/2026-09-10-sandbox-path-repair.md) for installed verification and release limits.
 
-## v-0.1.28
-
 ### [v 0.1.28] 2026-09-10 4:44 pm - Zetro verified sandbox and chat readiness
 
 - Database Changes: None. Existing accounts, conversations, and migrations are preserved.
 - App Codebase Changes: Codex Connection API 0.10.0 and Settings web 0.5.0 add verified Windows sandbox gating, explicit localhost policy, status controls, and short host-written probes.
 - Verification: Live chat and sandbox evidence, release checks, artifact details, and remaining production gates are recorded in the [0.1.28 release log](../records/zetro/2026-09-10-desktop-0.1.28.md).
-
-## v-0.1.27
 
 ### [v 0.1.27] 2026-09-10 3:17 pm - Zetro scope validation and stability checks
 
@@ -662,14 +663,12 @@
 - Platform and framework foundation: added the first module, application, development-record, and runtime standards.
 - Added Platform System API and web modules with health, readiness, and lifecycle verification.
 - Connected Docs workspace and release workflow: added the connected MDX Docs API and web workspace with Obsidian-compatible source links.
-- Added repository version and interactive GitHub release tooling.
-- **CODEXSUN foundation:** Established the CODEXSUN application platform, documentation workspace, and module ownership baseline.
+- Added repository version and interactive GitHub release tooling. **CODEXSUN foundation:** Established the CODEXSUN application platform, documentation workspace, and module ownership baseline.
 - Zetro agent workspace: added Zetro API and web workspaces, JSON persistence, Codex connection flow, task management, and release workflow.
 - Passed Zetro focused checks and browser reviews recorded in the Zetro development records.
 - Zetro project workspaces: added project identity and tagline settings, repository browsing, project workspaces, chat and task lists, archived-task restore, provider context, and Codex worktrees.
 - **DevKit hierarchical module planning:** Added project-to-module drill-down, guarded node upserts, profile entry upserts, and profile tabs.
-- **DevKit terminal module profiles:** Made modules terminal and opened profiles directly from module names.
-- Migrated legacy planning records without changing their IDs.
+- **DevKit terminal module profiles:** Made modules terminal and opened profiles directly from module names. Migrated legacy planning records without changing their IDs.
 - **DevKit access-control registry:** Moved User endpoint data into User and added Role, Permission, User role, and Role permission profiles.
 - **Zetro response actions:** Simplified message actions and removed workflow and worktree details from user-facing chat messages.
 - **Zetro archived chats:** Added archive, restore, and archived-chat navigation behavior.
