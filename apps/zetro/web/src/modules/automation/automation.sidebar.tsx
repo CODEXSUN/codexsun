@@ -2,7 +2,7 @@ import { Activity, History } from 'lucide-react'
 import { Button } from '@codexsun/ui/components/button'
 import { Badge } from '@codexsun/ui/components/badge'
 import { useSystemTasks } from '../system-tasks'
-import { isLiveRun } from './automation.run-model'
+import { isLiveRun, runTitle } from './automation.run-model'
 
 export function AutomationSidebar() {
   const runs = useSystemTasks()
@@ -25,7 +25,7 @@ export function AutomationSidebar() {
                 onClick={() => void runs.select(task.id)}
               >
                 <span className="min-w-0 flex-1 truncate text-xs" title={task.title}>
-                  {task.title}
+                  {runTitle(task)}
                 </span>
                 <Badge variant={task.status === 'failed' ? 'destructive' : 'outline'}>
                   {task.status}

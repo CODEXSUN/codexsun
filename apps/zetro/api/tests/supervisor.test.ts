@@ -39,6 +39,8 @@ test('public progress coalesces, bounds, redacts, and flushes before completion'
   assert.doesNotMatch(messages[0]!, /secret/)
   const snapshot = JSON.parse(messages[0]!.split('zetro.progress.v1:')[1]!)
   assert.equal(snapshot.activities.length, 40)
+  assert.equal(snapshot.activities[0].itemId, '20')
+  assert.equal(snapshot.activities[39].itemId, '59')
   assert.equal(snapshot.response.length, 8000)
 })
 

@@ -21,7 +21,7 @@ export type LoginPageProps = {
   forgotHref?: string
   onSubmit(identifier: string, password: string): void
   onDevLogin?: () => void
-  registerHref?: string
+  registerHref?: string | null
   title?: string
   variant?: AuthPageVariant
 }
@@ -75,20 +75,28 @@ export function LoginPage({
         {variant === 'v1' ? <div className="border-t" /> : null}
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor={`login-${variant}-email`}>Email</FieldLabel>
+            <FieldLabel htmlFor={`login-${variant}-identifier`}>
+              Username, email, or mobile
+            </FieldLabel>
             <Input
               autoComplete="username"
               className="h-11"
-              id={`login-${variant}-email`}
+              id={`login-${variant}-identifier`}
               onChange={(event) => setIdentifier(event.target.value)}
-              placeholder={variant === 'v2' ? 'name@company.com' : undefined}
+              placeholder={variant === 'v2' ? 'Username, email, or mobile' : undefined}
               required
-              type="email"
+              type="text"
               value={identifier}
             />
           </Field>
           {devLoginEnabled && onDevLogin ? (
-            <Button className="w-full" onClick={onDevLogin} type="button" variant="outline">
+            <Button
+              className="w-full"
+              disabled={busy}
+              onClick={onDevLogin}
+              type="button"
+              variant="outline"
+            >
               Development sign in
             </Button>
           ) : null}

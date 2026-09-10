@@ -7,8 +7,67 @@ import {
   runDuration,
   runEvidence,
   runActivityState,
+  runTitle,
+  runTimeline,
+  runReport,
+  runSummary,
 } from '../src/modules/automation/automation.run-model.js'
 import { taskResponseSchema } from '../src/modules/system-tasks/system-tasks.schema.js'
+
+test('timeline projects observed tool changes, skips unchanged snapshots, and keeps response separate', () => {
+  const tool = { itemId: 'tool-1', kind: 'command', label: 'npm run typecheck', status: 'running' }
+  const step = (id: string, activities: unknown[], response = '') => ({
+    id,
+    taskId: 'run',
+    completedAt: '2026-09-10T00:00:10Z',
+    status: 'info' as const,
+    message: `zetro.progress.v1:${JSON.stringify({ activities, response })}`,
+  })
+  const timeline = runTimeline([
+    step('a', [tool]),
+    step('b', [tool]),
+    step('c', [{ ...tool, status: 'completed' }], 'Actual answer'),
+    step('d', [{ ...tool, status: 'completed' }], 'Actual answer'),
+  ])
+  assert.equal(timeline.length, 3)
+  assert.equal(timeline[0]?.status, 'running')
+  assert.equal(timeline[1]?.status, 'completed')
+  assert.match(timeline[0]!.message, /npm run typecheck/)
+  assert.match(timeline[2]!.message, /13 characters/)
+  assert.doesNotMatch(JSON.stringify(timeline), /Actual answer|zetro.progress.v1/)
+})
+
+test('run identity and execution report distinguish repeated prompts without claiming release approval', () => {
+  const task = taskResponseSchema.parse({
+    task: {
+      id: '12345678-run',
+      title: 'Supervisor: repeated instructions',
+      type: 'supervisor.agent-turn',
+      attempts: 1,
+      maxAttempts: 1,
+      recoveryCount: 0,
+      projectId: 'project',
+      status: 'completed',
+      error: null,
+      createdAt: '2026-09-10T00:00:00Z',
+      updatedAt: '2026-09-10T00:01:00Z',
+      startedAt: '2026-09-10T00:00:00Z',
+      completedAt: '2026-09-10T00:01:00Z',
+      input: {
+        prompt: 'Instruction only',
+        workflow: 'review',
+        scope: { application: 'platform', module: 'identity' },
+      },
+      result: { message: { content: 'Actual answer' } },
+    },
+  }).task
+  assert.equal(runTitle(task), 'review · platform / identity · 12345678')
+  assert.notEqual(runTitle(task), runTitle({ ...task, id: '87654321-run' }))
+  assert.match(runSummary(task), /not release approval/)
+  assert.doesNotMatch(runSummary(task), /Actual answer/)
+  assert.equal(runReport({ ...task, steps: [] }).split('Actual answer').length, 2)
+  assert.match(runReport({ ...task, steps: [] }), /Tool telemetry is unavailable/)
+})
 
 test('animates only observed active execution, not queued, stale, or terminal runs', () => {
   assert.deepEqual(runActivityState({ status: 'running' }, true), {

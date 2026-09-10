@@ -7,7 +7,7 @@ import { SupervisorService } from './supervisor.service.js'
 
 export const supervisorModuleManifest = {
   id: 'zetro.supervisor.api',
-  version: '0.2.0',
+  version: '0.2.1',
   scope: 'zetro-api',
   capabilities: ['external-agent-jobs', 'durable-results', 'agent-cancellation'],
   dependencies: {

@@ -4,6 +4,8 @@ Reference: [Application standard](../../assist/architecture/application-standard
 
 ## Purpose
 
+Automation evidence was refined in the [2026-09-10 record](../../assist/records/zetro/2026-09-10-automation-evidence-clarity.md).
+
 Zetro is a standalone development desk with task execution and provider-backed agent APIs. It is a product application and does not place agent behavior in the CODEXSUN framework kernel.
 
 ## Ownership

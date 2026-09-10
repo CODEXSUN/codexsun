@@ -20,6 +20,7 @@ export class SupervisorProgress {
     else {
       this.tools.set(event.itemId, {
         ...event.activity,
+        itemId: event.itemId,
         label: redact(event.activity.label),
         details: undefined,
       })

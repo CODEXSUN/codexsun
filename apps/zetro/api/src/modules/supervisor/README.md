@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.supervisor.api`
-- Version: `0.2.0`
+- Version: `0.2.1`
 - Owner: Zetro API
 - Dependencies: Chat `^0.14.0`, Projects `^0.5.0`, System Tasks `^1.1.0`.
 
@@ -43,6 +43,8 @@ Zetro displays these records through its existing Chat and System Tasks screens.
 Live progress uses versioned `zetro.progress.v1:` JSON snapshots in task steps.
 Each snapshot holds the latest 40 observed tool actions and up to 8,000 public response
 characters. Updates coalesce every two seconds and flush before completion or failure.
+Tool snapshots include the provider item ID so consumers can distinguish repeated commands and state transitions.
+This additive field does not change the progress prefix. Older snapshots remain readable.
 The final result remains authoritative. Reasoning and raw tool output are excluded.
 Common credential patterns are redacted. This does not replace secret handling by callers.
 See the [0.1.21 record](../../../../../../assist/records/zetro/2026-09-10-desktop-0.1.21.md).
@@ -79,5 +81,7 @@ Tests cover authentication, validation, durable results, cancellation, and repla
 Live provider access requires a connected Codex account and an existing registered repository.
 
 ## Development records
+
+- [Automation evidence clarity](../../../../../../assist/records/zetro/2026-09-10-automation-evidence-clarity.md)
 
 - [Desktop supervisor bridge](../../../../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)

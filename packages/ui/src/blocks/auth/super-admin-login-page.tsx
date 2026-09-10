@@ -8,7 +8,7 @@ export function SuperAdminLoginPage(
       {...props}
       description="This desk controls system-wide identity and policy."
       forgotHref="/sa/password/forgot"
-      registerHref={undefined}
+      registerHref={null}
       title="Super administrator sign in"
     />
   )

@@ -13,7 +13,7 @@ export function ClientLoginPage(
       {...props}
       description="Sign in to your workspace."
       forgotHref="/password/forgot"
-      registerHref={props.registrationEnabled ? '/register' : undefined}
+      registerHref={props.registrationEnabled ? '/register' : null}
       title="Welcome back"
     />
   )

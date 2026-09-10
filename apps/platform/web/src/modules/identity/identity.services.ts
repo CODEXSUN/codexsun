@@ -9,6 +9,7 @@ import type {
 } from '@codexsun/platform-contracts'
 
 import { PlatformIdentityClient } from '@codexsun/platform-identity-client'
+import { z } from 'zod'
 
 const apiBase = import.meta.env.VITE_PLATFORM_API_URL || 'http://127.0.0.1:6010'
 
@@ -31,6 +32,14 @@ export function devLogin() {
 
 export function readSession(portal: IdentityPortal) {
   return new PlatformIdentityClient({ origin: apiBase }).session(portal, { kind: 'cookie' })
+}
+
+export async function logout(portal: IdentityPortal) {
+  const result = await request<unknown>(`${portalPath(portal)}/logout`, {
+    body: '{}',
+    method: 'POST',
+  })
+  return z.object({ loggedOut: z.literal(true) }).parse(result)
 }
 
 export function readIdentityConfig() {

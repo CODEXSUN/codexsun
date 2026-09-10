@@ -79,6 +79,8 @@ The Platform module catalog is [assist/modules/platform.md](../../assist/modules
 
 ## Development records
 
+- [2026-09-10 Browser acceptance repairs](../../assist/records/platform/2026-09-10-identity-browser-acceptance.md)
+
 - [2026-09-09 UI page templates](../../assist/records/platform/2026-09-09-ui-page-templates.md)
 - [2026-09-09 Identity cross-client security](../../assist/records/platform/2026-09-09-identity-cross-client-security.md)
 - [2026-09-09 Assist discovery and skill routing](../../assist/records/platform/2026-09-09-assist-discovery.md)

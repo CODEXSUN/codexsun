@@ -22,7 +22,10 @@ import {
 import type { SystemTaskDetail } from '../system-tasks'
 import {
   isLiveRun,
-  readRunProgress,
+  runTimeline,
+  runTitle,
+  runReport,
+  runSummary,
   runActivityState,
   runDuration,
   runEvidence,
@@ -51,25 +54,12 @@ export function AutomationRunDetail({
   const live = isLiveRun(task)
   const activityState = runActivityState(task, connected)
   const failed = evidence.activities.filter((activity) => activity.status === 'failed').length
+  const timeline = runTimeline(task.steps)
+  const currentTool = live
+    ? [...evidence.activities].reverse().find((item) => item.status === 'running')
+    : undefined
   function downloadReport() {
-    const text = [
-      `# ${task.title}`,
-      `Run: ${task.id}`,
-      `State: ${task.status}`,
-      `Duration: ${runDuration(task)}`,
-      '\n## Instruction',
-      evidence.instruction,
-      '\n## Steps',
-      ...task.steps.map((step) => `${step.completedAt} [${step.status}] ${step.message}`),
-      '\n## Tool activity',
-      ...evidence.activities.map(
-        (activity) => `[${activity.status}] ${activity.kind}: ${activity.label}`,
-      ),
-      '\n## Response',
-      evidence.response ?? 'No response recorded.',
-      '\n## Error',
-      task.error ?? 'None recorded.',
-    ].join('\n')
+    const text = runReport(task)
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
     const anchor = document.createElement('a')
     anchor.href = url
@@ -84,7 +74,7 @@ export function AutomationRunDetail({
           <ArrowLeft /> Back to runs
         </Button>
         <div className="min-w-0 flex-1">
-          <h2 className="break-words text-xl font-semibold">{task.title}</h2>
+          <h2 className="break-words text-xl font-semibold">{runTitle(task)}</h2>
           <p className="break-all text-xs text-muted-foreground">
             {task.id} · {task.type}
           </p>
@@ -106,7 +96,9 @@ export function AutomationRunDetail({
         elapsed={runDuration(task, now)}
         description={
           live
-            ? 'Observed state · completion time is not estimated'
+            ? currentTool
+              ? `Last observed tool: ${currentTool.label}`
+              : 'Waiting for the next reported action · completion time is not estimated'
             : 'Final state received · inspect the report below'
         }
         metrics={[
@@ -166,10 +158,10 @@ export function AutomationRunDetail({
         <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />
         <WorkspaceActionCard
           icon={FileText}
-          title="Saved report"
+          title="Execution evidence"
           description={
             evidence.response
-              ? 'Response recorded'
+              ? 'Executor response available below'
               : live
                 ? 'Waiting for executor response'
                 : 'No response recorded'
@@ -201,28 +193,24 @@ export function AutomationRunDetail({
       </WorkspaceSectionCard>
       <WorkspaceSectionCard
         title="Execution timeline"
-        description="Durable updates. Public response and tool snapshots refresh about every two seconds."
+        description="Observed tool state changes and response receipts. Times are snapshot receipt times, not exact tool start times."
       >
         <ol className="grid gap-4 border-l pl-4">
-          {task.steps.map((step) => (
+          {timeline.map((step) => (
             <li key={step.id} className="grid gap-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={step.status === 'failed' ? 'destructive' : 'outline'}>
                   {step.status}
                 </Badge>
                 <time className="text-xs text-muted-foreground">
-                  {new Date(step.completedAt).toLocaleString()}
+                  {new Date(step.at).toLocaleString()}
                 </time>
               </div>
-              <p className="whitespace-pre-wrap break-words text-sm">
-                {readRunProgress(step.message)
-                  ? 'Public response and tool activity updated.'
-                  : step.message}
-              </p>
+              <p className="whitespace-pre-wrap break-words text-sm">{step.message}</p>
             </li>
           ))}
         </ol>
-        {!task.steps.length && (
+        {!timeline.length && (
           <p className="text-sm text-muted-foreground">Waiting for the first recorded step.</p>
         )}
       </WorkspaceSectionCard>
@@ -259,7 +247,15 @@ export function AutomationRunDetail({
           </p>
         )}
       </WorkspaceSectionCard>
-      <WorkspaceSectionCard title={live ? 'Live response · partial' : 'Response and report'}>
+      <WorkspaceSectionCard
+        title="Execution summary"
+        description="Derived from recorded states, not an agent-written report or release approval."
+      >
+        <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6">
+          {runSummary(task)}
+        </pre>
+      </WorkspaceSectionCard>
+      <WorkspaceSectionCard title={live ? 'Executor response · partial' : 'Executor response'}>
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6">
           {evidence.response ??
             'No response has been saved. Failures and cancellation evidence appear in the timeline above.'}

@@ -8,40 +8,40 @@
 
 ## Version State
 
-- Current version: 0.1.23
-- Release tag: v-0.1.23
-- Changelog label: v 0.1.23
+- Current version: 0.1.24
+- Release tag: v-0.1.24
+- Changelog label: v 0.1.24
 
-## v-0.1.23
+## v-0.1.24
+
+### [v 0.1.24] 2026-09-10 2:09 pm - Zetro automation evidence and Identity browser repairs
+
+- Database Changes: None. Automation web 0.4.1, Supervisor API 0.2.1, and Identity web 1.1.2 are included. See the [release record](../records/zetro/2026-09-10-desktop-0.1.24.md) for verification and remaining acceptance gates.
 
 ### [v 0.1.23] 2026-09-10 12:30 pm - Identity API 1.2.0 atomic registration and session revocation
 
 - Database Changes: Identity schema 1.2.0 adds immutable migration 0004 for authentication generations; existing checksums are unchanged. Desktop 0.1.23 was later built, upgraded, and verified. See the [upgrade record](../records/zetro/2026-09-10-desktop-0.1.23.md).
-- Follow-up source: Identity API 1.3.0 adds the public access-check client, Platform web session consumer, and fail-closed HTTP regressions. No additional migration. See the [client record](../records/platform/2026-09-10-identity-public-client.md). This patch is not a new installed desktop release.
+- Follow-up source: Identity API 1.3.0 adds the public access-check client ([client record](../records/platform/2026-09-10-identity-public-client.md)). Identity web 1.1.2 fixes browser auth bindings ([browser record](../records/platform/2026-09-10-identity-browser-acceptance.md)). Zetro Automation 0.4.1 and Supervisor 0.2.1 separate run labels, observed timeline, response, and summary ([evidence record](../records/zetro/2026-09-10-automation-evidence-clarity.md)). No new migration or installed release. P001 remains open.
 - App Codebase Changes: Atomic registration, first-device serialization, permanent session revocation, and safe login denials. Verification: Identity service and disposable MariaDB regressions passed. Full adoption and Docker gates remain open. See the [record](../records/platform/2026-09-10-identity-concurrency.md).
 
 ### [v 0.1.22] 2026-09-10 12:05 pm - Zetro live execution visuals and shared UI status
 
-- Database Changes: None. Root version `0.1.22`.
-- App Codebase Changes: Automation web `0.4.0` uses the package-owned Execution Status block and UIUX specimen. Verification: root check, UI tests, browser states, MSI upgrade, and packaged lifecycle passed. Unsigned; business and Docker acceptance remain gated. See the [release record](../records/zetro/2026-09-10-live-execution-visuals.md).
+- Database Changes: None. Root version `0.1.22`. App Codebase Changes: Automation web `0.4.0` uses the package-owned Execution Status block and UIUX specimen. Verification: root check, UI tests, browser states, MSI upgrade, and packaged lifecycle passed. Unsigned; business and Docker acceptance remain gated. See the [release record](../records/zetro/2026-09-10-live-execution-visuals.md).
 
 ### [v 0.1.21] 2026-09-10 11:42 am - Zetro live automation progress and desktop release
 
-- Database Changes: None. Workspace and desktop version `0.1.21`.
-- App Codebase Changes: Added bounded public response/tool snapshots and Automation detail binding. Verification: Zetro tests, targeted checks, MSI build/upgrade, installed provider smoke, and shutdown/relaunch passed. Unsigned; native visual and full release gates remain unverified. See the [release record](../records/zetro/2026-09-10-desktop-0.1.21.md).
+- Database Changes: None. Workspace and desktop version `0.1.21`. App Codebase Changes: Added bounded public response/tool snapshots and Automation detail binding. Verification: Zetro tests, targeted checks, MSI build/upgrade, installed provider smoke, and shutdown/relaunch passed. Unsigned; native visual and full release gates remain unverified. See the [release record](../records/zetro/2026-09-10-desktop-0.1.21.md).
 
 ### [v 0.1.20] 2026-09-10 10:45 am - Zetro release verification and framework task continuation
 
-- Database Changes: None. Aligned workspace, Tauri, and Rust versions to `0.1.20`.
-- Follow-up: Replaced installed Zetro `0.1.19` with `0.1.20`, preserving its database. Repaired Platform cookie/bearer actor binding and current-user portal validation; see the [P001 record](../records/platform/2026-09-10-identity-session-binding.md). Full Platform and application adoption remain gated.
+- Database Changes: None. Aligned workspace, Tauri, and Rust versions to `0.1.20`. Follow-up: Replaced installed Zetro `0.1.19` with `0.1.20`, preserving its database. Repaired Platform cookie/bearer actor binding and current-user portal validation; see the [P001 record](../records/platform/2026-09-10-identity-session-binding.md). Full Platform and application adoption remain gated.
 - UI follow-up: Automation web `0.3.0` adds separate live, history, and report pages with real connection status. System Tasks web `1.1.0` guards stale selection. See the [observation record](../records/zetro/2026-09-10-automation-observation.md) for tests and streaming limits. Installer unchanged.
 - App Codebase Changes: Made Developer Tools Git fixtures independent of user line-ending settings. Framework now retains failed cleanup ownership, permits cleanup retry, and blocks unsafe lifecycle operations.
 - Verification: Full checks, 19 kernel tests, Zetro follow-up review, MariaDB, Platform lifecycle smoke, and installed desktop shutdown passed. F001 technical work is complete; stable approval remains separate. See the [verification log](../records/zetro/2026-09-10-desktop-0.1.20-verification.md).
 
 ### [v 0.1.19] 2026-09-10 10:15 am - Staged release workflow and Zetro execution repairs
 
-- Database Changes: None. Candidate `0.1.19` adds staged release checks and the F001 task card.
-- App Codebase Changes: Developer Tools `1.0.1` runs npm through Node on Windows. Codex Connection `0.7.2` interrupts timed-out turns. Framework guards concurrent lifecycle calls, freezes registered manifests, and isolates observable reporter errors.
+- Database Changes: None. Candidate `0.1.19` adds staged release checks and the F001 task card. App Codebase Changes: Developer Tools `1.0.1` runs npm through Node on Windows. Codex Connection `0.7.2` interrupts timed-out turns. Framework guards concurrent lifecycle calls, freezes registered manifests, and isolates observable reporter errors.
 - Verification: Seventeen kernel tests, real script execution, timeout regression, and packaged script-task E2E passed. Zetro review returned findings but failed one inspection command; stable approval remains open. See the [workflow record](../records/zetro/2026-09-10-stable-release-workflow.md).
 
 ### [v 0.1.18] 2026-09-10 9:17 am - Zetro desktop supervisor bridge

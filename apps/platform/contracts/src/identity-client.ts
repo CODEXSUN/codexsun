@@ -47,7 +47,9 @@ export class PlatformIdentityClient {
     this.timeoutMs = options.timeoutMs ?? 5000
     if (!Number.isInteger(this.timeoutMs) || this.timeoutMs < 1 || this.timeoutMs > 30000)
       throw new Error('Identity timeout must be between 1 and 30000 milliseconds.')
-    this.fetcher = options.fetch ?? fetch
+    const transport = options.fetch ?? fetch
+    // Browser fetch rejects a class instance as its receiver.
+    this.fetcher = (input, init) => transport(input, init)
   }
 
   async session(portal: IdentityPortal, credential: IdentityCredential, signal?: AbortSignal) {

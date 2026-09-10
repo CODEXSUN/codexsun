@@ -8,6 +8,15 @@ The sign-in form accepts one username, email address, or mobile number. The regi
 
 Passwords use an eight-character presentation minimum. The consuming Identity API remains the validation authority.
 
+Set `registerHref={null}` to hide registration explicitly. An omitted value keeps the generic default.
+Privileged entry blocks always hide registration. The client block follows `registrationEnabled`.
+The identifier uses a text input so browser email validation does not reject usernames or mobile numbers.
+Development sign-in is disabled while a submission is pending.
+
+## Development records
+
+- [Browser acceptance repairs](../../../../../assist/records/platform/2026-09-10-identity-browser-acceptance.md)
+
 `LoginPage` provides two owned variants. Version 1 is a centered CODEXSUN entry card. Version 2
 uses a split card with provider actions and a supporting visual surface. `RegisterPage` provides
 matching centered and split variants. The UI Gallery can persist one default per page family;

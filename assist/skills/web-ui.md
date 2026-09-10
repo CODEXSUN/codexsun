@@ -65,6 +65,8 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 
 Run `npm.cmd run check:ui-system`, `npm.cmd run typecheck`, and `npm.cmd run build`.
 Confirm changed UI in a browser when a dev server is available.
+For authentication, test refresh and profile sign-out against the real API. A login response alone does not prove session loading.
+Verify username input and registration visibility on each portal. Use explicit null to suppress default links.
 
 ## Development record
 

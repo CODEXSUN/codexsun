@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/platform-identity-client",
   "private": true,
-  "version": "0.1.23",
+  "version": "0.1.24",
   "type": "module",
   "main": "../../../dist/apps/platform/contracts/index.js",
   "types": "../../../dist/apps/platform/contracts/index.d.ts",
@@ -12,7 +12,7 @@
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "dependencies": {
-    "@codexsun/platform-contracts": "^0.1.23",
+    "@codexsun/platform-contracts": "^0.1.24",
     "zod": "^4.4.3"
   },
   "devDependencies": {

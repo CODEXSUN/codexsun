@@ -2,7 +2,7 @@
 
 This module owns the deterministic Automation workspace in Zetro web and desktop.
 
-Module version: `0.4.0`.
+Module version: `0.4.1`.
 
 The shared `ExecutionStatus` block displays the observed state, elapsed time, and snapshot counts.
 Active runs show a ring and indeterminate bar. Queued, stale, and terminal runs do not animate.
@@ -19,6 +19,15 @@ These are desk pages, not new public URL routes.
 Details show the full instruction, duration, durable steps, reported tool actions,
 saved response, errors, and a downloadable text report. Stop requires confirmation.
 Diagnosis prepares a draft and never sends it automatically. There is no automatic retry.
+
+Run labels show workflow, owner scope, and a short run ID. The full instruction remains separate.
+Timeline entries project changed tool states from snapshots instead of repeating a generic update message.
+Response receipts show retained character counts, not another copy of the answer.
+The executor response contains the answer or script output. The execution summary contains recorded status, tool counts, and failure evidence.
+Downloads include these distinct sections and never dump internal progress JSON.
+Snapshot times are observation times. New API snapshots carry stable tool IDs.
+Older snapshots use position and label matching, which is best-effort when their bounded window rolls.
+Missing historical telemetry cannot be reconstructed. No percentage, tool duration, or release approval is inferred.
 
 The System Tasks provider polls every two seconds while visible. The floating connection
 card shows the last received update. Operations metrics refresh every five seconds.
@@ -49,6 +58,8 @@ Use **Diagnose with agent** after a failed run. The supervisor receives the reco
 and must preserve application business composition while moving only reusable UI to `packages/ui`.
 
 ## Development records
+
+- [2026-09-10 Automation evidence clarity](../../../../../../assist/records/zetro/2026-09-10-automation-evidence-clarity.md)
 
 - [2026-09-10 Live execution visuals](../../../../../../assist/records/zetro/2026-09-10-live-execution-visuals.md)
 

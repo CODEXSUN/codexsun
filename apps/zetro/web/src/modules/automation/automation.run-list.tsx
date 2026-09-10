@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@codexsun/ui/components/table'
 import type { SystemTask } from '../system-tasks'
-import { runDuration } from './automation.run-model'
+import { runDuration, runTitle } from './automation.run-model'
 
 export function AutomationRunList({
   tasks,
@@ -30,7 +30,9 @@ export function AutomationRunList({
   animated: boolean
 }) {
   const visible = tasks.filter((task) =>
-    `${task.title} ${task.type} ${task.status}`.toLowerCase().includes(search.toLowerCase()),
+    `${runTitle(task)} ${task.title} ${task.type} ${task.status}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   )
   return (
     <section className="grid gap-4">
@@ -72,9 +74,11 @@ export function AutomationRunList({
               </TableCell>
               <TableCell className="max-w-xs">
                 <p className="truncate font-medium" title={task.title}>
+                  {runTitle(task)}
+                </p>
+                <p className="truncate text-xs text-muted-foreground" title={task.title}>
                   {task.title}
                 </p>
-                <p className="text-xs text-muted-foreground">{task.type}</p>
               </TableCell>
               <TableCell>
                 <Badge
@@ -97,7 +101,7 @@ export function AutomationRunList({
                   variant="ghost"
                   size="sm"
                   onClick={() => onSelect(task.id)}
-                  aria-label={`Open ${task.title}`}
+                  aria-label={`Open ${runTitle(task)}`}
                 >
                   Open <ArrowUpRight />
                 </Button>

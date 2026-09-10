@@ -29,13 +29,26 @@ See the [development record](../records/platform/2026-09-10-identity-session-bin
    Platform web consumes session reads. Client/API negative tests pass.
    See the [record](../records/platform/2026-09-10-identity-public-client.md).
    Other application adoption remains an A001 gate, not an inferred pass.
-5. Prove the three portal flows in a browser and native bearer HTTP tests.
+5. Browser repair pass: super-admin login, refresh, logout, and denial on other desks passed.
+   Fixed browser fetch invocation, profile logout, identifier input, and registration visibility.
+   See the [browser record](../records/platform/2026-09-10-identity-browser-acceptance.md).
+   Positive regular/admin credential flows and device activation UI remain open.
+   Cookie and native bearer HTTP regression tests pass, not native-client UI acceptance.
 6. Create A001 evidence for each selected catalog application, then run R001
    isolated and combined Docker gates. Catalog presence alone is not adoption.
 
 These are unresolved acceptance items, not completed features. Each stage needs
 an owned patch, regression tests, and an updated record before the next stage.
 Email/OTP and password-reset delivery remain unavailable without owned providers.
+
+## Next fixture task
+
+Zetro completed read-only fixture planning in job `5db6e77f-b7f8-468f-8063-55f282f9c6a0`.
+Use the supervisor corrections in the [0.1.24 record](../records/zetro/2026-09-10-desktop-0.1.24.md).
+Build Identity-owned test bootstrap support for a disposable database and three portal accounts.
+Use one isolated API and one web origin with separate browser contexts. Reserve unused 6000-series ports through preflight.
+Never reuse the proposed 6110 port or add a production fixture-creation endpoint.
+Positive portal flows and first/later-device activation must pass before this stage can close.
 
 ## Concept development readiness
 

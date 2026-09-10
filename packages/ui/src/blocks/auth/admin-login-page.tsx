@@ -8,7 +8,7 @@ export function AdminLoginPage(
       {...props}
       description="Use an administrator account for this isolated desk."
       forgotHref="/admin/password/forgot"
-      registerHref={undefined}
+      registerHref={null}
       title="Administrator sign in"
     />
   )

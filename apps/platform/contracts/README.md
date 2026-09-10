@@ -12,6 +12,7 @@ Credentials are explicit: `{ kind: 'cookie' }` for a browser, or `{ kind: 'beare
 The client never stores tokens, retries requests, follows redirects, or caches permission decisions.
 Configure a trusted fixed origin. HTTPS is required except for explicit loopback development hosts.
 Responses are bounded to 64 KiB, validated with Zod, and rejected on portal mismatch.
+The transport is called without a class receiver, which keeps native browser fetch compatible.
 Timeouts, cancellations, malformed responses, and dependency failures throw safe errors. They never grant access.
 
 ## Consumer rules
@@ -30,5 +31,7 @@ Output is `dist/apps/platform/contracts`. Preflight builds this dependency befor
 No server, database, migrations, or seed runs in this workspace.
 
 ## Development records
+
+- [Browser acceptance repairs](../../../assist/records/platform/2026-09-10-identity-browser-acceptance.md)
 
 - [Identity public client](../../../assist/records/platform/2026-09-10-identity-public-client.md)

@@ -7,7 +7,7 @@ The Identity web module composes three isolated portal desks and their account r
 ## Identity and version
 
 - Module ID: `identity`
-- Version: `1.1.1`
+- Version: `1.1.2`
 - Scope: `platform`
 - Status: `active`
 
@@ -25,6 +25,8 @@ The Identity web module composes three isolated portal desks and their account r
 
 The module owns routes, React Query hooks, API services, device identity, and portal compositions.
 Session reads use public `@codexsun/platform-identity-client` with explicit cookie mode and validated responses.
+The module supplies the MDI profile identity and portal-scoped logout callback through its public hook.
+Logout redirects only after the API confirms revocation. Failures remain visible in the shell status bar.
 Shared auth blocks, buttons, inputs, and table elements come from public `@codexsun/ui` exports. No
 portal imports another portal page, credential state, or cookie. The API remains the authority for
 portal access.
@@ -36,6 +38,8 @@ The administrator desk lists regular users and supports status, reset-request, r
 Run Platform web typecheck and build checks. Browser verification must cover all three sign-in routes, the three protected desks, registration visibility, and development sign-in visibility.
 
 ## Development records
+
+- [2026-09-10 Browser acceptance repairs](../../../../../../assist/records/platform/2026-09-10-identity-browser-acceptance.md)
 
 - [2026-09-10 Public Identity client](../../../../../../assist/records/platform/2026-09-10-identity-public-client.md)
 - [2026-09-09 Identity cross-client security](../../../../../../assist/records/platform/2026-09-09-identity-cross-client-security.md)

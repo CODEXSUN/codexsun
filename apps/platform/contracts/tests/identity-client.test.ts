@@ -13,6 +13,17 @@ const envelope = (data: unknown) => ({
 })
 const json = (data: unknown) => Response.json(envelope(data))
 
+test('transport is invoked without a client receiver, as required by browser fetch', async () => {
+  const client = new PlatformIdentityClient({
+    origin: 'http://127.0.0.1:6010',
+    fetch: async function (this: unknown) {
+      assert.equal(this, undefined)
+      return json({ allowed: false, userId, portal: 'regular' })
+    },
+  })
+  assert.equal((await client.authorize('regular', requirement, { kind: 'cookie' })).allowed, false)
+})
+
 test('session reads validate portal and expiry for the browser consumer', async () => {
   const session = {
     user: { id: userId, displayName: 'Client', email: 'client@example.test', portal: 'regular' },
