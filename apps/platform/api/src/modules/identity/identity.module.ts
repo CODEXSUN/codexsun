@@ -9,7 +9,8 @@ import { MariaDbIdentityRepository } from './infrastructure/identity.repository.
 import { identityMigrations } from './infrastructure/identity.migrations.js'
 import { identitySchema } from './infrastructure/identity.schema.js'
 import { createIdentitySeeds } from './infrastructure/identity.seeds.js'
-import { identityCookieName, registerIdentityRoutes } from './presentation/identity.routes.js'
+import { registerIdentityRoutes } from './presentation/identity.routes.js'
+import { findRequestSession } from './presentation/identity-request-session.js'
 
 export interface IdentityRuntime {
   authorizer: IdentityAuthorizer
@@ -66,14 +67,8 @@ export function createIdentityRuntime(
       })
     },
     async resolveActor(request) {
-      for (const portal of ['super-admin', 'administrator', 'regular'] as const) {
-        const session = await service.resolveSession(
-          portal,
-          request.cookies[identityCookieName(portal)],
-        )
-        if (session) return { id: session.user.id, kind: 'user' }
-      }
-      return { kind: 'anonymous' }
+      const session = await findRequestSession(service, request)
+      return session ? { id: session.user.id, kind: 'user' } : { kind: 'anonymous' }
     },
   }
 }
@@ -112,15 +107,4 @@ export const identityManifest: FrameworkModule = {
   publishes: [],
   scope: 'platform',
   version: '1.1.0',
-}
-
-async function findRequestSession(service: IdentityService, request: FastifyRequest) {
-  const authorization = request.headers.authorization
-  const bearer = authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined
-  for (const portal of ['super-admin', 'administrator', 'regular'] as const) {
-    const token = bearer ?? request.cookies[identityCookieName(portal)]
-    const session = await service.resolveSession(portal, token)
-    if (session) return session
-  }
-  return undefined
 }

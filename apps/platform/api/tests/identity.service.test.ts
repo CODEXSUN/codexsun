@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import Fastify from 'fastify'
+import cookie from '@fastify/cookie'
+import { readEnvironment } from '../src/config.js'
 import { IdentityService, hashToken } from '../src/modules/identity/application/identity.service.js'
 import {
   IdentityConflictError,
@@ -20,6 +23,9 @@ import type { StoredIdentityDevice } from '../src/modules/identity/device/domain
 import type { IdentitySecurityEventRecord } from '../src/modules/identity/security/domain/security.types.js'
 import type { IdentityIdentifierType } from '../src/modules/identity/user/domain/user-identifier.js'
 import type { IdentityRoleRecord } from '../src/modules/identity/role/domain/role.types.js'
+import { findRequestSession } from '../src/modules/identity/presentation/identity-request-session.js'
+import { identityCookieName } from '../src/modules/identity/presentation/identity-request-session.js'
+import { registerIdentityRoutes } from '../src/modules/identity/presentation/identity.routes.js'
 
 class MemoryIdentityRepository implements IdentityRepository {
   readonly credentials = new Map<string, IdentityCredential>()
@@ -152,6 +158,125 @@ const passwords: IdentityPasswordHasher = {
 }
 
 describe('IdentityService', () => {
+  it('enforces all three portal sessions through actual HTTP routes', async () => {
+    const { repository, service } = createFixture()
+    const server = Fastify({ logger: false })
+    await server.register(cookie)
+    await registerIdentityRoutes(server, service, readEnvironment({ APP_ENV: 'test' }))
+    const portals = [
+      ['regular', '/api/identity'],
+      ['administrator', '/api/identity/admin'],
+      ['super-admin', '/api/identity/sa'],
+    ] as const
+    try {
+      for (const [index, [portal, prefix]] of portals.entries()) {
+        const id = `00000000-0000-4000-8000-${String(index + 800).padStart(12, '0')}`
+        const email = `${portal}@example.com`
+        await repository.createUser(
+          { id, email, portal, displayName: portal, status: 'active' },
+          { userId: id, passwordHash: 'hashed:secret123' },
+        )
+        const login = await server.inject({
+          method: 'POST',
+          url: `${prefix}/login`,
+          payload: {
+            ...loginInput(email),
+            device: { ...loginInput(email).device, clientType: 'desktop' },
+          },
+        })
+        assert.equal(login.statusCode, 200, login.body)
+        const token: string = login.json().data.accessToken
+        assert.ok(token)
+        const headers = { authorization: `bearer ${token}` }
+        const cookies = { [identityCookieName(portal)]: token }
+        assert.equal((await findRequestSession(service, { cookies: {}, headers }))?.user.id, id)
+        for (const [targetPortal, targetPrefix] of portals) {
+          const expected = targetPortal === portal ? 200 : 401
+          assert.equal(
+            (await server.inject({ url: `${targetPrefix}/session`, headers })).statusCode,
+            expected,
+          )
+          assert.equal(
+            (await server.inject({ url: `${targetPrefix}/session`, cookies })).statusCode,
+            expected,
+          )
+        }
+        assert.equal(
+          (
+            await server.inject({
+              url: `${prefix}/session`,
+              cookies,
+              headers: { authorization: 'Basic invalid' },
+            })
+          ).statusCode,
+          401,
+        )
+        repository.users.get(id)!.portal = portal === 'regular' ? 'administrator' : 'regular'
+        assert.equal((await server.inject({ url: `${prefix}/session`, headers })).statusCode, 401)
+        repository.users.get(id)!.portal = portal
+        assert.equal(
+          (await server.inject({ method: 'POST', url: `${prefix}/logout`, headers })).statusCode,
+          200,
+        )
+        assert.equal((await server.inject({ url: `${prefix}/session`, headers })).statusCode, 401)
+      }
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('uses the same session for cookie and bearer actors without credential fallback', async () => {
+    const { service } = createFixture()
+    const user = await service.register({
+      displayName: 'Native client',
+      email: 'native@example.com',
+      password: 'secret123',
+    })
+    const login = await service.login('regular', loginInput(user.email))
+    const cookies = { [identityCookieName('regular')]: login.token }
+    const cookieSession = await findRequestSession(service, { cookies, headers: {} })
+    const bearerSession = await findRequestSession(service, {
+      cookies: {},
+      headers: { authorization: `bearer ${login.token}` },
+    })
+    assert.equal(cookieSession?.user.id, user.id)
+    assert.equal(bearerSession?.sessionId, cookieSession?.sessionId)
+    for (const authorization of ['Bearer invalid', 'Basic invalid', 'Bearer ', '']) {
+      assert.equal(
+        await findRequestSession(service, { cookies, headers: { authorization } }),
+        undefined,
+      )
+    }
+    await service.revoke('regular', login.token)
+    assert.equal(
+      await findRequestSession(service, {
+        cookies,
+        headers: { authorization: `Bearer ${login.token}` },
+      }),
+      undefined,
+    )
+  })
+
+  it('denies sessions after a portal change, user disable, or device revocation', async () => {
+    const { repository, service } = createFixture()
+    const user = await service.register({
+      displayName: 'Session client',
+      email: 'session@example.com',
+      password: 'secret123',
+    })
+    const login = await service.login('regular', loginInput(user.email))
+    const storedUser = repository.users.get(user.id)!
+    storedUser.portal = 'administrator'
+    assert.equal(await service.resolveSession('regular', login.token), undefined)
+    storedUser.portal = 'regular'
+    storedUser.status = 'disabled'
+    assert.equal(await service.resolveSession('regular', login.token), undefined)
+    storedUser.status = 'active'
+    const device = await repository.findDevice(user.id, login.device.deviceId)
+    device!.status = 'revoked'
+    assert.equal(await service.resolveSession('regular', login.token), undefined)
+  })
+
   it('registers regular users and rejects duplicate email addresses', async () => {
     const { service } = createFixture()
     const input = { displayName: 'Regular User', email: 'USER@example.com', password: 'secret123' }

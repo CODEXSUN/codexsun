@@ -48,6 +48,13 @@ export class ModuleCompositionError extends Error {
 
 export type ModuleLifecyclePhase = 'activate' | 'deactivate' | 'install' | 'uninstall' | 'upgrade'
 
+export class ModuleLifecycleStateError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ModuleLifecycleStateError'
+  }
+}
+
 export class ModuleLifecycleError extends Error {
   constructor(
     readonly moduleId: string,

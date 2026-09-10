@@ -137,7 +137,14 @@ export class IdentityService {
       this.repository.findUserById(session.userId),
       this.repository.findDevice(session.userId, session.deviceId),
     ])
-    if (!user || user.status !== 'active' || !device || device.status !== 'active') return undefined
+    if (
+      !user ||
+      user.status !== 'active' ||
+      user.portal !== portal ||
+      !device ||
+      device.status !== 'active'
+    )
+      return undefined
 
     const renewalBoundary = new Date(
       this.options.clock().getTime() + this.options.sessionRenewalHours * 3_600_000,

@@ -38,6 +38,10 @@ The minimum password length is eight characters. The API never returns a passwor
 
 Each portal uses a separate HTTP-only, same-site cookie path. Desktop and mobile clients can use the returned bearer token. A credential cannot sign in through another portal.
 
+Actor resolution, activity logging, and routes share the module-owned request token parser.
+Explicit Authorization headers never fall back to cookies when invalid. Session validation
+also checks the user's current portal. These bindings do not implement cross-app session exchange.
+
 Login accepts one username, email address, or mobile number. Email and OTP delivery remain disabled until an owned provider replaces the disabled adapter.
 
 The first verified device becomes active. A later device stays pending until the user approves it from an active device or a super administrator activates it. A device needs its server-issued token for later logins.
@@ -70,6 +74,8 @@ No system can promise that a breach will never occur. This module reduces risk t
 Run `npm.cmd run test:identity`, `npm.cmd run test:mariadb:foundation`, and `npm.cmd run test:e2e:server`. A live smoke must prove successful super-admin development login, session resolution, and a `401` when that cookie is presented to the regular portal.
 
 ## Development records
+
+- [2026-09-10 Session binding repair](../../../../../../assist/records/platform/2026-09-10-identity-session-binding.md)
 
 - [2026-09-09 Identity cross-client security](../../../../../../assist/records/platform/2026-09-09-identity-cross-client-security.md)
 - [2026-09-09 Identity portals](../../../../../../assist/records/platform/2026-09-09-identity-portals.md)

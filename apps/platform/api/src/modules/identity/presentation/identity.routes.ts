@@ -25,6 +25,7 @@ import {
   IdentityPortalError,
 } from '../domain/identity.errors.js'
 import type { IdentityService } from '../application/identity.service.js'
+import { identityCookieName, requestToken } from './identity-request-session.js'
 
 const portalPaths: Readonly<Record<IdentityPortal, string>> = {
   administrator: '/admin',
@@ -38,7 +39,11 @@ export async function registerIdentityRoutes(
   environment: Environment,
 ): Promise<void> {
   server.addHook('preHandler', async (request, reply) => {
-    if (isSafeMethod(request.method) || request.headers.authorization?.startsWith('Bearer ')) return
+    if (
+      isSafeMethod(request.method) ||
+      /^Bearer [^\s]+$/i.test(request.headers.authorization ?? '')
+    )
+      return
     const hasSessionCookie = Object.keys(request.cookies).some((name) =>
       name.startsWith('codexsun_'),
     )
@@ -505,9 +510,7 @@ function registerSuperAdminRoutes(
   )
 }
 
-export function identityCookieName(portal: IdentityPortal): string {
-  return `codexsun_${portal.replace('-', '_')}_session`
-}
+export { identityCookieName } from './identity-request-session.js'
 
 function cookieOptions(environment: Environment, path: string, expires: Date) {
   return {
@@ -560,12 +563,6 @@ async function requirePortalSession(
   if (session) return session
   sendError(reply, request, 401, 'AUTHENTICATION_REQUIRED', 'Sign in is required.')
   return undefined
-}
-
-function requestToken(request: FastifyRequest, cookieName: string): string | undefined {
-  const authorization = request.headers.authorization
-  if (authorization?.startsWith('Bearer ')) return authorization.slice(7)
-  return request.cookies[cookieName]
 }
 
 function requestEvidence(request: FastifyRequest) {

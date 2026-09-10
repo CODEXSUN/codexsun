@@ -2,6 +2,10 @@
 
 ## Records
 
+- [2026-09-10 Identity session binding](2026-09-10-identity-session-binding.md)
+
+- [2026-09-10 Framework lifecycle release guard](2026-09-10-framework-release-guard.md)
+
 - [2026-09-09 Agent Workspace layout](2026-09-09-agent-workspace-layout.md)
 - [2026-09-09 Identity cross-client security](2026-09-09-identity-cross-client-security.md)
 - [2026-09-09 UI design system registry](2026-09-09-ui-design-system-registry.md)

@@ -44,6 +44,13 @@ If ownership is unclear, keep the capability with its first application consumer
 
 ## Verification
 
+Use [the stable release workflow](../operations/stable-release-workflow.md) for the first release.
+Run `check:release:framework` once per candidate. Record the revision and reviewer decision.
+A provider answer or passing kernel tests alone cannot approve the stable release.
+For read-only candidate review outside the agent worktree, identify the exact checkout and patch state.
+Use command-local `git -c safe.directory=<exact-reviewed-root>` only for a verified checkout with different sandbox ownership.
+Never add wildcard or global Git trust exceptions. Do not confuse committed worktree files with the uncommitted candidate.
+
 1. Test success, restart, invalid input, dependency failure, checksum mismatch, rollback, cancellation, and shutdown where relevant.
 2. Test deterministic behavior and isolation when concurrency is possible.
 3. Run the focused package tests and full root quality gate for a cross-workspace contract.

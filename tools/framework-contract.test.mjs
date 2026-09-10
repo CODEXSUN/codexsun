@@ -354,6 +354,120 @@ test('lifecycle installs selected modules and reports structured phase events', 
   ])
 })
 
+test('lifecycle rejects overlapping operations and can continue after completion', async () => {
+  let release
+  const barrier = new Promise((resolve) => {
+    release = resolve
+  })
+  let activations = 0
+  const definition = moduleDefinition('guarded', '1.0.0')
+  definition.lifecycle = {
+    ...lifecycle,
+    async activate() {
+      activations++
+      await barrier
+    },
+  }
+  const registry = new ModuleRegistry()
+  registry.register(definition)
+  const executor = new ModuleLifecycleExecutor(registry.createCompositionPlan('0.1.0'))
+  const first = executor.activate()
+  const safetyRelease = setTimeout(() => release(), 100)
+  try {
+    await assert.rejects(executor.activate(), /already running/)
+    await assert.rejects(executor.deactivate(), /already running/)
+    await assert.rejects(executor.uninstall(), /already running/)
+  } finally {
+    clearTimeout(safetyRelease)
+    release()
+    await first
+  }
+  assert.equal(activations, 1)
+  await assert.rejects(executor.uninstall(), /Deactivate/)
+  await executor.deactivate()
+  await executor.uninstall()
+})
+
+test('registered manifests cannot change through public registry reads', () => {
+  const registry = new ModuleRegistry()
+  registry.register(moduleDefinition('immutable', '1.0.0'))
+  assert.throws(() => {
+    registry.get('immutable').version = 'invalid'
+  }, TypeError)
+  assert.throws(() => {
+    registry.getModules()[0].dependencies.push({ id: 'missing', versionRange: '*' })
+  }, TypeError)
+  assert.equal(registry.createCompositionPlan('0.1.0').modules[0].version, '1.0.0')
+})
+
+test('reporter failures remain observable without changing lifecycle outcomes', async () => {
+  const actions = []
+  const registry = new ModuleRegistry()
+  registry.register(lifecycleModule('reported', [], actions))
+  const executor = new ModuleLifecycleExecutor(
+    registry.createCompositionPlan('0.1.0'),
+    undefined,
+    () => {
+      throw new Error('report failed')
+    },
+  )
+  await executor.activate()
+  assert.equal(executor.state, 'active')
+  await executor.deactivate()
+  assert.deepEqual(actions, ['activate:reported', 'deactivate:reported'])
+  assert.equal(executor.reporterErrors.length, 4)
+  assert.match(executor.reporterErrors[0].cause.message, /report failed/)
+  assert.ok(Object.isFrozen(executor.reporterErrors))
+})
+
+test('failed deactivation retains ownership until cleanup succeeds', async () => {
+  const definition = moduleDefinition('cleanup', '1.0.0')
+  let attempts = 0
+  definition.lifecycle = {
+    ...lifecycle,
+    deactivate() {
+      if (++attempts === 1) throw new Error('cleanup failed')
+    },
+  }
+  const registry = new ModuleRegistry()
+  registry.register(definition)
+  const executor = new ModuleLifecycleExecutor(registry.createCompositionPlan('0.1.0'))
+  await executor.activate()
+  await assert.rejects(executor.deactivate(), /deactivation failed/)
+  await assert.rejects(executor.uninstall(), /Deactivate/)
+  await assert.rejects(executor.activate(), /cleanup/)
+  await assert.rejects(executor.install(), /cleanup/)
+  await assert.rejects(executor.upgrade(new Map()), /cleanup/)
+  await executor.deactivate()
+  assert.equal(attempts, 2)
+  assert.equal(executor.state, 'stopped')
+  await executor.uninstall()
+})
+
+test('failed activation rollback retains modules for cleanup retry', async () => {
+  const dependency = moduleDefinition('dependency', '1.0.0')
+  let attempts = 0
+  dependency.lifecycle = {
+    ...lifecycle,
+    deactivate() {
+      if (++attempts === 1) throw new Error('rollback failed')
+    },
+  }
+  const registry = new ModuleRegistry()
+  registry.register(dependency)
+  registry.register(
+    lifecycleModule('consumer', [{ id: 'dependency', versionRange: '^1.0.0' }], [], true),
+  )
+  const executor = new ModuleLifecycleExecutor(registry.createCompositionPlan('0.1.0'))
+  await assert.rejects(executor.activate(), (error) => error.rollbackErrors.length === 1)
+  await assert.rejects(executor.uninstall(), /Deactivate/)
+  await assert.rejects(executor.activate(), /cleanup/)
+  await executor.deactivate()
+  assert.equal(attempts, 2)
+  assert.equal(executor.state, 'stopped')
+  await executor.uninstall()
+})
+
 function lifecycleModule(id, dependencies, events, failActivation = false) {
   const definition = moduleDefinition(id, '1.0.0', dependencies)
   return {

@@ -43,7 +43,7 @@ export class ModuleRegistry {
       )
     }
 
-    this.modules.set(module.id, module)
+    this.modules.set(module.id, snapshotModule(module))
   }
 
   get(id: string): FrameworkModule | undefined {
