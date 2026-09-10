@@ -33,6 +33,11 @@ Each conversation can store one workspace scope with an application label,
 module label, and repository-relative folder. A provider turn requires this
 scope. The API rejects root, missing, absolute, and out-of-project folders.
 
+The confirmed folder is the scope boundary. The application label is not an authorization role.
+An `apps/<application>` path must match its label. Explicit package folders remain selectable for framework tasks.
+Changing the selected folder requires confirmation. This is not a grant derived from the application label.
+The provider receives the resolved selected folder and approved documentation roots, not every folder matching a label.
+
 The response route accepts a `workflow` value. Valid values are `deliver`, `develop`, `document`, `review`, and `test`. The route defaults to `develop` for older clients.
 
 The response route also accepts an optional supported Codex `model` and a

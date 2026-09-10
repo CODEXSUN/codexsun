@@ -86,6 +86,10 @@ Changed inputs invalidate earlier evidence. A skipped gate is not a pass.
 Use the [CLI contract](../../apps/zetro/cli/README.md) for pairing and job commands.
 Provider worktrees start from committed HEAD. They do not include uncommitted checkout work.
 Do not install duplicate dependencies in every worktree. Define dependency staging before allowing worktree build jobs.
+For the current review workflow, run checks in the trusted dependency-ready primary checkout at the same source commit.
+Keep conversation worktrees source-only. Never link mutable workspace packages or caches between concurrent checkouts.
+Resolve the Git root before reading AGENTS.md. An application-scoped working directory is not the repository root.
+Verify installed executable metadata separately from package versions. See the [verification prompt](../tasks/zetro-stability-verification.md).
 The installed desktop does not acquire source changes until a new desktop build is installed.
 Current supervisor jobs have a bounded provider turn. Split large reviews into small tasks if that limit is reached.
 Never automatically retry an interrupted coding task. Inspect its worktree first.
