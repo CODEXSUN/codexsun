@@ -19,6 +19,7 @@ export interface CodexDeviceCode {
 }
 
 export interface CodexTurnInput {
+  onProgress?(event: CodexProgressEvent): void
   conversationId: string
   files: readonly {
     dataUrl: string
@@ -38,6 +39,9 @@ export interface CodexTurnInput {
   reasoningEffort: CodexReasoningEffort
   workflow: CodexWorkflow
 }
+
+export type CodexProgressEvent =
+  { kind: 'tool'; itemId: string; activity: CodexToolActivity } | { kind: 'response'; text: string }
 
 export type CodexDeliveryStageId =
   | 'plan'

@@ -44,7 +44,7 @@ export const developerToolsModuleManifest = {
   },
   publicContracts: ['DeveloperToolsService', '/api/v1/developer-tools/*'],
   scope: 'zetro-api',
-  version: '1.0.0',
+  version: '1.0.1',
 } as const
 
 export async function registerDeveloperToolsModule(

@@ -17,6 +17,30 @@ import { SystemTaskService } from '../src/modules/system-tasks/system-tasks.serv
 import { registerSupervisorRoutes } from '../src/modules/supervisor/supervisor.routes.js'
 import { SupervisorService } from '../src/modules/supervisor/supervisor.service.js'
 import { openTestDatabase } from './test-database.js'
+import { SupervisorProgress } from '../src/modules/supervisor/supervisor.progress.js'
+
+test('public progress coalesces, bounds, redacts, and flushes before completion', async () => {
+  const messages: string[] = []
+  const progress = new SupervisorProgress({
+    signal: new AbortController().signal,
+    step: async (_status, message) => {
+      messages.push(message)
+    },
+  })
+  for (let index = 0; index < 60; index++)
+    progress.receive({
+      kind: 'tool',
+      itemId: String(index),
+      activity: { kind: 'command', label: 'token=secret', status: 'running' },
+    })
+  progress.receive({ kind: 'response', text: 'a'.repeat(9000) + ' password=secret' })
+  await progress.close()
+  assert.equal(messages.length, 1)
+  assert.doesNotMatch(messages[0]!, /secret/)
+  const snapshot = JSON.parse(messages[0]!.split('zetro.progress.v1:')[1]!)
+  assert.equal(snapshot.activities.length, 40)
+  assert.equal(snapshot.response.length, 8000)
+})
 
 const token = 'supervisor-test-token-'.repeat(3)
 const headers = { authorization: `Bearer ${token}` }

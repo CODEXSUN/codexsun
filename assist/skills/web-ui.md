@@ -48,6 +48,9 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 
 ## Quality rules
 
+- Use `ExecutionStatus` for observed execution feedback. Applications own freshness and state.
+  Do not animate stale data or invent completion percentages. Preserve the motion pause control.
+
 - Preserve accessible semantics, keyboard operation, focus handling, and clear loading, empty, and error states.
 - Use the shared default Button height of 40px for standard actions. Choose a smaller
   named size only for explicitly compact toolbars, icon controls, or dense tables.

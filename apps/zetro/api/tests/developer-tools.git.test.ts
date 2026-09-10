@@ -17,8 +17,7 @@ test('developer tools inspect, branch, commit, push, compare, and revert', async
   try {
     git(root, ['init', '--bare', remote])
     git(root, ['init', '-b', 'main', repository])
-    git(repository, ['config', 'user.email', 'zetro@example.test'])
-    git(repository, ['config', 'user.name', 'Zetro Test'])
+    configureAuthor(repository)
     await writeFile(join(repository, 'README.md'), '# Test\n', 'utf8')
     git(repository, ['add', 'README.md'])
     git(repository, ['commit', '-m', 'Initial commit'])
@@ -68,6 +67,7 @@ test('developer tools pull with rebase or merge', async () => {
     git(remote, ['symbolic-ref', 'HEAD', 'refs/heads/main'])
     git(root, ['clone', remote, local])
     git(root, ['clone', remote, peer])
+    configureAuthor(local)
     configureAuthor(peer)
 
     await writeFile(join(peer, 'rebase.txt'), 'rebase\n', 'utf8')
@@ -93,6 +93,7 @@ function git(cwd: string, args: string[]) {
 }
 
 function configureAuthor(repository: string) {
+  git(repository, ['config', 'core.autocrlf', 'false'])
   git(repository, ['config', 'user.email', 'zetro@example.test'])
   git(repository, ['config', 'user.name', 'Zetro Test'])
 }

@@ -22,6 +22,14 @@ const tableVariants: readonly DesignSystemVariantDefinition[] = [
 export const designSystemBlocks: readonly DesignSystemBlockDefinition[] = [
   {
     defaultVariantId: 'default',
+    description: 'Observed execution state with motion-safe activity and measured values.',
+    id: 'execution-status',
+    name: 'Execution Status',
+    source: '@codexsun/ui/blocks/execution-status',
+    variants: [defaultVariant],
+  },
+  {
+    defaultVariantId: 'default',
     description: 'A typed data table with application-owned rows and columns.',
     id: 'table',
     name: 'Table',

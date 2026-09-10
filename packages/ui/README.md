@@ -87,6 +87,11 @@ use the shared 40px Button contract and wrap without a scrollbar.
 
 ## Included blocks
 
+- `@codexsun/ui/blocks/execution-status` provides an observed-state ring, indeterminate bar,
+  elapsed label, and measured values. Applications own freshness and state mapping.
+  See its [contract](src/blocks/execution-status/README.md). Spinner and Progress accept
+  `animated={false}` and respect reduced motion. Progress accepts `value={null}` for unknown totals.
+
 - `@codexsun/ui/blocks/auth` provides presentation-only client, administrator, and super-administrator login, recovery, registration, and portal blocks. Applications own routes, API calls, session state, and policy.
 - `@codexsun/ui/blocks/notifications` provides a presentation-only notification inbox with typed
   records and application-owned actions.

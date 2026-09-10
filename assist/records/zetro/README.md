@@ -1,5 +1,14 @@
 # Zetro Development Records
 
+- [2026-09-10 Live execution visuals](2026-09-10-live-execution-visuals.md)
+
+- [2026-09-10 Desktop 0.1.21](2026-09-10-desktop-0.1.21.md)
+
+- [2026-09-10 Automation observation pages](2026-09-10-automation-observation.md)
+
+- [2026-09-10 Desktop 0.1.20 verification](2026-09-10-desktop-0.1.20-verification.md)
+- [2026-09-10 Stable release workflow](2026-09-10-stable-release-workflow.md)
+
 - [2026-09-10 Desktop supervisor bridge](2026-09-10-desktop-supervisor.md)
 
 - [2026-09-10 Desktop 0.1.17 build](2026-09-10-desktop-0.1.17-build.md)

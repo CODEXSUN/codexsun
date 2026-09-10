@@ -3,7 +3,13 @@
 import { Progress as ProgressPrimitive } from '@base-ui/react/progress'
 import { cn } from 'cn'
 
-function Progress({ className, children, value, ...props }: ProgressPrimitive.Root.Props) {
+function Progress({
+  className,
+  children,
+  value,
+  animated = true,
+  ...props
+}: ProgressPrimitive.Root.Props & { animated?: boolean }) {
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -13,7 +19,18 @@ function Progress({ className, children, value, ...props }: ProgressPrimitive.Ro
     >
       {children}
       <ProgressTrack>
-        <ProgressIndicator />
+        {value === null ? (
+          <div
+            data-slot="progress-indeterminate"
+            aria-hidden="true"
+            className={cn(
+              'h-full w-1/3 rounded-full bg-primary',
+              animated && 'motion-safe:animate-pulse',
+            )}
+          />
+        ) : (
+          <ProgressIndicator />
+        )}
       </ProgressTrack>
     </ProgressPrimitive.Root>
   )
@@ -36,7 +53,7 @@ function ProgressIndicator({ className, ...props }: ProgressPrimitive.Indicator.
   return (
     <ProgressPrimitive.Indicator
       data-slot="progress-indicator"
-      className={cn('h-full bg-primary transition-all', className)}
+      className={cn('h-full bg-primary motion-safe:transition-all', className)}
       {...props}
     />
   )

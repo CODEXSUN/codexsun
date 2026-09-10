@@ -26,6 +26,7 @@ export class CodexAppServerProvider implements ChatProvider {
   public async respond(request: ChatTurnRequest): Promise<ChatTurnResponse> {
     try {
       const result = await this.client.runTurn({
+        onProgress: request.onProgress,
         conversationId: request.conversationId,
         files: request.messages.flatMap((message) =>
           message.attachments

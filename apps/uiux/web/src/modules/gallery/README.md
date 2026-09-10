@@ -42,5 +42,10 @@ The application-owned gallery documents and previews the shared UI system.
 
 ## Development records
 
+- [2026-09-10 Execution Status specimen](../../../../../assist/records/zetro/2026-09-10-live-execution-visuals.md)
+
+The `/?block=execution-status` page renders the shared block with labeled sample data.
+Controls switch active, idle, complete, and attention states and pause activity motion.
+
 - [2026-09-09 Independent UI application](../../../../../assist/records/ui/2026-09-09-independent-ui-application.md)
 - [2026-09-10 UI Gallery application ownership](../../../../../assist/records/ui/2026-09-10-ui-gallery-application-ownership.md)

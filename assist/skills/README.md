@@ -15,6 +15,8 @@ the requested change. A cross-boundary change needs each matching skill.
 
 ## Required context after skill selection
 
+For a staged release through Zetro, read [the stable release workflow](../operations/stable-release-workflow.md).
+
 1. Read the target application README.
 2. Read the target module README and [module catalog](../modules/README.md).
 3. Read the latest record under `assist/records/<app>`.

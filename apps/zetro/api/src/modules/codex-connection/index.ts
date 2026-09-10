@@ -20,6 +20,7 @@ export type {
   CodexDeliveryStageStatus,
   CodexDeviceCode,
   CodexToolActivity,
+  CodexProgressEvent,
   CodexTurnInput,
   CodexTurnResult,
 } from './codex-connection.types.js'

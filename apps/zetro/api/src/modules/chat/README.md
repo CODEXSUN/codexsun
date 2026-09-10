@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.13.0`
+- Version: `0.14.0`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
@@ -15,6 +15,9 @@ in the prompt. The prompt asks Codex to identify each file format and inspect
 visible text, screenshots, diagrams, and drawings before acting.
 
 ## Dependency bindings
+
+The internal optional `onProgress` callback passes public provider events to Supervisor.
+It is not accepted from HTTP JSON. See the [0.1.21 record](../../../../../../assist/records/zetro/2026-09-10-desktop-0.1.21.md).
 
 The public index exports `ChatService`, `ChatConversationService`, and scope validation.
 The application injects them into Supervisor. Chat remains the only owner of conversation storage.

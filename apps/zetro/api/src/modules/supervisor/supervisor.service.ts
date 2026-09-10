@@ -7,6 +7,7 @@ import {
 import type { ProjectService } from '../projects/index.js'
 import type { SystemTaskContext, SystemTaskService } from '../system-tasks/index.js'
 import { supervisorExecutionSchema, type SupervisorJobInput } from './supervisor.schema.js'
+import { SupervisorProgress } from './supervisor.progress.js'
 
 const jobType = 'supervisor.agent-turn'
 
@@ -112,7 +113,9 @@ export class SupervisorService {
         stopFailure = error
       })
     }
+    const progress = new SupervisorProgress(context)
     const response = this.chat.respond({
+      onProgress: progress.receive,
       conversationId: conversation.id,
       messages: conversation.messages,
       projectId: project.id,
@@ -159,6 +162,7 @@ export class SupervisorService {
       return { conversationId: conversation.id, ...result }
     } finally {
       context.signal.removeEventListener('abort', stop)
+      await progress.close()
       if (stopFailure)
         await context.step(
           'failed',

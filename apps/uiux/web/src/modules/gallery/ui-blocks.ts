@@ -1,6 +1,6 @@
 import { designSystemBlocks } from '@codexsun/ui/design-system'
 
-export type UiBlockId = 'form' | 'table'
+export type UiBlockId = 'form' | 'table' | 'execution-status'
 
 export type UiBlockDoc = {
   id: UiBlockId

@@ -3,6 +3,9 @@ import type { SystemTask, SystemTaskDetail } from './system-tasks.types'
 
 export interface SystemTasksController {
   error: string | null
+  loading: boolean
+  lastUpdated: number | null
+  clearSelection(): void
   selected: SystemTaskDetail | null
   tasks: SystemTask[]
   refresh(): Promise<void>

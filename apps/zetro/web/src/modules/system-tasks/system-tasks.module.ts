@@ -20,5 +20,5 @@ export const systemTasksWebModuleManifest = {
   },
   publicContracts: ['SystemTasksProvider', 'SystemTasksPanel'],
   scope: 'zetro-web',
-  version: '1.0.0',
+  version: '1.1.0',
 } as const

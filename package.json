@@ -2,7 +2,7 @@
   "name": "codexsun",
   "private": true,
   "type": "module",
-  "version": "0.1.18",
+  "version": "0.1.22",
   "packageManager": "npm@12.0.2",
   "workspaces": [
     "apps/*/*",
@@ -11,6 +11,9 @@
     "packages/*/*/*"
   ],
   "scripts": {
+    "check:release:framework": "npm run build --workspace @codexsun/framework && npm run test:framework && npm run typecheck --workspace @codexsun/framework && npm run lint --workspace @codexsun/framework && npm run check:module-boundaries && npm run check:module-dependencies && npm run check:module-docs",
+    "check:release:platform": "npm run test:platform-runtime && npm run test:platform-web && npm run test:identity && npm run test:e2e:server",
+    "check:release:adoption": "npm run check",
     "dev": "npm run runtime:start -- main-development",
     "dev:all": "npm run runtime:start -- development",
     "dev:api": "node tools/preflight.mjs platform-api",

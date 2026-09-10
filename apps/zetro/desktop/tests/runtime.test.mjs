@@ -6,6 +6,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import test from 'node:test'
+import { verifyScriptTask } from './script-runtime.helper.mjs'
 
 const root = resolve(import.meta.dirname, '../../../..')
 
@@ -16,6 +17,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), 'zetro-release-runtime-'))
     const port = await reservePort()
     const token = randomBytes(32).toString('hex')
+    const sessionToken = randomBytes(32).toString('hex')
     const child = spawn(
       resolve(root, 'dist/apps/zetro/desktop/runtime/node.exe'),
       [resolve(root, 'dist/apps/zetro/desktop/runtime/zetro-api.mjs')],
@@ -30,7 +32,7 @@ test(
           ZETRO_DB_DRIVER: 'sqlite',
           ZETRO_QUEUE_DRIVER: 'local',
           ZETRO_SUPERVISOR_TOKEN: token,
-          ZETRO_DESKTOP_SESSION_TOKEN: randomBytes(32).toString('hex'),
+          ZETRO_DESKTOP_SESSION_TOKEN: sessionToken,
           ZETRO_DESKTOP_PARENT_PID: String(process.pid),
           ZETRO_PROJECT_ROOT: directory,
           ZETRO_CODEX_API_KEY: '',
@@ -65,10 +67,12 @@ test(
       assert.equal(response.status, 200)
       assert.equal((await response.json()).replay, 'disabled')
       assert.equal((await fetch(`${origin}/api/v1/projects`, { headers })).status, 401)
+      await verifyScriptTask(origin, directory, sessionToken)
       child.stdin.end('zetro:shutdown\n')
       assert.equal(await Promise.race([exited, deadline(8_000)]), 0)
       assert.match(output, /desktop-stdin/)
       assert.equal(output.includes(token), false)
+      assert.equal(output.includes(sessionToken), false)
       await assert.rejects(fetch(`${origin}/health/live`))
     } finally {
       if (child.exitCode === null) child.kill()

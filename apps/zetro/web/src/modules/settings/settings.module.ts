@@ -10,7 +10,7 @@ export const settingsModuleManifest = {
     'workspace-appearance',
   ],
   dependencies: {
-    'zetro.codex-connection.api': '^0.7.0',
+    'zetro.codex-connection.api': '^0.8.0',
     'zetro.developer-tools.web': '^1.0.0',
     'zetro.operations.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',

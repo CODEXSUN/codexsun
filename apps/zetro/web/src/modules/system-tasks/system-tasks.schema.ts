@@ -10,6 +10,7 @@ const statusSchema = z.enum([
   'stopping',
 ])
 const taskSchema = z.object({
+  input: z.unknown().optional(),
   attempts: z.number(),
   completedAt: z.string().nullable(),
   createdAt: z.string(),

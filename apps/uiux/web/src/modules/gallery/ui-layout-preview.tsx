@@ -27,6 +27,7 @@ import { uiComponentDocs } from './ui-components'
 import type { UiLayoutId } from './ui-layouts'
 
 const blockIcons = {
+  'execution-status': BotIcon,
   form: FilePenLineIcon,
   table: Table2Icon,
 } as const

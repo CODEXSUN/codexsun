@@ -66,11 +66,18 @@ The desktop process uses typed native commands. Add a scoped command before any 
 Run the desktop workspace type check, lint, test, build, and MSI bundle commands on Windows.
 `npm.cmd run test --workspace @codexsun/zetro-desktop` runs Rust tests and packaged API lifecycle checks.
 The runtime test verifies supervisor authentication, readiness, token redaction, shutdown, and port release with temporary SQLite storage.
+It also verifies repository trust denial and a real named npm script through the packaged API and durable task result.
 
 The MSI requires the Windows WiX prerequisites that Tauri documents.
 
 ## Development record
 
+- [Desktop 0.1.22 execution visuals](../../../assist/records/zetro/2026-09-10-live-execution-visuals.md)
+
+- [Desktop 0.1.21 live progress](../../../assist/records/zetro/2026-09-10-desktop-0.1.21.md)
+
+- [Desktop 0.1.20 verification](../../../assist/records/zetro/2026-09-10-desktop-0.1.20-verification.md)
+- [Stable release workflow and script execution](../../../assist/records/zetro/2026-09-10-stable-release-workflow.md)
 - [Desktop supervisor bridge](../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
 
 - [Desktop 0.1.17 build](../../../assist/records/zetro/2026-09-10-desktop-0.1.17-build.md)

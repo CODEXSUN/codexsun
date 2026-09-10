@@ -1,5 +1,6 @@
 import type {
   CodexDeliveryRun,
+  CodexProgressEvent,
   CodexModel,
   CodexReasoningEffort,
   CodexWorkflow,
@@ -22,6 +23,7 @@ export interface ChatMessage {
 }
 
 export interface ChatTurnRequest {
+  onProgress?(event: CodexProgressEvent): void
   conversationId: string
   messages: readonly ChatMessage[]
   model?: CodexModel

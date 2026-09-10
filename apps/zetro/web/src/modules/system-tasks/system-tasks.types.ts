@@ -2,6 +2,7 @@ export type SystemTaskStatus =
   'blocked' | 'completed' | 'failed' | 'pending' | 'running' | 'stopped' | 'stopping'
 
 export interface SystemTask {
+  input?: unknown
   attempts: number
   completedAt: string | null
   createdAt: string

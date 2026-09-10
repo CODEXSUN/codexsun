@@ -78,8 +78,8 @@ The API uses the shared Platform Core observability adapter for Pino logs, reque
 
 `ZETRO_CODEX_API_KEY` supplies a separate API credential to the local Codex App Server. `ZETRO_WORKTREE_ROOT` selects the parent directory for task worktrees.
 
-The desktop host sets `ZETRO_PROJECT_ROOT`, `STORAGE_ROOT`, and
-`ZETRO_WORKTREE_ROOT` to Tauri application data paths. The generated project
+The desktop host sets `ZETRO_PROJECT_ROOT` and `STORAGE_ROOT` to Tauri application data paths.
+`ZETRO_WORKTREE_ROOT` uses the user's `.zetro/worktrees` directory. The generated project
 root is only a startup marker. Zetro does not register it as a project because
 it is not a Git repository. The desktop app and browser use the same project
 connection flow. The desktop host allows only the Tauri origin to call the
@@ -162,7 +162,8 @@ The desktop host owns its bundled API process. It stops the process tree on norm
 
 Run `npm.cmd run test:zetro`, `npm.cmd run build:zetro`, lint, formatting, type checks, and documentation gates after a Zetro change. The root `check` gate includes the complete Zetro API test suite and validates declared module dependency ranges.
 
-The worktree integration test creates two temporary Git worktrees. Zetro still needs a production-artifact lifecycle E2E test.
+The worktree integration tests use temporary Git repositories. The desktop workspace owns the packaged API lifecycle E2E test.
+Use the [stable release workflow](../../assist/operations/stable-release-workflow.md) before advancing framework or identity release tasks.
 
 ## Module catalog
 

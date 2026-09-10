@@ -27,6 +27,9 @@ interface PendingRequest {
 }
 
 interface TurnCollector {
+  onProgress?: CodexTurnInput['onProgress']
+  streamedText: string
+  messageId?: string
   activities: CodexToolActivity[]
   content: string
   model: string
@@ -61,6 +64,7 @@ export class CodexAppServerClient {
     private readonly apiKey?: string,
     private readonly baseUrl?: string,
     private readonly model?: string,
+    private readonly turnTimeoutMs = 600_000,
   ) {}
 
   public async readAccount(refreshToken = false): Promise<CodexConnectionStatus> {
@@ -187,6 +191,7 @@ export class CodexAppServerClient {
       worktree.path,
       input.workflow,
       readString(threadResult, 'model'),
+      input.onProgress,
     )
 
     let activeTurn: ActiveTurn | undefined
@@ -232,7 +237,11 @@ export class CodexAppServerClient {
   }
 
   public async close(): Promise<void> {
-    this.process?.kill()
+    const child = this.process
+    if (child) {
+      this.handleProcessFailure(child, new Error('Codex App Server closed.'))
+      child.kill()
+    }
     this.process = null
     this.startPromise = null
   }
@@ -362,11 +371,35 @@ export class CodexAppServerClient {
 
     const threadId = typeof values.threadId === 'string' ? values.threadId : undefined
     if (!threadId || !this.turns.has(threadId)) return
+    const collector = this.turns.get(threadId)!
+    if (method === 'item/agentMessage/delta' && typeof values.delta === 'string') {
+      const id = typeof values.itemId === 'string' ? values.itemId : ''
+      if (collector.messageId !== id) collector.streamedText = ''
+      collector.messageId = id
+      collector.streamedText = `${collector.streamedText}${values.delta}`.slice(-8000)
+      collector.onProgress?.({ kind: 'response', text: collector.streamedText })
+    }
+
+    if (method === 'item/started' || method === 'item/completed') {
+      const item = isRecord(values.item) ? values.item : {}
+      const activity = toToolActivity(item)
+      if (activity && typeof item.id === 'string') {
+        collector.onProgress?.({
+          kind: 'tool',
+          itemId: item.id,
+          activity: {
+            ...activity,
+            status: method === 'item/started' ? 'running' : activity.status,
+          },
+        })
+      }
+    }
 
     if (method === 'item/completed') {
       const item = isRecord(values.item) ? values.item : {}
       if (item.type === 'agentMessage' && typeof item.text === 'string') {
         this.turns.get(threadId)!.content = item.text
+        collector.onProgress?.({ kind: 'response', text: item.text.slice(-8000) })
       }
       const activity = toToolActivity(item)
       if (activity) this.turns.get(threadId)!.activities.push(activity)
@@ -380,14 +413,14 @@ export class CodexAppServerClient {
     worktreePath: string,
     workflow: CodexTurnInput['workflow'],
     model: string,
+    onProgress?: CodexTurnInput['onProgress'],
   ): Promise<CodexTurnResult> {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(
-        () => this.rejectTurn(threadId, new Error('Codex turn timed out.')),
-        120_000,
-      )
+      const timeout = setTimeout(() => void this.expireTurn(threadId), this.turnTimeoutMs)
       this.turns.set(threadId, {
         activities: [],
+        onProgress,
+        streamedText: '',
         content: '',
         model,
         reject,
@@ -447,6 +480,21 @@ export class CodexAppServerClient {
   private async interruptActiveTurn(activeTurn: ActiveTurn): Promise<void> {
     await this.request('turn/interrupt', activeTurn)
     this.rejectTurn(activeTurn.threadId, new Error('Codex turn stopped.'))
+  }
+
+  private async expireTurn(threadId: string): Promise<void> {
+    const turn = [...this.activeTurns.values()].find((active) => active.threadId === threadId)
+    try {
+      if (!turn) throw new Error('The timed-out turn has no active identifier.')
+      await this.request('turn/interrupt', turn)
+    } catch {
+      await this.close()
+    } finally {
+      this.rejectTurn(
+        threadId,
+        new Error('Codex turn timed out. Review its worktree before resubmitting.'),
+      )
+    }
   }
 
   private handleProcessFailure(child: ChildProcessWithoutNullStreams, error: Error): void {

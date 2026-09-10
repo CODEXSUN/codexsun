@@ -4,7 +4,7 @@ import { registerWorktreeRoutes } from './worktrees.routes.js'
 
 export const worktreesModuleManifest = {
   capabilities: ['worktree-inventory', 'worktree-disk-usage', 'safe-cleanup', 'retention-sweep'],
-  dependencies: { 'zetro.codex-connection.api': '^0.7.0' },
+  dependencies: { 'zetro.codex-connection.api': '^0.8.0' },
   id: 'zetro.worktrees.api',
   lifecycle: {
     activate: 'Register worktree inventory and cleanup routes.',

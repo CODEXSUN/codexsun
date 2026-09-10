@@ -1,5 +1,26 @@
 export const uiGalleryTopologySections = [
   {
+    id: '26',
+    technicalName: 'ui.execution.documentation',
+    name: 'Execution Status',
+    scope: 'UI workspace',
+    description: 'Documents observed execution status.',
+  },
+  {
+    id: '26.1',
+    technicalName: 'ui.execution.preview',
+    name: 'Execution preview',
+    scope: 'Execution Status',
+    description: 'Interactive state and motion specimen.',
+  },
+  {
+    id: '26.2',
+    technicalName: 'ui.execution.usage',
+    name: 'Execution usage',
+    scope: 'Execution Status',
+    description: 'Public properties and ownership.',
+  },
+  {
     id: '20',
     technicalName: 'ui.overview.showcase',
     name: 'UI overview',

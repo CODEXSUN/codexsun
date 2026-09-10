@@ -1,5 +1,6 @@
 import { ArrowRight, Boxes, Component, LayoutTemplate } from 'lucide-react'
 import { Badge } from '@codexsun/ui/components/badge'
+import { ExecutionStatus } from '@codexsun/ui/blocks/execution-status'
 import { Button } from '@codexsun/ui/components/button'
 import { designSystemCategories } from '@codexsun/ui/design-system'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
@@ -81,6 +82,13 @@ function DefaultBlockLinks() {
           </a>
         ))}
       </div>
+      <ExecutionStatus
+        state="idle"
+        title="Execution Status · sample preview"
+        description="Open the block to inspect active, complete, attention, and paused motion states."
+        elapsed="Not started"
+        metrics={[{ label: 'Sample updates', value: 0 }]}
+      />
     </section>
   )
 }

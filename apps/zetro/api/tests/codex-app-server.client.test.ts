@@ -19,6 +19,7 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     resolveWorkingDirectory: async () => cwd,
   } as unknown as CodexWorktreeService
   const client = new CodexAppServerClient('unused', process.cwd(), worktrees)
+  const progress: unknown[] = []
   const transport = client as unknown as {
     request(method: string, params: Record<string, unknown>): Promise<unknown>
     handleNotification(method: string, params: unknown): void
@@ -27,6 +28,19 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     assert.equal(params.cwd, cwd)
     if (method === 'thread/start') return { thread: { id: 'thread' }, model: 'test' }
     assert.equal(method, 'turn/start')
+    transport.handleNotification('item/started', {
+      threadId: 'thread',
+      item: { id: 'cmd-1', type: 'commandExecution', command: 'read', status: 'inProgress' },
+    })
+    transport.handleNotification('item/agentMessage/delta', {
+      threadId: 'thread',
+      itemId: 'message-1',
+      delta: 'Public update',
+    })
+    transport.handleNotification('item/reasoning/summaryTextDelta', {
+      threadId: 'thread',
+      delta: 'private reasoning excluded',
+    })
     for (let index = 0; index < 22; index++) {
       transport.handleNotification('item/completed', {
         threadId: 'thread',
@@ -53,6 +67,7 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     return { turn: { id: 'turn' } }
   }
   const result = await client.runTurn({
+    onProgress: (event) => progress.push(event),
     conversationId: randomUUID(),
     projectId: randomUUID(),
     projectRoot: process.cwd(),
@@ -64,6 +79,9 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     workflow: 'review',
   })
   assert.equal(result.activities.length, 20)
+  assert.ok(JSON.stringify(progress).includes('Public update'))
+  assert.ok(JSON.stringify(progress).includes('running'))
+  assert.ok(!JSON.stringify(progress).includes('private reasoning'))
   assert.equal(result.activities[0]?.status, 'failed')
   assert.match(result.activities[0]?.details ?? '', /access denied/)
   assert.doesNotMatch(result.activities[0]?.details ?? '', /secret/)
@@ -79,6 +97,51 @@ test('a turn selection overrides the configured model and maps its reasoning eff
     effort: 'low',
     model: 'gpt-5.6-sol',
   })
+})
+
+test('a timed-out turn requests provider interruption before returning failure', async () => {
+  const worktrees = {
+    ensure: async () => ({ path: process.cwd(), revision: 'test' }),
+    writeInputs: async () => [],
+    resolveWorkingDirectory: async () => process.cwd(),
+  } as unknown as CodexWorktreeService
+  const client = new CodexAppServerClient(
+    'unused',
+    process.cwd(),
+    worktrees,
+    undefined,
+    undefined,
+    undefined,
+    20,
+  )
+  let interrupted = false
+  const transport = client as unknown as {
+    request(method: string, params: unknown): Promise<unknown>
+  }
+  transport.request = async (method, params) => {
+    if (method === 'thread/start') return { thread: { id: 'thread' }, model: 'test' }
+    if (method === 'turn/start') return { turn: { id: 'turn' } }
+    assert.equal(method, 'turn/interrupt')
+    assert.deepEqual(params, { threadId: 'thread', turnId: 'turn' })
+    interrupted = true
+    return {}
+  }
+  await assert.rejects(
+    client.runTurn({
+      conversationId: randomUUID(),
+      projectId: randomUUID(),
+      projectRoot: process.cwd(),
+      files: [],
+      images: [],
+      scope: { application: 'test', module: 'test', folderPath: '' },
+      text: 'Read only.',
+      reasoningEffort: 'low',
+      workflow: 'review',
+    }),
+    /timed out/,
+  )
+  assert.equal(interrupted, true)
+  await client.close()
 })
 
 test('Windows command discovery selects the newest desktop Codex executable', async () => {

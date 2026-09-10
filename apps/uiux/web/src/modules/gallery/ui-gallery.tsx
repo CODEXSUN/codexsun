@@ -1,4 +1,5 @@
 import { findUiBlock } from './ui-blocks'
+import { UiExecutionStatusDocumentation } from './ui-execution-status-doc'
 import { UiComponentDisplayPage } from './ui-component-display-page'
 import { findUiComponent } from './ui-components'
 import { UiFormDocumentation } from './ui-form-doc'
@@ -20,6 +21,7 @@ export function UiGallery() {
   const component = findUiComponent(requestedComponent)
   if (block?.id === 'table') return <UiTableDocumentation />
   if (block?.id === 'form') return <UiFormDocumentation />
+  if (block?.id === 'execution-status') return <UiExecutionStatusDocumentation />
   if (component) return <UiComponentDisplayPage component={component} />
   if (page) return <UiPageDocumentation page={page} />
   return layout ? <UiLayoutDocumentation layout={layout} /> : <UiOverview />

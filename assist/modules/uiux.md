@@ -9,6 +9,8 @@ owns the reusable UI library and public contracts.
 
 ## Modules
 
+Gallery includes the shared Execution Status specimen at `/?block=execution-status`.
+
 | Module ID | Version | Scope  | Status | Backend README | Frontend README                                              |
 | --------- | ------- | ------ | ------ | -------------- | ------------------------------------------------------------ |
 | `gallery` | `1.3.1` | `uiux` | Active | None           | [Gallery](../../apps/uiux/web/src/modules/gallery/README.md) |

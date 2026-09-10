@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.7.1`
+- Version: `0.8.0`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -14,6 +14,10 @@ Zetro never reads or returns the Codex auth cache. An optional `ZETRO_CODEX_API_
 The child environment removes Zetro supervisor, desktop-session, and connected-application access tokens.
 
 ## Device activation
+
+The optional `onProgress` callback publishes only public agent text and tool lifecycle
+events. Reasoning notifications are excluded. Supervisor coalesces these events into
+bounded task snapshots. See the [0.1.21 record](../../../../../../assist/records/zetro/2026-09-10-desktop-0.1.21.md).
 
 `POST /api/v1/settings/codex/device-code` starts `chatgptDeviceCode` login and returns `loginId`, `verificationUrl`, and `userCode`. The user enters the code on the OpenAI verification page. `POST /api/v1/settings/codex/activate` refreshes account state for that login attempt.
 
@@ -49,6 +53,8 @@ The thread uses workspace-write access for its worktree. Codex can read and sear
 The client collects completed command, file-change, and MCP activity. It returns this activity with the final visible response.
 
 The client tracks the App Server thread and turn for each active conversation.
+The default provider deadline is ten minutes. Timeout requests interruption before failure.
+If interruption fails, the client closes its provider connection and rejects pending work.
 An interrupt calls `turn/interrupt` with both IDs. An interrupt requested while
 the turn starts runs as soon as the App Server returns the turn ID.
 
@@ -77,6 +83,8 @@ Run the API typecheck, build, connection tests, workflow tests, history tests, a
 A complete activation requires user sign-in in the browser. A live coding turn must prove file edits and command activity.
 
 ## Development records
+
+- [Stable release workflow](../../../../../../assist/records/zetro/2026-09-10-stable-release-workflow.md)
 
 - [Desktop supervisor bridge](../../../../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
 

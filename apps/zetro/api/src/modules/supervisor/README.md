@@ -3,9 +3,9 @@
 ## Contract
 
 - Module ID: `zetro.supervisor.api`
-- Version: `0.1.0`
+- Version: `0.2.0`
 - Owner: Zetro API
-- Dependencies: Chat `^0.13.0`, Projects `^0.5.0`, System Tasks `^1.1.0`.
+- Dependencies: Chat `^0.14.0`, Projects `^0.5.0`, System Tasks `^1.1.0`.
 
 This technical adapter accepts approved local agent jobs. Module-prefixed files separate
 validation, routes, and coordination. It has no business entities or independent domain layers.
@@ -39,6 +39,13 @@ Completion means the provider turn finished without reported tool failures, not 
 Zetro displays these records through its existing Chat and System Tasks screens.
 
 ## Configuration and permissions
+
+Live progress uses versioned `zetro.progress.v1:` JSON snapshots in task steps.
+Each snapshot holds the latest 40 observed tool actions and up to 8,000 public response
+characters. Updates coalesce every two seconds and flush before completion or failure.
+The final result remains authoritative. Reasoning and raw tool output are excluded.
+Common credential patterns are redacted. This does not replace secret handling by callers.
+See the [0.1.21 record](../../../../../../assist/records/zetro/2026-09-10-desktop-0.1.21.md).
 
 Set `ZETRO_SUPERVISOR_TOKEN` to a random value with at least 32 characters before desktop launch.
 An empty value disables access. The desktop inherits this setting from its launch environment.

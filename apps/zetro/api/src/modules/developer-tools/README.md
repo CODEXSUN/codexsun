@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.developer-tools.api`
-- Version: `1.0.0`
+- Version: `1.0.1`
 - Owner: Zetro API
 - Dependency: `zetro.projects.api@^0.4.1`
 
@@ -25,6 +25,9 @@ and persisted developer tool settings.
 The script route exposes only repository-owned `build`, `check`, `clean`, `lint`,
 `release`, `test`, and `typecheck` script families. Execution creates a durable
 System Task. Cleanup and release callers must require explicit user confirmation.
+The runner invokes npm's JavaScript entry point with Node, not a Windows batch file.
+Node.js with npm must be installed on PATH for repository development tasks.
+The bundled desktop Node runtime alone does not install repository development dependencies.
 
 ## Safety
 
@@ -51,7 +54,11 @@ global defaults or store an isolated configuration.
 
 Run `npm.cmd run test:developer-tools --workspace @codexsun/zetro-api`. The test
 uses temporary local Git repositories and a local bare remote.
+Each fixture sets repository-local line-ending behavior. Tests do not change user Git configuration.
 
 ## Development records
+
+- [Desktop 0.1.20 verification](../../../../../../assist/records/zetro/2026-09-10-desktop-0.1.20-verification.md)
+- [Stable release workflow](../../../../../../assist/records/zetro/2026-09-10-stable-release-workflow.md)
 
 - [2026-09-09 Developer tools](../../../../../../assist/records/zetro/2026-09-09-developer-tools.md)

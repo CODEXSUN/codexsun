@@ -8,11 +8,35 @@
 
 ## Version State
 
-- Current version: 0.1.18
-- Release tag: v-0.1.18
-- Changelog label: v 0.1.18
+- Current version: 0.1.22
+- Release tag: v-0.1.22
+- Changelog label: v 0.1.22
 
-## v-0.1.18
+## v-0.1.22
+
+### [v 0.1.22] 2026-09-10 12:05 pm - Zetro live execution visuals and shared UI status
+
+- Database Changes: None. Root version `0.1.22`.
+- App Codebase Changes: Automation web `0.4.0` uses the package-owned Execution Status block and UIUX specimen. Verification: root check, UI tests, browser states, MSI upgrade, and packaged lifecycle passed. Unsigned; business and Docker acceptance remain gated. See the [release record](../records/zetro/2026-09-10-live-execution-visuals.md).
+
+### [v 0.1.21] 2026-09-10 11:42 am - Zetro live automation progress and desktop release
+
+- Database Changes: None. Workspace and desktop version `0.1.21`.
+- App Codebase Changes: Added bounded public response/tool snapshots and Automation detail binding. Verification: Zetro tests, targeted checks, MSI build/upgrade, installed provider smoke, and shutdown/relaunch passed. Unsigned; native visual and full release gates remain unverified. See the [release record](../records/zetro/2026-09-10-desktop-0.1.21.md).
+
+### [v 0.1.20] 2026-09-10 10:45 am - Zetro release verification and framework task continuation
+
+- Database Changes: None. Aligned workspace, Tauri, and Rust versions to `0.1.20`.
+- Follow-up: Replaced installed Zetro `0.1.19` with `0.1.20`, preserving its database. Repaired Platform cookie/bearer actor binding and current-user portal validation; see the [P001 record](../records/platform/2026-09-10-identity-session-binding.md). Full Platform and application adoption remain gated.
+- UI follow-up: Automation web `0.3.0` adds separate live, history, and report pages with real connection status. System Tasks web `1.1.0` guards stale selection. See the [observation record](../records/zetro/2026-09-10-automation-observation.md) for tests and streaming limits. Installer unchanged.
+- App Codebase Changes: Made Developer Tools Git fixtures independent of user line-ending settings. Framework now retains failed cleanup ownership, permits cleanup retry, and blocks unsafe lifecycle operations.
+- Verification: Full checks, 19 kernel tests, Zetro follow-up review, MariaDB, Platform lifecycle smoke, and installed desktop shutdown passed. F001 technical work is complete; stable approval remains separate. See the [verification log](../records/zetro/2026-09-10-desktop-0.1.20-verification.md).
+
+### [v 0.1.19] 2026-09-10 10:15 am - Staged release workflow and Zetro execution repairs
+
+- Database Changes: None. Candidate `0.1.19` adds staged release checks and the F001 task card.
+- App Codebase Changes: Developer Tools `1.0.1` runs npm through Node on Windows. Codex Connection `0.7.2` interrupts timed-out turns. Framework guards concurrent lifecycle calls, freezes registered manifests, and isolates observable reporter errors.
+- Verification: Seventeen kernel tests, real script execution, timeout regression, and packaged script-task E2E passed. Zetro review returned findings but failed one inspection command; stable approval remains open. See the [workflow record](../records/zetro/2026-09-10-stable-release-workflow.md).
 
 ### [v 0.1.18] 2026-09-10 9:17 am - Zetro desktop supervisor bridge
 
@@ -20,39 +44,27 @@
 - App Codebase Changes: Added Supervisor `0.1.0`, public Chat `0.13.0`, System Tasks `1.1.0`, Codex connection `0.7.1`, CLI desktop pairing, confirmed project connection, graceful shutdown, and Windows worktree fixes. Preserved parallel UIUX, shared UI, application, and deployment changes.
 - Verification: Root checks, MariaDB foundation, packaged API lifecycle, and desktop checks passed. Platform-only smoke was blocked by occupied port 6010. See [desktop supervisor record](../records/zetro/2026-09-10-desktop-supervisor.md) for live evidence and release limits.
 
-## v-0.1.17
-
 ### [v 0.1.17] 2026-09-10 8:09 am - Shared UI audit and Zetro automation
 
 - Database Changes: None. App Codebase Changes: Aligned versions to `0.1.17`. Added shared UI audit, CLI and Automation bindings, and review-only agent diagnosis.
 - Verification: Pre-build, audit, tests, lint, type checks, module gates, Rust checks, and WiX passed. Installation and signing did not run. See `assist/records/zetro/2026-09-10-desktop-0.1.17-build.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
-
-## v-0.1.16
 
 ### [v 0.1.16] 2026-09-10 7:50 am - Centralized UI ownership and application reuse
 
 - Database Changes: None. App Codebase Changes: Aligned metadata to `0.1.16`, centralized UI in `packages/ui`, replaced app-native controls, and added application audits and Zetro entry points.
 - Verification: Ownership, format, documentation, boundary, lint, and type checks passed. Browser and installer checks did not run. See `assist/records/ui/2026-09-10-ui-gallery-application-ownership.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
 
-## v-0.1.15
-
 ### [v 0.1.15] 2026-09-09 10:39 pm - Independent UI application
 
 - Database Changes: None. Added the independent gallery, Documentation Workspace, runtime bindings, app map, and Zetro Agent Workspace while keeping reusable UI in `packages/ui`. Focused checks and the Zetro MSI build passed; installation and signing did not run. See `assist/records/ui/2026-09-09-independent-ui-application.md`, `assist/records/zetro/2026-09-09-agent-workspace-rails.md`, and `assist/records/ui/2026-09-10-ui-gallery-application-ownership.md`.
-
-## v-0.1.14
 
 ### [v 0.1.14] 2026-09-09 9:23 pm - Automation, agent operations, and platform foundations
 
 - Database Changes: Added Identity device, session, role, verification, and security-event persistence. App Codebase Changes: Added Agent Crew runtimes, Orship repository operations, Docs architecture views, shared Agent Workspace and UI design-system controls, Zetro model and attachment input, task planning, the Automation CLI/workspace, desktop `0.1.14` metadata, real Login/Register page variants, Forgot Password, Notifications Page, validated page defaults, and the independent UI showcase application on port `6130`. Shared components, blocks, pages, layouts, templates, gallery specimens, example data, and design-system contracts remain package-owned. Verification: The complete repository check, runtime validation, and MariaDB foundation test passed before the UI extraction; focused UI checks are recorded in `assist/records/ui/2026-09-09-independent-ui-application.md`. The Zetro desktop executable reports `0.1.14`. The platform-only smoke did not run because an active `platform-web` service owns port `6021`; installation and live application checks did not run. See `assist/records/platform/2026-09-09-ui-page-templates.md` and the linked application development records.
 
-## v-0.1.13
-
 ### [v 0.1.13] 2026-09-09 8:12 pm - Identity security and Zetro Windows desktop build
 
 - Database Changes: Added module-owned identifiers, devices, session binding, security events, and a seed. App Codebase Changes: Added three-identifier login, cross-client sessions, device approval, monitoring, administrator controls, provider ports, origin checks, and timing protection. Built the Zetro `0.1.13` executable and WiX MSI with the shared chat input pipeline. Added the shared Agent Workspace layout and a deterministic Automation CLI/workspace with durable run monitoring and reviewed agent diagnosis. Verification: Focused Identity, Zetro, UI, and Platform checks passed. CLI and script allowlist tests passed. The MSI and executable report `0.1.13`. Installation, live multimodal, and live automation checks did not run. See `assist/records/platform/2026-09-09-identity-cross-client-security.md`, `assist/records/platform/2026-09-09-agent-workspace-layout.md`, `assist/records/zetro/2026-09-09-desktop-0.1.13-build.md`, and `assist/records/zetro/2026-09-09-deterministic-automation-cli.md`.
-
-## v-0.1.12
 
 ### [v 0.1.12] 2026-09-09 5:07 pm - Zetro desktop, model selection, and chat input capture
 
@@ -70,20 +82,14 @@
 
 - Database update: No. Added matching `Default Version` cards for Button and Button Group with 40px controls in three borderless, scrollbar-free rows. See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
-## v-0.1.7
-
 ### [v 0.1.7] 2026-09-09 1:38 pm - Add Zetro Git delivery flow
 
 - Database update: No (manual).
 - Bumped the workspace and installer to 0.1.7. Added the module-owned Git Delivery system task, repository release preview, changelog and version controls, merge or rebase pull, reviewed commit and push, flow history, and global or project settings. See `assist/records/zetro/2026-09-09-git-delivery-flow.md`.
 
-## v-0.1.6
-
 ### [v 0.1.6] 2026-09-09 - Zetro desktop Markdown history
 
 - Bumped the workspace and installer to 0.1.6. Added safe Markdown chat history, developer tools, and the status-bar build version. Added Module Runtime schema version 1.1.0, MariaDB preflight smoke, automatic queue reporting, and module-owned schema drift checks. See `assist/records/zetro/2026-09-09-build-version-status.md` and `assist/records/platform/2026-09-09-migration-preflight-schema-integrity.md`.
-
-## v-0.1.5
 
 ### [v 0.1.5] 2026-09-09 - MariaDB and environment foundation
 
@@ -186,8 +192,6 @@
 - Built the Zetro WiX MSI with the centralized Settings workspace.
 - See `assist/records/zetro/2026-09-09-centralized-settings.md`.
 
-## v-0.1.4
-
 ### [v 0.1.4] 2026-09-09 - Runtime log organization
 
 #### Database Changes
@@ -248,8 +252,6 @@
 - Passed the complete repository check, Turbo output ownership contract, production chunk budget, API lifecycle E2E tests, and runtime-holder tests.
 - Started the eight-service main development profile with JSON logs, verified request and correlation headers, confirmed central log capture, stopped it through Ctrl+C, and confirmed ports `6010` through `6080` were released.
 - See `assist/records/platform/2026-09-09-build-observability-foundation.md`.
-
-## v-0.1.3
 
 ### [v 0.1.3] 2026-09-09 - Zetro chat turn stop
 

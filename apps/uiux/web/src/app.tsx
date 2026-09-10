@@ -27,7 +27,11 @@ const layoutIcons = {
   'documentation-workspace': BookOpenIcon,
   'mdi-main': PanelsTopLeftIcon,
 } as const
-const blockIcons = { form: FilePenLineIcon, table: Table2Icon } as const
+const blockIcons = {
+  form: FilePenLineIcon,
+  table: Table2Icon,
+  'execution-status': BotIcon,
+} as const
 
 export function App() {
   const search = new URLSearchParams(window.location.search)

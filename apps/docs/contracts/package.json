@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/docs-contracts",
   "private": true,
-  "version": "0.1.18",
+  "version": "0.1.22",
   "type": "module",
   "main": "../../../dist/apps/docs/contracts/index.js",
   "types": "../../../dist/apps/docs/contracts/index.d.ts",

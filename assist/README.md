@@ -39,6 +39,8 @@ record for a change. It does not duplicate source-owned documentation.
 
 ## Catalogs and records
 
+- [Stable release workflow](operations/stable-release-workflow.md) defines framework, identity, adoption, and E2E release gates through Zetro.
+
 - [Application and module catalogs](modules/README.md) identify the source owner.
 - [Development records](records/README.md) record completed decisions and verification.
 - [Templates](templates) define new application, module, add-on, and record documents.

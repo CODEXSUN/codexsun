@@ -2,16 +2,16 @@
 
 Zetro is a standalone product application composed from isolated web and API modules.
 
-The active `zetro.supervisor.api` module is version `0.1.0`.
+The active `zetro.supervisor.api` module is version `0.2.0`.
 See the [Supervisor API](../../apps/zetro/api/src/modules/supervisor/README.md).
 
 | Module                       | Version | Runtime   | Composition | Authoritative documentation                                                       |
 | ---------------------------- | ------- | --------- | ----------- | --------------------------------------------------------------------------------- |
-| `zetro.codex-connection.api` | 0.7.1   | Zetro API | Active      | [Codex connection](../../apps/zetro/api/src/modules/codex-connection/README.md)   |
+| `zetro.codex-connection.api` | 0.8.0   | Zetro API | Active      | [Codex connection](../../apps/zetro/api/src/modules/codex-connection/README.md)   |
 | `zetro.projects.api`         | 0.5.0   | Zetro API | Active      | [Projects API](../../apps/zetro/api/src/modules/projects/README.md)               |
-| `zetro.chat.api`             | 0.13.0  | Zetro API | Active      | [Chat API](../../apps/zetro/api/src/modules/chat/README.md)                       |
+| `zetro.chat.api`             | 0.14.0  | Zetro API | Active      | [Chat API](../../apps/zetro/api/src/modules/chat/README.md)                       |
 | `zetro.tasks.api`            | 0.5.0   | Zetro API | Active      | [Tasks API](../../apps/zetro/api/src/modules/tasks/README.md)                     |
-| `zetro.developer-tools.api`  | 1.0.0   | Zetro API | Active      | [Developer Tools API](../../apps/zetro/api/src/modules/developer-tools/README.md) |
+| `zetro.developer-tools.api`  | 1.0.1   | Zetro API | Active      | [Developer Tools API](../../apps/zetro/api/src/modules/developer-tools/README.md) |
 | `zetro.git-delivery.api`     | 1.0.0   | Zetro API | Active      | [Git Delivery API](../../apps/zetro/api/src/modules/git-delivery/README.md)       |
 | `zetro.system-tasks.api`     | 1.1.0   | Zetro API | Active      | [System Tasks API](../../apps/zetro/api/src/modules/system-tasks/README.md)       |
 | `zetro.operations.api`       | 1.0.0   | Zetro API | Active      | [Operations API](../../apps/zetro/api/src/modules/operations/README.md)           |
@@ -24,7 +24,7 @@ See the [Supervisor API](../../apps/zetro/api/src/modules/supervisor/README.md).
 | `zetro.developer-tools.web`  | 1.1.0   | Zetro web | Active      | [Developer Tools web](../../apps/zetro/web/src/modules/developer-tools/README.md) |
 | `zetro.git-delivery.web`     | 0.1.0   | Zetro web | Active      | [Git Delivery web](../../apps/zetro/web/src/modules/git-delivery/README.md)       |
 | `zetro.operations.web`       | 1.0.0   | Zetro web | Active      | [Operations web](../../apps/zetro/web/src/modules/operations/README.md)           |
-| `zetro.system-tasks.web`     | 1.0.0   | Zetro web | Active      | [System Tasks web](../../apps/zetro/web/src/modules/system-tasks/README.md)       |
-| `zetro.automation.web`       | 0.2.0   | Zetro web | Active      | [Automation web](../../apps/zetro/web/src/modules/automation/README.md)           |
-| `zetro.desktop`              | 0.1.18  | Tauri 2   | Active      | [Zetro desktop](../../apps/zetro/desktop/README.md)                               |
-| `zetro.cli`                  | 0.1.18  | Node CLI  | Active      | [Zetro CLI](../../apps/zetro/cli/README.md)                                       |
+| `zetro.system-tasks.web`     | 1.1.0   | Zetro web | Active      | [System Tasks web](../../apps/zetro/web/src/modules/system-tasks/README.md)       |
+| `zetro.automation.web`       | 0.4.0   | Zetro web | Active      | [Automation web](../../apps/zetro/web/src/modules/automation/README.md)           |
+| `zetro.desktop`              | 0.1.22  | Tauri 2   | Active      | [Zetro desktop](../../apps/zetro/desktop/README.md)                               |
+| `zetro.cli`                  | 0.1.22  | Node CLI  | Active      | [Zetro CLI](../../apps/zetro/cli/README.md)                                       |

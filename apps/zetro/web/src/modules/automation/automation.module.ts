@@ -20,9 +20,9 @@ export const automationModuleManifest = {
     deactivate: 'Unmount automation controls without stopping durable runs.',
     install: 'No browser business data is created.',
     uninstall: 'No API execution history is removed.',
-    upgrade: 'Version 0.2.0 adds the shared UI audit and focused supervisor guidance.',
+    upgrade: 'Version 0.4.0 binds shared execution signals to observed task state.',
   },
   publicContracts: ['AutomationSidebar', 'AutomationWorkspace'],
   scope: 'zetro-web',
-  version: '0.2.0',
+  version: '0.4.0',
 } as const

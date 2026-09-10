@@ -2,6 +2,70 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createAutomationSupervisorPrompt } from '../src/modules/automation/automation.supervisor.js'
 import { groupAutomationScripts } from '../src/modules/automation/automation.scripts.js'
+import {
+  isLiveRun,
+  runDuration,
+  runEvidence,
+  runActivityState,
+} from '../src/modules/automation/automation.run-model.js'
+import { taskResponseSchema } from '../src/modules/system-tasks/system-tasks.schema.js'
+
+test('animates only observed active execution, not queued, stale, or terminal runs', () => {
+  assert.deepEqual(runActivityState({ status: 'running' }, true), {
+    active: true,
+    label: 'Execution in progress',
+  })
+  assert.equal(runActivityState({ status: 'running' }, false).active, false)
+  assert.equal(runActivityState({ status: 'pending' }, true).active, false)
+  assert.equal(runActivityState({ status: 'stopping' }, true).active, true)
+  for (const status of ['completed', 'failed', 'blocked', 'stopped'] as const)
+    assert.equal(runActivityState({ status }, true).active, false)
+})
+
+test('classifies stopping as live and terminal states as history', () => {
+  for (const status of ['pending', 'running', 'stopping'] as const)
+    assert.equal(isLiveRun({ status }), true)
+  for (const status of ['completed', 'failed', 'blocked', 'stopped'] as const)
+    assert.equal(isLiveRun({ status }), false)
+})
+
+test('retains instructions and reads recorded reports without inventing metrics', () => {
+  const task = taskResponseSchema.parse({
+    task: {
+      attempts: 1,
+      completedAt: '2026-09-10T00:01:10Z',
+      createdAt: '2026-09-10T00:00:00Z',
+      error: null,
+      id: 'test-run',
+      maxAttempts: 1,
+      projectId: 'project',
+      recoveryCount: 0,
+      input: { prompt: 'Review only', secret: 'must not appear in the projection' },
+      result: {
+        message: { content: 'Review report' },
+        execution: {
+          activities: [{ kind: 'command', label: 'npm run test', status: 'completed' }],
+        },
+      },
+      startedAt: '2026-09-10T00:00:00Z',
+      status: 'completed',
+      title: 'Review',
+      type: 'supervisor.agent-turn',
+      updatedAt: '2026-09-10T00:01:10Z',
+    },
+  }).task
+  assert.equal(runDuration(task), '1m 10s')
+  assert.equal(runEvidence(task).instruction, 'Review only')
+  assert.equal(runEvidence(task).response, 'Review report')
+  assert.equal(runEvidence(task).activities.length, 1)
+  assert.equal(runEvidence(task).model, undefined)
+  assert.doesNotMatch(JSON.stringify(runEvidence(task)), /must not appear/)
+  assert.deepEqual(runEvidence({ ...task, result: null }).activities, [])
+  assert.equal(
+    runEvidence({ ...task, result: { output: 'script output', exitCode: 0 } }).response,
+    'script output',
+  )
+})
 
 test('groups scripts by deterministic operational nature', () => {
   assert.deepEqual(

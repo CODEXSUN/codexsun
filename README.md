@@ -128,6 +128,10 @@ git diff --check
 
 ## Build acceleration
 
+Use the [stable release workflow](assist/operations/stable-release-workflow.md) for staged Zetro delivery.
+Start with [F001 framework acceptance](assist/tasks/framework-first-release.md).
+The `check:release:framework`, `check:release:platform`, and `check:release:adoption` scripts validate candidates without publication.
+
 Turbo runs workspace builds, type checks, lint checks, and package-owned tests. It follows declared workspace dependencies and stores its cache under `node_modules/.cache/turbo`. The root wrapper removes Turbo replay-log folders from workspaces after each run.
 
 Use `npm.cmd run ci:affected` in CI to check only workspaces affected by the current Git change. The command excludes the root pseudo-workspace to prevent its wrapper scripts from calling Turbo recursively. Remote caching is not configured. Enable it only after local cache keys and environment inputs remain stable.
