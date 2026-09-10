@@ -33,6 +33,7 @@ Read [the application standard](../architecture/application-standard.md) and [th
 - Add Fastify response schemas for every public status code.
 - BullMQ requires a documented Redis configuration, named queues, retry rules, idempotency behavior, and worker ownership before it is used.
 - Never log secrets, raw credentials, or sensitive request data.
+- Use the public `@codexsun/platform-identity-client` for Identity HTTP consumers. Supply request-scoped credentials, enforce the returned decision, and fail closed on errors. Never import Platform API private source.
 - Use `PlatformApiObservability` for logger creation, request correlation, HTTP traces, metrics, and telemetry shutdown.
 - Keep OpenTelemetry exporters in application infrastructure. Never create an exporter inside a business module.
 - Keep production logs as JSON. Use Pino Pretty only for local development.

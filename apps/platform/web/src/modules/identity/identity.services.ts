@@ -8,6 +8,8 @@ import type {
   IdentityUser,
 } from '@codexsun/platform-contracts'
 
+import { PlatformIdentityClient } from '@codexsun/platform-identity-client'
+
 const apiBase = import.meta.env.VITE_PLATFORM_API_URL || 'http://127.0.0.1:6010'
 
 export function login(portal: IdentityPortal, identifier: string, password: string) {
@@ -28,7 +30,7 @@ export function devLogin() {
 }
 
 export function readSession(portal: IdentityPortal) {
-  return request<IdentitySessionData>(`${portalPath(portal)}/session`)
+  return new PlatformIdentityClient({ origin: apiBase }).session(portal, { kind: 'cookie' })
 }
 
 export function readIdentityConfig() {

@@ -202,6 +202,7 @@ Preparation: [Durable module runtime preparation](../records/platform/2026-09-08
 
 ### Stage 3: Identity extension points
 
+- Platform-owned [Identity client](../../apps/platform/contracts/README.md) supplies public HTTP access without moving Identity policy into the kernel.
 - Define actor and policy interfaces at API consumers.
 - Implement Identity as an application module, not a framework feature.
 - Bind authentication in Fastify hooks and authorization at named route or use-case boundaries.

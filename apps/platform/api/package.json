@@ -12,6 +12,7 @@
     "start": "node ../../../dist/apps/platform/api/server.js"
   },
   "dependencies": {
+    "@codexsun/platform-identity-client": "^0.1.23",
     "@codexsun/framework": "^0.1.23",
     "@codexsun/platform-contracts": "^0.1.23",
     "@codexsun/platform-core-api": "^0.1.23",

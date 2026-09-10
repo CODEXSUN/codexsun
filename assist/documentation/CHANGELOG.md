@@ -16,7 +16,8 @@
 
 ### [v 0.1.23] 2026-09-10 12:30 pm - Identity API 1.2.0 atomic registration and session revocation
 
-- Database Changes: Identity schema 1.2.0 adds immutable migration 0004 for authentication generations; existing checksums are unchanged.
+- Database Changes: Identity schema 1.2.0 adds immutable migration 0004 for authentication generations; existing checksums are unchanged. Desktop 0.1.23 was later built, upgraded, and verified. See the [upgrade record](../records/zetro/2026-09-10-desktop-0.1.23.md).
+- Follow-up source: Identity API 1.3.0 adds the public access-check client, Platform web session consumer, and fail-closed HTTP regressions. No additional migration. See the [client record](../records/platform/2026-09-10-identity-public-client.md). This patch is not a new installed desktop release.
 - App Codebase Changes: Atomic registration, first-device serialization, permanent session revocation, and safe login denials. Verification: Identity service and disposable MariaDB regressions passed. Full adoption and Docker gates remain open. See the [record](../records/platform/2026-09-10-identity-concurrency.md).
 
 ### [v 0.1.22] 2026-09-10 12:05 pm - Zetro live execution visuals and shared UI status

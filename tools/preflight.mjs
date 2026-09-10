@@ -30,6 +30,7 @@ const services = {
       '@codexsun/framework',
       '@codexsun/platform-contracts',
       '@codexsun/platform-core-api',
+      '@codexsun/platform-identity-client',
     ],
   },
   'platform-web': {
@@ -44,6 +45,7 @@ const services = {
     prepareWorkspaces: [
       '@codexsun/platform-contracts',
       '@codexsun/platform-core-web',
+      '@codexsun/platform-identity-client',
       '@codexsun/ui',
     ],
   },

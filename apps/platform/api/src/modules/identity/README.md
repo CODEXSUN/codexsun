@@ -8,7 +8,7 @@ Identity owns authentication, portal-scoped sessions, users, credentials, roles,
 
 - Module ID: `identity`
 - Kind: `feature`
-- Version: `1.2.0`
+- Version: `1.3.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -31,6 +31,10 @@ The minimum password length is eight characters. The API never returns a passwor
 
 ## Portal contracts
 
+- Public client: [Platform Identity Client](../../../../contracts/README.md), protocol `identity.access-check` 1.0.0.
+- `POST /api/identity[/admin|/sa]/authorize` validates one strict `{resource, action}` request against the current portal session.
+- The response contains `{allowed, userId, portal}`. The caller cannot select an actor. Invalid sessions return 401; dependency failures never allow access.
+- Clients enforce the decision on their own API. Browser decisions alone do not protect product routes. No cross-origin cookie exchange is implemented.
 - Regular: `/api/identity/login`, `/session`, and `/logout`.
 - Administrator: `/api/identity/admin/login`, `/session`, and `/logout`.
 - Super administrator: `/api/identity/sa/login`, `/session`, and `/logout`.
@@ -67,6 +71,7 @@ The forgot-password endpoint returns a privacy-safe accepted response. Token del
 - An administrator cannot read credentials or manage super administrators.
 - Only a super administrator can list all users and read security events.
 - Product modules must declare permission names. Identity owns their assignment.
+- Product handlers call the public Platform authorization helper before protected work. Platform HTTP maps policy denial to `403 FORBIDDEN`; dependency failures remain safe server errors.
 
 ## Security statement
 
@@ -78,6 +83,8 @@ Run `npm.cmd run test:identity`, `npm.cmd run test:identity:mariadb`, `npm.cmd r
 
 ## Development records
 
+- [2026-09-10 Public client](../../../../../../assist/records/platform/2026-09-10-identity-public-client.md)
+- [2026-09-10 Permission HTTP verification](../../../../../../assist/records/platform/2026-09-10-identity-permission-http.md)
 - [2026-09-10 Identity concurrency](../../../../../../assist/records/platform/2026-09-10-identity-concurrency.md)
 - [2026-09-10 Session binding repair](../../../../../../assist/records/platform/2026-09-10-identity-session-binding.md)
 

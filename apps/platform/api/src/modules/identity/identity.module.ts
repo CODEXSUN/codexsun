@@ -100,11 +100,12 @@ export const identityManifest: FrameworkModule = {
   owner: 'platform',
   platformVersionRange: '^0.1.0',
   publicContracts: [
+    { id: 'identity.access-check', version: '1.0.0' },
     { id: 'identity.devices', version: '1.0.0' },
     { id: 'identity.security-events', version: '1.0.0' },
     { id: 'identity.sessions', version: '1.1.0' },
   ],
   publishes: [],
   scope: 'platform',
-  version: '1.2.0',
+  version: '1.3.0',
 }

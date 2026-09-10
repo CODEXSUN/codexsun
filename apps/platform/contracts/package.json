@@ -1,0 +1,23 @@
+{
+  "name": "@codexsun/platform-identity-client",
+  "private": true,
+  "version": "0.1.23",
+  "type": "module",
+  "main": "../../../dist/apps/platform/contracts/index.js",
+  "types": "../../../dist/apps/platform/contracts/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/platform-identity-client.eslintcache",
+    "test": "node --test --import tsx tests/*.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/platform-contracts": "^0.1.23",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "tsx": "latest",
+    "@types/node": "^26.0.0"
+  }
+}

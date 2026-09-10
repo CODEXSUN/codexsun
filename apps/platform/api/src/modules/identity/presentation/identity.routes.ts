@@ -1,5 +1,10 @@
 import type { IdentityPortal } from '@codexsun/platform-contracts'
 import {
+  identityAccessDecisionSchema,
+  identityAccessRequirementSchema,
+} from '@codexsun/platform-identity-client'
+import { IdentityAuthorizer } from '../application/identity.service.js'
+import {
   errorEnvelopeSchema,
   identityDeviceInputSchema,
   identityForgotPasswordInputSchema,
@@ -188,6 +193,38 @@ function registerPortalRoutes(
 ): void {
   const prefix = `/api/identity${portalPaths[portal]}`
   const cookieName = identityCookieName(portal)
+  server.post(
+    `${prefix}/authorize`,
+    {
+      preValidation: async (request) => {
+        identityAccessRequirementSchema.parse(request.body)
+      },
+      schema: {
+        body: jsonSchema(identityAccessRequirementSchema),
+        response: {
+          200: response(identityAccessDecisionSchema),
+          401: jsonSchema(errorEnvelopeSchema),
+          400: jsonSchema(errorEnvelopeSchema),
+          500: jsonSchema(errorEnvelopeSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      reply.header('cache-control', 'no-store')
+      const session = await requirePortalSession(request, reply, service, portal, cookieName)
+      if (!session) return
+      const requirement = identityAccessRequirementSchema.parse(request.body)
+      const decision = await new IdentityAuthorizer(service).authorize(
+        { kind: 'user', id: session.user.id },
+        requirement,
+      )
+      return {
+        success: true,
+        data: { allowed: decision.allowed, userId: session.user.id, portal },
+        meta: createResponseMeta(request),
+      }
+    },
+  )
   server.post(
     `${prefix}/login`,
     {

@@ -3,7 +3,17 @@ import { describe, it } from 'node:test'
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
 import { readEnvironment } from '../src/config.js'
-import { IdentityService, hashToken } from '../src/modules/identity/application/identity.service.js'
+import {
+  IdentityAuthorizer,
+  IdentityService,
+  hashToken,
+} from '../src/modules/identity/application/identity.service.js'
+import {
+  PlatformRequestContextStore,
+  requirePlatformAuthorization,
+} from '@codexsun/platform-core-api'
+import { registerHttpLifecycle } from '../src/http.js'
+import { PlatformIdentityClient, IdentityClientError } from '@codexsun/platform-identity-client'
 import {
   IdentityAuthenticationError,
   IdentityConflictError,
@@ -104,7 +114,7 @@ class MemoryIdentityRepository implements IdentityRepository {
     return this.users.get(id)
   }
 
-  async listPermissions() {
+  async listPermissions(): Promise<readonly string[]> {
     return []
   }
 
@@ -181,6 +191,149 @@ const passwords: IdentityPasswordHasher = {
 }
 
 describe('IdentityService', () => {
+  it('serves the public client with authoritative permission, portal, and revocation checks', async () => {
+    const { repository, service } = createFixture()
+    const user = await service.register({
+      displayName: 'Public client',
+      email: 'public@example.com',
+      password: 'secret123',
+    })
+    const login = await service.login('regular', loginInput(user.email))
+    const server = Fastify({ logger: false })
+    await server.register(cookie)
+    registerHttpLifecycle(server, new PlatformRequestContextStore())
+    await registerIdentityRoutes(server, service, readEnvironment({ APP_ENV: 'test' }))
+    const client = new PlatformIdentityClient({
+      origin: 'https://identity.example.test',
+      fetch: async (url, init) => {
+        const response = await server.inject({
+          method: 'POST',
+          url: new URL(String(url)).pathname,
+          payload: JSON.parse(String(init?.body)),
+          headers: Object.fromEntries(new Headers(init?.headers).entries()),
+        })
+        assert.equal(response.headers['cache-control'], 'no-store')
+        return new Response(response.body, {
+          status: response.statusCode,
+          headers: { 'content-type': 'application/json' },
+        })
+      },
+    })
+    const credential = { kind: 'bearer' as const, token: login.token }
+    const requirement = { resource: 'test-product', action: 'read' }
+    try {
+      assert.deepEqual(await client.authorize('regular', requirement, credential), {
+        allowed: false,
+        userId: user.id,
+        portal: 'regular',
+      })
+      repository.listPermissions = async () => ['test-product:read']
+      assert.equal((await client.authorize('regular', requirement, credential)).allowed, true)
+      await assert.rejects(
+        () => client.authorize('super-admin', requirement, credential),
+        IdentityClientError,
+      )
+      const invalid = await server.inject({
+        method: 'POST',
+        url: '/api/identity/authorize',
+        headers: { authorization: `Bearer ${login.token}` },
+        payload: { ...requirement, userId: 'caller-selected-user' },
+      })
+      assert.equal(invalid.statusCode, 400)
+      repository.listPermissions = async () => {
+        throw new Error('private policy database detail')
+      }
+      await assert.rejects(
+        () => client.authorize('regular', requirement, credential),
+        IdentityClientError,
+      )
+      await service.revoke('regular', login.token)
+      await assert.rejects(
+        () => client.authorize('regular', requirement, credential),
+        (error: unknown) =>
+          error instanceof IdentityClientError && error.code === 'UNAUTHENTICATED',
+      )
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('enforces product permissions and fails closed for cookie and bearer clients', async () => {
+    const { repository, service } = createFixture()
+    const user = await service.register({
+      displayName: 'Permission client',
+      email: 'permissions@example.com',
+      password: 'secret123',
+    })
+    const login = await service.login('regular', loginInput(user.email))
+    const server = Fastify({ logger: false })
+    await server.register(cookie)
+    const context = new PlatformRequestContextStore()
+    const authorizer = new IdentityAuthorizer(service)
+    registerHttpLifecycle(server, context, async (request) => {
+      const session = await findRequestSession(service, request)
+      return session ? { kind: 'user', id: session.user.id } : { kind: 'anonymous' }
+    })
+    let executions = 0
+    server.get('/permission-test', async () => {
+      await requirePlatformAuthorization(authorizer, context.require().actor, {
+        resource: 'test-product',
+        action: 'read',
+      })
+      executions++
+      return { allowed: true }
+    })
+    const clients = [
+      { cookies: { [identityCookieName('regular')]: login.token } },
+      { headers: { authorization: `Bearer ${login.token}` } },
+    ]
+    try {
+      for (const client of clients) {
+        for (const [permissions, expected] of [
+          [[], 403],
+          [['test-product:write'], 403],
+          [['test-product:read'], 200],
+          [['*'], 200],
+        ] as const) {
+          repository.listPermissions = async () => permissions
+          const before = executions
+          const response = await server.inject({ url: '/permission-test', ...client })
+          assert.equal(response.statusCode, expected, response.body)
+          assert.equal(executions, before + (expected === 200 ? 1 : 0))
+          if (expected === 403) assert.equal(response.json().error.code, 'FORBIDDEN')
+        }
+        repository.listPermissions = async () => {
+          throw new Error('private-permission-store-detail')
+        }
+        const before = executions
+        const outage = await server.inject({ url: '/permission-test', ...client })
+        assert.equal(outage.statusCode, 500)
+        assert.equal(outage.json().error.code, 'INTERNAL_ERROR')
+        assert.equal(outage.body.includes('private-permission-store-detail'), false)
+        assert.equal(executions, before)
+      }
+      const findSession = repository.findSession.bind(repository)
+      repository.findSession = async () => {
+        throw new Error('private-session-store-detail')
+      }
+      for (const client of clients) {
+        const before = executions
+        const outage = await server.inject({ url: '/permission-test', ...client })
+        assert.equal(outage.statusCode, 500)
+        assert.equal(outage.body.includes('private-session-store-detail'), false)
+        assert.equal(executions, before)
+      }
+      repository.findSession = findSession
+      repository.listPermissions = async () => ['*']
+      assert.equal((await server.inject({ url: '/permission-test' })).statusCode, 403)
+      await service.revoke('regular', login.token)
+      for (const client of clients)
+        assert.equal((await server.inject({ url: '/permission-test', ...client })).statusCode, 403)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('enforces all three portal sessions through actual HTTP routes', async () => {
     const { repository, service } = createFixture()
     const server = Fastify({ logger: false })
@@ -234,6 +387,12 @@ describe('IdentityService', () => {
           ).statusCode,
           401,
         )
+        for (const client of [{ headers }, { cookies }]) {
+          const audit = await server.inject({ url: '/api/identity/sa/security-events', ...client })
+          assert.equal(audit.statusCode, portal === 'super-admin' ? 200 : 401)
+          assert.equal(audit.body.includes('passwordHash'), false)
+          assert.equal(audit.body.includes('tokenHash'), false)
+        }
         repository.users.get(id)!.portal = portal === 'regular' ? 'administrator' : 'regular'
         assert.equal((await server.inject({ url: `${prefix}/session`, headers })).statusCode, 401)
         repository.users.get(id)!.portal = portal

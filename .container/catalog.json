@@ -31,6 +31,7 @@
             "@codexsun/framework",
             "@codexsun/platform-contracts",
             "@codexsun/platform-core-api",
+            "@codexsun/platform-identity-client",
             "@codexsun/platform-api"
           ],
           "outputPath": "dist/apps/platform/api",
@@ -49,6 +50,7 @@
           "buildWorkspaces": [
             "@codexsun/platform-contracts",
             "@codexsun/platform-core-web",
+            "@codexsun/platform-identity-client",
             "@codexsun/ui",
             "@codexsun/platform-web"
           ],

@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import {
   anonymousPlatformActor,
+  PlatformAuthorizationError,
   type PlatformActor,
   type PlatformRequestContextStore,
 } from '@codexsun/platform-core-api'
@@ -56,6 +57,14 @@ export function registerHttpLifecycle(
   })
 
   server.setErrorHandler(async (error, request, reply) => {
+    if (error instanceof PlatformAuthorizationError) {
+      await reply.status(403).send({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'The account lacks the required permission.' },
+        meta: createResponseMeta(request),
+      })
+      return
+    }
     request.log.error({ err: error }, 'request failed')
 
     if (error instanceof ZodError) {

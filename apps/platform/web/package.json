@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codexsun/platform-identity-client": "^0.1.23",
     "@codexsun/platform-contracts": "^0.1.23",
     "@codexsun/platform-core-web": "^0.1.23",
     "@codexsun/ui": "file:../../../packages/ui",
