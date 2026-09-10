@@ -8,16 +8,18 @@
 
 ## Version State
 
-- Current version: 0.1.30
-- Release tag: v-0.1.30
-- Changelog label: v 0.1.30
+- Current version: 0.1.31. Release tag: v-0.1.31. Changelog label: v 0.1.31.
 
-## v-0.1.30
+## v-0.1.31
+
+### [v 0.1.31] 2026-09-10 7:54 pm - Zetro daily coding readiness and startup verification
+
+- Database changes: None. Workspace versions now use 0.1.31. App changes: Added startup verification, explicit shared-package scopes, live chat updates, readable sidebar selection, draft protection, and scroll following.
+- Verification: Daily coding checks, warning-free MSI build, and packaged API lifecycle test passed. The installer is unsigned and was not installed or published. See the [desktop build record](../records/zetro/2026-09-10-desktop-0.1.31.md) for artifact evidence and remaining acceptance checks.
 
 ### [v 0.1.30] 2026-09-10 5:42 pm - Platform Identity fixture experiment through Zetro
 
-- No database changes. Identity 1.3.0 gains test-only disposable three-portal fixture support with connection and empty-schema guards.
-- Zetro's candidate run failed inspection commands. The supervisor corrected the patch. See the [experiment record](../records/platform/2026-09-10-p001-fixture-experiment.md). The unsigned 0.1.30 MSI build and packaged runtime test passed. See the [desktop release log](../records/zetro/2026-09-10-desktop-0.1.30.md).
+- No database changes. Identity 1.3.0 gains test-only disposable three-portal fixture support with connection and empty-schema guards. Zetro's candidate run failed inspection commands. The supervisor corrected the patch. See the [experiment record](../records/platform/2026-09-10-p001-fixture-experiment.md). The unsigned 0.1.30 MSI build and packaged runtime test passed. See the [desktop release log](../records/zetro/2026-09-10-desktop-0.1.30.md).
 
 ### [v 0.1.29] 2026-09-10 5:14 pm - Zetro sandbox working directory repair
 
@@ -26,8 +28,7 @@
 
 ### [v 0.1.28] 2026-09-10 4:44 pm - Zetro verified sandbox and chat readiness
 
-- Database Changes: None. Existing accounts, conversations, and migrations are preserved.
-- App Codebase Changes: Codex Connection API 0.10.0 and Settings web 0.5.0 add verified Windows sandbox gating, explicit localhost policy, status controls, and short host-written probes.
+- Database Changes: None. Existing accounts, conversations, and migrations are preserved. App Codebase Changes: Codex Connection API 0.10.0 and Settings web 0.5.0 add verified Windows sandbox gating, explicit localhost policy, status controls, and short host-written probes.
 - Verification: Live chat and sandbox evidence, release checks, artifact details, and remaining production gates are recorded in the [0.1.28 release log](../records/zetro/2026-09-10-desktop-0.1.28.md).
 
 ### [v 0.1.27] 2026-09-10 3:17 pm - Zetro scope validation and stability checks

@@ -12,11 +12,9 @@ workspace surface. It composes the project switcher, Agent Chat, and project
 tasks without taking ownership of their behavior.
 It mounts the developer-tools monitor for the active repository.
 
-The composition root shows the shared global loader during initial paint. It
-removes the overlay after the MDI shell completes two animation frames. The
-loader stays visible for at least 280 milliseconds to prevent a startup flash.
-Only the spinner is visible. Assistive technology can still read the loading
-label.
+The composition root mounts Settings 0.6.0 startup readiness before the desk.
+It shows observed connection and sandbox checks through the shared Execution Status splash.
+See the [startup record](../../../../../../assist/records/zetro/2026-09-10-startup-readiness.md).
 
 New Zetro Desk work must use Tailwind utilities. Add custom CSS only when
 Tailwind has no suitable option.
@@ -52,7 +50,7 @@ migrations, permissions, events, or jobs.
 ## Verification
 
 Run the Zetro web type check and production build. Open `/zetro` and confirm
-that the global loader fades into Agent Chat without a content flash.
+that startup checks precede Agent Chat and Settings remains accessible on failure.
 
 ## Interface topology
 

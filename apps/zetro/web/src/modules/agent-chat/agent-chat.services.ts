@@ -124,6 +124,7 @@ export async function requestChatTurn(
     reasoningEffort: ZetroReasoningEffort
   },
   signal?: AbortSignal,
+  onProgress?: (item: import('./agent-chat.stream').ChatLiveItem) => void,
 ): Promise<ChatTurnResponse> {
   const response = await zetroFetch(`${apiBaseUrl}/api/v1/chat/responses`, {
     body: JSON.stringify({
@@ -138,10 +139,14 @@ export async function requestChatTurn(
       ...selection,
       workflow,
     }),
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
     method: 'POST',
     signal,
   })
+  if (response.ok && response.headers.get('content-type')?.includes('application/x-ndjson')) {
+    const { readChatStream } = await import('./agent-chat.stream')
+    return readChatStream(response, onProgress ?? (() => undefined))
+  }
   return readResponse(response, chatTurnResponseSchema)
 }
 

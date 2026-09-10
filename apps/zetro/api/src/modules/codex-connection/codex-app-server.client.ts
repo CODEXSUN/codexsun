@@ -491,20 +491,18 @@ export class CodexAppServerClient {
       if (collector.messageId !== id) collector.streamedText = ''
       collector.messageId = id
       collector.streamedText = `${collector.streamedText}${values.delta}`.slice(-8000)
-      collector.onProgress?.({ kind: 'response', text: collector.streamedText })
+      collector.onProgress?.({ kind: 'response', text: collector.streamedText, itemId: id })
     }
 
     if (method === 'item/started' || method === 'item/completed') {
       const item = isRecord(values.item) ? values.item : {}
       const activity = toToolActivity(item)
       if (activity && typeof item.id === 'string') {
+        const status = method === 'item/started' ? 'running' : activity.status
         collector.onProgress?.({
           kind: 'tool',
           itemId: item.id,
-          activity: {
-            ...activity,
-            status: method === 'item/started' ? 'running' : activity.status,
-          },
+          activity: { ...activity, status },
         })
       }
     }
@@ -522,8 +520,10 @@ export class CodexAppServerClient {
       )
         probe.output = item.aggregatedOutput
       if (item.type === 'agentMessage' && typeof item.text === 'string') {
-        this.turns.get(threadId)!.content = item.text
-        collector.onProgress?.({ kind: 'response', text: item.text.slice(-8000) })
+        collector.content = item.text
+        const text = item.text.slice(-8000)
+        const itemId = typeof item.id === 'string' ? item.id : undefined
+        collector.onProgress?.({ kind: 'response', text, itemId })
       }
       const activity = toToolActivity(item)
       if (activity) this.turns.get(threadId)!.activities.push(activity)

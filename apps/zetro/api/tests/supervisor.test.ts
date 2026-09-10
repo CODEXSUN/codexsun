@@ -101,6 +101,7 @@ test('supervisor validates, saves chat results, and refuses replay', async (cont
     { ...payload, approved: false },
     { ...payload, workflow: 'deliver' },
     { ...payload, command: 'shell' },
+    { ...payload, scope: { application: 'test', module: 'module', folderPath: 'module' } },
   ]) {
     assert.equal(
       (
@@ -215,7 +216,7 @@ test('single-attempt jobs block after restart without invoking their handler', a
 
 async function setup(context: test.TestContext, provider: ChatProvider) {
   const directory = await mkdtemp(join(tmpdir(), 'zetro-supervisor-'))
-  await mkdir(join(directory, 'module'))
+  await mkdir(join(directory, 'apps', 'test', 'module'), { recursive: true })
   const database = await openTestDatabase(directory)
   const repository = new SystemTaskRepository(database)
   const tasks = new SystemTaskService(repository, new LocalSystemTaskQueue())
@@ -254,7 +255,7 @@ async function setup(context: test.TestContext, provider: ChatProvider) {
       projectId: project.id,
       prompt: 'Review this module.',
       approved: true,
-      scope: { application: 'test', module: 'module', folderPath: 'module' },
+      scope: { application: 'test', module: 'module', folderPath: 'apps/test/module' },
     },
   }
 }

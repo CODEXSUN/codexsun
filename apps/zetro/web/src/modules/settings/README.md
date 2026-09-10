@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.settings.web`
-- Version: `0.5.0`
+- Version: `0.6.1`
 - Owner: Zetro web
 - Flow: inspect or disconnect Codex, connect another account, open verification, copy or paste the device code, and refresh activation
 
@@ -44,6 +44,28 @@ central default exists.
 Disconnect requires an inline confirmation because it signs the shared local Codex session out. Connect another account starts a new device-code flow and leaves the current session usable until the new login completes.
 
 ## Verification
+
+### Startup readiness
+
+The public `assertExecutionReady` performs a read-only check before Chat saves or submits a new user message.
+The status request has a 15-second timeout. Expired evidence preserves the draft and directs the user to verification.
+This check never starts another provider turn or changes policy. The API still enforces readiness at execution time.
+
+`SettingsStartup` mounts before the desk. It reads the local service, account, and sandbox status.
+The first unverified startup requests a network policy and permission to remember automatic verification.
+The browser-local key is `zetro.settings.startup-verification.v1`. It stores policy, never evidence or credentials.
+Later startups use that policy for one verification attempt. New chats do not remount the startup screen.
+Current server evidence is reused. Windows setup is never automatic and remains separately confirmed.
+The splash polls observed checks every two seconds. It shows passed, failed, and pending states without invented percentages.
+Ready evidence is polled every 15 seconds while the splash stays open. Expiry removes the ready state.
+Each attempt has a three-minute display deadline. Late responses cannot turn a timed-out attempt green.
+Retry reads the server first and observes an existing verification instead of starting another.
+Open desk / Settings dismisses presentation only. The API still blocks unverified project execution.
+Verification may continue server-side after dismissal. The splash does not interrupt that security probe.
+The Start working action opens the desk after verification. Task scope approval remains separate.
+Settings can revoke automatic startup verification. Full checks still expire after 15 minutes or provider restart.
+This feature does not renew evidence automatically throughout the day or reinstall the sandbox.
+See the [startup record](../../../../../../assist/records/zetro/2026-09-10-startup-readiness.md).
 
 Codex connection shows execution security separately from account login status.
 Setup requires confirmation because Windows can change sandbox users, permissions, and firewall rules.

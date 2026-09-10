@@ -18,6 +18,21 @@ const expectedGuidance = {
   test: 'Reproduce the behavior',
 } as const
 
+test('package task instructions preserve the package-only write boundary', () => {
+  const instructions = createDeveloperInstructions('C:/worktree', 'develop', {
+    application: 'ui',
+    module: '',
+    folderPath: 'packages/ui',
+    documentationPaths: ['assist/records/zetro'],
+  })
+  assert.match(instructions, /connected shared package is ui/)
+  assert.match(
+    instructions,
+    /Approved write folders within this worktree: packages\/ui, assist\/records\/zetro/,
+  )
+  assert.match(instructions, /Do not edit another application or package/)
+})
+
 test('each Zetro workflow adds its focused guidance', () => {
   for (const workflow of codexWorkflows) {
     const instructions = createDeveloperInstructions('C:\\worktrees\\task', workflow)

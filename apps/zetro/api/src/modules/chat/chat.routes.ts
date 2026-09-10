@@ -15,6 +15,7 @@ import {
   validateWorkspaceScopeSchema,
 } from './chat.schema.js'
 import type { ChatService } from './chat.service.js'
+import { streamChatTurn } from './chat.stream.js'
 import { InvalidChatWorkspaceScopeError, validateChatWorkspaceScope } from './chat.scope.js'
 import { ProjectNotFoundError, type ProjectService } from '../projects/index.js'
 
@@ -40,6 +41,11 @@ export async function registerChatRoutes(
       const input = chatTurnRequestSchema.parse(request.body)
       const project = projects.get(input.projectId)
       const conversation = conversations.get(input.conversationId)
+      if (project.archived || conversation.archivedAt) {
+        return reply
+          .code(409)
+          .send({ error: 'Restore the project and conversation before running a turn.' })
+      }
       if (conversation.projectId !== project.id) {
         return reply.code(409).send({ error: 'Conversation does not belong to this project.' })
       }
@@ -47,6 +53,13 @@ export async function registerChatRoutes(
         return reply.code(409).send({ error: 'Connect this chat to a project folder first.' })
       }
       const scope = await validateChatWorkspaceScope(project.repositoryPath, conversation.scope)
+      if (request.headers.accept?.includes('application/x-ndjson')) {
+        return streamChatTurn(reply, service, {
+          ...input,
+          projectRoot: project.repositoryPath,
+          scope,
+        })
+      }
       return await service.respond({ ...input, projectRoot: project.repositoryPath, scope })
     } catch (error) {
       if (error instanceof ZodError) {

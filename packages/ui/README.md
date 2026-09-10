@@ -150,11 +150,21 @@ a separate sampler implementation.
 
 ## Included features
 
+`@codexsun/ui/hooks/use-scroll-follow` follows content updates inside a shared ScrollArea while the reader remains near its bottom.
+Pass an update signal and conversation key. The hook resets on a new conversation and removes its scroll listener on unmount.
+Scrolling upward pauses following. Returning within 80px of the bottom resumes it without forced smooth motion.
+
 - `@codexsun/ui/features/interface-topology` provides named parent banners,
   numbered child stickers, a technical-name copy action, persistent label
   visibility, boundary highlighting, desk selection, and registry validation.
 
 ## Included layouts
+
+`SidebarMenuButton` supports `variant="accented"` and `size="comfortable"` for 40px navigation rows.
+Pass `isActive` and `aria-current="page"` for the selected destination. Wrap the label in a span for truncation.
+Use the native `title` property for the complete stored label. The package owns contrast, spacing, focus, and the selected marker.
+Agent Workspace rails also show a primary-color selection bar and outlined selected surface without moving on hover.
+See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integration.md).
 
 - `@codexsun/ui/layouts/agent-workspace` exports the shared Agent Workspace composition.
   It fixes a Primary Activity Rail and Secondary Utility Rail around one center canvas.

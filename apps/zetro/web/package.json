@@ -1,14 +1,14 @@
 {
   "name": "@codexsun/zetro-web",
   "private": true,
-  "version": "0.1.30",
+  "version": "0.1.31",
   "type": "module",
   "scripts": {
     "dev": "vite --port 6060",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-web.eslintcache",
     "test": "npm run test:attachments && npm run test:automation && npm run test:markdown && npm run test:model-selection && npm run test:chat-contract",
-    "test:chat-contract": "node --test --import tsx tests/agent-chat.contract.test.ts",
+    "test:chat-contract": "node --test --import tsx tests/agent-chat.contract.test.ts tests/agent-chat.stream.test.ts tests/settings.startup.test.ts",
     "test:attachments": "node --test --import tsx tests/agent-chat.attachments.test.ts",
     "test:automation": "node --test --import tsx tests/automation.supervisor.test.ts",
     "test:markdown": "node --test --import tsx tests/agent-chat.markdown.test.tsx",

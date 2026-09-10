@@ -65,9 +65,11 @@ export function AgentChatComposer({
     if (chat.isBusy || (!draft.trim() && attachments.length === 0)) return
     const submittedAttachments = attachments
     const submittedDraft = draft
-    onDraftChange('')
-    setAttachments([])
-    await chat.sendMessage(submittedDraft, submittedAttachments, workflow)
+    const accepted = await chat.sendMessage(submittedDraft, submittedAttachments, workflow)
+    if (accepted) {
+      onDraftChange('')
+      setAttachments([])
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {

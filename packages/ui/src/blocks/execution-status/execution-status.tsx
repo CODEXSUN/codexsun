@@ -1,4 +1,6 @@
-import { CheckCircle2, PauseCircle, TriangleAlert } from 'lucide-react'
+import { CheckCircle2, Circle, Clock3, PauseCircle, TriangleAlert, XCircle } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Button } from '../../components/button'
 import { Progress } from '../../components/progress'
 import { Spinner } from '../../components/spinner'
 
@@ -9,6 +11,12 @@ export type ExecutionStatusProps = {
   elapsed: string
   metrics: readonly { label: string; value: string | number }[]
   animated?: boolean
+  checks?: readonly {
+    label: string
+    state: 'passed' | 'failed' | 'checking' | 'pending' | 'expired'
+  }[]
+  actions?: ReactNode
+  splash?: boolean
 }
 
 /** Presentation only. The caller owns execution, freshness, and measured values. */
@@ -19,10 +27,14 @@ export function ExecutionStatus({
   elapsed,
   metrics,
   animated = true,
+  checks = [],
+  actions,
+  splash = false,
 }: ExecutionStatusProps) {
+  const [compact, setCompact] = useState(false)
   const Icon =
     state === 'complete' ? CheckCircle2 : state === 'attention' ? TriangleAlert : PauseCircle
-  return (
+  const content = (
     <section className="grid gap-5 rounded-xl border bg-muted/20 p-6" aria-label="Execution status">
       <div className="flex flex-wrap items-center gap-5">
         <div className="flex size-16 shrink-0 items-center justify-center rounded-full border bg-background">
@@ -61,6 +73,63 @@ export function ExecutionStatus({
           </div>
         ))}
       </dl>
+      {!compact && <ExecutionChecks checks={checks} />}
+      {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
     </section>
+  )
+  if (!splash) return content
+  return (
+    <main
+      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6"
+      aria-label="Application startup"
+    >
+      <div className="mx-auto grid min-h-full max-w-2xl content-center gap-4 py-12">{content}</div>
+      <div className="fixed bottom-4 right-4">
+        <Button
+          variant="outline"
+          size="sm"
+          aria-pressed={compact}
+          onClick={() => setCompact(!compact)}
+        >
+          {compact ? 'Show check details' : 'Compact view'}
+        </Button>
+      </div>
+    </main>
+  )
+}
+
+export function ExecutionChecks({ checks }: Pick<ExecutionStatusProps, 'checks'>) {
+  return (
+    <ul className="grid gap-3" aria-label="Readiness checks">
+      {checks?.map(({ label, state }) => {
+        const Icon =
+          state === 'passed'
+            ? CheckCircle2
+            : state === 'failed'
+              ? XCircle
+              : state === 'expired'
+                ? Clock3
+                : Circle
+        const tone =
+          state === 'passed'
+            ? 'text-success'
+            : state === 'failed'
+              ? 'text-destructive'
+              : state === 'expired'
+                ? 'text-warning'
+                : 'text-muted-foreground'
+        return (
+          <li key={label} className="flex items-center gap-3 text-sm">
+            {state === 'checking' ? (
+              <Spinner className="size-5 shrink-0 text-primary" />
+            ) : (
+              <Icon aria-hidden="true" className={`size-5 shrink-0 ${tone}`} />
+            )}
+            <span className="flex-1">{label}</span>
+            <span className={`font-medium capitalize ${tone}`}>{state}</span>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

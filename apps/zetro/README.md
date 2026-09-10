@@ -162,6 +162,11 @@ The desktop host owns its bundled API process. It stops the process tree on norm
 
 ## Verification
 
+Run `npm.cmd run check:zetro:daily` for one stop-on-failure source validation sequence.
+It checks UI and Zetro types, lint, tests, API/web builds, ownership, documentation, dependencies, file sizes, and outputs.
+It does not install dependencies, modify Git history, install desktop software, or deploy.
+Browser, installed-desktop, real provider, and release approval remain separate gates.
+
 Run `npm.cmd run test:zetro`, `npm.cmd run build:zetro`, lint, formatting, type checks, and documentation gates after a Zetro change. The root `check` gate includes the complete Zetro API test suite and validates declared module dependency ranges.
 
 The worktree integration tests use temporary Git repositories. The desktop workspace owns the packaged API lifecycle E2E test.

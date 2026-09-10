@@ -8,6 +8,8 @@ import {
 } from '@tanstack/react-query'
 import { Button } from '@codexsun/ui/components/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@codexsun/ui/components/card'
+import { ExecutionChecks } from '@codexsun/ui/blocks/execution-status'
+import { readStartupPolicy, startupPolicyKey, hasCurrentEvidence } from './settings.startup-policy'
 import { readSandbox, updateSandbox } from './settings.sandbox.services'
 
 export function SettingsSandbox() {
@@ -22,6 +24,13 @@ export function SettingsSandbox() {
 function SandboxControls() {
   const client = useQueryClient()
   const [confirmation, setConfirmation] = useState<'setup' | 'verify' | null>(null)
+  const [automatic, setAutomatic] = useState(() => {
+    try {
+      return readStartupPolicy(window.localStorage) !== null
+    } catch {
+      return false
+    }
+  })
   const query = useQuery({
     queryKey: ['zetro', 'sandbox'],
     queryFn: readSandbox,
@@ -55,11 +64,38 @@ function SandboxControls() {
             ? 'Localhost permitted; public-network denial required.'
             : 'Network isolation required; localhost denial is sampled.'}
         </p>
-        {sandbox?.checks.map((check) => (
-          <p key={check.name} className="text-sm">
-            {check.passed ? 'PASS' : 'FAIL'} · {check.name}
-          </p>
-        ))}
+        <ExecutionChecks
+          checks={sandbox?.checks.map((check) => ({
+            label: check.name,
+            state: !check.passed
+              ? 'failed'
+              : sandbox.state === 'verified' && !hasCurrentEvidence(sandbox)
+                ? 'expired'
+                : 'passed',
+          }))}
+        />
+        <p className="text-sm">
+          Startup verification:{' '}
+          {automatic
+            ? 'Enabled with your saved network policy.'
+            : 'Not enabled. Choose a policy on the startup screen.'}{' '}
+          Windows setup is not repeated automatically.
+        </p>
+        {automatic && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                window.localStorage.removeItem(startupPolicyKey)
+                setAutomatic(false)
+              } catch {
+                /* Storage may be unavailable. Keep the displayed preference unchanged. */
+              }
+            }}
+          >
+            Turn off automatic startup verification
+          </Button>
+        )}
         {sandbox?.checkedAt ? (
           <p className="text-sm text-muted-foreground">
             Last checked: {new Date(sandbox.checkedAt).toLocaleString()}

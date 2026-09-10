@@ -8,6 +8,7 @@ export const settingsModuleManifest = {
     'default-chat-workflow',
     'interface-topology-visibility',
     'workspace-appearance',
+    'startup-enforcement-verification',
   ],
   dependencies: {
     'zetro.codex-connection.api': '^0.10.0',
@@ -23,7 +24,13 @@ export const settingsModuleManifest = {
     uninstall: 'Leave Codex-managed credentials untouched.',
     upgrade: 'Version 0.4.0 adds global Codex model and reasoning preferences.',
   },
-  publicContracts: ['SettingsWorkspace', 'ZetroSettingsProvider', 'useZetroPreferences'],
+  publicContracts: [
+    'SettingsWorkspace',
+    'SettingsStartup',
+    'assertExecutionReady',
+    'ZetroSettingsProvider',
+    'useZetroPreferences',
+  ],
   scope: 'zetro-web',
-  version: '0.5.0',
+  version: '0.6.1',
 } as const

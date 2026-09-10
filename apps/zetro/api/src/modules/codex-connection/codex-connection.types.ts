@@ -42,7 +42,8 @@ export interface CodexTurnInput {
 }
 
 export type CodexProgressEvent =
-  { kind: 'tool'; itemId: string; activity: CodexToolActivity } | { kind: 'response'; text: string }
+  | { kind: 'tool'; itemId: string; activity: CodexToolActivity }
+  | { kind: 'response'; text: string; itemId?: string }
 
 export type CodexDeliveryStageId =
   | 'plan'

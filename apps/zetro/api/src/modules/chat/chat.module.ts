@@ -54,7 +54,7 @@ export const chatModuleManifest = {
     'DELETE /api/v1/chat/conversations/archived',
   ],
   scope: 'zetro-api',
-  version: '0.16.0',
+  version: '0.16.1',
 } as const
 
 export async function registerChatModule(

@@ -2,8 +2,16 @@
 
 ## Contract
 
+Normal chat supports opt-in live NDJSON through the existing response route.
+See the [stream contract and verification](../../../../../../assist/records/zetro/2026-09-10-chat-live-stream.md).
+
+Shared-package tasks use the owner folder name in `scope.application` and an explicit
+`packages/<owner>` path in `scope.folderPath`. Application tasks retain `apps/<owner>`.
+Only one source owner and explicit Assist documentation roots are writable.
+See the [shared-package scope record](../../../../../../assist/records/zetro/2026-09-10-shared-package-scopes.md).
+
 - Module ID: `zetro.chat.api`
-- Version: `0.16.0`
+- Version: `0.16.1`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation

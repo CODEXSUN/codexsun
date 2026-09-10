@@ -54,6 +54,9 @@ The request file contains `projectId`, `prompt`, `scope: {application, module, f
 and optional `workflow`, `model`, and `reasoningEffort`. The CLI adds `approved: true` after `--confirm`.
 Read the [Supervisor contract](../api/src/modules/supervisor/README.md) before submitting work.
 
+Shared-package tasks use the same contract: `scope: {application: "ui", module: "", folderPath: "packages/ui"}`.
+Use a separate application task for consumer integration. Documentation permissions never grant package writes.
+
 `ui-audit` starts the repository-owned `check:ui-system` script as a durable System Task. Use
 `watch <run-id>` to follow its result. The command does not let the agent modify code or rerun the
 failed check without review.

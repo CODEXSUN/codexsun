@@ -115,7 +115,7 @@ export function toCodexPrompt(
   return [
     'Act as Zetro, a concise agentic AI collaborator. Help the user plan and complete work.',
     'Return only the final user-visible answer. Do not expose private reasoning.',
-    `Connected application: ${scope.application}`,
+    `Connected ${scope.folderPath.startsWith('packages/') ? 'shared package' : 'application'}: ${scope.application}`,
     scope.module ? `Connected module: ${scope.module}` : '',
     `Connected folder: ${scope.folderPath}`,
     `Approved documentation folders: ${(scope.documentationPaths ?? []).join(', ') || 'none'}`,

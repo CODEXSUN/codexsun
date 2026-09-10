@@ -22,6 +22,7 @@ export type AgentChatController = {
   summaries: ChatConversationSummary[]
   view: 'archive' | 'chat'
   workingSince: number | null
+  liveItems: import('./agent-chat.stream').ChatLiveItem[]
   archiveConversation(summary: ChatConversationSummary): Promise<void>
   deleteAllArchived(): Promise<void>
   deleteArchivedConversation(conversationId: string): Promise<void>
@@ -37,7 +38,11 @@ export type AgentChatController = {
   clearPreparedDraft(): void
   showChat(): void
   stopWorking(): Promise<void>
-  sendMessage(content: string, attachments: ChatAttachment[], workflow: ChatWorkflow): Promise<void>
+  sendMessage(
+    content: string,
+    attachments: ChatAttachment[],
+    workflow: ChatWorkflow,
+  ): Promise<boolean>
   togglePin(summary: ChatConversationSummary): Promise<void>
 }
 

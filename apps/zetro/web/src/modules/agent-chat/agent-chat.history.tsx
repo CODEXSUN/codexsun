@@ -19,6 +19,7 @@ import {
   CollapsibleTrigger,
 } from '@codexsun/ui/components/collapsible'
 import { Input } from '@codexsun/ui/components/input'
+import { SidebarMenuButton } from '@codexsun/ui/components/sidebar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -136,10 +137,7 @@ function HistoryRow({ conversation }: { conversation: ChatConversationSummary })
   }
 
   return (
-    <div
-      className="group/row flex min-h-8 items-center gap-1 rounded-md px-1 data-[active=true]:bg-sidebar-accent"
-      data-active={chat.activeId === conversation.id}
-    >
+    <div className="group/row flex min-h-10 items-center gap-1 px-1 py-0.5">
       {renaming ? (
         <>
           <Input
@@ -168,16 +166,19 @@ function HistoryRow({ conversation }: { conversation: ChatConversationSummary })
         </>
       ) : (
         <>
-          <Button
-            variant="ghost"
-            className="min-w-0 flex-1 truncate px-1 text-left text-sm"
+          <SidebarMenuButton
+            variant="accented"
+            size="comfortable"
+            isActive={chat.activeId === conversation.id}
+            aria-current={chat.activeId === conversation.id ? 'page' : undefined}
+            className="min-w-0 flex-1"
             disabled={chat.isBusy}
             onClick={() => void chat.openConversation(conversation.id)}
             title={conversation.title}
             type="button"
           >
-            {conversation.title}
-          </Button>
+            <span>{conversation.title}</span>
+          </SidebarMenuButton>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={

@@ -10,8 +10,16 @@ export async function validateChatWorkspaceScope(
   const segments = folderPath.split('/')
   if (segments.some((part) => !part || part === '.' || part === '..' || part.startsWith('.git'))) {
     throw new InvalidChatWorkspaceScopeError(
-      'Use a direct application or module path without traversal or Git metadata.',
+      'Use a direct application, package, or module path without traversal or Git metadata.',
     )
+  }
+  if (!['apps', 'packages'].includes(segments[0] ?? '') || !segments[1]) {
+    throw new InvalidChatWorkspaceScopeError(
+      'Choose one owner below apps/<application> or packages/<package>, not a shared root.',
+    )
+  }
+  if (segments[0] === 'packages' && segments[1] !== scope.application.trim()) {
+    throw new InvalidChatWorkspaceScopeError('Package must match the connected packages folder.')
   }
   if (segments[0] === 'apps' && segments[1] !== scope.application.trim()) {
     throw new InvalidChatWorkspaceScopeError(

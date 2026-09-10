@@ -72,7 +72,11 @@ function RailAction({ item, side }: { item: AgentWorkspaceRailItem; side: 'left'
           <Button
             aria-label={item.label}
             aria-current={item.active ? 'page' : undefined}
-            className="relative"
+            className={cn(
+              'relative hover:translate-y-0 active:translate-y-0 motion-reduce:transition-none',
+              item.active &&
+                'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border before:absolute before:inset-y-2 before:-left-1.5 before:w-0.5 before:rounded-full before:bg-primary hover:bg-sidebar-accent',
+            )}
             disabled={item.disabled}
             size="icon"
             variant={item.active ? 'secondary' : 'ghost'}

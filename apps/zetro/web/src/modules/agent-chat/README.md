@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.agent-chat.web`
-- Version: `0.13.1`
+- Version: `0.13.4`
 - Owner: Zetro web
 - Flow: open history, select a conversation, and send a provider-backed turn
 
@@ -21,7 +21,7 @@ The Zetro Desk module only supplies the sidebar and workspace surfaces.
 - `zetro.desk.web`: `^0.8.0`
 - `zetro.projects.web`: `^0.5.0`
 - `zetro.project-tasks.web`: `^0.4.1`
-- `zetro.settings.web`: `^0.4.0`
+- `zetro.settings.web`: `^0.6.0`
 
 ## API bindings
 
@@ -38,6 +38,28 @@ The client validates every response with Zod. It sends at most four attachments
 and the latest 24 messages to the provider route.
 
 ## Interface
+
+Before submission, Chat calls the public Settings readiness check. Missing scope or stale security preserves the draft and attachments.
+`sendMessage` returns whether the user message was accepted into conversation storage. Only accepted messages clear the composer.
+A synchronous admission guard prevents duplicate submission before React updates busy state.
+Final response text remains visible if its last history write fails. No automatic replay follows a failed request.
+Live updates follow the viewport only while the reader is near the bottom. Scrolling upward pauses follow mode.
+See the [daily coding record](../../../../../../assist/records/zetro/2026-09-10-daily-coding-readiness.md).
+
+History rows use public `SidebarMenuButton` with `variant="accented"` and `size="comfortable"`.
+The shared package owns 40px rows, left alignment, selected markers, text contrast, and focus treatment.
+Zetro supplies `isActive`, `aria-current`, the full title, and selection callbacks.
+A nested title span truncates without moving the action menu. Rename, Pin, Archive, and scope actions remain Zetro-owned.
+See the [sidebar integration record](../../../../../../assist/records/zetro/2026-09-10-sidebar-integration.md).
+
+During an active turn, Chat renders streamed public message snapshots and tool status below its timer.
+The final response replaces this transient view. No private reasoning or simulated percentage is shown.
+See the [stream record](../../../../../../assist/records/zetro/2026-09-10-chat-live-stream.md).
+
+The workspace drawer offers Application and Shared package scope types. For shared UI,
+select Shared package, enter `ui`, and connect `packages/ui`. Leave Module empty for the whole package.
+Switching type clears the draft owner, path, module, and documentation permissions before confirmation.
+See the [scope record](../../../../../../assist/records/zetro/2026-09-10-shared-package-scopes.md).
 
 The Desk sidebar shows unpinned conversation titles as a flat list. Pinned
 conversations stay in a separate group. It has no history or Chats heading.

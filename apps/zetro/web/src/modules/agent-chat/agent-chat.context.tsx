@@ -21,12 +21,13 @@ import type {
   ChatWorkflow,
 } from './agent-chat.types'
 import { useProjects } from '../projects'
-import { toCodexTurnSelection, useZetroPreferences } from '../settings'
+import { assertExecutionReady, toCodexTurnSelection, useZetroPreferences } from '../settings'
 
 export function AgentChatProvider({ children }: { children: ReactNode }) {
   const { activeProject } = useProjects()
   const { preferences } = useZetroPreferences()
   const activeIdRef = useRef<string | null>(null)
+  const submittingRef = useRef(false)
   const historyRequestRef = useRef(0)
   const responseAbortRef = useRef<AbortController | null>(null)
   const stopRequestedRef = useRef(false)
@@ -44,6 +45,7 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
   const [summaries, setSummaries] = useState<ChatConversationSummary[]>([])
   const [view, setView] = useState<'archive' | 'chat'>('chat')
   const [workingSince, setWorkingSince] = useState<number | null>(null)
+  const [liveItems, setLiveItems] = useState<import('./agent-chat.stream').ChatLiveItem[]>([])
 
   useEffect(() => {
     if (!activeProject) return
@@ -201,11 +203,19 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
     attachments: ChatAttachment[],
     workflow: ChatWorkflow,
   ) {
-    if (isBusy || !activeProject || (!content.trim() && attachments.length === 0)) return
+    if (
+      submittingRef.current ||
+      isBusy ||
+      !activeProject ||
+      (!content.trim() && attachments.length === 0)
+    )
+      return false
     if (!scope) {
-      setError('Connect this chat to an application folder before sending a message.')
+      setError(
+        'Connect this chat to an application or shared-package folder before sending a message.',
+      )
       setScopeOpen(true)
-      return
+      return false
     }
 
     const userMessage: ChatMessage = {
@@ -216,16 +226,21 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
       role: 'user',
     }
     const pendingMessages = [...messages, userMessage]
-    setMessages(pendingMessages)
+    submittingRef.current = true
+    let accepted = false
     setError(null)
     setIsBusy(true)
+    setLiveItems([])
 
     try {
+      await assertExecutionReady()
       const conversation = activeIdRef.current
         ? await updateConversation(activeProject.id, activeIdRef.current, {
             messages: pendingMessages,
           })
         : await createConversation(activeProject.id, pendingMessages, scope)
+      accepted = true
+      setMessages(pendingMessages)
       setActive(conversation.id)
       updateSummary(conversation)
 
@@ -240,6 +255,19 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
         workflow,
         toCodexTurnSelection(preferences),
         responseAbort.signal,
+        (item) => {
+          if (responseAbort.signal.aborted || activeIdRef.current !== conversation.id) return
+          setLiveItems((current) => {
+            const index = current.findIndex(
+              (entry) => entry.id === item.id && entry.kind === item.kind,
+            )
+            const next = current.filter((entry) => entry.id !== 'status' || item.id === 'status')
+            if (index < 0) return [...next, item].slice(-80)
+            return next.map((entry) =>
+              entry.id === item.id && entry.kind === item.kind ? item : entry,
+            )
+          })
+        },
       )
       const completedMessages: ChatMessage[] = [
         ...pendingMessages,
@@ -252,11 +280,12 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
           role: 'assistant',
         },
       ]
+      // Keep the delivered answer visible even if the final history write fails.
+      setMessages(completedMessages)
+      setModel(response.model)
       const saved = await updateConversation(activeProject.id, conversation.id, {
         messages: completedMessages,
       })
-      setMessages(completedMessages)
-      setModel(response.model)
       updateSummary(saved)
     } catch (reason) {
       if (!stopRequestedRef.current) {
@@ -267,7 +296,9 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
       stopRequestedRef.current = false
       setWorkingSince(null)
       setIsBusy(false)
+      submittingRef.current = false
     }
+    return accepted
   }
 
   async function stopWorking() {
@@ -337,6 +368,7 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
         summaries,
         view,
         workingSince,
+        liveItems,
         newConversation: () => {
           setView('chat')
           setActive(null)

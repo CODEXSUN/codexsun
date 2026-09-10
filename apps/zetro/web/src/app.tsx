@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { GlobalLoader } from '@codexsun/ui/blocks/loader'
 import type { AgentWorkspaceRail } from '@codexsun/ui/layouts/agent-workspace'
 import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
@@ -14,7 +14,12 @@ import {
   ZetroProjectSidebar,
   ZetroProjectWorkspace,
 } from './modules/desk'
-import { SettingsWorkspace, ZetroSettingsProvider, useZetroPreferences } from './modules/settings'
+import {
+  SettingsStartup,
+  SettingsWorkspace,
+  ZetroSettingsProvider,
+  useZetroPreferences,
+} from './modules/settings'
 import { SystemTasksProvider, useSystemTasks } from './modules/system-tasks'
 import { OperationsMonitor } from './modules/operations'
 import { zetroTopologySections } from './zetro.topology'
@@ -22,7 +27,13 @@ import { zetroTopologySections } from './zetro.topology'
 export function App() {
   return (
     <ZetroSettingsProvider>
-      <ZetroApplication />
+      <Suspense
+        fallback={<GlobalLoader active label="Loading Zetro startup checks" delayMs={0} overlay />}
+      >
+        <SettingsStartup>
+          <ZetroApplication />
+        </SettingsStartup>
+      </Suspense>
     </ZetroSettingsProvider>
   )
 }
@@ -64,7 +75,6 @@ function ZetroDeskApplication() {
   const tasks = useProjectTasks()
   const systemTasks = useSystemTasks()
   const tools = useDeveloperTools()
-  const isStarting = useInitialLoad()
   const { preferences } = useZetroPreferences()
   const [repositoryToolsOpen, setRepositoryToolsOpen] = useState(false)
   const openTaskCount = tasks.tasks.filter(({ status }) => status !== 'done').length
@@ -162,33 +172,7 @@ function ZetroDeskApplication() {
           onRepositoryToolsOpenChange={setRepositoryToolsOpen}
         />
       </ZetroDeskWorkspace>
-      <GlobalLoader
-        active={isStarting}
-        className="fixed inset-0 z-50 gap-0 [&>span]:sr-only"
-        delayMs={0}
-        label="Loading Zetro"
-        minimumDurationMs={280}
-        overlay
-      />
       <OperationsMonitor />
     </MdiMain>
   )
-}
-
-function useInitialLoad() {
-  const [isStarting, setIsStarting] = useState(true)
-
-  useEffect(() => {
-    let secondFrame = 0
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => setIsStarting(false))
-    })
-
-    return () => {
-      window.cancelAnimationFrame(firstFrame)
-      window.cancelAnimationFrame(secondFrame)
-    }
-  }, [])
-
-  return isStarting
 }

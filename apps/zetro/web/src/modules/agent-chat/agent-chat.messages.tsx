@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { useScrollFollow } from '@codexsun/ui/hooks/use-scroll-follow'
 import { Bot, File, LoaderCircle, Square, User } from 'lucide-react'
 import { Button } from '@codexsun/ui/components/button'
 import { ScrollArea } from '@codexsun/ui/components/scroll-area'
@@ -20,13 +21,9 @@ const starters = [
 export function AgentChatMessages({ onStarter }: { onStarter(value: string): void }) {
   const chat = useAgentChat()
   const topology = useMdiTopology()
-  const endRef = useRef<HTMLDivElement>(null)
+  const endRef = useScrollFollow([chat.messages, chat.liveItems, chat.workingSince], chat.activeId)
   const turns = groupMessagesByTurn(chat.messages)
   const workingSince = chat.workingSince
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' })
-  }, [chat.isBusy, chat.messages, chat.workingSince])
 
   return (
     <TopologyRegion
@@ -49,7 +46,21 @@ export function AgentChatMessages({ onStarter }: { onStarter(value: string): voi
                   <Message key={message.id} message={message} />
                 ))}
                 {isActiveTurn ? (
-                  <WorkingElapsed onStop={chat.stopWorking} startedAt={workingSince} />
+                  <>
+                    <WorkingElapsed onStop={chat.stopWorking} startedAt={workingSince} />
+                    {chat.liveItems.map((item) => (
+                      <p
+                        key={`${item.kind}:${item.id}`}
+                        className={
+                          item.kind === 'tool'
+                            ? 'whitespace-pre-wrap break-words text-sm text-muted-foreground'
+                            : 'whitespace-pre-wrap break-words text-sm text-foreground'
+                        }
+                      >
+                        {item.text}
+                      </p>
+                    ))}
+                  </>
                 ) : null}
               </div>
             </section>

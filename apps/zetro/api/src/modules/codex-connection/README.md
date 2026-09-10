@@ -2,12 +2,18 @@
 
 ## Contract
 
+Public response progress now includes an optional provider item ID so Chat can replace snapshots correctly.
+See the [stream record](../../../../../../assist/records/zetro/2026-09-10-chat-live-stream.md).
+
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.10.1`
+- Version: `0.10.2`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
 The module owns one local `codex app-server` process and communicates over its JSONL stdio protocol. Codex owns token storage and refresh.
+
+Task guidance identifies `packages/<owner>` as a shared package. Writable-root enforcement remains unchanged.
+See the [scope record](../../../../../../assist/records/zetro/2026-09-10-shared-package-scopes.md).
 
 Zetro never reads or returns the Codex auth cache. An optional `ZETRO_CODEX_API_KEY` becomes `OPENAI_API_KEY` only inside the App Server child process.
 

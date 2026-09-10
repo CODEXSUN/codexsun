@@ -26,6 +26,8 @@ All routes use `/api/v1/supervisor` and require `Authorization: Bearer <token>`.
 
 Submit `projectId`, `prompt`, `scope: {application, module, folderPath}`, and `approved: true`.
 Scope also accepts optional `documentationPaths`, matching Chat's eight-directory limit and path validation.
+For a shared-package job, use `scope.application: "ui"`, `scope.folderPath: "packages/ui"`, and `scope.module: ""`.
+The legacy application field identifies the folder owner. One task cannot combine application and package writes.
 Project registration requires `name`, an absolute `repositoryPath`, and `approved: true`.
 Projects validates Git ownership and rejects duplicate repositories through its public service.
 Optional fields are `workflow`, `model`, and `reasoningEffort`. Review is the default workflow.

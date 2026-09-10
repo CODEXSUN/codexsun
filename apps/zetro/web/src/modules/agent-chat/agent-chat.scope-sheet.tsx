@@ -20,10 +20,12 @@ export function AgentChatScopeSheet() {
   const [browserOpen, setBrowserOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<ChatWorkspaceScope>(emptyScope)
+  const [ownerKind, setOwnerKind] = useState<'apps' | 'packages'>('apps')
 
   useEffect(() => {
     if (chat.scopeOpen) {
       setForm(chat.scope ?? emptyScope)
+      setOwnerKind(chat.scope?.folderPath.startsWith('packages/') ? 'packages' : 'apps')
       setError(null)
     }
   }, [chat.scope, chat.scopeOpen])
@@ -33,10 +35,11 @@ export function AgentChatScopeSheet() {
   function selectFolder(path: string) {
     const folderPath = toRelativePath(activeProject!.repositoryPath, path)
     if (!folderPath) {
-      setError('Choose an application or module folder below the project root.')
+      setError('Choose an application or shared-package folder below the project root.')
       return
     }
     const inferred = inferScope(folderPath)
+    setOwnerKind(folderPath.startsWith('packages/') ? 'packages' : 'apps')
     setForm((current) => ({
       application: inferred.application || current.application,
       folderPath,
@@ -49,11 +52,13 @@ export function AgentChatScopeSheet() {
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!form.application.trim() || !form.folderPath.trim()) return
+    if (!normalizeRelativePath(form.folderPath).startsWith(`${ownerKind}/`)) {
+      setError(`Choose a folder below ${ownerKind} for the selected scope type.`)
+      return
+    }
     const inferred = inferScope(form.folderPath)
     if (inferred.application && inferred.application !== form.application.trim()) {
-      setError(
-        'Application must match the connected folder. Choose the intended application folder.',
-      )
+      setError('The owner must match the connected application or package folder.')
       return
     }
     void chat.saveScope({
@@ -76,16 +81,35 @@ export function AgentChatScopeSheet() {
               <SheetTitle>Chat workspace</SheetTitle>
             </div>
             <SheetDescription>
-              Connect this chat to one application or module folder.
+              Connect this chat to one application, shared package, or module folder.
             </SheetDescription>
           </SheetHeader>
           <form className="grid gap-4 p-4" onSubmit={submit}>
+            <div role="group" aria-label="Scope type" className="flex gap-2">
+              {(['apps', 'packages'] as const).map((kind) => (
+                <Button
+                  key={kind}
+                  type="button"
+                  aria-pressed={ownerKind === kind}
+                  variant={ownerKind === kind ? 'secondary' : 'outline'}
+                  disabled={chat.isBusy}
+                  onClick={() => {
+                    if (ownerKind === kind) return
+                    setOwnerKind(kind)
+                    setForm(emptyScope)
+                    setError(null)
+                  }}
+                >
+                  {kind === 'apps' ? 'Application' : 'Shared package'}
+                </Button>
+              ))}
+            </div>
             <label className="grid gap-1.5 text-sm font-medium">
-              Application
+              {ownerKind === 'packages' ? 'Package folder name' : 'Application'}
               <Input
                 maxLength={80}
                 onChange={(event) => setForm({ ...form, application: event.target.value })}
-                placeholder="zetro"
+                placeholder={ownerKind === 'packages' ? 'ui' : 'zetro'}
                 value={form.application}
               />
             </label>
@@ -104,7 +128,7 @@ export function AgentChatScopeSheet() {
                 <Input
                   className="min-w-0 flex-1 font-mono text-xs"
                   onChange={(event) => setForm({ ...form, folderPath: event.target.value })}
-                  placeholder="apps/zetro/web/src/modules/agent-chat"
+                  placeholder={ownerKind === 'packages' ? 'packages/ui' : 'apps/zetro'}
                   value={form.folderPath}
                 />
                 <Button
@@ -138,7 +162,9 @@ export function AgentChatScopeSheet() {
             <p className="text-xs text-muted-foreground">
               Confirm writes to {form.folderPath || 'the selected folder'} and only the
               documentation folders listed above. All paths resolve inside this conversation’s
-              isolated worktree. Existing messages do not change these permissions.
+              isolated worktree. Existing messages do not change these permissions. Shared-package
+              tasks cannot edit consuming applications. Use a separate handoff task after reviewing
+              the shared change.
             </p>
             <Button
               className="w-fit cursor-pointer"
@@ -167,7 +193,7 @@ function inferScope(folderPath: string): Pick<ChatWorkspaceScope, 'application' 
   const segments = normalizeRelativePath(folderPath).split('/')
   const modulesIndex = segments.lastIndexOf('modules')
   return {
-    application: segments[0] === 'apps' ? (segments[1] ?? '') : '',
+    application: ['apps', 'packages'].includes(segments[0] ?? '') ? (segments[1] ?? '') : '',
     module: modulesIndex >= 0 ? (segments[modulesIndex + 1] ?? '') : '',
   }
 }

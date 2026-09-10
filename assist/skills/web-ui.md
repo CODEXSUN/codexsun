@@ -48,6 +48,9 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 
 ## Quality rules
 
+- Startup screens must show observed checks, not a timer-based claim of readiness.
+  Keep consent separate from short-lived server evidence. Offer Settings access without bypassing API enforcement.
+
 - Use `ExecutionStatus` for observed execution feedback. Applications own freshness and state.
   Do not animate stale data or invent completion percentages. Preserve the motion pause control.
 

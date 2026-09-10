@@ -1,5 +1,17 @@
 # Zetro Development Records
 
+- [2026-09-10 Desktop 0.1.31 build](2026-09-10-desktop-0.1.31.md)
+
+- [2026-09-10 Daily coding readiness](2026-09-10-daily-coding-readiness.md)
+
+- [2026-09-10 Sidebar integration](2026-09-10-sidebar-integration.md)
+
+- [2026-09-10 Startup readiness](2026-09-10-startup-readiness.md)
+
+- [2026-09-10 Chat live stream](2026-09-10-chat-live-stream.md)
+
+- [2026-09-10 Shared-package scopes](2026-09-10-shared-package-scopes.md)
+
 - [2026-09-10 Desktop 0.1.30 build](2026-09-10-desktop-0.1.30.md)
 
 - [2026-09-10 Sandbox path repair](2026-09-10-sandbox-path-repair.md)

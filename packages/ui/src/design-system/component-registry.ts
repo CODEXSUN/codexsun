@@ -68,6 +68,16 @@ const componentNames: Record<DesignSystemCategory, readonly string[]> = {
 }
 
 const componentVariants: Readonly<Record<string, readonly DesignSystemVariantDefinition[]>> = {
+  sidebar: [
+    defaultVariant,
+    { id: 'outline', name: 'Outline', description: 'A bordered sidebar menu button.' },
+    {
+      id: 'accented',
+      name: 'Accented',
+      description:
+        'A left-aligned sidebar menu button with a selected accent marker. Supports comfortable 40px rows.',
+    },
+  ],
   accordion: [
     {
       description: 'The standard borderless disclosure list.',
