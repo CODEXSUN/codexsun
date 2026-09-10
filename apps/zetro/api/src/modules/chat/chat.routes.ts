@@ -12,6 +12,7 @@ import {
   conversationParametersSchema,
   createConversationSchema,
   updateConversationSchema,
+  validateWorkspaceScopeSchema,
 } from './chat.schema.js'
 import type { ChatService } from './chat.service.js'
 import { InvalidChatWorkspaceScopeError, validateChatWorkspaceScope } from './chat.scope.js'
@@ -23,6 +24,17 @@ export async function registerChatRoutes(
   conversations: ChatConversationService,
   projects: ProjectService,
 ) {
+  server.post('/api/v1/chat/workspace-scope/validate', async (request, reply) => {
+    try {
+      const input = validateWorkspaceScopeSchema.parse(request.body)
+      const project = projects.get(input.projectId)
+      if (project.archived) return reply.code(409).send({ error: 'The project is archived.' })
+      return { scope: await validateChatWorkspaceScope(project.repositoryPath, input.scope) }
+    } catch (error) {
+      return handleConversationError(error, request, reply)
+    }
+  })
+
   server.post('/api/v1/chat/responses', async (request, reply) => {
     try {
       const input = chatTurnRequestSchema.parse(request.body)

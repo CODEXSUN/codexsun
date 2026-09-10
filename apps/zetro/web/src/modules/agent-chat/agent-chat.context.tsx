@@ -10,6 +10,7 @@ import {
   requestChatTurn,
   stopChatTurn,
   updateConversation,
+  validateWorkspaceScope,
 } from './agent-chat.services'
 import type {
   ChatAttachment,
@@ -297,14 +298,15 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
     if (isBusy || !activeProject) return
     setIsBusy(true)
     try {
+      const validatedScope = await validateWorkspaceScope(activeProject.id, nextScope)
       if (activeIdRef.current) {
         const conversation = await updateConversation(activeProject.id, activeIdRef.current, {
-          scope: nextScope,
+          scope: validatedScope,
         })
         updateSummary(conversation)
-        setScope(conversation.scope ?? nextScope)
+        setScope(conversation.scope ?? validatedScope)
       } else {
-        setScope(nextScope)
+        setScope(validatedScope)
       }
       setScopeOpen(false)
       setError(null)

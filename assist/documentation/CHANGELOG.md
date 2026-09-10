@@ -8,11 +8,15 @@
 
 ## Version State
 
-- Current version: 0.1.26
-- Release tag: v-0.1.26
-- Changelog label: v 0.1.26
+- Current version: 0.1.27
+- Release tag: v-0.1.27
+- Changelog label: v 0.1.27
 
-## v-0.1.26
+## v-0.1.27
+
+### [v 0.1.27] 2026-09-10 3:17 pm - Zetro scope validation and stability checks
+
+- No database changes. Chat API 0.16.0, Agent Chat web 0.13.1, Codex Connection 0.9.1, and Supervisor API 0.3.0 fix scope validation gaps. See the [verification record](../records/zetro/2026-09-10-stability-0.1.27.md) and [stability prompt](../tasks/zetro-stability-verification.md).
 
 ### [v 0.1.26] 2026-09-10 2:55 pm - Zetro confirmed workspace scope and documentation permissions
 
@@ -657,8 +661,7 @@
 - Connected Docs workspace and release workflow
 - Added the connected MDX Docs API and web workspace with Obsidian-compatible source links.
 - Added repository version and interactive GitHub release tooling.
-- CODEXSUN foundation
-- Established the CODEXSUN application platform, documentation workspace, and module ownership baseline.
+- **CODEXSUN foundation:** Established the CODEXSUN application platform, documentation workspace, and module ownership baseline.
 - Zetro agent workspace
 - Added Zetro API and web workspaces, JSON persistence, Codex connection flow, task management, and release workflow.
 - Passed Zetro focused checks and browser reviews recorded in the Zetro development records.
@@ -680,10 +683,8 @@
 - **Reusable data-table block and DevKit registry table:** Added the TanStack and shadcn table block with filters, columns, totals, actions, and pagination.
 - **Zetro Task System:** Added task creation, lifecycle controls, task details, and persisted task workflows.
 - **Zetro empty Desk reset:** Added an explicit empty Desk state and reset path.
-- MDI top-menu controls
-- Added shared global search, notifications, app switching, and profile controls.
-- DevKit project registry
-- Added the DevKit API, web workspace, JSON registry, preflight startup, and planning confirmation flow.
+- **MDI top-menu controls:** Added shared global search, notifications, app switching, and profile controls.
+- **DevKit project registry:** Added the DevKit API, web workspace, JSON registry, preflight startup, and planning confirmation flow.
 - **Cross-app interface topology:** Added shared contracts and browser-visible inspections.
 - **Durable module runtime preparation:** Prepared runtime ownership, repository contracts, and migration boundaries.
 - **Docs library experience:** Added connected navigation, rendering, loading, retry, and empty states.

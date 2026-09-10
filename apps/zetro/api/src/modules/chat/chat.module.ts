@@ -43,6 +43,7 @@ export const chatModuleManifest = {
     'ChatService',
     'ChatConversationService',
     'validateChatWorkspaceScope',
+    'POST /api/v1/chat/workspace-scope/validate',
     'POST /api/v1/chat/responses',
     'POST /api/v1/chat/responses/:conversationId/stop',
     'GET /api/v1/chat/conversations',
@@ -53,7 +54,7 @@ export const chatModuleManifest = {
     'DELETE /api/v1/chat/conversations/archived',
   ],
   scope: 'zetro-api',
-  version: '0.15.0',
+  version: '0.16.0',
 } as const
 
 export async function registerChatModule(

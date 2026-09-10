@@ -26,6 +26,19 @@ test('binds Platform and explicit documentation roots while rejecting stale or e
       validateChatWorkspaceScope(root, { ...scope, folderPath: 'apps/zetro' }),
       /Application must match/,
     )
+    for (const path of ['apps/platform/../zetro', 'apps/platform/./', 'apps//platform', '.git']) {
+      await assert.rejects(
+        validateChatWorkspaceScope(root, { ...scope, folderPath: path }),
+        /traversal|metadata/,
+      )
+    }
+    await assert.rejects(
+      validateChatWorkspaceScope(root, {
+        ...scope,
+        folderPath: 'apps/platform/api/src/modules/users',
+      }),
+      /Module must match/,
+    )
     for (const path of [
       '.',
       'assist',

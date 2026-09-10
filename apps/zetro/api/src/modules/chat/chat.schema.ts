@@ -25,6 +25,11 @@ export const chatWorkspaceScopeSchema = z.strictObject({
   module: z.string().trim().max(120),
 })
 
+export const validateWorkspaceScopeSchema = z.strictObject({
+  projectId: z.uuid(),
+  scope: chatWorkspaceScopeSchema,
+})
+
 const deliveryRunSchema = z.strictObject({
   publicationReady: z.boolean(),
   stages: z

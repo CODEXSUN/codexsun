@@ -9,6 +9,23 @@ import { CodexWorktreeService } from '../src/modules/codex-connection/codex-work
 
 const execute = promisify(execFile)
 
+test('rejects indirect, absolute, and Git metadata scope before filesystem resolution', async () => {
+  const service = new CodexWorktreeService(process.cwd(), process.cwd())
+  for (const path of [
+    'apps/platform/../zetro',
+    'apps//platform',
+    '.',
+    'C:/outside',
+    '/outside',
+    '.git',
+  ]) {
+    await assert.rejects(
+      service.resolveWorkingDirectory(process.cwd(), path),
+      /direct relative worktree folder/,
+    )
+  }
+})
+
 test('resolves a redirected worktree root before checking Git ownership', async () => {
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'zetro-redirected-'))
   const repositoryRoot = join(temporaryRoot, 'repository')

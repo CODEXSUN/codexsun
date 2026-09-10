@@ -63,6 +63,8 @@ const workspaceScopeSchema = z.strictObject({
   module: z.string(),
 })
 
+export const workspaceScopeResponseSchema = z.strictObject({ scope: workspaceScopeSchema })
+
 const summarySchema = z.strictObject({
   archivedAt: z.iso.datetime().optional(),
   createdAt: z.iso.datetime(),

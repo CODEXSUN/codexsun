@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.15.0`
+- Version: `0.16.0`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
@@ -96,6 +96,12 @@ output only and does not expose provider reasoning.
 Run the Zetro API typecheck, conversation tests, workflow tests, and worktree test. Exercise a coding turn with device authorization or an API key.
 
 ## Development records
+
+- [0.1.27 stability candidate](../../../../../../assist/records/zetro/2026-09-10-stability-0.1.27.md)
+
+`POST /api/v1/chat/workspace-scope/validate` accepts `{projectId, scope}` and returns `{scope}` without creating a conversation.
+Draft scope confirmation uses this endpoint. Invalid paths return 400 and archived projects return 409.
+Traversal segments and mismatched module folders are rejected before path resolution.
 
 - [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
 

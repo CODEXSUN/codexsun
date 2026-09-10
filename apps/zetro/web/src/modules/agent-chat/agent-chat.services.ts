@@ -5,6 +5,7 @@ import {
   deleteArchivedResponseSchema,
   deleteConversationResponseSchema,
   stopChatResponseSchema,
+  workspaceScopeResponseSchema,
 } from './agent-chat.schema'
 import type {
   ChatConversation,
@@ -18,6 +19,15 @@ import { zetroFetch } from '../../lib/zetro-api'
 import type { ZetroCodexModel, ZetroReasoningEffort } from '../settings'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
+
+export async function validateWorkspaceScope(projectId: string, scope: ChatWorkspaceScope) {
+  const response = await zetroFetch(`${apiBaseUrl}/api/v1/chat/workspace-scope/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectId, scope }),
+  })
+  return readResponse(response, workspaceScopeResponseSchema).then((result) => result.scope)
+}
 
 export async function listConversations(projectId: string): Promise<ChatConversationSummary[]> {
   const response = await zetroFetch(

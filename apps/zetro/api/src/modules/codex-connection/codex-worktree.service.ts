@@ -65,6 +65,16 @@ export class CodexWorktreeService {
   }
 
   public async resolveWorkingDirectory(worktreePath: string, folderPath: string): Promise<string> {
+    if (
+      isAbsolute(folderPath) ||
+      /^[a-z]:/i.test(folderPath) ||
+      folderPath
+        .replaceAll('\\', '/')
+        .split('/')
+        .some((part) => !part || part === '.' || part === '..' || part.startsWith('.git'))
+    ) {
+      throw new Error('Use a direct relative worktree folder without traversal or Git metadata.')
+    }
     const workingDirectory = resolve(worktreePath, folderPath)
     assertNestedPath(worktreePath, workingDirectory)
     if (!(await exists(workingDirectory))) {

@@ -3,9 +3,9 @@
 ## Contract
 
 - Module ID: `zetro.supervisor.api`
-- Version: `0.2.1`
+- Version: `0.3.0`
 - Owner: Zetro API
-- Dependencies: Chat `^0.14.0`, Projects `^0.5.0`, System Tasks `^1.1.0`.
+- Dependencies: Chat `^0.16.0`, Projects `^0.5.0`, System Tasks `^1.1.0`.
 
 This technical adapter accepts approved local agent jobs. Module-prefixed files separate
 validation, routes, and coordination. It has no business entities or independent domain layers.
@@ -25,6 +25,7 @@ All routes use `/api/v1/supervisor` and require `Authorization: Bearer <token>`.
 | `POST /jobs/:taskId/stop` | Requests cancellation of an owned job                  |
 
 Submit `projectId`, `prompt`, `scope: {application, module, folderPath}`, and `approved: true`.
+Scope also accepts optional `documentationPaths`, matching Chat's eight-directory limit and path validation.
 Project registration requires `name`, an absolute `repositoryPath`, and `approved: true`.
 Projects validates Git ownership and rejects duplicate repositories through its public service.
 Optional fields are `workflow`, `model`, and `reasoningEffort`. Review is the default workflow.
@@ -81,6 +82,8 @@ Tests cover authentication, validation, durable results, cancellation, and repla
 Live provider access requires a connected Codex account and an existing registered repository.
 
 ## Development records
+
+- [0.1.27 stability candidate](../../../../../../assist/records/zetro/2026-09-10-stability-0.1.27.md)
 
 - [Automation evidence clarity](../../../../../../assist/records/zetro/2026-09-10-automation-evidence-clarity.md)
 

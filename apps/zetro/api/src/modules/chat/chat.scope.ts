@@ -8,10 +8,19 @@ export async function validateChatWorkspaceScope(
 ): Promise<ChatWorkspaceScope> {
   const folderPath = normalizeFolderPath(scope.folderPath)
   const segments = folderPath.split('/')
+  if (segments.some((part) => !part || part === '.' || part === '..' || part.startsWith('.git'))) {
+    throw new InvalidChatWorkspaceScopeError(
+      'Use a direct application or module path without traversal or Git metadata.',
+    )
+  }
   if (segments[0] === 'apps' && segments[1] !== scope.application.trim()) {
     throw new InvalidChatWorkspaceScopeError(
       'Application must match the connected apps folder. Reconnect the correct folder.',
     )
+  }
+  const moduleIndex = segments.lastIndexOf('modules')
+  if (moduleIndex >= 0 && segments[moduleIndex + 1] !== scope.module.trim()) {
+    throw new InvalidChatWorkspaceScopeError('Module must match the connected module folder.')
   }
   if (!folderPath || folderPath === '.' || isAbsolute(folderPath) || win32.isAbsolute(folderPath)) {
     throw new InvalidChatWorkspaceScopeError('Choose a folder inside the project repository.')
@@ -31,7 +40,7 @@ export async function validateChatWorkspaceScope(
     throw new InvalidChatWorkspaceScopeError('The connected folder does not exist.')
   }
 
-  const documentationPaths = [...new Set(scope.documentationPaths ?? [])].map(normalizeFolderPath)
+  const documentationPaths = [...new Set((scope.documentationPaths ?? []).map(normalizeFolderPath))]
   if (documentationPaths.length > 8)
     throw new InvalidChatWorkspaceScopeError('Choose at most eight documentation folders.')
   for (const path of documentationPaths) {

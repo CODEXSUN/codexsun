@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.agent-chat.web`
-- Version: `0.13.0`
+- Version: `0.13.1`
 - Owner: Zetro web
 - Flow: open history, select a conversation, and send a provider-backed turn
 
@@ -17,7 +17,7 @@ The Zetro Desk module only supplies the sidebar and workspace surfaces.
 
 ## Dependency bindings
 
-- `zetro.chat.api`: `^0.15.0`
+- `zetro.chat.api`: `^0.16.0`
 - `zetro.desk.web`: `^0.8.0`
 - `zetro.projects.web`: `^0.5.0`
 - `zetro.project-tasks.web`: `^0.4.1`
@@ -131,6 +131,11 @@ Run `npm.cmd run test --workspace @codexsun/zetro-web` to verify attachment
 conversion, semantic HTML output, raw HTML removal, and model selection.
 
 ## Development records
+
+- [0.1.27 stability candidate](../../../../../../assist/records/zetro/2026-09-10-stability-0.1.27.md)
+
+The scope drawer waits for server validation before confirming new-chat scope. Failed validation stays visible in the drawer.
+This validates requested paths. It is not proof of operating-system sandbox enforcement.
 
 - [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
 

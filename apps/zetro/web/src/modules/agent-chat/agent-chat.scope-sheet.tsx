@@ -120,7 +120,11 @@ export function AgentChatScopeSheet() {
                 </Button>
               </div>
             </label>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error || chat.error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error || chat.error}
+              </p>
+            ) : null}
             <label className="grid gap-1.5 text-sm font-medium">
               Approved documentation folders (one per line)
               <Textarea

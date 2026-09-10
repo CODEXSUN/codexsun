@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.9.0`
+- Version: `0.9.1`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -83,6 +83,10 @@ Run the API typecheck, build, connection tests, workflow tests, history tests, a
 A complete activation requires user sign-in in the browser. A live coding turn must prove file edits and command activity.
 
 ## Development records
+
+- [0.1.27 stability candidate](../../../../../../assist/records/zetro/2026-09-10-stability-0.1.27.md)
+
+The worktree resolver independently rejects absolute paths, traversal segments, and Git metadata before checking the directory.
 
 - [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
 

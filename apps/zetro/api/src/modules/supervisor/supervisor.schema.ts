@@ -7,6 +7,7 @@ export const supervisorJobSchema = z
     prompt: z.string().trim().min(1).max(20_000),
     scope: z
       .object({
+        documentationPaths: z.array(z.string().trim().min(1).max(1_024)).max(8).optional(),
         application: z.string().trim().min(1).max(100),
         folderPath: z.string().trim().min(1).max(500),
         module: z.string().trim().min(1).max(100),

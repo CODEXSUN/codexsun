@@ -16,7 +16,7 @@ export const agentChatModuleManifest = {
     'long-paste-attachment',
   ],
   dependencies: {
-    'zetro.chat.api': '^0.15.0',
+    'zetro.chat.api': '^0.16.0',
     'zetro.desk.web': '^0.8.0',
     'zetro.projects.web': '^0.5.0',
     'zetro.project-tasks.web': '^0.4.1',
@@ -32,5 +32,5 @@ export const agentChatModuleManifest = {
   },
   publicContracts: ['AgentChatProvider', 'AgentChatHistory', 'AgentChatWorkspace'],
   scope: 'zetro-web',
-  version: '0.13.0',
+  version: '0.13.1',
 } as const

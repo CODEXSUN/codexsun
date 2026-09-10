@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/zetro-api",
   "private": true,
-  "version": "0.1.26",
+  "version": "0.1.27",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -16,7 +16,7 @@
     "test:model-selection": "node --test --import tsx tests/chat-model-selection.test.ts",
     "test:attachment-guidance": "node --test --import tsx tests/chat-attachment-guidance.test.ts",
     "test:chat-service": "node --test --import tsx tests/chat.service.test.ts",
-    "test:history": "node --test --import tsx tests/chat-conversation.service.test.ts tests/chat.scope.test.ts",
+    "test:history": "node --test --import tsx tests/chat-conversation.service.test.ts tests/chat.scope.test.ts tests/chat.scope-routes.test.ts",
     "test:projects": "node --test --import tsx tests/project.service.test.ts",
     "test:tasks": "node --test --import tsx tests/tasks.service.test.ts",
     "test:workflow": "node --test --import tsx tests/codex-workflow.test.ts",
@@ -25,7 +25,7 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.26",
+    "@codexsun/platform-core-api": "^0.1.27",
     "archiver": "^8.0.0",
     "better-sqlite3": "^12.11.1",
     "bullmq": "^6.3.4",
