@@ -34,6 +34,7 @@ const deliverySchema = z.strictObject({
 const executionSchema = z.strictObject({
   activities: z.array(
     z.strictObject({
+      details: z.string().max(2_000).optional(),
       kind: z.enum(['command', 'file_change', 'mcp']),
       label: z.string().min(1),
       status: z.string().min(1),
@@ -56,6 +57,7 @@ const messageSchema = z.strictObject({
 })
 
 const workspaceScopeSchema = z.strictObject({
+  documentationPaths: z.array(z.string().min(1).max(1_024)).max(8).optional(),
   application: z.string().min(1),
   folderPath: z.string().min(1),
   module: z.string(),

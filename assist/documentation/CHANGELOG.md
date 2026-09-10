@@ -8,11 +8,19 @@
 
 ## Version State
 
-- Current version: 0.1.24
-- Release tag: v-0.1.24
-- Changelog label: v 0.1.24
+- Current version: 0.1.26
+- Release tag: v-0.1.26
+- Changelog label: v 0.1.26
 
-## v-0.1.24
+## v-0.1.26
+
+### [v 0.1.26] 2026-09-10 2:55 pm - Zetro confirmed workspace scope and documentation permissions
+
+- No database changes. Chat API 0.15.0, Agent Chat web 0.13.0, and Codex Connection 0.9.0 add confirmed scope and explicit documentation roots. See the [release log](../records/zetro/2026-09-10-scope-binding.md).
+
+### [v 0.1.25] 2026-09-10 2:37 pm - Zetro chat activity details contract repair
+
+- No database changes. Agent Chat web 0.12.1 accepts bounded optional failure details. See the [repair record](../records/zetro/2026-09-10-chat-activity-details.md) for tests and packaging evidence.
 
 ### [v 0.1.24] 2026-09-10 2:09 pm - Zetro automation evidence and Identity browser repairs
 
@@ -46,19 +54,15 @@
 
 ### [v 0.1.18] 2026-09-10 9:17 am - Zetro desktop supervisor bridge
 
-- Database Changes: None. Existing Chat and System Tasks tables own supervisor history.
-- App Codebase Changes: Added Supervisor `0.1.0`, public Chat `0.13.0`, System Tasks `1.1.0`, Codex connection `0.7.1`, CLI desktop pairing, confirmed project connection, graceful shutdown, and Windows worktree fixes. Preserved parallel UIUX, shared UI, application, and deployment changes.
-- Verification: Root checks, MariaDB foundation, packaged API lifecycle, and desktop checks passed. Platform-only smoke was blocked by occupied port 6010. See [desktop supervisor record](../records/zetro/2026-09-10-desktop-supervisor.md) for live evidence and release limits.
+- Database Changes: None. Existing Chat and System Tasks tables own supervisor history. Added Supervisor `0.1.0`, public Chat `0.13.0`, System Tasks `1.1.0`, Codex connection `0.7.1`, CLI desktop pairing, confirmed project connection, graceful shutdown, and Windows worktree fixes. Preserved parallel UIUX, shared UI, application, and deployment changes. Root checks, MariaDB foundation, packaged API lifecycle, and desktop checks passed. Platform-only smoke was blocked by occupied port 6010. See [desktop supervisor record](../records/zetro/2026-09-10-desktop-supervisor.md) for live evidence and release limits.
 
 ### [v 0.1.17] 2026-09-10 8:09 am - Shared UI audit and Zetro automation
 
-- Database Changes: None. App Codebase Changes: Aligned versions to `0.1.17`. Added shared UI audit, CLI and Automation bindings, and review-only agent diagnosis.
-- Verification: Pre-build, audit, tests, lint, type checks, module gates, Rust checks, and WiX passed. Installation and signing did not run. See `assist/records/zetro/2026-09-10-desktop-0.1.17-build.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
+- Database Changes: None. Aligned versions to `0.1.17`. Added shared UI audit, CLI and Automation bindings, and review-only agent diagnosis. Pre-build, audit, tests, lint, type checks, module gates, Rust checks, and WiX passed. Installation and signing did not run. See `assist/records/zetro/2026-09-10-desktop-0.1.17-build.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
 
 ### [v 0.1.16] 2026-09-10 7:50 am - Centralized UI ownership and application reuse
 
-- Database Changes: None. App Codebase Changes: Aligned metadata to `0.1.16`, centralized UI in `packages/ui`, replaced app-native controls, and added application audits and Zetro entry points.
-- Verification: Ownership, format, documentation, boundary, lint, and type checks passed. Browser and installer checks did not run. See `assist/records/ui/2026-09-10-ui-gallery-application-ownership.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
+- Database Changes: None. Aligned metadata to `0.1.16`, centralized UI in `packages/ui`, replaced app-native controls, and added application audits and Zetro entry points. Ownership, format, documentation, boundary, lint, and type checks passed. Browser and installer checks did not run. See `assist/records/ui/2026-09-10-ui-gallery-application-ownership.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
 
 ### [v 0.1.15] 2026-09-09 10:39 pm - Independent UI application
 
@@ -671,16 +675,11 @@
 - **UI layout documentation workspace:** Added UI layout documentation, live previews, and copyable usage examples.
 - **UI workspace reset:** Reset the workspace composition and removed obsolete local layout behavior.
 - **Dynamic MDI sidebar and isolated ITO desks:** Added application-owned MDI navigation and isolated interface topology desks.
-- ITO desk selector
-- Added a selector for shared and application interface topology desks.
-- Shared design system and workspace blocks
-- Added shared theme behavior, workspace blocks, action cards, and metric surfaces.
-- Reusable data-table block and DevKit registry table
-- Added the TanStack and shadcn table block with filters, columns, totals, actions, and pagination.
-- Zetro Task System
-- Added task creation, lifecycle controls, task details, and persisted task workflows.
-- Zetro empty Desk reset
-- Added an explicit empty Desk state and reset path.
+- **ITO desk selector:** Added a selector for shared and application interface topology desks.
+- **Shared design system and workspace blocks:** Added shared theme behavior, workspace blocks, action cards, and metric surfaces.
+- **Reusable data-table block and DevKit registry table:** Added the TanStack and shadcn table block with filters, columns, totals, actions, and pagination.
+- **Zetro Task System:** Added task creation, lifecycle controls, task details, and persisted task workflows.
+- **Zetro empty Desk reset:** Added an explicit empty Desk state and reset path.
 - MDI top-menu controls
 - Added shared global search, notifications, app switching, and profile controls.
 - DevKit project registry

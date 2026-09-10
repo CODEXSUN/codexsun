@@ -33,6 +33,7 @@ export interface ConversationUpdate {
 }
 
 export interface ChatWorkspaceScope {
+  documentationPaths?: readonly string[]
   application: string
   folderPath: string
   module: string

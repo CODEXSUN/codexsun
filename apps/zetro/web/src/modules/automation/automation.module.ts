@@ -7,7 +7,7 @@ export const automationModuleManifest = {
     'shared-ui-ownership-audit',
   ],
   dependencies: {
-    'zetro.agent-chat.web': '^0.12.0',
+    'zetro.agent-chat.web': '^0.13.0',
     'zetro.developer-tools.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',
     'zetro.operations.web': '^1.0.0',

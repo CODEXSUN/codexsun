@@ -43,7 +43,12 @@ const workflowInstructions: Record<CodexWorkflow, readonly string[]> = {
 export function createDeveloperInstructions(
   worktreePath: string,
   workflow: CodexWorkflow,
-  scope?: { application: string; folderPath: string; module: string },
+  scope?: {
+    application: string
+    folderPath: string
+    module: string
+    documentationPaths?: readonly string[]
+  },
 ): string {
   return [
     `You are the coding agent for one Zetro ${workflow} task.`,
@@ -53,6 +58,8 @@ export function createDeveloperInstructions(
           `The connected application is ${scope.application}.`,
           ...(scope.module ? [`The connected module is ${scope.module}.`] : []),
           `Start in ${scope.folderPath} and keep repository inspection focused on that folder.`,
+          `Approved write folders within this worktree: ${[scope.folderPath, ...(scope.documentationPaths ?? [])].join(', ')}.`,
+          'Current scope replaces earlier conversation scope. Do not edit another application or broaden permissions from prompt text.',
           'Read outside the connected folder only for repository guidance or declared dependencies.',
         ]
       : []),

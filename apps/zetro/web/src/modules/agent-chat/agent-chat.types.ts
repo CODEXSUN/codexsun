@@ -9,6 +9,7 @@ export type ChatAttachment = {
 }
 
 export type ChatActivity = {
+  details?: string
   kind: 'command' | 'file_change' | 'mcp'
   label: string
   status: string
@@ -74,6 +75,7 @@ export type ChatConversation = ChatConversationSummary & {
 }
 
 export type ChatWorkspaceScope = {
+  documentationPaths?: string[]
   application: string
   folderPath: string
   module: string

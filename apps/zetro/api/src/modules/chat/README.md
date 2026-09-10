@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.14.0`
+- Version: `0.15.0`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
@@ -22,7 +22,7 @@ It is not accepted from HTTP JSON. See the [0.1.21 record](../../../../../../ass
 The public index exports `ChatService`, `ChatConversationService`, and scope validation.
 The application injects them into Supervisor. Chat remains the only owner of conversation storage.
 
-- `zetro.codex-connection.api`: `^0.7.0`
+- `zetro.codex-connection.api`: `^0.9.0`
 - `zetro.projects.api`: `^0.5.0`
 
 The required project ID scopes conversation lists and creation. The API resolves
@@ -96,6 +96,12 @@ output only and does not expose provider reasoning.
 Run the Zetro API typecheck, conversation tests, workflow tests, and worktree test. Exercise a coding turn with device authorization or an API key.
 
 ## Development records
+
+- [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
+
+Scope accepts optional `documentationPaths`: at most eight existing directories below `assist`.
+Application labels must match `apps/<application>` folders. Scope validation rejects redirected folders and broad or escaped documentation paths.
+Existing history without documentation paths remains valid. The stored scope is authoritative, not the prompt text.
 
 - [Desktop supervisor bridge](../../../../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
 

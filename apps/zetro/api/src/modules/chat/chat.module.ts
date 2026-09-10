@@ -30,7 +30,7 @@ export const chatModuleManifest = {
     'delivery-record-persistence',
   ],
   dataSchema: { checksum: 'chat-001-conversations-v1', version: 1 },
-  dependencies: { 'zetro.codex-connection.api': '^0.8.0', 'zetro.projects.api': '^0.5.0' },
+  dependencies: { 'zetro.codex-connection.api': '^0.9.0', 'zetro.projects.api': '^0.5.0' },
   id: 'zetro.chat.api',
   lifecycle: {
     activate: 'Register the validated HTTP route and provider adapter.',
@@ -53,7 +53,7 @@ export const chatModuleManifest = {
     'DELETE /api/v1/chat/conversations/archived',
   ],
   scope: 'zetro-api',
-  version: '0.14.0',
+  version: '0.15.0',
 } as const
 
 export async function registerChatModule(

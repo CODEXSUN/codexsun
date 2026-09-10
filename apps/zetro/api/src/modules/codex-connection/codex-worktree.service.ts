@@ -70,6 +70,15 @@ export class CodexWorktreeService {
     if (!(await exists(workingDirectory))) {
       throw new Error('The connected folder is not available in the isolated worktree.')
     }
+    if (
+      !(await stat(workingDirectory)).isDirectory() ||
+      relative(await realpath(worktreePath), await realpath(workingDirectory)) !==
+        relative(worktreePath, workingDirectory)
+    ) {
+      throw new Error(
+        'The connected folder must be a physical directory inside the isolated worktree.',
+      )
+    }
     return workingDirectory
   }
 

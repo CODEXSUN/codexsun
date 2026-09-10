@@ -72,6 +72,10 @@ The MSI requires the Windows WiX prerequisites that Tauri documents.
 
 ## Development record
 
+- [Desktop 0.1.26 scope binding](../../../assist/records/zetro/2026-09-10-scope-binding.md)
+
+- [Desktop 0.1.25 chat contract repair](../../../assist/records/zetro/2026-09-10-chat-activity-details.md)
+
 - [Desktop 0.1.24 candidate](../../../assist/records/zetro/2026-09-10-desktop-0.1.24.md)
 
 - [Desktop 0.1.23 upgrade](../../../assist/records/zetro/2026-09-10-desktop-0.1.23.md)

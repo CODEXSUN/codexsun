@@ -16,7 +16,7 @@ test('turns bind their cwd and retain late command failures in the bounded summa
   const worktrees = {
     ensure: async () => ({ path: process.cwd(), revision: 'test' }),
     writeInputs: async () => [],
-    resolveWorkingDirectory: async () => cwd,
+    resolveWorkingDirectory: async (_root: string, path: string) => join(process.cwd(), path),
   } as unknown as CodexWorktreeService
   const client = new CodexAppServerClient('unused', process.cwd(), worktrees)
   const progress: unknown[] = []
@@ -28,6 +28,13 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     assert.equal(params.cwd, cwd)
     if (method === 'thread/start') return { thread: { id: 'thread' }, model: 'test' }
     assert.equal(method, 'turn/start')
+    assert.deepEqual(params.sandboxPolicy, {
+      type: 'workspaceWrite',
+      writableRoots: [cwd, join(process.cwd(), 'assist/records/zetro')],
+      networkAccess: false,
+      excludeTmpdirEnvVar: true,
+      excludeSlashTmp: true,
+    })
     transport.handleNotification('item/started', {
       threadId: 'thread',
       item: { id: 'cmd-1', type: 'commandExecution', command: 'read', status: 'inProgress' },
@@ -73,7 +80,12 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     projectRoot: process.cwd(),
     files: [],
     images: [],
-    scope: { application: 'zetro', module: 'test', folderPath: 'apps/zetro' },
+    scope: {
+      application: 'zetro',
+      module: 'test',
+      folderPath: 'apps/zetro',
+      documentationPaths: ['assist/records/zetro'],
+    },
     text: 'Read only.',
     reasoningEffort: 'low',
     workflow: 'review',

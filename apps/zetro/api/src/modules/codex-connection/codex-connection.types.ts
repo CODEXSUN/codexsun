@@ -31,6 +31,7 @@ export interface CodexTurnInput {
   projectId: string
   projectRoot: string
   scope: {
+    documentationPaths?: readonly string[]
     application: string
     folderPath: string
     module: string

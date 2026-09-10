@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.agent-chat.web`
-- Version: `0.12.0`
+- Version: `0.13.0`
 - Owner: Zetro web
 - Flow: open history, select a conversation, and send a provider-backed turn
 
@@ -17,7 +17,7 @@ The Zetro Desk module only supplies the sidebar and workspace surfaces.
 
 ## Dependency bindings
 
-- `zetro.chat.api`: `^0.13.0`
+- `zetro.chat.api`: `^0.15.0`
 - `zetro.desk.web`: `^0.8.0`
 - `zetro.projects.web`: `^0.5.0`
 - `zetro.project-tasks.web`: `^0.4.1`
@@ -131,6 +131,18 @@ Run `npm.cmd run test --workspace @codexsun/zetro-web` to verify attachment
 conversion, semantic HTML output, raw HTML removal, and model selection.
 
 ## Development records
+
+- [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
+
+The scope bar shows the selected application, module, code folder, and approved documentation folders before sending.
+The drawer requires explicit scope confirmation. Folder selection clears stale module and documentation values.
+Selecting a different application label without its matching folder is rejected.
+
+- [2026-09-10 Activity details contract repair](../../../../../../assist/records/zetro/2026-09-10-chat-activity-details.md)
+
+Execution activities accept optional `details` strings up to 2,000 characters, matching the API contract.
+The same strict schema validates turn responses and saved history. Unknown fields remain rejected.
+Run `npm.cmd run test:chat-contract --workspace @codexsun/zetro-web` for this regression.
 
 - [2026-09-09 Chat input capture](../../../../../../assist/records/zetro/2026-09-09-chat-input-capture.md)
 - [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)

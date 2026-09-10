@@ -168,6 +168,13 @@ export class CodexAppServerClient {
       worktree.path,
       input.scope.folderPath,
     )
+    const writableRoots = [workingDirectory]
+    for (const path of input.scope.documentationPaths ?? []) {
+      if (!/^assist\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(path)) {
+        throw new Error('Choose explicit documentation directories below assist.')
+      }
+      writableRoots.push(await this.worktrees.resolveWorkingDirectory(worktree.path, path))
+    }
     const threadResult = asRecord(
       await this.request('thread/start', {
         approvalPolicy: 'never',
@@ -199,6 +206,13 @@ export class CodexAppServerClient {
       const turnResult = asRecord(
         await this.request('turn/start', {
           cwd: workingDirectory,
+          sandboxPolicy: {
+            type: 'workspaceWrite',
+            writableRoots,
+            networkAccess: false,
+            excludeTmpdirEnvVar: true,
+            excludeSlashTmp: true,
+          },
           input: [
             { text: addFilePaths(input.text, filePaths), type: 'text' },
             ...input.images.map((url) => ({ type: 'image', url })),
@@ -290,18 +304,28 @@ export class CodexAppServerClient {
     delete environment.ZETRO_SUPERVISOR_TOKEN
     delete environment.ZETRO_DESKTOP_SESSION_TOKEN
     delete environment.ZETRO_CONNECTED_APP_TOKEN
-    const child = spawn(command, ['app-server', '--stdio'], {
-      cwd: this.projectRoot,
-      env: this.apiKey
-        ? {
-            ...environment,
-            OPENAI_API_KEY: this.apiKey,
-            OPENAI_BASE_URL: this.baseUrl,
-          }
-        : environment,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      windowsHide: true,
-    })
+    delete environment.CODEX_PERMISSION_PROFILE
+    delete environment.CODEX_CI
+    delete environment.CODEX_APP_TOOLS_PIPE_PATH
+    delete environment.CODEX_INTERNAL_ORIGINATOR_OVERRIDE
+    delete environment.CODEX_SESSION_ID
+    delete environment.CODEX_THREAD_ID
+    const child = spawn(
+      command,
+      ['app-server', '--stdio', '-c', 'sandbox_mode="workspace-write"'],
+      {
+        cwd: this.projectRoot,
+        env: this.apiKey
+          ? {
+              ...environment,
+              OPENAI_API_KEY: this.apiKey,
+              OPENAI_BASE_URL: this.baseUrl,
+            }
+          : environment,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
+      },
+    )
     this.process = child
     child.on('error', (error) => this.handleProcessFailure(child, toLaunchError(command, error)))
     child.once('exit', () =>

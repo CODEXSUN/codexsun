@@ -11,7 +11,7 @@ export const supervisorModuleManifest = {
   scope: 'zetro-api',
   capabilities: ['external-agent-jobs', 'durable-results', 'agent-cancellation'],
   dependencies: {
-    'zetro.chat.api': '^0.14.0',
+    'zetro.chat.api': '^0.15.0',
     'zetro.projects.api': '^0.5.0',
     'zetro.system-tasks.api': '^1.1.0',
   },

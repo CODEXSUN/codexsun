@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.8.0`
+- Version: `0.9.0`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -83,6 +83,12 @@ Run the API typecheck, build, connection tests, workflow tests, history tests, a
 A complete activation requires user sign-in in the browser. A live coding turn must prove file edits and command activity.
 
 ## Development records
+
+- [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
+
+Each turn passes explicit workspace-write roots for the connected folder and approved documentation folders.
+Paths resolve inside the conversation worktree. Redirected paths are rejected. Network and temporary write roots are disabled.
+The policy does not grant repository-root, sibling-application, build-cache, or publication access.
 
 - [Stable release workflow](../../../../../../assist/records/zetro/2026-09-10-stable-release-workflow.md)
 

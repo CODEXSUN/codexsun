@@ -19,6 +19,7 @@ const messageSchema = z.strictObject(messageFields).refine(hasMessageContent, {
 })
 
 export const chatWorkspaceScopeSchema = z.strictObject({
+  documentationPaths: z.array(z.string().trim().min(1).max(1_024)).max(8).optional(),
   application: z.string().trim().min(1).max(80),
   folderPath: z.string().trim().min(1).max(1_024),
   module: z.string().trim().max(120),

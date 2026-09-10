@@ -118,6 +118,7 @@ export function toCodexPrompt(
     `Connected application: ${scope.application}`,
     scope.module ? `Connected module: ${scope.module}` : '',
     `Connected folder: ${scope.folderPath}`,
+    `Approved documentation folders: ${(scope.documentationPaths ?? []).join(', ') || 'none'}`,
     'Treat the connected folder as the task scope. Read outside it only for required repository guidance or declared dependencies.',
     formatPreviousDelivery(previousDelivery),
     '',

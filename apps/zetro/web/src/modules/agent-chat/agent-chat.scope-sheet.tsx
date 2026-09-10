@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { FolderKanban, FolderOpen } from 'lucide-react'
 import { Button } from '@codexsun/ui/components/button'
 import { Input } from '@codexsun/ui/components/input'
+import { Textarea } from '@codexsun/ui/components/textarea'
 import {
   Sheet,
   SheetContent,
@@ -39,7 +40,8 @@ export function AgentChatScopeSheet() {
     setForm((current) => ({
       application: inferred.application || current.application,
       folderPath,
-      module: inferred.module || current.module,
+      module: inferred.module,
+      documentationPaths: [],
     }))
     setError(null)
   }
@@ -47,7 +49,17 @@ export function AgentChatScopeSheet() {
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!form.application.trim() || !form.folderPath.trim()) return
+    const inferred = inferScope(form.folderPath)
+    if (inferred.application && inferred.application !== form.application.trim()) {
+      setError(
+        'Application must match the connected folder. Choose the intended application folder.',
+      )
+      return
+    }
     void chat.saveScope({
+      documentationPaths: (form.documentationPaths ?? [])
+        .map(normalizeRelativePath)
+        .filter(Boolean),
       application: form.application.trim(),
       folderPath: normalizeRelativePath(form.folderPath),
       module: form.module.trim(),
@@ -109,12 +121,27 @@ export function AgentChatScopeSheet() {
               </div>
             </label>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <label className="grid gap-1.5 text-sm font-medium">
+              Approved documentation folders (one per line)
+              <Textarea
+                value={(form.documentationPaths ?? []).join('\n')}
+                onChange={(event) =>
+                  setForm({ ...form, documentationPaths: event.target.value.split('\n') })
+                }
+                placeholder={'assist/records/platform\nassist/tasks'}
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Confirm writes to {form.folderPath || 'the selected folder'} and only the
+              documentation folders listed above. All paths resolve inside this conversation’s
+              isolated worktree. Existing messages do not change these permissions.
+            </p>
             <Button
               className="w-fit cursor-pointer"
               disabled={chat.isBusy || !form.application.trim() || !form.folderPath.trim()}
               type="submit"
             >
-              Connect folder
+              Confirm workspace scope
             </Button>
           </form>
         </SheetContent>

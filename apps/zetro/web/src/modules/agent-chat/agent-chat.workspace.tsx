@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Button } from '@codexsun/ui/components/button'
 import { AgentChatArchive } from './agent-chat.archive'
 import { AgentChatComposer } from './agent-chat.composer'
 import { useAgentChat } from './agent-chat.controller'
@@ -21,6 +22,16 @@ export function AgentChatWorkspace() {
   return (
     <section aria-label="Agent chat" className="relative size-full overflow-hidden bg-background">
       <div className="mx-auto flex size-full w-4/5 min-w-0 flex-col">
+        <Button
+          variant="ghost"
+          className="h-auto justify-start whitespace-normal py-2 text-left text-xs"
+          onClick={() => void chat.openScope()}
+          disabled={chat.isBusy}
+        >
+          {chat.scope
+            ? `Scope: ${chat.scope.application}${chat.scope.module ? ` / ${chat.scope.module}` : ''} · ${chat.scope.folderPath} · Docs: ${(chat.scope.documentationPaths ?? []).join(', ') || 'none'}`
+            : 'Connect and confirm this chat workspace before starting'}
+        </Button>
         <AgentChatMessages onStarter={setDraft} />
         <AgentChatComposer draft={draft} onDraftChange={setDraft} />
       </div>
