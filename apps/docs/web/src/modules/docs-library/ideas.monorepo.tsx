@@ -1,120 +1,29 @@
 import { Badge } from '@codexsun/ui/components/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@codexsun/ui/components/card'
+import { WorkspaceActionCard } from '@codexsun/ui/blocks/workspace'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import {
   ArrowDownIcon,
   ArrowRightIcon,
-  BlocksIcon,
-  BookOpenIcon,
   BoxesIcon,
   CheckCircle2Icon,
-  Code2Icon,
   ComponentIcon,
+  DatabaseIcon,
+  Globe2Icon,
   LayoutPanelTopIcon,
   MonitorIcon,
+  NetworkIcon,
   PackageIcon,
   PaletteIcon,
-  ServerCogIcon,
-  ShieldCheckIcon,
-  WrenchIcon,
+  ServerIcon,
 } from 'lucide-react'
-
-const applications = [
-  {
-    color: 'text-sky-600 dark:text-sky-400',
-    detail: 'Shared browser host, Identity composition, and platform HTTP service.',
-    icon: MonitorIcon,
-    title: 'Platform',
-  },
-  {
-    color: 'text-fuchsia-600 dark:text-fuchsia-400',
-    detail: 'Independent UI showcase, documentation pages, and visual verification.',
-    icon: ComponentIcon,
-    title: 'UI',
-  },
-  {
-    color: 'text-pink-600 dark:text-pink-400',
-    detail:
-      'Gallery routes, live specimens, examples, and package export guidance for browser teams.',
-    icon: LayoutPanelTopIcon,
-    title: 'UI Web',
-  },
-  {
-    color: 'text-blue-600 dark:text-blue-400',
-    detail: 'Repository documentation discovery, reading, editing, and health checks.',
-    icon: BookOpenIcon,
-    title: 'Docs',
-  },
-  {
-    color: 'text-violet-600 dark:text-violet-400',
-    detail: 'Project planning registry, module profiles, and confirmation workflow.',
-    icon: WrenchIcon,
-    title: 'DevKit',
-  },
-  {
-    color: 'text-indigo-600 dark:text-indigo-400',
-    detail: 'Agent chat, tasks, projects, and desktop conversation host.',
-    icon: BoxesIcon,
-    title: 'Zetro',
-  },
-  {
-    color: 'text-emerald-600 dark:text-emerald-400',
-    detail: 'Local service observation, deployment catalog, and guarded controls.',
-    icon: ShieldCheckIcon,
-    title: 'Orship',
-  },
-] as const
-
-const sharedPackages = [
-  {
-    color: 'text-amber-600 dark:text-amber-400',
-    detail: 'Module manifests, lifecycle validation, dependency ordering, and diagnostics.',
-    icon: BlocksIcon,
-    path: 'packages/framework',
-    title: 'Framework',
-  },
-  {
-    color: 'text-cyan-600 dark:text-cyan-400',
-    detail: 'Reusable HTTP, request context, health, shutdown, and public technical contracts.',
-    icon: Code2Icon,
-    path: 'packages/platform-core',
-    title: 'Platform Core',
-  },
-  {
-    color: 'text-fuchsia-600 dark:text-fuchsia-400',
-    detail: 'Tokens, Button, Table, Form, MDI layout, templates, hooks, and Tailwind theme.',
-    icon: PaletteIcon,
-    path: 'packages/ui',
-    title: 'UI',
-  },
-  {
-    color: 'text-orange-600 dark:text-orange-400',
-    detail: 'Deployment catalog validation, dependency resolution, and immutable assembly plans.',
-    icon: ServerCogIcon,
-    path: 'packages/runtime',
-    title: 'Runtime',
-  },
-] as const
-
-const monorepoPractices = [
-  [
-    'One install',
-    'Install dependencies at the repository root. Keep one lockfile and one node_modules folder.',
-  ],
-  [
-    'Clear workspace edges',
-    'Applications do not import each other’s private source. Shared packages expose public contracts.',
-  ],
-  [
-    'Independent ownership',
-    'Each application keeps its routes, modules, migrations, and operational records.',
-  ],
-  [
-    'Selected assembly',
-    'The runtime catalog selects the applications and packages for a local or customer deployment.',
-  ],
-] as const
+import {
+  monorepoApplications,
+  monorepoPractices,
+  monorepoSharedPackages,
+} from './ideas.monorepo.data'
+import { MonorepoFlowLane } from './ideas.monorepo.flow'
 
 export function IdeasMonorepo() {
   const topology = useMdiTopology()
@@ -135,49 +44,41 @@ export function IdeasMonorepo() {
       <TopologyRegion className="mt-10" id="11.12" topology={topology}>
         <h2 className="text-xl font-semibold">How the repository fits together</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Applications consume the public exports of shared packages. They do not import another
-          application’s private source. The runtime selects the applications needed for an
-          environment.
+          Shared packages sit between package code and application code. Applications use public
+          package exports.
         </p>
         <div className="mt-5 rounded-xl border bg-muted/30 p-5 sm:p-7">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {sharedPackages.map(({ color, detail, icon: Icon, path, title }) => (
-              <Card key={title} className="h-full border-border/80 bg-card">
-                <CardHeader>
-                  <Icon className={`size-5 ${color}`} />
-                  <CardTitle>{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
-                  <p>{detail}</p>
-                  <code className="block text-xs text-foreground/80">{path}</code>
-                </CardContent>
-              </Card>
+            {monorepoSharedPackages.map(({ color, icon: Icon, title }) => (
+              <WorkspaceActionCard
+                className="min-h-28 border-border/80 bg-card"
+                icon={Icon}
+                iconClassName={`bg-transparent ${color}`}
+                key={title}
+                layout="stacked"
+                title={title}
+              />
             ))}
           </div>
           <ArrowDownIcon className="mx-auto my-3 size-5 text-muted-foreground" />
-          <div className="mx-auto max-w-md rounded-xl border bg-card p-4 text-center">
-            <PackageIcon className="mx-auto size-5 text-muted-foreground" />
-            <h3 className="mt-2 font-semibold">Shared packages</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Public contracts and package-owned tests connect the technical foundation to each
-              application.
-            </p>
-          </div>
+          <WorkspaceActionCard
+            className="mx-auto min-h-28 max-w-md border-border/80 bg-card"
+            icon={PackageIcon}
+            iconClassName="bg-transparent text-muted-foreground"
+            layout="stacked"
+            title="Shared packages"
+          />
           <ArrowDownIcon className="mx-auto my-3 size-5 text-muted-foreground" />
-          <p className="mb-3 text-center text-sm font-medium text-muted-foreground">
-            Source-owned applications compose those public capabilities.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-            {applications.map(({ color, detail, icon: Icon, title }) => (
-              <Card key={title} className="h-full">
-                <CardHeader>
-                  <Icon className={`size-5 ${color}`} />
-                  <CardTitle>{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-6 text-muted-foreground">
-                  {detail}
-                </CardContent>
-              </Card>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-7">
+            {monorepoApplications.map(({ color, icon: Icon, title }) => (
+              <WorkspaceActionCard
+                className="min-h-28"
+                icon={Icon}
+                iconClassName={`bg-transparent ${color}`}
+                key={title}
+                layout="stacked"
+                title={title}
+              />
             ))}
           </div>
           <ArrowDownIcon className="mx-auto my-3 size-5 text-muted-foreground" />
@@ -188,6 +89,40 @@ export function IdeasMonorepo() {
             </p>
           </div>
         </div>
+      </TopologyRegion>
+
+      <TopologyRegion className="mt-12" id="11.18" topology={topology}>
+        <h2 className="text-xl font-semibold">From your domain to CODEXSUN</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+          Your domain sends visitors to a public server. The repository builds the web and API
+          services that the server runs.
+        </p>
+        <div className="mt-5 rounded-xl border bg-muted/30 p-5 sm:p-7">
+          <MonorepoFlowLane
+            icon={BoxesIcon}
+            title="1. Build from the repository"
+            steps={[
+              [BoxesIcon, 'Repository source'],
+              [PackageIcon, 'Runtime build'],
+              [PackageIcon, 'Deployment images'],
+            ]}
+          />
+          <ArrowDownIcon className="mx-auto my-4 size-5 text-muted-foreground" />
+          <MonorepoFlowLane
+            icon={Globe2Icon}
+            title="2. Serve requests from the domain"
+            steps={[
+              [Globe2Icon, 'Your domain'],
+              [NetworkIcon, 'DNS and public server'],
+              [MonitorIcon, 'Web container'],
+              [ServerIcon, 'API container'],
+              [DatabaseIcon, 'Data and storage'],
+            ]}
+          />
+        </div>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          The repository is the build source. It does not receive live domain traffic.
+        </p>
       </TopologyRegion>
 
       <TopologyRegion className="mt-12" id="11.13" topology={topology}>
@@ -303,13 +238,13 @@ function SharedUiCard({
   title: string
 }) {
   return (
-    <Card className="h-full border-fuchsia-500/20 bg-fuchsia-500/5">
-      <CardHeader>
-        <Icon className="size-5 text-fuchsia-600 dark:text-fuchsia-400" />
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm leading-6 text-muted-foreground">{detail}</CardContent>
-    </Card>
+    <WorkspaceActionCard
+      className="border-fuchsia-500/20 bg-fuchsia-500/5"
+      description={detail}
+      icon={Icon}
+      iconClassName="bg-transparent text-fuchsia-600 dark:text-fuchsia-400"
+      title={title}
+    />
   )
 }
 

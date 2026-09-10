@@ -4,6 +4,7 @@ export const automationModuleManifest = {
     'durable-run-observation',
     'diagnostic-supervisor-handoff',
     'explicit-destructive-confirmation',
+    'shared-ui-ownership-audit',
   ],
   dependencies: {
     'zetro.agent-chat.web': '^0.12.0',
@@ -19,9 +20,9 @@ export const automationModuleManifest = {
     deactivate: 'Unmount automation controls without stopping durable runs.',
     install: 'No browser business data is created.',
     uninstall: 'No API execution history is removed.',
-    upgrade: 'Version 0.1.0 introduces repository scripts and reviewed diagnostic handoff.',
+    upgrade: 'Version 0.2.0 adds the shared UI audit and focused supervisor guidance.',
   },
   publicContracts: ['AutomationSidebar', 'AutomationWorkspace'],
   scope: 'zetro-web',
-  version: '0.1.0',
+  version: '0.2.0',
 } as const

@@ -23,15 +23,17 @@ export function SystemTasksPanel() {
       </header>
       <div className="max-h-48 overflow-y-auto px-2 pb-2">
         {controller.tasks.slice(0, 8).map((task) => (
-          <button
-            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
-            key={task.id}
-            onClick={() => void controller.select(task.id)}
-            type="button"
-          >
-            <span className={statusClass(task.status)} />
-            <span className="min-w-0 flex-1 truncate">{task.title}</span>
-            <span className="text-[10px] text-muted-foreground">{task.status}</span>
+          <div className="flex w-full items-center gap-1" key={task.id}>
+            <Button
+              className="h-auto min-w-0 flex-1 justify-start gap-2 px-2 py-1.5 text-left text-xs"
+              onClick={() => void controller.select(task.id)}
+              type="button"
+              variant="ghost"
+            >
+              <span className={statusClass(task.status)} />
+              <span className="min-w-0 flex-1 truncate">{task.title}</span>
+              <span className="text-[10px] text-muted-foreground">{task.status}</span>
+            </Button>
             {task.status === 'pending' || task.status === 'running' ? (
               <Button
                 aria-label={`Stop ${task.title}`}
@@ -60,7 +62,7 @@ export function SystemTasksPanel() {
                 <RotateCcw />
               </Button>
             ) : null}
-          </button>
+          </div>
         ))}
       </div>
       {controller.selected ? (

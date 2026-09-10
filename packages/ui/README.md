@@ -1,10 +1,16 @@
 # Web UI
 
-This package is the centralized shared UI library for every CODEXSUN web application.
-It contains reusable primitives, blocks, application layouts, generic templates, hooks,
-design-system contracts, design tokens, and the Tailwind theme. It must not contain application
-routes, showcase catalogs, gallery specimens, business forms, persistence, or workflows. The
-independent UI application owns the website that documents and previews these public exports.
+This package is the only source owner for reusable UI in every CODEXSUN web application.
+It contains primitives, components, form frames, field controls, blocks, application layouts,
+generic templates, visual variants, hooks, design-system contracts, tokens, and the Tailwind theme.
+
+Applications must consume these items through public `@codexsun/ui` exports. They must not create
+or copy an app-local reusable UI implementation. Applications own business field definitions,
+validation, data, routes, permissions, callbacks, workflows, and screen composition. This package
+must not contain those business contracts, application routes, persistence, or workflows.
+
+The independent UI application owns gallery pages, catalogs, previews, specimens, examples,
+code samples, routes, navigation, environment, and browser state.
 
 ## shadcn/ui
 
@@ -19,8 +25,8 @@ recipes rather than standalone registry items; their required primitives are
 included, and the dashboard template provides the requested data-table example.
 
 Web applications must keep a matching `components.json` file that maps `ui`,
-`utils`, and `hooks` to this package. Applications own only screen composition
-and business-specific UI.
+`utils`, and `hooks` to this package. Applications own business data, fields,
+validation, routes, permissions, callbacks, workflows, and screen composition.
 
 Use Tailwind utilities for layout, spacing, color, type, state, and responsive behavior.
 Do not add component stylesheets when Tailwind provides the required utility.
@@ -66,8 +72,8 @@ use the shared 40px Button contract and wrap without a scrollbar.
 - `@codexsun/ui/templates/ui-page` exports `UiTemplatePage`, the required component
   and block documentation composition.
 - The Layout documentation includes a live Agent Workspace with two package-owned activity rails.
-- `apps/ui/web/src/modules/gallery` owns the UI Gallery pages, catalogs, previews, usage guidance,
-  example data, and copyable examples. It renders this package only through public exports.
+- `apps/uiux/web/src/modules/gallery` owns the UIUX Gallery pages, catalogs, previews, usage guidance,
+  example data, and copyable examples. It consumes only public package exports.
 - `UiTemplatePage` owns the kind and title header, copyable import path, 90-percent
   live preview lane, code space, and named documentation navigation.
 - UI template pages keep 48px between the tool strip and live preview.

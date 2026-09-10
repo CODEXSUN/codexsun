@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -8,6 +8,55 @@ import test from 'node:test'
 import { CodexWorktreeService } from '../src/modules/codex-connection/codex-worktree.service.js'
 
 const execute = promisify(execFile)
+
+test('resolves a redirected worktree root before checking Git ownership', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'zetro-redirected-'))
+  const repositoryRoot = join(temporaryRoot, 'repository')
+  const physicalRoot = join(temporaryRoot, 'physical')
+  const linkedRoot = join(temporaryRoot, 'linked')
+  try {
+    await git(temporaryRoot, ['init', repositoryRoot])
+    await git(repositoryRoot, ['config', 'user.email', 'zetro@example.test'])
+    await git(repositoryRoot, ['config', 'user.name', 'Zetro Test'])
+    await writeFile(join(repositoryRoot, 'README.md'), '# Fixture\n')
+    await git(repositoryRoot, ['add', 'README.md'])
+    await git(repositoryRoot, ['commit', '-m', 'Fixture'])
+    await mkdir(physicalRoot)
+    await symlink(physicalRoot, linkedRoot, process.platform === 'win32' ? 'junction' : 'dir')
+    const service = new CodexWorktreeService(repositoryRoot, linkedRoot)
+    const id = '11111111-1111-4111-8111-111111111111'
+    const worktree = await service.ensure(id)
+    assert.equal(worktree.path, await realpath(join(physicalRoot, id)))
+    await service.remove(worktree.path)
+  } finally {
+    await rm(linkedRoot, { recursive: true, force: true })
+    await rm(temporaryRoot, { recursive: true, force: true })
+  }
+})
+
+test('checks out long desktop worktree paths without changing repository config', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'zetro-long-path-'))
+  const repositoryRoot = join(temporaryRoot, 'repository')
+  const worktreeRoot = join(temporaryRoot, 'desktop-'.repeat(10), 'projects-'.repeat(3))
+  const moduleFolder = 'module-'.repeat(12)
+  try {
+    await git(temporaryRoot, ['init', repositoryRoot])
+    await git(repositoryRoot, ['config', 'user.email', 'zetro@example.test'])
+    await git(repositoryRoot, ['config', 'user.name', 'Zetro Test'])
+    await mkdir(join(repositoryRoot, moduleFolder))
+    await writeFile(join(repositoryRoot, moduleFolder, 'README.md'), '# Long path fixture\n')
+    await git(repositoryRoot, ['add', moduleFolder])
+    await git(repositoryRoot, ['commit', '-m', 'Fixture'])
+    const service = new CodexWorktreeService(repositoryRoot, worktreeRoot)
+    const worktree = await service.ensure('11111111-1111-4111-8111-111111111111')
+    const file = join(worktree.path, moduleFolder, 'README.md')
+    assert.ok(file.length > 260)
+    assert.equal((await readFile(file, 'utf8')).trim(), '# Long path fixture')
+    await service.remove(worktree.path)
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true })
+  }
+})
 
 test('creates and reuses one detached worktree per Zetro conversation', async () => {
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'zetro-worktrees-'))

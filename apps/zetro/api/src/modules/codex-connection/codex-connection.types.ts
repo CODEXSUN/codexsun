@@ -65,6 +65,7 @@ export interface CodexDeliveryRun {
 export type CodexToolKind = 'command' | 'file_change' | 'mcp'
 
 export interface CodexToolActivity {
+  details?: string
   kind: CodexToolKind
   label: string
   status: string

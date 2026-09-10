@@ -70,7 +70,8 @@ export function DeveloperToolsPanel({
 
   if (!open) {
     return (
-      <button
+      <Button
+        variant="ghost"
         aria-label="Open repository tools"
         className="fixed bottom-10 right-2 z-40 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-background px-2.5 text-xs font-medium shadow-md transition hover:-translate-y-0.5 hover:border-orange-400"
         onClick={() => setOpen(true)}
@@ -79,7 +80,7 @@ export function DeveloperToolsPanel({
       >
         <GitBranch className="size-3.5" />
         <span className={changed ? 'text-orange-600' : 'text-muted-foreground'}>{changed}</span>
-      </button>
+      </Button>
     )
   }
 

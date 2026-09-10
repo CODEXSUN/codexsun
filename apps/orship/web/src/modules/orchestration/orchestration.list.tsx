@@ -1,4 +1,5 @@
 import { Badge } from '@codexsun/ui/components/badge'
+import { Button } from '@codexsun/ui/components/button'
 import { ArrowRight, Radio } from 'lucide-react'
 import type { ServiceSnapshot } from './orchestration.types'
 
@@ -49,7 +50,8 @@ function ApplicationCard({
   const online = group.services.filter((service) => service.state === 'online').length
 
   return (
-    <button
+    <Button
+      variant="ghost"
       aria-label={`Open ${group.applicationId} combined service report`}
       className="w-full cursor-pointer overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-foreground/25 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       onClick={() => onSelect(group.applicationId)}
@@ -86,7 +88,7 @@ function ApplicationCard({
           </div>
         ))}
       </div>
-    </button>
+    </Button>
   )
 }
 

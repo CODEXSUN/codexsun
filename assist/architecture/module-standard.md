@@ -83,6 +83,10 @@ apps/<app>/web/src/modules/<module>/
 
 The frontend README may link to the backend README when they document one module contract. It must still describe the frontend routes and user flows that it owns.
 
+A frontend module may compose package UI with business data and callbacks. It must not
+implement a reusable primitive, form framework, field control, block, layout, or visual
+variant. Add that implementation to `packages/ui` and export it through `@codexsun/ui`.
+
 ## Module documentation
 
 Use [module README template](../templates/module-readme.md) for every module. Keep the module README beside the module code. Add one catalog entry in `assist/modules/<app>.md` that links to this README.

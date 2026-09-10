@@ -2,6 +2,14 @@ import type { SystemTaskDetail } from '../system-tasks'
 
 export function createAutomationSupervisorPrompt(task: SystemTaskDetail): string {
   const evidence = task.steps.map((step) => `- ${step.status}: ${step.message}`).join('\n')
+  const sharedUiGuidance = task.title.includes('check:ui-system')
+    ? [
+        '',
+        'This is a shared UI ownership audit. Check each reported application path against the',
+        'public @codexsun/ui exports. Keep business screen composition in its application module.',
+        'Move only reusable UI implementations to packages/ui.',
+      ]
+    : []
   return [
     'Diagnose this failed deterministic Zetro automation run.',
     '',
@@ -13,6 +21,7 @@ export function createAutomationSupervisorPrompt(task: SystemTaskDetail): string
     '',
     'Recorded steps:',
     evidence || '- No steps were recorded.',
+    ...sharedUiGuidance,
     '',
     'Inspect the repository-owned script and its diagnostic evidence. Do not rerun the workflow,',
     'commit, push, publish, delete, or clean files. Explain the cause and propose the smallest',

@@ -23,7 +23,10 @@ The Identity web module composes three isolated portal desks and their account r
 
 ## Boundaries
 
-The module owns routes, React Query hooks, API services, device identity, and portal compositions. Shared visual blocks live in `@codexsun/ui/blocks/auth`. No portal imports another portal page, credential state, or cookie. The API remains the authority for portal access.
+The module owns routes, React Query hooks, API services, device identity, and portal compositions.
+Shared auth blocks, buttons, inputs, and table elements come from public `@codexsun/ui` exports. No
+portal imports another portal page, credential state, or cookie. The API remains the authority for
+portal access.
 
 The administrator desk lists regular users and supports status, reset-request, role, and permission work. The super-administrator desk lists all users and recent security activity. Other portals cannot call those API routes.
 

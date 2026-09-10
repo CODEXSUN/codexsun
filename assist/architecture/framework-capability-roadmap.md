@@ -81,7 +81,8 @@ Infrastructure implementations remain in the owning application until two applic
 - Application shell integration and command contributions.
 - Accessibility, localization, theme, and telemetry adapters.
 
-Business forms, lists, dashboards, permissions, and workflows remain in their modules.
+Business field definitions, data, validation, permissions, workflows, and screen
+composition remain in their modules. Reusable form, list, and dashboard UI belongs in `packages/ui`.
 
 ### Application composition
 
@@ -175,7 +176,7 @@ Identity may then add authentication and authorization through application and m
 - Reflection-based dependency injection and decorator scanning.
 - Automatic filesystem module discovery in production.
 - Global mutable service locators.
-- Generic CRUD engines, dynamic repositories, and metadata-driven business forms.
+- Generic CRUD engines, dynamic repositories, and metadata-driven business behavior.
 - Business entities, permissions, tenant context, or workflows in shared packages.
 - A microservice per module.
 - Redis or BullMQ before configuration, ownership, recovery, and operations are documented.

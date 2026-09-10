@@ -82,7 +82,7 @@ impl DesktopRuntime {
         &self.session_token
     }
 
-    fn stop(&self) {
+    pub fn stop(&self) {
         if let Ok(mut guard) = self.child.lock() {
             if let Some(child) = guard.as_mut() {
                 stop_process_tree(child);
@@ -100,7 +100,7 @@ impl Drop for DesktopRuntime {
 
 fn prepare_paths(app: &AppHandle) -> Result<RuntimePaths, Box<dyn std::error::Error>> {
     let app_data = app.path().app_data_dir()?;
-    let worktree_directory = app_data.join("worktrees");
+    let worktree_directory = app.path().home_dir()?.join(".zetro").join("worktrees");
     fs::create_dir_all(app_data.join("storage"))?;
     fs::create_dir_all(app_data.join("workspace"))?;
     fs::create_dir_all(&worktree_directory)?;
@@ -132,7 +132,11 @@ fn spawn_api(
         .current_dir(runtime_directory)
         .env("HOST", "127.0.0.1")
         .env("NODE_ENV", "production")
+        .env("APP_ENV", "production")
+        .env("CODEXSUN_VERSION", env!("CARGO_PKG_VERSION"))
         .env("DB_DRIVER", "sqlite")
+        .env("ZETRO_DB_DRIVER", "sqlite")
+        .env("ZETRO_QUEUE_DRIVER", "local")
         .env("STORAGE_ROOT", app_data.join("storage"))
         .env(
             "ZETRO_ALLOWED_ORIGINS",
@@ -144,7 +148,7 @@ fn spawn_api(
         .env("ZETRO_PROJECT_ROOT", app_data.join("workspace"))
         .env("ZETRO_WEB_PORT", "6060")
         .env("ZETRO_WORKTREE_ROOT", &paths.worktree_directory)
-        .stdin(Stdio::null())
+        .stdin(Stdio::piped())
         .stdout(Stdio::from(output))
         .stderr(Stdio::from(errors));
     #[cfg(windows)]
@@ -216,6 +220,9 @@ fn api_is_ready(address: &str) -> bool {
 
 #[cfg(windows)]
 fn stop_process_tree(child: &mut Child) {
+    if stop_gracefully(child) {
+        return;
+    }
     let mut command = Command::new("taskkill");
     command
         .args(["/PID", &child.id().to_string(), "/T", "/F"])
@@ -230,8 +237,25 @@ fn stop_process_tree(child: &mut Child) {
 
 #[cfg(not(windows))]
 fn stop_process_tree(child: &mut Child) {
+    if stop_gracefully(child) {
+        return;
+    }
     let _ = child.kill();
     let _ = child.wait();
+}
+
+fn stop_gracefully(child: &mut Child) -> bool {
+    if let Some(mut input) = child.stdin.take() {
+        let _ = input.write_all(b"zetro:shutdown\n");
+    }
+    let deadline = Instant::now() + Duration::from_secs(8);
+    while Instant::now() < deadline {
+        if matches!(child.try_wait(), Ok(Some(_))) {
+            return true;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+    false
 }
 
 #[cfg(test)]

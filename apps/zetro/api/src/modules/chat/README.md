@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.chat.api`
-- Version: `0.12.1`
+- Version: `0.13.0`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
@@ -15,6 +15,9 @@ in the prompt. The prompt asks Codex to identify each file format and inspect
 visible text, screenshots, diagrams, and drawings before acting.
 
 ## Dependency bindings
+
+The public index exports `ChatService`, `ChatConversationService`, and scope validation.
+The application injects them into Supervisor. Chat remains the only owner of conversation storage.
 
 - `zetro.codex-connection.api`: `^0.7.0`
 - `zetro.projects.api`: `^0.5.0`
@@ -66,7 +69,8 @@ The API rejects permanent deletion for an active conversation. Archiving clears 
 
 ## Lifecycle and persistence
 
-The module stores conversations in `storage/app/private/zetro/conversations.json`. Writes replace the file atomically.
+The module stores conversations in its SQLite or MariaDB table. Initialization imports legacy
+`storage/app/private/zetro/conversations.json` records once through its owned migration adapter.
 
 Assistant messages can store optional execution metadata, the selected workflow,
 and a delivery record. Every stored message includes its creation time. During
@@ -74,7 +78,8 @@ repository initialization, existing messages receive their conversation creation
 time and existing records receive the default project ID. Existing conversations
 remain unscoped until the user connects a folder.
 
-The module has no tables, migrations, seeds, events, or jobs. Uninstall keeps conversation history unless a separate data removal flow runs.
+The module owns its conversation table and migration. It has no seeds, events, or jobs.
+Uninstall keeps conversation history unless a separate data removal flow runs.
 
 ## Safety and limits
 
@@ -88,6 +93,8 @@ output only and does not expose provider reasoning.
 Run the Zetro API typecheck, conversation tests, workflow tests, and worktree test. Exercise a coding turn with device authorization or an API key.
 
 ## Development records
+
+- [Desktop supervisor bridge](../../../../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
 
 - [2026-09-09 Chat input capture](../../../../../../assist/records/zetro/2026-09-09-chat-input-capture.md)
 - [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)

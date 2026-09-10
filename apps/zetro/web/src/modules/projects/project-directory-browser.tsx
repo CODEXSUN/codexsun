@@ -56,16 +56,18 @@ export function ProjectDirectoryBrowser({
         </DialogHeader>
         <div className="max-h-80 min-h-40 overflow-y-auto border-y py-1">
           {listing?.parentPath && !samePath(listing.path, rootPath) ? (
-            <button
+            <Button
+              variant="ghost"
               className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-accent"
               onClick={() => void load(listing.parentPath!)}
               type="button"
             >
               <ArrowUp className="size-4 text-muted-foreground" /> Parent folder
-            </button>
+            </Button>
           ) : null}
           {listing?.directories.map((directory) => (
-            <button
+            <Button
+              variant="ghost"
               className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-accent"
               key={directory.path}
               onClick={() => void load(directory.path)}
@@ -73,7 +75,7 @@ export function ProjectDirectoryBrowser({
             >
               <Folder className="size-4 text-muted-foreground" />
               <span className="truncate">{directory.name}</span>
-            </button>
+            </Button>
           ))}
           {isLoading ? (
             <p className="px-2 py-3 text-sm text-muted-foreground">Opening folder…</p>

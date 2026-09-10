@@ -300,7 +300,8 @@ function DocumentOutline({ source }: { source: string }) {
       </p>
       <nav className="mt-3 flex flex-col gap-1">
         {headings.map((heading) => (
-          <button
+          <Button
+            variant="ghost"
             key={heading.id}
             className={heading.level === 3 ? 'pl-4' : ''}
             onClick={() =>
@@ -310,7 +311,7 @@ function DocumentOutline({ source }: { source: string }) {
             }
           >
             {heading.text}
-          </button>
+          </Button>
         ))}
       </nav>
     </TopologyRegion>

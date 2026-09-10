@@ -43,7 +43,10 @@ function renderService(
   for (const [key, value] of Object.entries(component.environment))
     lines.push(`      ${key}: ${value}`)
   if (component.hostEnvironmentKey) lines.push(`      ${component.hostEnvironmentKey}: 0.0.0.0`)
-  if (component.runtime === 'static') lines.push(`      PORT: ${component.port}`)
+  if (component.runtime === 'static') {
+    lines.push(`      PORT: ${component.port}`)
+    lines.push(`      API_UPSTREAM: ${component.apiUpstream ?? '127.0.0.1:9'}`)
+  }
   if (component.runtime === 'node') {
     lines.push(`      APP_ENV: ${profileEnvironment}`)
     if (profileEnvironment === 'production') lines.push('      LOG_PRETTY: "false"')

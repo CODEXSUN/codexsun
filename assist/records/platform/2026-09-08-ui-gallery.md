@@ -2,9 +2,10 @@
 
 ## Outcome
 
-Platform provides a runnable UI Gallery at `/ui`.
+This record describes the first Platform-hosted gallery. The current UI Gallery belongs to
+`apps/uiux/web/src/modules/gallery` and runs as the independent UIUX application.
 
-The shared UI package owns the template and Interface Topology Inspection feature.
+The shared UI package owns reusable UI and the Interface Topology Inspection feature.
 
 The Table documentation page renders the package-owned table system with ten
 real rows instead of an image. Its search, app-supplied status filter, column
@@ -12,13 +13,13 @@ visibility, status marks, row actions, totals, and pagination are interactive.
 
 ## Ownership
 
-- `packages/ui` owns the gallery, previews, component inventory, templates, and topology feature.
-- The Platform UI Gallery module owns the route and navigation contribution.
+- `apps/uiux/web` owns the gallery, previews, component inventory, examples, routes, and navigation.
+- `packages/ui` owns reusable components, blocks, layouts, templates, and the topology feature.
 - The module owns no API contract, database table, or business workflow.
 
 ## Public contracts
 
-- Gallery template: `@codexsun/ui/templates/ui-gallery`.
+- Gallery module: `apps/uiux/web/src/modules/gallery`.
 - Topology feature: `@codexsun/ui/features/interface-topology`.
 - Layout host: `@codexsun/ui/layouts/mdi-main`.
 - Table system: `@codexsun/ui/blocks/table`.

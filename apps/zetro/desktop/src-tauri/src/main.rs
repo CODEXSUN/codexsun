@@ -67,8 +67,15 @@ fn main() {
             desktop_status,
             pick_repository_folder
         ])
-        .run(tauri::generate_context!())
-        .expect("Zetro desktop failed");
+        .build(tauri::generate_context!())
+        .expect("Zetro desktop failed")
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                if let Some(runtime) = app.try_state::<DesktopRuntime>() {
+                    runtime.stop();
+                }
+            }
+        });
 }
 
 fn display(path: PathBuf) -> String {

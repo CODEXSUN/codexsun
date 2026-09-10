@@ -23,7 +23,7 @@ test('development profile composes every registered application and component', 
     [
       'platform-api',
       'platform-web',
-      'ui-web',
+      'uiux-web',
       'docs-api',
       'docs-web',
       'zetro-api',
@@ -61,7 +61,7 @@ test('main development keeps Orship separate', () => {
 
   assert.deepEqual(
     plan.applications.map(({ id }) => id),
-    ['platform', 'ui', 'docs', 'zetro', 'devkit'],
+    ['platform', 'uiux', 'docs', 'zetro', 'devkit'],
   )
   assert.equal(
     plan.components.some(({ id }) => id.startsWith('orship-')),

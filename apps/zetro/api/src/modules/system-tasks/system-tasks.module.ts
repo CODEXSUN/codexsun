@@ -28,7 +28,7 @@ export const systemTasksModuleManifest = {
   },
   publicContracts: ['SystemTaskService', '/api/v1/system-tasks/*'],
   scope: 'zetro-api',
-  version: '1.0.0',
+  version: '1.1.0',
 } as const
 
 export async function registerSystemTasksModule(

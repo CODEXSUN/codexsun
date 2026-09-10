@@ -50,7 +50,8 @@ export function OperationsMonitor() {
     : 0
   return (
     <>
-      <button
+      <Button
+        variant="ghost"
         aria-label="Open Zetro operations metrics"
         className="fixed bottom-20 right-2 z-40 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-background px-2.5 text-xs shadow-md hover:border-orange-400"
         onClick={() => setOpen(true)}
@@ -62,7 +63,7 @@ export function OperationsMonitor() {
         <span className="text-muted-foreground">
           {metrics?.api.uptimeSeconds.toFixed(0) ?? '—'}s
         </span>
-      </button>
+      </Button>
       <Dialog onOpenChange={setOpen} open={open}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>

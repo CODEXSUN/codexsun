@@ -1,5 +1,9 @@
 # Zetro Development Records
 
+- [2026-09-10 Desktop supervisor bridge](2026-09-10-desktop-supervisor.md)
+
+- [2026-09-10 Desktop 0.1.17 build](2026-09-10-desktop-0.1.17-build.md)
+- [2026-09-10 Shared UI automation audit](2026-09-10-shared-ui-automation-audit.md)
 - [2026-09-09 Agent Workspace rails](2026-09-09-agent-workspace-rails.md)
 - [2026-09-09 Deterministic automation CLI](2026-09-09-deterministic-automation-cli.md)
 - [2026-09-09 Desktop 0.1.13 build](2026-09-09-desktop-0.1.13-build.md)

@@ -42,6 +42,15 @@ export class SystemTaskRepository {
     }
   }
 
+  public async listActive(): Promise<SystemTaskRecord[]> {
+    const rows = await this.database
+      .selectFrom('zetro_system_tasks')
+      .select('data')
+      .where('status', 'in', ['pending', 'running', 'stopping'])
+      .execute()
+    return rows.map(({ data }) => JSON.parse(data) as SystemTaskRecord)
+  }
+
   public async insert(task: SystemTaskRecord): Promise<void> {
     await this.database.insertInto('zetro_system_tasks').values(toTaskRow(task)).execute()
   }
@@ -78,7 +87,7 @@ export class SystemTaskRepository {
   }
 
   public async recoverInterrupted(): Promise<SystemTaskRecord[]> {
-    const tasks = await this.list()
+    const tasks = await this.listActive()
     const interrupted = tasks.filter(({ status }) => status === 'running' || status === 'stopping')
     for (const task of interrupted) {
       const now = new Date().toISOString()

@@ -10,6 +10,3 @@ routes, business entities, persistence, or workflows.
   template shared by documentation applications.
 - `ui-page` contains the generic documentation-page composition shared by UI and
   Docs applications.
-
-The UI Gallery website, its catalogs, live specimens, and code samples belong to
-`apps/ui/web/src/modules/gallery`; they are not package templates.

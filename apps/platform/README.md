@@ -11,6 +11,10 @@ Platform is the composition host for the shared framework and Platform Core pack
 - `api` owns Fastify startup, application composition, health, central storage binding, and MariaDB runtime configuration.
 - `web` owns the React browser startup and Platform shell.
 - Business behavior belongs in versioned leaf modules, not in the application root.
+- `packages/ui` owns every reusable component, form frame, field control, block,
+  layout, template, and visual variant. Platform uses public `@codexsun/ui` exports.
+- Platform must not create reusable UI copies. It owns business data, validation,
+  callbacks, routes, workflows, and screen composition in its leaf modules.
 
 ## Workspaces and commands
 

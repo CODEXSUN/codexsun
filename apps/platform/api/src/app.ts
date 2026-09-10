@@ -236,7 +236,13 @@ function createServer(
   void server.register(fastifyHelmet)
   void server.register(fastifyCors, {
     credentials: true,
-    origin: environment.PLATFORM_WEB_ORIGIN,
+    origin: (origin, callback) => {
+      const allowed =
+        origin === undefined ||
+        origin === environment.PLATFORM_WEB_ORIGIN ||
+        origin === environment.ORSHIP_WEB_ORIGIN
+      callback(null, allowed)
+    },
   })
   void server.register(fastifyRateLimit, {
     global: true,

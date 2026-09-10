@@ -27,6 +27,10 @@ const environmentSchema = z
     ZETRO_API_PORT: z.coerce.number().int().min(1024).max(65535).default(6050),
     ZETRO_CONNECTED_APP_TOKEN: z.string().min(32).optional(),
     ZETRO_DESKTOP_SESSION_TOKEN: z.string().min(32).optional(),
+    ZETRO_SUPERVISOR_TOKEN: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(32).optional(),
+    ),
     ZETRO_QUEUE_DRIVER: z.enum(['bullmq', 'local']).default('local'),
     ZETRO_SQLITE_PATH: z.string().min(1).default('private/zetro/zetro.sqlite'),
     ZETRO_WEB_PORT: z.coerce.number().int().min(6000).max(6999).default(6060),
@@ -46,6 +50,13 @@ const environmentSchema = z
       .default(resolve(projectRoot, '..', '.zetro-worktrees', basename(projectRoot))),
   })
   .superRefine((value, context) => {
+    if (value.ZETRO_SUPERVISOR_TOKEN && !['127.0.0.1', '::1'].includes(value.HOST)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Supervisor access requires a loopback HOST.',
+        path: ['HOST'],
+      })
+    }
     if (value.DB_DRIVER === 'mariadb' && value.APP_ENV === 'production' && !value.DB_PASSWORD) {
       context.addIssue({
         code: 'custom',

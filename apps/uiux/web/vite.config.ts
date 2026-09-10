@@ -7,17 +7,17 @@ const projectRoot = fileURLToPath(new URL('../../../', import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, projectRoot, '')
-  const webHost = environment.UI_WEB_HOST || '127.0.0.1'
-  const webPort = Number(environment.UI_WEB_PORT || 6130)
+  const webHost = environment.UIUX_WEB_HOST || '127.0.0.1'
+  const webPort = Number(environment.UIUX_WEB_PORT || 6130)
 
   return {
-    cacheDir: '../../../node_modules/.cache/vite/ui-web',
+    cacheDir: '../../../node_modules/.cache/vite/uiux-web',
     envDir: projectRoot,
     plugins: [react(), tailwindcss()],
     server: { host: webHost, port: webPort, strictPort: true },
     preview: { host: webHost, port: webPort, strictPort: true },
     build: {
-      outDir: '../../../dist/apps/ui/web',
+      outDir: '../../../dist/apps/uiux/web',
       emptyOutDir: true,
       chunkSizeWarningLimit: 400,
       rolldownOptions: {

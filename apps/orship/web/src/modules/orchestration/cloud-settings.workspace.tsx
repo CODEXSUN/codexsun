@@ -1,6 +1,7 @@
 import { Button } from '@codexsun/ui/components/button'
 import { Input } from '@codexsun/ui/components/input'
 import { Label } from '@codexsun/ui/components/label'
+import { NativeSelect } from '@codexsun/ui/components/native-select'
 import { ArrowLeft, Cloud, GitBranch, Save, ShieldCheck } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { fetchCloudTarget, saveCloudTarget } from './orchestration.services'
@@ -106,8 +107,8 @@ export function CloudSettingsWorkspace({ onBack }: { onBack: () => void }) {
               />
             </Field>
             <Field label="Target type">
-              <select
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <NativeSelect
+                className="w-full"
                 value={target.targetType}
                 onChange={(event) =>
                   setTarget({
@@ -118,7 +119,7 @@ export function CloudSettingsWorkspace({ onBack }: { onBack: () => void }) {
               >
                 <option value="local-docker">Local Docker</option>
                 <option value="vps">VPS</option>
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Local workspace path">
               <Input

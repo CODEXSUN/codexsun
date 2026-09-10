@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   cacheDir: '../../../node_modules/.cache/vite/orship-web',
+  envDir: '../../../',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: [

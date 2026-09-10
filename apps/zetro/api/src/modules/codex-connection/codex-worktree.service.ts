@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { lstat, mkdir, readdir, stat, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, realpath, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 export interface CodexWorktree {
@@ -79,10 +79,11 @@ export class CodexWorktreeService {
   }
 
   public async remove(path: string): Promise<void> {
-    const target = resolve(path)
-    assertContainedPath(this.worktreeRoot, target)
+    const target = await realpath(resolve(path))
+    assertContainedPath(await realpath(this.worktreeRoot), target)
     const root = await runGit(target, ['rev-parse', '--show-toplevel'])
-    if (!samePath(root, target)) throw new Error('The selected folder is not a Zetro worktree.')
+    if (!samePath(await realpath(root), await realpath(target)))
+      throw new Error('The selected folder is not a Zetro worktree.')
     const status = await runGit(target, ['status', '--porcelain=v1'])
     if (status) throw new Error('Commit or discard worktree changes before cleanup.')
     const commonDirectory = await runGit(target, [
@@ -121,12 +122,12 @@ export class CodexWorktreeService {
     }
 
     const root = await runGit(worktreePath, ['rev-parse', '--show-toplevel'])
-    if (resolve(root) !== worktreePath) {
+    if (!samePath(await realpath(root), await realpath(worktreePath))) {
       throw new Error('The Zetro worktree path belongs to another repository checkout.')
     }
 
     return {
-      path: worktreePath,
+      path: await realpath(worktreePath),
       revision: await runGit(worktreePath, ['rev-parse', 'HEAD']),
     }
   }
@@ -178,7 +179,7 @@ function samePath(left: string, right: string): boolean {
 
 async function runGit(cwd: string, args: readonly string[]): Promise<string> {
   return new Promise((resolveCommand, reject) => {
-    const child = spawn('git', ['-C', cwd, ...args], {
+    const child = spawn('git', ['-c', 'core.longpaths=true', '-C', cwd, ...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     })

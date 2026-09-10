@@ -23,6 +23,7 @@ Describe the module capability and its business owner.
 - Tables and storage paths:
 - Routes and UI paths:
 - Permissions and settings:
+- Shared UI: List the public `@codexsun/ui` exports used. Do not own a reusable UI copy.
 
 ## Public contracts
 

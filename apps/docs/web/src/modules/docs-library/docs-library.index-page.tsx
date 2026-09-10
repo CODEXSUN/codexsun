@@ -1,5 +1,6 @@
 import type { DocumentSummary } from '@codexsun/docs-contracts'
 import { Badge } from '@codexsun/ui/components/badge'
+import { Button } from '@codexsun/ui/components/button'
 import { BookOpen, FileText, FolderTree } from 'lucide-react'
 import { getDocumentNavigationLabel, getDocsIndexGroups } from './docs-library.index'
 
@@ -37,7 +38,8 @@ export function DocsIndexPage({
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {group.documents.map((document) => (
-                <button
+                <Button
+                  variant="ghost"
                   className="group flex min-h-28 flex-col items-start rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   key={document.slug}
                   onClick={() => onSelect(document.slug)}
@@ -51,7 +53,7 @@ export function DocsIndexPage({
                   <code className="mt-auto pt-3 text-xs text-muted-foreground">
                     {document.path}
                   </code>
-                </button>
+                </Button>
               ))}
             </div>
           </section>

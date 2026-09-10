@@ -10,7 +10,12 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
 ## Responsibilities
 
 - Keep React views, client routing, client state, and browser interactions in the owning web application.
-- Put reusable web UI primitives, application layouts, composition-ready templates, hooks, and theme assets in `packages/ui`.
+- Treat `packages/ui` as the only source owner for reusable web UI.
+- Put all reusable primitives, components, form frames, field controls, blocks,
+  layouts, templates, visual variants, hooks, tokens, and theme assets in `packages/ui`.
+- Keep business data, fields, validation, routes, permissions, callbacks, workflows,
+  and screen composition in the owning application.
+- Pass application-owned values to typed package components and blocks.
 - Use `@codexsun/ui/layouts/mdi-main` as the base frame for CODEXSUN web applications. Keep each application's workspace content in its owning app.
 - Use `@codexsun/ui/layouts/agent-workspace` for agent screens with fixed tool rails.
   Pass its typed rail configuration through `MdiMain.agentWorkspace`.
@@ -32,8 +37,9 @@ Also read [UI Template Pages](ui-template-pages.md) for a shared UI documentatio
   component, block, layout, variant, or app-local visual abstraction.
 - Search `@codexsun/ui/design-system` before writing UI. Use one typed primitive for a small
   control. Use a package-owned block for a large reusable surface.
-- Do not create app-local shared primitives, copy package variant classes, or import Base UI,
-  CVA, or private `packages/ui/src` paths from an application.
+- Do not create app-local reusable UI, form frameworks, blocks, layouts, or visual variants.
+- Do not copy package variant classes or import Base UI, CVA, or private
+  `packages/ui/src` paths from an application.
 - Use `@codexsun/ui/templates/ui-page` for UI component and block documentation.
   Read [ui-template-pages.md](ui-template-pages.md) before changing those pages.
 - Use TanStack Query for server-state caching and TanStack Router for application routes.

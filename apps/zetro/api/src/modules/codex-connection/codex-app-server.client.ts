@@ -193,6 +193,7 @@ export class CodexAppServerClient {
     try {
       const turnResult = asRecord(
         await this.request('turn/start', {
+          cwd: workingDirectory,
           input: [
             { text: addFilePaths(input.text, filePaths), type: 'text' },
             ...input.images.map((url) => ({ type: 'image', url })),
@@ -276,15 +277,19 @@ export class CodexAppServerClient {
 
   private async initialize(): Promise<void> {
     const command = await resolveCodexCommand(this.command)
+    const environment = { ...process.env }
+    delete environment.ZETRO_SUPERVISOR_TOKEN
+    delete environment.ZETRO_DESKTOP_SESSION_TOKEN
+    delete environment.ZETRO_CONNECTED_APP_TOKEN
     const child = spawn(command, ['app-server', '--stdio'], {
       cwd: this.projectRoot,
       env: this.apiKey
         ? {
-            ...process.env,
+            ...environment,
             OPENAI_API_KEY: this.apiKey,
             OPENAI_BASE_URL: this.baseUrl,
           }
-        : process.env,
+        : environment,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     })
@@ -419,7 +424,9 @@ export class CodexAppServerClient {
     clearTimeout(collector.timeout)
     this.turns.delete(threadId)
     collector.resolve({
-      activities: collector.activities.slice(0, 20),
+      activities: [...collector.activities]
+        .sort((left, right) => Number(right.status === 'failed') - Number(left.status === 'failed'))
+        .slice(0, 20),
       content: output.content,
       delivery: output.delivery,
       model: collector.model,
@@ -519,7 +526,17 @@ function addFilePaths(text: string, filePaths: readonly string[]): string {
 
 function toToolActivity(item: Record<string, unknown>): CodexToolActivity | null {
   if (item.type === 'commandExecution' && typeof item.command === 'string') {
-    return { kind: 'command', label: limitLabel(item.command), status: readActivityStatus(item) }
+    const status = readActivityStatus(item)
+    const details =
+      status === 'failed' && typeof item.aggregatedOutput === 'string'
+        ? item.aggregatedOutput
+            .replace(
+              /(authorization|api[-_]?key|password|token)\s*[:=]\s*[^\s]+/giu,
+              '$1=[redacted]',
+            )
+            .slice(-2_000)
+        : undefined
+    return { kind: 'command', label: limitLabel(item.command), status, details }
   }
   if (item.type === 'fileChange') {
     const count = Array.isArray(item.changes) ? item.changes.length : 0

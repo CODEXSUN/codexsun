@@ -30,7 +30,9 @@ Do not start implementation until this onboarding is complete.
 - `packages/framework` owns the generic module lifecycle and registry.
 - `packages/platform-core` owns reusable platform API, web, desktop, and shared packages.
 - `packages/runtime` owns deployment catalog validation, dependency resolution, and immutable assembly plans.
-- `packages/ui` owns shared web UI primitives, templates, hooks, tokens, and Tailwind theme assets.
+- `packages/ui` is the only source owner for reusable web UI. It owns primitives,
+  components, form frames, field controls, blocks, layouts, templates, variants,
+  hooks, tokens, and Tailwind theme assets.
 - `packages/addons` owns independently shipped reusable add-ons after their public contracts become stable.
 - `.container` owns the deployable catalog, customer profiles, and common container templates.
 - `assist` owns project context, architecture decisions, and local skill guides.
@@ -73,10 +75,18 @@ Do not start implementation until this onboarding is complete.
 - Import a sibling module only through its public `index.ts`. Never import a sibling private file or write its tables directly.
 - Treat applied migration and seed checksums as immutable. Add a new ordered declaration instead of editing an applied one.
 - Do not overwrite or revert changes that you did not make.
-- Import shared web UI only from public `@codexsun/ui` exports. Search its design-system
-  registry before creating a primitive, composition, block, layout, or visual variant.
+- Import web UI only from public `@codexsun/ui` exports. Search its design-system
+  registry before creating a primitive, component, form, block, layout, or visual variant.
+- Add every reusable web UI implementation to `packages/ui`. An application must not
+  create or copy a reusable component, form framework, block, layout, or visual variant.
 - Keep small controls as one typed component with named variants. Put larger reusable
-  surfaces in package-owned block folders. Do not create app-local shared primitive copies.
+  surfaces and form frames in package-owned block folders.
+- Applications own screen composition, business fields, validation, data, routes,
+  permissions, callbacks, and workflows. They pass these values to package-owned UI.
+- `apps/uiux` owns the UIUX Gallery showcase, documentation examples, and gallery routes.
+  Do not export the gallery from `packages/ui`.
+- No application may import `apps/uiux` or depend on `@codexsun/uiux-web`.
+  Applications must import reusable UI from public `@codexsun/ui` exports.
 - Run `npm.cmd run check:ui-system` after a web UI change.
 
 ## Validation and handoff

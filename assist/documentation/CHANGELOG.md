@@ -8,23 +8,37 @@
 
 ## Version State
 
-- Current version: 0.1.15
-- Release tag: v-0.1.15
-- Changelog label: v 0.1.15
+- Current version: 0.1.18
+- Release tag: v-0.1.18
+- Changelog label: v 0.1.18
+
+## v-0.1.18
+
+### [v 0.1.18] 2026-09-10 9:17 am - Zetro desktop supervisor bridge
+
+- Database Changes: None. Existing Chat and System Tasks tables own supervisor history.
+- App Codebase Changes: Added Supervisor `0.1.0`, public Chat `0.13.0`, System Tasks `1.1.0`, Codex connection `0.7.1`, CLI desktop pairing, confirmed project connection, graceful shutdown, and Windows worktree fixes. Preserved parallel UIUX, shared UI, application, and deployment changes.
+- Verification: Root checks, MariaDB foundation, packaged API lifecycle, and desktop checks passed. Platform-only smoke was blocked by occupied port 6010. See [desktop supervisor record](../records/zetro/2026-09-10-desktop-supervisor.md) for live evidence and release limits.
+
+## v-0.1.17
+
+### [v 0.1.17] 2026-09-10 8:09 am - Shared UI audit and Zetro automation
+
+- Database Changes: None. App Codebase Changes: Aligned versions to `0.1.17`. Added shared UI audit, CLI and Automation bindings, and review-only agent diagnosis.
+- Verification: Pre-build, audit, tests, lint, type checks, module gates, Rust checks, and WiX passed. Installation and signing did not run. See `assist/records/zetro/2026-09-10-desktop-0.1.17-build.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
+
+## v-0.1.16
+
+### [v 0.1.16] 2026-09-10 7:50 am - Centralized UI ownership and application reuse
+
+- Database Changes: None. App Codebase Changes: Aligned metadata to `0.1.16`, centralized UI in `packages/ui`, replaced app-native controls, and added application audits and Zetro entry points.
+- Verification: Ownership, format, documentation, boundary, lint, and type checks passed. Browser and installer checks did not run. See `assist/records/ui/2026-09-10-ui-gallery-application-ownership.md` and `assist/records/zetro/2026-09-10-shared-ui-automation-audit.md`.
 
 ## v-0.1.15
 
 ### [v 0.1.15] 2026-09-09 10:39 pm - Independent UI application
 
-- Database Changes: None. App Codebase Changes: Added the independent UI app on port `6130`; kept
-  reusable components, blocks, layouts, and generic templates in `packages/ui`; moved gallery
-  pages, catalogs, previews, and specimens into `apps/ui/web`; added the shared Documentation
-  Workspace layout; and wired runtime profiles, Orship discovery, and the application map. Zetro
-  now uses the shared Agent Workspace rails for project activities and utilities. Verification:
-  UI, Docs, Agent Crew, and Zetro focused checks passed, and the
-  Zetro `0.1.15` WiX MSI was built. Installation and signing did not run. The largest UI production
-  chunk is 386.57 KB. See `assist/records/ui/2026-09-09-independent-ui-application.md` and
-  `assist/records/zetro/2026-09-09-agent-workspace-rails.md`.
+- Database Changes: None. Added the independent gallery, Documentation Workspace, runtime bindings, app map, and Zetro Agent Workspace while keeping reusable UI in `packages/ui`. Focused checks and the Zetro MSI build passed; installation and signing did not run. See `assist/records/ui/2026-09-09-independent-ui-application.md`, `assist/records/zetro/2026-09-09-agent-workspace-rails.md`, and `assist/records/ui/2026-09-10-ui-gallery-application-ownership.md`.
 
 ## v-0.1.14
 
@@ -81,18 +95,9 @@
 
 ### [v 0.1.5] 2026-09-09 - Alert callout specimen
 
-#### Database Changes
-
-- No database or storage change.
-
-#### App Codebase Changes
-
-- Replaced the generic Alert specimen with success, information, warning, and error callouts.
-- Added matching semantic icons, tones, titles, and copyable default code.
-
-#### Verification
-
-- Verification is recorded in `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
+- Database update: No. Added success, information, warning, and error Alert specimens with semantic
+  icons, tones, titles, and copyable code. Verification is recorded in
+  `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
 ### [v 0.1.5] 2026-09-09 - UI workspace identity
 

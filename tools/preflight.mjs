@@ -47,14 +47,14 @@ const services = {
       '@codexsun/ui',
     ],
   },
-  'ui-web': {
+  'uiux-web': {
     args: [resolve(projectRoot, 'node_modules/vite/bin/vite.js'), '--strictPort'],
     command: process.execPath,
-    cwd: resolve(projectRoot, 'apps/ui/web'),
+    cwd: resolve(projectRoot, 'apps/uiux/web'),
     defaultPort: 6130,
-    hostKey: 'UI_WEB_HOST',
-    label: 'UI web',
-    portKey: 'UI_WEB_PORT',
+    hostKey: 'UIUX_WEB_HOST',
+    label: 'UIUX web',
+    portKey: 'UIUX_WEB_PORT',
     healthPath: '/',
     prepareWorkspaces: ['@codexsun/ui'],
   },
@@ -218,7 +218,7 @@ function startService(serviceDefinition, hostName, portNumber) {
   return spawn(serviceDefinition.command, serviceArgs, {
     cwd: serviceDefinition.cwd,
     env: { ...process.env, LOG_PRETTY: 'false' },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     windowsHide: true,
   })
 }

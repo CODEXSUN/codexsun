@@ -1,8 +1,10 @@
 import { PlatformApiObservability } from '@codexsun/platform-core-api'
 import Fastify from 'fastify'
 import { pathToFileURL } from 'node:url'
+import { createInterface } from 'node:readline'
 import { getProjectRoot, readEnvironment } from './config.js'
 import { registerChatModule } from './modules/chat/index.js'
+import { registerSupervisorModule } from './modules/supervisor/index.js'
 import { registerCodexConnectionModule } from './modules/codex-connection/index.js'
 import { registerTasksModule } from './modules/tasks/index.js'
 import { registerProjectsModule } from './modules/projects/index.js'
@@ -90,7 +92,7 @@ export async function createServer() {
       }
     })
 
-    await registerChatModule(
+    const chat = await registerChatModule(
       server,
       environment,
       codexConnection.client,
@@ -98,6 +100,7 @@ export async function createServer() {
       projects,
       database,
     )
+    await registerSupervisorModule(server, projects, chat, systemTasks)
     await registerTasksModule(server, environment, projectRoot, projects, database)
     await registerOperationsModule(
       server,
@@ -121,8 +124,6 @@ export async function createServer() {
 export async function startServer() {
   const { environment, server } = await createServer()
   try {
-    await server.listen({ host: environment.HOST, port: environment.ZETRO_API_PORT })
-
     let stopping = false
     const shutdown = async (signal: string) => {
       if (stopping) return
@@ -135,6 +136,16 @@ export async function startServer() {
       process.once(signal, () => void shutdown(signal))
     }
     watchDesktopParent(() => void shutdown('desktop-parent-exit'))
+    if (process.env.ZETRO_DESKTOP_PARENT_PID) {
+      const input = createInterface({ input: process.stdin })
+      input.on('line', (line) => {
+        if (line === 'zetro:shutdown') void shutdown('desktop-stdin')
+      })
+      server.addHook('onClose', async () => {
+        input.close()
+        process.stdin.pause()
+      })
+    }
     process.on('message', (message) => {
       if (
         typeof message === 'object' &&
@@ -145,6 +156,7 @@ export async function startServer() {
         void shutdown('IPC')
       }
     })
+    await server.listen({ host: environment.HOST, port: environment.ZETRO_API_PORT })
   } catch (error) {
     server.log.fatal({ err: error }, 'zetro-api startup failed')
     await server.close()

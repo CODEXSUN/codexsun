@@ -36,6 +36,7 @@ Do not run several unrelated API processes under one container supervisor. Keep 
 - Register every deployable application and component in `.container/catalog.json`.
 - Give every application, component, and add-on a stable identifier and semantic version.
 - Declare required applications and component dependencies.
+- Declare a static web component's API upstream when it proxies `/api/`; use a loopback discard upstream only for a static-only application.
 - Declare every framework and Platform runtime binding with a compatible version range.
 - Declare build workspaces in dependency order.
 - Keep ports in the 6000 series for local development.

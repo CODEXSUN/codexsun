@@ -40,6 +40,7 @@ services:
       additional_contexts:
         orship_web_dist: ../../dist/apps/orship/web
     environment:
+      API_UPSTREAM: orship-api:6090
       PORT: 6091
     depends_on:
       orship-api:

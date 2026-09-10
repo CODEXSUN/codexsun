@@ -42,7 +42,12 @@ export async function registerIdentityRoutes(
     const hasSessionCookie = Object.keys(request.cookies).some((name) =>
       name.startsWith('codexsun_'),
     )
-    if (!hasSessionCookie || request.headers.origin === environment.PLATFORM_WEB_ORIGIN) return
+    if (
+      !hasSessionCookie ||
+      request.headers.origin === environment.PLATFORM_WEB_ORIGIN ||
+      request.headers.origin === environment.ORSHIP_WEB_ORIGIN
+    )
+      return
     await sendError(reply, request, 403, 'ORIGIN_DENIED', 'The request origin is not allowed.')
   })
   registerPublicRoutes(server, service, environment)

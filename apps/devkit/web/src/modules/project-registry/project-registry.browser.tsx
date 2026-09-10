@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { RegistryNode } from '@codexsun/devkit-contracts'
 import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
+import { NativeSelect } from '@codexsun/ui/components/native-select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,7 +91,8 @@ function createColumns(
     columnHelper.accessor('title', {
       cell: ({ row }) => (
         <div>
-          <button
+          <Button
+            variant="ghost"
             aria-label={`${isProfileNode(row.original) ? 'Open profile for' : 'Open'} ${row.original.title}`}
             className="block cursor-pointer text-left font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() =>
@@ -98,7 +100,7 @@ function createColumns(
             }
           >
             {row.original.title}
-          </button>
+          </Button>
           <span className="block max-w-80 truncate text-xs text-muted-foreground">
             {row.original.summary}
           </span>
@@ -173,9 +175,8 @@ function StatusFilter({
   onChange: (value: 'all' | RegistryNode['status']) => void
 }) {
   return (
-    <select
+    <NativeSelect
       aria-label="Filter by status"
-      className="h-8 rounded-lg border bg-transparent px-2 text-sm"
       onChange={(event) => onChange(event.target.value as 'all' | RegistryNode['status'])}
       value={filter}
     >
@@ -184,7 +185,7 @@ function StatusFilter({
       <option value="active">Active</option>
       <option value="ready">Ready</option>
       <option value="blocked">Blocked</option>
-    </select>
+    </NativeSelect>
   )
 }
 

@@ -29,6 +29,10 @@ Zetro is a standalone development desk with task execution and provider-backed a
 - `desktop` owns the Tauri window, bundled API process, native folder picker, and WiX MSI.
 - `cli` owns the terminal client for the shared Zetro API contracts.
 - The web `app.tsx` is the thin composition root.
+- `packages/ui` owns every reusable component, form frame, field control, block,
+  layout, template, and visual variant. Zetro uses public `@codexsun/ui` exports.
+- Zetro must not create reusable UI copies. It owns agent data, validation,
+  callbacks, routes, workflows, and screen composition.
 
 The composition root supplies Zetro identity and runtime status to the shared
 `@codexsun/ui/layouts/mdi-main` frame. Codex settings remain app-owned content.
@@ -59,6 +63,10 @@ The API and web remain separate component and container boundaries. Selecting Ze
 The Tauri workspace packages the existing web and API components for Windows. It is not a container component and does not enter the Compose catalog.
 
 ## Runtime configuration
+
+The [Supervisor API](api/src/modules/supervisor/README.md) accepts external local jobs through
+an optional `ZETRO_SUPERVISOR_TOKEN`. The CLI can submit, inspect, and stop jobs.
+Results appear in Chat and System Tasks. Start the packaged desktop with this token to enable access.
 
 Root `.env` owns `ZETRO_API_PORT`, `ZETRO_WEB_PORT`, and optional Codex provider settings. The API owns local Codex account connection endpoints. The mounted Settings web module owns browser-local application preferences and composes shared MDI appearance controls.
 
@@ -93,6 +101,11 @@ Git delivery, diagnostics, worktree retention, and durable run history stay
 deterministic. An agent enters the flow only after a user selects a failed run
 and requests diagnosis. That handoff prepares a review prompt and does not rerun,
 publish, clean, or modify the repository automatically.
+
+The repository-owned shared UI audit is available as `npm.cmd run audit:shared-ui`,
+`npm.cmd run zetro -- ui-audit <project-id>`, and the **Shared UI** Automation group.
+All three paths run `check:ui-system`. The result reports each web application and
+checks that reusable UI comes only from public `@codexsun/ui` exports.
 
 On Windows, the default `codex` command resolves the newest executable from the Codex desktop installation. Set `ZETRO_CODEX_COMMAND` to a full path to override discovery.
 

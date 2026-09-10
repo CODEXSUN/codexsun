@@ -23,6 +23,7 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 - Editor: the header Edit action opens a Docs-owned drill-down upsert page. It uses the DevKit TipTap write pattern with an authoritative Markdown mode, explicit Save and Back controls, and a stale-source conflict message.
 - Reader navigation: the shared UI template navigation block provides previous and next document links at the bottom of each document.
 - Page tone: the Index and Ideas views use a centered 80-percent content lane. The reader uses the full available workspace: a flexible article column and a fixed, sticky outline column at the right edge. The narrow-screen layout hides the outline and retains one readable column.
+- Ownership map: package and application cards share the centered icon-over-title card treatment. The application row keeps every current app, including Orship, on one wide-screen row and wraps progressively on narrower screens.
 - Client behavior: the web module preserves a rendered-document cache during navigation and aborts stale requests to prevent reader flicker.
 - Reader styling: GitHub-Flavored Markdown tables use a scrollable table surface. Inline snippets use compact muted pills. Fenced code samples use highlighted, copyable, high-contrast surfaces. Mermaid flowchart fences render as safe Docs-owned SVG diagrams.
 - Article assets: Markdown image paths resolve through the Docs API. Store repository-owned images below an `assets` folder near their articles. See [article assets](../../../../../../assist/assets/README.md).
@@ -31,7 +32,7 @@ Displays the Docs API library in a responsive, keyboard-operable MDI workspace.
 ## Public contracts and verification
 
 - API: consumes `@codexsun/docs-contracts` only through the Docs HTTP API.
-- Dependencies: shared `@codexsun/ui` sidebar block and versioned Docs API routes.
+- Dependencies: shared `@codexsun/ui` layout, Table primitive, and versioned Docs API routes.
 - Browser verification needs both Docs runtimes running locally.
 
 ## Interface topology

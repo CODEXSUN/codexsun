@@ -135,7 +135,8 @@ export function SettingsWorkspace({ features, onBack, onFeatureChange }: MdiSett
           {visibleNavigation.map((item) => {
             const Icon = item.icon
             return (
-              <button
+              <Button
+                variant="ghost"
                 aria-current={activeSection === item.id ? 'page' : undefined}
                 className="flex h-9 cursor-pointer items-center gap-2 rounded-md px-3 text-left text-sm hover:bg-muted aria-[current=page]:bg-muted aria-[current=page]:font-medium"
                 key={item.id}
@@ -144,7 +145,7 @@ export function SettingsWorkspace({ features, onBack, onFeatureChange }: MdiSett
               >
                 <Icon className="size-4" />
                 {item.label}
-              </button>
+              </Button>
             )
           })}
           {visibleNavigation.length === 0 ? (

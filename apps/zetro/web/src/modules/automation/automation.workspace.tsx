@@ -185,7 +185,8 @@ export function AutomationWorkspace() {
           <h2 className="text-sm font-semibold">Run history</h2>
           <div className="mt-2 divide-y">
             {visibleRuns.map((task) => (
-              <button
+              <Button
+                variant="ghost"
                 className="flex w-full cursor-pointer items-center gap-3 py-3 text-left text-sm hover:text-foreground"
                 key={task.id}
                 onClick={() => void runs.select(task.id)}
@@ -193,7 +194,7 @@ export function AutomationWorkspace() {
               >
                 <span className="min-w-0 flex-1 truncate">{task.title}</span>
                 <span className="text-xs text-muted-foreground">{task.status}</span>
-              </button>
+              </Button>
             ))}
           </div>
           {runs.selected ? (

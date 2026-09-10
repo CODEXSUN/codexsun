@@ -1,3 +1,11 @@
+import {
+  Table as UiTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@codexsun/ui/components/table'
 import { memo } from 'react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -46,12 +54,19 @@ const markdownComponents: Components = {
     </pre>
   ),
   table: ({ children }) => (
-    <div className="my-4 overflow-x-auto rounded-lg border">
-      <table className="w-full border-collapse text-left text-[13px]">{children}</table>
+    <div className="my-4 rounded-lg border">
+      <UiTable className="border-collapse text-left text-[13px]">{children}</UiTable>
     </div>
   ),
-  td: ({ children }) => <td className="border-t px-3 py-2 align-top">{children}</td>,
-  th: ({ children }) => <th className="bg-muted px-3 py-2 font-semibold">{children}</th>,
+  tbody: ({ children }) => <TableBody>{children}</TableBody>,
+  td: ({ children }) => (
+    <TableCell className="border-t px-3 py-2 align-top whitespace-normal">{children}</TableCell>
+  ),
+  th: ({ children }) => (
+    <TableHead className="bg-muted px-3 py-2 font-semibold">{children}</TableHead>
+  ),
+  thead: ({ children }) => <TableHeader>{children}</TableHeader>,
+  tr: ({ children }) => <TableRow>{children}</TableRow>,
   ul: ({ children }) => <ul className="my-3 list-disc space-y-1 pl-5">{children}</ul>,
 }
 

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@codexsun/ui/components/dialog'
 import { Input } from '@codexsun/ui/components/input'
+import { NativeSelect } from '@codexsun/ui/components/native-select'
 
 export function NodeUpsertDialog({
   busy,
@@ -75,8 +76,7 @@ export function NodeUpsertDialog({
               <Field label="Key" value={key} onChange={setKey} />
               <label className="grid gap-1.5 text-sm font-medium">
                 Status
-                <select
-                  className="h-8 rounded-lg border bg-transparent px-2 text-sm"
+                <NativeSelect
                   onChange={(event) => setStatus(event.target.value as RegistryNode['status'])}
                   value={status}
                 >
@@ -84,7 +84,7 @@ export function NodeUpsertDialog({
                   <option value="active">Active</option>
                   <option value="ready">Ready</option>
                   <option value="blocked">Blocked</option>
-                </select>
+                </NativeSelect>
               </label>
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input

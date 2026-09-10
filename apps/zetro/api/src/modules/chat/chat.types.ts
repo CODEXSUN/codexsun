@@ -45,6 +45,7 @@ export interface ChatTurnResponse {
 
 export interface ChatTurnExecution {
   activities: readonly {
+    details?: string
     kind: 'command' | 'file_change' | 'mcp'
     label: string
     status: string

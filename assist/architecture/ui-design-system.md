@@ -3,7 +3,8 @@
 ## Purpose
 
 The CODEXSUN UI design system gives every web application one source for visual behavior.
-The `packages/ui` workspace owns this source. Applications consume public package exports.
+The `packages/ui` workspace is the only source owner for reusable web UI. Applications
+consume public package exports.
 
 ## Layer model
 
@@ -46,16 +47,21 @@ Do not implement this mapping with application conditions or wrapper components.
 ## Application boundary
 
 - Import shared UI only from an `@codexsun/ui` public export.
-- Search the registry before creating a component or block.
-- Add a missing reusable primitive or variant in `packages/ui`.
-- Keep business compositions in their owning application module.
+- Search the registry before creating a component, form, block, layout, or variant.
+- Add every missing reusable UI implementation to `packages/ui`.
+- Keep business data, fields, validation, routes, permissions, callbacks, workflows,
+  and screen composition in their owning application module.
+- Pass application-owned values to typed package components and blocks.
 - Do not import Base UI or CVA directly in an application.
 - Do not create an app-local `src/components/ui` copy.
+- Do not create an app-local reusable form framework, block, layout, or visual variant.
 - Do not copy shared variant class strings into an application.
 - Do not import a private `packages/ui/src` path.
+- Do not import source or exports from the UIUX application.
+- Do not depend on `@codexsun/uiux-web`. Use public `@codexsun/ui` exports.
 
-The `check:ui-system` command checks import and directory boundaries. Code review checks visual
-duplication that static analysis cannot identify safely.
+The `check:ui-system` command checks import, dependency, ownership, and directory boundaries.
+Code review checks visual duplication that static analysis cannot identify safely.
 
 ## Documentation contract
 

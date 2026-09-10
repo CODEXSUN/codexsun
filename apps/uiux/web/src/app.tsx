@@ -94,16 +94,16 @@ export function App() {
 
   return (
     <MdiMain
-      applicationId="ui"
-      applicationName="UI"
+      applicationId="uiux"
+      applicationName="UIUX"
       navigation={navigation}
       primaryAction={{
         icon: LayoutDashboardIcon,
         label: 'Overview',
         onSelect: () => window.location.assign('/'),
       }}
-      searchPlaceholder="Search UI"
-      sidebarStateKey="codexsun.ui.sidebar"
+      searchPlaceholder="Search UIUX"
+      sidebarStateKey="codexsun.uiux.sidebar"
       topologySections={uiGalleryTopologySections}
       workspaceTitle="Overview"
     >

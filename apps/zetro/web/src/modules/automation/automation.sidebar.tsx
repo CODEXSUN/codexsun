@@ -11,7 +11,8 @@ export function AutomationSidebar() {
   return (
     <div className="space-y-0.5 p-1.5">
       {runs.tasks.map((task) => (
-        <button
+        <Button
+          variant="ghost"
           className="group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-muted"
           key={task.id}
           onClick={() => void runs.select(task.id)}
@@ -47,7 +48,7 @@ export function AutomationSidebar() {
               <RotateCcw />
             </Button>
           ) : null}
-        </button>
+        </Button>
       ))}
     </div>
   )

@@ -225,7 +225,8 @@ function Changes({
     <div className="grid h-full min-h-[32rem] grid-cols-[16rem_1fr]">
       <aside className="border-r p-2">
         {files.map((file) => (
-          <button
+          <Button
+            variant="ghost"
             aria-current={selected === file.path ? 'page' : undefined}
             className="flex w-full cursor-pointer gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted aria-[current=page]:bg-muted"
             key={file.path}
@@ -237,7 +238,7 @@ function Changes({
               {file.worktreeStatus}
             </span>
             <span className="truncate">{file.path}</span>
-          </button>
+          </Button>
         ))}
         {!files.length ? (
           <p className="p-2 text-sm text-muted-foreground">Working tree is clean.</p>

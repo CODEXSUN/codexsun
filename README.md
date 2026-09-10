@@ -20,13 +20,26 @@ and its linked template before creating a new application runtime.
 Read [the extension standard](assist/architecture/extension-standard.md) before
 adding a reusable add-on, adapter, or extension point.
 
+## Shared web UI ownership
+
+`packages/ui` is the only source owner for reusable web UI. It owns all primitives,
+components, form frames, field controls, blocks, layouts, templates, and visual variants.
+
+Every web application must import these items through public `@codexsun/ui` exports.
+An application must not create or copy an app-local reusable UI implementation.
+Applications own business fields, validation, data, routes, permissions, callbacks,
+workflows, and screen composition. They pass these values to package-owned UI.
+
+`apps/uiux` owns the UIUX Gallery website, gallery pages, examples, specimens, and routes.
+The gallery consumes public `@codexsun/ui` exports, but it is not part of `packages/ui`.
+
 ## Current applications
 
 | Workspace                 | Purpose                                              | Local command                   | Default URL                   |
 | ------------------------- | ---------------------------------------------------- | ------------------------------- | ----------------------------- |
 | `@codexsun/platform-web`  | React, Vite, Tailwind, and shadcn/ui web application | `npm.cmd run dev:web`           | `http://127.0.0.1:6021`       |
 | `@codexsun/platform-api`  | Fastify HTTP API                                     | `npm.cmd run dev:api`           | `http://127.0.0.1:6010`       |
-| `@codexsun/ui-web`        | Independent UI gallery and design-system workspace   | `npm.cmd run dev:ui`            | `http://127.0.0.1:6130`       |
+| `@codexsun/uiux-web`      | Independent UIUX gallery and design-system showcase  | `npm.cmd run dev:uiux`          | `http://127.0.0.1:6130`       |
 | `@codexsun/docs-web`      | Connected MDX documentation workspace                | `npm.cmd run dev:docs`          | `http://127.0.0.1:6040`       |
 | `@codexsun/docs-api`      | Docs vault API and HTML renderer                     | `npm.cmd run dev:docs-api`      | `http://127.0.0.1:6030`       |
 | `@codexsun/devkit-web`    | Project planning registry workspace                  | `npm.cmd run dev:devkit`        | `http://127.0.0.1:6080`       |
@@ -52,7 +65,7 @@ npm.cmd run dev
 npm.cmd run dev:all
 npm.cmd run dev:api
 npm.cmd run dev:web
-npm.cmd run dev:ui
+npm.cmd run dev:uiux
 npm.cmd run dev:zetro
 npm.cmd run dev:zetro-api
 npm.cmd run desktop:zetro:dev

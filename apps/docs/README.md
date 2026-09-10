@@ -14,6 +14,10 @@ MariaDB metadata index.
 - `web` owns the documentation browser and reading experience.
 - `contracts` owns public HTTP response contracts shared by Docs workspaces.
 - `content` is the application-owned source vault.
+- `packages/ui` owns every reusable component, form frame, field control, block,
+  layout, template, and visual variant. Docs uses public `@codexsun/ui` exports.
+- Docs must not create reusable UI copies. It owns document data, validation,
+  callbacks, routes, workflows, and screen composition.
 
 The web workspace supplies Docs navigation and content to the shared
 `@codexsun/ui/layouts/documentation-workspace` frame. It does not maintain a second application

@@ -10,6 +10,10 @@ State the application outcome and why it is a separate composition boundary.
 
 List the responsibilities owned by each API, web, desktop, mobile, or contract workspace. State what does not belong in the application root.
 
+State that `packages/ui` owns all reusable web UI. The application must use public
+`@codexsun/ui` exports and must not create reusable UI copies. List the business data,
+fields, validation, routes, permissions, callbacks, workflows, and composition that remain here.
+
 ## Workspaces and commands
 
 | Workspace        | Purpose       | Development command       | Default address         |

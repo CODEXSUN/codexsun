@@ -1,8 +1,11 @@
 # syntax=docker/dockerfile:1.7
 FROM node:22-bookworm-slim AS builder
 WORKDIR /workspace
+RUN npm install --global npm@12.0.2 --no-audit --no-fund \
+  && test "$(npm --version)" = "12.0.2"
 COPY . .
-RUN --mount=type=cache,target=/root/.npm npm install --global npm@12.0.2 --no-audit --no-fund && npm ci --no-audit --no-fund
+RUN --mount=type=cache,id=codexsun-orship-node-npm,target=/root/.npm,sharing=locked \
+  npm ci --no-audit --no-fund
 ARG PROFILE_ID
 ARG COMPONENT_ID
 RUN npm run runtime:component -- ${PROFILE_ID} ${COMPONENT_ID}
@@ -15,6 +18,6 @@ RUN mkdir -p /opt/agent-tools && cd /opt/agent-tools && npm init -y && npm insta
 ARG PROFILE_ID
 ARG COMPONENT_ID
 COPY --from=builder /workspace/dist/deployments/${PROFILE_ID}/components/${COMPONENT_ID}/root/ ./
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts --no-audit --no-fund && mkdir -p storage/app/private storage/app/public /workspaces && chown -R node:node /app /workspaces
+RUN --mount=type=cache,id=codexsun-agent-crew-worker-runtime-npm,target=/root/.npm,sharing=locked npm ci --omit=dev --ignore-scripts --no-audit --no-fund && mkdir -p storage/app/private storage/app/public /workspaces && chown -R node:node /app /workspaces
 USER node
 CMD ["node", "start.mjs"]

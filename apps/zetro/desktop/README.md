@@ -18,6 +18,9 @@ The build refreshes Platform Core API before it prepares Zetro. It uses the curr
 The installer includes a private Node executable. The installed application does not require a system Node installation.
 
 Desktop data lives in the Tauri application data directory. Worktrees, private records, and logs remain outside the installation directory.
+New desktop worktrees live under the user's home directory at `.zetro/worktrees`.
+This avoids sandbox access failures in MSIX-redirected AppData. Existing AppData worktrees
+are preserved, not moved or deleted; recover any unfinished work there before cleanup.
 
 The generated application data workspace is not a project. A new desktop
 installation asks the user to connect a Git repository through the shared
@@ -35,12 +38,22 @@ The local API can open a registered repository in a fixed editor, Explorer, or W
 
 ```powershell
 npm.cmd run desktop:zetro:dev
+npm.cmd run desktop:zetro:prepare
 npm.cmd run desktop:zetro:msi
 ```
 
-The MSI command writes the installer under `dist/apps/zetro/desktop/target/release/bundle/msi`.
+The prepare command builds the web and API runtime before packaging. The MSI command repeats that
+pre-build and writes the installer under `dist/apps/zetro/desktop/target/release/bundle/msi`.
 
 ## Security
+
+For external supervision, set `ZETRO_SUPERVISOR_TOKEN` in the process environment before launch.
+Use a random value with at least 32 characters. Keep it out of repository files and command arguments.
+The desktop inherits this value. Restart without it to disable access.
+Use the [Supervisor API](../api/src/modules/supervisor/README.md) and CLI with the same token.
+The release runtime explicitly selects production mode, SQLite, and the local task queue.
+Normal exit requests API shutdown through the owned stdin pipe and waits up to eight seconds.
+Process-tree termination is the fallback when that deadline expires.
 
 The main window uses a restricted Content Security Policy. It can connect only to the bundled local Zetro API.
 
@@ -51,11 +64,16 @@ The desktop process uses typed native commands. Add a scoped command before any 
 ## Verification
 
 Run the desktop workspace type check, lint, test, build, and MSI bundle commands on Windows.
+`npm.cmd run test --workspace @codexsun/zetro-desktop` runs Rust tests and packaged API lifecycle checks.
+The runtime test verifies supervisor authentication, readiness, token redaction, shutdown, and port release with temporary SQLite storage.
 
 The MSI requires the Windows WiX prerequisites that Tauri documents.
 
 ## Development record
 
+- [Desktop supervisor bridge](../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
+
+- [Desktop 0.1.17 build](../../../assist/records/zetro/2026-09-10-desktop-0.1.17-build.md)
 - [Zetro Agent Workspace rails](../../../assist/records/zetro/2026-09-09-agent-workspace-rails.md)
 - [First Windows desktop build](../../../assist/records/zetro/2026-09-09-tauri-desktop.md)
 - [Desktop project onboarding](../../../assist/records/zetro/2026-09-09-desktop-project-onboarding.md)

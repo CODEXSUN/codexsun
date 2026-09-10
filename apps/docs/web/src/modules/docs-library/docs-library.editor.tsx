@@ -6,6 +6,7 @@ import { ArrowLeft, Bold, Code2, FilePenLine, Italic, List, Redo2, Save, Undo2 }
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { Button } from '@codexsun/ui/components/button'
+import { Textarea } from '@codexsun/ui/components/textarea'
 import { cn } from '@codexsun/ui/lib/utils'
 
 type EditorMode = 'markdown' | 'write'
@@ -125,7 +126,7 @@ export function DocsLibraryEditor({
             </div>
           ) : null}
           {mode === 'markdown' ? (
-            <textarea
+            <Textarea
               aria-label="Markdown source"
               className="min-h-[32rem] w-full resize-y rounded-lg border bg-card p-5 font-mono text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={source}
@@ -202,7 +203,8 @@ function EditorModeButton({
   onClick: () => void
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       className={cn(
         'inline-flex h-9 cursor-pointer items-center gap-2 border-b-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
         active && 'border-foreground text-foreground',
@@ -213,7 +215,7 @@ function EditorModeButton({
     >
       <Icon className="size-4" />
       {children}
-    </button>
+    </Button>
   )
 }
 

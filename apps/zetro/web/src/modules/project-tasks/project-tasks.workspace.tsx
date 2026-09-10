@@ -3,6 +3,7 @@ import { CheckCircle2, Circle, CircleDot, LoaderCircle } from 'lucide-react'
 import { Badge } from '@codexsun/ui/components/badge'
 import { Button } from '@codexsun/ui/components/button'
 import { Input } from '@codexsun/ui/components/input'
+import { NativeSelect } from '@codexsun/ui/components/native-select'
 import { Textarea } from '@codexsun/ui/components/textarea'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
@@ -86,16 +87,15 @@ function TaskCreateForm({ close }: { close(): void }) {
         value={description}
       />
       <div className="flex items-center justify-between gap-3">
-        <select
+        <NativeSelect
           aria-label="Priority"
-          className="h-9 cursor-pointer rounded-md border bg-background px-3 text-sm"
           onChange={(event) => setPriority(event.target.value as TaskPriority)}
           value={priority}
         >
           <option value="low">Low priority</option>
           <option value="medium">Medium priority</option>
           <option value="high">High priority</option>
-        </select>
+        </NativeSelect>
         <div className="flex gap-2">
           <Button className="cursor-pointer" onClick={close} type="button" variant="ghost">
             Cancel

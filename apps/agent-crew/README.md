@@ -16,6 +16,10 @@ are not dependencies of this application.
 - `web/src/modules/crew-dashboard` owns status, settings guidance, run controls,
   metrics, and dashboard display preferences.
 - `docker` owns the hardened Node/Python worker image guidance.
+- `packages/ui` owns every reusable component, form frame, field control, block,
+  layout, template, and visual variant. This application uses public `@codexsun/ui` exports.
+- Agent Crew must not create reusable UI copies. It owns business data, rules,
+  callbacks, routes, workflows, and screen composition.
 
 ## Workspaces and commands
 

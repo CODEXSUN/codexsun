@@ -16,6 +16,10 @@ export const runtimeBindingSchema = z.strictObject({
 })
 
 export const deploymentComponentSchema = z.strictObject({
+  apiUpstream: z
+    .string()
+    .regex(/^(?:[a-z][a-z0-9-]*|127\.0\.0\.1):[1-9][0-9]{0,4}$/)
+    .optional(),
   buildWorkspaces: z.array(workspaceSchema).min(1),
   defaultPort: z.number().int().min(6000).max(6999),
   dependsOn: z.array(identifierSchema),

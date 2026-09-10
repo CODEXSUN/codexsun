@@ -1,12 +1,12 @@
 {
-  "name": "@codexsun/ui-web",
+  "name": "@codexsun/uiux-web",
   "private": true,
-  "version": "0.1.15",
+  "version": "0.1.18",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
-    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/ui-web.eslintcache",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/uiux-web.eslintcache",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "preview": "vite preview"
   },

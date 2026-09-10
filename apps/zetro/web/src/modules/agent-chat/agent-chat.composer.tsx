@@ -157,7 +157,8 @@ export function AgentChatComposer({
                 <File />
               )}
               <span className="max-w-36 truncate">{attachment.name}</span>
-              <button
+              <Button
+                variant="ghost"
                 aria-label={`Remove ${attachment.name}`}
                 onClick={() =>
                   setAttachments((current) => current.filter(({ id }) => id !== attachment.id))
@@ -165,7 +166,7 @@ export function AgentChatComposer({
                 type="button"
               >
                 <X className="size-3" />
-              </button>
+              </Button>
             </span>
           ))}
         </div>

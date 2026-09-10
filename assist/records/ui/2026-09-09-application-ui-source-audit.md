@@ -24,7 +24,8 @@ continue to enter applications through public `@codexsun/ui` exports.
 
 `tools/check-ui-design-system.mjs` now checks both source imports and every application web
 manifest. It fails when an application adds an external component framework, imports private UI
-source, creates an app-local primitive directory, or returns UI Gallery code to `packages/ui`.
+source, creates an app-local primitive directory, adds a package-owned UI Gallery folder,
+or removes the required UI application gallery.
 
 ## Verification
 

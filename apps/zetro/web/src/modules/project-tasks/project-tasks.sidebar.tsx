@@ -111,7 +111,8 @@ function TaskTitle({ task }: { task: ZetroTask }) {
         </>
       ) : (
         <>
-          <button
+          <Button
+            variant="ghost"
             className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-1 text-left text-sm"
             onClick={() => tasks.selectTask(task.id)}
             title={task.title}
@@ -123,7 +124,7 @@ function TaskTitle({ task }: { task: ZetroTask }) {
             >
               {task.title}
             </span>
-          </button>
+          </Button>
           <div className="flex shrink-0 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100">
             <Button
               aria-label={`Archive ${task.title}`}

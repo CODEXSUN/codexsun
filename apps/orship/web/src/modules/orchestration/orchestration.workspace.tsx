@@ -239,13 +239,14 @@ function ShowHeader({
           </Button>
         </div>
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-sm">
-          <button
+          <Button
+            variant="ghost"
             className="cursor-pointer text-muted-foreground hover:text-foreground"
             onClick={onShowList}
             type="button"
           >
             Live services
-          </button>
+          </Button>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <strong className="truncate capitalize">{applicationId}</strong>
         </nav>

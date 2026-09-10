@@ -40,7 +40,7 @@ export const codexConnectionModuleManifest = {
     'CodexAppServerClient',
   ],
   scope: 'zetro-api',
-  version: '0.7.0',
+  version: '0.7.1',
 } as const
 
 export async function registerCodexConnectionModule(

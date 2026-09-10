@@ -60,7 +60,13 @@ Liveness must not depend on MariaDB. Readiness must return HTTP 503 when a requi
 
 A new web workspace must:
 
-- Use React, TypeScript, Vite, Tailwind, and shared primitives from `packages/ui`.
+- Use React, TypeScript, Vite, Tailwind, and public `@codexsun/ui` exports.
+- Treat `packages/ui` as the only source owner for reusable web UI.
+- Add reusable components, form frames, field controls, blocks, layouts, templates,
+  and visual variants to `packages/ui`.
+- Keep only business data, fields, validation, routes, permissions, callbacks,
+  workflows, and screen composition in the application.
+- Do not create or copy an app-local reusable UI implementation.
 - Keep the root component as a thin composition shell.
 - Set the HTML document title to the exact application name used by the shared MDI shell.
 - Read its API origin from a documented Vite environment key.

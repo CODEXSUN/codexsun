@@ -1,5 +1,13 @@
 import { Badge } from '@codexsun/ui/components/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@codexsun/ui/components/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@codexsun/ui/components/table'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import {
@@ -115,22 +123,26 @@ export function IdeasArchitectureStandards() {
       <TopologyRegion className="mt-12" id="11.9" topology={topology}>
         <h2 className="text-xl font-semibold">CODEXSUN compared with the standard</h2>
         <div className="mt-5 overflow-x-auto rounded-xl border">
-          <table className="w-full min-w-[46rem] text-left text-sm">
-            <thead className="bg-muted/60 text-foreground">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Global standard</th>
-                <th className="px-4 py-3 font-semibold">Current repository pattern</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-[46rem] text-left">
+            <TableHeader className="bg-muted/60 text-foreground">
+              <TableRow>
+                <TableHead className="px-4 py-3 font-semibold">Global standard</TableHead>
+                <TableHead className="px-4 py-3 font-semibold">
+                  Current repository pattern
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {repositoryComparison.map(([standard, implementation]) => (
-                <tr key={standard} className="border-t">
-                  <th className="px-4 py-3 align-top font-medium">{standard}</th>
-                  <td className="px-4 py-3 leading-6 text-muted-foreground">{implementation}</td>
-                </tr>
+                <TableRow key={standard}>
+                  <TableCell className="px-4 py-3 align-top font-medium">{standard}</TableCell>
+                  <TableCell className="px-4 py-3 leading-6 whitespace-normal text-muted-foreground">
+                    {implementation}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </TopologyRegion>
 

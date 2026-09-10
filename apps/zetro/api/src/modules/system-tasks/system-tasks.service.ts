@@ -13,6 +13,7 @@ export class SystemTaskPolicyError extends Error {}
 
 export class SystemTaskService {
   private readonly handlers = new Map<string, SystemTaskHandler>()
+  private readonly singleAttemptTypes = new Set<string>()
   private readonly running = new Map<string, AbortController>()
   private recoveredTaskIds: string[] = []
 
@@ -21,10 +22,15 @@ export class SystemTaskService {
     private readonly queue: SystemTaskQueue,
   ) {}
 
-  public register(type: string, handler: SystemTaskHandler): void {
+  public register(
+    type: string,
+    handler: SystemTaskHandler,
+    options?: { singleAttempt: boolean },
+  ): void {
     if (this.handlers.has(type))
       throw new Error(`System task handler ${type} is already registered.`)
     this.handlers.set(type, handler)
+    if (options?.singleAttempt) this.singleAttemptTypes.add(type)
   }
 
   public async initialize(): Promise<void> {
@@ -35,7 +41,9 @@ export class SystemTaskService {
 
   public async start(): Promise<void> {
     await this.queue.start((taskId) => this.execute(taskId))
-    const pending = (await this.repository.list()).filter(({ status }) => status === 'pending')
+    const pending = (await this.repository.listActive()).filter(
+      ({ status }) => status === 'pending',
+    )
     const taskIds = new Set([...this.recoveredTaskIds, ...pending.map(({ id }) => id)])
     for (const taskId of taskIds) await this.queue.enqueue(taskId)
     this.recoveredTaskIds = []
@@ -43,6 +51,10 @@ export class SystemTaskService {
 
   public list(projectId?: string) {
     return this.repository.list(projectId)
+  }
+
+  public listActive() {
+    return this.repository.listActive()
   }
 
   public async get(taskId: string) {
@@ -96,6 +108,11 @@ export class SystemTaskService {
 
   public async retry(taskId: string): Promise<SystemTaskRecord> {
     const task = await this.get(taskId)
+    if (this.singleAttemptTypes.has(task.type)) {
+      throw new SystemTaskPolicyError(
+        'Review the previous result and submit a new task. This task cannot replay.',
+      )
+    }
     if (!['blocked', 'failed', 'stopped'].includes(task.status)) {
       throw new SystemTaskPolicyError('Only blocked, failed, or stopped tasks can retry.')
     }
@@ -117,6 +134,14 @@ export class SystemTaskService {
     if (!(await this.repository.claim(taskId))) return
     const task = await this.get(taskId)
     const handler = this.handlers.get(task.type)
+    if (this.singleAttemptTypes.has(task.type) && (task.attempts > 0 || task.recoveryCount > 0)) {
+      await this.finish(
+        task,
+        'blocked',
+        'Interrupted execution cannot replay. Review its worktree and submit a new task.',
+      )
+      return
+    }
     if (!handler) {
       await this.finish(task, 'blocked', `No handler is registered for ${task.type}.`)
       return

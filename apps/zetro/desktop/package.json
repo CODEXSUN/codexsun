@@ -1,19 +1,20 @@
 {
   "name": "@codexsun/zetro-desktop",
   "private": true,
-  "version": "0.1.15",
+  "version": "0.1.18",
   "type": "module",
   "scripts": {
+    "test:runtime": "node --test tests/runtime.test.mjs",
     "build": "node ../../../tools/zetro-desktop.mjs build",
     "bundle:msi": "node ../../../tools/zetro-desktop.mjs bundle-msi",
     "dev": "node ../../../tools/zetro-desktop.mjs dev",
     "lint": "node ../../../tools/zetro-desktop.mjs lint",
-    "test": "node ../../../tools/zetro-desktop.mjs test",
+    "test": "node ../../../tools/zetro-desktop.mjs test && node --test tests/runtime.test.mjs",
     "typecheck": "node ../../../tools/zetro-desktop.mjs check"
   },
   "dependencies": {
-    "@codexsun/zetro-api": "^0.1.15",
-    "@codexsun/zetro-web": "^0.1.15"
+    "@codexsun/zetro-api": "^0.1.18",
+    "@codexsun/zetro-web": "^0.1.18"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.11.4",

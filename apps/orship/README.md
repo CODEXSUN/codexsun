@@ -15,6 +15,10 @@ The dashboard and browser favicon use the navy Orship ship mark. The mark shows 
 - `web` owns the live operations workspace, service inspector, command previews, and manual verification capture.
 - `packages/runtime` still owns deployment planning and complete-profile startup.
 - Orship does not own another application's behavior, data, or health policy.
+- `packages/ui` owns every reusable component, form frame, field control, block,
+  layout, template, and visual variant. Orship uses public `@codexsun/ui` exports.
+- Orship must not create reusable UI copies. It owns operational data, validation,
+  callbacks, routes, workflows, and screen composition.
 
 ## Workspaces and commands
 

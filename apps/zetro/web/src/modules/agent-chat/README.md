@@ -17,7 +17,7 @@ The Zetro Desk module only supplies the sidebar and workspace surfaces.
 
 ## Dependency bindings
 
-- `zetro.chat.api`: `^0.12.0`
+- `zetro.chat.api`: `^0.13.0`
 - `zetro.desk.web`: `^0.8.0`
 - `zetro.projects.web`: `^0.5.0`
 - `zetro.project-tasks.web`: `^0.4.1`
@@ -69,6 +69,7 @@ Assistant responses render CommonMark and GitHub Flavored Markdown as semantic
 HTML. The renderer styles headings, paragraphs, lists, links, quotes, code,
 tables, task lists, and separators. It ignores raw HTML from provider output.
 User prompts keep their original plain-text formatting.
+Markdown tables use the public `@codexsun/ui/components/table` primitives.
 
 The Markdown renderer loads as a separate local chunk. This keeps the main
 startup chunk below the 400 KB limit. The renderer uses no syntax highlighter,

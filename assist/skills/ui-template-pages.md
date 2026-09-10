@@ -2,19 +2,24 @@
 
 ## Use this when
 
-Use this guide when you add or change a component, block, form, table, layout, or UI Gallery
-documentation page in `apps/ui/web`.
+Use this guide when you add or change a component, block, form, table, layout, or UI Gallery page
+in `apps/uiux/web/src/modules/gallery`.
 
 Also read [Web UI](web-ui.md) when the change affects an application workspace.
 
 ## Standard owner
 
+- Treat `packages/ui` as the only source owner for reusable web UI.
+- Add every reusable component, form frame, field control, block, layout, template,
+  and visual variant to `packages/ui` before gallery wiring.
 - Use `UiTemplatePage` from `@codexsun/ui/templates/ui-page`.
 - Keep the template source in `packages/ui/src/templates/ui-page`.
 - Keep gallery pages, catalogs, previews, examples, and code samples in
-  `apps/ui/web/src/modules/gallery`.
+  `apps/uiux/web/src/modules/gallery`.
 - Keep reusable primitives, blocks, pages, layouts, and generic templates in `packages/ui`.
 - Import live specimens only through public `@codexsun/ui` exports; never package-private source.
+- Do not implement shared UI inside `apps/uiux`. The application owns gallery pages,
+  examples, routes, navigation, environment, and browser state.
 - Do not recreate the page header, width, spacing, code panel, or navigation in a documentation page.
 - Use `kind="Component"` for primitives, `kind="Block"` for composed shared UI, and
   `kind="Layout"` for application shells.

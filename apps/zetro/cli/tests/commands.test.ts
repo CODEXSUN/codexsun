@@ -9,12 +9,33 @@ test('requires confirmation before a push', async () => {
   )
 })
 
+test('supervisor submission requires an explicit review confirmation', async () => {
+  await assert.rejects(runCommand(['supervisor', 'submit', 'request.json'], context()), /--confirm/)
+})
+
+test('supervisor status uses only the supervisor route', async () => {
+  const calls: Array<{ body?: unknown; path: string }> = []
+  await runCommand(['supervisor', 'jobs'], context(calls))
+  assert.deepEqual(calls, [{ path: '/api/v1/supervisor/jobs' }])
+})
+
 test('maps a repository script to the durable script-task route', async () => {
   const calls: Array<{ body?: unknown; path: string }> = []
   await runCommand(['run', 'project-id', 'test'], context(calls))
   assert.deepEqual(calls, [
     {
       body: { script: 'test' },
+      path: '/api/v1/projects/project-id/developer-tools/script-tasks',
+    },
+  ])
+})
+
+test('maps the shared UI audit to the deterministic repository gate', async () => {
+  const calls: Array<{ body?: unknown; path: string }> = []
+  await runCommand(['ui-audit', 'project-id'], context(calls))
+  assert.deepEqual(calls, [
+    {
+      body: { script: 'check:ui-system' },
       path: '/api/v1/projects/project-id/developer-tools/script-tasks',
     },
   ])

@@ -13,6 +13,10 @@ development confirmation.
 - `api` owns the project registry HTTP contract and JSON storage lifecycle.
 - `web` owns the planning reader, recursive drill-down, and confirmation controls.
 - `contracts` owns the shared request and response schema.
+- `packages/ui` owns every reusable component, form frame, field control, block,
+  layout, template, and visual variant. DevKit uses public `@codexsun/ui` exports.
+- DevKit must not create reusable UI copies. It owns business data, validation,
+  callbacks, routes, workflows, and screen composition.
 
 ## Workspaces and commands
 

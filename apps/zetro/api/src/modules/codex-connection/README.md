@@ -3,13 +3,15 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.7.0`
+- Version: `0.7.1`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
 The module owns one local `codex app-server` process and communicates over its JSONL stdio protocol. Codex owns token storage and refresh.
 
 Zetro never reads or returns the Codex auth cache. An optional `ZETRO_CODEX_API_KEY` becomes `OPENAI_API_KEY` only inside the App Server child process.
+
+The child environment removes Zetro supervisor, desktop-session, and connected-application access tokens.
 
 ## Device activation
 
@@ -30,6 +32,12 @@ reasoning effort. The model overrides `ZETRO_CODEX_MODEL` for that turn. The
 account or environment default still applies when the request omits a model.
 
 Each Zetro conversation uses one detached Git worktree. The worktree path is `<ZETRO_WORKTREE_ROOT>/<conversation-id>` and starts from repository `HEAD`.
+Worktree Git commands set `core.longpaths=true` per command for deep Windows desktop paths.
+This does not change the global or repository Git configuration.
+Ownership checks compare resolved filesystem paths to support Windows AppData redirection.
+Thread and turn requests both receive the resolved working directory. Failed command details
+are redacted and limited to 2,000 characters. The 20-item activity summary keeps failures first.
+Desktop worktrees use the user's `.zetro/worktrees` directory so the Windows sandbox can access them.
 
 The chat workspace scope maps its repository-relative folder into this
 worktree. The App Server starts from that folder. Its instructions limit normal
@@ -69,6 +77,8 @@ Run the API typecheck, build, connection tests, workflow tests, history tests, a
 A complete activation requires user sign-in in the browser. A live coding turn must prove file edits and command activity.
 
 ## Development records
+
+- [Desktop supervisor bridge](../../../../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
 
 - [2026-09-09 Codex model selection](../../../../../../assist/records/zetro/2026-09-09-codex-model-selection.md)
 - [2026-09-09 Chat turn stop](../../../../../../assist/records/zetro/2026-09-09-chat-turn-stop.md)

@@ -11,7 +11,7 @@ const repositories = [
     remote: 'origin',
   },
 ]
-const actions = ['compare', 'pull', 'build', 'compose'] as const
+const actions = ['compare', 'pull'] as const
 type Action = (typeof actions)[number]
 
 export function RepositoryWorkspace() {

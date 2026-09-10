@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import type { ZetroCliApi } from './client.js'
+import { runSupervisorCommand } from './supervisor.js'
 
 export interface CliContext {
   client: ZetroCliApi
@@ -10,6 +11,7 @@ export interface CliContext {
 export async function runCommand(args: string[], context: CliContext): Promise<void> {
   const [command = 'help', ...rest] = args
   if (command === 'help') return context.write(helpText())
+  if (command === 'supervisor') return runSupervisorCommand(rest, context)
   if (command === 'health') return context.write(await context.client.get('/health/ready'))
   if (command === 'projects') return context.write(await context.client.get('/api/v1/projects'))
   if (command === 'metrics')
@@ -23,6 +25,7 @@ export async function runCommand(args: string[], context: CliContext): Promise<v
   if (command === 'stop' || command === 'retry') return updateTask(command, rest, context)
   if (command === 'status') return projectGet(rest, 'developer-tools/status', context)
   if (command === 'scripts') return projectGet(rest, 'developer-tools/scripts', context)
+  if (command === 'ui-audit') return runSharedUiAudit(rest, context)
   if (command === 'run') return runScript(rest, context)
   if (command === 'launch') return launchTool(rest, context)
   if (command === 'git') return runGit(rest, context)
@@ -79,6 +82,15 @@ async function runScript(args: string[], context: CliContext): Promise<void> {
   context.write(
     await context.client.post(`/api/v1/projects/${projectId}/developer-tools/script-tasks`, {
       script,
+    }),
+  )
+}
+
+async function runSharedUiAudit(args: string[], context: CliContext): Promise<void> {
+  const projectId = required(args[0], 'project ID')
+  context.write(
+    await context.client.post(`/api/v1/projects/${projectId}/developer-tools/script-tasks`, {
+      script: 'check:ui-system',
     }),
   )
 }
@@ -204,9 +216,12 @@ function required(value: string | undefined, name: string): string {
 export function helpText(): string {
   return [
     'Zetro deterministic automation CLI',
+    'zetro desktop-session <release-executable> (JSON command arrays on stdin)',
     '',
     'zetro projects | health | metrics | diagnostics [file]',
     'zetro status <project> | scripts <project> | run <project> <script>',
+    'zetro ui-audit <project>',
+    'zetro supervisor capabilities|projects|jobs|job <id>|stop <id>|connect|submit <request.json> --confirm',
     'zetro tasks [project] | task <id> | watch <id> | stop <id> | retry <id>',
     'zetro git fetch|sync|commit|push <project> [options]',
     'zetro release preview|run <project> [options]',

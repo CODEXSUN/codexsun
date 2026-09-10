@@ -1,17 +1,26 @@
 #!/usr/bin/env node
 import { ZetroCliClient } from './client.js'
 import { runCommand } from './commands.js'
+import { runDesktopSession } from './desktop-session.js'
 
 const args = process.argv.slice(2)
 const json = takeFlag(args, '--json')
 const apiUrl = takeOption(args, '--api') ?? process.env.ZETRO_API_URL ?? 'http://127.0.0.1:6050'
 const sessionToken = process.env.ZETRO_SESSION_TOKEN
-const client = new ZetroCliClient({ apiUrl, sessionToken })
+const client = new ZetroCliClient({
+  apiUrl,
+  sessionToken,
+  supervisorToken: process.env.ZETRO_SUPERVISOR_TOKEN,
+})
 
-runCommand(args, {
-  client,
-  write: (value) => process.stdout.write(`${format(value, json)}\n`),
-}).catch((error: unknown) => {
+const execution =
+  args[0] === 'desktop-session'
+    ? runDesktopSession(args[1])
+    : runCommand(args, {
+        client,
+        write: (value) => process.stdout.write(`${format(value, json)}\n`),
+      })
+execution.catch((error: unknown) => {
   process.stderr.write(
     `Zetro CLI error: ${error instanceof Error ? error.message : 'Unknown error.'}\n`,
   )

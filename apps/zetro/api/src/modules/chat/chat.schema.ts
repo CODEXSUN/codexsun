@@ -62,6 +62,7 @@ const executionSchema = z.strictObject({
   activities: z
     .array(
       z.strictObject({
+        details: z.string().max(2_000).optional(),
         kind: z.enum(['command', 'file_change', 'mcp']),
         label: z.string().min(1).max(500),
         status: z.string().min(1).max(80),

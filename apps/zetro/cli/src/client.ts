@@ -3,6 +3,8 @@ import { writeFile } from 'node:fs/promises'
 export interface ZetroClientOptions {
   apiUrl: string
   sessionToken?: string
+  supervisorToken?: string
+  timeoutMs?: number
 }
 
 export interface ZetroCliApi {
@@ -35,7 +37,12 @@ export class ZetroCliClient implements ZetroCliApi {
 
   private async request(path: string, init: RequestInit = {}): Promise<unknown> {
     const headers = this.headers(init.body ? { 'Content-Type': 'application/json' } : undefined)
-    const response = await fetch(this.url(path), { ...init, headers })
+    const response = await fetch(this.url(path), {
+      ...init,
+      headers,
+      redirect: 'error',
+      signal: AbortSignal.timeout(this.options.timeoutMs ?? 30_000),
+    })
     const text = await response.text()
     const payload = text ? parseJson(text) : null
     if (!response.ok) throw new Error(readPayloadError(payload, response.status))
@@ -47,6 +54,8 @@ export class ZetroCliClient implements ZetroCliApi {
     if (this.options.sessionToken) {
       headers.set('X-Zetro-Session-Token', this.options.sessionToken)
     }
+    if (this.options.supervisorToken)
+      headers.set('Authorization', `Bearer ${this.options.supervisorToken}`)
     return headers
   }
 

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Bot, File, LoaderCircle, Square, User } from 'lucide-react'
+import { Button } from '@codexsun/ui/components/button'
 import { ScrollArea } from '@codexsun/ui/components/scroll-area'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
@@ -85,7 +86,8 @@ function WorkingElapsed({ onStop, startedAt }: { onStop(): Promise<void>; starte
   }, [startedAt])
 
   return (
-    <button
+    <Button
+      variant="ghost"
       aria-label="Stop response"
       aria-live="off"
       className="group/stop flex w-fit cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm text-muted-foreground transition-colors hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 dark:hover:bg-orange-950/30"
@@ -98,7 +100,7 @@ function WorkingElapsed({ onStop, startedAt }: { onStop(): Promise<void>; starte
       <span className="shimmer shimmer-color-orange-500 text-foreground/40 group-hover/stop:text-orange-600 group-focus-visible/stop:text-orange-600">
         Working for {formatElapsed(seconds)}
       </span>
-    </button>
+    </Button>
   )
 }
 
@@ -116,14 +118,15 @@ function EmptyConversation({ onStarter }: { onStarter(value: string): void }) {
       </div>
       <div className="w-full max-w-xl divide-y rounded-xl border bg-background text-left">
         {starters.map((starter) => (
-          <button
+          <Button
+            variant="ghost"
             className="flex w-full items-center px-4 py-3 text-sm transition-colors hover:bg-muted"
             key={starter}
             onClick={() => onStarter(starter)}
             type="button"
           >
             {starter}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

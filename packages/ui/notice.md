@@ -5,24 +5,16 @@ Date: 2026-09-09
 ## Scope
 
 This notice records the reference audit for `packages/ui`.
-The audit covered 191 source, data, and style files and 62 shared components.
+The audit covered the package source, data, style files, and shared components.
 
 Do not remove a public component only because an application does not use it today.
 The `./components/*` package export makes each component part of the public package contract.
 
-## Confirmed unreachable files
+## Gallery boundary
 
-These application-owned legacy gallery compositions remain cleanup candidates when the active
-gallery no longer references them:
-
-- `apps/ui/web/src/modules/gallery/gallery-card.tsx`
-- `apps/ui/web/src/modules/gallery/gallery-data.tsx`
-- `apps/ui/web/src/modules/gallery/gallery-forms.tsx`
-- `apps/ui/web/src/modules/gallery/gallery-foundations.tsx`
-- `apps/ui/web/src/modules/gallery/gallery-overlays.tsx`
-- `apps/ui/web/src/modules/gallery/gallery-workspace-blocks.tsx`
-
-Review the final diff before removal because the working tree can contain concurrent changes.
+The UIUX Gallery belongs to `apps/uiux/web/src/modules/gallery`. It consumes package components
+through public `@codexsun/ui` exports. Do not add gallery source to this package.
+Other applications must not import UIUX or depend on `@codexsun/uiux-web`.
 
 ## Gallery-only public components
 
@@ -101,12 +93,12 @@ The live UI documentation uses the Form block. Review the other exports before d
 - Used by shared UI code: 16 components
 - Used only by the UI gallery: 27 components
 - Completely unreferenced component files: 0
-- Confirmed unreachable legacy files: 6
+- Package-owned gallery composition files: 0
 - Obvious temporary, backup, or copied files: 0
 
 ## Cleanup boundary
 
-1. Remove only the six confirmed unreachable gallery files in the first cleanup.
+1. Keep gallery code in `apps/uiux`; keep reusable UI implementation in `packages/ui`.
 2. Run the UI typecheck, lint, build, and package boundary checks.
 3. Review public usage before removing a component or package export.
 4. Add a deprecation record for every intentional public contract removal.

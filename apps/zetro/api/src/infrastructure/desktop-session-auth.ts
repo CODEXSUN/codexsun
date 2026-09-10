@@ -10,9 +10,24 @@ export function registerDesktopSessionAuth(
 ): void {
   const expected = environment.ZETRO_DESKTOP_SESSION_TOKEN
   const connectedAppToken = environment.ZETRO_CONNECTED_APP_TOKEN
-  if (!expected && !connectedAppToken) return
-
   server.addHook('onRequest', async (request, reply) => {
+    const path = request.url.split('?')[0]
+    if (path === '/api/v1/supervisor' || path?.startsWith('/api/v1/supervisor/')) {
+      const token = environment.ZETRO_SUPERVISOR_TOKEN
+      if (!token) return reply.code(503).send({ error: 'Supervisor access is disabled.' })
+      if (
+        request.headers.origin ||
+        !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.ip)
+      ) {
+        return reply
+          .code(403)
+          .send({ error: 'Supervisor access requires a local non-browser client.' })
+      }
+      if (!matchesToken(request.headers.authorization, `Bearer ${token}`)) {
+        return reply.code(401).send({ error: 'The supervisor token is missing or invalid.' })
+      }
+      return
+    }
     if (request.method === 'OPTIONS' || request.url.startsWith('/health')) return
     if (request.method === 'POST' && request.url.startsWith('/api/v1/connected-apps/metrics')) {
       if (

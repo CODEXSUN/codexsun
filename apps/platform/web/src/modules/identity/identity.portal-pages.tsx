@@ -1,5 +1,14 @@
 import { ClientPortalPage } from '@codexsun/ui/blocks/auth'
 import { Button } from '@codexsun/ui/components/button'
+import { Input } from '@codexsun/ui/components/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@codexsun/ui/components/table'
 import type {
   IdentityManagedUser,
   IdentityRole,
@@ -127,25 +136,25 @@ function UserTable({
       queryClient.invalidateQueries({ queryKey: ['identity', 'administrator', 'users'] }),
   })
   return (
-    <table className="w-full text-sm">
-      <thead className="bg-muted/40 text-left">
-        <tr>
-          <th className="px-5 py-3">Name</th>
-          <th className="px-5 py-3">Email</th>
-          <th className="px-5 py-3">Portal</th>
-          <th className="px-5 py-3">Status</th>
-          {editable ? <th className="px-5 py-3 text-right">Actions</th> : null}
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader className="bg-muted/40 text-left">
+        <TableRow>
+          <TableHead className="px-5 py-3">Name</TableHead>
+          <TableHead className="px-5 py-3">Email</TableHead>
+          <TableHead className="px-5 py-3">Portal</TableHead>
+          <TableHead className="px-5 py-3">Status</TableHead>
+          {editable ? <TableHead className="px-5 py-3 text-right">Actions</TableHead> : null}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {users.map((user) => (
-          <tr className="border-t" key={user.id}>
-            <td className="px-5 py-3 font-medium">{user.displayName}</td>
-            <td className="px-5 py-3">{user.email}</td>
-            <td className="px-5 py-3">{user.portal}</td>
-            <td className="px-5 py-3">{user.status}</td>
+          <TableRow key={user.id}>
+            <TableCell className="px-5 py-3 font-medium">{user.displayName}</TableCell>
+            <TableCell className="px-5 py-3">{user.email}</TableCell>
+            <TableCell className="px-5 py-3">{user.portal}</TableCell>
+            <TableCell className="px-5 py-3">{user.status}</TableCell>
             {editable ? (
-              <td className="space-x-2 px-5 py-3 text-right">
+              <TableCell className="space-x-2 px-5 py-3 text-right">
                 {roles.map((role) => (
                   <Button
                     key={role.id}
@@ -178,12 +187,12 @@ function UserTable({
                 >
                   {user.status === 'active' ? 'Disable' : 'Enable'}
                 </Button>
-              </td>
+              </TableCell>
             ) : null}
-          </tr>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   )
 }
 
@@ -209,14 +218,14 @@ function RoleManager({ roles }: { roles: readonly IdentityRole[] }) {
   return (
     <div className="space-y-4 p-5">
       <div className="flex flex-wrap gap-3">
-        <input
-          className="h-10 rounded-md border bg-background px-3"
+        <Input
+          className="h-10 w-56"
           placeholder="Role name"
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <input
-          className="h-10 min-w-80 flex-1 rounded-md border bg-background px-3"
+        <Input
+          className="h-10 min-w-80 flex-1"
           placeholder="Permissions, comma separated"
           value={permissions}
           onChange={(event) => setPermissions(event.target.value)}
@@ -241,33 +250,33 @@ function RoleManager({ roles }: { roles: readonly IdentityRole[] }) {
 
 function SecurityTable({ events }: { events: readonly IdentitySecurityEvent[] }) {
   return (
-    <table className="w-full text-sm">
-      <thead className="bg-muted/40 text-left">
-        <tr>
-          <th className="px-5 py-3">Time</th>
-          <th className="px-5 py-3">Event</th>
-          <th className="px-5 py-3">Outcome</th>
-          <th className="px-5 py-3">Risk</th>
-          <th className="px-5 py-3">Client</th>
-          <th className="px-5 py-3">Address</th>
-          <th className="px-5 py-3">Path</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader className="bg-muted/40 text-left">
+        <TableRow>
+          <TableHead className="px-5 py-3">Time</TableHead>
+          <TableHead className="px-5 py-3">Event</TableHead>
+          <TableHead className="px-5 py-3">Outcome</TableHead>
+          <TableHead className="px-5 py-3">Risk</TableHead>
+          <TableHead className="px-5 py-3">Client</TableHead>
+          <TableHead className="px-5 py-3">Address</TableHead>
+          <TableHead className="px-5 py-3">Path</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {events.map((event) => (
-          <tr className="border-t" key={event.id}>
-            <td className="px-5 py-3 whitespace-nowrap">
+          <TableRow key={event.id}>
+            <TableCell className="px-5 py-3 whitespace-nowrap">
               {new Date(event.createdAt).toLocaleString()}
-            </td>
-            <td className="px-5 py-3">{event.eventType}</td>
-            <td className="px-5 py-3">{event.outcome}</td>
-            <td className="px-5 py-3">{event.risk}</td>
-            <td className="px-5 py-3">{event.clientType ?? 'unknown'}</td>
-            <td className="px-5 py-3">{event.ipAddress ?? 'unknown'}</td>
-            <td className="max-w-72 truncate px-5 py-3">{event.path ?? '—'}</td>
-          </tr>
+            </TableCell>
+            <TableCell className="px-5 py-3">{event.eventType}</TableCell>
+            <TableCell className="px-5 py-3">{event.outcome}</TableCell>
+            <TableCell className="px-5 py-3">{event.risk}</TableCell>
+            <TableCell className="px-5 py-3">{event.clientType ?? 'unknown'}</TableCell>
+            <TableCell className="px-5 py-3">{event.ipAddress ?? 'unknown'}</TableCell>
+            <TableCell className="max-w-72 truncate px-5 py-3">{event.path ?? '—'}</TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   )
 }

@@ -66,7 +66,14 @@ These rules are mandatory for every application, package, module, and agent.
 - Keep module API calls in `{module}.services.ts` and query behavior in `{module}.hooks.ts`.
 - Keep executable validation in `{module}.schema.ts` and module-specific types in `{module}.types.ts`.
 - Keep forms, lists, details, and workspaces as distinct implementations with distinct responsibilities.
-- Use shared design tokens and UI primitives. Keep business forms, views, and workflows in the owning module.
+- Treat `packages/ui` as the only source owner for reusable web UI.
+- Put reusable primitives, components, form frames, field controls, blocks, layouts,
+  templates, and visual variants in `packages/ui`.
+- Import shared UI only through public `@codexsun/ui` exports.
+- Do not create or copy an app-local reusable UI component, form framework, block,
+  layout, or visual variant.
+- Keep business fields, validation, data, routes, permissions, callbacks, workflows,
+  and screen composition in the owning module. Pass them to package-owned UI.
 - Provide loading, empty, error, permission, and success states for user-facing module flows.
 
 ## Documentation

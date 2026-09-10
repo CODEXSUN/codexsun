@@ -168,7 +168,8 @@ function HistoryRow({ conversation }: { conversation: ChatConversationSummary })
         </>
       ) : (
         <>
-          <button
+          <Button
+            variant="ghost"
             className="min-w-0 flex-1 truncate px-1 text-left text-sm"
             disabled={chat.isBusy}
             onClick={() => void chat.openConversation(conversation.id)}
@@ -176,7 +177,7 @@ function HistoryRow({ conversation }: { conversation: ChatConversationSummary })
             type="button"
           >
             {conversation.title}
-          </button>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={

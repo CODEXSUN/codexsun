@@ -56,12 +56,13 @@
           "portEnvironmentKey": "PLATFORM_WEB_PORT",
           "defaultPort": 6021,
           "healthPath": "/",
+          "apiUpstream": "platform-api:6010",
           "dependsOn": ["platform-api"]
         }
       ]
     },
     {
-      "id": "ui",
+      "id": "uiux",
       "version": "0.1.0",
       "requires": [],
       "runtimeBindings": [
@@ -70,15 +71,16 @@
       ],
       "components": [
         {
-          "id": "ui-web",
+          "id": "uiux-web",
           "kind": "web",
           "runtime": "static",
-          "workspace": "@codexsun/ui-web",
-          "buildWorkspaces": ["@codexsun/ui", "@codexsun/ui-web"],
-          "outputPath": "dist/apps/ui/web",
-          "portEnvironmentKey": "UI_WEB_PORT",
+          "workspace": "@codexsun/uiux-web",
+          "buildWorkspaces": ["@codexsun/ui", "@codexsun/uiux-web"],
+          "outputPath": "dist/apps/uiux/web",
+          "portEnvironmentKey": "UIUX_WEB_PORT",
           "defaultPort": 6130,
           "healthPath": "/",
+          "apiUpstream": "127.0.0.1:9",
           "dependsOn": []
         }
       ]
@@ -123,6 +125,7 @@
           "portEnvironmentKey": "DOCS_WEB_PORT",
           "defaultPort": 6040,
           "healthPath": "/",
+          "apiUpstream": "docs-api:6030",
           "dependsOn": ["docs-api"]
         }
       ]
@@ -163,6 +166,7 @@
           "portEnvironmentKey": "ZETRO_WEB_PORT",
           "defaultPort": 6060,
           "healthPath": "/",
+          "apiUpstream": "zetro-api:6050",
           "dependsOn": ["zetro-api"]
         }
       ]
@@ -207,6 +211,7 @@
           "portEnvironmentKey": "DEVKIT_WEB_PORT",
           "defaultPort": 6080,
           "healthPath": "/",
+          "apiUpstream": "devkit-api:6070",
           "dependsOn": ["devkit-api"]
         }
       ]
@@ -226,8 +231,13 @@
           "id": "agent-crew-api",
           "kind": "api",
           "runtime": "node",
+          "dockerfile": ".container/docker/Dockerfile.agent-api",
           "workspace": "@codexsun/agent-crew-api",
-          "buildWorkspaces": ["@codexsun/platform-core-api", "@codexsun/agent-crew-api"],
+          "buildWorkspaces": [
+            "@codexsun/framework",
+            "@codexsun/platform-core-api",
+            "@codexsun/agent-crew-api"
+          ],
           "outputPath": "dist/apps/agent-crew/api",
           "startFile": "dist/apps/agent-crew/api/server.js",
           "environment": { "AGENT_CREW_WORKER_URL": "http://agent-crew-worker:6120" },
@@ -247,6 +257,7 @@
           "portEnvironmentKey": "AGENT_CREW_WEB_PORT",
           "defaultPort": 6110,
           "healthPath": "/",
+          "apiUpstream": "agent-crew-api:6100",
           "dependsOn": ["agent-crew-api"]
         },
         {
@@ -318,6 +329,7 @@
           "portEnvironmentKey": "ORSHIP_WEB_PORT",
           "defaultPort": 6091,
           "healthPath": "/",
+          "apiUpstream": "orship-api:6090",
           "dependsOn": ["orship-api"]
         }
       ]

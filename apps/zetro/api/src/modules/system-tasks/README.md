@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.system-tasks.api`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Owner: Zetro API
 - Data schema: `1`
 
@@ -23,6 +23,10 @@ The module stores tasks and step history in module-owned SQLite or MariaDB table
 SQLite uses WAL mode. Startup returns interrupted tasks to `pending` and records a
 recovery step.
 
+Handlers can register with `{singleAttempt: true}`. These tasks cannot retry and become blocked
+after interrupted execution. This policy prevents agent jobs from repeating changes after restart.
+Active-task queries bypass the recent-history limit. Local queue shutdown waits for active execution before storage closes.
+
 The local queue is the desktop default. Set `ZETRO_QUEUE_DRIVER=bullmq` and
 `REDIS_URL` to run retryable work through BullMQ. Queue messages contain only task IDs.
 
@@ -37,5 +41,7 @@ Run the Zetro API type check and system task tests. Kill a worker during a runni
 test task. Restart it and confirm that the task returns to `pending`.
 
 ## Development records
+
+- [Desktop supervisor bridge](../../../../../../assist/records/zetro/2026-09-10-desktop-supervisor.md)
 
 - [2026-09-09 Production foundation](../../../../../../assist/records/zetro/2026-09-09-production-foundation.md)

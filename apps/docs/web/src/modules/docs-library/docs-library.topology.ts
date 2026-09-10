@@ -204,4 +204,12 @@ export const docsTopologySections: readonly InterfaceTopologySection[] = [
     scope: 'Ideas workspace',
     description: 'Lists the checks required before a cross-application change.',
   },
+  {
+    id: '11.18',
+    technicalName: 'docs.ideas.domainDeploymentFlow',
+    name: 'Domain and deployment flow',
+    scope: 'Ideas workspace',
+    description:
+      'Shows the separate build and live-request paths from a domain to a deployed service.',
+  },
 ]

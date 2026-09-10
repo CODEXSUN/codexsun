@@ -88,13 +88,14 @@ export function OrchestrationDetails({
             <h1 className="text-lg font-semibold capitalize">{services[0]?.applicationId}</h1>
             <span className="text-sm text-muted-foreground">Combined runtime report</span>
             {lastVerifiedDeployment ? (
-              <button
+              <Button
+                variant="ghost"
                 className="cursor-pointer text-sm text-muted-foreground underline-offset-4 hover:underline"
                 onClick={() => setActivePanel('deployment')}
                 type="button"
               >
                 Last verified deployment · {lastVerifiedDeployment.repository.commit}
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>

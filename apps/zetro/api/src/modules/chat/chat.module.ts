@@ -37,9 +37,12 @@ export const chatModuleManifest = {
     deactivate: 'Stop accepting new chat turns with the API runtime.',
     install: 'Create the module-owned conversation table and import legacy history once.',
     uninstall: 'Keep conversation history unless an explicit data removal flow runs.',
-    upgrade: 'Version 0.12.1 adds explicit file and image interpretation guidance.',
+    upgrade: 'Version 0.13.0 exposes public conversation and turn services for the supervisor.',
   },
   publicContracts: [
+    'ChatService',
+    'ChatConversationService',
+    'validateChatWorkspaceScope',
     'POST /api/v1/chat/responses',
     'POST /api/v1/chat/responses/:conversationId/stop',
     'GET /api/v1/chat/conversations',
@@ -50,7 +53,7 @@ export const chatModuleManifest = {
     'DELETE /api/v1/chat/conversations/archived',
   ],
   scope: 'zetro-api',
-  version: '0.12.1',
+  version: '0.13.0',
 } as const
 
 export async function registerChatModule(
@@ -69,10 +72,8 @@ export async function registerChatModule(
     defaultProjectId,
   )
   await repository.initialize()
-  await registerChatRoutes(
-    server,
-    new ChatService(provider),
-    new ChatConversationService(repository),
-    projects,
-  )
+  const service = new ChatService(provider)
+  const conversations = new ChatConversationService(repository)
+  await registerChatRoutes(server, service, conversations, projects)
+  return { service, conversations }
 }

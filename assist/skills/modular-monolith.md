@@ -28,6 +28,11 @@ Also read the API or Web UI skill for the module surface that changes.
 - Declare published and consumed event versions before wiring handlers.
 - Run database changes through the application transaction adapter and immutable checksum ledger.
 - Keep composition roots free of business CRUD behavior.
+- Use public `@codexsun/ui` exports for every reusable web UI item.
+- Add reusable components, form frames, field controls, blocks, layouts, templates,
+  and visual variants to `packages/ui`. Do not create a module-local reusable copy.
+- Keep business data, fields, validation, routes, permissions, callbacks, workflows,
+  and screen composition in the owning module.
 - Keep authored files at 700 lines or fewer.
 - Update the module README and app catalog in the same patch.
 - Record references, binding properties, parallel work, decisions, and verification under `assist/records/<app>`.

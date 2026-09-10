@@ -17,7 +17,7 @@ applications that use that foundation.
 | `apps/orship`                       | Orship           | Local service observation and guarded controls                                  |
 | `packages/framework`                | Framework        | Module lifecycle and dependency registry                                        |
 | `packages/platform-core`            | Platform Core    | Reusable API, web, desktop, and shared contracts                                |
-| `packages/ui`                       | UI               | Shared shadcn primitives, layouts, templates, hooks, tokens, and Tailwind theme |
+| `packages/ui`                       | UI               | All reusable web UI, forms, blocks, layouts, variants, tokens, and theme assets |
 | `packages/runtime` and `.container` | Runtime assembly | Deployment catalog, profile validation, and immutable plans                     |
 
 The web app must use documented HTTP contracts to communicate with the API. It must not import API source files. The API owns input validation, persistence integration, and background-job registration.
@@ -52,7 +52,12 @@ packages/platform-core/*         -> shared platform code
 packages/ui                      -> shared web UI package for every application
 ```
 
-Platform Core separates API, web, desktop, shared contracts, and mobile UI contracts. `packages/ui` owns reusable web UI primitives, application layouts, templates, design tokens, hooks, and theme assets. `@codexsun/ui/layouts/mdi-main` is the shared base frame for web applications; product workspaces remain app-owned children. Product applications can use public package contracts, but must not import another product's private source.
+Platform Core separates API, web, desktop, shared contracts, and mobile UI contracts.
+`packages/ui` owns every reusable web primitive, component, form frame, field control,
+block, layout, template, visual variant, token, hook, and theme asset. Applications
+consume public `@codexsun/ui` exports and must not create reusable UI copies. They own
+business data, fields, validation, routes, permissions, workflows, and screen composition.
+`@codexsun/ui/layouts/mdi-main` is the shared base frame for web applications.
 
 ## Infrastructure status
 

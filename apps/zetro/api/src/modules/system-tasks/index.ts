@@ -1,5 +1,5 @@
 export { registerSystemTasksModule, systemTasksModuleManifest } from './system-tasks.module.js'
-export { SystemTaskService } from './system-tasks.service.js'
+export { SystemTaskService, SystemTaskNotFoundError } from './system-tasks.service.js'
 export type {
   SystemTaskContext,
   SystemTaskDetail,

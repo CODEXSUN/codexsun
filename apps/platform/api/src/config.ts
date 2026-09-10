@@ -22,6 +22,7 @@ const environmentSchema = z
     PLATFORM_API_HOST: z.string().min(1).default('127.0.0.1'),
     PLATFORM_API_PORT: z.coerce.number().int().min(6000).max(6999).default(6010),
     PLATFORM_WEB_ORIGIN: z.url().default('http://127.0.0.1:6021'),
+    ORSHIP_WEB_ORIGIN: z.url().default('http://127.0.0.1:6091'),
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
     LOG_PRETTY: z.enum(['true', 'false']).optional(),
     SHUTDOWN_GRACE_MS: z.coerce.number().int().min(1_000).max(60_000).default(10_000),

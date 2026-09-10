@@ -10,6 +10,7 @@ export class LocalSystemTaskQueue implements SystemTaskQueue {
   private handler: ((taskId: string) => Promise<void>) | null = null
   private readonly pending: string[] = []
   private running = false
+  private drained: Promise<void> = Promise.resolve()
 
   public async start(run: (taskId: string) => Promise<void>): Promise<void> {
     this.handler = run
@@ -24,12 +25,17 @@ export class LocalSystemTaskQueue implements SystemTaskQueue {
   public async close(): Promise<void> {
     this.handler = null
     this.pending.length = 0
+    await this.drained
   }
 
   private schedule(): void {
     if (this.running || !this.handler || this.pending.length === 0) return
     this.running = true
-    setImmediate(() => void this.drain())
+    this.drained = new Promise<void>((resolve, reject) => {
+      setImmediate(() => {
+        void this.drain().then(resolve, reject)
+      })
+    })
   }
 
   private async drain(): Promise<void> {

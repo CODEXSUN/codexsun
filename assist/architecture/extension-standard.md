@@ -8,15 +8,17 @@ An application is a composition host. A module owns a complete capability. An ad
 
 ## Extension layers
 
-| Layer              | Source owner                               | Extends                       | Examples                                |
-| ------------------ | ------------------------------------------ | ----------------------------- | --------------------------------------- |
-| Application        | `apps/<app>`                               | Platform composition          | CRM, HR, Billing, Ecommerce             |
-| Application module | `apps/<app>/<target>/src/modules/<module>` | One application               | Customers, payroll, invoices            |
-| Reusable add-on    | `packages/addons/<addon>`                  | A named extension point       | Tax pack, payment provider, report pack |
-| Platform adapter   | `packages/platform-core/<target>`          | A technical contract          | HTTP, database, queue, storage          |
-| Shared UI          | `packages/ui`                              | Visual primitives and layouts | Button, dialog, MDI shell               |
+| Layer              | Source owner                               | Extends                 | Examples                                |
+| ------------------ | ------------------------------------------ | ----------------------- | --------------------------------------- |
+| Application        | `apps/<app>`                               | Platform composition    | CRM, HR, Billing, Ecommerce             |
+| Application module | `apps/<app>/<target>/src/modules/<module>` | One application         | Customers, payroll, invoices            |
+| Reusable add-on    | `packages/addons/<addon>`                  | A named extension point | Tax pack, payment provider, report pack |
+| Platform adapter   | `packages/platform-core/<target>`          | A technical contract    | HTTP, database, queue, storage          |
+| Shared UI          | `packages/ui`                              | All reusable web UI     | Button, form, table, MDI shell          |
 
 Do not place business add-ons in `packages/framework`, `packages/platform-core`, or `packages/ui`.
+Do not package reusable web UI inside an application or add-on. Add it to `packages/ui`
+and consume its public export. An add-on may supply business data and callbacks to that UI.
 
 ## Module kinds
 

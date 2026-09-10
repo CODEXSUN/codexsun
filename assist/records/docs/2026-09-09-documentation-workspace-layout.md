@@ -13,7 +13,7 @@ showcase documents it as a live Layout variant alongside MDI Main and Agent Work
   sidebar key, status label, and workspace title.
 - `apps/docs` continues to own document discovery, navigation, reading, editing, repository data,
   topology, settings, and persistence.
-- `apps/ui` owns the layout documentation record, example code, and live specimen.
+- `apps/uiux` owns the layout documentation record, example code, and live specimen.
 
 ## Database Changes
 
