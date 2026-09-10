@@ -10,12 +10,48 @@ import type { StoredIdentityDevice } from '../device/domain/device.types.js'
 import type { IdentitySecurityEventRecord } from '../security/domain/security.types.js'
 import type { IdentityIdentifierType } from '../user/domain/user-identifier.js'
 import type { IdentityRoleRecord } from '../role/domain/role.types.js'
+import {
+  IdentityAuthenticationError,
+  IdentityConflictError,
+  IdentityDeviceActivationError,
+} from '../domain/identity.errors.js'
 
 export class MariaDbIdentityRepository implements IdentityRepository {
   constructor(private readonly database: Database) {}
 
-  async createDevice(device: StoredIdentityDevice): Promise<void> {
-    await this.database.insertInto('identity_devices').values(toDeviceRow(device)).execute()
+  async createDevice(
+    device: StoredIdentityDevice,
+    trustNewDevice = false,
+  ): Promise<StoredIdentityDevice> {
+    return this.database.transaction().execute(async (transaction) => {
+      const user = await transaction
+        .selectFrom('identity_users')
+        .select('status')
+        .where('id', '=', device.userId)
+        .forUpdate()
+        .executeTakeFirst()
+      if (user?.status !== 'active')
+        throw new IdentityAuthenticationError('Sign-in is unavailable for this account.')
+      const devices = await transaction
+        .selectFrom('identity_devices')
+        .select('device_id')
+        .where('user_id', '=', device.userId)
+        .forUpdate()
+        .execute()
+      if (devices.some((item) => item.device_id === device.deviceId))
+        throw new IdentityDeviceActivationError(
+          'This device is already registered. Use its existing device token.',
+        )
+      const activate = trustNewDevice || devices.length === 0
+      const stored: StoredIdentityDevice = {
+        ...device,
+        status: activate ? 'active' : 'pending',
+        activatedAt: activate ? device.firstSeenAt : null,
+        activatedBy: activate ? device.userId : null,
+      }
+      await transaction.insertInto('identity_devices').values(toDeviceRow(stored)).execute()
+      return stored
+    })
   }
 
   async createIdentifier(
@@ -32,7 +68,7 @@ export class MariaDbIdentityRepository implements IdentityRepository {
         identifier_type: type,
         identifier_value: value,
         user_id: userId,
-        verified_at: type === 'email' ? now : null,
+        verified_at: null,
       })
       .execute()
   }
@@ -66,52 +102,94 @@ export class MariaDbIdentityRepository implements IdentityRepository {
   }
 
   async createSession(session: IdentitySession): Promise<void> {
-    await this.database
-      .insertInto('identity_sessions')
-      .values({
-        created_at: session.createdAt,
-        device_id: session.deviceId,
-        expires_at: session.expiresAt,
-        id: session.id,
-        portal: session.portal,
-        revoked_at: null,
-        token_hash: session.tokenHash,
-        user_id: session.userId,
-      })
-      .execute()
-  }
-
-  async createUser(user: StoredIdentityUser, credential: IdentityCredential): Promise<void> {
     await this.database.transaction().execute(async (transaction) => {
-      const now = new Date()
+      const user = await transaction
+        .selectFrom('identity_users')
+        .select(['status', 'portal', 'auth_version'])
+        .where('id', '=', session.userId)
+        .forUpdate()
+        .executeTakeFirst()
+      if (
+        user?.status !== 'active' ||
+        user.portal !== session.portal ||
+        user.auth_version !== (session.authVersion ?? 0)
+      )
+        throw new IdentityAuthenticationError('Account access changed. Sign in again.')
+      const device = await transaction
+        .selectFrom('identity_devices')
+        .select('status')
+        .where('user_id', '=', session.userId)
+        .where('device_id', '=', session.deviceId)
+        .forUpdate()
+        .executeTakeFirst()
+      if (device?.status !== 'active')
+        throw new IdentityDeviceActivationError('This device is not activated.')
       await transaction
-        .insertInto('identity_users')
+        .insertInto('identity_sessions')
         .values({
-          created_at: now,
-          display_name: user.displayName,
-          email: user.email,
-          id: user.id,
-          portal: user.portal,
-          status: user.status,
-          updated_at: now,
+          created_at: session.createdAt,
+          device_id: session.deviceId,
+          expires_at: session.expiresAt,
+          id: session.id,
+          portal: session.portal,
+          revoked_at: null,
+          token_hash: session.tokenHash,
+          user_id: session.userId,
         })
-        .execute()
-      await transaction
-        .insertInto('identity_user_identifiers')
-        .values({
-          created_at: now,
-          id: crypto.randomUUID(),
-          identifier_type: 'email',
-          identifier_value: user.email,
-          user_id: user.id,
-          verified_at: now,
-        })
-        .execute()
-      await transaction
-        .insertInto('identity_credentials')
-        .values({ password_hash: credential.passwordHash, updated_at: now, user_id: user.id })
         .execute()
     })
+  }
+
+  async createUser(
+    user: StoredIdentityUser,
+    credential: IdentityCredential,
+    identifiers: readonly { type: IdentityIdentifierType; value: string }[] = [
+      { type: 'email', value: user.email },
+    ],
+  ): Promise<void> {
+    try {
+      await this.database.transaction().execute(async (transaction) => {
+        const now = new Date()
+        await transaction
+          .insertInto('identity_users')
+          .values({
+            created_at: now,
+            display_name: user.displayName,
+            email: user.email,
+            id: user.id,
+            portal: user.portal,
+            status: user.status,
+            updated_at: now,
+          })
+          .execute()
+        await transaction
+          .insertInto('identity_user_identifiers')
+          .values(
+            identifiers.map((identifier) => ({
+              created_at: now,
+              id: crypto.randomUUID(),
+              identifier_type: identifier.type,
+              identifier_value: identifier.value,
+              user_id: user.id,
+              verified_at: null,
+            })),
+          )
+          .execute()
+        await transaction
+          .insertInto('identity_credentials')
+          .values({ password_hash: credential.passwordHash, updated_at: now, user_id: user.id })
+          .execute()
+      })
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ER_DUP_ENTRY'
+      )
+        throw new IdentityConflictError('An account already uses this sign-in identifier.')
+      throw error
+    }
   }
 
   async findCredential(userId: string): Promise<IdentityCredential | undefined> {
@@ -158,7 +236,14 @@ export class MariaDbIdentityRepository implements IdentityRepository {
     const row = await this.database
       .selectFrom('identity_user_identifiers as identifiers')
       .innerJoin('identity_users as users', 'users.id', 'identifiers.user_id')
-      .select(['users.display_name', 'users.email', 'users.id', 'users.portal', 'users.status'])
+      .select([
+        'users.display_name',
+        'users.email',
+        'users.id',
+        'users.portal',
+        'users.status',
+        'users.auth_version',
+      ])
       .where('identifiers.identifier_type', '=', type)
       .where('identifiers.identifier_value', '=', value)
       .executeTakeFirst()
@@ -347,17 +432,30 @@ export class MariaDbIdentityRepository implements IdentityRepository {
   }
 
   async updateUserStatus(userId: string, status: StoredIdentityUser['status']): Promise<void> {
-    await this.database
-      .updateTable('identity_users')
-      .set({ status, updated_at: new Date() })
-      .where('id', '=', userId)
-      .execute()
+    await this.database.transaction().execute(async (transaction) => {
+      await transaction
+        .updateTable('identity_users')
+        .set((expression) => ({
+          status,
+          updated_at: new Date(),
+          auth_version: expression('auth_version', '+', 1),
+        }))
+        .where('id', '=', userId)
+        .execute()
+      if (status === 'disabled')
+        await transaction
+          .updateTable('identity_sessions')
+          .set({ revoked_at: new Date() })
+          .where('user_id', '=', userId)
+          .where('revoked_at', 'is', null)
+          .execute()
+    })
   }
 
   private async findUser(field: 'email' | 'id', value: string) {
     const row = await this.database
       .selectFrom('identity_users')
-      .select(['display_name', 'email', 'id', 'portal', 'status'])
+      .select(['display_name', 'email', 'id', 'portal', 'status', 'auth_version'])
       .where(field, '=', value)
       .executeTakeFirst()
     return row ? toStoredUser(row) : undefined
@@ -365,6 +463,7 @@ export class MariaDbIdentityRepository implements IdentityRepository {
 }
 
 function toStoredUser(row: {
+  auth_version?: number
   display_name: string
   email: string
   id: string
@@ -372,6 +471,7 @@ function toStoredUser(row: {
   status: string
 }): StoredIdentityUser {
   return {
+    authVersion: row.auth_version ?? 0,
     displayName: row.display_name,
     email: row.email,
     id: row.id,

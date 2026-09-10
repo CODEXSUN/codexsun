@@ -5,6 +5,7 @@ import cookie from '@fastify/cookie'
 import { readEnvironment } from '../src/config.js'
 import { IdentityService, hashToken } from '../src/modules/identity/application/identity.service.js'
 import {
+  IdentityAuthenticationError,
   IdentityConflictError,
   IdentityDeviceActivationError,
   IdentityPortalError,
@@ -36,8 +37,17 @@ class MemoryIdentityRepository implements IdentityRepository {
   readonly sessions = new Map<string, IdentitySession>()
   readonly users = new Map<string, StoredIdentityUser>()
 
-  async createDevice(device: StoredIdentityDevice) {
-    this.devices.set(`${device.userId}:${device.deviceId}`, device)
+  async createDevice(device: StoredIdentityDevice, trustNewDevice = false) {
+    const activate =
+      trustNewDevice || ![...this.devices.values()].some((item) => item.userId === device.userId)
+    const stored: StoredIdentityDevice = {
+      ...device,
+      status: activate ? 'active' : 'pending',
+      activatedAt: activate ? device.firstSeenAt : null,
+      activatedBy: activate ? device.userId : null,
+    }
+    this.devices.set(`${device.userId}:${device.deviceId}`, stored)
+    return stored
   }
 
   async createIdentifier(userId: string, type: IdentityIdentifierType, value: string) {
@@ -56,10 +66,16 @@ class MemoryIdentityRepository implements IdentityRepository {
     this.sessions.set(session.tokenHash, session)
   }
 
-  async createUser(user: StoredIdentityUser, credential: IdentityCredential) {
+  async createUser(
+    user: StoredIdentityUser,
+    credential: IdentityCredential,
+    identifiers: readonly { type: IdentityIdentifierType; value: string }[] = [],
+  ) {
     this.users.set(user.id, user)
     this.credentials.set(user.id, credential)
     this.identifiers.set(`email:${user.email}`, user.id)
+    for (const identifier of identifiers)
+      this.identifiers.set(`${identifier.type}:${identifier.value}`, user.id)
   }
 
   async findCredential(userId: string) {
@@ -143,7 +159,14 @@ class MemoryIdentityRepository implements IdentityRepository {
 
   async updateUserStatus(userId: string, status: StoredIdentityUser['status']) {
     const user = this.users.get(userId)
-    if (user) user.status = status
+    if (user) {
+      user.status = status
+      user.authVersion = (user.authVersion ?? 0) + 1
+    }
+    if (status === 'disabled')
+      for (const session of this.sessions.values()) {
+        if (session.userId === userId) this.sessions.delete(session.tokenHash)
+      }
   }
 }
 
@@ -288,6 +311,36 @@ describe('IdentityService', () => {
     await assert.rejects(() => service.register(input), IdentityConflictError)
   })
 
+  it('does not restore old cookie or bearer sessions after re-enabling a user', async () => {
+    const { repository, service } = createFixture()
+    const user = await service.register({
+      displayName: 'Revocation',
+      email: 'revoke@example.com',
+      password: 'secret123',
+    })
+    const login = await service.login('regular', loginInput(user.email))
+    await repository.updateUserStatus(user.id, 'disabled')
+    await repository.updateUserStatus(user.id, 'active')
+    for (const request of [
+      { cookies: { [identityCookieName('regular')]: login.token }, headers: {} },
+      { cookies: {}, headers: { authorization: `Bearer ${login.token}` } },
+    ])
+      assert.equal(await findRequestSession(service, request), undefined)
+  })
+
+  it('does not reveal the account portal before verifying the password', async () => {
+    const { service } = createFixture()
+    await service.register({
+      displayName: 'Private portal',
+      email: 'portal@example.com',
+      password: 'secret123',
+    })
+    await assert.rejects(
+      () => service.login('super-admin', loginInput('portal@example.com', 'wrong123')),
+      IdentityAuthenticationError,
+    )
+  })
+
   it('keeps credentials and sessions isolated by portal', async () => {
     const { repository, service } = createFixture()
     await repository.createUser(
@@ -347,7 +400,7 @@ describe('IdentityService', () => {
   })
 
   it('holds a later device until a trusted device activates it', async () => {
-    const { service } = createFixture()
+    const { repository, service } = createFixture()
     const user = await service.register({
       displayName: 'Device User',
       email: 'device@example.com',
@@ -364,6 +417,8 @@ describe('IdentityService', () => {
       assert.ok(error instanceof IdentityDeviceActivationError)
       deviceToken = error.deviceToken
     }
+    assert.equal(repository.securityEvents.at(-1)?.outcome, 'denied')
+    assert.equal(repository.securityEvents.at(-1)?.risk, 'medium')
     await service.devices.activate(user.id, user.id, second.device.deviceId)
     const login = await service.login('regular', {
       ...second,

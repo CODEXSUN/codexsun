@@ -70,12 +70,13 @@ const expectedColumns: readonly SchemaColumn[] = [
   column('identity_users', 'status', 5, 'varchar(32)', 'NO'),
   column('identity_users', 'created_at', 6, 'datetime(3)', 'NO'),
   column('identity_users', 'updated_at', 7, 'datetime(3)', 'NO'),
+  column('identity_users', 'auth_version', 8, 'int(11)', 'NO', '0'),
 ]
 
 export const identitySchema: PlatformModuleSchema<Database> = {
   checksum: hashColumns(expectedColumns),
   inspect: inspectIdentitySchema,
-  version: '1.1.0',
+  version: '1.2.0',
 }
 
 async function inspectIdentitySchema(database: Database): Promise<string> {

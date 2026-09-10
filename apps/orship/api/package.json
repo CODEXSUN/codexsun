@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/orship-api",
   "private": true,
-  "version": "0.1.22",
+  "version": "0.1.23",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",
     "@codexsun/orship-contracts": "file:../contracts",
-    "@codexsun/platform-core-api": "^0.1.22",
+    "@codexsun/platform-core-api": "^0.1.23",
     "@codexsun/runtime": "file:../../../packages/runtime",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",

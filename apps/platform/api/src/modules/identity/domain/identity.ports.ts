@@ -13,11 +13,18 @@ export interface IdentityPasswordHasher {
 
 export interface IdentityRepository {
   createSession(session: IdentitySession): Promise<void>
-  createDevice(device: StoredIdentityDevice): Promise<void>
+  createDevice(
+    device: StoredIdentityDevice,
+    trustNewDevice?: boolean,
+  ): Promise<StoredIdentityDevice>
   createIdentifier(userId: string, type: IdentityIdentifierType, value: string): Promise<void>
   createSecurityEvent(event: IdentitySecurityEventRecord): Promise<void>
   createRole(role: IdentityRoleRecord): Promise<void>
-  createUser(user: StoredIdentityUser, credential: IdentityCredential): Promise<void>
+  createUser(
+    user: StoredIdentityUser,
+    credential: IdentityCredential,
+    identifiers?: readonly { type: IdentityIdentifierType; value: string }[],
+  ): Promise<void>
   findCredential(userId: string): Promise<IdentityCredential | undefined>
   findSession(tokenHash: string, portal: IdentityPortal): Promise<IdentitySession | undefined>
   findDevice(userId: string, deviceId: string): Promise<StoredIdentityDevice | undefined>

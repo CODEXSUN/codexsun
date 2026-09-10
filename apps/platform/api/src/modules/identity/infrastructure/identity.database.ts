@@ -1,8 +1,9 @@
-import type { ColumnType } from 'kysely'
+import type { ColumnType, Generated } from 'kysely'
 
 type Timestamp = ColumnType<Date, Date | string, Date | string>
 
 export interface IdentityUserTable {
+  auth_version: Generated<number>
   created_at: Timestamp
   display_name: string
   email: string

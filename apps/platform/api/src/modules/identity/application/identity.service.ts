@@ -17,6 +17,7 @@ import { IdentityDeviceService, publicDevice } from '../device/application/devic
 import {
   IdentityAuthenticationError,
   IdentityConflictError,
+  IdentityDeviceActivationError,
   IdentityPortalError,
 } from '../domain/identity.errors.js'
 import type { IdentityPasswordHasher, IdentityRepository } from '../domain/identity.ports.js'
@@ -62,22 +63,28 @@ export class IdentityService {
       await this.recordLogin(null, input, evidence, 'failed', 'high')
       throw invalidCredentials()
     }
-    if (user.portal !== portal) {
-      await this.recordLogin(user.id, input, evidence, 'denied', 'high')
-      throw new IdentityPortalError('This account belongs to another portal.')
-    }
-
     const credential = await this.repository.findCredential(user.id)
     if (!credential || !(await this.passwords.verify(credential.passwordHash, input.password))) {
       await this.recordLogin(user.id, input, evidence, 'failed', 'high')
       throw invalidCredentials()
     }
 
-    const device = await this.devices.verifyOrRegister(user.id, input.device, trustNewDevice)
+    if (user.portal !== portal) {
+      await this.recordLogin(user.id, input, evidence, 'denied', 'high')
+      throw new IdentityPortalError('This account belongs to another portal.')
+    }
+    const device = await this.devices
+      .verifyOrRegister(user.id, input.device, trustNewDevice)
+      .catch(async (error: unknown) => {
+        if (error instanceof IdentityDeviceActivationError)
+          await this.recordLogin(user.id, input, evidence, 'denied', 'medium')
+        throw error
+      })
     const token = randomBytes(32).toString('base64url')
     const createdAt = this.options.clock()
     const expiresAt = new Date(createdAt.getTime() + this.options.sessionTtlHours * 3_600_000)
     await this.repository.createSession({
+      authVersion: user.authVersion ?? 0,
       createdAt,
       deviceId: device.device.deviceId,
       expiresAt,
@@ -116,13 +123,14 @@ export class IdentityService {
       portal: 'regular' as const,
       status: 'active' as const,
     }
-    await this.repository.createUser(user, {
-      passwordHash: await this.passwords.hash(input.password),
-      userId: user.id,
-    })
-    for (const identifier of identifiers.filter(({ type }) => type !== 'email')) {
-      await this.repository.createIdentifier(user.id, identifier.type, identifier.value)
-    }
+    await this.repository.createUser(
+      user,
+      {
+        passwordHash: await this.passwords.hash(input.password),
+        userId: user.id,
+      },
+      identifiers,
+    )
     return publicUser(user)
   }
 
@@ -257,7 +265,7 @@ export class IdentityService {
     input: IdentityLoginInput,
     evidence: IdentityRequestEvidence,
     outcome: 'allowed' | 'denied' | 'failed',
-    risk: 'low' | 'high',
+    risk: 'low' | 'medium' | 'high',
   ) {
     return this.security.record({
       actorUserId: userId,

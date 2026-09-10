@@ -22,21 +22,20 @@ export class IdentityDeviceService {
 
     const deviceToken = randomBytes(32).toString('base64url')
     const now = this.clock()
-    const activate = trustNewDevice || (await this.repository.listDevices(userId)).length === 0
-    const device: StoredIdentityDevice = {
-      activatedAt: activate ? now : null,
-      activatedBy: activate ? userId : null,
+    const candidate: StoredIdentityDevice = {
+      activatedAt: null,
+      activatedBy: null,
       clientType: input.clientType,
       deviceId: input.deviceId,
       deviceName: input.deviceName,
       firstSeenAt: now,
       lastSeenAt: now,
-      status: activate ? 'active' : 'pending',
+      status: 'pending',
       tokenHash: hashIdentityToken(deviceToken),
       userId,
     }
-    await this.repository.createDevice(device)
-    if (!activate) {
+    const device = await this.repository.createDevice(candidate, trustNewDevice)
+    if (device.status !== 'active') {
       throw new IdentityDeviceActivationError(
         'This device needs approval from a trusted device or super administrator.',
         deviceToken,

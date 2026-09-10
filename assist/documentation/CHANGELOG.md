@@ -8,11 +8,16 @@
 
 ## Version State
 
-- Current version: 0.1.22
-- Release tag: v-0.1.22
-- Changelog label: v 0.1.22
+- Current version: 0.1.23
+- Release tag: v-0.1.23
+- Changelog label: v 0.1.23
 
-## v-0.1.22
+## v-0.1.23
+
+### [v 0.1.23] 2026-09-10 12:30 pm - Identity API 1.2.0 atomic registration and session revocation
+
+- Database Changes: Identity schema 1.2.0 adds immutable migration 0004 for authentication generations; existing checksums are unchanged.
+- App Codebase Changes: Atomic registration, first-device serialization, permanent session revocation, and safe login denials. Verification: Identity service and disposable MariaDB regressions passed. Full adoption and Docker gates remain open. See the [record](../records/platform/2026-09-10-identity-concurrency.md).
 
 ### [v 0.1.22] 2026-09-10 12:05 pm - Zetro live execution visuals and shared UI status
 
@@ -370,8 +375,6 @@
 - Stopped the main profile and confirmed all ten development ports were released.
 - See `assist/records/orship/2026-09-09-separate-development-runtime.md`.
 
-## v-0.1.2
-
 ### [v 0.1.2] 2026-09-09 - Component variant cleanup
 
 #### Database Changes
@@ -485,8 +488,6 @@
 - Passed framework, runtime, Orship, Zetro, Platform runtime, Platform web, and server lifecycle tests.
 - See `assist/records/platform/2026-09-08-repository-boundary-audit.md`.
 
-## v-0.1.1
-
 ### [v 0.1.1] 2026-09-08 - Dedicated UI component variants
 
 #### Database Changes
@@ -594,8 +595,6 @@
 
 - Passed the complete root gate, focused Orship tests, deployment catalog validation, an owned Docs API stop/start/log cycle, and Orship stack shutdown with port release.
 - See `assist/records/orship/2026-09-08-operations-foundation.md`.
-
-## v-0.1.0
 
 ### [v 0.1.0] 2026-09-08 - Shared Form block and complete UI documentation catalog
 

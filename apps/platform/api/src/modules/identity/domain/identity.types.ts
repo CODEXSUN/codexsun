@@ -7,6 +7,7 @@ export interface IdentityCredential {
 }
 
 export interface IdentitySession {
+  authVersion?: number
   createdAt: Date
   expiresAt: Date
   id: string
@@ -17,6 +18,7 @@ export interface IdentitySession {
 }
 
 export interface StoredIdentityUser extends IdentityUser {
+  authVersion?: number
   status: 'active' | 'disabled'
 }
 

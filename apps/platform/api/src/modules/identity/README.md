@@ -8,7 +8,7 @@ Identity owns authentication, portal-scoped sessions, users, credentials, roles,
 
 - Module ID: `identity`
 - Kind: `feature`
-- Version: `1.1.0`
+- Version: `1.2.0`
 - Scope: `platform`
 - Status: `active`
 
@@ -53,6 +53,9 @@ The forgot-password endpoint returns a privacy-safe accepted response. Token del
 - Migration `0001-identity-schema` creates the initial module tables.
 - Migration `0002-identity-devices-and-security` adds identifiers, devices, session binding, and security events.
 - Migration `0003-identity-access-indexes` adds lookup and monitoring indexes.
+- Migration `0004-identity-auth-version` adds an account authentication generation.
+- Registration writes every identifier and credential in one transaction. New identifiers remain unverified until a provider confirms them.
+- First-device activation and session creation lock the owning user row. Status changes advance the authentication generation; disabling an account permanently revokes existing sessions.
 - Seed `0001-default-super-admin` creates the configured super administrator, its role, and wildcard permission.
 - Applied checksums are immutable. Add a new ordered migration or seed for every later change.
 - Session renewal updates MariaDB and the browser cookie.
@@ -71,10 +74,11 @@ No system can promise that a breach will never occur. This module reduces risk t
 
 ## Verification
 
-Run `npm.cmd run test:identity`, `npm.cmd run test:mariadb:foundation`, and `npm.cmd run test:e2e:server`. A live smoke must prove successful super-admin development login, session resolution, and a `401` when that cookie is presented to the regular portal.
+Run `npm.cmd run test:identity`, `npm.cmd run test:identity:mariadb`, `npm.cmd run test:mariadb:foundation`, and `npm.cmd run test:e2e:server`. The Identity database test provisions and removes a PID-scoped disposable database; it never migrates the configured application database. A live smoke must prove successful super-admin development login, session resolution, and a `401` when that cookie is presented to the regular portal.
 
 ## Development records
 
+- [2026-09-10 Identity concurrency](../../../../../../assist/records/platform/2026-09-10-identity-concurrency.md)
 - [2026-09-10 Session binding repair](../../../../../../assist/records/platform/2026-09-10-identity-session-binding.md)
 
 - [2026-09-09 Identity cross-client security](../../../../../../assist/records/platform/2026-09-09-identity-cross-client-security.md)

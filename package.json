@@ -2,7 +2,7 @@
   "name": "codexsun",
   "private": true,
   "type": "module",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "packageManager": "npm@12.0.2",
   "workspaces": [
     "apps/*/*",
@@ -79,6 +79,7 @@
     "test:runtime-holder": "npm run runtime:prepare && node --test tools/runtime-holder.test.mjs tools/runtime-log-capture.test.mjs tools/service-lifecycle.test.mjs",
     "test:platform-runtime": "npm run build:api && node --test tools/platform-core-api.test.mjs tools/platform-module-runtime.test.mjs",
     "test:identity": "npm run test --workspace @codexsun/platform-api",
+    "test:identity:mariadb": "node --import tsx tools/identity-mariadb.integration.mjs",
     "mariadb:setup": "npm run build --workspace @codexsun/platform-core-api && node tools/mariadb-setup.mjs",
     "mariadb:smoke": "npm run build --workspace @codexsun/platform-core-api && node tools/mariadb-smoke.mjs",
     "test:mariadb:foundation": "npm run build --workspace @codexsun/platform-core-api && node --import tsx tools/platform-mariadb.integration.mjs",

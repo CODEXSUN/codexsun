@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/zetro-api",
   "private": true,
-  "version": "0.1.22",
+  "version": "0.1.23",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -25,7 +25,7 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.22",
+    "@codexsun/platform-core-api": "^0.1.23",
     "archiver": "^8.0.0",
     "better-sqlite3": "^12.11.1",
     "bullmq": "^6.3.4",

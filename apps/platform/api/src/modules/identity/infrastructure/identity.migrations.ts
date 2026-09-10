@@ -189,4 +189,15 @@ export const identityMigrations: readonly PlatformModuleMigration<Database>[] = 
         .execute()
     },
   },
+  {
+    checksum: 'sha256:81adc86a4353e005d211c4a8d1541db5c66c1c155673dcb2df452f740f12b243',
+    id: '0004-identity-auth-version',
+    version: '1.2.0',
+    async up(database) {
+      await database.schema
+        .alterTable('identity_users')
+        .addColumn('auth_version', 'integer', (column) => column.notNull().defaultTo(0))
+        .execute()
+    },
+  },
 ]

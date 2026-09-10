@@ -2,7 +2,7 @@
 
 ## Status and ownership
 
-In progress on the uncommitted `0.1.20` candidate. F001 technical checks passed;
+In progress on the `0.1.23` candidate. F001 technical checks passed;
 stable release approval remains separate. Platform Identity owns authentication
 and authorization. Platform Core owns neutral runtime contracts, not user tables.
 
@@ -18,17 +18,15 @@ See the [development record](../records/platform/2026-09-10-identity-session-bin
 
 1. Extend the passing portal HTTP session tests to product permission denial and
    dependency failure. Browser login and native-client UI remain unverified.
-2. Make user disable revoke existing sessions permanently. Test disable/enable
-   and concurrent login against disposable MariaDB data.
-3. Make registration identifiers atomic. Test duplicate concurrent registration
-   and simultaneous first-device activation. Do not use process-local locks as
-   a substitute for database isolation.
-4. Remove portal-discovery differences before password verification. Record
-   pending-device denials without returning secrets in activity logs.
-5. Define and verify the public cross-application identity client contract.
+2. Completed: permanent disable revocation, authentication generation checks,
+   atomic registration, and serialized first-device activation. Disposable
+   MariaDB regression tests pass. See the [record](../records/platform/2026-09-10-identity-concurrency.md).
+3. Completed: password verification precedes portal disclosure, and pending-device
+   denials create safe audit events. Service regression tests pass.
+4. Define and verify the public cross-application identity client contract.
    Do not share private source, user tables, or browser localStorage tokens.
-6. Prove the three portal flows in a browser and native bearer HTTP tests.
-7. Create A001 evidence for each selected catalog application, then run R001
+5. Prove the three portal flows in a browser and native bearer HTTP tests.
+6. Create A001 evidence for each selected catalog application, then run R001
    isolated and combined Docker gates. Catalog presence alone is not adoption.
 
 These are unresolved acceptance items, not completed features. Each stage needs
