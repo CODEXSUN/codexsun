@@ -10,7 +10,7 @@ export const settingsModuleManifest = {
     'workspace-appearance',
   ],
   dependencies: {
-    'zetro.codex-connection.api': '^0.9.0',
+    'zetro.codex-connection.api': '^0.10.0',
     'zetro.developer-tools.web': '^1.0.0',
     'zetro.operations.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',
@@ -25,5 +25,5 @@ export const settingsModuleManifest = {
   },
   publicContracts: ['SettingsWorkspace', 'ZetroSettingsProvider', 'useZetroPreferences'],
   scope: 'zetro-web',
-  version: '0.4.0',
+  version: '0.5.0',
 } as const

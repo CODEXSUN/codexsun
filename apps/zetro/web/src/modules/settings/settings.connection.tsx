@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   Bot,
   Check,
@@ -15,6 +15,9 @@ import { Input } from '@codexsun/ui/components/input'
 import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
 import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
 import { useCodexConnection } from './settings.hooks'
+const SettingsSandbox = lazy(() =>
+  import('./settings.sandbox').then((module) => ({ default: module.SettingsSandbox })),
+)
 
 export function SettingsConnection() {
   const topology = useMdiTopology()
@@ -187,6 +190,9 @@ export function SettingsConnection() {
           {error}
         </p>
       ) : null}
+      <Suspense fallback={<p role="status">Loading execution security…</p>}>
+        <SettingsSandbox />
+      </Suspense>
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <KeyRound className="size-4" /> Credentials remain in the local Codex service and are not
         stored in Zetro project data.

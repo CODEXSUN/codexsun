@@ -19,6 +19,8 @@ The installer includes a private Node executable. The installed application does
 
 Desktop data lives in the Tauri application data directory. Worktrees, private records, and logs remain outside the installation directory.
 New desktop worktrees live under the user's home directory at `.zetro/worktrees`.
+Sandbox probes and the neutral provider directory use `.zetro/storage/app/private/sandbox`
+through `ZETRO_SANDBOX_ROOT`. Existing AppData probes remain untouched.
 This avoids sandbox access failures in MSIX-redirected AppData. Existing AppData worktrees
 are preserved, not moved or deleted; recover any unfinished work there before cleanup.
 
@@ -44,6 +46,8 @@ npm.cmd run desktop:zetro:msi
 
 The prepare command builds the web and API runtime before packaging. The MSI command repeats that
 pre-build and writes the installer under `dist/apps/zetro/desktop/target/release/bundle/msi`.
+Turbo caches only the runnable executable and bundled runtime. Cargo intermediates and
+old installers remain local outputs, not duplicated cache archives.
 
 ## Security
 

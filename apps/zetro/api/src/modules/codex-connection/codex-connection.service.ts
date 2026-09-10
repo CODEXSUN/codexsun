@@ -3,6 +3,15 @@ import type { CodexAppServerClient } from './codex-app-server.client.js'
 import type { CodexConnectionStatus, CodexDeviceCode } from './codex-connection.types.js'
 
 export class CodexConnectionService {
+  public getSandboxStatus() {
+    return this.client.sandbox.read()
+  }
+  public setupSandbox() {
+    return this.client.setupSandbox()
+  }
+  public verifySandbox(allowLocalNetwork = false) {
+    return this.client.verifySandbox(allowLocalNetwork)
+  }
   public constructor(
     private readonly client: CodexAppServerClient,
     private readonly environment: ZetroEnvironment,

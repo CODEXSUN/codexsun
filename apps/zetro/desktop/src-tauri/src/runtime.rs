@@ -139,6 +139,10 @@ fn spawn_api(
         .env("ZETRO_QUEUE_DRIVER", "local")
         .env("STORAGE_ROOT", app_data.join("storage"))
         .env(
+            "ZETRO_SANDBOX_ROOT",
+            app.path().home_dir()?.join(".zetro/storage/app/private/sandbox"),
+        )
+        .env(
             "ZETRO_ALLOWED_ORIGINS",
             "http://tauri.localhost,https://tauri.localhost",
         )

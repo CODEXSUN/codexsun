@@ -1,5 +1,11 @@
 # Zetro Development Records
 
+- [2026-09-10 Sandbox path repair](2026-09-10-sandbox-path-repair.md)
+
+- [2026-09-10 Desktop 0.1.28 release candidate](2026-09-10-desktop-0.1.28.md)
+
+- [2026-09-10 Windows sandbox enforcement](2026-09-10-windows-sandbox.md)
+
 - [2026-09-10 Live execution visuals](2026-09-10-live-execution-visuals.md)
 
 - [2026-09-10 Desktop 0.1.21](2026-09-10-desktop-0.1.21.md)

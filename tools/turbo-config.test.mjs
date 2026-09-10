@@ -21,6 +21,17 @@ test('Turbo owns one root cache and unique root build outputs', async () => {
 
     const config = await readJson(resolve(workspace, 'turbo.json'))
     const outputs = config.tasks?.build?.outputs
+    if (packageFile.name === '@codexsun/zetro-desktop') {
+      assert.deepEqual(outputs, [
+        '$TURBO_ROOT$/dist/apps/zetro/desktop/runtime/**',
+        '$TURBO_ROOT$/dist/apps/zetro/desktop/target/release/zetro-desktop.exe',
+      ])
+      for (const output of outputs) {
+        assert(!outputOwners.has(output), `${output} is shared by two workspaces`)
+        outputOwners.set(output, packageFile.name)
+      }
+      continue
+    }
     assert(Array.isArray(outputs) && outputs.length === 1, `${packageFile.name} needs one output`)
     const output = outputs[0]
     assert.match(output, /^\$TURBO_ROOT\$\/dist\/(?:apps|packages)\/.+\/\*\*$/u)

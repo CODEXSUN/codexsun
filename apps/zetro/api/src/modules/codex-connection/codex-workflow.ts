@@ -64,6 +64,8 @@ export function createDeveloperInstructions(
         ]
       : []),
     'Read AGENTS.md, the root README, and relevant repository guidance before acting.',
+    'Resolve the repository root with git rev-parse --show-toplevel before reading root guidance. The initial working directory is a scoped folder, not the repository root.',
+    "In PowerShell set $ErrorActionPreference = 'Stop' before commands. Check $LASTEXITCODE after each native command and exit on failure. Never hide an earlier error behind a later successful command.",
     'Infer intent from repository evidence. Continue until the authorized task is complete or truly blocked.',
     ...workflowInstructions[workflow],
     'Preserve unrelated changes.',

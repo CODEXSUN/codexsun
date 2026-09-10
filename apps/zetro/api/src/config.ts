@@ -32,6 +32,10 @@ const environmentSchema = z
       z.string().min(32).optional(),
     ),
     ZETRO_QUEUE_DRIVER: z.enum(['bullmq', 'local']).default('local'),
+    ZETRO_SANDBOX_ROOT: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).optional(),
+    ),
     ZETRO_SQLITE_PATH: z.string().min(1).default('private/zetro/zetro.sqlite'),
     ZETRO_WEB_PORT: z.coerce.number().int().min(6000).max(6999).default(6060),
     ZETRO_CODEX_API_KEY: z.preprocess(

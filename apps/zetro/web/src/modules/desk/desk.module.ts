@@ -9,7 +9,7 @@ export const deskModuleManifest = {
   dependencies: {
     'zetro.developer-tools.web': '^1.1.0',
     'zetro.git-delivery.web': '^0.1.0',
-    'zetro.settings.web': '^0.4.0',
+    'zetro.settings.web': '^0.5.0',
   },
   id: 'zetro.desk.web',
   lifecycle: {

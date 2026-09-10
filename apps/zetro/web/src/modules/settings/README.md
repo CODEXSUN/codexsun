@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.settings.web`
-- Version: `0.4.0`
+- Version: `0.5.0`
 - Owner: Zetro web
 - Flow: inspect or disconnect Codex, connect another account, open verification, copy or paste the device code, and refresh activation
 
@@ -28,7 +28,7 @@ custom stylesheet.
 
 ## Dependency bindings
 
-- `zetro.codex-connection.api`: `^0.7.0`
+- `zetro.codex-connection.api`: `^0.10.0`
 - `zetro.developer-tools.web`: `^0.2.0`
 - `zetro.git-delivery.web`: `^0.1.0`
 
@@ -44,6 +44,14 @@ central default exists.
 Disconnect requires an inline confirmation because it signs the shared local Codex session out. Connect another account starts a new device-code flow and leaves the current session usable until the new login completes.
 
 ## Verification
+
+Codex connection shows execution security separately from account login status.
+Setup requires confirmation because Windows can change sandbox users, permissions, and firewall rules.
+Verification requires confirmation because it uses a provider turn and disposable files.
+The default action requires localhost denial. A separate action permits localhost and tests public-network denial.
+The screen shows the selected policy, individual results, and last check time.
+Busy states disable actions. Provider restart and expired evidence require verification again.
+See the [sandbox record](../../../../../../assist/records/zetro/2026-09-10-windows-sandbox.md).
 
 Run the Zetro web typecheck and build. Verify disconnected, pending, error, and connected states in the browser. Confirm disconnect exposes a warning before sign-out, another-account login creates a fresh code, the browser link opens in a new tab, copy feedback is visible, pasted codes are validated, and successful authorization updates the connection card.
 

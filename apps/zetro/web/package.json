@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/zetro-web",
   "private": true,
-  "version": "0.1.27",
+  "version": "0.1.29",
   "type": "module",
   "scripts": {
     "dev": "vite --port 6060",
@@ -17,6 +17,7 @@
     "preview": "vite preview --port 6060"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
     "@codexsun/ui": "file:../../../packages/ui",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/api": "2.11.1",

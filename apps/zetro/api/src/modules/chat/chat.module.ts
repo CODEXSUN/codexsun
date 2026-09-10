@@ -30,7 +30,7 @@ export const chatModuleManifest = {
     'delivery-record-persistence',
   ],
   dataSchema: { checksum: 'chat-001-conversations-v1', version: 1 },
-  dependencies: { 'zetro.codex-connection.api': '^0.9.0', 'zetro.projects.api': '^0.5.0' },
+  dependencies: { 'zetro.codex-connection.api': '^0.10.0', 'zetro.projects.api': '^0.5.0' },
   id: 'zetro.chat.api',
   lifecycle: {
     activate: 'Register the validated HTTP route and provider adapter.',

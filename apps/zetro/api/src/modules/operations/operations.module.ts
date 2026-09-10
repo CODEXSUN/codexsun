@@ -18,7 +18,7 @@ export const operationsModuleManifest = {
   ],
   dataSchema: { checksum: 'operations-001-settings-metrics-v1', version: 1 },
   dependencies: {
-    'zetro.codex-connection.api': '^0.9.0',
+    'zetro.codex-connection.api': '^0.10.0',
     'zetro.system-tasks.api': '^1.0.0',
   },
   id: 'zetro.operations.api',

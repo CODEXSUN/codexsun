@@ -20,7 +20,7 @@ export const agentChatModuleManifest = {
     'zetro.desk.web': '^0.8.0',
     'zetro.projects.web': '^0.5.0',
     'zetro.project-tasks.web': '^0.4.1',
-    'zetro.settings.web': '^0.4.0',
+    'zetro.settings.web': '^0.5.0',
   },
   id: 'zetro.agent-chat.web',
   lifecycle: {

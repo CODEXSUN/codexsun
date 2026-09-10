@@ -84,6 +84,11 @@ Changed inputs invalidate earlier evidence. A skipped gate is not a pass.
 10. Update the task record and owner documentation before advancing.
 
 Use the [CLI contract](../../apps/zetro/cli/README.md) for pairing and job commands.
+
+New sandbox-enabled builds also require Settings > Codex connection > execution security verification before project turns.
+Windows setup success is not execution proof. Both direct and agent-path checks must pass.
+Permit localhost only through explicit confirmation. This policy still requires a sampled public-network denial check.
+Readiness expires after 15 minutes or provider shutdown. See the [sandbox record](../records/zetro/2026-09-10-windows-sandbox.md).
 Provider worktrees start from committed HEAD. They do not include uncommitted checkout work.
 Do not install duplicate dependencies in every worktree. Define dependency staging before allowing worktree build jobs.
 For the current review workflow, run checks in the trusted dependency-ready primary checkout at the same source commit.

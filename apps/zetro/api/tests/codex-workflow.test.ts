@@ -23,6 +23,9 @@ test('each Zetro workflow adds its focused guidance', () => {
     const instructions = createDeveloperInstructions('C:\\worktrees\\task', workflow)
     assert.match(instructions, new RegExp(expectedGuidance[workflow], 'i'))
     assert.match(instructions, /Read AGENTS\.md/)
+    assert.match(instructions, /git rev-parse --show-toplevel/)
+    assert.match(instructions, /\$ErrorActionPreference = 'Stop'/)
+    assert.match(instructions, /\$LASTEXITCODE after each native command/)
     assert.match(instructions, /Do not commit, push, publish/)
   }
 })

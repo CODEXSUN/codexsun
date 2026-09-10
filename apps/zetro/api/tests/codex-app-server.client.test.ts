@@ -19,6 +19,7 @@ test('turns bind their cwd and retain late command failures in the bounded summa
     resolveWorkingDirectory: async (_root: string, path: string) => join(process.cwd(), path),
   } as unknown as CodexWorktreeService
   const client = new CodexAppServerClient('unused', process.cwd(), worktrees)
+  client.sandbox.assertReady = () => undefined // Transport test. Enforcement has its own negative tests.
   const progress: unknown[] = []
   const transport = client as unknown as {
     request(method: string, params: Record<string, unknown>): Promise<unknown>
@@ -127,6 +128,7 @@ test('a timed-out turn requests provider interruption before returning failure',
     20,
   )
   let interrupted = false
+  client.sandbox.assertReady = () => undefined
   const transport = client as unknown as {
     request(method: string, params: unknown): Promise<unknown>
   }

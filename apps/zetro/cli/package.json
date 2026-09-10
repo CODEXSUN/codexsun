@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/zetro-cli",
   "private": true,
-  "version": "0.1.27",
+  "version": "0.1.29",
   "type": "module",
   "bin": {
     "zetro": "../../../dist/apps/zetro/cli/main.js"

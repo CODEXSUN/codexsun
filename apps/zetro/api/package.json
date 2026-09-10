@@ -1,14 +1,14 @@
 {
   "name": "@codexsun/zetro-api",
   "private": true,
-  "version": "0.1.27",
+  "version": "0.1.29",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-api.eslintcache",
     "test": "npm run test:connection && npm run test:security && npm run test:system-tasks && npm run test:developer-tools && npm run test:git-delivery && npm run test:model-selection && npm run test:attachment-guidance && npm run test:history && npm run test:projects && npm run test:tasks && npm run test:workflow && npm run test:worktree",
-    "test:connection": "node --test --import tsx tests/codex-app-server.client.test.ts",
+    "test:connection": "node --test --import tsx tests/codex-app-server.client.test.ts tests/codex-sandbox.test.ts",
     "test:security": "node --test --import tsx tests/desktop-session-auth.test.ts tests/supervisor.test.ts",
     "test:system-tasks": "node --test --import tsx tests/system-tasks.test.ts",
     "test:developer-tools": "node --test --import tsx tests/developer-tools.git.test.ts tests/developer-tools.scripts.test.ts",
@@ -25,7 +25,7 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.27",
+    "@codexsun/platform-core-api": "^0.1.29",
     "archiver": "^8.0.0",
     "better-sqlite3": "^12.11.1",
     "bullmq": "^6.3.4",

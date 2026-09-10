@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.9.1`
+- Version: `0.10.1`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -35,6 +35,10 @@ Each turn can select a supported Codex model and a low, medium, or high
 reasoning effort. The model overrides `ZETRO_CODEX_MODEL` for that turn. The
 account or environment default still applies when the request omits a model.
 
+Turn guidance requires repository-root resolution before onboarding reads.
+PowerShell commands must stop on errors and check native exit codes before continuing.
+These instructions reduce masked errors. They are not an operating-system enforcement mechanism.
+
 Each Zetro conversation uses one detached Git worktree. The worktree path is `<ZETRO_WORKTREE_ROOT>/<conversation-id>` and starts from repository `HEAD`.
 Worktree Git commands set `core.longpaths=true` per command for deep Windows desktop paths.
 This does not change the global or repository Git configuration.
@@ -44,7 +48,7 @@ are redacted and limited to 2,000 characters. The 20-item activity summary keeps
 Desktop worktrees use the user's `.zetro/worktrees` directory so the Windows sandbox can access them.
 
 The chat workspace scope maps its repository-relative folder into this
-worktree. The App Server starts from that folder. Its instructions limit normal
+worktree. Each thread starts from that folder. Its instructions limit normal
 inspection to the connected application or module. Repository guidance and
 declared dependencies remain readable when the task needs them.
 
@@ -78,11 +82,42 @@ Deactivate closes the child process. Uninstall leaves credentials and worktrees 
 
 ## Verification
 
+### Native Windows execution gate
+
+`GET /api/v1/settings/codex/sandbox` returns the current enforcement status.
+`POST` accepts `{ action: 'setup' | 'verify', confirm: true, allowLocalNetwork?: boolean }`.
+The localhost exception defaults to false. The response exposes that choice with every status.
+Setup calls the official elevated Windows setup. Setup success alone never enables project turns.
+
+Verification checks disposable approved-folder writes, documentation writes, sibling denial, and network denial.
+Both direct commands and a real agent turn must pass. Provider output and host-side file checks supply the evidence.
+The agent executes a short command referencing a host-written probe outside approved write roots.
+The host compares that file after execution. Changed probe code invalidates the result.
+Do not ask the model to copy long encoded scripts. Transcription errors can prevent the probe from running.
+With localhost approved, an external TCP baseline to `1.1.1.1:443` must first succeed.
+The sandbox must then block that connection. No application data is sent to this endpoint.
+Without approval, a local TCP canary must be blocked instead.
+
+The provider process starts in a neutral storage directory, not the repository root.
+Provider and fixture directories resolve to physical paths before child execution.
+`ZETRO_SANDBOX_ROOT` optionally overrides the default private sandbox storage directory.
+Desktop uses `.zetro/storage/app/private/sandbox` under the user home directory.
+This avoids protected MSIX AppData ancestors without changing their permissions.
+Windows error 267 returns a safe working-directory diagnosis without raw provider data.
+Thread cwd and explicit writable roots remain scoped to the selected workspace.
+Failed checks block all project turns. Successful evidence expires after 15 minutes or provider shutdown.
+These checks sample enforcement. They do not prove protection against every escape or network destination.
+Local services remain reachable under the approved exception. Do not expose unauthenticated command execution on localhost.
+
+See the [sandbox record](../../../../../../assist/records/zetro/2026-09-10-windows-sandbox.md).
+
 Run the API typecheck, build, connection tests, workflow tests, history tests, and worktree integration test. Inspect account status and device-code endpoints.
 
 A complete activation requires user sign-in in the browser. A live coding turn must prove file edits and command activity.
 
 ## Development records
+
+- [Sandbox path repair](../../../../../../assist/records/zetro/2026-09-10-sandbox-path-repair.md)
 
 - [0.1.27 stability candidate](../../../../../../assist/records/zetro/2026-09-10-stability-0.1.27.md)
 
@@ -91,7 +126,8 @@ The worktree resolver independently rejects absolute paths, traversal segments, 
 - [0.1.26 scope binding](../../../../../../assist/records/zetro/2026-09-10-scope-binding.md)
 
 Each turn passes explicit workspace-write roots for the connected folder and approved documentation folders.
-Paths resolve inside the conversation worktree. Redirected paths are rejected. Network and temporary write roots are disabled.
+Paths resolve inside the conversation worktree. Redirected paths are rejected. Temporary write roots are disabled.
+The provider requests network denial. Native Windows permits localhost, which requires explicit confirmation before verification.
 The policy does not grant repository-root, sibling-application, build-cache, or publication access.
 
 - [Stable release workflow](../../../../../../assist/records/zetro/2026-09-10-stable-release-workflow.md)

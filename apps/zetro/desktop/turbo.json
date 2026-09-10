@@ -1,4 +1,11 @@
 {
   "extends": ["//"],
-  "tasks": { "build": { "outputs": ["$TURBO_ROOT$/dist/apps/zetro/desktop/**"] } }
+  "tasks": {
+    "build": {
+      "outputs": [
+        "$TURBO_ROOT$/dist/apps/zetro/desktop/runtime/**",
+        "$TURBO_ROOT$/dist/apps/zetro/desktop/target/release/zetro-desktop.exe"
+      ]
+    }
+  }
 }

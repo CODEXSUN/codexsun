@@ -9,6 +9,7 @@ import { CodexConnectionService } from './codex-connection.service.js'
 export const codexConnectionModuleManifest = {
   capabilities: [
     'codex-account-status',
+    'verified-sandbox-execution',
     'codex-device-login',
     'codex-logout',
     'codex-turns',
@@ -34,13 +35,15 @@ export const codexConnectionModuleManifest = {
   },
   publicContracts: [
     'GET /api/v1/settings/codex',
+    'GET /api/v1/settings/codex/sandbox',
+    'POST /api/v1/settings/codex/sandbox',
     'POST /api/v1/settings/codex/device-code',
     'POST /api/v1/settings/codex/activate',
     'POST /api/v1/settings/codex/disconnect',
     'CodexAppServerClient',
   ],
   scope: 'zetro-api',
-  version: '0.9.1',
+  version: '0.10.1',
 } as const
 
 export async function registerCodexConnectionModule(
@@ -59,6 +62,10 @@ export async function registerCodexConnectionModule(
     environment.ZETRO_CODEX_API_KEY,
     environment.ZETRO_CODEX_BASE_URL,
     environment.ZETRO_CODEX_MODEL,
+    600_000,
+    environment.ZETRO_SANDBOX_ROOT
+      ? resolve(projectRoot, environment.ZETRO_SANDBOX_ROOT)
+      : resolve(projectRoot, environment.STORAGE_ROOT, 'private/zetro/sandbox'),
   )
   const service = new CodexConnectionService(client, environment)
   await registerCodexConnectionRoutes(server, service)

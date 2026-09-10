@@ -1,5 +1,9 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
+import { resolve } from 'node:path'
+import { mkdir, realpath } from 'node:fs/promises'
+import { CodexSandbox, workspaceSandboxPolicy } from './codex-sandbox.js'
+import { CodexProbeScript } from './codex-probe-script.js'
 import type {
   CodexConnectionStatus,
   CodexDeviceCode,
@@ -9,6 +13,7 @@ import type {
 } from './codex-connection.types.js'
 import type { CodexWorktreeService } from './codex-worktree.service.js'
 import { resolveCodexCommand } from './codex-command.js'
+import { toToolActivity } from './codex-activity.js'
 import { deliveryOutputJsonSchema, parseDeliveryOutput } from './codex-delivery.js'
 import { createDeveloperInstructions } from './codex-workflow.js'
 
@@ -46,6 +51,9 @@ interface ActiveTurn {
 }
 
 export class CodexAppServerClient {
+  public readonly sandbox: CodexSandbox
+  private readonly providerDirectory: string
+  private readonly probeCommands = new Map<string, { encoded: string; output: string }>()
   private nextRequestId = 1
   private process: ChildProcessWithoutNullStreams | null = null
   private startPromise: Promise<void> | null = null
@@ -65,7 +73,84 @@ export class CodexAppServerClient {
     private readonly baseUrl?: string,
     private readonly model?: string,
     private readonly turnTimeoutMs = 600_000,
-  ) {}
+    sandboxRoot = resolve(projectRoot, 'storage/app/private/zetro/sandbox'),
+  ) {
+    this.providerDirectory = resolve(sandboxRoot, 'provider')
+    this.sandbox = new CodexSandbox(
+      (method, params, timeout) => this.request(method, params, timeout),
+      (cwd, roots, encoded) => this.runSandboxAgentProbe(cwd, roots, encoded),
+      sandboxRoot,
+    )
+  }
+
+  public async setupSandbox() {
+    if (this.runningTurns.size) throw new Error('Stop active project turns before sandbox setup.')
+    return this.sandbox.setup()
+  }
+
+  public verifySandbox(allowLocalNetwork = false) {
+    if (this.runningTurns.size)
+      throw new Error('Stop active project turns before sandbox verification.')
+    return this.sandbox.verify(allowLocalNetwork)
+  }
+
+  private async runSandboxAgentProbe(
+    cwd: string,
+    roots: string[],
+    encoded: string,
+  ): Promise<string> {
+    const result = asRecord(
+      await this.request('thread/start', {
+        cwd,
+        approvalPolicy: 'never',
+        sandbox: 'workspace-write',
+        ephemeral: true,
+        developerInstructions:
+          'Run only the exact disposable sandbox probe command supplied by the user. Do not inspect or modify any other file.',
+      }),
+    )
+    const threadId = readString(asRecord(result.thread), 'id')
+    const script = await CodexProbeScript.create(cwd, encoded)
+    const evidence = { encoded: script.marker, output: '' }
+    this.probeCommands.set(threadId, evidence)
+    const completion = this.collectTurn(
+      threadId,
+      cwd,
+      'review',
+      'sandbox-probe',
+      undefined,
+      120_000,
+    )
+    void completion.catch(() => undefined)
+    let turnId: string | undefined
+    let completed = false
+    try {
+      const command = script.command(process.execPath)
+      const response = asRecord(
+        await this.request('turn/start', {
+          threadId,
+          cwd,
+          sandboxPolicy: workspaceSandboxPolicy(roots),
+          effort: 'low',
+          input: [
+            {
+              type: 'text',
+              text: `Execute this PowerShell command exactly once. It tests disposable files and a network canary, not user data. Do not replace it with other code. Then reply Done.\n${command}`,
+            },
+          ],
+        }),
+      )
+      turnId = readString(asRecord(response.turn), 'id')
+      await completion
+      completed = true
+      return (await script.unchanged()) ? evidence.output : ''
+    } finally {
+      this.probeCommands.delete(threadId)
+      this.rejectTurn(threadId, new Error('Sandbox probe finished.'))
+      if (!completed && turnId && this.process)
+        await this.request('turn/interrupt', { threadId, turnId }).catch(() => undefined)
+    }
+  }
 
   public async readAccount(refreshToken = false): Promise<CodexConnectionStatus> {
     const result = asRecord(await this.request('account/read', { refreshToken }))
@@ -144,7 +229,8 @@ export class CodexAppServerClient {
     return { mode: 'none', state: 'pending' }
   }
 
-  public runTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
+  public async runTurn(input: CodexTurnInput): Promise<CodexTurnResult> {
+    this.sandbox.assertReady()
     this.runningTurns.add(input.conversationId)
     return this.executeTurn(input).finally(() => {
       this.runningTurns.delete(input.conversationId)
@@ -206,13 +292,7 @@ export class CodexAppServerClient {
       const turnResult = asRecord(
         await this.request('turn/start', {
           cwd: workingDirectory,
-          sandboxPolicy: {
-            type: 'workspaceWrite',
-            writableRoots,
-            networkAccess: false,
-            excludeTmpdirEnvVar: true,
-            excludeSlashTmp: true,
-          },
+          sandboxPolicy: workspaceSandboxPolicy(writableRoots),
           input: [
             { text: addFilePaths(input.text, filePaths), type: 'text' },
             ...input.images.map((url) => ({ type: 'image', url })),
@@ -251,6 +331,7 @@ export class CodexAppServerClient {
   }
 
   public async close(): Promise<void> {
+    this.sandbox.invalidate()
     const child = this.process
     if (child) {
       this.handleProcessFailure(child, new Error('Codex App Server closed.'))
@@ -300,6 +381,7 @@ export class CodexAppServerClient {
 
   private async initialize(): Promise<void> {
     const command = await resolveCodexCommand(this.command)
+    await mkdir(this.providerDirectory, { recursive: true })
     const environment = { ...process.env }
     delete environment.ZETRO_SUPERVISOR_TOKEN
     delete environment.ZETRO_DESKTOP_SESSION_TOKEN
@@ -312,9 +394,16 @@ export class CodexAppServerClient {
     delete environment.CODEX_THREAD_ID
     const child = spawn(
       command,
-      ['app-server', '--stdio', '-c', 'sandbox_mode="workspace-write"'],
+      [
+        'app-server',
+        '--stdio',
+        '-c',
+        'sandbox_mode="workspace-write"',
+        '-c',
+        'windows.sandbox="elevated"',
+      ],
       {
-        cwd: this.projectRoot,
+        cwd: await realpath(this.providerDirectory),
         env: this.apiKey
           ? {
               ...environment,
@@ -381,6 +470,7 @@ export class CodexAppServerClient {
   }
 
   private handleNotification(method: string, params: unknown): void {
+    this.sandbox.notification(method, params)
     const values = isRecord(params) ? params : {}
 
     if (method === 'account/login/completed') {
@@ -421,6 +511,16 @@ export class CodexAppServerClient {
 
     if (method === 'item/completed') {
       const item = isRecord(values.item) ? values.item : {}
+      const probe = this.probeCommands.get(threadId)
+      if (
+        probe &&
+        item.type === 'commandExecution' &&
+        item.status === 'completed' &&
+        typeof item.command === 'string' &&
+        item.command.includes(probe.encoded) &&
+        typeof item.aggregatedOutput === 'string'
+      )
+        probe.output = item.aggregatedOutput
       if (item.type === 'agentMessage' && typeof item.text === 'string') {
         this.turns.get(threadId)!.content = item.text
         collector.onProgress?.({ kind: 'response', text: item.text.slice(-8000) })
@@ -438,9 +538,10 @@ export class CodexAppServerClient {
     workflow: CodexTurnInput['workflow'],
     model: string,
     onProgress?: CodexTurnInput['onProgress'],
+    timeoutMs = this.turnTimeoutMs,
   ): Promise<CodexTurnResult> {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => void this.expireTurn(threadId), this.turnTimeoutMs)
+      const timeout = setTimeout(() => void this.expireTurn(threadId), timeoutMs)
       this.turns.set(threadId, {
         activities: [],
         onProgress,
@@ -523,6 +624,7 @@ export class CodexAppServerClient {
 
   private handleProcessFailure(child: ChildProcessWithoutNullStreams, error: Error): void {
     if (this.process !== child) return
+    this.sandbox.invalidate()
     for (const pending of this.pendingRequests.values()) {
       clearTimeout(pending.timeout)
       pending.reject(error)
@@ -594,45 +696,4 @@ function normalizeCode(value: string): string {
 function addFilePaths(text: string, filePaths: readonly string[]): string {
   if (filePaths.length === 0) return text
   return `${text}\n\nUser file inputs:\n${filePaths.map((path) => `- ${path}`).join('\n')}`
-}
-
-function toToolActivity(item: Record<string, unknown>): CodexToolActivity | null {
-  if (item.type === 'commandExecution' && typeof item.command === 'string') {
-    const status = readActivityStatus(item)
-    const details =
-      status === 'failed' && typeof item.aggregatedOutput === 'string'
-        ? item.aggregatedOutput
-            .replace(
-              /(authorization|api[-_]?key|password|token)\s*[:=]\s*[^\s]+/giu,
-              '$1=[redacted]',
-            )
-            .slice(-2_000)
-        : undefined
-    return { kind: 'command', label: limitLabel(item.command), status, details }
-  }
-  if (item.type === 'fileChange') {
-    const count = Array.isArray(item.changes) ? item.changes.length : 0
-    return {
-      kind: 'file_change',
-      label: `${count} file ${count === 1 ? 'change' : 'changes'}`,
-      status: readActivityStatus(item),
-    }
-  }
-  if (item.type === 'mcpToolCall' && typeof item.tool === 'string') {
-    const server = typeof item.server === 'string' ? `${item.server}: ` : ''
-    return {
-      kind: 'mcp',
-      label: limitLabel(`${server}${item.tool}`),
-      status: readActivityStatus(item),
-    }
-  }
-  return null
-}
-
-function readActivityStatus(item: Record<string, unknown>): string {
-  return typeof item.status === 'string' ? item.status : 'completed'
-}
-
-function limitLabel(value: string): string {
-  return value.length <= 500 ? value : `${value.slice(0, 499)}…`
 }

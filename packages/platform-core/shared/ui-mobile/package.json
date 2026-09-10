@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/ui-mobile",
   "private": true,
-  "version": "0.1.27",
+  "version": "0.1.29",
   "type": "module",
   "main": "../../../dist/packages/platform-core/shared/ui-mobile/index.js",
   "types": "../../../dist/packages/platform-core/shared/ui-mobile/index.d.ts",
