@@ -32,11 +32,8 @@ import { useVoiceInput } from './agent-chat.voice'
 import { useZetroPreferences } from '../settings'
 
 const workflows: Array<{ label: string; value: ChatWorkflow }> = [
-  { label: 'Develop', value: 'develop' },
-  { label: 'Deliver', value: 'deliver' },
+  { label: 'Plan', value: 'plan' },
   { label: 'Review', value: 'review' },
-  { label: 'Test', value: 'test' },
-  { label: 'Document', value: 'document' },
 ]
 
 export function AgentChatComposer({

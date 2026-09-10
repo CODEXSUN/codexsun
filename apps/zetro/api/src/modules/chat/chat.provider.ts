@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import type { CodexAppServerClient, CodexWorkflow } from '../codex-connection/index.js'
 import type { ChatMessage, ChatProvider, ChatTurnRequest, ChatTurnResponse } from './chat.types.js'
 
+const planningTools = ['Read files', 'Search code', 'Review repository guidance'] as const
+
 const codingTools = [
   'Read files',
   'Search code',
@@ -74,6 +76,7 @@ export class CodexAppServerProvider implements ChatProvider {
 }
 
 function toolsForWorkflow(workflow: CodexWorkflow): readonly string[] {
+  if (workflow === 'plan' || workflow === 'review') return planningTools
   return workflow === 'deliver' ? deliveryTools : codingTools
 }
 

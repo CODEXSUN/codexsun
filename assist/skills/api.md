@@ -47,6 +47,10 @@ Run `npm.cmd run typecheck`, the application API build, its production-artifact 
 
 ## Development record
 
+For Zetro task worktrees, prepare only confirmed empty source-owner and documentation directories through the Codex Connection worktree service.
+Do not copy uncommitted source or silently reset a conversation to a newer revision.
+Check both the source and documentation paths when diagnosing a missing-worktree-folder error.
+
 After each API feature, update its module README and the application development record. Record route contracts, environment keys, runtime services, shutdown bindings, tests, and unavailable dependency checks.
 
 Update this guide when a tested server pattern replaces an earlier API workflow.

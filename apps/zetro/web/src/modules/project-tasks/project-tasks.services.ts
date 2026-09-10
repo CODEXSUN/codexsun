@@ -1,5 +1,5 @@
 import { taskListResponseSchema, taskResponseSchema } from './project-tasks.schema'
-import type { TaskPriority, TaskUpdate } from './project-tasks.types'
+import type { TaskExecutionPlan, TaskPriority, TaskUpdate } from './project-tasks.types'
 import { zetroFetch } from '../../lib/zetro-api'
 
 const apiBaseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? '').replace(/\/$/, '')
@@ -17,6 +17,7 @@ export async function createTask(input: {
   priority: TaskPriority
   parentTaskId?: string | null
   planningKind?: 'phase' | 'subtask' | 'task'
+  plan?: TaskExecutionPlan | null
   projectId: string
   title: string
 }) {
@@ -35,6 +36,18 @@ export async function updateTask(projectId: string, taskId: string, update: Task
       body: JSON.stringify(update),
       headers: { 'Content-Type': 'application/json' },
       method: 'PATCH',
+    },
+  )
+  return readResponse(response, taskResponseSchema).then(({ task }) => task)
+}
+
+export async function startTask(projectId: string, taskId: string) {
+  const response = await zetroFetch(
+    `${apiBaseUrl}/api/v1/tasks/${taskId}/start?${new URLSearchParams({ projectId })}`,
+    {
+      body: JSON.stringify({ approved: true }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
     },
   )
   return readResponse(response, taskResponseSchema).then(({ task }) => task)

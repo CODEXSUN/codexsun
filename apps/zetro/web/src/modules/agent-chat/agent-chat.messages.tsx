@@ -124,7 +124,7 @@ function EmptyConversation({ onStarter }: { onStarter(value: string): void }) {
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">What are we building?</h1>
         <p className="text-sm text-muted-foreground">
-          Ask Zetro to plan, review, document, or code.
+          Discuss an idea, then create a reviewed task draft.
         </p>
       </div>
       <div className="w-full max-w-xl divide-y rounded-xl border bg-background text-left">

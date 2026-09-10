@@ -6,7 +6,7 @@ Public response progress now includes an optional provider item ID so Chat can r
 See the [stream record](../../../../../../assist/records/zetro/2026-09-10-chat-live-stream.md).
 
 - Module ID: `zetro.codex-connection.api`
-- Version: `0.10.2`
+- Version: `0.10.4`
 - Owner: Zetro API
 - Routes: status, device-code start, activation refresh, and disconnect under `/api/v1/settings/codex`
 
@@ -35,11 +35,21 @@ A missing or invalid command returns a controlled service error. It does not sto
 
 ## Task execution
 
+Before a turn, the worktree service prepares confirmed empty top-level application or package folders and approved documentation directories.
+The source folder must exist and be empty, with no tracked files in either revision or index.
+Preparation creates directories only. It never copies uncommitted files, replaces files, or advances a conversation revision.
+Tracked folders missing from an older worktree require an explicit clean-worktree refresh or a new chat.
+Missing-folder errors identify the exact path, including documentation paths.
+See the [preparation record](../../../../../../assist/records/zetro/2026-09-10-worktree-preparation.md).
+
 The public client starts one ephemeral Codex thread for each turn. Ephemeral threads do not enter the durable Codex task history.
 
 Each turn can select a supported Codex model and a low, medium, or high
 reasoning effort. The model overrides `ZETRO_CODEX_MODEL` for that turn. The
 account or environment default still applies when the request omits a model.
+
+Plan and review turns use a read-only provider workspace. They resolve the selected scope but do not prepare source or documentation write folders.
+The Plan workflow creates a task draft. It cannot edit files or run a delivery stage.
 
 Turn guidance requires repository-root resolution before onboarding reads.
 PowerShell commands must stop on errors and check native exit codes before continuing.

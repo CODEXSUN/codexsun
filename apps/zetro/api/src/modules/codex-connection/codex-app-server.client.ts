@@ -24,13 +24,11 @@ interface AppServerMessage {
   params?: unknown
   result?: unknown
 }
-
 interface PendingRequest {
   reject(reason: Error): void
   resolve(value: unknown): void
   timeout: NodeJS.Timeout
 }
-
 interface TurnCollector {
   onProgress?: CodexTurnInput['onProgress']
   streamedText: string
@@ -250,16 +248,19 @@ export class CodexAppServerClient {
       input.files,
       input.projectId,
     )
-    const workingDirectory = await this.worktrees.resolveWorkingDirectory(
-      worktree.path,
-      input.scope.folderPath,
-    )
-    const writableRoots = [workingDirectory]
+    const isReadOnly = input.workflow === 'plan' || input.workflow === 'review'
+    const resolveScope = (path: string) =>
+      isReadOnly
+        ? this.worktrees.resolveWorkingDirectory(worktree.path, path)
+        : this.worktrees.prepareWorkingDirectory(worktree.path, path, input.projectRoot)
+    const workingDirectory = await resolveScope(input.scope.folderPath)
+    const writableRoots = isReadOnly ? [] : [workingDirectory]
     for (const path of input.scope.documentationPaths ?? []) {
       if (!/^assist\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(path)) {
         throw new Error('Choose explicit documentation directories below assist.')
       }
-      writableRoots.push(await this.worktrees.resolveWorkingDirectory(worktree.path, path))
+      const documentationRoot = await resolveScope(path)
+      if (!isReadOnly) writableRoots.push(documentationRoot)
     }
     const threadResult = asRecord(
       await this.request('thread/start', {
@@ -272,7 +273,7 @@ export class CodexAppServerClient {
         ),
         ephemeral: true,
         model: turnConfiguration.model,
-        sandbox: 'workspace-write',
+        sandbox: isReadOnly ? 'read-only' : 'workspace-write',
         serviceName: 'zetro',
         threadSource: 'zetro',
       }),
@@ -286,13 +287,12 @@ export class CodexAppServerClient {
       readString(threadResult, 'model'),
       input.onProgress,
     )
-
     let activeTurn: ActiveTurn | undefined
     try {
       const turnResult = asRecord(
         await this.request('turn/start', {
           cwd: workingDirectory,
-          sandboxPolicy: workspaceSandboxPolicy(writableRoots),
+          sandboxPolicy: isReadOnly ? undefined : workspaceSandboxPolicy(writableRoots),
           input: [
             { text: addFilePaths(input.text, filePaths), type: 'text' },
             ...input.images.map((url) => ({ type: 'image', url })),

@@ -1,8 +1,14 @@
-export const codexWorkflows = ['deliver', 'develop', 'document', 'review', 'test'] as const
+export const codexWorkflows = ['plan', 'deliver', 'develop', 'document', 'review', 'test'] as const
 
 export type CodexWorkflow = (typeof codexWorkflows)[number]
 
 const workflowInstructions: Record<CodexWorkflow, readonly string[]> = {
+  plan: [
+    'Work read-only. Do not create, edit, delete, install, migrate, build, commit, publish, or deploy.',
+    'Turn the request into a task draft with outcome, source owner, scope, risks, acceptance criteria, checks, and open questions.',
+    'Use exact headings: Title:, Task:, Acceptance criteria:, Checks:, Open questions:. Put each criterion and check on its own - bullet.',
+    'State the smallest next task. Do not claim implementation or verification completed.',
+  ],
   deliver: [
     'Run this delivery pipeline in order: plan, observe, review, assign, implement, verify, document, version, publish.',
     'Plan: define the outcome, scope, risks, acceptance criteria, and checks.',
@@ -51,7 +57,7 @@ export function createDeveloperInstructions(
   },
 ): string {
   return [
-    `You are the coding agent for one Zetro ${workflow} task.`,
+    `You are the ${workflow === 'plan' ? 'planning' : 'coding'} agent for one Zetro ${workflow} task.`,
     `Work only in the isolated Git worktree at ${worktreePath}.`,
     ...(scope
       ? [

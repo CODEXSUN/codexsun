@@ -100,8 +100,24 @@ export async function createServer() {
       projects,
       database,
     )
-    await registerSupervisorModule(server, projects, chat, systemTasks)
-    await registerTasksModule(server, environment, projectRoot, projects, database)
+    const taskService = await registerTasksModule(server, environment, projectRoot, projects, database)
+    const supervisor = await registerSupervisorModule(server, projects, chat, systemTasks)
+    taskService.setExecutionRunner({
+      start: ({ projectId, prompt, scope }) =>
+        supervisor.submit({
+          approved: true,
+          projectId,
+          prompt,
+          reasoningEffort: 'medium',
+          scope: {
+            application: scope.application,
+            ...(scope.documentationPaths ? { documentationPaths: [...scope.documentationPaths] } : {}),
+            folderPath: scope.folderPath,
+            module: scope.module,
+          },
+          workflow: 'develop',
+        }),
+    })
     await registerOperationsModule(
       server,
       environment,

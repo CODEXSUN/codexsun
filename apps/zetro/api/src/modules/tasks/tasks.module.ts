@@ -15,6 +15,7 @@ export const tasksModuleManifest = {
     'task-archive',
     'task-pin',
     'task-plan',
+    'task-execution-attempt',
   ],
   dataSchema: { checksum: 'tasks-001-tasks-v1', version: 1 },
   dependencies: { 'zetro.projects.api': '^0.5.0' },
@@ -26,9 +27,15 @@ export const tasksModuleManifest = {
     uninstall: 'Preserve task storage for recoverability.',
     upgrade: 'Version 0.4.0 migrates tasks to SQLite or MariaDB.',
   },
-  publicContracts: ['GET /api/v1/tasks', 'POST /api/v1/tasks', 'PATCH /api/v1/tasks/:taskId'],
+  publicContracts: [
+    'TaskService',
+    'GET /api/v1/tasks',
+    'POST /api/v1/tasks',
+    'PATCH /api/v1/tasks/:taskId',
+    'POST /api/v1/tasks/:taskId/start',
+  ],
   scope: 'zetro-api',
-  version: '0.5.0',
+  version: '0.5.2',
 } as const
 
 export async function registerTasksModule(
@@ -44,5 +51,7 @@ export async function registerTasksModule(
     defaultProjectId,
   )
   await repository.initialize()
-  await registerTaskRoutes(server, new TaskService(repository), projects)
+  const service = new TaskService(repository)
+  await registerTaskRoutes(server, service, projects)
+  return service
 }

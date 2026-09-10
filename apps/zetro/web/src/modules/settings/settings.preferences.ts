@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type ZetroDefaultWorkflow = 'deliver' | 'develop' | 'document' | 'review' | 'test'
+export type ZetroDefaultWorkflow = 'plan' | 'deliver' | 'develop' | 'document' | 'review' | 'test'
 export type ZetroCodexModel =
   | 'default'
   | 'gpt-6-astra'
@@ -27,7 +27,7 @@ export type ZetroPreferencesContextValue = {
 const storageKey = 'zetro.settings.preferences.v1'
 const defaults: ZetroPreferences = {
   codexModel: 'default',
-  defaultWorkflow: 'develop',
+  defaultWorkflow: 'plan',
   interfaceTopology: false,
   reasoningLevel: 'medium',
 }
@@ -61,6 +61,7 @@ export const zetroReasoningLevels: ReadonlyArray<{
 const modelIds = zetroCodexModels.map(({ value }) => value)
 const reasoningLevels = zetroReasoningLevels.map(({ value }) => value)
 const workflows: readonly ZetroDefaultWorkflow[] = [
+  'plan',
   'develop',
   'deliver',
   'review',

@@ -120,6 +120,15 @@ through an explicit action or a configured retention sweep.
 
 ## Provider workflows
 
+### Governed development direction
+
+Chat is the planning and review interface. Project Tasks will own implementation objectives.
+System Tasks owns execution attempts. Automation coordinates checks and approvals. Scripts perform repeatable operations.
+This separation is under implementation, not complete in the installed desktop.
+Current Start task changes planning status only. It does not prove implementation, tests, human acceptance, or deployment.
+Follow the [governed development task](../../assist/tasks/zetro-governed-development.md).
+Sites development remains paused until that task passes installed acceptance.
+
 The Chat API supports five workflows for provider-backed turns:
 
 - **Deliver** runs the complete governed delivery pipeline.

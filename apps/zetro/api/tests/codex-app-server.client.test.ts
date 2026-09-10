@@ -16,6 +16,9 @@ test('turns bind their cwd and retain late command failures in the bounded summa
   const worktrees = {
     ensure: async () => ({ path: process.cwd(), revision: 'test' }),
     writeInputs: async () => [],
+    prepareWorkingDirectory: async () => {
+      throw new Error('Read-only turns must not prepare write folders.')
+    },
     resolveWorkingDirectory: async (_root: string, path: string) => join(process.cwd(), path),
   } as unknown as CodexWorktreeService
   const client = new CodexAppServerClient('unused', process.cwd(), worktrees)
@@ -27,15 +30,12 @@ test('turns bind their cwd and retain late command failures in the bounded summa
   }
   transport.request = async (method, params) => {
     assert.equal(params.cwd, cwd)
-    if (method === 'thread/start') return { thread: { id: 'thread' }, model: 'test' }
+    if (method === 'thread/start') {
+      assert.equal(params.sandbox, 'read-only')
+      return { thread: { id: 'thread' }, model: 'test' }
+    }
     assert.equal(method, 'turn/start')
-    assert.deepEqual(params.sandboxPolicy, {
-      type: 'workspaceWrite',
-      writableRoots: [cwd, join(process.cwd(), 'assist/records/zetro')],
-      networkAccess: false,
-      excludeTmpdirEnvVar: true,
-      excludeSlashTmp: true,
-    })
+    assert.equal(params.sandboxPolicy, undefined)
     transport.handleNotification('item/started', {
       threadId: 'thread',
       item: { id: 'cmd-1', type: 'commandExecution', command: 'read', status: 'inProgress' },
@@ -116,6 +116,7 @@ test('a timed-out turn requests provider interruption before returning failure',
   const worktrees = {
     ensure: async () => ({ path: process.cwd(), revision: 'test' }),
     writeInputs: async () => [],
+    prepareWorkingDirectory: async () => process.cwd(),
     resolveWorkingDirectory: async () => process.cwd(),
   } as unknown as CodexWorktreeService
   const client = new CodexAppServerClient(

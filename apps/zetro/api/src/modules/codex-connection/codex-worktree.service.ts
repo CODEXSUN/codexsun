@@ -78,7 +78,9 @@ export class CodexWorktreeService {
     const workingDirectory = resolve(worktreePath, folderPath)
     assertNestedPath(worktreePath, workingDirectory)
     if (!(await exists(workingDirectory))) {
-      throw new Error('The connected folder is not available in the isolated worktree.')
+      throw new Error(
+        `The folder "${folderPath}" is not available in this isolated worktree. Its committed revision may be older than the folder.`,
+      )
     }
     if (
       !(await stat(workingDirectory)).isDirectory() ||
@@ -90,6 +92,59 @@ export class CodexWorktreeService {
       )
     }
     return workingDirectory
+  }
+
+  public async prepareWorkingDirectory(
+    worktreePath: string,
+    folderPath: string,
+    repositoryRoot = this.repositoryRoot,
+  ): Promise<string> {
+    const target = resolve(worktreePath, folderPath)
+    // Existing scopes retain their normal validation and are never reset or replaced.
+    if (await exists(target)) return this.resolveWorkingDirectory(worktreePath, folderPath)
+    if (
+      !/^(?:(?:apps|packages)\/[a-zA-Z0-9_-]+|assist\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)$/.test(
+        folderPath,
+      )
+    ) {
+      throw new Error(
+        'Only an empty application, package, or approved documentation folder can be prepared.',
+      )
+    }
+    await this.resolveWorkingDirectory(repositoryRoot, folderPath)
+    if ((await readdir(resolve(repositoryRoot, folderPath))).length > 0) {
+      throw new Error(
+        'The connected folder contains files absent from this worktree. Commit them and start a new chat; existing work was preserved.',
+      )
+    }
+    for (const root of [repositoryRoot, worktreePath]) {
+      const tracked = await runGit(root, ['ls-tree', '-r', '--name-only', 'HEAD', '--', folderPath])
+      const indexed = await runGit(root, ['ls-files', '--', folderPath])
+      if (tracked || indexed) {
+        throw new Error(
+          'This folder is tracked but missing from the worktree. Review its revision and local changes before reconnecting.',
+        )
+      }
+    }
+    // Check every ancestor before creating one segment. Never follow a junction or symlink.
+    let current = worktreePath
+    for (const segment of folderPath.split('/')) {
+      current = join(current, segment)
+      try {
+        const entry = await lstat(current)
+        if (!entry.isDirectory() || entry.isSymbolicLink()) {
+          throw new Error('Workspace preparation refuses redirected or non-directory paths.')
+        }
+      } catch (error) {
+        if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+        await mkdir(current).catch((failure: unknown) => {
+          if (!(failure instanceof Error && 'code' in failure && failure.code === 'EEXIST'))
+            throw failure
+        })
+      }
+      await this.resolveWorkingDirectory(worktreePath, relative(worktreePath, current))
+    }
+    return this.resolveWorkingDirectory(worktreePath, folderPath)
   }
 
   public async list(): Promise<CodexWorktreeStatus[]> {

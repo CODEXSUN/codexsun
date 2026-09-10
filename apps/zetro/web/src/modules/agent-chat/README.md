@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.agent-chat.web`
-- Version: `0.13.4`
+- Version: `0.13.5`
 - Owner: Zetro web
 - Flow: open history, select a conversation, and send a provider-backed turn
 
@@ -14,6 +14,10 @@ The composer reads and updates its default workflow through the public
 `zetro.settings.web` preference contract. The Settings workspace and composer
 therefore show the same workflow without separate browser state.
 The Zetro Desk module only supplies the sidebar and workspace surfaces.
+
+Chat defaults to Plan. Plan and Review only expose read-only provider workspaces.
+An assistant Plan response can create a task draft. The handoff does not start coding or mark a task accepted.
+Task execution moves to the governed task workflow when its execution binding is available.
 
 ## Dependency bindings
 

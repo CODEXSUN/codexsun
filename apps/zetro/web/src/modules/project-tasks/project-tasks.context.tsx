@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useProjects } from '../projects'
 import { TaskContext } from './project-tasks.controller'
-import { createTask, listTasks, updateTask } from './project-tasks.services'
-import type { TaskPriority, TaskStatus, TaskUpdate, ZetroTask } from './project-tasks.types'
+import { createTask, listTasks, startTask as startTaskRequest, updateTask } from './project-tasks.services'
+import type { TaskExecutionPlan, TaskPriority, TaskStatus, TaskUpdate, ZetroTask } from './project-tasks.types'
 
 export function ProjectTasksProvider({ children }: { children: ReactNode }) {
   const { activeProject } = useProjects()
@@ -52,7 +52,12 @@ export function ProjectTasksProvider({ children }: { children: ReactNode }) {
     [activeTask?.id, tasks],
   )
 
-  async function addTask(input: { description: string; priority: TaskPriority; title: string }) {
+  async function addTask(input: {
+    description: string
+    plan?: TaskExecutionPlan | null
+    priority: TaskPriority
+    title: string
+  }) {
     if (!activeProject) throw new Error('Select a project before creating a task.')
     const projectId = activeProject.id
     try {
@@ -73,6 +78,22 @@ export function ProjectTasksProvider({ children }: { children: ReactNode }) {
 
   async function changeStatus(taskId: string, status: TaskStatus) {
     await changeTask(taskId, { status })
+  }
+
+  async function startTask(taskId: string) {
+    if (!activeProject) return
+    const projectId = activeProject.id
+    try {
+      const task = await startTaskRequest(projectId, taskId)
+      if (activeProjectIdRef.current === projectId) {
+        setTasks((current) =>
+          sortTasks(current.map((candidate) => (candidate.id === task.id ? task : candidate))),
+        )
+      }
+      setError(null)
+    } catch (reason) {
+      setError(toMessage(reason))
+    }
   }
 
   async function bindReviewWorkflow(taskId: string) {
@@ -197,6 +218,7 @@ export function ProjectTasksProvider({ children }: { children: ReactNode }) {
           setIsCreating(false)
           setView('tasks')
         },
+        startTask,
         splitTask,
         tasks,
         togglePin: (task) => changeTask(task.id, { pinned: !task.pinned }),

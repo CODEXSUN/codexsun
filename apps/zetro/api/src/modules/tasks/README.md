@@ -3,19 +3,31 @@
 ## Contract
 
 - Module ID: `zetro.tasks.api`
-- Version: `0.5.0`
+- Version: `0.5.2`
 - Owner: Zetro API
 - Entity: `Task`
 - Routes: list, create, and update under `/api/v1/tasks`
 
 A task has a stable ID, project ID, title, optional description, status,
 priority, pinned state, archived state, planning kind, optional parent task,
-optional workflow binding, and timestamps. List and update routes
+optional workflow binding, and timestamps. A reviewed plan has source scope,
+acceptance criteria, checks, and an origin conversation. Starting it creates
+one linked Supervisor System Task attempt. List and update routes
 require the project ID. The list route accepts the `archived` query filter.
 
 The `zetro.project-tasks.web` module consumes this contract inside `/zetro`.
 
 ## Dependency bindings
+
+### Planning integrity
+
+Parent tasks must exist in the same project and remain open and unarchived when child work starts.
+A parent cannot become done while any direct child remains unfinished, including archived children.
+Reopen the parent before reopening a completed child. Invalid transitions return HTTP 409.
+Manual done remains a planning status, not verified implementation or human release acceptance.
+Starting requires a reviewed plan and an explicit local user action. It does not
+authorize commits, publication, deployment, or final acceptance.
+See the [governed workflow task](../../../../../../assist/tasks/zetro-governed-development.md).
 
 - `zetro.projects.api`: `^0.4.0`
 

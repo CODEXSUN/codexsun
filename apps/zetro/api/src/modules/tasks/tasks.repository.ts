@@ -90,6 +90,8 @@ function normalizeTask(task: ZetroTask): ZetroTask {
     ...task,
     parentTaskId: task.parentTaskId ?? null,
     planningKind: task.planningKind ?? 'task',
+    executionAttempt: task.executionAttempt ?? null,
+    plan: task.plan ?? null,
     workflow: task.workflow ?? null,
   }
 }

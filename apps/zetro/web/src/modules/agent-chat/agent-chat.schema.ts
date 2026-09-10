@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const workflowSchema = z.enum(['deliver', 'develop', 'document', 'review', 'test'])
+const workflowSchema = z.enum(['plan', 'deliver', 'develop', 'document', 'review', 'test'])
 
 const attachmentSchema = z.strictObject({
   dataUrl: z.string().startsWith('data:'),

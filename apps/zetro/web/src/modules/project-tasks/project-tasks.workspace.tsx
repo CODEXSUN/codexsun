@@ -12,12 +12,6 @@ import { useProjectTasks } from './project-tasks.controller'
 import { TaskPlanningActions } from './project-tasks.planning'
 import type { TaskPriority, TaskStatus, ZetroTask } from './project-tasks.types'
 
-const nextStatus: Record<TaskStatus, TaskStatus> = {
-  done: 'todo',
-  in_progress: 'done',
-  todo: 'in_progress',
-}
-
 export function ProjectTasksWorkspace() {
   const tasks = useProjectTasks()
   const topology = useMdiTopology()
@@ -139,6 +133,8 @@ function TaskDetails({ task }: { task: ZetroTask }) {
         </p>
       </section>
 
+      {task.plan ? <TaskPlan task={task} /> : null}
+
       <dl className="grid grid-cols-1 gap-5 border-b py-6 text-sm sm:grid-cols-3">
         <TaskField label="Status" value={statusLabel(task.status)} />
         <TaskField label="Created" value={formatDate(task.createdAt)} />
@@ -148,10 +144,15 @@ function TaskDetails({ task }: { task: ZetroTask }) {
       <div className="flex justify-end py-5">
         <Button
           className="cursor-pointer"
-          onClick={() => void tasks.changeStatus(task.id, nextStatus[task.status])}
+          disabled={task.status === 'in_progress' || (task.status === 'todo' && !task.plan)}
+          onClick={() =>
+            void (task.status === 'todo'
+              ? tasks.startTask(task.id)
+              : tasks.changeStatus(task.id, 'todo'))
+          }
           variant="outline"
         >
-          {nextActionLabel(task.status)}
+          {taskActionLabel(task)}
         </Button>
       </div>
     </article>
@@ -167,16 +168,55 @@ function TaskField({ label, value }: { label: string; value: string }) {
   )
 }
 
+function TaskPlan({ task }: { task: ZetroTask }) {
+  const plan = task.plan
+  if (!plan) return null
+  return (
+    <section className="grid gap-5 border-b py-6 text-sm">
+      <div>
+        <h2 className="font-medium">Reviewed plan</h2>
+        <p className="pt-1 text-muted-foreground">
+          {plan.scope.folderPath} {plan.scope.module ? `· ${plan.scope.module}` : ''}
+        </p>
+      </div>
+      <TaskPlanList heading="Acceptance criteria" items={plan.acceptanceCriteria} />
+      <TaskPlanList heading="Required checks" items={plan.checks} />
+      {task.executionAttempt ? (
+        <p className="text-muted-foreground">
+          System task started {formatDate(task.executionAttempt.startedAt)} ·{' '}
+          {task.executionAttempt.systemTaskId}
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
+function TaskPlanList({ heading, items }: { heading: string; items: readonly string[] }) {
+  return (
+    <div>
+      <h3 className="font-medium">{heading}</h3>
+      <ul className="list-disc space-y-1 pl-5 pt-2 text-muted-foreground">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function statusLabel(status: TaskStatus) {
   if (status === 'in_progress') return 'In progress'
   if (status === 'done') return 'Done'
   return 'Waiting to start'
 }
 
-function nextActionLabel(status: TaskStatus) {
-  if (status === 'in_progress') return 'Complete task'
+function taskActionLabel(task: ZetroTask) {
+  if (task.status === 'in_progress') return 'Awaiting verification'
+  if (task.status === 'todo' && !task.plan) return 'Task plan required'
+  if (task.status === 'todo') return 'Start task'
+  const status = task.status
   if (status === 'done') return 'Reopen task'
-  return 'Start task'
+  return 'Task plan required'
 }
 
 function formatDate(value: string) {

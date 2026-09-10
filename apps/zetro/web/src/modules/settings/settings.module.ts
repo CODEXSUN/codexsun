@@ -11,7 +11,7 @@ export const settingsModuleManifest = {
     'startup-enforcement-verification',
   ],
   dependencies: {
-    'zetro.codex-connection.api': '^0.10.0',
+    'zetro.codex-connection.api': '^0.10.4',
     'zetro.developer-tools.web': '^1.0.0',
     'zetro.operations.web': '^1.0.0',
     'zetro.git-delivery.web': '^0.1.0',
@@ -32,5 +32,5 @@ export const settingsModuleManifest = {
     'useZetroPreferences',
   ],
   scope: 'zetro-web',
-  version: '0.6.1',
+  version: '0.6.2',
 } as const

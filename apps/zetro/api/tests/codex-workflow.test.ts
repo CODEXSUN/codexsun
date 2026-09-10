@@ -11,6 +11,7 @@ import {
 import { chatTurnRequestSchema, createConversationSchema } from '../src/modules/chat/chat.schema.js'
 
 const expectedGuidance = {
+  plan: 'Turn the request into a task draft',
   deliver: 'Run this delivery pipeline in order',
   develop: 'implement the smallest complete change',
   document: 'source of truth',
@@ -76,18 +77,18 @@ test('delivery prepares every stage and protects publication', () => {
   )
 })
 
-test('chat requests default to develop and reject unknown workflows', () => {
+test('chat requests default to plan and reject unknown workflows', () => {
   const request = {
     conversationId: '9a5d01ba-7c25-4300-97e8-bb16404906a6',
     messages: [{ attachments: [], content: 'Update this module.', role: 'user' }],
     projectId: '00000000-0000-4000-8000-000000000001',
   }
 
-  assert.equal(chatTurnRequestSchema.parse(request).workflow, 'develop')
+  assert.equal(chatTurnRequestSchema.parse(request).workflow, 'plan')
   assert.equal(chatTurnRequestSchema.safeParse({ ...request, workflow: 'deploy' }).success, false)
 })
 
-test('stored execution records without a workflow default to develop', () => {
+test('stored execution records without a workflow default to plan', () => {
   const conversation = createConversationSchema.parse({
     messages: [
       {
@@ -107,7 +108,7 @@ test('stored execution records without a workflow default to develop', () => {
     projectId: '00000000-0000-4000-8000-000000000001',
   })
 
-  assert.equal(conversation.messages[0]?.execution?.workflow, 'develop')
+  assert.equal(conversation.messages[0]?.execution?.workflow, 'plan')
 })
 
 test('delivery output becomes a timestamped resumable record', () => {

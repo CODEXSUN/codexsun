@@ -1,5 +1,5 @@
 export type ChatRole = 'assistant' | 'user'
-export type ChatWorkflow = 'deliver' | 'develop' | 'document' | 'review' | 'test'
+export type ChatWorkflow = 'plan' | 'deliver' | 'develop' | 'document' | 'review' | 'test'
 
 export type ChatAttachment = {
   dataUrl: string

@@ -7,15 +7,15 @@ import { SupervisorService } from './supervisor.service.js'
 
 export const supervisorModuleManifest = {
   id: 'zetro.supervisor.api',
-  version: '0.3.0',
+  version: '0.3.1',
   scope: 'zetro-api',
   capabilities: ['external-agent-jobs', 'durable-results', 'agent-cancellation'],
   dependencies: {
-    'zetro.chat.api': '^0.16.0',
+    'zetro.chat.api': '^0.16.2',
     'zetro.projects.api': '^0.5.0',
     'zetro.system-tasks.api': '^1.1.0',
   },
-  publicContracts: ['/api/v1/supervisor/*'],
+  publicContracts: ['SupervisorService', '/api/v1/supervisor/*'],
   lifecycle: {
     install: 'Use public Chat and System Tasks persistence. No owned tables.',
     activate: 'Register authenticated local routes and a single-attempt job handler.',
@@ -33,4 +33,5 @@ export async function registerSupervisorModule(
 ) {
   const service = new SupervisorService(projects, chat.service, chat.conversations, tasks)
   await registerSupervisorRoutes(server, service)
+  return service
 }

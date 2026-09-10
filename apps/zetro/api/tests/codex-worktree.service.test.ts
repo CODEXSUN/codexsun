@@ -154,6 +154,56 @@ async function initializeRepository(repositoryRoot: string, name: string): Promi
   await git(repositoryRoot, ['commit', '-m', 'Initial fixture'])
 }
 
+test('prepares empty scoped folders without copying files or replacing older work', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'zetro-prepare-'))
+  const repositoryRoot = join(temporaryRoot, 'repository')
+  try {
+    await initializeRepository(repositoryRoot, 'prepare')
+    const service = new CodexWorktreeService(repositoryRoot, join(temporaryRoot, 'tasks'))
+    const worktree = await service.ensure('11111111-1111-4111-8111-111111111111')
+    for (const path of ['apps/sites', 'packages/new-ui', 'assist/records/sites']) {
+      await mkdir(join(repositoryRoot, path), { recursive: true })
+      const prepared = await service.prepareWorkingDirectory(worktree.path, path)
+      assert.equal(prepared, join(worktree.path, path))
+      await writeFile(join(prepared, 'draft.md'), 'Keep my work')
+      assert.equal(await service.prepareWorkingDirectory(worktree.path, path), prepared)
+      assert.equal(await readFile(join(prepared, 'draft.md'), 'utf8'), 'Keep my work')
+    }
+    await mkdir(join(repositoryRoot, 'apps/uncommitted'), { recursive: true })
+    await writeFile(join(repositoryRoot, 'apps/uncommitted/code.ts'), 'export {}')
+    await assert.rejects(
+      service.prepareWorkingDirectory(worktree.path, 'apps/uncommitted'),
+      /Commit them/,
+    )
+    await mkdir(join(repositoryRoot, 'apps/later'), { recursive: true })
+    await writeFile(join(repositoryRoot, 'apps/later/README.md'), 'Later commit')
+    await git(repositoryRoot, ['add', 'apps/later'])
+    await git(repositoryRoot, ['commit', '-m', 'Later folder'])
+    await rm(join(repositoryRoot, 'apps/later/README.md'))
+    await assert.rejects(
+      service.prepareWorkingDirectory(worktree.path, 'apps/later'),
+      /tracked but missing/,
+    )
+    for (const path of ['apps/no/module', 'apps/../escape', '../escape']) {
+      await assert.rejects(service.prepareWorkingDirectory(worktree.path, path))
+    }
+    await mkdir(join(repositoryRoot, 'assist/redirected'), { recursive: true })
+    await mkdir(join(temporaryRoot, 'outside'))
+    await symlink(
+      join(temporaryRoot, 'outside'),
+      join(worktree.path, 'assist/redirected'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+    await assert.rejects(
+      service.prepareWorkingDirectory(worktree.path, 'assist/redirected'),
+      /physical directory/,
+    )
+    await rm(join(worktree.path, 'assist/redirected'))
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true })
+  }
+})
+
 async function git(cwd: string, args: readonly string[]): Promise<string> {
   const result = await execute('git', ['-C', cwd, ...args], { windowsHide: true })
   return result.stdout.trim()

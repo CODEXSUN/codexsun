@@ -1,5 +1,11 @@
 import { createContext, useContext } from 'react'
-import type { TaskPlanningKind, TaskPriority, TaskStatus, ZetroTask } from './project-tasks.types'
+import type {
+  TaskExecutionPlan,
+  TaskPlanningKind,
+  TaskPriority,
+  TaskStatus,
+  ZetroTask,
+} from './project-tasks.types'
 
 export type TaskController = {
   activeTask: ZetroTask | null
@@ -11,7 +17,12 @@ export type TaskController = {
   isLoading: boolean
   tasks: ZetroTask[]
   view: 'archive' | 'tasks'
-  addTask(input: { description: string; priority: TaskPriority; title: string }): Promise<ZetroTask>
+  addTask(input: {
+    description: string
+    plan?: TaskExecutionPlan | null
+    priority: TaskPriority
+    title: string
+  }): Promise<ZetroTask>
   archiveTask(task: ZetroTask): Promise<void>
   bindReviewWorkflow(taskId: string): Promise<void>
   closeCreateTask(): void
@@ -21,6 +32,7 @@ export type TaskController = {
   renameTask(taskId: string, title: string): Promise<void>
   restoreTask(task: ZetroTask): Promise<void>
   selectTask(taskId: string): void
+  startTask(taskId: string): Promise<void>
   splitTask(task: ZetroTask, kind: Exclude<TaskPlanningKind, 'task'>): Promise<void>
   togglePin(task: ZetroTask): Promise<void>
 }

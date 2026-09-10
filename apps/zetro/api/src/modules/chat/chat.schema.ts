@@ -61,7 +61,7 @@ export const chatTurnRequestSchema = z.strictObject({
   previousDelivery: deliveryRunSchema.optional(),
   projectId: z.string().uuid(),
   reasoningEffort: z.enum(codexReasoningEfforts).default('medium'),
-  workflow: z.enum(codexWorkflows).default('develop'),
+  workflow: z.enum(codexWorkflows).default('plan'),
 })
 
 const executionSchema = z.strictObject({
@@ -79,7 +79,7 @@ const executionSchema = z.strictObject({
   isolation: z.literal('ephemeral-thread'),
   tools: z.array(z.string().min(1).max(80)).max(12),
   worktreePath: z.string().min(1).max(1_024),
-  workflow: z.enum(codexWorkflows).default('develop'),
+  workflow: z.enum(codexWorkflows).default('plan'),
 })
 
 const storedMessageSchema = z

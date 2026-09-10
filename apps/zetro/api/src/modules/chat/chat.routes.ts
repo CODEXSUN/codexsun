@@ -39,6 +39,11 @@ export async function registerChatRoutes(
   server.post('/api/v1/chat/responses', async (request, reply) => {
     try {
       const input = chatTurnRequestSchema.parse(request.body)
+      if (!isConversationWorkflow(input.workflow)) {
+        return reply.code(409).send({
+          error: 'Chat supports planning and review only. Create and start a reviewed Project Task for implementation.',
+        })
+      }
       const project = projects.get(input.projectId)
       const conversation = conversations.get(input.conversationId)
       if (project.archived || conversation.archivedAt) {
@@ -183,6 +188,10 @@ export async function registerChatRoutes(
       return handleConversationError(error, request, reply)
     }
   })
+}
+
+function isConversationWorkflow(workflow: 'plan' | 'deliver' | 'develop' | 'document' | 'review' | 'test') {
+  return workflow === 'plan' || workflow === 'review'
 }
 
 function handleConversationError(

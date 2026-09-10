@@ -3,7 +3,7 @@
 ## Contract
 
 - Module ID: `zetro.project-tasks.web`
-- Version: `0.5.0`
+- Version: `0.4.2`
 - Owner: Zetro web
 
 The module lists tasks for the selected project, creates tasks, and advances a
@@ -26,7 +26,7 @@ All records come from `zetro.tasks.api`. The module owns no browser persistence.
 ## Dependency bindings
 
 - `zetro.projects.web`: `^0.5.0`
-- `zetro.tasks.api`: `^0.3.0`
+- `zetro.tasks.api`: `^0.5.2`
 
 ## Verification
 

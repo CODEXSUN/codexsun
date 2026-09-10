@@ -8,7 +8,14 @@
 
 ## Version State
 
-- Current version: 0.1.31. Release tag: v-0.1.31. Changelog label: v 0.1.31.
+- Current version: 0.1.32
+
+## v-0.1.32
+
+### [v 0.1.32] 2026-09-10 9:17 pm - working on zetro
+
+- Database update: Yes (auto-check).
+- Bumped workspace version to 0.1.32.
 
 ## v-0.1.31
 

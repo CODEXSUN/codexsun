@@ -39,6 +39,8 @@ record for a change. It does not duplicate source-owned documentation.
 
 ## Catalogs and records
 
+- [Zetro governed development](tasks/zetro-governed-development.md) separates planning, implementation, automated checks, human acceptance, and delivery. Sites remains paused until acceptance.
+
 - [Stable release workflow](operations/stable-release-workflow.md) defines framework, identity, adoption, and E2E release gates through Zetro.
 
 - [Application and module catalogs](modules/README.md) identify the source owner.

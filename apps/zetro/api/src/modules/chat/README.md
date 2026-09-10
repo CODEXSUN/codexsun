@@ -11,7 +11,7 @@ Only one source owner and explicit Assist documentation roots are writable.
 See the [shared-package scope record](../../../../../../assist/records/zetro/2026-09-10-shared-package-scopes.md).
 
 - Module ID: `zetro.chat.api`
-- Version: `0.16.1`
+- Version: `0.16.2`
 - Owner: Zetro API
 - Routes: provider turns and conversation history under `/api/v1/chat`
 - Entities: a provider turn and a persisted conversation
@@ -46,7 +46,9 @@ An `apps/<application>` path must match its label. Explicit package folders rema
 Changing the selected folder requires confirmation. This is not a grant derived from the application label.
 The provider receives the resolved selected folder and approved documentation roots, not every folder matching a label.
 
-The response route accepts a `workflow` value. Valid values are `deliver`, `develop`, `document`, `review`, and `test`. The route defaults to `develop` for older clients.
+The response route accepts planning and review only. Plan is the default. Implementation,
+testing, delivery, and publication are started from a reviewed Project Task through
+the Supervisor, never from browser Chat.
 
 The response route also accepts an optional supported Codex `model` and a
 `reasoningEffort` value. The effort accepts `low`, `medium`, or `high` and

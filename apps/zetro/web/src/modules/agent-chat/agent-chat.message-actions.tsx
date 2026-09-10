@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@codexsun/ui/components/dropdown-menu'
 import { useAgentChat } from './agent-chat.controller'
+import { taskInputFromPlan } from './agent-chat.task-draft'
 import type { ChatMessage } from './agent-chat.types'
 import { useProjectTasks } from '../project-tasks'
 import { useProjects } from '../projects'
@@ -43,6 +44,7 @@ export function AgentChatMessageActions({ message }: { message: ChatMessage }) {
   const [isSendingToTask, setIsSendingToTask] = useState(false)
   const [taskSendFailed, setTaskSendFailed] = useState(false)
   const activeConversation = chat.summaries.find(({ id }) => id === chat.activeId)
+  const taskDraft = message.execution?.workflow === 'plan'
 
   async function copyResponse() {
     await copyText(message.content)
@@ -51,7 +53,9 @@ export function AgentChatMessageActions({ message }: { message: ChatMessage }) {
   }
 
   async function sendToTask() {
-    const input = taskInputFromMessage(message.content)
+    const input = taskDraft
+      ? taskInputFromPlan(message.content, chat.scope ?? undefined, chat.activeId)
+      : taskInputFromMessage(message.content)
     setIsSendingToTask(true)
     setTaskSendFailed(false)
     try {
@@ -91,7 +95,9 @@ export function AgentChatMessageActions({ message }: { message: ChatMessage }) {
               ? 'Sending to task'
               : taskSendFailed
                 ? 'Task send failed'
-                : 'Send to task'
+                : taskDraft
+                  ? 'Create task draft'
+                  : 'Create follow-up task'
           }
           onClick={() => void sendToTask()}
         />
