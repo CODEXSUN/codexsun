@@ -44,7 +44,8 @@ The gallery consumes public `@codexsun/ui` exports, but it is not part of `packa
 | `@codexsun/docs-api`     | Docs vault API and HTML renderer                     | `npm.cmd run dev:docs-api`   | `http://127.0.0.1:6030`       |
 | `@codexsun/devkit-web`   | Project planning registry workspace                  | `npm.cmd run dev:devkit`     | `http://127.0.0.1:6080`       |
 | `@codexsun/devkit-api`   | Project registry JSON API                            | `npm.cmd run dev:devkit-api` | `http://127.0.0.1:6070`       |
-| `@codexsun/zetro-web`    | Frontend-only Zetro 2.0 foundation                   | `npm.cmd run dev:zetro`      | `http://127.0.0.1:6060/zetro` |
+| `@codexsun/zetro-api`    | Codex chat and SQLite history API                    | `npm.cmd run dev:zetro-api`  | `http://127.0.0.1:6050`       |
+| `@codexsun/zetro-web`    | Focused Zetro 2.0 chat                               | `npm.cmd run dev:zetro`      | `http://127.0.0.1:6060/zetro` |
 | `@codexsun/orship-web`   | Live orchestration and service controls              | `npm.cmd run dev:orship`     | `http://127.0.0.1:6091`       |
 | `@codexsun/orship-api`   | Service health, metrics, logs, and local controls    | `npm.cmd run dev:orship-api` | `http://127.0.0.1:6090`       |
 

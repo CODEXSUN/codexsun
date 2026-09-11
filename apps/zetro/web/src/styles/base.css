@@ -47,10 +47,22 @@ body {
   color: transparent;
 }
 
+.zetro-stop-shimmer {
+  animation: zetro-text-shimmer 1.5s linear infinite;
+  background: linear-gradient(110deg, #171717 30%, #f97316 50%, #171717 70%);
+  background-size: 220% 100%;
+  color: white;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .zetro-shimmer-text {
     animation: none;
     background: none;
     color: #737373;
+  }
+
+  .zetro-stop-shimmer {
+    animation: none;
+    background: #171717;
   }
 }

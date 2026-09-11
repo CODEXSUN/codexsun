@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/zetro-api.tsbuildinfo",
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "../../../dist/apps/zetro/api",
+    "rootDir": "src",
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

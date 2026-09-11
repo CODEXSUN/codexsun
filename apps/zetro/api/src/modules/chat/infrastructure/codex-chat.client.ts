@@ -1,9 +1,12 @@
-import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { ChatStreamEvent } from './src/modules/shell/chat-stream.contract.ts'
+import type { ChatStreamEvent } from '@codexsun/zetro-contracts'
+import {
+  resolveChatWorkingDirectory,
+  resolveCodexExecutable,
+  stopProcessTree,
+  waitForSpawn,
+} from './codex-process.js'
 
 type RpcMessage = {
   error?: { message?: string }
@@ -21,11 +24,14 @@ type PendingRequest = {
 
 type TurnCollector = {
   content: string
-  reject(error: Error): void
-  resolve(content: string): void
-  timeout: NodeJS.Timeout
   onEvent(event: ChatStreamEvent): void
+  reject(error: Error): void
+  resolve(result: TurnResult): void
+  timeout: NodeJS.Timeout
 }
+
+type TurnResult = { content: string; status: 'complete' | 'stopped' }
+type ThreadSession = { activeTurn?: Promise<string>; threadId: string }
 
 const chatModel = 'gpt-5.3-codex-spark'
 const chatReasoningEffort = 'low'
@@ -36,44 +42,121 @@ export class CodexChatClient {
   private process: ChildProcessWithoutNullStreams | null = null
   private startPromise: Promise<void> | null = null
   private readonly pendingRequests = new Map<number, PendingRequest>()
+  private readonly sessions = new Map<string, Promise<ThreadSession>>()
   private readonly turns = new Map<string, TurnCollector>()
 
-  public async run(prompt: string, onEvent: (event: ChatStreamEvent) => void) {
-    const threadResult = asRecord(
-      await this.request('thread/start', {
-        approvalPolicy: 'never',
-        cwd: resolveChatWorkingDirectory(),
-        ephemeral: true,
-        model: chatModel,
-        sandbox: 'read-only',
-        serviceName: 'zetro',
-        threadSource: 'zetro',
-      }),
-    )
-    const threadId = readString(asRecord(threadResult.thread), 'id')
-    const completion = this.collectTurn(threadId, onEvent)
+  public async run(
+    sessionId: string,
+    prompt: string,
+    onEvent: (event: ChatStreamEvent) => void,
+    providerThreadId: string | undefined,
+    onProviderThread: (threadId: string) => void,
+  ) {
+    const session = await this.getSession(sessionId, providerThreadId, onProviderThread, onEvent)
+    if (session.activeTurn) throw new Error('This Zetro chat is already responding.')
+    const completion = this.collectTurn(session.threadId, onEvent)
+    const activeTurn = this.request('turn/start', {
+      cwd: resolveChatWorkingDirectory(),
+      effort: chatReasoningEffort,
+      input: [{ text: prompt, type: 'text' }],
+      threadId: session.threadId,
+    }).then((result) => readString(asRecord(asRecord(result).turn), 'id'))
+    session.activeTurn = activeTurn
 
     try {
-      await this.request('turn/start', {
-        cwd: resolveChatWorkingDirectory(),
-        effort: chatReasoningEffort,
-        input: [{ text: prompt, type: 'text' }],
-        threadId,
-      })
+      await activeTurn
       return await completion
     } catch (error) {
-      this.rejectTurn(threadId, toError(error))
+      this.rejectTurn(session.threadId, toError(error))
+      await completion.catch(() => undefined)
       throw error
+    } finally {
+      if (session.activeTurn === activeTurn) session.activeTurn = undefined
     }
+  }
+
+  public async stop(sessionId: string) {
+    const sessionPromise = this.sessions.get(sessionId)
+    if (!sessionPromise) throw new Error('This Zetro chat has no active response.')
+    const session = await sessionPromise
+    if (!session.activeTurn) throw new Error('This Zetro chat has no active response.')
+    await this.request('turn/interrupt', {
+      threadId: session.threadId,
+      turnId: await session.activeTurn,
+    })
   }
 
   public async close() {
     const child = this.process
     this.process = null
     this.startPromise = null
+    this.sessions.clear()
     if (!child) return
     this.failPending(new Error('Codex chat server stopped.'))
     stopProcessTree(child)
+  }
+
+  private getSession(
+    sessionId: string,
+    providerThreadId: string | undefined,
+    onProviderThread: (threadId: string) => void,
+    onEvent: (event: ChatStreamEvent) => void,
+  ) {
+    const existing = this.sessions.get(sessionId)
+    if (existing) return existing
+    const created = this.resumeOrStartThread(providerThreadId, onEvent)
+      .then((session) => {
+        onProviderThread(session.threadId)
+        return session
+      })
+      .catch((error) => {
+        if (this.sessions.get(sessionId) === created) this.sessions.delete(sessionId)
+        throw error
+      })
+    this.sessions.set(sessionId, created)
+    return created
+  }
+
+  private async resumeOrStartThread(
+    providerThreadId: string | undefined,
+    onEvent: (event: ChatStreamEvent) => void,
+  ): Promise<ThreadSession> {
+    if (!providerThreadId) return this.startThread()
+    try {
+      const result = asRecord(
+        await this.request('thread/resume', {
+          approvalPolicy: 'never',
+          cwd: resolveChatWorkingDirectory(),
+          excludeTurns: true,
+          model: chatModel,
+          sandbox: 'read-only',
+          threadId: providerThreadId,
+        }),
+      )
+      return { threadId: readString(asRecord(result.thread), 'id') }
+    } catch (error) {
+      onEvent({
+        item: { message: toError(error).message, status: 'new-context' },
+        method: 'thread/recovery',
+        type: 'activity',
+      })
+      return this.startThread()
+    }
+  }
+
+  private async startThread(): Promise<ThreadSession> {
+    const result = asRecord(
+      await this.request('thread/start', {
+        approvalPolicy: 'never',
+        cwd: resolveChatWorkingDirectory(),
+        ephemeral: false,
+        model: chatModel,
+        sandbox: 'read-only',
+        serviceName: 'zetro',
+        threadSource: 'zetro',
+      }),
+    )
+    return { threadId: readString(asRecord(result.thread), 'id') }
   }
 
   private async request(method: string, params: unknown, timeoutMilliseconds = 15_000) {
@@ -164,9 +247,7 @@ export class CodexChatClient {
     }
     if (method === 'item/started' || method === 'item/completed') {
       const item = isRecord(values.item) ? values.item : {}
-      if (item.type !== 'agentMessage') {
-        collector.onEvent({ item, method, type: 'activity' })
-      }
+      if (item.type !== 'agentMessage') collector.onEvent({ item, method, type: 'activity' })
       if (item.type === 'agentMessage' && typeof item.text === 'string') {
         collector.content = item.text
       }
@@ -175,6 +256,10 @@ export class CodexChatClient {
     if (method !== 'turn/completed') return
 
     const turn = isRecord(values.turn) ? values.turn : {}
+    if (turn.status === 'interrupted') {
+      this.resolveTurn(threadId, { content: collector.content, status: 'stopped' })
+      return
+    }
     if (turn.status !== 'completed' || !collector.content.trim()) {
       const failure = isRecord(turn.error) ? turn.error : {}
       this.rejectTurn(
@@ -183,20 +268,25 @@ export class CodexChatClient {
       )
       return
     }
-
-    clearTimeout(collector.timeout)
-    this.turns.delete(threadId)
-    collector.resolve(collector.content)
+    this.resolveTurn(threadId, { content: collector.content, status: 'complete' })
   }
 
   private collectTurn(threadId: string, onEvent: (event: ChatStreamEvent) => void) {
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<TurnResult>((resolve, reject) => {
       const timeout = setTimeout(
         () => this.rejectTurn(threadId, new Error('Codex response timed out.')),
         responseTimeoutMilliseconds,
       )
       this.turns.set(threadId, { content: '', onEvent, reject, resolve, timeout })
     })
+  }
+
+  private resolveTurn(threadId: string, result: TurnResult) {
+    const collector = this.turns.get(threadId)
+    if (!collector) return
+    clearTimeout(collector.timeout)
+    this.turns.delete(threadId)
+    collector.resolve(result)
   }
 
   private rejectTurn(threadId: string, error: Error) {
@@ -211,6 +301,7 @@ export class CodexChatClient {
     if (this.process !== child) return
     this.process = null
     this.startPromise = null
+    this.sessions.clear()
     this.failPending(error)
   }
 
@@ -222,59 +313,6 @@ export class CodexChatClient {
     for (const threadId of this.turns.keys()) this.rejectTurn(threadId, error)
     this.pendingRequests.clear()
   }
-}
-
-function resolveChatWorkingDirectory() {
-  const path = join(tmpdir(), 'zetro-codex-chat')
-  mkdirSync(path, { recursive: true })
-  return path
-}
-
-function resolveCodexExecutable() {
-  const configuredPath = process.env.ZETRO_CODEX_PATH
-  if (configuredPath && existsSync(configuredPath)) return configuredPath
-  if (process.platform !== 'win32') return 'codex'
-
-  const pathMatch = spawnSync('where.exe', ['codex.exe'], {
-    encoding: 'utf8',
-    windowsHide: true,
-  })
-    .stdout?.split(/\r?\n/)
-    .find((candidate) => candidate && existsSync(candidate))
-  if (pathMatch) return pathMatch
-
-  const installRoot = process.env.LOCALAPPDATA
-    ? join(process.env.LOCALAPPDATA, 'OpenAI', 'Codex', 'bin')
-    : ''
-  const installedExecutables =
-    installRoot && existsSync(installRoot)
-      ? readdirSync(installRoot)
-          .map((folder) => join(installRoot, folder, 'codex.exe'))
-          .filter(existsSync)
-          .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)
-      : []
-  if (installedExecutables[0]) return installedExecutables[0]
-
-  throw new Error('Codex CLI was not found. Install Codex or set ZETRO_CODEX_PATH.')
-}
-
-function stopProcessTree(child: ChildProcessWithoutNullStreams) {
-  if (!child.pid || child.exitCode !== null) return
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    })
-    return
-  }
-  child.kill('SIGTERM')
-}
-
-function waitForSpawn(child: ChildProcessWithoutNullStreams) {
-  return new Promise<void>((resolve, reject) => {
-    child.once('spawn', resolve)
-    child.once('error', reject)
-  })
 }
 
 function asRecord(value: unknown) {

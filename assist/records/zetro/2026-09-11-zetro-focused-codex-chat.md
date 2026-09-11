@@ -4,6 +4,11 @@ Date: 2026-09-11
 
 ## Decision
 
+The [SQLite chat history record](2026-09-11-zetro-sqlite-chat-history.md) extends
+this initial frontend-only decision with an API and durable history.
+The [concurrent durable chat record](2026-09-11-zetro-concurrent-durable-chat.md)
+supersedes this record's ephemeral-thread and long-lived request details.
+
 Zetro exposes one workflow only: the user enters a prompt and sees the final
 Codex response as plain text. Task, automation, archive, settings, attachment,
 voice, repository, Git, provider, and model controls are outside this phase.
@@ -11,15 +16,17 @@ voice, repository, Git, provider, and model controls are outside this phase.
 ## Ownership
 
 - `apps/zetro/web/src/app.tsx` owns the browser chat state and composition.
-- `apps/zetro/web/codex-chat-plugin.ts` owns the development-only local bridge.
+- `zetro.chat.api` now owns the local Codex bridge.
 - `packages/ui` continues to own the reusable button and textarea controls.
 
 ## Runtime contract
 
 `POST /api/chat` accepts `{ "prompt": string }`. The Vite development and preview
 servers keep one locally authenticated Codex app-server process warm. Every
-request starts a new ephemeral, read-only thread outside the repository. The
-route streams newline-delimited JSON events and closes after the turn completes.
+loaded browser session starts one ephemeral, read-only thread outside the
+repository, and its prompts reuse that thread for follow-up context. A refresh
+creates a new browser session and therefore a clean thread. The route streams
+newline-delimited JSON events and closes after the turn completes or is stopped.
 The event contract includes the exact request text, raw non-assistant Codex items,
 assistant text deltas, errors, and completion.
 
@@ -56,6 +63,9 @@ The conversation scroll viewport spans the available screen width, with responsi
 padding applied to its content and composer instead of the scrollbar container.
 The prompt surface displays about five to six lines and then scrolls internally
 with its visual scrollbar hidden.
+While the turn runs, the send action becomes an orange-shimmering stop control.
+It calls `turn/interrupt` for the exact active Codex thread and turn. An interrupted
+turn freezes as `Stopped for Ns` and retains partial response and activity output.
 
 The earlier repository-scoped, one-process-per-message path took about 14 seconds
 for the reference exact-response prompt. The persistent implementation produced

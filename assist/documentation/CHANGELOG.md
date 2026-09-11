@@ -14,6 +14,20 @@
 
 ## v-0.1.33
 
+### [v 0.1.33] 11/09/2026 10:28 am - Zetro concurrent durable chat
+
+#### Database Changes
+
+- Database update: Yes.
+
+#### App Codebase Changes
+
+- Zetro Chat API 1.1.0 and Shell Web 2.2.0 add accepted turns, durable sequence events, reconnectable SSE, concurrent conversations, single-turn ordering, and Codex thread recovery. See the [development record](../records/zetro/2026-09-11-zetro-concurrent-durable-chat.md).
+
+#### Verification
+
+- Passed focused type checks, lint, SQLite tests, production builds, API health, concurrent conversation, same-conversation guard, stop, and provider-thread restart checks.
+
 ### [v 0.1.33] 2026-09-11 9:29 am - working on zetro again
 
 - Database update: Yes (auto-check).
@@ -411,21 +425,8 @@
 
 ### [v 0.1.2] 2026-09-09 - Component variant cleanup
 
-#### Database Changes
-
-- No database or storage change.
-
-#### App Codebase Changes
-
-- Removed the generic component preview card and Compact variant.
-- Limited component pages to variants implemented by the selected component.
-- Marked a component with one composition using one green Default badge.
-
-#### Verification
-
-- Passed the shared UI type check, Platform production build, lint, application documentation check, authored-file line check, and `git diff --check`.
-- Verified the Accordion page in the live browser without the preview card or Compact control.
-- See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
+- No database change. Removed the generic preview card and Compact variant; pages now show only implemented variants and use a green Default badge for one composition.
+- Passed shared UI and Platform checks and verified Accordion in the browser. See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
 ### [v 0.1.2] 2026-09-09 - Docs sidebar tree navigation
 
@@ -449,19 +450,8 @@
 
 ### [v 0.1.2] 2026-09-09 - Direct Docs overview navigation
 
-#### Database Changes
-
-- No database or storage change.
-
-#### App Codebase Changes
-
-- Replaced the expandable Overview → Index menu with one clickable Overview destination.
-- Kept the Overview destination bound to the repository index page and document-selection reset.
-
-#### Verification
-
-- Passed the Docs web type check and production build.
-- See `assist/records/docs/2026-09-08-repository-documentation-index.md`.
+- No database change. Replaced Overview → Index with one repository-index destination and document-selection reset.
+- Passed the Docs web type check and build. See `assist/records/docs/2026-09-08-repository-documentation-index.md`.
 
 ### [v 0.1.2] 2026-09-08 - Zetro chat workspace scope
 
@@ -543,22 +533,8 @@
 
 ### [v 0.1.1] 2026-09-08 - Application browser titles
 
-#### Database Changes
-
-- No database or storage change.
-
-#### App Codebase Changes
-
-- Aligned every web document title with its MDI application name.
-- Changed the Platform title to `Platform` and the Docs title to `Docs`.
-- Bound the shared MDI document title to its `applicationName` property.
-- Removed the shared UI Gallery override that replaced the Platform title.
-- Added the exact-title rule to the application and web UI guides.
-
-#### Verification
-
-- Verified the Platform, Docs, DevKit, Zetro, and Orship HTML titles.
-- See `assist/records/platform/2026-09-08-application-browser-titles.md`.
+- No database change. Aligned each web title with its MDI application name and documented the exact-title rule.
+- Verified Platform, Docs, DevKit, Zetro, and Orship titles. See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
 ### [v 0.1.1] 2026-09-08 - Grouped Orship service operations 1.0.1
 
@@ -636,24 +612,17 @@
 
 #### App Codebase Changes
 
-- Added the reusable Form block with animated tabs, searchable lookup fields, active state,
-  and icon actions.
-- Moved the Form title and actions into one compact top toolbar and removed the lower action
-  footer to save vertical space.
+- Added the reusable Form block with animated tabs, searchable lookup fields, active state, and icon actions.
+- Moved the Form title and actions into one compact top toolbar. Removed the lower action footer to save vertical space.
 - Split the Form toolbar and body into separate bordered surfaces with a small gap.
-- Split the UI workspace navigation into Layouts, Blocks, and Components.
-- Set the UI workspace browser title to `CODEXSUN UI` and increased the space below
-  the documentation tool strip.
-- Restyled UI navigation with compact section headers, indented child rails, and
-  collapsed sections at initial load.
-- Added related Layouts, Blocks, and Components header icons and smoother rail transitions.
-- Registered Table and Form as blocks and generated component documentation routes from the
-  complete shared component catalog.
+- Split UI navigation into Layouts, Blocks, and Components. Added related header icons and smoother rail transitions.
+- Set the browser title to `CODEXSUN UI` and increased the space below the documentation tool strip.
+- Restyled UI navigation with compact section headers, indented child rails, and collapsed initial sections.
+- Registered Table and Form as blocks. Generated documentation routes from the complete shared component catalog.
 
 #### Verification
 
-- Passed the shared UI type check, Platform production build, lint, documentation checks,
-  authored-file line check, and `git diff --check`.
+- Passed the shared UI type check, Platform production build, lint, documentation checks, authored-file line check, and `git diff --check`.
 - Verified the live Form route, lookup options, Blocks navigation, and Accordion component route.
 - See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 

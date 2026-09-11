@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { codexChatPlugin } from './codex-chat-plugin.ts'
 
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
@@ -13,9 +13,19 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_ZETRO_BUILD_VERSION': JSON.stringify(packageJson.version),
   },
-  plugins: [codexChatPlugin(), react(), tailwindcss()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: [
+      {
+        find: /^@codexsun\/zetro-contracts$/,
+        replacement: fileURLToPath(new URL('../contracts/src/index.ts', import.meta.url)),
+      },
+    ],
+  },
   server: {
+    host: process.env.ZETRO_WEB_HOST ?? '127.0.0.1',
     port: Number(process.env.ZETRO_WEB_PORT ?? 6060),
+    strictPort: true,
   },
   build: {
     outDir: '../../../dist/apps/zetro/web',

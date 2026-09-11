@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Button } from '@codexsun/ui/components/button'
 import {
   MessageScroller,
@@ -9,17 +9,25 @@ import {
   MessageScrollerViewport,
 } from '@codexsun/ui/components/message-scroller'
 import { Textarea } from '@codexsun/ui/components/textarea'
-import { ArrowUp, Bot, Check, Copy } from 'lucide-react'
+import { ArrowUp, Bot, Check, Copy, Square } from 'lucide-react'
+import type { ChatStreamEvent, ChatTurnStatus, StoredChatTurn } from '@codexsun/zetro-contracts'
+import {
+  fetchChatHistory,
+  getChatSessionId,
+  startChatTurn,
+  stopChatResponse,
+  watchChatTurn,
+} from './modules/shell/chat.services'
 import { ChatTurnTimeline, type TurnEntry } from './modules/shell/chat-turn-timeline'
-import { parseChatStreamEvent, type ChatStreamEvent } from './modules/shell/chat-stream.contract'
 
 type ChatTurn = {
   completedAt?: number
   entries: TurnEntry[]
-  id: number
+  id: string
+  lastSequence: number
   prompt: string
   startedAt: number
-  status: 'failed' | 'working' | 'complete'
+  status: ChatTurnStatus
 }
 
 export function App() {
@@ -27,19 +35,43 @@ export function App() {
   const [prompt, setPrompt] = useState('')
   const [error, setError] = useState('')
   const [isResponding, setIsResponding] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
+  const [sessionId] = useState(getChatSessionId)
+  const watchControllers = useRef(new Map<string, AbortController>())
   const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
+
+  useEffect(() => {
+    let active = true
+    fetchChatHistory(sessionId)
+      .then((history) => {
+        if (!active) return
+        setTurns(history.turns.map(turnFromStored))
+        const working = history.turns.find((turn) => turn.status === 'working')
+        if (working) void watchTurn(working.id, working.events.at(-1)?.sequence ?? 0)
+      })
+      .catch((reason: unknown) => {
+        if (active)
+          setError(reason instanceof Error ? reason.message : 'Could not load chat history.')
+      })
+    return () => {
+      active = false
+      for (const controller of watchControllers.current.values()) controller.abort()
+      watchControllers.current.clear()
+    }
+  }, [sessionId])
 
   async function sendPrompt(event?: FormEvent) {
     event?.preventDefault()
     if (!prompt.trim() || isResponding) return
 
     const rawPrompt = prompt
-    const turnId = Date.now()
+    const turnId = crypto.randomUUID()
     setTurns((current) => [
       ...current,
       {
         entries: [],
         id: turnId,
+        lastSequence: 0,
         prompt: rawPrompt,
         startedAt: Date.now(),
         status: 'working',
@@ -50,24 +82,59 @@ export function App() {
     setIsResponding(true)
 
     try {
-      const response = await fetch('/api/chat', {
-        body: JSON.stringify({ prompt: rawPrompt }),
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-      })
-      if (!response.ok) throw new Error((await response.text()) || 'Codex did not respond.')
-      if (!response.body) throw new Error('Codex returned an empty response stream.')
-      await readChatStream(response.body, (streamEvent) => applyStreamEvent(turnId, streamEvent))
+      await startChatTurn(sessionId, turnId, rawPrompt)
+      await watchTurn(turnId, 0)
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'Could not connect to Codex.'
       setError(message)
       finishTurn(turnId, 'failed')
     } finally {
       setIsResponding(false)
+      setIsStopping(false)
     }
   }
 
-  function applyStreamEvent(turnId: number, event: ChatStreamEvent) {
+  async function watchTurn(turnId: string, afterSequence: number) {
+    if (watchControllers.current.has(turnId)) return
+    const controller = new AbortController()
+    watchControllers.current.set(turnId, controller)
+    setIsResponding(true)
+    try {
+      await watchChatTurn(
+        sessionId,
+        turnId,
+        afterSequence,
+        (stored) => {
+          applyStreamEvent(turnId, stored.event)
+          updateTurn(turnId, (turn) => ({ ...turn, lastSequence: stored.sequence }))
+        },
+        controller.signal,
+      )
+    } catch (reason) {
+      if (!controller.signal.aborted) {
+        setError(reason instanceof Error ? reason.message : 'Could not restore the Codex stream.')
+      }
+    } finally {
+      watchControllers.current.delete(turnId)
+      if (!controller.signal.aborted) {
+        setIsResponding(false)
+        setIsStopping(false)
+      }
+    }
+  }
+
+  async function stopResponse() {
+    if (!isResponding || isStopping) return
+    setIsStopping(true)
+    try {
+      await stopChatResponse(sessionId)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Codex could not be stopped.')
+      setIsStopping(false)
+    }
+  }
+
+  function applyStreamEvent(turnId: string, event: ChatStreamEvent) {
     if (event.type === 'request') {
       appendActivity(turnId, 'request', { prompt: event.content })
       return
@@ -84,11 +151,15 @@ export function App() {
       finishTurn(turnId, 'complete')
       return
     }
+    if (event.type === 'stopped') {
+      finishTurn(turnId, 'stopped')
+      return
+    }
     setError(event.message)
     finishTurn(turnId, 'failed')
   }
 
-  function appendActivity(turnId: number, method: string, item: Record<string, unknown>) {
+  function appendActivity(turnId: string, method: string, item: Record<string, unknown>) {
     updateTurn(turnId, (turn) => ({
       ...turn,
       entries: [
@@ -98,7 +169,7 @@ export function App() {
     }))
   }
 
-  function appendResponse(turnId: number, delta: string) {
+  function appendResponse(turnId: string, delta: string) {
     updateTurn(turnId, (turn) => {
       const lastEntry = turn.entries.at(-1)
       if (lastEntry?.type === 'response') {
@@ -117,11 +188,11 @@ export function App() {
     })
   }
 
-  function finishTurn(turnId: number, status: ChatTurn['status']) {
+  function finishTurn(turnId: string, status: ChatTurn['status']) {
     updateTurn(turnId, (turn) => ({ ...turn, completedAt: Date.now(), status }))
   }
 
-  function updateTurn(turnId: number, updater: (turn: ChatTurn) => ChatTurn) {
+  function updateTurn(turnId: string, updater: (turn: ChatTurn) => ChatTurn) {
     setTurns((current) => current.map((turn) => (turn.id === turnId ? updater(turn) : turn)))
   }
 
@@ -185,15 +256,29 @@ export function App() {
               value={prompt}
             />
             <div className="flex justify-end">
-              <Button
-                aria-label="Send prompt"
-                className="cursor-pointer"
-                disabled={!prompt.trim() || isResponding}
-                size="icon"
-                type="submit"
-              >
-                <ArrowUp />
-              </Button>
+              {isResponding ? (
+                <Button
+                  aria-label={isStopping ? 'Stopping response' : 'Stop response'}
+                  className="zetro-stop-shimmer cursor-pointer"
+                  disabled={isStopping}
+                  onClick={() => void stopResponse()}
+                  size="icon"
+                  type="button"
+                  variant="neutral"
+                >
+                  <Square className="size-3 fill-current" />
+                </Button>
+              ) : (
+                <Button
+                  aria-label="Send prompt"
+                  className="cursor-pointer"
+                  disabled={!prompt.trim()}
+                  size="icon"
+                  type="submit"
+                >
+                  <ArrowUp />
+                </Button>
+              )}
             </div>
           </div>
           {error ? <p className="pt-2 text-sm text-destructive">{error}</p> : null}
@@ -271,7 +356,13 @@ function assistantResult(entries: TurnEntry[]) {
 function WorkingSeparator({ turn }: { turn: ChatTurn }) {
   const seconds = useElapsedSeconds(turn)
   const label =
-    turn.status === 'working' ? 'Working' : turn.status === 'complete' ? 'Worked' : 'Stopped'
+    turn.status === 'working'
+      ? 'Working'
+      : turn.status === 'complete'
+        ? 'Worked'
+        : turn.status === 'stopped'
+          ? 'Stopped'
+          : 'Failed'
 
   return (
     <div className="flex items-center gap-3 text-sm" role="status">
@@ -295,21 +386,26 @@ function useElapsedSeconds(turn: ChatTurn) {
   return Math.max(0, Math.floor(((turn.completedAt ?? now) - turn.startedAt) / 1000))
 }
 
-async function readChatStream(
-  stream: ReadableStream<Uint8Array>,
-  onEvent: (event: ChatStreamEvent) => void,
-) {
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const result = await reader.read()
-    buffer += decoder.decode(result.value, { stream: !result.done })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-    for (const line of lines) if (line) onEvent(parseChatStreamEvent(line))
-    if (result.done) break
+function turnFromStored(turn: StoredChatTurn): ChatTurn {
+  const entries: TurnEntry[] = []
+  for (const [index, stored] of turn.events.entries()) {
+    const { event } = stored
+    if (event.type === 'activity') {
+      entries.push({ id: index + 1, item: event.item, method: event.method, type: 'activity' })
+    }
+    if (event.type === 'request') {
+      entries.push({
+        id: index + 1,
+        item: { prompt: event.content },
+        method: 'request',
+        type: 'activity',
+      })
+    }
+    if (event.type === 'response') {
+      const previous = entries.at(-1)
+      if (previous?.type === 'response') previous.content += event.delta
+      else entries.push({ content: event.delta, id: index + 1, type: 'response' })
+    }
   }
-  if (buffer) onEvent(parseChatStreamEvent(buffer))
+  return { ...turn, entries, lastSequence: turn.events.at(-1)?.sequence ?? 0 }
 }

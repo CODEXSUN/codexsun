@@ -47,6 +47,19 @@ const devkitServices = [
   },
 ]
 
+const zetroServices = [
+  {
+    healthUrl: `http://${process.env.ZETRO_API_HOST || '127.0.0.1'}:${process.env.ZETRO_API_PORT || '6050'}/health`,
+    label: 'Zetro API',
+    name: 'zetro-api',
+  },
+  {
+    healthUrl: `http://${process.env.ZETRO_WEB_HOST || '127.0.0.1'}:${process.env.ZETRO_WEB_PORT || '6060'}/`,
+    label: 'Zetro web',
+    name: 'zetro-web',
+  },
+]
+
 const agentCrewServices = [
   {
     healthUrl: `http://${process.env.AGENT_CREW_API_HOST || '127.0.0.1'}:${process.env.AGENT_CREW_API_PORT || '6100'}/health`,
@@ -79,14 +92,18 @@ const services =
     ? docsServices
     : stackName === 'devkit'
       ? devkitServices
-      : stackName === 'agent-crew'
-        ? agentCrewServices
-        : stackName === 'orship'
-          ? orshipServices
-          : platformServices
+      : stackName === 'zetro'
+        ? zetroServices
+        : stackName === 'agent-crew'
+          ? agentCrewServices
+          : stackName === 'orship'
+            ? orshipServices
+            : platformServices
 
-if (!['platform', 'docs', 'devkit', 'agent-crew', 'orship'].includes(stackName))
-  throw new Error('Use "platform", "docs", "devkit", "agent-crew", or "orship" as the stack name.')
+if (!['platform', 'docs', 'devkit', 'zetro', 'agent-crew', 'orship'].includes(stackName))
+  throw new Error(
+    'Use "platform", "docs", "devkit", "zetro", "agent-crew", or "orship" as the stack name.',
+  )
 
 if (stackName === 'docs' && (await areServicesHealthy())) {
   await restartExistingDocsStack()

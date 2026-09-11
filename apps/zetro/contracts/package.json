@@ -1,0 +1,19 @@
+{
+  "name": "@codexsun/zetro-contracts",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "main": "../../../dist/apps/zetro/contracts/index.js",
+  "types": "../../../dist/apps/zetro/contracts/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-contracts.eslintcache",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

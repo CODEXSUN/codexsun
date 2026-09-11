@@ -14,7 +14,10 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@codexsun/zetro-contracts": ["../contracts/src/index.ts"]
+    }
   },
-  "include": ["src", "codex-chat-client.ts", "codex-chat-plugin.ts", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"]
 }

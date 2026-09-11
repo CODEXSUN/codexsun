@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@codexsun/ui": "file:../../../packages/ui",
+    "@codexsun/zetro-contracts": "file:../contracts",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "^1.33.0",

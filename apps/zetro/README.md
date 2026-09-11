@@ -5,13 +5,15 @@ Reference: [Application standard](../../assist/architecture/application-standard
 ## Purpose
 
 Zetro 2.0 provides one browser workflow: enter a prompt, invoke the locally
-authenticated Codex CLI, and display its final response as plain text. It has no
-task, automation, Git, repository, storage, settings, archive, attachment, or
-voice workflow.
+authenticated Codex CLI, and display its response as plain text. A small local API
+stores chat turns and raw stream events in SQLite. Zetro has no task, automation,
+Git, repository, settings, archive, attachment, or voice workflow.
 
 ## Ownership
 
-- `web` owns the chat composition and its development bridge to Codex.
+- `api` owns Codex execution and SQLite chat history.
+- `contracts` owns the public chat request, stream, and history schemas.
+- `web` owns the chat composition and browser session identity.
 - `web/src/modules/shell` owns the Zetro chat module declaration.
 - `packages/ui` remains the only owner of reusable controls and layouts.
 
@@ -26,34 +28,40 @@ npm.cmd run dev:zetro
 npm.cmd run build:zetro
 ```
 
-The browser application runs at `http://127.0.0.1:6060/zetro`. During development,
-Vite owns `POST /api/chat` and keeps one local Codex app-server process warm.
-Each prompt gets a new ephemeral, read-only thread outside the repository, so it
-does not load repository guidance. The bridge uses the fast
+The browser application runs at `http://127.0.0.1:6060/zetro`. The local API runs at
+`http://127.0.0.1:6050` and keeps one Codex app-server process warm.
+Each loaded browser session gets one durable, read-only thread outside the
+repository, so follow-up prompts share context without loading repository guidance.
+The API uses the fast
 `gpt-5.3-codex-spark` model with low reasoning, reuses the local Codex login, and
-streams newline-delimited request, runtime-item, response, error, and completion
-events. Prompts are not trimmed or extended. The chat request contains text only;
-there is no attachment field. There is no separate Zetro API process or API port.
+accepts each turn before execution and streams sequence-numbered Server-Sent Events.
+SQLite stores each event before publication and restores it after refresh, reconnect,
+or restart. Separate conversations execute concurrently. One conversation permits one
+active turn. The stop control interrupts that exact turn and retains partial output.
+The saved Codex thread ID restores follow-up context after an API restart.
+Prompts are not trimmed or extended. The request contains text only.
 
 ## Runtime configuration
 
 `ZETRO_WEB_PORT` selects the browser development port and defaults to `6060`.
+`ZETRO_API_PORT` selects the local API port and defaults to `6050`.
+`ZETRO_DATABASE_PATH` selects the SQLite file below private storage.
+`VITE_ZETRO_API_URL` selects the browser API origin.
 `ZETRO_CODEX_PATH` can select an explicit Codex executable when it is not on the
-development server's `PATH`.
+API process `PATH`.
 The production output is a static frontend under `dist/apps/zetro/web`. The Vite
-preview command also supplies the local chat bridge. A later desktop phase must
-provide this same local transport before the static files can run outside Vite.
+frontend requires the Zetro API for chat and history.
 
 ## Health and shutdown
 
-The web component uses `/` as its static readiness path. Codex turns have a
-bounded timeout, and the shared app-server process closes with Vite. There is no
-separate Zetro API, desktop runtime, health service, or database.
+The web component uses `/` as its static readiness path. The API provides `/health`,
+`/health/live`, and `/health/ready`. Codex turns have a bounded timeout. API shutdown
+closes the Codex process and SQLite. Zetro has no desktop runtime.
 
 ## Verification
 
-Run `npm.cmd run build:zetro` for the focused production frontend build. The
-repository-wide checks continue to validate shared UI and module boundaries.
+Run `npm.cmd run build:zetro` and `npm.cmd run test --workspace @codexsun/zetro-api`.
+The repository-wide checks validate shared UI, module boundaries, and runtime assembly.
 
 ## Module catalog
 

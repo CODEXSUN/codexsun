@@ -1,0 +1,26 @@
+{
+  "name": "@codexsun/zetro-api",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-api.eslintcache",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "start": "node ../../../dist/apps/zetro/api/server.js"
+  },
+  "dependencies": {
+    "@codexsun/platform-core-api": "^0.1.33",
+    "@codexsun/zetro-contracts": "file:../contracts",
+    "@fastify/cors": "latest",
+    "fastify": "^5.12.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

@@ -139,21 +139,41 @@
       "runtimeBindings": [
         { "id": "@codexsun/runtime", "versionRange": "^0.1.0" },
         { "id": "@codexsun/framework", "versionRange": "^0.1.0" },
+        { "id": "@codexsun/platform-core-api", "versionRange": "^0.1.0" },
         { "id": "@codexsun/platform-core-web", "versionRange": "^0.1.0" },
         { "id": "@codexsun/ui", "versionRange": "^0.1.0" }
       ],
       "components": [
         {
+          "id": "zetro-api",
+          "kind": "api",
+          "runtime": "node",
+          "workspace": "@codexsun/zetro-api",
+          "buildWorkspaces": [
+            "@codexsun/platform-core-api",
+            "@codexsun/zetro-contracts",
+            "@codexsun/zetro-api"
+          ],
+          "outputPath": "dist/apps/zetro/api",
+          "startFile": "dist/apps/zetro/api/server.js",
+          "portEnvironmentKey": "ZETRO_API_PORT",
+          "hostEnvironmentKey": "ZETRO_API_HOST",
+          "defaultPort": 6050,
+          "healthPath": "/health",
+          "dependsOn": ["platform-api"]
+        },
+        {
           "id": "zetro-web",
           "kind": "web",
           "runtime": "static",
           "workspace": "@codexsun/zetro-web",
-          "buildWorkspaces": ["@codexsun/ui", "@codexsun/zetro-web"],
+          "buildWorkspaces": ["@codexsun/zetro-contracts", "@codexsun/ui", "@codexsun/zetro-web"],
           "outputPath": "dist/apps/zetro/web",
           "portEnvironmentKey": "ZETRO_WEB_PORT",
           "defaultPort": 6060,
           "healthPath": "/",
-          "dependsOn": []
+          "apiUpstream": "zetro-api:6050",
+          "dependsOn": ["zetro-api"]
         }
       ]
     },

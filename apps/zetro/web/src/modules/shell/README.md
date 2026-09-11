@@ -1,14 +1,18 @@
 # Zetro Shell Web Module
 
 - Module ID: `zetro.shell.web`
-- Version: `2.0.0`
+- Version: `2.2.0`
 - Owner: Zetro web
 
 This module owns the focused Zetro 2.0 chat. It composes public `@codexsun/ui`
 controls and sends the user's exact text prompt to the web workspace's local
-Codex bridge. The newline-delimited stream contains the raw request, non-message
+Codex bridge. A durable turn is accepted first. Its reconnectable event stream contains the raw request, non-message
 Codex items such as command execution and output, response deltas, errors, and
-completion. The UI renders event data and assistant output as text, not
+completion or interruption. One ephemeral Codex thread is retained for the loaded
+browser session so follow-up prompts share context. The browser keeps its session ID
+across refreshes in session storage. It loads stored turns from the Zetro API on start
+and reconnects an active turn after the latest stored sequence.
+The UI renders event data and assistant output as text, not
 interpreted HTML or Markdown.
 
 The left-aligned working separator reports elapsed seconds and shimmers only while
@@ -26,8 +30,11 @@ the window edge. Responsive inner padding keeps content usable across mobile and
 wide displays. The prompt shows about five to six lines and scrolls internally
 when its content exceeds that height without displaying a scrollbar. Its focused
 state remains plain without adding an inner border or ring.
-The module has no persistence, task, automation, Git, repository, voice,
-settings, archive, or desktop-runtime behavior.
+While a turn is active, the send action becomes an orange-shimmering stop control.
+Stopping interrupts the exact Codex turn and preserves all partial activity and
+assistant text already received.
+The API owns persistence. This web module has no task, automation, Git, repository,
+voice, settings, archive, or desktop-runtime behavior.
 
 The v1 implementation is retained outside the repository in the dated Zetro
 reference backup. New product behavior must be added only after its contract is
@@ -37,3 +44,4 @@ reviewed and assigned to an owning module.
 
 - [Zetro 2.0 foundation reset](../../../../../../../assist/records/zetro/2026-09-11-zetro-2-foundation-reset.md)
 - [Focused Codex chat](../../../../../../../assist/records/zetro/2026-09-11-zetro-focused-codex-chat.md)
+- [Concurrent durable chat](../../../../../../../assist/records/zetro/2026-09-11-zetro-concurrent-durable-chat.md)
