@@ -5,21 +5,31 @@ import {
 } from '@codexsun/zetro-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { ChatService } from '../application/chat.service.js'
-import { chatPromptRequestSchema, readChatSession } from './chat.schema.js'
+import {
+  chatEventStreamQuerySchema,
+  chatPromptRequestSchema,
+  chatStopRequestSchema,
+  chatTurnParamsSchema,
+  readConversationId,
+} from './chat.schema.js'
 
 export async function registerChatRoutes(server: FastifyInstance, service: ChatService) {
   server.get('/api/zetro/v1/chat/history', async (request, reply) => {
     try {
-      const sessionId = readChatSession(request.headers)
-      return chatHistoryResponseSchema.parse(service.getHistory(sessionId))
+      const conversationId = readConversationId(request.headers)
+      return chatHistoryResponseSchema.parse(service.getHistory(conversationId))
     } catch (error) {
       return reply.code(400).send({ error: errorMessage(error) })
     }
   })
 
   server.post('/api/zetro/v1/chat/stop', async (request, reply) => {
+    const parsed = chatStopRequestSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ error: 'A valid turn ID is required.' })
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!conversationId) return
     try {
-      await service.stop(readChatSession(request.headers))
+      await service.stop(conversationId, parsed.data.turnId)
       return { stopped: true }
     } catch (error) {
       return reply.code(409).send({ error: errorMessage(error) })
@@ -29,13 +39,11 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
   server.post('/api/zetro/v1/chat/turns', async (request, reply) => {
     const parsed = chatPromptRequestSchema.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ error: 'Prompt and turn ID are required.' })
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!conversationId) return
 
     try {
-      const accepted = service.startTurn(
-        readChatSession(request.headers),
-        parsed.data.turnId,
-        parsed.data.prompt,
-      )
+      const accepted = service.startTurn(conversationId, parsed.data.turnId, parsed.data.prompt)
       return reply.code(202).send(chatTurnAcceptedResponseSchema.parse(accepted))
     } catch (error) {
       return reply.code(409).send({ error: errorMessage(error) })
@@ -43,24 +51,28 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
   })
 
   server.get('/api/zetro/v1/chat/turns/:turnId/events', async (request, reply) => {
-    const { turnId } = request.params as { turnId?: string }
-    const afterSequence = readAfterSequence(request.query)
-    if (!turnId) return reply.code(400).send({ error: 'Turn ID is required.' })
-
-    let sessionId: string
-    try {
-      sessionId = readChatSession(request.headers)
-    } catch (error) {
-      return reply.code(400).send({ error: errorMessage(error) })
+    const params = chatTurnParamsSchema.safeParse(request.params)
+    const query = chatEventStreamQuerySchema.safeParse(request.query)
+    if (!params.success || !query.success) {
+      return reply.code(400).send({ error: 'Valid turn and event sequence values are required.' })
+    }
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!conversationId) return
+    if (!service.hasTurn(conversationId, params.data.turnId)) {
+      return reply.code(404).send({ error: 'Chat turn was not found in this conversation.' })
     }
 
     const abort = new AbortController()
     request.raw.once('close', () => abort.abort())
     openEventStream(reply)
     try {
-      await service.observeTurn(sessionId, turnId, afterSequence, abort.signal, (event) => {
-        reply.raw.write(encodeChatServerEvent(event))
-      })
+      await service.observeTurn(
+        conversationId,
+        params.data.turnId,
+        query.data.after,
+        abort.signal,
+        (event) => reply.raw.write(encodeChatServerEvent(event)),
+      )
     } catch (error) {
       reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: errorMessage(error) })}\n\n`)
     } finally {
@@ -69,12 +81,16 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
   })
 }
 
-function readAfterSequence(query: unknown) {
-  if (!query || typeof query !== 'object') return 0
-  const value = Reflect.get(query, 'after')
-  if (value === undefined) return 0
-  const sequence = Number(value)
-  return Number.isSafeInteger(sequence) && sequence >= 0 ? sequence : 0
+function readConversationIdOrReply(
+  headers: Record<string, string | string[] | undefined>,
+  reply: FastifyReply,
+) {
+  try {
+    return readConversationId(headers)
+  } catch (error) {
+    void reply.code(400).send({ error: errorMessage(error) })
+    return undefined
+  }
 }
 
 function openEventStream(reply: FastifyReply) {

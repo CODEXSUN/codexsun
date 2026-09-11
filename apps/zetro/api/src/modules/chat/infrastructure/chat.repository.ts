@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
-import { DatabaseSync } from 'node:sqlite'
 import { dirname } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import {
   chatStreamEventSchema,
   type ChatHistoryResponse,
@@ -25,6 +25,7 @@ export class ChatRepository {
   constructor(databasePath: string) {
     mkdirSync(dirname(databasePath), { recursive: true })
     this.database = new DatabaseSync(databasePath)
+    this.database.exec('PRAGMA busy_timeout = 5000')
     this.database.exec('PRAGMA foreign_keys = ON')
     this.database.exec('PRAGMA journal_mode = WAL')
     this.database.exec('PRAGMA synchronous = NORMAL')
@@ -32,26 +33,33 @@ export class ChatRepository {
     this.recoverInterruptedTurns()
   }
 
-  startTurn(sessionId: string, turnId: string, prompt: string, startedAt: number): void {
+  startTurn(
+    conversationId: string,
+    turnId: string,
+    prompt: string,
+    startedAt: number,
+  ): ChatStoredEvent {
     this.database.exec('BEGIN IMMEDIATE')
     try {
       this.database
         .prepare(
-          `INSERT INTO chat_sessions (id, created_at, updated_at) VALUES (?, ?, ?)
+          `INSERT INTO chat_conversations (id, created_at, updated_at) VALUES (?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
         )
-        .run(sessionId, startedAt, startedAt)
-      const active = this.database
-        .prepare("SELECT id FROM chat_turns WHERE session_id = ? AND status = 'working'")
-        .get(sessionId)
-      if (active) throw new Error('This Zetro chat is already responding.')
+        .run(conversationId, startedAt, startedAt)
+      if (this.getActiveTurnId(conversationId)) {
+        throw new Error('This Zetro conversation is already responding.')
+      }
       this.database
         .prepare(
-          `INSERT INTO chat_turns (id, session_id, prompt, status, started_at)
+          `INSERT INTO chat_turns (id, conversation_id, prompt, status, started_at)
            VALUES (?, ?, ?, 'working', ?)`,
         )
-        .run(turnId, sessionId, prompt, startedAt)
+        .run(turnId, conversationId, prompt, startedAt)
+      const request = { content: prompt, type: 'request' } as const
+      this.insertEvent(turnId, 1, request, startedAt)
       this.database.exec('COMMIT')
+      return { event: request, sequence: 1 }
     } catch (error) {
       this.database.exec('ROLLBACK')
       throw error
@@ -59,19 +67,41 @@ export class ChatRepository {
   }
 
   appendEvent(turnId: string, event: ChatStreamEvent): ChatStoredEvent {
-    const createdAt = Date.now()
-    const result = this.database
-      .prepare(
-        `INSERT INTO chat_turn_events (turn_id, sequence, event_json, created_at)
-         SELECT ?, COALESCE(MAX(sequence), 0) + 1, ?, ?
-         FROM chat_turn_events WHERE turn_id = ?`,
-      )
-      .run(turnId, JSON.stringify(event), createdAt, turnId)
-    const stored = this.database
-      .prepare('SELECT sequence FROM chat_turn_events WHERE id = ?')
-      .get(result.lastInsertRowid) as { sequence: number } | undefined
-    if (!stored) throw new Error('Zetro could not persist the chat event.')
-    return { event, sequence: stored.sequence }
+    const sequence = this.nextSequence(turnId)
+    this.insertEvent(turnId, sequence, event, Date.now())
+    return { event, sequence }
+  }
+
+  finishTurn(
+    turnId: string,
+    status: ChatTurnStatus,
+    event: ChatStreamEvent,
+    errorMessage?: string,
+  ): ChatStoredEvent {
+    const completedAt = Date.now()
+    this.database.exec('BEGIN IMMEDIATE')
+    try {
+      const sequence = this.nextSequence(turnId)
+      this.insertEvent(turnId, sequence, event, completedAt)
+      this.database
+        .prepare(
+          `UPDATE chat_turns
+           SET status = ?, completed_at = ?, error_message = ?
+           WHERE id = ?`,
+        )
+        .run(status, completedAt, errorMessage ?? null, turnId)
+      this.database
+        .prepare(
+          `UPDATE chat_conversations SET updated_at = ?
+           WHERE id = (SELECT conversation_id FROM chat_turns WHERE id = ?)`,
+        )
+        .run(completedAt, turnId)
+      this.database.exec('COMMIT')
+      return { event, sequence }
+    } catch (error) {
+      this.database.exec('ROLLBACK')
+      throw error
+    }
   }
 
   getEvents(turnId: string, afterSequence = 0): ChatStoredEvent[] {
@@ -87,24 +117,31 @@ export class ChatRepository {
     }))
   }
 
-  getProviderThreadId(sessionId: string): string | undefined {
+  getProviderThreadId(conversationId: string): string | undefined {
     const row = this.database
-      .prepare('SELECT provider_thread_id FROM chat_sessions WHERE id = ?')
-      .get(sessionId) as { provider_thread_id: string | null } | undefined
+      .prepare('SELECT provider_thread_id FROM chat_conversations WHERE id = ?')
+      .get(conversationId) as { provider_thread_id: string | null } | undefined
     return row?.provider_thread_id ?? undefined
   }
 
-  setProviderThreadId(sessionId: string, threadId: string): void {
+  setProviderThreadId(conversationId: string, threadId: string): void {
     this.database
-      .prepare('UPDATE chat_sessions SET provider_thread_id = ?, updated_at = ? WHERE id = ?')
-      .run(threadId, Date.now(), sessionId)
+      .prepare('UPDATE chat_conversations SET provider_thread_id = ?, updated_at = ? WHERE id = ?')
+      .run(threadId, Date.now(), conversationId)
   }
 
-  ownsTurn(sessionId: string, turnId: string): boolean {
+  getActiveTurnId(conversationId: string): string | undefined {
+    const row = this.database
+      .prepare("SELECT id FROM chat_turns WHERE conversation_id = ? AND status = 'working'")
+      .get(conversationId) as { id: string } | undefined
+    return row?.id
+  }
+
+  ownsTurn(conversationId: string, turnId: string): boolean {
     return (
       this.database
-        .prepare('SELECT 1 FROM chat_turns WHERE id = ? AND session_id = ?')
-        .get(turnId, sessionId) !== undefined
+        .prepare('SELECT 1 FROM chat_turns WHERE id = ? AND conversation_id = ?')
+        .get(turnId, conversationId) !== undefined
     )
   }
 
@@ -114,33 +151,15 @@ export class ChatRepository {
     return row?.status
   }
 
-  finishTurn(turnId: string, status: ChatTurnStatus, errorMessage?: string): void {
-    const completedAt = Date.now()
-    this.database
-      .prepare(
-        `UPDATE chat_turns
-         SET status = ?, completed_at = ?, error_message = ?
-         WHERE id = ?`,
-      )
-      .run(status, completedAt, errorMessage ?? null, turnId)
-    this.database
-      .prepare(
-        `UPDATE chat_sessions SET updated_at = ?
-         WHERE id = (SELECT session_id FROM chat_turns WHERE id = ?)`,
-      )
-      .run(completedAt, turnId)
-  }
-
-  getHistory(sessionId: string): ChatHistoryResponse {
+  getHistory(conversationId: string): ChatHistoryResponse {
     const turns = this.database
       .prepare(
         `SELECT id, prompt, status, started_at, completed_at
-         FROM chat_turns WHERE session_id = ? ORDER BY started_at, id`,
+         FROM chat_turns WHERE conversation_id = ? ORDER BY started_at, id`,
       )
-      .all(sessionId) as TurnRow[]
-
+      .all(conversationId) as TurnRow[]
     return {
-      sessionId,
+      conversationId,
       turns: turns.map((turn) => ({
         completedAt: turn.completed_at ?? undefined,
         events: this.getEvents(turn.id),
@@ -160,6 +179,29 @@ export class ChatRepository {
     this.database.close()
   }
 
+  private nextSequence(turnId: string): number {
+    const row = this.database
+      .prepare(
+        'SELECT COALESCE(MAX(sequence), 0) + 1 AS sequence FROM chat_turn_events WHERE turn_id = ?',
+      )
+      .get(turnId) as { sequence: number }
+    return row.sequence
+  }
+
+  private insertEvent(
+    turnId: string,
+    sequence: number,
+    event: ChatStreamEvent,
+    createdAt: number,
+  ): void {
+    this.database
+      .prepare(
+        `INSERT INTO chat_turn_events (turn_id, sequence, event_json, created_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(turnId, sequence, JSON.stringify(event), createdAt)
+  }
+
   private applyMigrations(): void {
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS zetro_schema_migrations (
@@ -177,8 +219,7 @@ export class ChatRepository {
       .all() as Array<{ id: string }>
     for (const { id } of interrupted) {
       const message = 'Zetro restarted before this turn finished. Partial output was preserved.'
-      this.appendEvent(id, { message, type: 'error' })
-      this.finishTurn(id, 'failed', message)
+      this.finishTurn(id, 'failed', { message, type: 'error' }, message)
     }
   }
 

@@ -13,13 +13,13 @@ the original ephemeral execution contract with persisted Codex thread recovery.
 
 - `@codexsun/zetro-contracts` owns the public request, event, and history schemas.
 - `zetro.chat.api` owns Codex execution, SQLite migrations, storage, and routes.
-- `zetro.shell.web` owns the browser session ID and restored screen state.
+- `zetro.shell.web` owns the browser conversation ID and restored screen state.
 - The root runtime owns local API and web startup through the Zetro stack.
 
 ## Binding
 
 The API listens on port `6050`. The browser reads `VITE_ZETRO_API_URL` and sends
-`x-zetro-chat-session` on each request. The default database is
+`x-zetro-conversation-id` on each request. The default database is
 `storage/app/private/zetro/chat-v2.sqlite`. This path does not reuse the retired Zetro
 database.
 

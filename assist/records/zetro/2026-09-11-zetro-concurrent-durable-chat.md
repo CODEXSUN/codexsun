@@ -2,6 +2,9 @@
 
 Date: 2026-09-11
 
+The [chat alignment review](2026-09-11-zetro-chat-alignment-review.md) supersedes
+the browser-tab identity and non-atomic terminal details in this record.
+
 ## Outcome
 
 Zetro accepts a prompt as a durable turn before Codex execution starts. The browser
@@ -54,4 +57,4 @@ partial events and marks that turn failed. The user can continue with a new turn
 ## Next refinement
 
 Add explicit named conversations and a conversation picker. This will make concurrent
-sessions visible and controllable instead of relying on one browser-tab session ID.
+conversations visible and controllable.

@@ -14,6 +14,20 @@
 
 ## v-0.1.33
 
+### [v 0.1.33] 11/09/2026 10:55 am - Zetro chat lifecycle alignment
+
+#### Database Changes
+
+- Database update: Yes.
+
+#### App Codebase Changes
+
+- Zetro Chat API 2.0.0 and Shell Web 2.3.0 align durable conversation and turn identity, migrate existing session records without loss, persist request and terminal state atomically, target stop requests to the exact active turn, drain executions during shutdown, detach cold Codex startup from HTTP acceptance, and recover event streams with bounded retries. See assist/records/zetro/2026-09-11-zetro-chat-alignment-review.md.
+
+#### Verification
+
+- Passed focused type checks, lint, seven API lifecycle and migration tests, the production Zetro build, live cold acceptance, exact-stop, cursor replay, forced-restart recovery, and browser reload checks.
+
 ### [v 0.1.33] 11/09/2026 10:28 am - Zetro concurrent durable chat
 
 #### Database Changes

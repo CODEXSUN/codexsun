@@ -7,7 +7,13 @@ import { CodexChatClient } from './infrastructure/codex-chat.client.js'
 import { registerChatRoutes } from './presentation/chat.routes.js'
 
 export const chatModuleManifest = {
-  capabilities: ['codex-chat', 'concurrent-turns', 'sqlite-chat-history', 'stream-reconnect'],
+  capabilities: [
+    'atomic-turn-lifecycle',
+    'codex-chat',
+    'concurrent-turns',
+    'sqlite-chat-history',
+    'stream-reconnect',
+  ],
   dependencies: {},
   id: 'zetro.chat.api',
   lifecycle: {
@@ -15,7 +21,7 @@ export const chatModuleManifest = {
     deactivate: 'Stops Codex and closes SQLite.',
     install: 'Applies the SQLite chat schema migrations.',
     uninstall: 'Preserves chat history.',
-    upgrade: 'Applies ordered migrations with immutable checksums.',
+    upgrade: 'Migrates session identity to durable conversation identity.',
   },
   publicContracts: [
     'POST /api/zetro/v1/chat/turns',
@@ -24,7 +30,7 @@ export const chatModuleManifest = {
     'GET /api/zetro/v1/chat/history',
   ],
   scope: 'zetro-api',
-  version: '1.1.0',
+  version: '2.0.0',
 } as const
 
 export async function registerChatModule(

@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import type { ChatStreamEvent } from '@codexsun/zetro-contracts'
+import type { ChatRunResult } from '../application/chat.ports.js'
 import {
   resolveChatWorkingDirectory,
   resolveCodexExecutable,
@@ -26,11 +27,10 @@ type TurnCollector = {
   content: string
   onEvent(event: ChatStreamEvent): void
   reject(error: Error): void
-  resolve(result: TurnResult): void
+  resolve(result: ChatRunResult): void
   timeout: NodeJS.Timeout
 }
 
-type TurnResult = { content: string; status: 'complete' | 'stopped' }
 type ThreadSession = { activeTurn?: Promise<string>; threadId: string }
 
 const chatModel = 'gpt-5.3-codex-spark'
@@ -42,17 +42,22 @@ export class CodexChatClient {
   private process: ChildProcessWithoutNullStreams | null = null
   private startPromise: Promise<void> | null = null
   private readonly pendingRequests = new Map<number, PendingRequest>()
-  private readonly sessions = new Map<string, Promise<ThreadSession>>()
+  private readonly conversations = new Map<string, Promise<ThreadSession>>()
   private readonly turns = new Map<string, TurnCollector>()
 
   public async run(
-    sessionId: string,
+    conversationId: string,
     prompt: string,
     onEvent: (event: ChatStreamEvent) => void,
     providerThreadId: string | undefined,
     onProviderThread: (threadId: string) => void,
   ) {
-    const session = await this.getSession(sessionId, providerThreadId, onProviderThread, onEvent)
+    const session = await this.getConversation(
+      conversationId,
+      providerThreadId,
+      onProviderThread,
+      onEvent,
+    )
     if (session.activeTurn) throw new Error('This Zetro chat is already responding.')
     const completion = this.collectTurn(session.threadId, onEvent)
     const activeTurn = this.request('turn/start', {
@@ -75,8 +80,8 @@ export class CodexChatClient {
     }
   }
 
-  public async stop(sessionId: string) {
-    const sessionPromise = this.sessions.get(sessionId)
+  public async stop(conversationId: string) {
+    const sessionPromise = this.conversations.get(conversationId)
     if (!sessionPromise) throw new Error('This Zetro chat has no active response.')
     const session = await sessionPromise
     if (!session.activeTurn) throw new Error('This Zetro chat has no active response.')
@@ -90,19 +95,19 @@ export class CodexChatClient {
     const child = this.process
     this.process = null
     this.startPromise = null
-    this.sessions.clear()
+    this.conversations.clear()
     if (!child) return
     this.failPending(new Error('Codex chat server stopped.'))
     stopProcessTree(child)
   }
 
-  private getSession(
-    sessionId: string,
+  private getConversation(
+    conversationId: string,
     providerThreadId: string | undefined,
     onProviderThread: (threadId: string) => void,
     onEvent: (event: ChatStreamEvent) => void,
   ) {
-    const existing = this.sessions.get(sessionId)
+    const existing = this.conversations.get(conversationId)
     if (existing) return existing
     const created = this.resumeOrStartThread(providerThreadId, onEvent)
       .then((session) => {
@@ -110,10 +115,12 @@ export class CodexChatClient {
         return session
       })
       .catch((error) => {
-        if (this.sessions.get(sessionId) === created) this.sessions.delete(sessionId)
+        if (this.conversations.get(conversationId) === created) {
+          this.conversations.delete(conversationId)
+        }
         throw error
       })
-    this.sessions.set(sessionId, created)
+    this.conversations.set(conversationId, created)
     return created
   }
 
@@ -242,12 +249,14 @@ export class CodexChatClient {
 
     if (method === 'item/agentMessage/delta' && typeof values.delta === 'string') {
       collector.content += values.delta
-      collector.onEvent({ delta: values.delta, type: 'response' })
+      this.notifyCollector(threadId, collector, { delta: values.delta, type: 'response' })
       return
     }
     if (method === 'item/started' || method === 'item/completed') {
       const item = isRecord(values.item) ? values.item : {}
-      if (item.type !== 'agentMessage') collector.onEvent({ item, method, type: 'activity' })
+      if (item.type !== 'agentMessage') {
+        this.notifyCollector(threadId, collector, { item, method, type: 'activity' })
+      }
       if (item.type === 'agentMessage' && typeof item.text === 'string') {
         collector.content = item.text
       }
@@ -272,7 +281,7 @@ export class CodexChatClient {
   }
 
   private collectTurn(threadId: string, onEvent: (event: ChatStreamEvent) => void) {
-    return new Promise<TurnResult>((resolve, reject) => {
+    return new Promise<ChatRunResult>((resolve, reject) => {
       const timeout = setTimeout(
         () => this.rejectTurn(threadId, new Error('Codex response timed out.')),
         responseTimeoutMilliseconds,
@@ -281,7 +290,19 @@ export class CodexChatClient {
     })
   }
 
-  private resolveTurn(threadId: string, result: TurnResult) {
+  private notifyCollector(
+    threadId: string,
+    collector: TurnCollector,
+    event: ChatStreamEvent,
+  ): void {
+    try {
+      collector.onEvent(event)
+    } catch (error) {
+      this.rejectTurn(threadId, toError(error))
+    }
+  }
+
+  private resolveTurn(threadId: string, result: ChatRunResult) {
     const collector = this.turns.get(threadId)
     if (!collector) return
     clearTimeout(collector.timeout)
@@ -301,7 +322,7 @@ export class CodexChatClient {
     if (this.process !== child) return
     this.process = null
     this.startPromise = null
-    this.sessions.clear()
+    this.conversations.clear()
     this.failPending(error)
   }
 

@@ -5,42 +5,69 @@ import type {
   ChatTurnAcceptedResponse,
   ChatTurnStatus,
 } from '@codexsun/zetro-contracts'
-import { ChatRepository } from '../infrastructure/chat.repository.js'
-import { CodexChatClient } from '../infrastructure/codex-chat.client.js'
+import type { ChatRunner, ChatStore } from './chat.ports.js'
 
 type EventListener = (event: ChatStoredEvent) => void
 
 export class ChatService {
+  private readonly executions = new Set<Promise<void>>()
   private readonly listeners = new Map<string, Set<EventListener>>()
+  private closing = false
 
   constructor(
-    private readonly repository: ChatRepository,
-    private readonly client: CodexChatClient,
+    private readonly repository: ChatStore,
+    private readonly client: ChatRunner,
   ) {}
 
-  getHistory(sessionId: string): ChatHistoryResponse {
-    return this.repository.getHistory(sessionId)
+  getHistory(conversationId: string): ChatHistoryResponse {
+    return this.repository.getHistory(conversationId)
   }
 
   isReady(): boolean {
     return this.repository.isReady()
   }
 
-  startTurn(sessionId: string, turnId: string, prompt: string): ChatTurnAcceptedResponse {
-    this.repository.startTurn(sessionId, turnId, prompt, Date.now())
-    this.emit(turnId, { content: prompt, type: 'request' })
-    queueMicrotask(() => void this.executeTurn(sessionId, turnId, prompt))
-    return { sessionId, status: 'working', turnId }
+  hasTurn(conversationId: string, turnId: string): boolean {
+    return this.repository.ownsTurn(conversationId, turnId)
+  }
+
+  startTurn(conversationId: string, turnId: string, prompt: string): ChatTurnAcceptedResponse {
+    if (this.closing) throw new Error('Zetro is stopping and cannot accept a new turn.')
+    const request = this.repository.startTurn(conversationId, turnId, prompt, Date.now())
+    this.publish(turnId, request)
+    const execution = new Promise<void>((resolve, reject) => {
+      setImmediate(() => {
+        if (this.closing) {
+          try {
+            const message = 'Zetro stopped before Codex execution started.'
+            this.finish(turnId, 'failed', { message, type: 'error' }, message)
+            resolve()
+          } catch (error) {
+            reject(error)
+          }
+          return
+        }
+        void this.executeTurn(conversationId, turnId, prompt).then(resolve, reject)
+      })
+    })
+    this.executions.add(execution)
+    void execution.then(
+      () => this.executions.delete(execution),
+      () => this.executions.delete(execution),
+    )
+    return { conversationId, status: 'working', turnId }
   }
 
   async observeTurn(
-    sessionId: string,
+    conversationId: string,
     turnId: string,
     afterSequence: number,
     signal: AbortSignal,
     onEvent: EventListener,
   ): Promise<void> {
-    if (!this.repository.ownsTurn(sessionId, turnId)) throw new Error('Chat turn was not found.')
+    if (!this.repository.ownsTurn(conversationId, turnId)) {
+      throw new Error('Chat turn was not found in this conversation.')
+    }
 
     let lastSequence = afterSequence
     let finish: (() => void) | undefined
@@ -67,27 +94,32 @@ export class ChatService {
     }
   }
 
-  stop(sessionId: string): Promise<void> {
-    return this.client.stop(sessionId)
+  stop(conversationId: string, turnId: string): Promise<void> {
+    if (this.repository.getActiveTurnId(conversationId) !== turnId) {
+      throw new Error('This turn is not the active conversation response.')
+    }
+    return this.client.stop(conversationId)
   }
 
   async close(): Promise<void> {
+    this.closing = true
     await this.client.close()
+    await Promise.allSettled(this.executions)
     this.repository.close()
   }
 
-  private async executeTurn(sessionId: string, turnId: string, prompt: string): Promise<void> {
+  private async executeTurn(conversationId: string, turnId: string, prompt: string): Promise<void> {
     let streamedResponse = ''
     try {
       const result = await this.client.run(
-        sessionId,
+        conversationId,
         prompt,
         (event) => {
           if (event.type === 'response') streamedResponse += event.delta
           this.emit(turnId, event)
         },
-        this.repository.getProviderThreadId(sessionId),
-        (threadId) => this.repository.setProviderThreadId(sessionId, threadId),
+        this.repository.getProviderThreadId(conversationId),
+        (threadId) => this.repository.setProviderThreadId(conversationId, threadId),
       )
       if (!streamedResponse && result.content) {
         this.emit(turnId, { delta: result.content, type: 'response' })
@@ -96,17 +128,29 @@ export class ChatService {
         if (remainder) this.emit(turnId, { delta: remainder, type: 'response' })
       }
       const status: ChatTurnStatus = result.status === 'stopped' ? 'stopped' : 'complete'
-      this.emit(turnId, { type: status === 'stopped' ? 'stopped' : 'complete' })
-      this.repository.finishTurn(turnId, status)
+      this.finish(turnId, status, { type: status === 'stopped' ? 'stopped' : 'complete' })
     } catch (error) {
       const message = errorMessage(error)
-      this.emit(turnId, { message, type: 'error' })
-      this.repository.finishTurn(turnId, 'failed', message)
+      this.finish(turnId, 'failed', { message, type: 'error' }, message)
     }
   }
 
   private emit(turnId: string, event: ChatStreamEvent): void {
     const stored = this.repository.appendEvent(turnId, event)
+    this.publish(turnId, stored)
+  }
+
+  private finish(
+    turnId: string,
+    status: ChatTurnStatus,
+    event: ChatStreamEvent,
+    errorMessage?: string,
+  ): void {
+    const stored = this.repository.finishTurn(turnId, status, event, errorMessage)
+    this.publish(turnId, stored)
+  }
+
+  private publish(turnId: string, stored: ChatStoredEvent): void {
     for (const listener of this.listeners.get(turnId) ?? []) listener(stored)
   }
 

@@ -49,4 +49,20 @@ export const chatMigrations: ChatMigration[] = [
         WHERE provider_thread_id IS NOT NULL;
     `,
   },
+  {
+    version: 3,
+    sql: `
+      ALTER TABLE chat_sessions RENAME TO chat_conversations;
+      ALTER TABLE chat_turns RENAME COLUMN session_id TO conversation_id;
+
+      DROP INDEX chat_turns_session_started_idx;
+      CREATE INDEX chat_turns_conversation_started_idx
+        ON chat_turns(conversation_id, started_at, id);
+
+      DROP INDEX chat_sessions_provider_thread_idx;
+      CREATE UNIQUE INDEX chat_conversations_provider_thread_idx
+        ON chat_conversations(provider_thread_id)
+        WHERE provider_thread_id IS NOT NULL;
+    `,
+  },
 ]

@@ -13,7 +13,7 @@ Git, repository, settings, archive, attachment, or voice workflow.
 
 - `api` owns Codex execution and SQLite chat history.
 - `contracts` owns the public chat request, stream, and history schemas.
-- `web` owns the chat composition and browser session identity.
+- `web` owns the chat composition and current browser conversation identity.
 - `web/src/modules/shell` owns the Zetro chat module declaration.
 - `packages/ui` remains the only owner of reusable controls and layouts.
 
@@ -30,15 +30,17 @@ npm.cmd run build:zetro
 
 The browser application runs at `http://127.0.0.1:6060/zetro`. The local API runs at
 `http://127.0.0.1:6050` and keeps one Codex app-server process warm.
-Each loaded browser session gets one durable, read-only thread outside the
-repository, so follow-up prompts share context without loading repository guidance.
+Each browser profile keeps one durable conversation ID and one durable, read-only
+Codex thread outside the repository. Follow-up prompts share context without loading
+repository guidance.
 The API uses the fast
 `gpt-5.3-codex-spark` model with low reasoning, reuses the local Codex login, and
-accepts each turn before execution and streams sequence-numbered Server-Sent Events.
+atomically accepts each turn before execution and streams sequence-numbered Server-Sent Events.
 SQLite stores each event before publication and restores it after refresh, reconnect,
 or restart. Separate conversations execute concurrently. One conversation permits one
 active turn. The stop control interrupts that exact turn and retains partial output.
-The saved Codex thread ID restores follow-up context after an API restart.
+The saved Codex thread ID restores follow-up context after an API restart. Shutdown
+drains active failures before SQLite closes. Stop requests identify the exact turn.
 Prompts are not trimmed or extended. The request contains text only.
 
 ## Runtime configuration

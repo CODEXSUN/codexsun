@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-export const chatSessionHeaderName = 'x-zetro-chat-session'
+export const chatConversationHeaderName = 'x-zetro-conversation-id'
+export const chatConversationIdSchema = z.uuid()
 
 export const chatTurnStatusSchema = z.enum(['working', 'complete', 'stopped', 'failed'])
 
@@ -25,8 +26,16 @@ export const chatPromptRequestSchema = z.object({
   turnId: z.uuid(),
 })
 
+export const chatStopRequestSchema = z.object({ turnId: z.uuid() })
+
+export const chatTurnParamsSchema = z.object({ turnId: z.uuid() })
+
+export const chatEventStreamQuerySchema = z.object({
+  after: z.coerce.number().int().nonnegative().default(0),
+})
+
 export const chatTurnAcceptedResponseSchema = z.object({
-  sessionId: z.string().min(1).max(128),
+  conversationId: chatConversationIdSchema,
   status: z.literal('working'),
   turnId: z.uuid(),
 })
@@ -46,7 +55,7 @@ export const storedChatTurnSchema = z.object({
 })
 
 export const chatHistoryResponseSchema = z.object({
-  sessionId: z.string().min(1).max(128),
+  conversationId: chatConversationIdSchema,
   turns: z.array(storedChatTurnSchema),
 })
 

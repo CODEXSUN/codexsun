@@ -1,17 +1,19 @@
 # Zetro Shell Web Module
 
 - Module ID: `zetro.shell.web`
-- Version: `2.2.0`
+- Version: `2.3.0`
 - Owner: Zetro web
 
 This module owns the focused Zetro 2.0 chat. It composes public `@codexsun/ui`
 controls and sends the user's exact text prompt to the web workspace's local
 Codex bridge. A durable turn is accepted first. Its reconnectable event stream contains the raw request, non-message
 Codex items such as command execution and output, response deltas, errors, and
-completion or interruption. One ephemeral Codex thread is retained for the loaded
-browser session so follow-up prompts share context. The browser keeps its session ID
-across refreshes in session storage. It loads stored turns from the Zetro API on start
-and reconnects an active turn after the latest stored sequence.
+completion or interruption. One durable Codex thread is retained for the current
+conversation so follow-up prompts share context. The browser keeps its conversation ID
+in local storage and migrates the earlier tab session ID. It loads stored turns from
+the Zetro API on start and reconnects an active turn after the latest stored sequence.
+Temporary stream failures use bounded exponential backoff and show `Reconnecting`.
+Permanent request errors stop retrying. Stop sends the exact active turn ID.
 The UI renders event data and assistant output as text, not
 interpreted HTML or Markdown.
 
@@ -45,3 +47,4 @@ reviewed and assigned to an owning module.
 - [Zetro 2.0 foundation reset](../../../../../../../assist/records/zetro/2026-09-11-zetro-2-foundation-reset.md)
 - [Focused Codex chat](../../../../../../../assist/records/zetro/2026-09-11-zetro-focused-codex-chat.md)
 - [Concurrent durable chat](../../../../../../../assist/records/zetro/2026-09-11-zetro-concurrent-durable-chat.md)
+- [Chat alignment review](../../../../../../../assist/records/zetro/2026-09-11-zetro-chat-alignment-review.md)

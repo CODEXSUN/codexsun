@@ -13,7 +13,7 @@ import { ArrowUp, Bot, Check, Copy, Square } from 'lucide-react'
 import type { ChatStreamEvent, ChatTurnStatus, StoredChatTurn } from '@codexsun/zetro-contracts'
 import {
   fetchChatHistory,
-  getChatSessionId,
+  getChatConversationId,
   startChatTurn,
   stopChatResponse,
   watchChatTurn,
@@ -30,19 +30,22 @@ type ChatTurn = {
   status: ChatTurnStatus
 }
 
+type ConnectionState = 'connected' | 'reconnecting'
+
 export function App() {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [prompt, setPrompt] = useState('')
   const [error, setError] = useState('')
   const [isResponding, setIsResponding] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
-  const [sessionId] = useState(getChatSessionId)
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connected')
+  const [conversationId] = useState(getChatConversationId)
   const watchControllers = useRef(new Map<string, AbortController>())
   const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
 
   useEffect(() => {
     let active = true
-    fetchChatHistory(sessionId)
+    fetchChatHistory(conversationId)
       .then((history) => {
         if (!active) return
         setTurns(history.turns.map(turnFromStored))
@@ -58,7 +61,7 @@ export function App() {
       for (const controller of watchControllers.current.values()) controller.abort()
       watchControllers.current.clear()
     }
-  }, [sessionId])
+  }, [conversationId])
 
   async function sendPrompt(event?: FormEvent) {
     event?.preventDefault()
@@ -82,7 +85,7 @@ export function App() {
     setIsResponding(true)
 
     try {
-      await startChatTurn(sessionId, turnId, rawPrompt)
+      await startChatTurn(conversationId, turnId, rawPrompt)
       await watchTurn(turnId, 0)
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'Could not connect to Codex.'
@@ -101,18 +104,20 @@ export function App() {
     setIsResponding(true)
     try {
       await watchChatTurn(
-        sessionId,
+        conversationId,
         turnId,
         afterSequence,
         (stored) => {
           applyStreamEvent(turnId, stored.event)
           updateTurn(turnId, (turn) => ({ ...turn, lastSequence: stored.sequence }))
         },
+        setConnectionState,
         controller.signal,
       )
     } catch (reason) {
       if (!controller.signal.aborted) {
         setError(reason instanceof Error ? reason.message : 'Could not restore the Codex stream.')
+        finishTurn(turnId, 'failed')
       }
     } finally {
       watchControllers.current.delete(turnId)
@@ -125,9 +130,11 @@ export function App() {
 
   async function stopResponse() {
     if (!isResponding || isStopping) return
+    const activeTurn = turns.find((turn) => turn.status === 'working')
+    if (!activeTurn) return
     setIsStopping(true)
     try {
-      await stopChatResponse(sessionId)
+      await stopChatResponse(conversationId, activeTurn.id)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Codex could not be stopped.')
       setIsStopping(false)
@@ -227,7 +234,7 @@ export function App() {
                     messageId={String(turn.id)}
                     scrollAnchor={index === turns.length - 1}
                   >
-                    <ChatTurnView turn={turn} />
+                    <ChatTurnView connectionState={connectionState} turn={turn} />
                   </MessageScrollerItem>
                 ))}
               </MessageScrollerContent>
@@ -304,7 +311,13 @@ function EmptyChat() {
   )
 }
 
-function ChatTurnView({ turn }: { turn: ChatTurn }) {
+function ChatTurnView({
+  connectionState,
+  turn,
+}: {
+  connectionState: ConnectionState
+  turn: ChatTurn
+}) {
   const [copied, setCopied] = useState(false)
   const result = assistantResult(turn.entries)
 
@@ -326,7 +339,7 @@ function ChatTurnView({ turn }: { turn: ChatTurn }) {
           {turn.prompt}
         </pre>
       </div>
-      <WorkingSeparator turn={turn} />
+      <WorkingSeparator connectionState={connectionState} turn={turn} />
       <ChatTurnTimeline entries={turn.entries} isWorking={turn.status === 'working'} />
       {result && turn.status !== 'working' ? (
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within/turn:opacity-100 group-hover/turn:opacity-100">
@@ -353,11 +366,19 @@ function assistantResult(entries: TurnEntry[]) {
     .join('\n\n')
 }
 
-function WorkingSeparator({ turn }: { turn: ChatTurn }) {
+function WorkingSeparator({
+  connectionState,
+  turn,
+}: {
+  connectionState: ConnectionState
+  turn: ChatTurn
+}) {
   const seconds = useElapsedSeconds(turn)
   const label =
     turn.status === 'working'
-      ? 'Working'
+      ? connectionState === 'reconnecting'
+        ? 'Reconnecting'
+        : 'Working'
       : turn.status === 'complete'
         ? 'Worked'
         : turn.status === 'stopped'

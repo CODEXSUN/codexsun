@@ -1,11 +1,24 @@
-import { chatSessionHeaderName, chatPromptRequestSchema } from '@codexsun/zetro-contracts'
+import {
+  chatConversationHeaderName,
+  chatConversationIdSchema,
+  chatEventStreamQuerySchema,
+  chatPromptRequestSchema,
+  chatStopRequestSchema,
+  chatTurnParamsSchema,
+} from '@codexsun/zetro-contracts'
 
-export { chatPromptRequestSchema }
+export {
+  chatEventStreamQuerySchema,
+  chatPromptRequestSchema,
+  chatStopRequestSchema,
+  chatTurnParamsSchema,
+}
 
-export function readChatSession(headers: Record<string, string | string[] | undefined>) {
-  const value = headers[chatSessionHeaderName]
-  if (typeof value !== 'string' || !/^[a-zA-Z0-9-]{1,128}$/.test(value)) {
-    throw new Error('A valid Zetro chat session is required.')
+export function readConversationId(headers: Record<string, string | string[] | undefined>) {
+  const value = headers[chatConversationHeaderName]
+  const parsed = chatConversationIdSchema.safeParse(value)
+  if (!parsed.success) {
+    throw new Error('A valid Zetro conversation ID is required.')
   }
-  return value
+  return parsed.data
 }

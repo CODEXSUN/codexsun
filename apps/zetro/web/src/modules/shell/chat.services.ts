@@ -1,6 +1,7 @@
 import {
+  chatConversationHeaderName,
+  chatConversationIdSchema,
   chatHistoryResponseSchema,
-  chatSessionHeaderName,
   chatTurnAcceptedResponseSchema,
   parseChatServerEvent,
   type ChatHistoryResponse,
@@ -9,31 +10,38 @@ import {
 } from '@codexsun/zetro-contracts'
 
 const baseUrl = (import.meta.env.VITE_ZETRO_API_URL ?? 'http://127.0.0.1:6050').replace(/\/$/, '')
-const sessionStorageKey = 'zetro.chat.session.v1'
+const conversationStorageKey = 'zetro.chat.conversation.v2'
+const legacySessionStorageKey = 'zetro.chat.session.v1'
 
-export function getChatSessionId() {
-  const existing = sessionStorage.getItem(sessionStorageKey)
-  if (existing && /^[a-zA-Z0-9-]{1,128}$/.test(existing)) return existing
-  const sessionId = crypto.randomUUID()
-  sessionStorage.setItem(sessionStorageKey, sessionId)
-  return sessionId
+export function getChatConversationId() {
+  const existing =
+    localStorage.getItem(conversationStorageKey) ?? sessionStorage.getItem(legacySessionStorageKey)
+  const parsed = chatConversationIdSchema.safeParse(existing)
+  if (parsed.success) {
+    localStorage.setItem(conversationStorageKey, parsed.data)
+    sessionStorage.removeItem(legacySessionStorageKey)
+    return parsed.data
+  }
+  const conversationId = crypto.randomUUID()
+  localStorage.setItem(conversationStorageKey, conversationId)
+  return conversationId
 }
 
-export async function fetchChatHistory(sessionId: string): Promise<ChatHistoryResponse> {
+export async function fetchChatHistory(conversationId: string): Promise<ChatHistoryResponse> {
   const response = await fetch(`${baseUrl}/api/zetro/v1/chat/history`, {
-    headers: chatHeaders(sessionId),
+    headers: chatHeaders(conversationId),
   })
   return chatHistoryResponseSchema.parse(await readJson(response, 'Could not load chat history'))
 }
 
 export async function startChatTurn(
-  sessionId: string,
+  conversationId: string,
   turnId: string,
   prompt: string,
 ): Promise<ChatTurnAcceptedResponse> {
   const response = await fetch(`${baseUrl}/api/zetro/v1/chat/turns`, {
     body: JSON.stringify({ prompt, turnId }),
-    headers: chatHeaders(sessionId, true),
+    headers: chatHeaders(conversationId, true),
     method: 'POST',
   })
   return chatTurnAcceptedResponseSchema.parse(
@@ -42,50 +50,61 @@ export async function startChatTurn(
 }
 
 export async function watchChatTurn(
-  sessionId: string,
+  conversationId: string,
   turnId: string,
   afterSequence: number,
   onEvent: (event: ChatStoredEvent) => void,
+  onConnectionState: (state: 'connected' | 'reconnecting') => void,
   signal?: AbortSignal,
 ) {
   let cursor = afterSequence
+  let retryMilliseconds = 250
   while (!signal?.aborted) {
     try {
       const response = await fetch(
         `${baseUrl}/api/zetro/v1/chat/turns/${encodeURIComponent(turnId)}/events?after=${cursor}`,
-        { headers: chatHeaders(sessionId), signal },
+        { headers: chatHeaders(conversationId), signal },
       )
-      if (!response.ok)
-        throw new Error(await readError(response, 'Could not watch the Codex turn.'))
+      if (!response.ok) {
+        throw new ChatHttpError(
+          await readError(response, 'Could not watch the Codex turn.'),
+          response.status,
+        )
+      }
       if (!response.body) throw new Error('Codex returned an empty event stream.')
+      onConnectionState('connected')
+      let receivedEvent = false
       const terminal = await readServerEvents(response.body, (stored) => {
+        receivedEvent = true
         if (stored.sequence <= cursor) return
         cursor = stored.sequence
         onEvent(stored)
       })
+      if (receivedEvent) retryMilliseconds = 250
       if (terminal) return
-    } catch {
+    } catch (error) {
       if (signal?.aborted) return
-      await waitForReconnect(signal)
-      continue
+      if (error instanceof ChatHttpError && !error.retryable) throw error
     }
-    await waitForReconnect(signal)
+    onConnectionState('reconnecting')
+    await waitForReconnect(retryMilliseconds, signal)
+    retryMilliseconds = Math.min(retryMilliseconds * 2, 4_000)
   }
 }
 
-export async function stopChatResponse(sessionId: string) {
+export async function stopChatResponse(conversationId: string, turnId: string) {
   const response = await fetch(`${baseUrl}/api/zetro/v1/chat/stop`, {
-    body: '{}',
-    headers: chatHeaders(sessionId, true),
+    body: JSON.stringify({ turnId }),
+    headers: chatHeaders(conversationId, true),
     method: 'POST',
   })
   if (!response.ok) throw new Error(await readError(response, 'Codex could not be stopped.'))
 }
 
-function chatHeaders(sessionId: string, json = false) {
+function chatHeaders(conversationId: string, json = false) {
   return {
     ...(json ? { 'content-type': 'application/json' } : {}),
-    [chatSessionHeaderName]: sessionId,
+    [chatConversationHeaderName]: conversationId,
   }
 }
 
@@ -125,7 +144,10 @@ async function readServerEvents(
         .filter((line) => line.startsWith('data:'))
         .map((line) => line.slice(5).trimStart())
         .join('\n')
-      if (!data || message.includes('event: error')) continue
+      if (!data) continue
+      if (message.includes('event: error')) {
+        throw new Error(errorFromBody(JSON.parse(data) as unknown) ?? 'The event stream failed.')
+      }
       const stored = parseChatServerEvent(data)
       onEvent(stored)
       terminal ||= isTerminal(stored)
@@ -139,10 +161,10 @@ function isTerminal(stored: ChatStoredEvent) {
   return type === 'complete' || type === 'stopped' || type === 'error'
 }
 
-function waitForReconnect(signal?: AbortSignal) {
+function waitForReconnect(delayMilliseconds: number, signal?: AbortSignal) {
   return new Promise<void>((resolve) => {
     if (signal?.aborted) return resolve()
-    const timer = window.setTimeout(resolve, 500)
+    const timer = window.setTimeout(resolve, delayMilliseconds)
     signal?.addEventListener(
       'abort',
       () => {
@@ -152,4 +174,14 @@ function waitForReconnect(signal?: AbortSignal) {
       { once: true },
     )
   })
+}
+
+class ChatHttpError extends Error {
+  readonly retryable: boolean
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ChatHttpError'
+    this.retryable = status === 408 || status === 425 || status === 429 || status >= 500
+  }
 }

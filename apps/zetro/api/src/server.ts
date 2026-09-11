@@ -2,7 +2,7 @@ import cors from '@fastify/cors'
 import { PlatformApiObservability } from '@codexsun/platform-core-api'
 import Fastify from 'fastify'
 import { pathToFileURL } from 'node:url'
-import { chatSessionHeaderName } from '@codexsun/zetro-contracts'
+import { chatConversationHeaderName } from '@codexsun/zetro-contracts'
 import { getProjectRoot, readEnvironment } from './config.js'
 import { registerChatModule } from './modules/chat/index.js'
 
@@ -17,7 +17,7 @@ export async function createServer() {
   observability.register(server)
   server.addHook('onClose', () => observability.shutdown())
   await server.register(cors, {
-    allowedHeaders: ['content-type', chatSessionHeaderName],
+    allowedHeaders: ['content-type', chatConversationHeaderName],
     methods: ['GET', 'POST', 'OPTIONS'],
     origin: [environment.ZETRO_WEB_ORIGIN],
   })
