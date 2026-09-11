@@ -9,14 +9,14 @@ and display responses as Markdown. A small local API
 stores conversations, chat turns, and raw stream events in SQLite. The browser displays
 the API conversation registry through the shared Agent Workspace layout. Independent chats
 can run together, and a completed response can become a durable task draft awaiting approval.
-Zetro has no task execution, automation, Git, repository, attachment, or voice workflow.
+Zetro can prepare an isolated coding worktree from a reviewed task. Runbooks store a reusable title and refined prompt, then use a bounded interval to start an isolated local Codex worker and keep its report. Runbooks do not commit, push, open pull requests, merge, deploy, or remove worktrees.
 
 ## Ownership
 
-- `api` owns the conversation registry, provider selection, Codex execution, task drafts, and SQLite state.
+- `api` owns the conversation registry, provider selection, Codex execution, task drafts, worker handoff, runbook scheduling, run reports, and SQLite state.
 - `cxz` owns a warm, isolated Codex chat runtime and its same-container control page.
 - `contracts` owns the public chat request, stream, and history schemas.
-- `web` owns chat composition, registry selection, concurrent stream observation, and task draft views.
+- `web` owns chat composition, registry selection, concurrent stream observation, task draft views, and Worker Queue composition.
 - `web/src/modules/shell` owns the Zetro chat module declaration.
 - `packages/ui` remains the only owner of reusable controls and layouts.
 
@@ -49,8 +49,11 @@ The saved Codex thread ID restores follow-up context after an API restart. Shutd
 drains active failures before SQLite closes. Stop requests identify the exact turn.
 Prompts are not trimmed or extended. The request contains text only.
 Completed responses expose an explicit Send to Agent Tasks action. The task module stores an
-immutable prompt and response snapshot, returns the same draft when the action is retried,
-and provides no approval or execution action in this phase.
+immutable prompt and response snapshot, and returns the same draft when the action is retried.
+A worker handoff needs an explicit repository path, scope, criteria, checks, and review confirmation.
+It creates a separate `codex/zetro-task-*` branch and sibling worktree. This is a generic isolated codebase, not a language-specific environment.
+Workers cannot commit, push, request pull requests, merge, or deploy in this phase.
+Runbooks start disabled. When enabled, their scheduler checks every 15 seconds and starts each due run in a sibling worktree. One runbook has one active run at a time. The saved report records the exact worker output.
 
 ## Runtime configuration
 

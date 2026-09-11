@@ -1,5 +1,11 @@
 # Zetro Development Records
 
+- [2026-09-11 Runbooks](2026-09-11-runbooks.md)
+
+- [2026-09-11 Daily coding worker preparation](2026-09-11-daily-coding-worker-preparation.md)
+
+- [2026-09-11 Task review readiness](2026-09-11-task-review-readiness.md)
+
 - [2026-09-11 Provider safety and Task Queue](2026-09-11-provider-safety-and-task-queue.md)
 
 - [2026-09-11 Conversation-owned providers](2026-09-11-conversation-owned-providers.md)

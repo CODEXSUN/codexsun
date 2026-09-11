@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/docs-api",
   "private": true,
-  "version": "0.1.35",
+  "version": "0.1.36",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@codexsun/docs-contracts": "file:../contracts",
-    "@codexsun/platform-core-api": "^0.1.35",
+    "@codexsun/platform-core-api": "^0.1.36",
     "@fastify/cors": "latest",
     "@mdx-js/mdx": "latest",
     "fastify": "^5.12.1",

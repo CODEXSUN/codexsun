@@ -22,4 +22,8 @@ export type {
   ServiceActionResponse,
   ServiceLogsResponse,
   ServiceSnapshot,
+  AvailableApplication,
+  AvailableApplications,
+  AppInstallationRequest,
+  AppInstallationResult,
 } from '@codexsun/orship-contracts'

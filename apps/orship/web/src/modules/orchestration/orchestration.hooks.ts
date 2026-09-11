@@ -12,10 +12,14 @@ import {
   fetchPrerequisiteSource,
   fetchRuntimeFailures,
   fetchServiceLogs,
+  fetchAvailableApplications,
   runServiceAction,
   runDockerContainerAction,
   savePrerequisiteSettings,
   savePrerequisiteSource,
+  buildPrerequisites,
+  installApplication,
+  deployApplication,
 } from './orchestration.services'
 
 const overviewKey = ['orship', 'services'] as const
@@ -67,6 +71,45 @@ export function useSavePrerequisiteSource() {
       savePrerequisiteSource(file, content),
     onSuccess: async (_, { file }) => {
       await queryClient.invalidateQueries({ queryKey: ['orship', 'prerequisite-source', file] })
+    },
+  })
+}
+
+export function useBuildPrerequisites() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (forceRebuild: boolean) => buildPrerequisites({ forceRebuild }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'prerequisites'] })
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'prerequisite-settings'] })
+    },
+  })
+}
+
+export function useAvailableApplications() {
+  return useQuery({
+    queryFn: fetchAvailableApplications,
+    queryKey: ['orship', 'available-applications'],
+  })
+}
+
+export function useInstallApplication() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: installApplication,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'deployments'] })
+    },
+  })
+}
+
+export function useDeployApplication() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deployApplication,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'deployments'] })
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'services'] })
     },
   })
 }

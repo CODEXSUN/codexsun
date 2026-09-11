@@ -3,6 +3,8 @@ export type UiLayoutId =
   | 'documentation-workspace'
   | 'mdi-main'
   | 'site-header'
+  | 'ecommerce-header'
+  | 'blog-header'
 
 export type UiLayoutDoc = {
   code: string
@@ -170,6 +172,53 @@ export function PublicStorefront() {
         cartCount: 3,
         ctaLabel: 'Checkout',
       }}
+    />
+  )
+}`,
+  },
+  {
+    id: 'ecommerce-header',
+    name: 'E-Commerce Storefront Header',
+    packageName: '@codexsun/ui/layouts/ecommerce-header',
+    summary: 'Dedicated multi-tier e-commerce header with search autocomplete, category megamenu, wishlist, and cart drawer triggers.',
+    description:
+      'Provides top-tier promotion notices, free shipping meters, autocomplete live search with popular searches, category megamenu flyouts, wishlist counters, and live cart drawer badges.',
+    code: `import { EcommerceHeader } from '@codexsun/ui/layouts/ecommerce-header'
+
+export function Storefront() {
+  return (
+    <EcommerceHeader
+      brand={{ title: 'CodexMart' }}
+      categories={[
+        { href: '#tech', id: 'tech', label: 'Audio & Tech', isHot: true },
+        { href: '#home', id: 'home', label: 'Home Studio' },
+      ]}
+      actions={{
+        cartCount: 4,
+        cartSubtotal: '$149.00',
+        wishlistCount: 2,
+      }}
+    />
+  )
+}`,
+  },
+  {
+    id: 'blog-header',
+    name: 'Editorial Blog Header',
+    packageName: '@codexsun/ui/layouts/blog-header',
+    summary: 'Publication header with scroll reading progress indicator, topic navigation chips, search, and store return bridge.',
+    description:
+      'Features a dynamic top reading progress bar, topic tag chips with post counters, search overlay, and a bridge to return to the parent storefront.',
+    code: `import { BlogHeader } from '@codexsun/ui/layouts/blog-header'
+
+export function EditorialJournal() {
+  return (
+    <BlogHeader
+      brand={{ title: 'Codex Insights', badge: 'Journal' }}
+      topics={[
+        { active: true, href: '#tech', id: 'tech', label: 'Engineering', postCount: 12 },
+        { href: '#design', id: 'design', label: 'Product Design', postCount: 6 },
+      ]}
     />
   )
 }`,

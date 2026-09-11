@@ -1,6 +1,7 @@
 import type {
   AgentTaskDraft,
   AgentTaskFromChatRequest,
+  AgentTaskPlan,
   AgentTaskSummary,
 } from '@codexsun/zetro-contracts'
 import { randomUUID } from 'node:crypto'
@@ -38,6 +39,26 @@ export class AgentTaskService {
 
   list(): AgentTaskSummary[] {
     return this.repository.list()
+  }
+
+  updatePlan(taskId: string, plan: AgentTaskPlan): AgentTaskDraft {
+    this.get(taskId)
+    return this.repository.updatePlan(taskId, plan)
+  }
+
+  confirmReview(taskId: string): AgentTaskDraft {
+    const task = this.get(taskId)
+    if (
+      !task.repositoryPath ||
+      !task.modulePath ||
+      !task.acceptanceCriteria.length ||
+      !task.checks.length
+    ) {
+      throw new Error(
+        'Repository, scope, acceptance criteria, and verification checks are required.',
+      )
+    }
+    return this.repository.confirmReview(taskId, Date.now())
   }
 
   close(): void {

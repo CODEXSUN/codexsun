@@ -46,7 +46,9 @@ export function AgentTaskRegistry({
         ))}
         {!busy && visible.length === 0 ? (
           <p className="px-2 py-8 text-center text-sm text-muted-foreground">
-            {normalizedQuery ? 'No matching task drafts.' : 'Send a completed response to the queue.'}
+            {normalizedQuery
+              ? 'No matching task drafts.'
+              : 'Send a completed response to the queue.'}
           </p>
         ) : null}
       </div>

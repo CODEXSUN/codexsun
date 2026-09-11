@@ -1,0 +1,1 @@
+export const runbookWebModuleManifest = { capabilities: ['runbook-definition', 'run-status-observation', 'scheduled-run-control'], dependencies: { 'zetro.runbooks.api': '^1.0.0' }, id: 'zetro.runbooks.web', scope: 'zetro-web', version: '1.0.0' } as const

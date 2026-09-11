@@ -46,6 +46,48 @@ const UiProductCardDocumentation = lazy(() =>
 const UiPricingDocumentation = lazy(() =>
   import('./ui-pricing-doc').then((m) => ({ default: m.UiPricingDocumentation })),
 )
+const UiEcommerceHeaderDocumentation = lazy(() =>
+  import('./ui-ecommerce-header-doc').then((m) => ({ default: m.UiEcommerceHeaderDocumentation })),
+)
+const UiBlogHeaderDocumentation = lazy(() =>
+  import('./ui-blog-header-doc').then((m) => ({ default: m.UiBlogHeaderDocumentation })),
+)
+const UiCartDocumentation = lazy(() =>
+  import('./ui-cart-doc').then((m) => ({ default: m.UiCartDocumentation })),
+)
+const UiCategoriesDocumentation = lazy(() =>
+  import('./ui-categories-doc').then((m) => ({ default: m.UiCategoriesDocumentation })),
+)
+const UiCheckoutDocumentation = lazy(() =>
+  import('./ui-checkout-doc').then((m) => ({ default: m.UiCheckoutDocumentation })),
+)
+const UiComparisonDocumentation = lazy(() =>
+  import('./ui-comparison-doc').then((m) => ({ default: m.UiComparisonDocumentation })),
+)
+const UiCouponWalletDocumentation = lazy(() =>
+  import('./ui-coupon-wallet-doc').then((m) => ({ default: m.UiCouponWalletDocumentation })),
+)
+const UiDeliveryTrackerDocumentation = lazy(() =>
+  import('./ui-delivery-tracker-doc').then((m) => ({ default: m.UiDeliveryTrackerDocumentation })),
+)
+const UiPaymentMethodsDocumentation = lazy(() =>
+  import('./ui-payment-methods-doc').then((m) => ({ default: m.UiPaymentMethodsDocumentation })),
+)
+const UiPriceHistoryDocumentation = lazy(() =>
+  import('./ui-price-history-doc').then((m) => ({ default: m.UiPriceHistoryDocumentation })),
+)
+const UiReviewsDocumentation = lazy(() =>
+  import('./ui-reviews-doc').then((m) => ({ default: m.UiReviewsDocumentation })),
+)
+const UiWishlistDocumentation = lazy(() =>
+  import('./ui-wishlist-doc').then((m) => ({ default: m.UiWishlistDocumentation })),
+)
+const UiFooterDocumentation = lazy(() =>
+  import('./ui-footer-doc').then((m) => ({ default: m.UiFooterDocumentation })),
+)
+const UiBlogDocumentation = lazy(() =>
+  import('./ui-blog-doc').then((m) => ({ default: m.UiBlogDocumentation })),
+)
 
 function GalleryLoadingFallback() {
   return (
@@ -71,6 +113,8 @@ export function UiGallery() {
 
   function renderContent() {
     if (layout?.id === 'site-header') return <UiSiteHeaderDocumentation />
+    if (layout?.id === 'ecommerce-header') return <UiEcommerceHeaderDocumentation />
+    if (layout?.id === 'blog-header') return <UiBlogHeaderDocumentation />
     if (block?.id === 'table') return <UiTableDocumentation />
     if (block?.id === 'form') return <UiFormDocumentation />
     if (block?.id === 'execution-status') return <UiExecutionStatusDocumentation />
@@ -80,6 +124,18 @@ export function UiGallery() {
     if (block?.id === 'filter-builder') return <UiFilterBuilderDocumentation />
     if (block?.id === 'product-card') return <UiProductCardDocumentation />
     if (block?.id === 'pricing') return <UiPricingDocumentation />
+    if (block?.id === 'cart') return <UiCartDocumentation />
+    if (block?.id === 'categories') return <UiCategoriesDocumentation />
+    if (block?.id === 'checkout') return <UiCheckoutDocumentation />
+    if (block?.id === 'comparison') return <UiComparisonDocumentation />
+    if (block?.id === 'coupon-wallet') return <UiCouponWalletDocumentation />
+    if (block?.id === 'delivery-tracker') return <UiDeliveryTrackerDocumentation />
+    if (block?.id === 'payment-methods') return <UiPaymentMethodsDocumentation />
+    if (block?.id === 'price-history') return <UiPriceHistoryDocumentation />
+    if (block?.id === 'reviews') return <UiReviewsDocumentation />
+    if (block?.id === 'wishlist') return <UiWishlistDocumentation />
+    if (block?.id === 'footer') return <UiFooterDocumentation />
+    if (block?.id === 'blog') return <UiBlogDocumentation />
     if (component) return <UiComponentDisplayPage component={component} />
     if (page) return <UiPageDocumentation page={page} />
     return layout ? <UiLayoutDocumentation layout={layout} /> : <UiOverview />

@@ -1,10 +1,12 @@
 import type { FrameworkModule } from '@codexsun/framework'
 import type { FastifyInstance } from 'fastify'
 import type { OrshipEnvironment } from '../../config.js'
+import { join } from 'node:path'
 import { CloudTargetService } from './application/cloud-target.service.js'
 import { DeploymentEvidenceService } from './application/deployment-evidence.service.js'
 import { OrchestrationService } from './application/orchestration.service.js'
 import { PrerequisiteService } from './application/prerequisite.service.js'
+import { AppInstallerService } from './application/app-installer.service.js'
 import { DeploymentTargetCatalog } from './infrastructure/deployment-target.catalog.js'
 import { CloudTargetStore } from './infrastructure/cloud-target.store.js'
 import { DeploymentRecordStore } from './infrastructure/deployment-record.store.js'
@@ -77,13 +79,21 @@ export async function registerOrchestrationModule(
     environment.ORSHIP_DOCKER_CONTROL_ENABLED === 'true',
     new DockerControlStore(projectRoot),
   )
+  const prerequisites = new PrerequisiteService(docker, projectRoot)
+  const appInstaller = new AppInstallerService(
+    projectRoot,
+    join(projectRoot, '.container', 'catalog.json'),
+    join(projectRoot, '.container', 'profiles'),
+    join(projectRoot, 'dist', 'deployments'),
+  )
   await registerOrchestrationRoutes(
     server,
     service,
     cloudTarget,
     deploymentEvidence,
     docker,
-    new PrerequisiteService(docker),
+    prerequisites,
+    appInstaller,
     new PrerequisiteSettingsStore(projectRoot),
     new PrerequisiteSourceStore(projectRoot),
   )

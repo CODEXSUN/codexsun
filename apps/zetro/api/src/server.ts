@@ -5,11 +5,13 @@ import { pathToFileURL } from 'node:url'
 import { chatConversationHeaderName } from '@codexsun/zetro-contracts'
 import { getProjectRoot, readEnvironment } from './config.js'
 import { registerAgentTaskModule } from './modules/agent-tasks/index.js'
+import { registerCodingWorkerModule } from './modules/coding-workers/index.js'
 import { registerChatModule } from './modules/chat/index.js'
 import { CodexChatClient } from './modules/chat/infrastructure/codex-chat.client.js'
 import { ProviderChatRunner } from './modules/chat/infrastructure/provider-chat.runner.js'
 import { CxzChatClient } from './modules/chat/infrastructure/cxz-chat.client.js'
 import { registerProviderModule } from './modules/providers/index.js'
+import { registerRunbookModule } from './modules/runbooks/index.js'
 
 export async function createServer() {
   const environment = readEnvironment()
@@ -32,7 +34,11 @@ export async function createServer() {
   const runner = new ProviderChatRunner(providers, codex, new CxzChatClient())
   const chat = await registerChatModule(server, environment, projectRoot, runner)
   const agentTasks = await registerAgentTaskModule(server, environment, projectRoot, chat)
+  const codingWorkers = await registerCodingWorkerModule(server, environment, projectRoot, agentTasks)
+  const runbooks = await registerRunbookModule(server, environment, projectRoot)
   server.addHook('onClose', async () => {
+    runbooks.close()
+    codingWorkers.close()
     agentTasks.close()
     await chat.close()
     providers.close()
@@ -40,7 +46,7 @@ export async function createServer() {
   server.get('/health', async () => ({ service: 'zetro-api', status: 'ok' }))
   server.get('/health/live', async () => ({ service: 'zetro-api', status: 'ok' }))
   server.get('/health/ready', async (_request, reply) => {
-    if (agentTasks.isReady() && chat.isReady() && providers.isReady()) {
+    if (agentTasks.isReady() && codingWorkers.isReady() && runbooks.isReady() && chat.isReady() && providers.isReady()) {
       return { service: 'zetro-api', status: 'ready', storage: 'sqlite' }
     }
     return reply

@@ -11,21 +11,58 @@ import {
 import { Textarea } from '@codexsun/ui/components/textarea'
 import type { AgentWorkspaceRail } from '@codexsun/ui/layouts/agent-workspace'
 import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
-import { Archive, ArrowUp, Bot, ClipboardList, MessageCircle, Settings, Square } from 'lucide-react'
+import {
+  Archive,
+  ArrowUp,
+  Bot,
+  ClipboardList,
+  GitBranch,
+  CalendarClock,
+  MessageCircle,
+  Settings,
+  Square,
+} from 'lucide-react'
 import type {
   AgentTaskDraft,
+  AgentTaskPlan,
   AgentTaskSummary,
   ChatConversationProvider,
   ChatConversationSummary,
+  CodingWorkerAttempt,
+  CodingWorkerHandoffRequest,
+  Runbook,
+  RunbookCreateRequest,
+  RunbookRun,
   ProviderSettingsResponse,
 } from '@codexsun/zetro-contracts'
 import {
   AgentTaskRegistry,
   AgentTaskWorkspace,
+  confirmAgentTaskReview,
   createAgentTaskFromChat,
   fetchAgentTask,
   fetchAgentTasks,
+  saveAgentTaskPlan,
 } from './modules/agent-tasks'
+import {
+  CodingWorkerRegistry,
+  CodingWorkerWorkspace,
+  approveCodingWorker,
+  fetchCodingWorkerAttempts,
+  prepareCodingWorker,
+  rejectCodingWorker,
+  verifyCodingWorker,
+} from './modules/coding-workers'
+import {
+  RunbookWorkspace,
+  RunbookRegistry,
+  createRunbook,
+  fetchRunbookRuns,
+  fetchRunbooks,
+  setRunbookEnabled,
+  startRunbook,
+  stopRunbookRun,
+} from './modules/runbooks'
 import { ProviderHeaderSwitcher } from './modules/providers/provider-header-switcher'
 import { ProviderSettings } from './modules/providers/provider-settings'
 import { fetchProviderSettings } from './modules/providers/provider.services'
@@ -40,7 +77,7 @@ import { ChatTurnView, EmptyChat } from './modules/shell/chat-turn-view'
 import { ConversationRegistry } from './modules/shell/conversation-registry'
 import { isRuntimeWorking, useConcurrentChat } from './modules/shell/use-concurrent-chat'
 
-type WorkspaceView = 'chat' | 'settings' | 'tasks'
+type WorkspaceView = 'chat' | 'settings' | 'tasks' | 'workers' | 'runbooks'
 
 export function App() {
   const [prompt, setPrompt] = useState('')
@@ -55,6 +92,12 @@ export function App() {
   const [tasks, setTasks] = useState<AgentTaskSummary[]>([])
   const [selectedTask, setSelectedTask] = useState<AgentTaskDraft>()
   const [tasksBusy, setTasksBusy] = useState(false)
+  const [workerAttempts, setWorkerAttempts] = useState<CodingWorkerAttempt[]>([])
+  const [workersBusy, setWorkersBusy] = useState(false)
+  const [runbooks, setRunbooks] = useState<Runbook[]>([])
+  const [runbookRuns, setRunbookRuns] = useState<RunbookRun[]>([])
+  const [selectedRunbookId, setSelectedRunbookId] = useState<string>()
+  const [runbooksBusy, setRunbooksBusy] = useState(false)
   const [providerSwitching, setProviderSwitching] = useState(false)
   const registryLoadSequence = useRef(0)
   const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
@@ -196,10 +239,7 @@ export function App() {
     void chat.loadConversation(targetId)
   }
 
-  function updateConversationProvider(
-    targetId: string,
-    provider: ChatConversationProvider,
-  ) {
+  function updateConversationProvider(targetId: string, provider: ChatConversationProvider) {
     setConversations((current) =>
       current.map((conversation) =>
         conversation.id === targetId
@@ -236,6 +276,134 @@ export function App() {
     }
   }
 
+  async function openWorkers() {
+    setView('workers')
+    setWorkersBusy(true)
+    setShellError('')
+    try {
+      const nextAttempts = await fetchCodingWorkerAttempts()
+      setWorkerAttempts(nextAttempts)
+      if (!selectedTask) {
+        const nextTasks = await fetchAgentTasks()
+        setTasks(nextTasks)
+        setSelectedTask(nextTasks[0] ? await fetchAgentTask(nextTasks[0].id) : undefined)
+      }
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not load coding workers.'))
+    } finally {
+      setWorkersBusy(false)
+    }
+  }
+
+  async function openRunbooks() {
+    setView('runbooks')
+    setRunbooksBusy(true)
+    setShellError('')
+    try {
+      const [nextRunbooks, nextRuns] = await Promise.all([fetchRunbooks(), fetchRunbookRuns()])
+      setRunbooks(nextRunbooks)
+      setRunbookRuns(nextRuns)
+      setSelectedRunbookId((current) =>
+        current && nextRunbooks.some((runbook) => runbook.id === current)
+          ? current
+          : nextRunbooks[0]?.id,
+      )
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not load runbooks.'))
+    } finally { setRunbooksBusy(false) }
+  }
+
+  async function saveRunbook(input: RunbookCreateRequest) {
+    setRunbooksBusy(true)
+    try { const runbook = await createRunbook(input); setRunbooks((current) => [runbook, ...current]); setSelectedRunbookId(runbook.id) }
+    catch (reason) { setShellError(errorMessage(reason, 'Could not create the runbook.')) }
+    finally { setRunbooksBusy(false) }
+  }
+
+  async function updateRunbookEnabled(id: string, enabled: boolean) {
+    setRunbooksBusy(true)
+    try { const runbook = await setRunbookEnabled(id, enabled); setRunbooks((current) => current.map((item) => item.id === id ? runbook : item)) }
+    catch (reason) { setShellError(errorMessage(reason, 'Could not update the runbook.')) }
+    finally { setRunbooksBusy(false) }
+  }
+
+  async function runRunbook(id: string) {
+    setRunbooksBusy(true)
+    try { const run = await startRunbook(id); setRunbookRuns((current) => [run, ...current]) }
+    catch (reason) { setShellError(errorMessage(reason, 'Could not start the runbook.')) }
+    finally { setRunbooksBusy(false) }
+  }
+
+  async function stopRunbook(id: string) {
+    setRunbooksBusy(true)
+    try { const run = await stopRunbookRun(id); setRunbookRuns((current) => current.map((item) => item.id === run.id ? run : item)) }
+    catch (reason) { setShellError(errorMessage(reason, 'Could not stop the runbook.')) }
+    finally { setRunbooksBusy(false) }
+  }
+  async function prepareWorker(input: CodingWorkerHandoffRequest) {
+    setWorkersBusy(true)
+    setShellError('')
+    try {
+      const attempt = await prepareCodingWorker(input)
+      setWorkerAttempts((current) => [attempt, ...current])
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not prepare the coding worker.'))
+    } finally {
+      setWorkersBusy(false)
+    }
+  }
+  async function updateWorker(attemptId: string, action: 'approve' | 'reject' | 'verify') {
+    setWorkersBusy(true)
+    setShellError('')
+    try {
+      const attempt = await (action === 'approve'
+        ? approveCodingWorker(attemptId)
+        : action === 'reject'
+          ? rejectCodingWorker(attemptId)
+          : verifyCodingWorker(attemptId))
+      setWorkerAttempts((current) =>
+        current.map((item) => (item.id === attempt.id ? attempt : item)),
+      )
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not update the coding worker.'))
+    } finally {
+      setWorkersBusy(false)
+    }
+  }
+  async function saveTaskPlan(taskId: string, plan: AgentTaskPlan) {
+    setTasksBusy(true)
+    setShellError('')
+    try {
+      const task = await saveAgentTaskPlan(taskId, plan)
+      setSelectedTask(task)
+      setTasks((current) =>
+        current.map((item) =>
+          item.id === task.id ? { ...item, updatedAt: task.updatedAt } : item,
+        ),
+      )
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not save the task plan.'))
+    } finally {
+      setTasksBusy(false)
+    }
+  }
+  async function confirmTaskReview(taskId: string) {
+    setTasksBusy(true)
+    setShellError('')
+    try {
+      const task = await confirmAgentTaskReview(taskId)
+      setSelectedTask(task)
+      setTasks((current) =>
+        current.map((item) =>
+          item.id === task.id ? { ...item, updatedAt: task.updatedAt } : item,
+        ),
+      )
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not confirm the task review.'))
+    } finally {
+      setTasksBusy(false)
+    }
+  }
   async function sendResponseToTask(turnId: string) {
     if (!conversationId) return
     setTasksBusy(true)
@@ -249,7 +417,6 @@ export function App() {
       setTasksBusy(false)
     }
   }
-
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== 'Enter' || event.shiftKey) return
     event.preventDefault()
@@ -296,6 +463,22 @@ export function App() {
         label: 'Task queue',
         onSelect: () => void openTasks(),
       },
+      {
+        active: view === 'workers',
+        badge: workerAttempts.length,
+        icon: GitBranch,
+        id: 'coding-workers',
+        label: 'Worker queue',
+        onSelect: () => void openWorkers(),
+      },
+      {
+        active: view === 'runbooks',
+        badge: runbooks.length,
+        icon: CalendarClock,
+        id: 'runbooks',
+        label: 'Runbooks',
+        onSelect: () => void openRunbooks(),
+      },
     ],
     label: 'Zetro activities',
   }
@@ -329,11 +512,21 @@ export function App() {
       }}
       navigation={[]}
       primaryAction={null}
-      searchPlaceholder={view === 'tasks' ? 'Search task drafts' : 'Search conversations'}
+      searchPlaceholder={view === 'chat' ? 'Search conversations' : 'Search task or worker records'}
       searchValue={search}
       showTopologyTools={false}
       sidebarContent={
-        view === 'tasks' ? (
+        view === 'runbooks' ? (
+          <RunbookRegistry
+            query={search}
+            runbooks={runbooks}
+            selectedId={selectedRunbookId}
+            onCreate={() => setSelectedRunbookId(undefined)}
+            onSelect={setSelectedRunbookId}
+          />
+        ) : view === 'workers' ? (
+          <CodingWorkerRegistry attempts={workerAttempts} />
+        ) : view === 'tasks' ? (
           <AgentTaskRegistry
             busy={tasksBusy}
             query={search}
@@ -363,16 +556,37 @@ export function App() {
       statusEnd={<span className="text-xs text-gray-600">v{buildVersion}</span>}
       statusLabel={statusLabel}
       workspaceTitle={
-        view === 'tasks'
-          ? (selectedTask?.title ?? 'Task queue')
-          : (selectedConversation?.title ?? 'Conversation')
+        view === 'runbooks'
+          ? (runbooks.find((runbook) => runbook.id === selectedRunbookId)?.title ?? 'New runbook')
+          : view === 'workers'
+          ? (selectedTask?.title ?? 'Worker queue')
+          : view === 'tasks'
+            ? (selectedTask?.title ?? 'Task queue')
+            : (selectedConversation?.title ?? 'Conversation')
       }
       onSearchChange={setSearch}
     >
       {view === 'settings' && providerSettings ? (
         <ProviderSettings settings={providerSettings} onChange={setProviderSettings} />
+      ) : view === 'runbooks' ? (
+        <RunbookWorkspace busy={runbooksBusy} runbook={runbooks.find((runbook) => runbook.id === selectedRunbookId)} runs={runbookRuns} onCreate={saveRunbook} onEnabled={updateRunbookEnabled} onStart={runRunbook} onStop={stopRunbook} />
+      ) : view === 'workers' ? (
+        <CodingWorkerWorkspace
+          attempts={workerAttempts}
+          busy={workersBusy}
+          onUpdate={updateWorker}
+          task={selectedTask}
+          onPrepare={prepareWorker}
+        />
       ) : view === 'tasks' ? (
-        <AgentTaskWorkspace task={selectedTask} onOpenConversation={selectConversation} />
+        <AgentTaskWorkspace
+          busy={tasksBusy}
+          onConfirm={confirmTaskReview}
+          task={selectedTask}
+          onOpenConversation={selectConversation}
+          onSave={saveTaskPlan}
+          workerAttempts={workerAttempts.filter((attempt) => attempt.taskId === selectedTask?.id)}
+        />
       ) : (
         <section className="flex size-full min-h-0 flex-col bg-background text-foreground">
           <header className="flex h-14 shrink-0 items-center gap-3 border-b px-5">

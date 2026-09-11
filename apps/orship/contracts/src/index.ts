@@ -338,3 +338,59 @@ export type PrerequisiteSourceFile = z.infer<typeof prerequisiteSourceFileSchema
 export type PrerequisiteSourceUpdate = z.infer<typeof prerequisiteSourceUpdateSchema>
 export type PrerequisiteBuildRequest = z.infer<typeof prerequisiteBuildRequestSchema>
 export type PrerequisiteBuildResponse = z.infer<typeof prerequisiteBuildResponseSchema>
+export type AppInstallation = z.infer<typeof appInstallationSchema>
+export type AppInstallationRequest = z.infer<typeof appInstallationRequestSchema>
+export type AppInstallationResult = z.infer<typeof appInstallationResultSchema>
+export type AvailableApplication = z.infer<typeof availableApplicationSchema>
+export type AvailableApplications = z.infer<typeof availableApplicationsSchema>
+
+export const appInstallationSchema = z.strictObject({
+  applicationId: z.string().min(1).max(80),
+  customerId: z.string().min(1).max(80),
+  profileId: z.string().min(1).max(80),
+  selectedAddons: z.array(z.string().min(1).max(80)).default([]),
+  portOverrides: z.record(z.string().min(1).max(80), z.number().int().min(6000).max(6999)).default({}),
+  environment: z.enum(['development', 'production']).default('development'),
+})
+
+export const appInstallationRequestSchema = z.strictObject({
+  applicationId: z.string().min(1).max(80),
+  customerId: z.string().min(1).max(80),
+  selectedAddons: z.array(z.string().min(1).max(80)).default([]),
+  portOverrides: z.record(z.string().min(1).max(80), z.number().int().min(6000).max(6999)).default({}),
+  environment: z.enum(['development', 'production']).default('development'),
+})
+
+export const appInstallationResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  profileId: z.string().optional(),
+  composePath: z.string().optional(),
+  output: z.string().max(50_000).optional(),
+  exitCode: z.number().int().nullable(),
+})
+
+export const availableApplicationSchema = z.object({
+  id: z.string().min(1).max(80),
+  version: z.string().min(1),
+  requires: z.array(z.string().min(1).max(80)),
+  components: z.array(z.object({
+    id: z.string().min(1).max(80),
+    name: z.string().min(1).max(80),
+    kind: z.enum(['api', 'web', 'worker']),
+    runtime: z.enum(['node', 'static']),
+    defaultPort: z.number().int().min(6000).max(6999),
+    dependsOn: z.array(z.string().min(1).max(80)),
+  })),
+  availableAddons: z.array(z.object({
+    id: z.string().min(1).max(80),
+    version: z.string().min(1),
+    targetApplication: z.string().min(1).max(80),
+    componentIds: z.array(z.string().min(1).max(80)),
+    requires: z.array(z.string().min(1).max(80)),
+  })),
+})
+
+export const availableApplicationsSchema = z.object({
+  applications: z.array(availableApplicationSchema),
+})

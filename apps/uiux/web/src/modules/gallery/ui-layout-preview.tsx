@@ -42,6 +42,18 @@ const blockIcons = {
   'filter-builder': FilterIcon,
   'product-card': ShoppingBagIcon,
   pricing: TagIcon,
+  cart: ShoppingBagIcon,
+  categories: BlocksIcon,
+  checkout: TagIcon,
+  comparison: Columns3Icon,
+  'coupon-wallet': TagIcon,
+  'delivery-tracker': UploadCloudIcon,
+  'payment-methods': TagIcon,
+  'price-history': TagIcon,
+  reviews: MessageCircleIcon,
+  wishlist: TagIcon,
+  footer: LayoutTemplateIcon,
+  blog: BookOpenIcon,
 } as const
 
 const previewNavigation: MdiNavigationSection[] = [

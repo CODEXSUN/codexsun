@@ -8,7 +8,14 @@
 
 ## Version State
 
-- Current version: 0.1.35. Release tag: v-0.1.35. Changelog label: v 0.1.35.
+- Current version: 0.1.36. Release tag: v-0.1.36. Changelog label: v 0.1.36.
+
+## v-0.1.36
+
+### [v 0.1.36] 2026-09-11 11:02 pm - Runbook implementation
+
+- Database update: No (auto-check).
+- Bumped workspace version to 0.1.36.
 
 ## v-0.1.35
 

@@ -46,6 +46,25 @@ test('task routes list, create, and return complete drafts', async () => {
       (await server.inject(`/api/zetro/v1/agent-tasks/${taskId}`)).json().sourcePrompt,
       'Build the approved feature',
     )
+    const saved = await server.inject({
+      method: 'PUT',
+      payload: {
+        acceptanceCriteria: ['The requested behavior works.'],
+        checks: ['git diff --check'],
+        modulePath: 'apps/example',
+        repositoryPath: 'E:/Workspace/example',
+      },
+      url: `/api/zetro/v1/agent-tasks/${taskId}/plan`,
+    })
+    assert.equal(saved.statusCode, 200)
+    assert.equal(saved.json().modulePath, 'apps/example')
+    const confirmed = await server.inject({
+      method: 'POST',
+      payload: { confirmed: true },
+      url: `/api/zetro/v1/agent-tasks/${taskId}/confirm-review`,
+    })
+    assert.equal(confirmed.statusCode, 200)
+    assert.ok(confirmed.json().reviewConfirmedAt)
     await server.close()
     service.close()
   })
@@ -62,6 +81,24 @@ test('source validation prevents incomplete chat turns from becoming drafts', ()
       () => service.createFromChat({ conversationId, turnId }),
       /Only a completed assistant response/,
     )
+    service.close()
+  })
+})
+
+test('a task plan persists and must be complete before review confirmation', () => {
+  withDatabase((databasePath) => {
+    const service = new AgentTaskService(new AgentTaskRepository(databasePath), completedSource)
+    const task = service.createFromChat({ conversationId, turnId })
+    assert.throws(() => service.confirmReview(task.id), /Repository, scope/)
+    const planned = service.updatePlan(task.id, {
+      acceptanceCriteria: ['The requested behavior works.'],
+      checks: ['git diff --check'],
+      modulePath: 'apps/example',
+      repositoryPath: 'E:/Workspace/example',
+    })
+    assert.equal(planned.modulePath, 'apps/example')
+    const confirmed = service.confirmReview(task.id)
+    assert.ok(confirmed.reviewConfirmedAt)
     service.close()
   })
 })

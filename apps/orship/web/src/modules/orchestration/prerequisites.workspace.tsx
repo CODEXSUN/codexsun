@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@codexsun/ui/component
 import { Input } from '@codexsun/ui/components/input'
 import { Label } from '@codexsun/ui/components/label'
 import { Textarea } from '@codexsun/ui/components/textarea'
-import { Database, FileCode2, FolderOpen, Network, Save, Server } from 'lucide-react'
+import { Database, FileCode2, FolderOpen, Network, RotateCcw, Save, Server } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   usePrerequisites,
@@ -12,6 +12,7 @@ import {
   usePrerequisiteSource,
   useSavePrerequisiteSettings,
   useSavePrerequisiteSource,
+  useBuildPrerequisites,
 } from './orchestration.hooks'
 import type { PrerequisiteSettingsUpdate, PrerequisiteSourceFile } from './orchestration.types'
 
@@ -41,6 +42,7 @@ export function PrerequisitesWorkspace() {
   const prerequisites = usePrerequisites()
   const settings = usePrerequisiteSettings()
   const saveSettings = useSavePrerequisiteSettings()
+  const buildPrerequisites = useBuildPrerequisites()
   const [form, setForm] = useState<PrerequisiteSettingsUpdate>(emptySettings)
   const [message, setMessage] = useState<string>()
   const [sourceFile, setSourceFile] = useState<PrerequisiteSourceFile>('compose')
@@ -80,6 +82,20 @@ export function PrerequisitesWorkspace() {
     }
   }
 
+  const handleBuild = async (forceRebuild: boolean) => {
+    setMessage(undefined)
+    try {
+      const result = await buildPrerequisites.mutateAsync(forceRebuild)
+      if (result.success) {
+        setMessage('Prerequisites built and started successfully.')
+      } else {
+        setMessage(`Build failed: ${result.message}${result.output ? `\n${result.output}` : ''}`)
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not build prerequisites.')
+    }
+  }
+
   const saveStackSource = async () => {
     setMessage(undefined)
     try {
@@ -92,12 +108,20 @@ export function PrerequisitesWorkspace() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6 pb-12">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+<header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">Prerequisites</h1>
           <p className="mt-1 text-sm text-muted-foreground">Shared services for installed client applications.</p>
         </div>
-        <Button disabled={saveSettings.isPending} onClick={() => void submit()}><Save />Save settings</Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button disabled={saveSettings.isPending} onClick={() => void submit()}><Save />Save settings</Button>
+          <Button disabled={buildPrerequisites.isPending} variant="default" onClick={() => void handleBuild(false)}>
+            <Server className="mr-2 h-4 w-4" />Build & Apply
+          </Button>
+          <Button disabled={buildPrerequisites.isPending} variant="outline" onClick={() => void handleBuild(true)}>
+            <RotateCcw className="mr-2 h-4 w-4" />Force Rebuild
+          </Button>
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">

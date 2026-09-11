@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/platform-core-desktop",
   "private": true,
-  "version": "0.1.35",
+  "version": "0.1.36",
   "type": "module",
   "main": "../../../dist/packages/platform-core/desktop/index.js",
   "types": "../../../dist/packages/platform-core/desktop/index.d.ts",

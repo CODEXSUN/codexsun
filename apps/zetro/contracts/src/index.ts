@@ -216,13 +216,26 @@ export const agentTaskFromChatRequestSchema = z.object({
 })
 
 export const agentTaskParamsSchema = z.object({ taskId: agentTaskIdSchema })
+export const agentTaskPlanSchema = z.object({
+  acceptanceCriteria: z.array(z.string().trim().min(1).max(500)).max(20),
+  checks: z.array(z.string().trim().min(1).max(500)).max(20),
+  modulePath: z.string().trim().max(500),
+  repositoryPath: z.string().trim().max(500),
+})
+export const agentTaskPlanRequestSchema = agentTaskPlanSchema
+export const agentTaskReviewConfirmationSchema = z.object({ confirmed: z.literal(true) })
 
 export const agentTaskDraftSchema = z.object({
+  acceptanceCriteria: z.array(z.string()),
   approvalStatus: agentTaskApprovalStatusSchema,
+  checks: z.array(z.string()),
   createdAt: z.number().int().nonnegative(),
   id: agentTaskIdSchema,
   originConversationId: chatConversationIdSchema,
   originTurnId: z.uuid(),
+  modulePath: z.string(),
+  repositoryPath: z.string(),
+  reviewConfirmedAt: z.number().int().nonnegative().optional(),
   sourcePrompt: z.string(),
   sourceResponse: z.string().min(1),
   status: agentTaskStatusSchema,
@@ -231,11 +244,117 @@ export const agentTaskDraftSchema = z.object({
 })
 
 export const agentTaskSummarySchema = agentTaskDraftSchema.omit({
+  acceptanceCriteria: true,
+  checks: true,
+  modulePath: true,
+  repositoryPath: true,
+  reviewConfirmedAt: true,
   sourcePrompt: true,
   sourceResponse: true,
 })
 
 export const agentTaskListResponseSchema = z.object({ tasks: z.array(agentTaskSummarySchema) })
+
+export const codingWorkerAttemptIdSchema = z.uuid()
+export const codingWorkerToolProfileSchema = z.literal('daily-coding')
+export const codingWorkerAttemptStatusSchema = z.literal('prepared')
+export const codingWorkerRuntimeSchema = z.literal('isolated-worktree')
+export const codingWorkerApprovalStatusSchema = z.enum([
+  'awaiting-verification',
+  'awaiting-approval',
+  'approved',
+  'rejected',
+])
+export const codingWorkerCheckResultSchema = z.object({
+  command: z.string().min(1),
+  durationMs: z.number().int().nonnegative(),
+  exitCode: z.number().int(),
+  outputSummary: z.string(),
+  passed: z.boolean(),
+})
+export const codingWorkerHandoffRequestSchema = z.object({
+  taskId: agentTaskIdSchema,
+})
+export const codingWorkerAttemptSchema = z.object({
+  acceptanceCriteria: z.array(z.string()),
+  approvalStatus: codingWorkerApprovalStatusSchema,
+  branchName: z.string().min(1),
+  checks: z.array(z.string()),
+  createdAt: z.number().int().nonnegative(),
+  id: codingWorkerAttemptIdSchema,
+  modulePath: z.string().min(1),
+  repositoryPath: z.string().min(1),
+  revision: z.string().min(1),
+  runtime: codingWorkerRuntimeSchema,
+  status: codingWorkerAttemptStatusSchema,
+  taskId: agentTaskIdSchema,
+  toolProfile: codingWorkerToolProfileSchema,
+  updatedAt: z.number().int().nonnegative(),
+  verification: z.array(codingWorkerCheckResultSchema),
+  worktreePath: z.string().min(1),
+})
+export const codingWorkerAttemptListResponseSchema = z.object({
+  attempts: z.array(codingWorkerAttemptSchema),
+})
+export const codingWorkerAttemptParamsSchema = z.object({ attemptId: codingWorkerAttemptIdSchema })
+export const codingWorkerApprovalRequestSchema = z.object({ confirmed: z.literal(true) })
+
+export const runbookIdSchema = z.uuid()
+export const runbookScheduleSchema = z
+  .object({
+    intervalMinutes: z.number().int().min(15).max(7 * 24 * 60).optional(),
+    mode: z.enum(['one-time', 'repeating']),
+  })
+  .refine((value) => value.mode === 'one-time' || value.intervalMinutes !== undefined, {
+    message: 'Repeating runbooks require an interval.',
+  })
+export const runbookCreateRequestSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  prompt: z.string().trim().min(1).max(64 * 1024),
+  repositoryPath: z.string().trim().min(1).max(500),
+  modulePath: z.string().trim().min(1).max(500),
+  schedule: runbookScheduleSchema,
+})
+export const runbookSchema = runbookCreateRequestSchema.extend({
+  createdAt: z.number().int().nonnegative(),
+  enabled: z.boolean(),
+  id: runbookIdSchema,
+  lastRunAt: z.number().int().nonnegative().optional(),
+  nextRunAt: z.number().int().nonnegative(),
+  updatedAt: z.number().int().nonnegative(),
+})
+export const runbookInitiatorSchema = z.object({
+  itemId: z.string().trim().min(1).max(160),
+  moduleId: z.string().trim().min(1).max(160),
+})
+export const runbookInitiateRequestSchema = z.object({
+  initiator: runbookInitiatorSchema,
+  mode: z.enum(['one-time', 'repeating']),
+  runbookId: runbookIdSchema,
+})
+export const runbookRunStatusSchema = z.enum(['queued', 'running', 'completed', 'failed', 'stopped'])
+export const runbookRunSchema = z.object({
+  branchName: z.string().min(1),
+  completedAt: z.number().int().nonnegative().optional(),
+  createdAt: z.number().int().nonnegative(),
+  id: z.uuid(),
+  initiator: runbookInitiatorSchema.optional(),
+  report: z.string(),
+  runbookId: runbookIdSchema,
+  startedAt: z.number().int().nonnegative().optional(),
+  status: runbookRunStatusSchema,
+  triggeredBy: z.enum(['manual', 'schedule']),
+  worktreePath: z.string().min(1),
+})
+export const runbookListResponseSchema = z.object({ runbooks: z.array(runbookSchema) })
+export const runbookRunListResponseSchema = z.object({ runs: z.array(runbookRunSchema) })
+export const runbookParamsSchema = z.object({ runbookId: runbookIdSchema })
+export const runbookRunParamsSchema = z.object({ runId: z.uuid() })
+export const runbookEnabledRequestSchema = z.object({ enabled: z.boolean() })
+export const runbookInitiationResponseSchema = z.object({
+  run: runbookRunSchema.optional(),
+  runbook: runbookSchema,
+})
 
 export type ChatHistoryResponse = z.infer<typeof chatHistoryResponseSchema>
 export type ChatConversationListScope = z.infer<typeof chatConversationListScopeSchema>
@@ -262,6 +381,14 @@ export type ProviderSelectionRequest = z.infer<typeof providerSelectionRequestSc
 export type ProviderSelectionConfirmation = z.infer<typeof providerSelectionConfirmationSchema>
 export type ProviderSettingsResponse = z.infer<typeof providerSettingsResponseSchema>
 export type AgentTaskDraft = z.infer<typeof agentTaskDraftSchema>
+export type AgentTaskPlan = z.infer<typeof agentTaskPlanSchema>
+export type CodingWorkerAttempt = z.infer<typeof codingWorkerAttemptSchema>
+export type CodingWorkerCheckResult = z.infer<typeof codingWorkerCheckResultSchema>
+export type CodingWorkerHandoffRequest = z.infer<typeof codingWorkerHandoffRequestSchema>
+export type Runbook = z.infer<typeof runbookSchema>
+export type RunbookCreateRequest = z.infer<typeof runbookCreateRequestSchema>
+export type RunbookRun = z.infer<typeof runbookRunSchema>
+export type RunbookInitiateRequest = z.infer<typeof runbookInitiateRequestSchema>
 export type AgentTaskFromChatRequest = z.infer<typeof agentTaskFromChatRequestSchema>
 export type AgentTaskSummary = z.infer<typeof agentTaskSummarySchema>
 

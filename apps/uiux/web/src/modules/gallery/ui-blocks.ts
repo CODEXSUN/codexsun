@@ -10,6 +10,18 @@ export type UiBlockId =
   | 'filter-builder'
   | 'product-card'
   | 'pricing'
+  | 'cart'
+  | 'categories'
+  | 'checkout'
+  | 'comparison'
+  | 'coupon-wallet'
+  | 'delivery-tracker'
+  | 'payment-methods'
+  | 'price-history'
+  | 'reviews'
+  | 'wishlist'
+  | 'footer'
+  | 'blog'
 
 export type UiBlockDoc = {
   id: UiBlockId

@@ -2,7 +2,10 @@ import {
   agentTaskDraftSchema,
   agentTaskFromChatRequestSchema,
   agentTaskListResponseSchema,
+  agentTaskPlanRequestSchema,
+  agentTaskReviewConfirmationSchema,
   type AgentTaskDraft,
+  type AgentTaskPlan,
   type AgentTaskSummary,
 } from '@codexsun/zetro-contracts'
 
@@ -31,6 +34,32 @@ export async function createAgentTaskFromChat(conversationId: string, turnId: st
   return agentTaskDraftSchema.parse(
     await readJson(response, 'Could not create a task draft from this response.'),
   )
+}
+
+export async function saveAgentTaskPlan(taskId: string, plan: AgentTaskPlan) {
+  const body = agentTaskPlanRequestSchema.parse(plan)
+  const response = await fetch(
+    `${baseUrl}/api/zetro/v1/agent-tasks/${encodeURIComponent(taskId)}/plan`,
+    {
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+      method: 'PUT',
+    },
+  )
+  return agentTaskDraftSchema.parse(await readJson(response, 'Could not save the task plan.'))
+}
+
+export async function confirmAgentTaskReview(taskId: string) {
+  const body = agentTaskReviewConfirmationSchema.parse({ confirmed: true })
+  const response = await fetch(
+    `${baseUrl}/api/zetro/v1/agent-tasks/${encodeURIComponent(taskId)}/confirm-review`,
+    {
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    },
+  )
+  return agentTaskDraftSchema.parse(await readJson(response, 'Could not confirm the task review.'))
 }
 
 async function readJson(response: Response, fallback: string): Promise<unknown> {

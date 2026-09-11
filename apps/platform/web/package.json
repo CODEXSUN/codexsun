@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/platform-web",
   "private": true,
-  "version": "0.1.35",
+  "version": "0.1.36",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,9 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@codexsun/platform-identity-client": "^0.1.35",
-    "@codexsun/platform-contracts": "^0.1.35",
-    "@codexsun/platform-core-web": "^0.1.35",
+    "@codexsun/platform-identity-client": "^0.1.36",
+    "@codexsun/platform-contracts": "^0.1.36",
+    "@codexsun/platform-core-web": "^0.1.36",
     "@codexsun/ui": "file:../../../packages/ui",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.101.4",

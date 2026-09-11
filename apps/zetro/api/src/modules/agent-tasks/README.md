@@ -8,14 +8,16 @@
 
 This module owns durable Agent Task drafts created explicitly from completed chat turns.
 It stores the originating conversation and turn IDs, the exact prompt and assistant result,
-and an awaiting-approval state. It does not execute agents, approve work, edit chat history,
-or own provider credentials.
+and an awaiting-approval state. It owns the saved task plan and review confirmation. It does not
+execute agents, approve implementation work, edit chat history, or own provider credentials.
 
 ## Contracts
 
 - `GET /api/zetro/v1/agent-tasks` lists task draft summaries.
 - `GET /api/zetro/v1/agent-tasks/:taskId` returns one complete draft.
 - `POST /api/zetro/v1/agent-tasks/from-chat` creates or returns the draft for one chat turn.
+- `PUT /api/zetro/v1/agent-tasks/:taskId/plan` saves repository, scope, criteria, and checks.
+- `POST /api/zetro/v1/agent-tasks/:taskId/confirm-review` confirms a complete saved plan.
 - `@codexsun/zetro-contracts` owns request and response validation.
 
 The module synchronously reads a completed turn through the public Chat task-source query.

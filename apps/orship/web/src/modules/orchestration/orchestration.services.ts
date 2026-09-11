@@ -14,15 +14,22 @@ import {
   prerequisiteSettingsUpdateSchema,
   prerequisiteSourceSchema,
   prerequisiteSourceUpdateSchema,
-  runtimeFailureOverviewSchema,
+  prerequisiteBuildRequestSchema,
+  prerequisiteBuildResponseSchema,
+  appInstallationRequestSchema,
+  appInstallationResultSchema,
+  availableApplicationsSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
+  runtimeFailureOverviewSchema,
   type ServiceAction,
   type CloudTargetUpdate,
   type DeploymentRecordCreate,
   type DockerContainerAction,
   type PrerequisiteSettingsUpdate,
   type PrerequisiteSourceFile,
+  type PrerequisiteBuildRequest,
+  type AppInstallationRequest,
 } from '@codexsun/orship-contracts'
 
 const baseUrl = (
@@ -71,6 +78,38 @@ export async function savePrerequisiteSource(file: PrerequisiteSourceFile, conte
     method: 'PUT',
   })
   return prerequisiteSourceSchema.parse(await readResponse(response, 'Could not save stack source'))
+}
+
+export async function buildPrerequisites(input: PrerequisiteBuildRequest) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/prerequisites/build`, {
+    body: JSON.stringify(prerequisiteBuildRequestSchema.parse(input)),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+  return prerequisiteBuildResponseSchema.parse(await readResponse(response, 'Could not build prerequisites'))
+}
+
+export async function fetchAvailableApplications() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/applications`)
+  return availableApplicationsSchema.parse(await readResponse(response, 'Could not load available applications'))
+}
+
+export async function installApplication(input: AppInstallationRequest) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/applications/install`, {
+    body: JSON.stringify(appInstallationRequestSchema.parse(input)),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+  return appInstallationResultSchema.parse(await readResponse(response, 'Could not install application'))
+}
+
+export async function deployApplication(profileId: string) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/applications/deploy`, {
+    body: JSON.stringify({ profileId }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+  return appInstallationResultSchema.parse(await readResponse(response, 'Could not deploy application'))
 }
 
 export async function runServiceAction(serviceId: string, action: ServiceAction) {

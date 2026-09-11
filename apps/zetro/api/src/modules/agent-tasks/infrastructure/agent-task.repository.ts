@@ -2,16 +2,21 @@ import { createHash } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { AgentTaskDraft, AgentTaskSummary } from '@codexsun/zetro-contracts'
+import type { AgentTaskDraft, AgentTaskPlan, AgentTaskSummary } from '@codexsun/zetro-contracts'
 import type { AgentTaskDraftInput, AgentTaskStore } from '../application/agent-task.ports.js'
 import { agentTaskMigrations } from './agent-task.migrations.js'
 
 type AgentTaskRow = {
   approval_status: 'awaiting-approval'
+  acceptance_criteria_json: string
+  checks_json: string
   created_at: number
   id: string
   origin_conversation_id: string
   origin_turn_id: string
+  module_path: string
+  repository_path: string
+  review_confirmed_at: number | null
   source_prompt: string
   source_response: string
   status: 'draft'
@@ -79,6 +84,34 @@ export class AgentTaskRepository implements AgentTaskStore {
     ).map(({ source_prompt: _prompt, source_response: _response, ...row }) => mapSummary(row))
   }
 
+  updatePlan(taskId: string, plan: AgentTaskPlan): AgentTaskDraft {
+    const result = this.database
+      .prepare(
+        `UPDATE agent_task_drafts
+         SET repository_path = ?, module_path = ?, acceptance_criteria_json = ?, checks_json = ?,
+             review_confirmed_at = NULL, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        plan.repositoryPath,
+        plan.modulePath,
+        JSON.stringify(plan.acceptanceCriteria),
+        JSON.stringify(plan.checks),
+        Date.now(),
+        taskId,
+      )
+    if (result.changes !== 1) throw new Error('Agent task draft was not found.')
+    return this.get(taskId) as AgentTaskDraft
+  }
+
+  confirmReview(taskId: string, confirmedAt: number): AgentTaskDraft {
+    const result = this.database
+      .prepare('UPDATE agent_task_drafts SET review_confirmed_at = ?, updated_at = ? WHERE id = ?')
+      .run(confirmedAt, confirmedAt, taskId)
+    if (result.changes !== 1) throw new Error('Agent task draft was not found.')
+    return this.get(taskId) as AgentTaskDraft
+  }
+
   close(): void {
     this.database.close()
   }
@@ -126,11 +159,16 @@ export class AgentTaskRepository implements AgentTaskStore {
 function mapRow(row: AgentTaskRow | undefined): AgentTaskDraft | undefined {
   if (!row) return undefined
   return {
+    acceptanceCriteria: parseList(row.acceptance_criteria_json),
     approvalStatus: row.approval_status,
+    checks: parseList(row.checks_json),
     createdAt: row.created_at,
     id: row.id,
     originConversationId: row.origin_conversation_id,
     originTurnId: row.origin_turn_id,
+    modulePath: row.module_path,
+    repositoryPath: row.repository_path,
+    reviewConfirmedAt: row.review_confirmed_at ?? undefined,
     sourcePrompt: row.source_prompt,
     sourceResponse: row.source_response,
     status: row.status,
@@ -152,4 +190,12 @@ function mapSummary(
     title: row.title,
     updatedAt: row.updated_at,
   }
+}
+
+function parseList(value: string) {
+  const parsed: unknown = JSON.parse(value)
+  if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== 'string')) {
+    throw new Error('Agent task draft has invalid list data.')
+  }
+  return parsed
 }
