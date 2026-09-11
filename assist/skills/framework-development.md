@@ -40,6 +40,7 @@ If ownership is unclear, keep the capability with its first application consumer
 - Bind executable values through target-specific public contracts, not the framework manifest.
 - Keep migration and seed contracts technical and target-specific. Keep each concrete declaration in its owning application module.
 - Require publishers and consumers to use manifest-declared, versioned events. Do not imply durable delivery from an in-memory bus.
+- Use Platform `event-runtime` for durable delivery. Write the business change and outbox row in one transaction. Keep consumer work idempotent and declare consumed events before registration.
 - Keep request context in async-local Platform Core state and carry cancellation through `AbortSignal`.
 
 ## Verification

@@ -30,21 +30,41 @@ export class ProviderService {
     return connection
   }
 
-  async select(selection: ProviderSelectionRequest): Promise<ProviderSettingsResponse> {
+  resolveConnection(selection: ProviderSelectionRequest): ProviderConnection {
     const connection = this.requireConnection(selection.connectionId)
     if (!connection.enabled) throw new Error('This provider connection is not enabled yet.')
-    if (connection.kind === 'codex-app-server') await this.codex.restart()
-    const models = await this.loadModels(connection)
-    const modelId = selection.model ?? connection.model
-    const model = models.find(({ id }) => id === modelId)
-    if (!model) throw new Error('The selected model is unavailable for this connection.')
-    if (
-      model.supportedReasoningEfforts.length > 0 &&
-      !model.supportedReasoningEfforts.includes(selection.reasoningEffort)
-    ) {
-      throw new Error('The selected reasoning level is unavailable for this model.')
+    return {
+      ...connection,
+      model: selection.model ?? connection.model,
+      reasoningEffort: selection.reasoningEffort,
     }
-    const confirmedSelection = { ...selection, model: model.id }
+  }
+
+  async confirmSelection(
+    selection: ProviderSelectionRequest,
+  ): Promise<ProviderSelectionConfirmation> {
+    return this.confirmSelectionForRuntime(selection, false)
+  }
+
+  async select(selection: ProviderSelectionRequest): Promise<ProviderSettingsResponse> {
+    const confirmation = await this.confirmSelectionForRuntime(selection, true)
+    const confirmedSelection = {
+      connectionId: confirmation.connectionId,
+      model: confirmation.model,
+      reasoningEffort: confirmation.reasoningEffort,
+    }
+    const settings = this.store.select(confirmedSelection, confirmation.confirmedAt)
+    return { ...settings, confirmation }
+  }
+
+  private async confirmSelectionForRuntime(
+    selection: ProviderSelectionRequest,
+    restartLocalRuntime: boolean,
+  ): Promise<ProviderSelectionConfirmation> {
+    const { connection, confirmedSelection } = await this.prepareSelection(
+      selection,
+      restartLocalRuntime,
+    )
     const confirmation =
       connection.kind === 'cxz-codex'
         ? await this.confirmRemoteSelection(connection, confirmedSelection)
@@ -55,8 +75,7 @@ export class ProviderService {
       confirmation.accountLabel,
       confirmation.confirmedAt,
     )
-    const settings = this.store.select(confirmedSelection, confirmation.confirmedAt)
-    return { ...settings, confirmation }
+    return confirmation
   }
 
   async listModels(connectionId: string): Promise<ProviderModel[]> {
@@ -190,6 +209,26 @@ export class ProviderService {
         ? await this.codex.listModels()
         : await this.readGatewayModels(connection)
     return models.filter(({ id }) => Boolean(id))
+  }
+
+  private async prepareSelection(
+    selection: ProviderSelectionRequest,
+    restartLocalRuntime: boolean,
+  ) {
+    const connection = this.requireConnection(selection.connectionId)
+    if (!connection.enabled) throw new Error('This provider connection is not enabled yet.')
+    if (connection.kind === 'codex-app-server' && restartLocalRuntime) await this.codex.restart()
+    const models = await this.loadModels(connection)
+    const modelId = selection.model ?? connection.model
+    const model = models.find(({ id }) => id === modelId)
+    if (!model) throw new Error('The selected model is unavailable for this connection.')
+    if (
+      model.supportedReasoningEfforts.length > 0 &&
+      !model.supportedReasoningEfforts.includes(selection.reasoningEffort)
+    ) {
+      throw new Error('The selected reasoning level is unavailable for this model.')
+    }
+    return { connection, confirmedSelection: { ...selection, model: model.id } }
   }
 
   private async confirmLocalSelection(

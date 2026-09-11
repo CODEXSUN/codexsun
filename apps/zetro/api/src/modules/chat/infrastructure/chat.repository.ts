@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import {
   chatStreamEventSchema,
   type ChatConversationListScope,
+  type ChatConversationProvider,
   type ChatConversationSummary,
   type ChatConversationUpdateRequest,
   type ChatHistoryResponse,
@@ -33,6 +34,12 @@ type ConversationRow = {
   created_at: number
   id: string
   last_turn_status: ChatTurnStatus | null
+  provider_connection_id: string
+  provider_latency_ms: number | null
+  provider_model: string | null
+  provider_reasoning_effort: ChatConversationProvider['reasoningEffort']
+  provider_status: ChatConversationProvider['status']
+  provider_verified_at: number | null
   title: string | null
   turn_count: number
   updated_at: number
@@ -157,17 +164,32 @@ export class ChatRepository {
     }))
   }
 
-  getProviderThreadId(conversationId: string): string | undefined {
-    const row = this.database
-      .prepare('SELECT provider_thread_id FROM chat_conversations WHERE id = ?')
-      .get(conversationId) as { provider_thread_id: string | null } | undefined
-    return row?.provider_thread_id ?? undefined
+  getConversationProvider(conversationId: string): ChatConversationProvider | undefined {
+    const conversation = this.getConversation(conversationId)
+    return conversation?.provider
   }
 
-  setProviderThreadId(conversationId: string, threadId: string): void {
+  getProviderThreadId(conversationId: string, connectionId: string): string | undefined {
+    const row = this.database
+      .prepare(
+        `SELECT thread_id FROM chat_provider_threads
+         WHERE conversation_id = ? AND connection_id = ?`,
+      )
+      .get(conversationId, connectionId) as { thread_id: string } | undefined
+    return row?.thread_id
+  }
+
+  setProviderThreadId(conversationId: string, connectionId: string, threadId: string): void {
     this.database
-      .prepare('UPDATE chat_conversations SET provider_thread_id = ?, updated_at = ? WHERE id = ?')
-      .run(threadId, Date.now(), conversationId)
+      .prepare(
+        `INSERT INTO chat_provider_threads
+          (conversation_id, connection_id, thread_id, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(conversation_id, connection_id) DO UPDATE SET
+           thread_id = excluded.thread_id,
+           updated_at = excluded.updated_at`,
+      )
+      .run(conversationId, connectionId, threadId, Date.now())
   }
 
   getActiveTurnId(conversationId: string): string | undefined {
@@ -239,13 +261,27 @@ export class ChatRepository {
     conversationId: string,
     title: string | undefined,
     createdAt: number,
+    provider: ChatConversationProvider,
   ): ChatConversationSummary {
     this.database
       .prepare(
-        `INSERT INTO chat_conversations (id, title, created_at, updated_at)
-         VALUES (?, ?, ?, ?)`,
+        `INSERT INTO chat_conversations
+          (id, title, created_at, updated_at, provider_connection_id, provider_model,
+           provider_reasoning_effort, provider_status, provider_verified_at, provider_latency_ms)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(conversationId, title ?? null, createdAt, createdAt)
+      .run(
+        conversationId,
+        title ?? null,
+        createdAt,
+        createdAt,
+        provider.connectionId,
+        provider.model ?? null,
+        provider.reasoningEffort,
+        provider.status,
+        provider.verifiedAt ?? null,
+        provider.latencyMs ?? null,
+      )
     return this.getConversation(conversationId) as ChatConversationSummary
   }
 
@@ -286,6 +322,31 @@ export class ChatRepository {
       )
       .run(title === defaultConversationTitle ? null : title, archivedAt, updatedAt, conversationId)
     return this.getConversation(conversationId)
+  }
+
+  updateConversationProvider(
+    conversationId: string,
+    provider: ChatConversationProvider,
+    updatedAt: number,
+  ): ChatConversationSummary | undefined {
+    const result = this.database
+      .prepare(
+        `UPDATE chat_conversations
+         SET provider_connection_id = ?, provider_model = ?, provider_reasoning_effort = ?,
+             provider_status = ?, provider_verified_at = ?, provider_latency_ms = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        provider.connectionId,
+        provider.model ?? null,
+        provider.reasoningEffort,
+        provider.status,
+        provider.verifiedAt ?? null,
+        provider.latencyMs ?? null,
+        updatedAt,
+        conversationId,
+      )
+    return result.changes ? this.getConversation(conversationId) : undefined
   }
 
   isReady(): boolean {
@@ -380,6 +441,12 @@ const conversationSelect = `
     conversation.created_at,
     conversation.updated_at,
     conversation.archived_at,
+    conversation.provider_connection_id,
+    conversation.provider_model,
+    conversation.provider_reasoning_effort,
+    conversation.provider_status,
+    conversation.provider_verified_at,
+    conversation.provider_latency_ms,
     COUNT(turn.id) AS turn_count,
     (
       SELECT latest.status
@@ -400,6 +467,14 @@ function mapConversation(row: ConversationRow): ChatConversationSummary {
     createdAt: row.created_at,
     id: row.id,
     lastTurnStatus: row.last_turn_status ?? undefined,
+    provider: {
+      connectionId: row.provider_connection_id,
+      latencyMs: row.provider_latency_ms ?? undefined,
+      model: row.provider_model ?? undefined,
+      reasoningEffort: row.provider_reasoning_effort,
+      status: row.provider_status,
+      verifiedAt: row.provider_verified_at ?? undefined,
+    },
     title: row.title?.trim() || defaultConversationTitle,
     turnCount: row.turn_count,
     updatedAt: row.updated_at,

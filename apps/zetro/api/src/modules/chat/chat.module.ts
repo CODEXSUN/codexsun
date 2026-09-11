@@ -11,6 +11,7 @@ export const chatModuleManifest = {
     'atomic-turn-lifecycle',
     'codex-chat',
     'concurrent-turns',
+    'conversation-owned-provider-selection',
     'conversation-registry',
     'task-source-query',
     'turn-provider-snapshot',
@@ -24,19 +25,20 @@ export const chatModuleManifest = {
     deactivate: 'Stops Codex and closes SQLite.',
     install: 'Applies the SQLite chat schema migrations.',
     uninstall: 'Preserves chat history.',
-    upgrade: 'Adds immutable provider metadata to each accepted turn.',
+    upgrade: 'Adds verified conversation provider selection and connection-specific runtime threads.',
   },
   publicContracts: [
     'GET /api/zetro/v1/chat/conversations',
     'POST /api/zetro/v1/chat/conversations',
     'PATCH /api/zetro/v1/chat/conversations/:conversationId',
+    'PATCH /api/zetro/v1/chat/conversations/:conversationId/provider',
     'POST /api/zetro/v1/chat/turns',
     'GET /api/zetro/v1/chat/turns/:turnId/events',
     'POST /api/zetro/v1/chat/stop',
     'GET /api/zetro/v1/chat/history',
   ],
   scope: 'zetro-api',
-  version: '2.3.0',
+  version: '2.4.0',
 } as const
 
 export async function registerChatModule(

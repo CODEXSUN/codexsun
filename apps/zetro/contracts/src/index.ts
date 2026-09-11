@@ -108,6 +108,20 @@ export const chatConversationUpdateRequestSchema = z
     message: 'A title or archive state is required.',
   })
 
+export const chatConversationProviderStatusSchema = z.enum(['unverified', 'verified'])
+
+export const chatConversationProviderSchema = providerSelectionRequestSchema.extend({
+  latencyMs: z.number().int().nonnegative().optional(),
+  status: chatConversationProviderStatusSchema,
+  verifiedAt: z.number().int().nonnegative().optional(),
+})
+
+export const chatConversationProviderResponseSchema = z.object({
+  confirmation: providerSelectionConfirmationSchema.optional(),
+  conversationId: chatConversationIdSchema,
+  provider: chatConversationProviderSchema,
+})
+
 export const chatConversationListQuerySchema = z.object({
   scope: chatConversationListScopeSchema.default('active'),
 })
@@ -182,6 +196,7 @@ export const chatConversationSummarySchema = z.object({
   createdAt: z.number().int().nonnegative(),
   id: chatConversationIdSchema,
   lastTurnStatus: chatTurnStatusSchema.optional(),
+  provider: chatConversationProviderSchema,
   title: chatConversationTitleSchema,
   turnCount: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
@@ -225,6 +240,10 @@ export const agentTaskListResponseSchema = z.object({ tasks: z.array(agentTaskSu
 export type ChatHistoryResponse = z.infer<typeof chatHistoryResponseSchema>
 export type ChatConversationListScope = z.infer<typeof chatConversationListScopeSchema>
 export type ChatConversationSummary = z.infer<typeof chatConversationSummarySchema>
+export type ChatConversationProvider = z.infer<typeof chatConversationProviderSchema>
+export type ChatConversationProviderResponse = z.infer<
+  typeof chatConversationProviderResponseSchema
+>
 export type ChatConversationUpdateRequest = z.infer<typeof chatConversationUpdateRequestSchema>
 export type ChatStoredEvent = z.infer<typeof storedChatEventSchema>
 export type ChatStreamEvent = z.infer<typeof chatStreamEventSchema>

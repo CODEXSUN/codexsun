@@ -32,6 +32,18 @@ test('conversation registry API creates, lists, renames, archives, and restores'
     assert.equal(listResponse.statusCode, 200)
     assert.equal(listResponse.json<{ conversations: unknown[] }>().conversations.length, 1)
 
+    const providerResponse = await server.inject({
+      method: 'PATCH',
+      payload: {
+        connectionId: 'codex-local',
+        model: 'test-model',
+        reasoningEffort: 'low',
+      },
+      url: `/api/zetro/v1/chat/conversations/${created.id}/provider`,
+    })
+    assert.equal(providerResponse.statusCode, 200)
+    assert.deepEqual(providerResponse.json<{ provider: { status: string } }>().provider.status, 'verified')
+
     const archiveResponse = await server.inject({
       method: 'PATCH',
       payload: { archived: true, title: 'Saved workspace' },
@@ -81,6 +93,27 @@ class IdleRunner implements ProviderRunner {
       reasoningEffort: 'low',
       updatedAt: 0,
     } as const
+  }
+
+  resolveConnection() {
+    return this.getActiveConnection()
+  }
+
+  async confirmSelection(selection: {
+    connectionId: string
+    model?: string
+    reasoningEffort: 'low'
+  }) {
+    return {
+      confirmedAt: 100,
+      connected: true as const,
+      connectionId: selection.connectionId,
+      model: selection.model ?? 'test-model',
+      providerLabel: 'Codex',
+      reasoningEffort: selection.reasoningEffort,
+      runtime: 'local' as const,
+      smoke: { completedAt: 100, latencyMs: 5, ok: true as const, response: 'ZETRO_SMOKE_OK' as const },
+    }
   }
 
   run(): never {

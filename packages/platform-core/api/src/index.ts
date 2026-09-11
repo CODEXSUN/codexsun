@@ -1,6 +1,7 @@
 import type { FrameworkModule } from '@codexsun/framework'
 import type { FastifyPluginAsync } from 'fastify'
 import type { PlatformDiagnostics } from './diagnostics.js'
+import type { PlatformDurableEventModuleBinding } from './durable-events.js'
 import type { PlatformModuleEventBus } from './events.js'
 import type {
   PlatformModuleMigration,
@@ -14,6 +15,7 @@ import type { PlatformAuthorizer } from './authorization.js'
 export * from './authorization.js'
 export * from './configuration.js'
 export * from './diagnostics.js'
+export * from './durable-events.js'
 export * from './api-observability.js'
 export * from './events.js'
 export * from './environment.js'
@@ -45,6 +47,7 @@ export interface PlatformApiModuleContext {
   clock: () => Date
   createId: () => string
   diagnostics: PlatformDiagnostics
+  durableEvents: PlatformDurableEventModuleBinding
   events: PlatformModuleEventBus
   modules: readonly PlatformModuleSummary[]
   readiness: PlatformReadinessRegistrar

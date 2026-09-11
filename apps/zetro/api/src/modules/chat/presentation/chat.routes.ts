@@ -1,9 +1,11 @@
 import {
   chatConversationListResponseSchema,
+  chatConversationProviderResponseSchema,
   chatConversationSummarySchema,
   chatHistoryResponseSchema,
   chatTurnAcceptedResponseSchema,
   encodeChatServerEvent,
+  providerSelectionRequestSchema,
 } from '@codexsun/zetro-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { randomUUID } from 'node:crypto'
@@ -59,6 +61,27 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
       return sendConversationError(reply, error)
     }
   })
+
+  server.patch(
+    '/api/zetro/v1/chat/conversations/:conversationId/provider',
+    async (request, reply) => {
+      const params = chatConversationParamsSchema.safeParse(request.params)
+      const selection = providerSelectionRequestSchema.safeParse(request.body)
+      if (!params.success || !selection.success) {
+        return reply.code(400).send({ error: 'A valid conversation provider is required.' })
+      }
+      try {
+        return chatConversationProviderResponseSchema.parse(
+          await service.selectConversationProvider(params.data.conversationId, selection.data),
+        )
+      } catch (error) {
+        if (error instanceof ChatConversationNotFoundError) {
+          return reply.code(404).send({ error: error.message })
+        }
+        return reply.code(409).send({ error: errorMessage(error) })
+      }
+    },
+  )
 
   server.get('/api/zetro/v1/chat/history', async (request, reply) => {
     try {

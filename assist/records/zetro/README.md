@@ -1,5 +1,9 @@
 # Zetro Development Records
 
+- [2026-09-11 Provider safety and Task Queue](2026-09-11-provider-safety-and-task-queue.md)
+
+- [2026-09-11 Conversation-owned providers](2026-09-11-conversation-owned-providers.md)
+
 - [2026-09-11 Zetro 2.0 foundation reset](2026-09-11-zetro-2-foundation-reset.md)
 
 - [2026-09-10 Desktop 0.1.32 build](2026-09-10-desktop-0.1.32.md)

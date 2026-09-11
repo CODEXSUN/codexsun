@@ -17,6 +17,12 @@ const connection = {
   model: 'gpt-5.6-terra',
   reasoningEffort: 'medium' as const,
 }
+const conversationProvider = {
+  connectionId: connection.connectionId,
+  model: connection.model,
+  reasoningEffort: connection.reasoningEffort,
+  status: 'unverified' as const,
+}
 
 test('chat history and provider context survive a repository restart', () => {
   withRepository((first, databasePath) => {
@@ -25,7 +31,7 @@ test('chat history and provider context survive a repository restart', () => {
       sequence: 1,
     })
     first.appendEvent(turnId, { delta: 'Hi', type: 'response' })
-    first.setProviderThreadId(conversationId, 'provider-thread-1')
+    first.setProviderThreadId(conversationId, connection.connectionId, 'provider-thread-1')
     first.finishTurn(turnId, 'complete', { type: 'complete' })
     first.close()
 
@@ -39,8 +45,46 @@ test('chat history and provider context survive a repository restart', () => {
       { event: { delta: 'Hi', type: 'response' }, sequence: 2 },
       { event: { type: 'complete' }, sequence: 3 },
     ])
-    assert.equal(second.getProviderThreadId(conversationId), 'provider-thread-1')
+    assert.equal(
+      second.getProviderThreadId(conversationId, connection.connectionId),
+      'provider-thread-1',
+    )
     second.close()
+  })
+})
+
+test('a conversation keeps one provider thread for each connection', () => {
+  withRepository((repository, databasePath) => {
+    repository.createConversation(conversationId, undefined, 100, conversationProvider)
+    repository.setProviderThreadId(conversationId, 'local-codex', 'local-thread')
+    repository.setProviderThreadId(conversationId, 'cxz-codex', 'cxz-thread')
+    const updated = repository.updateConversationProvider(
+      conversationId,
+      {
+        connectionId: 'cxz-codex',
+        latencyMs: 24,
+        model: 'gpt-5.6-terra',
+        reasoningEffort: 'high',
+        status: 'verified',
+        verifiedAt: 200,
+      },
+      200,
+    )
+    assert.deepEqual(updated?.provider, {
+      connectionId: 'cxz-codex',
+      latencyMs: 24,
+      model: 'gpt-5.6-terra',
+      reasoningEffort: 'high',
+      status: 'verified',
+      verifiedAt: 200,
+    })
+    repository.close()
+
+    const reopened = new ChatRepository(databasePath)
+    assert.equal(reopened.getProviderThreadId(conversationId, 'local-codex'), 'local-thread')
+    assert.equal(reopened.getProviderThreadId(conversationId, 'cxz-codex'), 'cxz-thread')
+    assert.equal(reopened.getConversationProvider(conversationId)?.connectionId, 'cxz-codex')
+    reopened.close()
   })
 })
 
@@ -82,10 +126,15 @@ test('conversation registry creates, titles, orders, archives, and restores reco
   withRepository((repository) => {
     const secondConversationId = 'b0b0c0d0-2222-4222-8222-222222222222'
     assert.equal(
-      repository.createConversation(conversationId, undefined, 100).title,
+      repository.createConversation(conversationId, undefined, 100, conversationProvider).title,
       'New conversation',
     )
-    repository.createConversation(secondConversationId, 'Named workspace', 200)
+    repository.createConversation(
+      secondConversationId,
+      'Named workspace',
+      200,
+      conversationProvider,
+    )
     repository.startTurn(conversationId, turnId, '  First registry prompt  ', 300, connection)
     repository.finishTurn(turnId, 'complete', { type: 'complete' })
 
@@ -137,7 +186,7 @@ test('registry migration preserves version 2 session data as a conversation', ()
     const repository = new ChatRepository(databasePath)
     const history = repository.getHistory(conversationId)
     assert.equal(history.turns[0]?.prompt, 'Migrated')
-    assert.equal(repository.getProviderThreadId(conversationId), 'provider-thread-2')
+    assert.equal(repository.getProviderThreadId(conversationId, 'codex-local'), 'provider-thread-2')
     assert.equal(repository.listConversations('active')[0]?.title, 'Migrated')
     repository.close()
   } finally {

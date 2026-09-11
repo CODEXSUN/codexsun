@@ -1,7 +1,7 @@
 # Zetro Shell Web Module
 
 - Module ID: `zetro.shell.web`
-- Version: `2.6.0`
+- Version: `2.7.0`
 - Owner: Zetro web
 
 This module owns the focused Zetro 2.0 chat. It composes public `@codexsun/ui`
@@ -49,6 +49,10 @@ assistant text already received.
 The API owns persistence and archive state. This web module has no task, automation,
 Git, repository, voice, or desktop-runtime behavior.
 
+The header selection belongs to the visible conversation. A changed selection becomes verified
+only after a live smoke response. A switch keeps another conversation's selection and runtime
+thread untouched; each connection has a separate durable provider thread inside a conversation.
+
 The v1 implementation is retained outside the repository in the dated Zetro
 reference backup. New product behavior must be added only after its contract is
 reviewed and assigned to an owning module.
@@ -62,3 +66,4 @@ reviewed and assigned to an owning module.
 - [Conversation registry](../../../../../../../assist/records/zetro/2026-09-11-zetro-conversation-registry.md)
 - [Provider connections](../../../../../../../assist/records/zetro/2026-09-11-zetro-provider-connections.md)
 - [Multi-chat and task drafts](../../../../../../../assist/records/zetro/2026-09-11-multi-chat-task-drafts.md)
+- [Conversation-owned providers](../../../../../../../assist/records/zetro/2026-09-11-conversation-owned-providers.md)

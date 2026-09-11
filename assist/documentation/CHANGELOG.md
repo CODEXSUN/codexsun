@@ -8,7 +8,16 @@
 
 ## Version State
 
-- Current version: 0.1.34. Release tag: v-0.1.34. Changelog label: v 0.1.34.
+- Current version: 0.1.35. Release tag: v-0.1.35. Changelog label: v 0.1.35.
+
+## v-0.1.35
+
+### [v 0.1.35] 2026-09-11 9:03 pm - Zetro provider safety and Task Queue
+
+- Database update: No (manual).
+- Bumped workspace version to 0.1.35.
+- App Codebase Changes: Zetro chat blocks unverified connections and reserves a conversation during its live provider smoke test. Agent Tasks now has a Task Queue destination with draft evidence and a return link to the source conversation.
+- Verification: Passed 22 Zetro API tests, the Zetro production web build, shared UI checks, module checks, file-length checks, diff checks, and live browser navigation through the Task Queue. Desktop packaging, commit, push, and publication did not run. See [the development record](../records/zetro/2026-09-11-provider-safety-and-task-queue.md).
 
 ## v-0.1.34
 
@@ -683,17 +692,4 @@
 - **Reusable data-table block and DevKit registry table:** Added the TanStack and shadcn table block with filters, columns, totals, actions, and pagination.
 - **Zetro Task System:** Added task creation, lifecycle controls, task details, and persisted task workflows.
 - **Zetro empty Desk reset:** Added an explicit empty Desk state and reset path.
-- **MDI top-menu controls:** Added shared global search, notifications, app switching, and profile controls.
-- **DevKit project registry:** Added the DevKit API, web workspace, JSON registry, preflight startup, and planning confirmation flow.
-- **Cross-app interface topology:** Added shared contracts and browser-visible inspections.
-- **Durable module runtime preparation:** Prepared runtime ownership, repository contracts, and migration boundaries.
-- **Docs library experience:** Added connected navigation, rendering, loading, retry, and empty states.
-- **Safe runtime manifest boundary:** Added manifest validation and composition safeguards.
-- **Extensible application and add-on foundation:** Added extension points, compatibility checks, and add-on composition rules.
-- **Docs Ideas development plan:** Added planning flow charts and linked development phases.
-- **Smooth global Docs loader:** Added the shared loader and reduced refresh flicker.
-- **Shared UI gallery and interface topology:** Added gallery documentation and topology controls.
-- **Docs global loading transition:** Added loading transitions for route and document refreshes.
-- **Framework capability roadmap:** Added the capability roadmap and implementation guidance.
-- **Docs navigation refinement:** Refined navigation, grouping, and reader width.
-- **Centralized UI and MDI application layout:** Centralized shared MDI ownership in `@codexsun/ui`.
+- **Platform and documentation refinements:** Added MDI controls, DevKit registry, interface topology, runtime and manifest boundaries, add-on composition, Docs planning, loading, navigation, gallery, and centralized `@codexsun/ui` ownership.

@@ -12,6 +12,8 @@ import {
   prerequisiteOverviewSchema,
   prerequisiteSettingsSchema,
   prerequisiteSettingsUpdateSchema,
+  prerequisiteSourceSchema,
+  prerequisiteSourceUpdateSchema,
   runtimeFailureOverviewSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
@@ -20,6 +22,7 @@ import {
   type DeploymentRecordCreate,
   type DockerContainerAction,
   type PrerequisiteSettingsUpdate,
+  type PrerequisiteSourceFile,
 } from '@codexsun/orship-contracts'
 
 const baseUrl = (
@@ -54,6 +57,20 @@ export async function savePrerequisiteSettings(settings: PrerequisiteSettingsUpd
   return prerequisiteSettingsSchema.parse(
     await readResponse(response, 'Could not save prerequisite settings'),
   )
+}
+
+export async function fetchPrerequisiteSource(file: PrerequisiteSourceFile) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/prerequisites/source/${file}`)
+  return prerequisiteSourceSchema.parse(await readResponse(response, 'Could not load stack source'))
+}
+
+export async function savePrerequisiteSource(file: PrerequisiteSourceFile, content: string) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/prerequisites/source/${file}`, {
+    body: JSON.stringify(prerequisiteSourceUpdateSchema.parse({ content })),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PUT',
+  })
+  return prerequisiteSourceSchema.parse(await readResponse(response, 'Could not save stack source'))
 }
 
 export async function runServiceAction(serviceId: string, action: ServiceAction) {

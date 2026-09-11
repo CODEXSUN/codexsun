@@ -19,6 +19,8 @@ const turnB = '58a7f6ea-3793-49da-b846-02592c2f2224'
 
 test('different conversations run together and one conversation stays ordered', async () => {
   await withService(async (service, runner) => {
+    await verifyConversation(service, conversationA)
+    await verifyConversation(service, conversationB)
     service.startTurn(conversationA, turnA, 'First')
     service.startTurn(conversationB, turnB, 'Second')
     assert.deepEqual(runner.activeConversationIds(), [])
@@ -36,6 +38,7 @@ test('different conversations run together and one conversation stays ordered', 
 
 test('stop targets the exact active turn', async () => {
   await withService(async (service, runner) => {
+    await verifyConversation(service, conversationA)
     service.startTurn(conversationA, turnA, 'First')
     await runner.settled()
     assert.throws(() => service.stop(conversationA, turnB), /not the active/)
@@ -53,6 +56,7 @@ test('shutdown drains an active failure before SQLite closes', async () => {
   const runner = new ControlledRunner()
   const service = new ChatService(repository, runner)
   try {
+    await verifyConversation(service, conversationA)
     service.startTurn(conversationA, turnA, 'First')
     await service.close()
     const reopened = new ChatRepository(databasePath)
@@ -67,6 +71,7 @@ test('conversation registry blocks active archives and reports missing records',
   await withService(async (service, runner) => {
     const created = service.createConversation(conversationA, 'Workspace')
     assert.equal(created.title, 'Workspace')
+    await service.selectConversationProvider(conversationA, selection)
     service.startTurn(conversationA, turnA, 'First')
     await runner.settled()
     assert.throws(
@@ -86,6 +91,30 @@ test('conversation registry blocks active archives and reports missing records',
   })
 })
 
+test('a conversation must be verified and reserves its turn while verification runs', async () => {
+  await withService(async (service, runner) => {
+    service.createConversation(conversationA)
+    assert.throws(
+      () => service.startTurn(conversationA, turnA, 'Blocked'),
+      /Verify this conversation connection/,
+    )
+
+    const release = runner.holdConfirmation()
+    const switching = service.selectConversationProvider(conversationA, selection)
+    assert.throws(
+      () => service.startTurn(conversationA, turnA, 'Blocked during verification'),
+      /Connection verification is in progress/,
+    )
+    release()
+    await switching
+
+    service.startTurn(conversationA, turnA, 'Verified')
+    await runner.settled()
+    runner.complete(conversationA, 'Done')
+    await runner.settled()
+  })
+})
+
 async function withService(run: (service: ChatService, runner: ControlledRunner) => Promise<void>) {
   const directory = mkdtempSync(join(tmpdir(), 'zetro-chat-service-test-'))
   const repository = new ChatRepository(join(directory, 'zetro.sqlite'))
@@ -99,6 +128,11 @@ async function withService(run: (service: ChatService, runner: ControlledRunner)
   }
 }
 
+async function verifyConversation(service: ChatService, conversationId: string) {
+  service.createConversation(conversationId)
+  await service.selectConversationProvider(conversationId, selection)
+}
+
 class ControlledRunner implements ProviderRunner {
   private readonly turns = new Map<
     string,
@@ -108,6 +142,7 @@ class ControlledRunner implements ProviderRunner {
       resolve: (result: ProviderRunResult) => void
     }
   >()
+  private confirmation = Promise.resolve()
   stoppedConversationId?: string
 
   activeConversationIds() {
@@ -126,8 +161,38 @@ class ControlledRunner implements ProviderRunner {
     turn.resolve({ content, status: 'complete' })
   }
 
+  holdConfirmation() {
+    let release: (() => void) | undefined
+    this.confirmation = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    return () => release?.()
+  }
+
   getActiveConnection() {
     return testConnection
+  }
+
+  resolveConnection() {
+    return testConnection
+  }
+
+  async confirmSelection(selection: {
+    connectionId: string
+    model?: string
+    reasoningEffort: typeof testConnection.reasoningEffort
+  }) {
+    await this.confirmation
+    return {
+      confirmedAt: 100,
+      connected: true as const,
+      connectionId: selection.connectionId,
+      model: selection.model ?? testConnection.model,
+      providerLabel: testConnection.label,
+      reasoningEffort: selection.reasoningEffort,
+      runtime: 'local' as const,
+      smoke: { completedAt: 100, latencyMs: 5, ok: true as const, response: 'ZETRO_SMOKE_OK' as const },
+    }
   }
 
   run(request: ProviderRunRequest) {
@@ -155,4 +220,10 @@ const testConnection = {
   model: 'test-model',
   reasoningEffort: 'low',
   updatedAt: 0,
+} as const
+
+const selection = {
+  connectionId: testConnection.id,
+  model: testConnection.model,
+  reasoningEffort: testConnection.reasoningEffort,
 } as const

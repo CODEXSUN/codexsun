@@ -1,7 +1,7 @@
 # Zetro Chat API Module
 
 - Module ID: `zetro.chat.api`
-- Version: `2.3.0`
+- Version: `2.4.0`
 - Owner: Zetro API
 
 ## Purpose
@@ -20,6 +20,7 @@ The API owns the conversation registry. The web application consumes its public 
 - `GET /api/zetro/v1/chat/conversations` lists active, archived, or all conversations.
 - `POST /api/zetro/v1/chat/conversations` creates an empty conversation.
 - `PATCH /api/zetro/v1/chat/conversations/:conversationId` renames, archives, or restores it.
+- `PATCH /api/zetro/v1/chat/conversations/:conversationId/provider` verifies and stores that conversation's provider, model, and reasoning selection.
 - Every route requires the UUID `x-zetro-conversation-id` header.
 - `@codexsun/zetro-contracts` owns request, event, status, and history schemas.
 - Agent Tasks may read one completed prompt and response through the public task-source query.
@@ -37,7 +38,8 @@ renames stored session identity to conversation identity without replacing recor
 The fourth migration adds titles and archive times. It derives each existing title
 from its first prompt. It preserves every existing ID, provider thread, turn, and event.
 The fifth migration adds the immutable provider connection, model, and reasoning snapshot
-captured when a turn is accepted.
+captured when a turn is accepted. The sixth migration stores the current provider selection on
+each conversation and stores one runtime thread per `(conversation, connection)` pair.
 
 The default database path is `storage/app/private/zetro/chat-v2.sqlite`. Uninstall and
 shutdown preserve this file. The API closes SQLite and the Codex process on shutdown.
@@ -45,8 +47,12 @@ shutdown preserve this file. The API closes SQLite and the Codex process on shut
 ## Runtime
 
 The API listens on `127.0.0.1:6050` by default. Liveness does not query storage.
-Readiness checks the open SQLite connection. Each Codex conversation has one durable Codex
-thread and at most one active turn. Separate conversations run concurrently through
+Readiness checks the open SQLite connection. Each conversation has an independent, verified
+provider selection and one durable provider thread per connection. An unverified connection
+cannot accept a prompt. Connection verification reserves that conversation until its smoke test
+ends, so a turn cannot start during a switch. Changing a conversation connection never changes
+another conversation's selection or thread. A conversation has at most one active turn. Separate
+conversations run concurrently through
 the shared app-server process. After an API restart, `thread/resume` restores the saved
 provider thread before the next prompt. A failed resume creates a visible recovery
 activity and starts a clean provider context instead of replaying commands. Thread start
@@ -72,3 +78,5 @@ context, and event order.
 - [Conversation registry](../../../../../../../assist/records/zetro/2026-09-11-zetro-conversation-registry.md)
 - [Provider connections](../../../../../../../assist/records/zetro/2026-09-11-zetro-provider-connections.md)
 - [Multi-chat and task drafts](../../../../../../../assist/records/zetro/2026-09-11-multi-chat-task-drafts.md)
+- [Conversation-owned providers](../../../../../../../assist/records/zetro/2026-09-11-conversation-owned-providers.md)
+- [Provider safety and task queue](../../../../../../../assist/records/zetro/2026-09-11-provider-safety-and-task-queue.md)

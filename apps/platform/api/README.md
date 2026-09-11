@@ -21,6 +21,7 @@ The source root owns startup and composition only. New Platform capabilities mus
 - Readiness endpoint: `GET /health/ready`, including separate MariaDB and storage probes.
 - Shutdown: `SIGINT`, `SIGTERM`, and supervisor IPC deactivate modules and close registered resources in reverse order.
 - Module composition: an immutable framework plan determines lifecycle and Fastify plugin order.
+- Durable events: `event-runtime` owns MariaDB outbox and inbox records. Modules append events in their existing transaction and register only manifest-declared consumers.
 - Runtime metadata: `GET /api/system/runtime` returns composed module IDs, versions, and capabilities.
 
 ## Verification
@@ -29,4 +30,5 @@ Run `npm.cmd run typecheck`, `npm.cmd run build`, `npm.cmd run test:e2e:server`,
 
 ## Development records
 
+- [2026-09-11 Durable event runtime](../../../assist/records/platform/2026-09-11-durable-event-runtime.md)
 - [2026-09-08 Platform and framework foundation](../../../assist/records/platform/2026-09-08-platform-framework-foundation.md)

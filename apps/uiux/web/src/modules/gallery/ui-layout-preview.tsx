@@ -3,16 +3,22 @@ import {
   BookOpenIcon,
   BlocksIcon,
   BoxIcon,
+  Columns3Icon,
   ComponentIcon,
   FilePenLineIcon,
+  FilterIcon,
   FolderOpenIcon,
+  FolderTreeIcon,
   LayoutDashboardIcon,
   LayoutTemplateIcon,
   MessageCircleIcon,
   PanelsTopLeftIcon,
   Settings2Icon,
+  ShoppingBagIcon,
   SlidersHorizontalIcon,
   Table2Icon,
+  TagIcon,
+  UploadCloudIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,6 +36,12 @@ const blockIcons = {
   'execution-status': BotIcon,
   form: FilePenLineIcon,
   table: Table2Icon,
+  kanban: Columns3Icon,
+  'file-tree': FolderTreeIcon,
+  dropzone: UploadCloudIcon,
+  'filter-builder': FilterIcon,
+  'product-card': ShoppingBagIcon,
+  pricing: TagIcon,
 } as const
 
 const previewNavigation: MdiNavigationSection[] = [

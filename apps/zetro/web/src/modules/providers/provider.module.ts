@@ -13,9 +13,10 @@ export const providerWebModuleManifest = {
     deactivate: 'Removes provider settings from the workspace.',
     install: 'Uses API-owned provider settings.',
     uninstall: 'Does not remove provider settings or credentials.',
-    upgrade: 'Version 1.3.0 adds compact model and reasoning switching to the chat header.',
+    upgrade:
+      'Version 1.4.0 keeps compact header selections on the active conversation instead of changing the global default.',
   },
   publicContracts: ['ProviderHeaderSwitcher', 'ProviderSettings'],
   scope: 'zetro-web',
-  version: '1.3.0',
+  version: '1.4.0',
 } as const

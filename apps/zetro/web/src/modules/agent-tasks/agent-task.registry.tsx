@@ -22,10 +22,12 @@ export function AgentTaskRegistry({
   return (
     <div className="flex min-h-full flex-col gap-2 p-3">
       <div className="flex items-center justify-between px-2 py-2 text-sm font-medium">
-        <span>Agent task drafts</span>
-        <span className="text-xs font-normal text-muted-foreground">{visible.length}</span>
+        <span>Task queue</span>
+        <span className="text-xs font-normal text-muted-foreground">
+          {visible.length} awaiting approval
+        </span>
       </div>
-      <div aria-label="Agent task drafts" className="grid gap-1">
+      <div aria-label="Task queue" className="grid gap-1">
         {visible.map((task) => (
           <Button
             className="h-auto min-w-0 justify-start gap-2 px-2 py-2.5 text-left"
@@ -37,14 +39,14 @@ export function AgentTaskRegistry({
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{task.title}</span>
               <span className="block truncate text-xs font-normal text-muted-foreground">
-                Awaiting approval · {formatUpdatedAt(task.updatedAt)}
+                Draft handoff · {formatUpdatedAt(task.updatedAt)}
               </span>
             </span>
           </Button>
         ))}
         {!busy && visible.length === 0 ? (
           <p className="px-2 py-8 text-center text-sm text-muted-foreground">
-            {normalizedQuery ? 'No matching task drafts.' : 'Send a completed response to tasks.'}
+            {normalizedQuery ? 'No matching task drafts.' : 'Send a completed response to the queue.'}
           </p>
         ) : null}
       </div>

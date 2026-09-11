@@ -24,6 +24,7 @@ const componentNames: Record<DesignSystemCategory, readonly string[]> = {
     'Item',
     'Kbd',
     'Marker',
+    'Sparkline',
     'Table',
   ],
   Feedback: ['Alert', 'Empty', 'Progress', 'Skeleton', 'Sonner', 'Spinner', 'Toast'],

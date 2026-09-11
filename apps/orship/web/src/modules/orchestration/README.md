@@ -16,7 +16,7 @@ This module presents live service health, process metrics, runtime logs, and loc
 
 - Entities and records: browser service snapshots, application-level reports, independent component logs, deployment-target settings, read-only deployment evidence, allowlisted Docker workload state, and in-workspace list/show navigation history.
 - Tables and storage paths: none.
-- Routes and UI paths: owns application service cards, Overview, Failures and Deployment console tabs, independent API/Web logs, deployment target settings, manual verification capture, immutable deployment history, local labelled Docker workload controls, and the shared prerequisites page.
+- Routes and UI paths: owns application service cards, Overview, Failures and Deployment console tabs, independent API/Web logs, deployment target settings, manual verification capture, immutable deployment history, local labelled Docker workload controls, and the shared prerequisites configuration and source page.
 - Permissions and settings: respects API-provided `controllable` and `protected` flags.
 
 ## Public contracts
@@ -59,3 +59,4 @@ This module presents live service health, process metrics, runtime logs, and loc
 - [2026-09-09 Service desk](../../../../../../../assist/records/orship/2026-09-09-service-desk.md)
 - [2026-09-09 Failure center](../../../../../../../assist/records/orship/2026-09-09-failure-center.md)
 - [2026-09-09 Local deployment evidence desk](../../../../../../../assist/records/orship/2026-09-09-local-deployment-evidence-desk.md)
+- [2026-09-11 Shared prerequisites](../../../../../../../assist/records/orship/2026-09-11-shared-prerequisites.md)

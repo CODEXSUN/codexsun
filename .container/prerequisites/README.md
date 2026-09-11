@@ -19,3 +19,11 @@ The script creates missing prerequisite values in the ignored root `.env` file. 
 The containers publish only to loopback. Do not expose MariaDB or Redis on a public interface.
 
 Use the **Prerequisites** page in Orship to change ports and credentials. Password fields are write-only. After changing a value, run the setup script again to apply it to containers.
+
+The services share the `PREREQUISITE_NETWORK_NAME` Docker network. Future installed applications join this network and use `mariadb` or `redis` as internal host names.
+
+The page can edit only this stack's `compose.yaml`, `Dockerfile`, and File Browser startup script. The setup script builds the File Browser image after a Dockerfile change. It does not provide arbitrary repository file access. Save changes first. Then run the verified command below to validate and apply the stack:
+
+```sh
+bash ./.container/prerequisites/setup-prerequisites.sh
+```

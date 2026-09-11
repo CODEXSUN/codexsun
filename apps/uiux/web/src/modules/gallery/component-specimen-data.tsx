@@ -47,6 +47,7 @@ import {
 } from '@codexsun/ui/components/resizable'
 import { ScrollArea } from '@codexsun/ui/components/scroll-area'
 import { Separator } from '@codexsun/ui/components/separator'
+import { Sparkline } from '@codexsun/ui/components/sparkline'
 import { SpecimenStage } from './component-specimen-stage'
 
 type SpecimenProps = { compact: boolean; componentId: string }
@@ -247,6 +248,49 @@ function renderSpecimen(componentId: string, compact: boolean) {
         <p className="text-sm text-muted-foreground">
           Defaults and variants stay independently addressable.
         </p>
+      </div>
+    )
+  }
+  if (componentId === 'sparkline') {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Line Trend</span>
+            <Sparkline
+              data={[10, 25, 18, 35, 28, 45, 60]}
+              showTrendBadge
+              tone="positive"
+              type="line"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Area Gradient</span>
+            <Sparkline
+              data={[45, 38, 52, 41, 65, 59, 78]}
+              showTrendBadge
+              tone="primary"
+              type="area"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Bar Comparison</span>
+            <Sparkline
+              data={[20, 45, 30, 60, 40, 75]}
+              tone="warning"
+              type="bar"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Negative Delta</span>
+            <Sparkline
+              data={[80, 72, 65, 70, 55, 48]}
+              showTrendBadge
+              tone="negative"
+              type="line"
+            />
+          </div>
+        </div>
       </div>
     )
   }

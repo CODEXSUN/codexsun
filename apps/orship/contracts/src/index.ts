@@ -172,23 +172,72 @@ export const prerequisiteOverviewSchema = z.object({
 })
 
 export const prerequisiteSettingsSchema = z.object({
+  fileBrowserImage: z.string().min(1).max(200),
+  fileBrowserTag: z.string().min(1).max(100),
   fileBrowserAdminConfigured: z.boolean(),
   fileBrowserAdminUser: z.string().min(1).max(80),
+  mariadbImage: z.string().min(1).max(200),
   mariadbPort: z.number().int().min(1).max(65535),
   mariadbRootPasswordConfigured: z.boolean(),
+  mariadbTag: z.string().min(1).max(100),
+  mariadbUser: z.string().min(1).max(80),
+  mariadbUserPasswordConfigured: z.boolean(),
+  networkName: z.string().min(1).max(100),
+  redisImage: z.string().min(1).max(200),
   redisPasswordConfigured: z.boolean(),
   redisPort: z.number().int().min(1).max(65535),
+  redisTag: z.string().min(1).max(100),
+  redisUser: z.string().min(1).max(80),
   storagePort: z.number().int().min(1).max(65535),
 })
 
 export const prerequisiteSettingsUpdateSchema = z.strictObject({
+  fileBrowserImage: z.string().min(1).max(200),
+  fileBrowserTag: z.string().min(1).max(100),
   fileBrowserAdminPassword: z.string().min(12).max(300).optional(),
   fileBrowserAdminUser: z.string().min(1).max(80),
+  mariadbImage: z.string().min(1).max(200),
   mariadbPort: z.number().int().min(1).max(65535),
   mariadbRootPassword: z.string().min(12).max(300).optional(),
+  mariadbTag: z.string().min(1).max(100),
+  mariadbUser: z.string().min(1).max(80),
+  mariadbUserPassword: z.string().min(12).max(300).optional(),
+  networkName: z.string().min(1).max(100),
+  redisImage: z.string().min(1).max(200),
   redisPassword: z.string().min(12).max(300).optional(),
   redisPort: z.number().int().min(1).max(65535),
+  redisTag: z.string().min(1).max(100),
+  redisUser: z.string().min(1).max(80),
   storagePort: z.number().int().min(1).max(65535),
+})
+
+export const prerequisiteSourceFileSchema = z.enum([
+  'compose',
+  'dockerfile',
+  'filebrowser-init',
+])
+
+export const prerequisiteSourceSchema = z.object({
+  content: z.string().max(100_000),
+  file: prerequisiteSourceFileSchema,
+  updatedAt: z.iso.datetime(),
+})
+
+export const prerequisiteSourceUpdateSchema = z.strictObject({
+  content: z.string().min(1).max(100_000).refine((value) => !value.includes('\0'), {
+    message: 'Source content cannot contain null characters.',
+  }),
+})
+
+export const prerequisiteBuildRequestSchema = z.strictObject({
+  forceRebuild: z.boolean().default(false),
+})
+
+export const prerequisiteBuildResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  output: z.string().max(50_000).optional(),
+  exitCode: z.number().int().nullable(),
 })
 
 export const serviceSnapshotSchema = z.object({
@@ -284,3 +333,8 @@ export type DockerContainerList = z.infer<typeof dockerContainerListSchema>
 export type PrerequisiteOverview = z.infer<typeof prerequisiteOverviewSchema>
 export type PrerequisiteSettings = z.infer<typeof prerequisiteSettingsSchema>
 export type PrerequisiteSettingsUpdate = z.infer<typeof prerequisiteSettingsUpdateSchema>
+export type PrerequisiteSource = z.infer<typeof prerequisiteSourceSchema>
+export type PrerequisiteSourceFile = z.infer<typeof prerequisiteSourceFileSchema>
+export type PrerequisiteSourceUpdate = z.infer<typeof prerequisiteSourceUpdateSchema>
+export type PrerequisiteBuildRequest = z.infer<typeof prerequisiteBuildRequestSchema>
+export type PrerequisiteBuildResponse = z.infer<typeof prerequisiteBuildResponseSchema>

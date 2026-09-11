@@ -1,4 +1,8 @@
-import type { ProviderConnection } from '@codexsun/zetro-contracts'
+import type {
+  ProviderConnection,
+  ProviderSelectionConfirmation,
+  ProviderSelectionRequest,
+} from '@codexsun/zetro-contracts'
 import type {
   ProviderRunRequest,
   ProviderRunResult,
@@ -19,6 +23,14 @@ export class ProviderChatRunner implements ProviderRunner {
 
   getActiveConnection(): ProviderConnection {
     return this.providers.getActiveConnection()
+  }
+
+  resolveConnection(selection: ProviderSelectionRequest): ProviderConnection {
+    return this.providers.resolveConnection(selection)
+  }
+
+  confirmSelection(selection: ProviderSelectionRequest): Promise<ProviderSelectionConfirmation> {
+    return this.providers.confirmSelection(selection)
   }
 
   async run(request: ProviderRunRequest): Promise<ProviderRunResult> {

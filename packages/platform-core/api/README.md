@@ -14,6 +14,8 @@ The context binds a clock, ID generator, module summaries, request context, auth
 
 `DeclaredPlatformEventBus` scopes a module to event versions in its manifest. `PlatformDiagnosticRegistry` keeps bounded structured operational events.
 
+`PlatformDurableEventRegistry` binds a composed module to durable event consumer registration. A consumer can register only event types declared in its manifest. The application supplies a durable store and starts the dispatcher after module activation. The public binding writes an outbox event through the caller's existing database transaction. It supports at-least-once delivery, consumer-specific inbox deduplication, restart recovery, bounded retries, and terminal-failure diagnostics. Business consumers must keep their own mutation idempotent.
+
 `PlatformModuleMigration` and `PlatformModuleSeed` are target-specific declaration contracts. Concrete declarations stay inside the owning application module; the composition root supplies transactions, locking, and durable ledger storage.
 
 `PlatformShutdownRegistry` closes registered tasks once in reverse order.

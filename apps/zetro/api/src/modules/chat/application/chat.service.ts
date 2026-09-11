@@ -1,5 +1,7 @@
 import type {
   ChatConversationListScope,
+  ChatConversationProvider,
+  ChatConversationProviderResponse,
   ChatConversationSummary,
   ChatConversationUpdateRequest,
   ChatHistoryResponse,
@@ -9,6 +11,7 @@ import type {
   ChatTurnProviderSnapshot,
   ChatTurnStatus,
   ProviderConnection,
+  ProviderSelectionRequest,
 } from '@codexsun/zetro-contracts'
 import type { ProviderMessage, ProviderRunner } from '../../providers/index.js'
 import type { ChatStore } from './chat.ports.js'
@@ -18,6 +21,7 @@ type EventListener = (event: ChatStoredEvent) => void
 export class ChatService {
   private readonly executions = new Set<Promise<void>>()
   private readonly listeners = new Map<string, Set<EventListener>>()
+  private readonly providerSwitches = new Set<string>()
   private closing = false
 
   constructor(
@@ -35,7 +39,12 @@ export class ChatService {
 
   createConversation(conversationId: string, title?: string): ChatConversationSummary {
     if (this.closing) throw new ChatConversationConflictError('Zetro is stopping.')
-    return this.repository.createConversation(conversationId, title, Date.now())
+    return this.repository.createConversation(
+      conversationId,
+      title,
+      Date.now(),
+      conversationProvider(this.client.getActiveConnection()),
+    )
   }
 
   listConversations(scope: ChatConversationListScope): ChatConversationSummary[] {
@@ -62,7 +71,18 @@ export class ChatService {
 
   startTurn(conversationId: string, turnId: string, prompt: string): ChatTurnAcceptedResponse {
     if (this.closing) throw new Error('Zetro is stopping and cannot accept a new turn.')
-    const connection = this.client.getActiveConnection()
+    if (this.providerSwitches.has(conversationId)) {
+      throw new ChatConversationConflictError(
+        'Connection verification is in progress. Wait before starting a response.',
+      )
+    }
+    const provider = this.getOrCreateConversationProvider(conversationId)
+    if (provider.status !== 'verified') {
+      throw new ChatConversationConflictError(
+        'Verify this conversation connection before starting a response.',
+      )
+    }
+    const connection = this.client.resolveConnection(provider)
     const request = this.repository.startTurn(
       conversationId,
       turnId,
@@ -101,6 +121,49 @@ export class ChatService {
       throw new Error('Only a completed assistant response can become a task draft.')
     }
     return { prompt: source.prompt, response: source.response }
+  }
+
+  async selectConversationProvider(
+    conversationId: string,
+    selection: ProviderSelectionRequest,
+  ): Promise<ChatConversationProviderResponse> {
+    if (this.repository.getActiveTurnId(conversationId)) {
+      throw new ChatConversationConflictError(
+        'Stop the active response before changing this conversation connection.',
+      )
+    }
+    if (!this.repository.getConversationProvider(conversationId)) {
+      throw new ChatConversationNotFoundError()
+    }
+    if (this.providerSwitches.has(conversationId)) {
+      throw new ChatConversationConflictError('Connection verification is already in progress.')
+    }
+    this.providerSwitches.add(conversationId)
+    try {
+      const confirmation = await this.client.confirmSelection(selection)
+      if (this.repository.getActiveTurnId(conversationId)) {
+        throw new ChatConversationConflictError(
+          'A response started while verification ran. The connection was not changed.',
+        )
+      }
+      const provider: ChatConversationProvider = {
+        connectionId: confirmation.connectionId,
+        latencyMs: confirmation.smoke.latencyMs,
+        model: confirmation.model,
+        reasoningEffort: confirmation.reasoningEffort,
+        status: 'verified',
+        verifiedAt: confirmation.confirmedAt,
+      }
+      const conversation = this.repository.updateConversationProvider(
+        conversationId,
+        provider,
+        confirmation.confirmedAt,
+      )
+      if (!conversation) throw new ChatConversationNotFoundError()
+      return { confirmation, conversationId, provider: conversation.provider }
+    } finally {
+      this.providerSwitches.delete(conversationId)
+    }
   }
 
   async observeTurn(
@@ -170,9 +233,9 @@ export class ChatService {
           this.emit(turnId, event)
         },
         onProviderThread: (threadId) =>
-          this.repository.setProviderThreadId(conversationId, threadId),
+          this.repository.setProviderThreadId(conversationId, connection.id, threadId),
         prompt,
-        providerThreadId: this.repository.getProviderThreadId(conversationId),
+        providerThreadId: this.repository.getProviderThreadId(conversationId, connection.id),
       })
       if (!streamedResponse && result.content) {
         this.emit(turnId, { delta: result.content, type: 'response' })
@@ -199,6 +262,17 @@ export class ChatService {
         ...(response ? [{ content: response, role: 'assistant' as const }] : []),
       ]
     })
+  }
+
+  private getOrCreateConversationProvider(conversationId: string): ChatConversationProvider {
+    const existing = this.repository.getConversationProvider(conversationId)
+    if (existing) return existing
+    return this.repository.createConversation(
+      conversationId,
+      undefined,
+      Date.now(),
+      conversationProvider(this.client.getActiveConnection()),
+    ).provider
   }
 
   private emit(turnId: string, event: ChatStreamEvent): void {
@@ -238,6 +312,15 @@ function providerSnapshot(connection: ProviderConnection): ChatTurnProviderSnaps
     label: connection.label,
     model: connection.model,
     reasoningEffort: connection.reasoningEffort,
+  }
+}
+
+function conversationProvider(connection: ProviderConnection): ChatConversationProvider {
+  return {
+    connectionId: connection.id,
+    model: connection.model,
+    reasoningEffort: connection.reasoningEffort,
+    status: 'unverified',
   }
 }
 

@@ -7,3 +7,5 @@ Application: [Orship](../../apps/orship/README.md)
 | `orchestration` | [API owner](../../apps/orship/api/src/modules/orchestration/README.md) | [Web owner](../../apps/orship/web/src/modules/orchestration/README.md) | `1.3.0` | Active |
 
 Orship composes one technical feature module. It observes deployment components through public catalog and health contracts. It does not own the observed applications.
+
+The module also observes shared local prerequisite containers and writes their local configuration without returning secret values to the browser.

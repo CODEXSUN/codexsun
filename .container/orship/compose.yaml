@@ -21,6 +21,7 @@ services:
     volumes:
       - orship-storage:/app/storage/app
       - ../../.env:/app/.env
+      - ../prerequisites:/app/.container/prerequisites
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test:

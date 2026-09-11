@@ -94,4 +94,54 @@ export const chatMigrations: ChatMigration[] = [
       ALTER TABLE chat_turns ADD COLUMN provider_reasoning_effort TEXT;
     `,
   },
+  {
+    version: 6,
+    sql: `
+      ALTER TABLE chat_conversations
+        ADD COLUMN provider_connection_id TEXT NOT NULL DEFAULT 'codex-local';
+      ALTER TABLE chat_conversations ADD COLUMN provider_model TEXT;
+      ALTER TABLE chat_conversations
+        ADD COLUMN provider_reasoning_effort TEXT NOT NULL DEFAULT 'low';
+      ALTER TABLE chat_conversations
+        ADD COLUMN provider_status TEXT NOT NULL DEFAULT 'unverified'
+        CHECK (provider_status IN ('unverified', 'verified'));
+      ALTER TABLE chat_conversations ADD COLUMN provider_verified_at INTEGER;
+      ALTER TABLE chat_conversations ADD COLUMN provider_latency_ms INTEGER;
+
+      UPDATE chat_conversations
+      SET
+        provider_connection_id = COALESCE((
+          SELECT provider_connection_id FROM chat_turns
+          WHERE conversation_id = chat_conversations.id
+            AND provider_connection_id IS NOT NULL
+          ORDER BY started_at DESC, id DESC LIMIT 1
+        ), provider_connection_id),
+        provider_model = (
+          SELECT provider_model FROM chat_turns
+          WHERE conversation_id = chat_conversations.id
+            AND provider_connection_id IS NOT NULL
+          ORDER BY started_at DESC, id DESC LIMIT 1
+        ),
+        provider_reasoning_effort = COALESCE((
+          SELECT provider_reasoning_effort FROM chat_turns
+          WHERE conversation_id = chat_conversations.id
+            AND provider_reasoning_effort IS NOT NULL
+          ORDER BY started_at DESC, id DESC LIMIT 1
+        ), provider_reasoning_effort);
+
+      CREATE TABLE chat_provider_threads (
+        conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+        connection_id TEXT NOT NULL,
+        thread_id TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (conversation_id, connection_id),
+        UNIQUE (connection_id, thread_id)
+      ) STRICT;
+
+      INSERT INTO chat_provider_threads (conversation_id, connection_id, thread_id, updated_at)
+      SELECT id, provider_connection_id, provider_thread_id, updated_at
+      FROM chat_conversations
+      WHERE provider_thread_id IS NOT NULL;
+    `,
+  },
 ]

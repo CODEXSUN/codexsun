@@ -13,6 +13,9 @@ import {
   prerequisiteOverviewSchema,
   prerequisiteSettingsSchema,
   prerequisiteSettingsUpdateSchema,
+  prerequisiteSourceFileSchema,
+  prerequisiteSourceSchema,
+  prerequisiteSourceUpdateSchema,
   serviceActionRequestSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
@@ -26,6 +29,7 @@ import { DeploymentEvidenceService } from '../application/deployment-evidence.se
 import { DockerControlGateway } from '../infrastructure/docker-control.gateway.js'
 import { PrerequisiteService } from '../application/prerequisite.service.js'
 import { PrerequisiteSettingsStore } from '../infrastructure/prerequisite-settings.store.js'
+import { PrerequisiteSourceStore } from '../infrastructure/prerequisite-source.store.js'
 
 const serviceParamsSchema = z.strictObject({ serviceId: z.string().min(1).max(80) })
 const logQuerySchema = z.strictObject({
@@ -40,6 +44,7 @@ export async function registerOrchestrationRoutes(
   docker: DockerControlGateway,
   prerequisites: PrerequisiteService,
   prerequisiteSettings: PrerequisiteSettingsStore,
+  prerequisiteSource: PrerequisiteSourceStore,
 ): Promise<void> {
   server.get(
     '/api/orship/v1/prerequisites',
@@ -68,6 +73,37 @@ export async function registerOrchestrationRoutes(
         return reply.status(403).send(errorBody('LOOPBACK_REQUIRED', 'Use a local browser.'))
       }
       return prerequisiteSettings.update(prerequisiteSettingsUpdateSchema.parse(request.body))
+    },
+  )
+
+  server.get(
+    '/api/orship/v1/prerequisites/source/:file',
+    { schema: { response: { 200: z.toJSONSchema(prerequisiteSourceSchema) } } },
+    (request) =>
+      prerequisiteSource.get(
+        prerequisiteSourceFileSchema.parse((request.params as { file?: unknown }).file),
+      ),
+  )
+
+  server.put(
+    '/api/orship/v1/prerequisites/source/:file',
+    {
+      schema: {
+        response: {
+          200: z.toJSONSchema(prerequisiteSourceSchema),
+          403: z.toJSONSchema(orchestrationErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!isLoopback(request)) {
+        return reply.status(403).send(errorBody('LOOPBACK_REQUIRED', 'Use a local browser.'))
+      }
+      const file = prerequisiteSourceFileSchema.parse(
+        (request.params as { file?: unknown }).file,
+      )
+      const input = prerequisiteSourceUpdateSchema.parse(request.body)
+      return prerequisiteSource.update(file, input.content)
     },
   )
 

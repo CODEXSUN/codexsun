@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import { ModuleRegistry } from '../packages/framework/src/index.ts'
 import {
   DeclaredPlatformEventBus,
+  PlatformDurableEventDispatcher,
   PlatformDiagnosticRegistry,
 } from '../packages/platform-core/api/src/index.ts'
 import { createDatabase } from '../apps/platform/api/src/database.ts'
@@ -17,6 +18,10 @@ import {
   ModuleRuntimeCoordinator,
   moduleRuntimeApiModule,
 } from '../apps/platform/api/src/modules/module-runtime/index.ts'
+import {
+  eventRuntimeApiModule,
+  MariaDbDurableEventStore,
+} from '../apps/platform/api/src/modules/event-runtime/index.ts'
 import { MariaDbAdministrator, readMariaDbEnvironment } from './mariadb-local.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '..')
@@ -44,6 +49,7 @@ async function verifyLifecycle(testEnvironment) {
   try {
     for (const migration of moduleRuntimeApiModule.migrations) await migration.up(database.client)
     await verifyCleanInstallAndRestart(database)
+    await verifyDurableEventDelivery(database)
     await verifySchemaDrift(database)
     await verifyLockContention(database)
     await verifyRollbackAndRecovery(database)
@@ -72,14 +78,45 @@ async function verifySchemaDrift(database) {
 }
 
 async function verifyCleanInstallAndRestart(database) {
-  const first = coordinator(database, [moduleRuntimeApiModule])
+  const modules = [moduleRuntimeApiModule, eventRuntimeApiModule]
+  const first = coordinator(database, modules)
   await first.prepare()
   const firstCounts = await ledgerCounts(database.client)
 
-  const restarted = coordinator(database, [moduleRuntimeApiModule])
+  const restarted = coordinator(database, modules)
   await restarted.prepare()
   assert.deepEqual(await ledgerCounts(database.client), firstCounts)
-  assert.deepEqual(firstCounts, { migrations: 2, modules: 1, seeds: 1 })
+  assert.deepEqual(firstCounts, { migrations: 3, modules: 2, seeds: 1 })
+}
+
+async function verifyDurableEventDelivery(database) {
+  const store = new MariaDbDurableEventStore(database.client)
+  await database.client.transaction().execute((transaction) =>
+    store.append(transaction, {
+      correlationId: 'foundation-event',
+      eventId: 'foundation-event-1',
+      eventType: 'foundation.created',
+      occurredAt: new Date().toISOString(),
+      payload: { value: 1 },
+      publisherId: 'foundation',
+      version: '1.0.0',
+    }),
+  )
+  const received = []
+  const dispatcher = new PlatformDurableEventDispatcher(store)
+  const consumer = {
+    consumerId: 'foundation-consumer',
+    eventTypes: ['foundation.created'],
+    handle: async (event) => received.push(event.eventId),
+  }
+  await dispatcher.dispatch(consumer)
+  await dispatcher.dispatch(consumer)
+  assert.deepEqual(received, ['foundation-event-1'])
+  const result = await sql`
+    select state, attempts from platform_event_inbox
+    where consumer_id = 'foundation-consumer' and event_id = 'foundation-event-1'
+  `.execute(database.client)
+  assert.deepEqual(result.rows, [{ attempts: 1, state: 'completed' }])
 }
 
 async function verifyLockContention(database) {

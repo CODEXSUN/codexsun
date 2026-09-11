@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { readdir, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const requiredSections = [
@@ -13,7 +13,7 @@ const requiredSections = [
 ]
 const issues = []
 
-for (const app of await getDirectories('apps')) {
+for (const app of await getCatalogApplicationIds()) {
   await checkApplication(app)
 }
 
@@ -50,7 +50,10 @@ async function checkApplication(app) {
   }
 }
 
-async function getDirectories(path) {
-  const entries = await readdir(path, { withFileTypes: true })
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+async function getCatalogApplicationIds() {
+  const catalog = JSON.parse(await readFile(join('.container', 'catalog.json'), 'utf8'))
+  if (!Array.isArray(catalog.applications)) {
+    throw new Error('The deployment catalog must contain an applications array.')
+  }
+  return catalog.applications.map((application) => application.id).sort()
 }

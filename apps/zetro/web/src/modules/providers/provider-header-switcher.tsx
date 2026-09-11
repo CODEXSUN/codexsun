@@ -1,33 +1,45 @@
 import { useEffect, useState } from 'react'
 import { CompactModelSwitcher } from '@codexsun/ui/components/compact-model-switcher'
 import type {
+  ChatConversationProvider,
   ProviderModel,
   ProviderReasoningEffort,
   ProviderSettingsResponse,
 } from '@codexsun/zetro-contracts'
-import { fetchProviderModels, saveProviderSelection, testProvider } from './provider.services'
+import {
+  fetchProviderModels,
+  saveConversationProviderSelection,
+  testProvider,
+} from './provider.services'
 
 type Availability = 'unknown' | 'available' | 'unavailable'
 
 export function ProviderHeaderSwitcher({
   disabled,
+  conversationId,
+  provider,
   settings,
-  onChange,
+  onProviderChange,
   onError,
+  onSwitchingChange,
 }: {
   disabled?: boolean
+  conversationId: string
+  provider: ChatConversationProvider
   settings: ProviderSettingsResponse
-  onChange(settings: ProviderSettingsResponse): void
+  onProviderChange(provider: ChatConversationProvider): void
   onError(message: string): void
+  onSwitchingChange(switching: boolean): void
 }) {
-  const active = settings.connections.find(({ id }) => id === settings.selectedConnectionId)!
+  const active =
+    settings.connections.find(({ id }) => id === provider.connectionId) ??
+    settings.connections.find(({ id }) => id === settings.selectedConnectionId)!
   const [draft, setDraft] = useState(() => ({
-    connectionId: active.id,
-    model: active.model,
-    reasoningEffort: active.reasoningEffort,
+    connectionId: provider.connectionId,
+    model: provider.model,
+    reasoningEffort: provider.reasoningEffort,
   }))
   const [models, setModels] = useState<ProviderModel[]>([])
-  const [confirmation, setConfirmation] = useState(settings.confirmation)
   const [switching, setSwitching] = useState(false)
   const [availability, setAvailability] = useState<Availability>('unknown')
   const draftConnection = settings.connections.find(({ id }) => id === draft.connectionId) ?? active
@@ -35,20 +47,19 @@ export function ProviderHeaderSwitcher({
   const reasoningLevels = selectedModel?.supportedReasoningEfforts ?? []
   const verified = Boolean(
     availability !== 'unavailable' &&
-    confirmation?.smoke.ok &&
-    confirmation.connectionId === draft.connectionId &&
-    confirmation.model === draft.model &&
-    confirmation.reasoningEffort === draft.reasoningEffort,
+    provider.status === 'verified' &&
+    provider.connectionId === draft.connectionId &&
+    provider.model === draft.model &&
+    provider.reasoningEffort === draft.reasoningEffort,
   )
 
   useEffect(() => {
     setDraft({
-      connectionId: active.id,
-      model: active.model,
-      reasoningEffort: active.reasoningEffort,
+      connectionId: provider.connectionId,
+      model: provider.model,
+      reasoningEffort: provider.reasoningEffort,
     })
-    setConfirmation(settings.confirmation)
-  }, [active.id, active.model, active.reasoningEffort, settings.confirmation])
+  }, [provider.connectionId, provider.model, provider.reasoningEffort])
 
   useEffect(() => {
     let current = true
@@ -109,18 +120,17 @@ export function ProviderHeaderSwitcher({
   async function connect() {
     if (!draftConnection.enabled || !draft.model) return
     setSwitching(true)
-    setConfirmation(undefined)
+    onSwitchingChange(true)
     setAvailability('unknown')
     try {
-      const next = await saveProviderSelection({
+      const next = await saveConversationProviderSelection(conversationId, {
         connectionId: draft.connectionId,
         model: draft.model,
         reasoningEffort: draft.reasoningEffort,
       })
       if (!next.confirmation?.smoke.ok)
         throw new Error('The provider smoke test was not confirmed.')
-      onChange(next)
-      setConfirmation(next.confirmation)
+      onProviderChange(next.provider)
       setAvailability('available')
       onError('')
     } catch (error) {
@@ -128,6 +138,7 @@ export function ProviderHeaderSwitcher({
       onError(message(error, draftConnection.label))
     } finally {
       setSwitching(false)
+      onSwitchingChange(false)
     }
   }
 
@@ -137,7 +148,6 @@ export function ProviderHeaderSwitcher({
       ? draft.reasoningEffort
       : model?.supportedReasoningEfforts[0]
     if (!reasoningEffort) return
-    setConfirmation(undefined)
     setDraft((current) => ({ ...current, model: modelId, reasoningEffort }))
   }
 
@@ -163,7 +173,6 @@ export function ProviderHeaderSwitcher({
         onConnectionChange={(id) => {
           const target = settings.connections.find((connection) => connection.id === id)
           if (!target?.enabled) return
-          setConfirmation(undefined)
           setAvailability('unknown')
           setDraft({
             connectionId: target.id,
@@ -173,7 +182,6 @@ export function ProviderHeaderSwitcher({
         }}
         onModelChange={selectModel}
         onReasoningChange={(effort) => {
-          setConfirmation(undefined)
           setDraft((current) => ({
             ...current,
             reasoningEffort: effort as ProviderReasoningEffort,

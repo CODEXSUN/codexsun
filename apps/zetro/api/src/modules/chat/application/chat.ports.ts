@@ -1,5 +1,6 @@
 import type {
   ChatConversationListScope,
+  ChatConversationProvider,
   ChatConversationSummary,
   ChatConversationUpdateRequest,
   ChatHistoryResponse,
@@ -16,6 +17,7 @@ export interface ChatStore {
     conversationId: string,
     title: string | undefined,
     createdAt: number,
+    provider: ChatConversationProvider,
   ): ChatConversationSummary
   finishTurn(
     turnId: string,
@@ -26,12 +28,13 @@ export interface ChatStore {
   getActiveTurnId(conversationId: string): string | undefined
   getEvents(turnId: string, afterSequence?: number): ChatStoredEvent[]
   getHistory(conversationId: string): ChatHistoryResponse
-  getProviderThreadId(conversationId: string): string | undefined
+  getConversationProvider(conversationId: string): ChatConversationProvider | undefined
+  getProviderThreadId(conversationId: string, connectionId: string): string | undefined
   getTurnStatus(turnId: string): ChatTurnStatus | undefined
   isReady(): boolean
   listConversations(scope: ChatConversationListScope): ChatConversationSummary[]
   ownsTurn(conversationId: string, turnId: string): boolean
-  setProviderThreadId(conversationId: string, threadId: string): void
+  setProviderThreadId(conversationId: string, connectionId: string, threadId: string): void
   startTurn(
     conversationId: string,
     turnId: string,
@@ -46,6 +49,11 @@ export interface ChatStore {
   updateConversation(
     conversationId: string,
     update: ChatConversationUpdateRequest,
+    updatedAt: number,
+  ): ChatConversationSummary | undefined
+  updateConversationProvider(
+    conversationId: string,
+    provider: ChatConversationProvider,
     updatedAt: number,
   ): ChatConversationSummary | undefined
 }

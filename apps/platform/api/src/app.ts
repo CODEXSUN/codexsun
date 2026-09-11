@@ -15,6 +15,7 @@ import {
   DenyByDefaultPlatformAuthorizer,
   PlatformApiObservability,
   PlatformDiagnosticRegistry,
+  PlatformDurableEventRegistry,
   PlatformReadinessRegistry,
   PlatformRequestContextStore,
   PlatformShutdownRegistry,
@@ -46,6 +47,7 @@ import {
   moduleRuntimeMigrations,
 } from './modules/module-runtime/index.js'
 import { createIdentityRuntime } from './modules/identity/index.js'
+import { eventRuntimeApiModule, MariaDbDurableEventStore } from './modules/event-runtime/index.js'
 import { systemApiModule } from './modules/system/index.js'
 import { createStorage, type StorageDirectories } from './storage.js'
 
@@ -82,7 +84,12 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
   const storage = options.storage ?? (await createStorage(environment, getProjectRoot()))
   const database = options.database ?? createDatabase(environment)
   const identity = createIdentityRuntime(database.client, environment)
-  const modules = options.modules ?? [moduleRuntimeApiModule, identity.module, systemApiModule]
+  const modules = options.modules ?? [
+    moduleRuntimeApiModule,
+    eventRuntimeApiModule,
+    identity.module,
+    systemApiModule,
+  ]
   const server = createServer(environment, storage, observability)
   const shutdown = new PlatformShutdownRegistry()
   const diagnostics = new PlatformDiagnosticRegistry()
@@ -94,6 +101,29 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
     (identityEnabled ? identity.authorizer : new DenyByDefaultPlatformAuthorizer())
   const lifecycleAbort = new AbortController()
   const composition = createComposition(modules)
+  const durableEvents = new PlatformDurableEventRegistry(
+    composition.modules,
+    new MariaDbDurableEventStore(database.client),
+    1_000,
+    {
+      onTerminalFailure: (delivery, error) => {
+        diagnostics.report({
+          code: 'EVENT_DELIVERY_FAILED',
+          correlationId: delivery.event.correlationId,
+          details: {
+            attempts: delivery.attempts,
+            consumerId: delivery.consumerId,
+            eventId: delivery.event.eventId,
+            eventType: delivery.event.eventType,
+          },
+          level: 'error',
+          message: error.message.slice(0, 512),
+          moduleId: 'event-runtime',
+          timestamp: (options.clock ?? (() => new Date()))().toISOString(),
+        })
+      },
+    },
+  )
   const events = new DeclaredPlatformEventBus(
     composition.modules,
     undefined,
@@ -146,6 +176,7 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
         options,
         composition,
         diagnostics,
+        durableEvents.forModule(moduleId),
         events.forModule(moduleId),
         authorizer,
         readiness,
@@ -185,11 +216,15 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
   registerHealthRoutes(server, readiness, diagnostics, options.clock ?? (() => new Date()))
   server.addHook('onReady', async () => {
     if (!moduleRuntime) await lifecycle.activate()
+    if (!moduleRuntime && modules.some(({ manifest }) => manifest.id === 'event-runtime')) {
+      durableEvents.start()
+    }
   })
   server.addHook('onListen', () => {
     if (!moduleRuntime) return
     runtimeStartup = startModuleRuntime(moduleRuntime, lifecycle)
       .then((preparation) => {
+        durableEvents.start()
         server.log.info(
           {
             migrations: preparation.appliedMigrationIds,
@@ -211,6 +246,7 @@ export async function buildPlatformApi(options: PlatformApiOptions = {}): Promis
       moduleRuntime,
       runtimeStartup,
       shutdown,
+      durableEvents,
       database,
       observability,
     ),
@@ -274,6 +310,7 @@ function createModuleContext(
   options: PlatformApiOptions,
   composition: ModuleCompositionPlan,
   diagnostics: PlatformDiagnosticRegistry,
+  durableEvents: PlatformApiModuleContext['durableEvents'],
   events: PlatformApiModuleContext['events'],
   authorization: PlatformAuthorizer,
   readiness: PlatformReadinessRegistry,
@@ -286,6 +323,7 @@ function createModuleContext(
     clock: options.clock ?? (() => new Date()),
     createId: options.createId ?? randomUUID,
     diagnostics,
+    durableEvents,
     events,
     modules: composition.modules.map((module) => ({
       consumes: module.consumes,
@@ -429,6 +467,7 @@ async function closeResources(
   moduleRuntime: ModuleRuntimeCoordinator<Database> | undefined,
   runtimeStartup: Promise<void> | undefined,
   shutdown: PlatformShutdownRegistry,
+  durableEvents: PlatformDurableEventRegistry,
   database: PlatformDatabase,
   observability: PlatformApiObservability,
 ): Promise<void> {
@@ -439,6 +478,7 @@ async function closeResources(
     () => lifecycle.deactivate(),
     () => moduleRuntime?.markDisabled(),
     () => shutdown.closeAll(),
+    () => durableEvents.stop(),
     () => database.close(),
     () => observability.shutdown(),
   ]) {

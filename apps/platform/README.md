@@ -59,6 +59,8 @@ Readiness checks MariaDB, central storage, and durable module preparation. Liven
 
 The `module-runtime` core module owns the installed-module, migration, and seed ledgers. Each persistent module keeps its migrations, seeds, and schema guard in its own folder. Startup applies queued declarations under a MariaDB advisory lock. It then compares each live schema fingerprint before module activation. `MODULE_RUNTIME_ENABLED=false` is for isolated lifecycle tests and diagnostics. Development and production default to `true`.
 
+The `event-runtime` core module owns the shared durable outbox and consumer inbox records. A business module must append its event through `context.durableEvents.append(transaction, event)` inside the same MariaDB transaction as its business write. It must register durable consumption through `context.durableEvents.register(...)` and declare each consumed event in its manifest. Delivery is at-least-once. The inbox prevents repeat completion for one consumer. A consumer's domain mutation must remain idempotent.
+
 ## Verification
 
 Run `npm.cmd run test:e2e:server`. It builds the production artifact, verifies HTTP behavior, performs signal and supervisor shutdown, and confirms port release. Run the full `npm.cmd run check` before handoff.

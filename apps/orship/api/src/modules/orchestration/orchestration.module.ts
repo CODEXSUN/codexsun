@@ -13,6 +13,7 @@ import { LocalDeploymentInspector } from './infrastructure/local-deployment.insp
 import { DockerControlGateway } from './infrastructure/docker-control.gateway.js'
 import { DockerControlStore } from './infrastructure/docker-control.store.js'
 import { PrerequisiteSettingsStore } from './infrastructure/prerequisite-settings.store.js'
+import { PrerequisiteSourceStore } from './infrastructure/prerequisite-source.store.js'
 import { registerOrchestrationRoutes } from './presentation/orchestration.routes.js'
 
 export const orchestrationManifest: FrameworkModule = {
@@ -84,6 +85,7 @@ export async function registerOrchestrationModule(
     docker,
     new PrerequisiteService(docker),
     new PrerequisiteSettingsStore(projectRoot),
+    new PrerequisiteSourceStore(projectRoot),
   )
   server.addHook('onClose', () => docker.close())
 }

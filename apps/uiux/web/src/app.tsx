@@ -5,13 +5,20 @@ import {
   BotIcon,
   BookOpenIcon,
   BoxIcon,
+  Columns3Icon,
   ComponentIcon,
   FilePenLineIcon,
+  FilterIcon,
   FingerprintIcon,
+  FolderTreeIcon,
   LayoutDashboardIcon,
   LayoutTemplateIcon,
   PanelsTopLeftIcon,
+  PanelTopIcon,
+  ShoppingBagIcon,
   Table2Icon,
+  TagIcon,
+  UploadCloudIcon,
 } from 'lucide-react'
 import {
   uiBlockDocs,
@@ -26,11 +33,18 @@ const layoutIcons = {
   'agent-workspace': BotIcon,
   'documentation-workspace': BookOpenIcon,
   'mdi-main': PanelsTopLeftIcon,
+  'site-header': PanelTopIcon,
 } as const
 const blockIcons = {
   form: FilePenLineIcon,
   table: Table2Icon,
   'execution-status': BotIcon,
+  kanban: Columns3Icon,
+  'file-tree': FolderTreeIcon,
+  dropzone: UploadCloudIcon,
+  'filter-builder': FilterIcon,
+  'product-card': ShoppingBagIcon,
+  pricing: TagIcon,
 } as const
 
 export function App() {

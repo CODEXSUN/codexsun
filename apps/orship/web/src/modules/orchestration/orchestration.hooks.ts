@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { DockerContainerAction, ServiceAction } from './orchestration.types'
+import type { DockerContainerAction, PrerequisiteSourceFile, ServiceAction } from './orchestration.types'
 import {
   fetchCloudTarget,
   createDeploymentRecord,
@@ -9,11 +9,13 @@ import {
   fetchOrchestrationOverview,
   fetchPrerequisites,
   fetchPrerequisiteSettings,
+  fetchPrerequisiteSource,
   fetchRuntimeFailures,
   fetchServiceLogs,
   runServiceAction,
   runDockerContainerAction,
   savePrerequisiteSettings,
+  savePrerequisiteSource,
 } from './orchestration.services'
 
 const overviewKey = ['orship', 'services'] as const
@@ -47,6 +49,24 @@ export function useSavePrerequisiteSettings() {
     mutationFn: savePrerequisiteSettings,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['orship', 'prerequisite-settings'] })
+    },
+  })
+}
+
+export function usePrerequisiteSource(file: PrerequisiteSourceFile) {
+  return useQuery({
+    queryFn: () => fetchPrerequisiteSource(file),
+    queryKey: ['orship', 'prerequisite-source', file],
+  })
+}
+
+export function useSavePrerequisiteSource() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ content, file }: { content: string; file: PrerequisiteSourceFile }) =>
+      savePrerequisiteSource(file, content),
+    onSuccess: async (_, { file }) => {
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'prerequisite-source', file] })
     },
   })
 }

@@ -145,6 +145,7 @@ Do not create one large `FrameworkManager`, `BaseService`, or `BaseRepository`. 
 - Async request context with correlation, locale, request identity, and cancellation.
 - Structured lifecycle, runtime, and readiness diagnostics.
 - Manifest-enforced in-process event publication and consumption.
+- Platform-owned durable outbox and consumer inbox contracts with at-least-once dispatch, retry, restart recovery, and terminal-failure diagnostics.
 - Fastify response schemas for Platform health, readiness, and runtime routes.
 - Read-only capability, contract, event, and extension discovery through the System runtime contract.
 - Profile-driven deployment planning with selected builds and one-container-per-process Compose output.
@@ -163,7 +164,6 @@ Identity may then add authentication and authorization through application and m
 
 ### Add when the first real consumer exists
 
-- Transactional outbox and idempotent inbox.
 - BullMQ jobs, workers, schedules, retry policy, and dead-letter handling.
 - Redis cache and distributed locks.
 - API rate limits, pagination conventions, conditional requests, and idempotency keys.
@@ -211,7 +211,9 @@ Preparation: [Durable module runtime preparation](../records/platform/2026-09-08
 ### Stage 4: Events and background work
 
 - Start with typed in-process events.
-- Add a transactional outbox only when events must survive process failure.
+- Use `event-runtime` when an event must survive process failure or cross a process boundary.
+- Keep the business write and its outbox row in the same transaction.
+- Keep consumer mutations idempotent. The inbox records delivery completion per consumer.
 - Add BullMQ only for work that needs independent retry or scheduling.
 - Version event and job payloads and document retry and dead-letter behavior.
 

@@ -1,4 +1,8 @@
-export type UiLayoutId = 'agent-workspace' | 'documentation-workspace' | 'mdi-main'
+export type UiLayoutId =
+  | 'agent-workspace'
+  | 'documentation-workspace'
+  | 'mdi-main'
+  | 'site-header'
 
 export type UiLayoutDoc = {
   code: string
@@ -126,6 +130,47 @@ export function AgentApplication() {
     >
       <AgentConversation />
     </MdiMain>
+  )
+}`,
+  },
+  {
+    id: 'site-header',
+    name: 'Site Header',
+    packageName: '@codexsun/ui/layouts/site-header',
+    summary:
+      'Separated public website header with announcement bar, navbar, categories, and mobile drawer.',
+    description:
+      'Use Site Header for public websites, e-commerce storefronts, and static portfolios. It provides decoupled horizontal bands for promos, brand navigation, actions, and categories.',
+    code: `import { SiteHeader } from '@codexsun/ui/layouts/site-header'
+
+export function PublicStorefront() {
+  return (
+    <SiteHeader
+      announcement={{
+        actionLabel: 'Shop Now',
+        actionUrl: '/deals',
+        message: 'Mid-Season Flash Sale: Up to 40% off with code CODEX40',
+      }}
+      brand={{
+        badge: 'Store',
+        tagline: 'Modern Lifestyle Essentials',
+        title: 'CodexShop',
+      }}
+      links={[
+        { href: '#products', label: 'Products', badge: 'New' },
+        { href: '#deals', label: 'Deals', badge: 'Sale' },
+        { href: '#about', label: 'About Us' },
+      ]}
+      categories={[
+        { active: true, href: '#all', id: 'all', label: 'All Products' },
+        { href: '#electronics', id: 'electronics', label: 'Electronics' },
+        { href: '#apparel', id: 'apparel', label: 'Apparel' },
+      ]}
+      actions={{
+        cartCount: 3,
+        ctaLabel: 'Checkout',
+      }}
+    />
   )
 }`,
   },

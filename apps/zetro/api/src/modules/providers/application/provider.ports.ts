@@ -4,6 +4,7 @@ import type {
   ProviderDeviceLoginResponse,
   ProviderModel,
   ProviderSelectionRequest,
+  ProviderSelectionConfirmation,
   ProviderSettingsResponse,
 } from '@codexsun/zetro-contracts'
 
@@ -61,7 +62,9 @@ export interface CodexProviderControl {
 
 export interface ProviderRunner {
   close(): Promise<void>
+  confirmSelection(selection: ProviderSelectionRequest): Promise<ProviderSelectionConfirmation>
   getActiveConnection(): ProviderConnection
+  resolveConnection(selection: ProviderSelectionRequest): ProviderConnection
   run(request: ProviderRunRequest): Promise<ProviderRunResult>
   stop(conversationId: string): Promise<void>
 }

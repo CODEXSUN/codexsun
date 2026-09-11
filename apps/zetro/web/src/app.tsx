@@ -15,6 +15,7 @@ import { Archive, ArrowUp, Bot, ClipboardList, MessageCircle, Settings, Square }
 import type {
   AgentTaskDraft,
   AgentTaskSummary,
+  ChatConversationProvider,
   ChatConversationSummary,
   ProviderSettingsResponse,
 } from '@codexsun/zetro-contracts'
@@ -54,6 +55,7 @@ export function App() {
   const [tasks, setTasks] = useState<AgentTaskSummary[]>([])
   const [selectedTask, setSelectedTask] = useState<AgentTaskDraft>()
   const [tasksBusy, setTasksBusy] = useState(false)
+  const [providerSwitching, setProviderSwitching] = useState(false)
   const registryLoadSequence = useRef(0)
   const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
   const chat = useConcurrentChat(() => void refreshRegistry())
@@ -194,6 +196,19 @@ export function App() {
     void chat.loadConversation(targetId)
   }
 
+  function updateConversationProvider(
+    targetId: string,
+    provider: ChatConversationProvider,
+  ) {
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === targetId
+          ? { ...conversation, provider, updatedAt: provider.verifiedAt ?? Date.now() }
+          : conversation,
+      ),
+    )
+  }
+
   async function openTasks(taskId?: string) {
     setView('tasks')
     setTasksBusy(true)
@@ -278,7 +293,7 @@ export function App() {
         badge: tasks.length,
         icon: ClipboardList,
         id: 'agent-tasks',
-        label: 'Agent Tasks',
+        label: 'Task queue',
         onSelect: () => void openTasks(),
       },
     ],
@@ -349,7 +364,7 @@ export function App() {
       statusLabel={statusLabel}
       workspaceTitle={
         view === 'tasks'
-          ? (selectedTask?.title ?? 'Agent Tasks')
+          ? (selectedTask?.title ?? 'Task queue')
           : (selectedConversation?.title ?? 'Conversation')
       }
       onSearchChange={setSearch}
@@ -357,7 +372,7 @@ export function App() {
       {view === 'settings' && providerSettings ? (
         <ProviderSettings settings={providerSettings} onChange={setProviderSettings} />
       ) : view === 'tasks' ? (
-        <AgentTaskWorkspace task={selectedTask} />
+        <AgentTaskWorkspace task={selectedTask} onOpenConversation={selectConversation} />
       ) : (
         <section className="flex size-full min-h-0 flex-col bg-background text-foreground">
           <header className="flex h-14 shrink-0 items-center gap-3 border-b px-5">
@@ -372,12 +387,17 @@ export function App() {
                 {selectedConversation?.archivedAt ? 'Archived conversation' : 'Conversation'}
               </span>
             </span>
-            {providerSettings ? (
+            {providerSettings && selectedConversation ? (
               <ProviderHeaderSwitcher
+                conversationId={selectedConversation.id}
                 disabled={isResponding}
+                provider={selectedConversation.provider}
                 settings={providerSettings}
-                onChange={setProviderSettings}
                 onError={setShellError}
+                onSwitchingChange={setProviderSwitching}
+                onProviderChange={(provider) =>
+                  updateConversationProvider(selectedConversation.id, provider)
+                }
               />
             ) : null}
           </header>
@@ -423,7 +443,13 @@ export function App() {
                 aria-label="Prompt Codex"
                 autoFocus
                 className="scrollbar-none min-h-32 max-h-36 resize-none overflow-y-auto border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
-                disabled={isResponding || registryBusy || Boolean(selectedConversation?.archivedAt)}
+                disabled={
+                  isResponding ||
+                  providerSwitching ||
+                  registryBusy ||
+                  Boolean(selectedConversation?.archivedAt) ||
+                  selectedConversation?.provider.status !== 'verified'
+                }
                 onChange={(event) => setPrompt(event.target.value)}
                 onKeyDown={handleComposerKeyDown}
                 placeholder="Message Codex…"
@@ -447,7 +473,11 @@ export function App() {
                     aria-label="Send prompt"
                     className="cursor-pointer"
                     disabled={
-                      !conversationId || !prompt.trim() || Boolean(selectedConversation?.archivedAt)
+                      !conversationId ||
+                      !prompt.trim() ||
+                      providerSwitching ||
+                      Boolean(selectedConversation?.archivedAt) ||
+                      selectedConversation?.provider.status !== 'verified'
                     }
                     size="icon"
                     type="submit"
@@ -459,6 +489,12 @@ export function App() {
             </div>
             {runtime.error || shellError ? (
               <p className="pt-2 text-sm text-destructive">{runtime.error || shellError}</p>
+            ) : providerSwitching ? (
+              <p className="pt-2 text-sm text-muted-foreground">Verifying this connection…</p>
+            ) : selectedConversation?.provider.status !== 'verified' ? (
+              <p className="pt-2 text-sm text-muted-foreground">
+                Verify the connection in the header before sending a prompt.
+              </p>
             ) : null}
           </form>
         </section>

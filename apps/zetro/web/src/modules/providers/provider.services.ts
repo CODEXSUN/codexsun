@@ -1,10 +1,12 @@
 import {
+  chatConversationProviderResponseSchema,
   providerConnectionTestResponseSchema,
   providerDeviceLoginResponseSchema,
   providerModelListResponseSchema,
   providerSelectionRequestSchema,
   providerSettingsResponseSchema,
   type ProviderConnectionTestResponse,
+  type ChatConversationProviderResponse,
   type ProviderDeviceLoginResponse,
   type ProviderModel,
   type ProviderSelectionRequest,
@@ -22,6 +24,19 @@ export async function saveProviderSelection(
 ): Promise<ProviderSettingsResponse> {
   return providerSettingsResponseSchema.parse(
     await request('/api/zetro/v1/providers/default', {
+      body: JSON.stringify(providerSelectionRequestSchema.parse(selection)),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+    }),
+  )
+}
+
+export async function saveConversationProviderSelection(
+  conversationId: string,
+  selection: ProviderSelectionRequest,
+): Promise<ChatConversationProviderResponse> {
+  return chatConversationProviderResponseSchema.parse(
+    await request(`/api/zetro/v1/chat/conversations/${encodeURIComponent(conversationId)}/provider`, {
       body: JSON.stringify(providerSelectionRequestSchema.parse(selection)),
       headers: { 'content-type': 'application/json' },
       method: 'PATCH',

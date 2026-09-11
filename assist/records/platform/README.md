@@ -2,6 +2,8 @@
 
 ## Records
 
+- [2026-09-11 Durable event runtime](2026-09-11-durable-event-runtime.md)
+
 - [2026-09-10 P001 fixture experiment](2026-09-10-p001-fixture-experiment.md)
 
 - [2026-09-10 Identity session binding](2026-09-10-identity-session-binding.md)

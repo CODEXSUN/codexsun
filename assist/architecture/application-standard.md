@@ -17,7 +17,7 @@ Create these files with the application:
 - One `package.json` and one `tsconfig.json` in each runnable workspace.
 - API and web module READMEs before their module code.
 
-The application README must remain accurate for commands, addresses, environment keys, health behavior, shutdown behavior, and verification. `npm.cmd run check:app-docs` enforces its required sections and links.
+The application README must remain accurate for commands, addresses, environment keys, health behavior, shutdown behavior, and verification. `npm.cmd run check:app-docs` enforces its required sections and links for applications registered in `.container/catalog.json`. A future application directory is not active until the catalog registers it.
 
 Register each runnable API, web server, or worker as one component in `.container/catalog.json`. Bind the application to compatible framework, Platform Core, contract, UI, and runtime-holder versions. Add it to the complete `development` profile before the application is considered available to the shared local runtime.
 
