@@ -12,13 +12,13 @@ export function bumpNextVersion(rootDir, title = 'version update', options = {})
   const currentVersion = readRootVersion(rootDir)
   const nextVersion = bumpPatch(currentVersion)
   const databaseUpdate = resolveDatabaseUpdate(rootDir, options.databaseUpdate)
-  const packageFiles = findWorkspacePackageFiles(rootDir)
+  const packageFiles = findWorkspacePackageFiles(rootDir).filter(
+    (file) => !isIndependentZetroWorkspace(rootDir, file),
+  )
 
   for (const file of packageFiles) {
     updatePackageVersion(file, currentVersion, nextVersion)
   }
-
-  updateDesktopVersions(rootDir, currentVersion, nextVersion)
 
   updatePackageLock(
     resolve(rootDir, 'package-lock.json'),
@@ -40,42 +40,9 @@ export function bumpNextVersion(rootDir, title = 'version update', options = {})
   }
 }
 
-function updateDesktopVersions(rootDir, currentVersion, nextVersion) {
-  const tauriConfig = resolve(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri', 'tauri.conf.json')
-  if (existsSync(tauriConfig)) {
-    const config = JSON.parse(readFileSync(tauriConfig, 'utf8'))
-    if (config.version === currentVersion) {
-      config.version = nextVersion
-      writeFileSync(tauriConfig, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
-    }
-  }
-
-  updateRustPackageVersion(
-    resolve(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri', 'Cargo.toml'),
-    currentVersion,
-    nextVersion,
-  )
-  updateRustPackageVersion(
-    resolve(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri', 'Cargo.lock'),
-    currentVersion,
-    nextVersion,
-    'zetro-desktop',
-  )
-}
-
-function updateRustPackageVersion(file, currentVersion, nextVersion, packageName) {
-  if (!existsSync(file)) return
-  const content = readFileSync(file, 'utf8')
-  const packagePrefix = packageName
-    ? `(\\[\\[package\\]\\]\\r?\\nname = "${packageName}"\\r?\\nversion = )`
-    : `(\\[package\\]\\r?\\nname = "zetro-desktop"\\r?\\nversion = )`
-  const pattern = new RegExp(`${packagePrefix}"${escapePattern(currentVersion)}"`, 'u')
-  const updated = content.replace(pattern, `$1"${nextVersion}"`)
-  if (updated !== content) writeFileSync(file, updated, 'utf8')
-}
-
-function escapePattern(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+function isIndependentZetroWorkspace(rootDir, file) {
+  const path = relative(rootDir, file).replaceAll('\\', '/')
+  return path === 'apps/zetro/web/package.json'
 }
 
 function updateEnvironmentVersion(file, nextVersion) {

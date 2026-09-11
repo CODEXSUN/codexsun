@@ -104,17 +104,6 @@ const services = {
     healthPath: '/',
     prepareWorkspaces: ['@codexsun/devkit-contracts', '@codexsun/ui'],
   },
-  'zetro-api': {
-    args: ['--import', 'tsx', resolve(projectRoot, 'apps/zetro/api/src/server.ts')],
-    command: process.execPath,
-    cwd: resolve(projectRoot, 'apps/zetro/api'),
-    defaultPort: 6050,
-    hostKey: 'HOST',
-    label: 'Zetro API',
-    portKey: 'ZETRO_API_PORT',
-    healthPath: '/health/live',
-    prepareWorkspaces: ['@codexsun/platform-core-api'],
-  },
   'zetro-web': {
     args: [resolve(projectRoot, 'node_modules/vite/bin/vite.js'), '--strictPort'],
     command: process.execPath,

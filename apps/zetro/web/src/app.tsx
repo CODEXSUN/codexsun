@@ -1,178 +1,315 @@
-import { Suspense, useEffect, useState } from 'react'
-import { GlobalLoader } from '@codexsun/ui/blocks/loader'
-import type { AgentWorkspaceRail } from '@codexsun/ui/layouts/agent-workspace'
-import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
-import { Bot, FolderKanban, GitBranch, ListTodo, MessageSquare, Workflow } from 'lucide-react'
-import { AgentChatProvider, useAgentChat } from './modules/agent-chat'
-import { DeveloperToolsProvider, useDeveloperTools } from './modules/developer-tools'
-import { GitDeliveryProvider } from './modules/git-delivery'
-import { ProjectTasksProvider, useProjectTasks } from './modules/project-tasks'
-import { ProjectProvider, useProjects } from './modules/projects'
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { Button } from '@codexsun/ui/components/button'
 import {
-  ZetroDeskSidebar,
-  ZetroDeskWorkspace,
-  ZetroProjectSidebar,
-  ZetroProjectWorkspace,
-} from './modules/desk'
-import {
-  SettingsStartup,
-  SettingsWorkspace,
-  ZetroSettingsProvider,
-  useZetroPreferences,
-} from './modules/settings'
-import { SystemTasksProvider, useSystemTasks } from './modules/system-tasks'
-import { OperationsMonitor } from './modules/operations'
-import { zetroTopologySections } from './zetro.topology'
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from '@codexsun/ui/components/message-scroller'
+import { Textarea } from '@codexsun/ui/components/textarea'
+import { ArrowUp, Bot, Check, Copy } from 'lucide-react'
+import { ChatTurnTimeline, type TurnEntry } from './modules/shell/chat-turn-timeline'
+import { parseChatStreamEvent, type ChatStreamEvent } from './modules/shell/chat-stream.contract'
+
+type ChatTurn = {
+  completedAt?: number
+  entries: TurnEntry[]
+  id: number
+  prompt: string
+  startedAt: number
+  status: 'failed' | 'working' | 'complete'
+}
 
 export function App() {
-  return (
-    <ZetroSettingsProvider>
-      <Suspense
-        fallback={<GlobalLoader active label="Loading Zetro startup checks" delayMs={0} overlay />}
-      >
-        <SettingsStartup>
-          <ZetroApplication />
-        </SettingsStartup>
-      </Suspense>
-    </ZetroSettingsProvider>
-  )
-}
+  const [turns, setTurns] = useState<ChatTurn[]>([])
+  const [prompt, setPrompt] = useState('')
+  const [error, setError] = useState('')
+  const [isResponding, setIsResponding] = useState(false)
+  const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
 
-function ZetroApplication() {
-  useEffect(() => {
-    if (window.location.pathname !== '/zetro' || window.location.hash) {
-      window.history.replaceState(null, '', '/zetro')
+  async function sendPrompt(event?: FormEvent) {
+    event?.preventDefault()
+    if (!prompt.trim() || isResponding) return
+
+    const rawPrompt = prompt
+    const turnId = Date.now()
+    setTurns((current) => [
+      ...current,
+      {
+        entries: [],
+        id: turnId,
+        prompt: rawPrompt,
+        startedAt: Date.now(),
+        status: 'working',
+      },
+    ])
+    setPrompt('')
+    setError('')
+    setIsResponding(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        body: JSON.stringify({ prompt: rawPrompt }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      if (!response.ok) throw new Error((await response.text()) || 'Codex did not respond.')
+      if (!response.body) throw new Error('Codex returned an empty response stream.')
+      await readChatStream(response.body, (streamEvent) => applyStreamEvent(turnId, streamEvent))
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : 'Could not connect to Codex.'
+      setError(message)
+      finishTurn(turnId, 'failed')
+    } finally {
+      setIsResponding(false)
     }
-  }, [])
-
-  return (
-    <ProjectProvider>
-      <ZetroProjectApplication />
-    </ProjectProvider>
-  )
-}
-
-function ZetroProjectApplication() {
-  const { activeProject } = useProjects()
-  return (
-    <AgentChatProvider>
-      <DeveloperToolsProvider projectId={activeProject?.id ?? null}>
-        <SystemTasksProvider projectId={activeProject?.id ?? null}>
-          <GitDeliveryProvider projectId={activeProject?.id ?? null}>
-            <ProjectTasksProvider>
-              <ZetroDeskApplication />
-            </ProjectTasksProvider>
-          </GitDeliveryProvider>
-        </SystemTasksProvider>
-      </DeveloperToolsProvider>
-    </AgentChatProvider>
-  )
-}
-
-function ZetroDeskApplication() {
-  const chat = useAgentChat()
-  const projects = useProjects()
-  const tasks = useProjectTasks()
-  const systemTasks = useSystemTasks()
-  const tools = useDeveloperTools()
-  const { preferences } = useZetroPreferences()
-  const [repositoryToolsOpen, setRepositoryToolsOpen] = useState(false)
-  const openTaskCount = tasks.tasks.filter(({ status }) => status !== 'done').length
-  const activeRunCount = systemTasks.tasks.filter(({ status }) =>
-    ['blocked', 'failed', 'pending', 'running'].includes(status),
-  ).length
-
-  function showChat() {
-    projects.setView('chat')
-    chat.showChat()
   }
 
-  const primaryRail: AgentWorkspaceRail = {
-    label: 'Zetro activities',
-    items: [
-      {
-        active: projects.view === 'chat',
-        badge: chat.summaries.length,
-        icon: MessageSquare,
-        id: 'chat',
-        label: 'Chat',
-        onSelect: showChat,
-      },
-      {
-        active: projects.view === 'tasks',
-        badge: openTaskCount,
-        icon: ListTodo,
-        id: 'tasks',
-        label: 'Tasks',
-        onSelect: () => projects.setView('tasks'),
-      },
-      {
-        active: projects.view === 'automation',
-        badge: activeRunCount,
-        icon: Workflow,
-        id: 'automation',
-        label: 'Automation',
-        onSelect: () => projects.setView('automation'),
-      },
-    ],
-  }
-  const secondaryRail: AgentWorkspaceRail = {
-    label: 'Zetro utilities',
-    items: [
-      {
-        active: chat.scopeOpen,
-        disabled: !projects.activeProject || chat.isBusy,
-        icon: FolderKanban,
-        id: 'connected-folder',
-        label: 'Connected folder',
-        onSelect: () => {
-          showChat()
-          void chat.openScope()
-        },
-      },
-      {
-        active: repositoryToolsOpen,
-        badge: tools.status?.files || undefined,
-        disabled: !tools.project,
-        icon: GitBranch,
-        id: 'repository-tools',
-        label: 'Repository tools',
-        onSelect: () => setRepositoryToolsOpen((current) => !current),
-      },
-    ],
+  function applyStreamEvent(turnId: number, event: ChatStreamEvent) {
+    if (event.type === 'request') {
+      appendActivity(turnId, 'request', { prompt: event.content })
+      return
+    }
+    if (event.type === 'activity') {
+      appendActivity(turnId, event.method, event.item)
+      return
+    }
+    if (event.type === 'response') {
+      appendResponse(turnId, event.delta)
+      return
+    }
+    if (event.type === 'complete') {
+      finishTurn(turnId, 'complete')
+      return
+    }
+    setError(event.message)
+    finishTurn(turnId, 'failed')
   }
 
-  return (
-    <MdiMain
-      agentWorkspace={{ primaryRail, secondaryRail }}
-      applicationIcon={Bot}
-      applicationId="zetro"
-      applicationName="Zetro"
-      deskRegionId="15"
-      navigation={[]}
-      primaryAction={null}
-      searchPlaceholder="Search Zetro"
-      settingsContent={(props) => <SettingsWorkspace {...props} />}
-      showAppearancePanel={false}
-      showTopologyTools={preferences.interfaceTopology}
-      sidebarContent={
-        <ZetroDeskSidebar>
-          <ZetroProjectSidebar />
-        </ZetroDeskSidebar>
+  function appendActivity(turnId: number, method: string, item: Record<string, unknown>) {
+    updateTurn(turnId, (turn) => ({
+      ...turn,
+      entries: [
+        ...turn.entries,
+        { id: Date.now() + turn.entries.length, item, method, type: 'activity' },
+      ],
+    }))
+  }
+
+  function appendResponse(turnId: number, delta: string) {
+    updateTurn(turnId, (turn) => {
+      const lastEntry = turn.entries.at(-1)
+      if (lastEntry?.type === 'response') {
+        return {
+          ...turn,
+          entries: [
+            ...turn.entries.slice(0, -1),
+            { ...lastEntry, content: lastEntry.content + delta },
+          ],
+        }
       }
-      sidebarFooterClassName="border-t-0 p-3 pt-2"
-      statusLabel="Zetro Desk ready"
-      statusEnd={<span className="text-gray-600">v{import.meta.env.VITE_ZETRO_BUILD_VERSION}</span>}
-      topologySections={zetroTopologySections}
-      workspaceTitle="Zetro Desk"
-    >
-      <ZetroDeskWorkspace>
-        <ZetroProjectWorkspace
-          repositoryToolsOpen={repositoryToolsOpen}
-          onRepositoryToolsOpenChange={setRepositoryToolsOpen}
-        />
-      </ZetroDeskWorkspace>
-      <OperationsMonitor />
-    </MdiMain>
+      return {
+        ...turn,
+        entries: [...turn.entries, { content: delta, id: Date.now(), type: 'response' }],
+      }
+    })
+  }
+
+  function finishTurn(turnId: number, status: ChatTurn['status']) {
+    updateTurn(turnId, (turn) => ({ ...turn, completedAt: Date.now(), status }))
+  }
+
+  function updateTurn(turnId: number, updater: (turn: ChatTurn) => ChatTurn) {
+    setTurns((current) => current.map((turn) => (turn.id === turnId ? updater(turn) : turn)))
+  }
+
+  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    event.preventDefault()
+    void sendPrompt()
+  }
+
+  return (
+    <main className="flex h-svh min-h-0 flex-col bg-background text-foreground">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <span className="grid size-7 place-items-center rounded-lg bg-black text-white">
+          <Bot className="size-4" />
+        </span>
+        <span className="text-sm font-semibold">Zetro</span>
+        <span className="ml-auto text-xs text-gray-600">v{buildVersion}</span>
+      </header>
+
+      <section className="flex min-h-0 w-full flex-1 flex-col">
+        <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+          <MessageScroller className="flex-1">
+            <MessageScrollerViewport aria-label="Conversation">
+              <MessageScrollerContent
+                className="gap-10 px-4 py-6 sm:px-6 md:py-8 lg:px-10 2xl:px-16"
+                aria-live="polite"
+              >
+                {turns.length === 0 ? <EmptyChat /> : null}
+                {turns.map((turn, index) => (
+                  <MessageScrollerItem
+                    key={turn.id}
+                    messageId={String(turn.id)}
+                    scrollAnchor={index === turns.length - 1}
+                  >
+                    <ChatTurnView turn={turn} />
+                  </MessageScrollerItem>
+                ))}
+              </MessageScrollerContent>
+            </MessageScrollerViewport>
+            <MessageScrollerButton
+              aria-label="Scroll to present"
+              className="cursor-pointer rounded-full border shadow-sm"
+              direction="end"
+            />
+          </MessageScroller>
+        </MessageScrollerProvider>
+
+        <form
+          className="shrink-0 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 lg:px-10 2xl:px-16"
+          onSubmit={(event) => void sendPrompt(event)}
+        >
+          <div className="rounded-2xl border bg-background p-2 shadow-sm">
+            <Textarea
+              aria-label="Prompt Codex"
+              autoFocus
+              className="scrollbar-none min-h-32 max-h-36 resize-none overflow-y-auto border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
+              disabled={isResponding}
+              onChange={(event) => setPrompt(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
+              placeholder="Message Codex…"
+              value={prompt}
+            />
+            <div className="flex justify-end">
+              <Button
+                aria-label="Send prompt"
+                className="cursor-pointer"
+                disabled={!prompt.trim() || isResponding}
+                size="icon"
+                type="submit"
+              >
+                <ArrowUp />
+              </Button>
+            </div>
+          </div>
+          {error ? <p className="pt-2 text-sm text-destructive">{error}</p> : null}
+        </form>
+      </section>
+    </main>
   )
+}
+
+function EmptyChat() {
+  return (
+    <div className="grid h-full place-items-center text-center">
+      <div>
+        <span className="mx-auto grid size-11 place-items-center rounded-xl bg-black text-white">
+          <Bot className="size-5" />
+        </span>
+        <h1 className="mt-5 text-2xl font-semibold tracking-tight">Chat with Codex</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Send raw text and watch the live response.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ChatTurnView({ turn }: { turn: ChatTurn }) {
+  const [copied, setCopied] = useState(false)
+  const result = assistantResult(turn.entries)
+
+  async function copyResult() {
+    if (!result) return
+    try {
+      await navigator.clipboard.writeText(result)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1_500)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <article className="group/turn space-y-5">
+      <div className="flex justify-end">
+        <pre className="max-w-[75%] whitespace-pre-wrap rounded-2xl bg-muted px-4 py-3 font-sans text-sm">
+          {turn.prompt}
+        </pre>
+      </div>
+      <WorkingSeparator turn={turn} />
+      <ChatTurnTimeline entries={turn.entries} isWorking={turn.status === 'working'} />
+      {result && turn.status !== 'working' ? (
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within/turn:opacity-100 group-hover/turn:opacity-100">
+          <Button
+            aria-label={copied ? 'Result copied' : 'Copy result'}
+            className="text-muted-foreground"
+            onClick={() => void copyResult()}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+          >
+            {copied ? <Check /> : <Copy />}
+          </Button>
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
+function assistantResult(entries: TurnEntry[]) {
+  return entries
+    .filter((entry) => entry.type === 'response')
+    .map((entry) => entry.content)
+    .join('\n\n')
+}
+
+function WorkingSeparator({ turn }: { turn: ChatTurn }) {
+  const seconds = useElapsedSeconds(turn)
+  const label =
+    turn.status === 'working' ? 'Working' : turn.status === 'complete' ? 'Worked' : 'Stopped'
+
+  return (
+    <div className="flex items-center gap-3 text-sm" role="status">
+      <span className={turn.status === 'working' ? 'zetro-shimmer-text' : 'text-muted-foreground'}>
+        {label} for {seconds}s
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  )
+}
+
+function useElapsedSeconds(turn: ChatTurn) {
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    if (turn.status !== 'working') return
+    const timer = window.setInterval(() => setNow(Date.now()), 250)
+    return () => window.clearInterval(timer)
+  }, [turn.status])
+
+  return Math.max(0, Math.floor(((turn.completedAt ?? now) - turn.startedAt) / 1000))
+}
+
+async function readChatStream(
+  stream: ReadableStream<Uint8Array>,
+  onEvent: (event: ChatStreamEvent) => void,
+) {
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const result = await reader.read()
+    buffer += decoder.decode(result.value, { stream: !result.done })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) if (line) onEvent(parseChatStreamEvent(line))
+    if (result.done) break
+  }
+  if (buffer) onEvent(parseChatStreamEvent(buffer))
 }

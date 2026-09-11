@@ -7,7 +7,6 @@
   "buildEnvironment": {
     "VITE_PLATFORM_API_URL": "http://127.0.0.1:6010",
     "VITE_DOCS_API_URL": "http://127.0.0.1:6030",
-    "VITE_ZETRO_API_URL": "http://127.0.0.1:6050",
     "VITE_AGENT_CREW_API_URL": "http://127.0.0.1:6100",
     "VITE_DEVKIT_API_URL": "http://127.0.0.1:6070",
     "VITE_ORSHIP_API_URL": "http://127.0.0.1:6090"

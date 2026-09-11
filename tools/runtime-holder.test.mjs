@@ -26,7 +26,6 @@ test('development profile composes every registered application and component', 
       'uiux-web',
       'docs-api',
       'docs-web',
-      'zetro-api',
       'zetro-web',
       'devkit-api',
       'devkit-web',
@@ -51,7 +50,7 @@ test('platform-only profile omits unselected application artifacts', () => {
     plan.components.map(({ id }) => id),
     ['platform-api', 'platform-web'],
   )
-  assert.equal(plan.buildWorkspaces.includes('@codexsun/zetro-api'), false)
+  assert.equal(plan.buildWorkspaces.includes('@codexsun/zetro-web'), false)
   assert.equal(plan.buildWorkspaces.includes('@codexsun/docs-api'), false)
   assert.equal(plan.buildWorkspaces.includes('@codexsun/orship-api'), false)
 })

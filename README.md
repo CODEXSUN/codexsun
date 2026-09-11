@@ -35,20 +35,18 @@ The gallery consumes public `@codexsun/ui` exports, but it is not part of `packa
 
 ## Current applications
 
-| Workspace                 | Purpose                                              | Local command                   | Default URL                   |
-| ------------------------- | ---------------------------------------------------- | ------------------------------- | ----------------------------- |
-| `@codexsun/platform-web`  | React, Vite, Tailwind, and shadcn/ui web application | `npm.cmd run dev:web`           | `http://127.0.0.1:6021`       |
-| `@codexsun/platform-api`  | Fastify HTTP API                                     | `npm.cmd run dev:api`           | `http://127.0.0.1:6010`       |
-| `@codexsun/uiux-web`      | Independent UIUX gallery and design-system showcase  | `npm.cmd run dev:uiux`          | `http://127.0.0.1:6130`       |
-| `@codexsun/docs-web`      | Connected MDX documentation workspace                | `npm.cmd run dev:docs`          | `http://127.0.0.1:6040`       |
-| `@codexsun/docs-api`      | Docs vault API and HTML renderer                     | `npm.cmd run dev:docs-api`      | `http://127.0.0.1:6030`       |
-| `@codexsun/devkit-web`    | Project planning registry workspace                  | `npm.cmd run dev:devkit`        | `http://127.0.0.1:6080`       |
-| `@codexsun/devkit-api`    | Project registry JSON API                            | `npm.cmd run dev:devkit-api`    | `http://127.0.0.1:6070`       |
-| `@codexsun/zetro-web`     | Agentic AI chat and task workspace                   | `npm.cmd run dev:zetro`         | `http://127.0.0.1:6060/zetro` |
-| `@codexsun/zetro-api`     | Zetro Codex wrapper and task API                     | `npm.cmd run dev:zetro-api`     | `http://127.0.0.1:6050`       |
-| `@codexsun/zetro-desktop` | Tauri Windows host and WiX installer                 | `npm.cmd run desktop:zetro:dev` | Local Windows application     |
-| `@codexsun/orship-web`    | Live orchestration and service controls              | `npm.cmd run dev:orship`        | `http://127.0.0.1:6091`       |
-| `@codexsun/orship-api`    | Service health, metrics, logs, and local controls    | `npm.cmd run dev:orship-api`    | `http://127.0.0.1:6090`       |
+| Workspace                | Purpose                                              | Local command                | Default URL                   |
+| ------------------------ | ---------------------------------------------------- | ---------------------------- | ----------------------------- |
+| `@codexsun/platform-web` | React, Vite, Tailwind, and shadcn/ui web application | `npm.cmd run dev:web`        | `http://127.0.0.1:6021`       |
+| `@codexsun/platform-api` | Fastify HTTP API                                     | `npm.cmd run dev:api`        | `http://127.0.0.1:6010`       |
+| `@codexsun/uiux-web`     | Independent UIUX gallery and design-system showcase  | `npm.cmd run dev:uiux`       | `http://127.0.0.1:6130`       |
+| `@codexsun/docs-web`     | Connected MDX documentation workspace                | `npm.cmd run dev:docs`       | `http://127.0.0.1:6040`       |
+| `@codexsun/docs-api`     | Docs vault API and HTML renderer                     | `npm.cmd run dev:docs-api`   | `http://127.0.0.1:6030`       |
+| `@codexsun/devkit-web`   | Project planning registry workspace                  | `npm.cmd run dev:devkit`     | `http://127.0.0.1:6080`       |
+| `@codexsun/devkit-api`   | Project registry JSON API                            | `npm.cmd run dev:devkit-api` | `http://127.0.0.1:6070`       |
+| `@codexsun/zetro-web`    | Frontend-only Zetro 2.0 foundation                   | `npm.cmd run dev:zetro`      | `http://127.0.0.1:6060/zetro` |
+| `@codexsun/orship-web`   | Live orchestration and service controls              | `npm.cmd run dev:orship`     | `http://127.0.0.1:6091`       |
+| `@codexsun/orship-api`   | Service health, metrics, logs, and local controls    | `npm.cmd run dev:orship-api` | `http://127.0.0.1:6090`       |
 
 The API liveness check is available at `GET /health`. The dependency readiness check is available at `GET /health/ready`.
 
@@ -67,9 +65,6 @@ npm.cmd run dev:api
 npm.cmd run dev:web
 npm.cmd run dev:uiux
 npm.cmd run dev:zetro
-npm.cmd run dev:zetro-api
-npm.cmd run desktop:zetro:dev
-npm.cmd run desktop:zetro:msi
 npm.cmd run dev:orship
 ```
 

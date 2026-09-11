@@ -2,7 +2,7 @@
   "name": "codexsun",
   "private": true,
   "type": "module",
-  "version": "0.1.32",
+  "version": "0.1.33",
   "packageManager": "npm@12.0.2",
   "workspaces": [
     "apps/*/*",
@@ -11,7 +11,6 @@
     "packages/*/*/*"
   ],
   "scripts": {
-    "check:zetro:daily": "npm run typecheck --workspace @codexsun/ui && npm run typecheck --workspace @codexsun/zetro-api && npm run typecheck --workspace @codexsun/zetro-web && npm run lint --workspace @codexsun/ui && npm run lint --workspace @codexsun/zetro-api && npm run lint --workspace @codexsun/zetro-web && npm run test --workspace @codexsun/ui && npm run test --workspace @codexsun/zetro-api && npm run test --workspace @codexsun/zetro-web && npm run build --workspace @codexsun/zetro-api && npm run build --workspace @codexsun/zetro-web && npm run check:ui-system && npm run check:module-boundaries && npm run check:module-dependencies && npm run check:module-docs && npm run check:lines && npm run check:build-output",
     "check:release:framework": "npm run build --workspace @codexsun/framework && npm run test:framework && npm run typecheck --workspace @codexsun/framework && npm run lint --workspace @codexsun/framework && npm run check:module-boundaries && npm run check:module-dependencies && npm run check:module-docs",
     "check:release:platform": "npm run test:platform-runtime && npm run test:platform-web && npm run test:identity && npm run test:e2e:server",
     "check:release:adoption": "npm run check",
@@ -27,15 +26,10 @@
     "dev:devkit-api": "node tools/preflight.mjs devkit-api",
     "dev:orship": "node tools/dev-stack.mjs orship",
     "dev:orship-api": "node tools/preflight.mjs orship-api",
-    "dev:zetro": "node tools/dev-stack.mjs zetro",
-    "dev:zetro-api": "node tools/preflight.mjs zetro-api",
-    "dev:zetro-web": "node tools/preflight.mjs zetro-web",
+    "dev:zetro": "node tools/preflight.mjs zetro-web",
     "dev:agent-crew": "node tools/dev-stack.mjs agent-crew",
     "dev:agent-crew-api": "node tools/preflight.mjs agent-crew-api",
     "dev:agent-crew-web": "node tools/preflight.mjs agent-crew-web",
-    "desktop:zetro:dev": "npm run dev --workspace @codexsun/zetro-desktop",
-    "desktop:zetro:prepare": "node tools/zetro-desktop.mjs prepare",
-    "desktop:zetro:msi": "npm run bundle:msi --workspace @codexsun/zetro-desktop",
     "logs:failures": "node tools/runtime-failures.mjs",
     "version:show": "node tools/version/version.mjs show",
     "version:bump": "node tools/version-bump.mjs",
@@ -46,10 +40,8 @@
     "build": "npm run build:workspaces && npm run check:build-output",
     "build:workspaces": "node tools/run-turbo.mjs run build",
     "build:api": "npm run build --workspace @codexsun/framework && npm run build --workspace @codexsun/platform-contracts && npm run build --workspace @codexsun/platform-identity-client && npm run build --workspace @codexsun/platform-core-api && npm run build --workspace @codexsun/platform-api",
-    "build:zetro": "npm run build --workspace @codexsun/zetro-web && npm run build --workspace @codexsun/zetro-api && npm run build --workspace @codexsun/zetro-cli",
+    "build:zetro": "npm run build --workspace @codexsun/zetro-web",
     "build:agent-crew": "npm run build --workspace @codexsun/agent-crew-web && npm run build --workspace @codexsun/agent-crew-api && npm run build --workspace @codexsun/agent-crew-worker",
-    "test:zetro": "npm run test --workspace @codexsun/zetro-web && npm run test --workspace @codexsun/zetro-api && npm run test --workspace @codexsun/zetro-cli",
-    "zetro": "npm run build --workspace @codexsun/zetro-cli && npm run start --workspace @codexsun/zetro-cli --",
     "test:orship": "npm run test --workspace @codexsun/orship-api",
     "typecheck": "node tools/run-turbo.mjs run typecheck",
     "lint": "node tools/run-turbo.mjs run lint && npm run lint:root",
@@ -86,7 +78,7 @@
     "test:mariadb:foundation": "npm run build --workspace @codexsun/platform-core-api && node --import tsx tools/platform-mariadb.integration.mjs",
     "test:platform-web": "npm run build --workspace @codexsun/platform-core-web && node --test tools/platform-web-composition.test.mjs",
     "test:e2e:server": "npm run build:api && node --test tools/platform-api-composition.test.mjs tools/e2e/server-lifecycle.e2e.mjs",
-    "check": "npm run check:workspace-layout && npm run check:versions && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run check:module-boundaries && npm run check:module-dependencies && npm run check:ui-system && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:tooling && npm run test:framework && npm run test:runtime-holder && npm run test:orship && npm run test:zetro && npm run test:platform-runtime && npm run test:platform-web && npm run test:identity && npm run test:e2e:server"
+    "check": "npm run check:workspace-layout && npm run check:versions && npm run check:lines && npm run check:app-docs && npm run check:module-docs && npm run check:module-boundaries && npm run check:module-dependencies && npm run check:ui-system && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:tooling && npm run test:framework && npm run test:runtime-holder && npm run test:orship && npm run test:platform-runtime && npm run test:platform-web && npm run test:identity && npm run test:e2e:server"
   },
   "devDependencies": {
     "@eslint/js": "latest",

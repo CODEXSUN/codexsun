@@ -1,5 +1,0 @@
-export { chatModuleManifest, registerChatModule } from './chat.module.js'
-export { ChatService } from './chat.service.js'
-export { ChatConversationService } from './chat.conversation.service.js'
-export { validateChatWorkspaceScope, InvalidChatWorkspaceScopeError } from './chat.scope.js'
-export type { ChatTurnRequest, ChatTurnResponse } from './chat.types.js'

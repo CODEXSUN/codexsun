@@ -13,7 +13,7 @@ applications that use that foundation.
 | `apps/platform`                     | Platform         | Technical browser and HTTP composition host                                     |
 | `apps/docs`                         | Docs             | Repository documentation indexing, reading, and editing                         |
 | `apps/devkit`                       | DevKit           | Project planning registry and development confirmation                          |
-| `apps/zetro`                        | Zetro            | Agent chat, tasks, projects, and desktop host                                   |
+| `apps/zetro`                        | Zetro            | Frontend-only 2.0 web shell                                                     |
 | `apps/orship`                       | Orship           | Local service observation and guarded controls                                  |
 | `packages/framework`                | Framework        | Module lifecycle and dependency registry                                        |
 | `packages/platform-core`            | Platform Core    | Reusable API, web, desktop, and shared contracts                                |

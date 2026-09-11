@@ -7,10 +7,10 @@ import { createRuntimeLogCapture, formatRuntimeLogLine } from './runtime-log-cap
 
 test('formats structured API events as compact component lines', () => {
   const formatted = formatRuntimeLogLine(
-    'zetro-api',
+    'platform-api',
     JSON.stringify({
-      application: 'zetro',
-      component: 'zetro-api',
+      application: 'platform',
+      component: 'platform-api',
       durationSeconds: 0.0142,
       environment: 'development',
       event: 'http.request.completed',
@@ -18,7 +18,7 @@ test('formats structured API events as compact component lines', () => {
       method: 'GET',
       msg: 'request completed',
       requestId: '12345678-1234-1234-1234-123456789012',
-      route: '/api/v1/tasks',
+      route: '/health',
       statusCode: 200,
       time: '2026-09-09T02:44:25.316Z',
       version: '0.1.4',
@@ -27,7 +27,7 @@ test('formats structured API events as compact component lines', () => {
 
   assert.match(
     formatted.clean,
-    /INFO[ ]{2}\[zetro\/api\s+\] GET \/api\/v1\/tasks -> 200 14ms req=12345678/u,
+    /INFO[ ]{2}\[platform\/api\s*\] GET \/health -> 200 14ms req=12345678/u,
   )
   assert.doesNotMatch(formatted.clean, /application|environment|version/u)
 })

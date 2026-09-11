@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { codexChatPlugin } from './codex-chat-plugin.ts'
 
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
@@ -12,13 +13,9 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_ZETRO_BUILD_VERSION': JSON.stringify(packageJson.version),
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [codexChatPlugin(), react(), tailwindcss()],
   server: {
     port: Number(process.env.ZETRO_WEB_PORT ?? 6060),
-    proxy: {
-      '/api': `http://127.0.0.1:${process.env.ZETRO_API_PORT ?? 6050}`,
-      '/health': `http://127.0.0.1:${process.env.ZETRO_API_PORT ?? 6050}`,
-    },
   },
   build: {
     outDir: '../../../dist/apps/zetro/web',
@@ -43,14 +40,6 @@ export default defineConfig({
             {
               name: 'icons',
               test: /node_modules[\\/](lucide-react|@tabler)[\\/]/,
-            },
-            {
-              name: 'validation',
-              test: /node_modules[\\/]zod[\\/]/,
-            },
-            {
-              name: 'tauri',
-              test: /node_modules[\\/]@tauri-apps[\\/]/,
             },
           ],
         },

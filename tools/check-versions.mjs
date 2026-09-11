@@ -9,43 +9,30 @@ const ROOT = resolve(import.meta.dirname, '..')
 
 export function checkVersions(rootDir) {
   const rootVersion = String(readJson(join(rootDir, 'package.json')).version)
+  const zetroVersion = readWorkspaceVersion(rootDir, 'apps/zetro/web/package.json', rootVersion)
   const failures = []
 
   for (const file of findWorkspacePackageFiles(rootDir)) {
     const version = String(readJson(file).version)
-    if (version !== rootVersion) {
-      failures.push(`${relative(rootDir, file)} version is ${version}; expected ${rootVersion}.`)
+    const expected = isZetroWorkspace(rootDir, file) ? zetroVersion : rootVersion
+    if (version !== expected) {
+      failures.push(`${relative(rootDir, file)} version is ${version}; expected ${expected}.`)
     }
   }
 
   checkLockfile(rootDir, rootVersion, failures)
   checkEnvironmentExample(rootDir, rootVersion, failures)
   checkChangelog(rootDir, rootVersion, failures)
-  checkZetroDesktop(rootDir, rootVersion, failures)
   return { failures, rootVersion }
 }
 
-function checkZetroDesktop(rootDir, rootVersion, failures) {
-  const desktopRoot = join(rootDir, 'apps', 'zetro', 'desktop', 'src-tauri')
-  const configFile = join(desktopRoot, 'tauri.conf.json')
-  if (!existsSync(configFile)) return
-  const configVersion = String(readJson(configFile).version)
-  if (configVersion !== rootVersion) {
-    failures.push(`Zetro Tauri version is ${configVersion}; expected ${rootVersion}.`)
-  }
+function readWorkspaceVersion(rootDir, path, fallback) {
+  const file = join(rootDir, path)
+  return existsSync(file) ? String(readJson(file).version) : fallback
+}
 
-  for (const [name, file] of [
-    ['Cargo package', join(desktopRoot, 'Cargo.toml')],
-    ['Cargo lock package', join(desktopRoot, 'Cargo.lock')],
-  ]) {
-    const content = readFileSync(file, 'utf8')
-    const match = content.match(
-      /(?:\[package\]|name = "zetro-desktop")\r?\n(?:name = "zetro-desktop"\r?\n)?version = "([^"]+)"/u,
-    )
-    if (match?.[1] !== rootVersion) {
-      failures.push(`Zetro ${name} version is ${match?.[1] ?? 'missing'}; expected ${rootVersion}.`)
-    }
-  }
+function isZetroWorkspace(rootDir, file) {
+  return relative(rootDir, file).replaceAll('\\', '/').startsWith('apps/zetro/')
 }
 
 function checkEnvironmentExample(rootDir, rootVersion, failures) {

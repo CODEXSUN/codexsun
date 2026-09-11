@@ -1,37 +1,26 @@
 {
   "name": "@codexsun/zetro-web",
   "private": true,
-  "version": "0.1.32",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port 6060",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-web.eslintcache",
-    "test": "npm run test:attachments && npm run test:automation && npm run test:markdown && npm run test:model-selection && npm run test:chat-contract",
-    "test:chat-contract": "node --test --import tsx tests/agent-chat.contract.test.ts tests/agent-chat.stream.test.ts tests/settings.startup.test.ts",
-    "test:attachments": "node --test --import tsx tests/agent-chat.attachments.test.ts",
-    "test:automation": "node --test --import tsx tests/automation.supervisor.test.ts",
-    "test:markdown": "node --test --import tsx tests/agent-chat.markdown.test.tsx",
-    "test:model-selection": "node --test --import tsx tests/agent-chat.model-selection.test.ts",
+    "test": "npm run typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "preview": "vite preview --port 6060"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.101.4",
     "@codexsun/ui": "file:../../../packages/ui",
     "@tailwindcss/vite": "^4.3.3",
-    "@tauri-apps/api": "2.11.1",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "^1.33.0",
     "react": "latest",
     "react-dom": "latest",
-    "react-markdown": "10.1.0",
-    "remark-gfm": "4.0.1",
     "tailwindcss": "^4.3.3",
-    "tw-shimmer": "^0.4.12",
     "typescript": "latest",
-    "vite": "latest",
-    "zod": "^4.5.4"
+    "vite": "latest"
   },
   "devDependencies": {
     "@types/node": "^26.5.0",

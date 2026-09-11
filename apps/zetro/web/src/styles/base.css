@@ -28,3 +28,29 @@ body {
   margin: 0;
   background: #f3f2ed;
 }
+
+@keyframes zetro-text-shimmer {
+  from {
+    background-position: 200% center;
+  }
+
+  to {
+    background-position: -200% center;
+  }
+}
+
+.zetro-shimmer-text {
+  animation: zetro-text-shimmer 1.8s linear infinite;
+  background: linear-gradient(90deg, #737373 30%, #f97316 50%, #737373 70%);
+  background-clip: text;
+  background-size: 200% 100%;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zetro-shimmer-text {
+    animation: none;
+    background: none;
+    color: #737373;
+  }
+}
