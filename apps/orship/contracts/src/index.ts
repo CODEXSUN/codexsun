@@ -156,6 +156,41 @@ export const dockerContainerActionResponseSchema = z.object({
   message: z.string().min(1).max(300),
 })
 
+export const prerequisiteStateSchema = z.enum(['healthy', 'starting', 'unavailable'])
+
+export const prerequisiteServiceSchema = z.object({
+  id: z.enum(['mariadb', 'redis', 'filebrowser']),
+  name: z.string().min(1).max(80),
+  state: prerequisiteStateSchema,
+  status: z.string().min(1).max(300),
+})
+
+export const prerequisiteOverviewSchema = z.object({
+  available: z.boolean(),
+  services: z.array(prerequisiteServiceSchema),
+  updatedAt: z.iso.datetime(),
+})
+
+export const prerequisiteSettingsSchema = z.object({
+  fileBrowserAdminConfigured: z.boolean(),
+  fileBrowserAdminUser: z.string().min(1).max(80),
+  mariadbPort: z.number().int().min(1).max(65535),
+  mariadbRootPasswordConfigured: z.boolean(),
+  redisPasswordConfigured: z.boolean(),
+  redisPort: z.number().int().min(1).max(65535),
+  storagePort: z.number().int().min(1).max(65535),
+})
+
+export const prerequisiteSettingsUpdateSchema = z.strictObject({
+  fileBrowserAdminPassword: z.string().min(12).max(300).optional(),
+  fileBrowserAdminUser: z.string().min(1).max(80),
+  mariadbPort: z.number().int().min(1).max(65535),
+  mariadbRootPassword: z.string().min(12).max(300).optional(),
+  redisPassword: z.string().min(12).max(300).optional(),
+  redisPort: z.number().int().min(1).max(65535),
+  storagePort: z.number().int().min(1).max(65535),
+})
+
 export const serviceSnapshotSchema = z.object({
   applicationId: z.string().min(1),
   checkedAt: z.iso.datetime(),
@@ -246,3 +281,6 @@ export type DockerContainer = z.infer<typeof dockerContainerSchema>
 export type DockerContainerAction = z.infer<typeof dockerContainerActionSchema>
 export type DockerContainerActionResponse = z.infer<typeof dockerContainerActionResponseSchema>
 export type DockerContainerList = z.infer<typeof dockerContainerListSchema>
+export type PrerequisiteOverview = z.infer<typeof prerequisiteOverviewSchema>
+export type PrerequisiteSettings = z.infer<typeof prerequisiteSettingsSchema>
+export type PrerequisiteSettingsUpdate = z.infer<typeof prerequisiteSettingsUpdateSchema>

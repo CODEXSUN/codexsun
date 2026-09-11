@@ -151,6 +151,8 @@ a separate sampler implementation.
 ## Included features
 
 `@codexsun/ui/hooks/use-scroll-follow` follows content updates inside a shared ScrollArea while the reader remains near its bottom.
+
+`@codexsun/ui/components/markdown-content` renders trusted application Markdown syntax as safe structured content without interpreting embedded HTML. It owns consistent headings, lists, links, tables, quotes, inline code, and fenced-code presentation for reusable response and document surfaces.
 Pass an update signal and conversation key. The hook resets on a new conversation and removes its scroll listener on unmount.
 Scrolling upward pauses following. Returning within 80px of the bottom resumes it without forced smooth motion.
 

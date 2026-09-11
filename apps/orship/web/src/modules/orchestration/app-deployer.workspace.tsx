@@ -4,7 +4,7 @@ import { Input } from '@codexsun/ui/components/input'
 import { NativeSelect } from '@codexsun/ui/components/native-select'
 import { Download } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
-import { useOrchestrationOverview } from './orchestration.hooks'
+import { useOrchestrationOverview, usePrerequisites } from './orchestration.hooks'
 
 const features = ['Docs', 'UX/UI', 'Zetro', 'CRM', 'ERP', 'Chat', 'Email']
 
@@ -13,6 +13,7 @@ export function AppDeployerWorkspace() {
   const [databaseName, setDatabaseName] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const overview = useOrchestrationOverview()
+  const prerequisites = usePrerequisites()
   const { apiPort, webPort } = useMemo(
     () => findNextPortPair(overview.data?.services ?? []),
     [overview.data?.services],
@@ -25,6 +26,10 @@ export function AppDeployerWorkspace() {
         : [...current, feature],
     )
   }
+
+  const prerequisitesReady = prerequisites.data?.services.every(
+    (service) => service.state === 'healthy',
+  )
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-6">
@@ -87,7 +92,15 @@ export function AppDeployerWorkspace() {
         </div>
       </section>
 
-      <Button className="self-start" disabled={!appName || !databaseName || selected.length === 0}>
+      {prerequisitesReady === false ? (
+        <p className="text-sm text-destructive">
+          Start healthy prerequisites before preparing an install.
+        </p>
+      ) : null}
+      <Button
+        className="self-start"
+        disabled={!appName || !databaseName || selected.length === 0 || !prerequisitesReady}
+      >
         <Download />
         Prepare install
       </Button>

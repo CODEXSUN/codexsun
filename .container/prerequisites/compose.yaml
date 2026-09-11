@@ -1,0 +1,72 @@
+name: codexsun-prerequisites
+
+services:
+  mariadb:
+    image: mariadb:11.8
+    container_name: orship-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: orship_master
+      MARIADB_ROOT_PASSWORD: ${PREREQUISITE_MARIADB_ROOT_PASSWORD:?Run setup-prerequisites.sh first}
+    labels:
+      codexsun.orship.prerequisite: 'true'
+    ports:
+      - 127.0.0.1:${PREREQUISITE_MARIADB_PORT:-3307}:3306
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+
+  redis:
+    image: redis:8.2-alpine
+    container_name: orship-redis
+    restart: unless-stopped
+    command: ['sh', '-ec', 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    environment:
+      REDIS_PASSWORD: ${PREREQUISITE_REDIS_PASSWORD:?Run setup-prerequisites.sh first}
+    labels:
+      codexsun.orship.prerequisite: 'true'
+    ports:
+      - 127.0.0.1:${PREREQUISITE_REDIS_PORT:-6379}:6379
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping | grep -qx PONG']
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+
+  filebrowser:
+    image: filebrowser/filebrowser:v2.32.0
+    container_name: orship-filebrowser
+    restart: unless-stopped
+    entrypoint: ['/bin/sh', '/scripts/filebrowser-init.sh']
+    environment:
+      FILEBROWSER_ADMIN_PASSWORD: ${PREREQUISITE_FILEBROWSER_ADMIN_PASSWORD:?Run setup-prerequisites.sh first}
+      FILEBROWSER_ADMIN_USER: ${PREREQUISITE_FILEBROWSER_ADMIN_USER:-admin}
+    labels:
+      codexsun.orship.prerequisite: 'true'
+    ports:
+      - 127.0.0.1:${PREREQUISITE_FILEBROWSER_PORT:-7090}:80
+    volumes:
+      - filebrowser-data:/srv
+      - filebrowser-db:/database
+      - ./filebrowser-init.sh:/scripts/filebrowser-init.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', '/filebrowser -d /database/filebrowser.db config cat >/dev/null']
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 12
+
+volumes:
+  filebrowser-data:
+  filebrowser-db:
+  mariadb-data:
+  redis-data:

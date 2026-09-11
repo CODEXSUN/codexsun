@@ -10,6 +10,9 @@ import {
   dockerContainerListSchema,
   orchestrationErrorSchema,
   orchestrationOverviewSchema,
+  prerequisiteOverviewSchema,
+  prerequisiteSettingsSchema,
+  prerequisiteSettingsUpdateSchema,
   serviceActionRequestSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
@@ -21,6 +24,8 @@ import { OrchestrationError, OrchestrationService } from '../application/orchest
 import { CloudTargetService } from '../application/cloud-target.service.js'
 import { DeploymentEvidenceService } from '../application/deployment-evidence.service.js'
 import { DockerControlGateway } from '../infrastructure/docker-control.gateway.js'
+import { PrerequisiteService } from '../application/prerequisite.service.js'
+import { PrerequisiteSettingsStore } from '../infrastructure/prerequisite-settings.store.js'
 
 const serviceParamsSchema = z.strictObject({ serviceId: z.string().min(1).max(80) })
 const logQuerySchema = z.strictObject({
@@ -33,7 +38,39 @@ export async function registerOrchestrationRoutes(
   cloudTarget: CloudTargetService,
   deployments: DeploymentEvidenceService,
   docker: DockerControlGateway,
+  prerequisites: PrerequisiteService,
+  prerequisiteSettings: PrerequisiteSettingsStore,
 ): Promise<void> {
+  server.get(
+    '/api/orship/v1/prerequisites',
+    { schema: { response: { 200: z.toJSONSchema(prerequisiteOverviewSchema) } } },
+    () => prerequisites.getOverview(),
+  )
+
+  server.get(
+    '/api/orship/v1/prerequisites/settings',
+    { schema: { response: { 200: z.toJSONSchema(prerequisiteSettingsSchema) } } },
+    () => prerequisiteSettings.get(),
+  )
+
+  server.put(
+    '/api/orship/v1/prerequisites/settings',
+    {
+      schema: {
+        response: {
+          200: z.toJSONSchema(prerequisiteSettingsSchema),
+          403: z.toJSONSchema(orchestrationErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!isLoopback(request)) {
+        return reply.status(403).send(errorBody('LOOPBACK_REQUIRED', 'Use a local browser.'))
+      }
+      return prerequisiteSettings.update(prerequisiteSettingsUpdateSchema.parse(request.body))
+    },
+  )
+
   server.get(
     '/api/orship/v1/docker/containers',
     { schema: { response: { 200: z.toJSONSchema(dockerContainerListSchema) } } },

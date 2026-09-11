@@ -4,7 +4,12 @@ import Fastify from 'fastify'
 import { pathToFileURL } from 'node:url'
 import { chatConversationHeaderName } from '@codexsun/zetro-contracts'
 import { getProjectRoot, readEnvironment } from './config.js'
+import { registerAgentTaskModule } from './modules/agent-tasks/index.js'
 import { registerChatModule } from './modules/chat/index.js'
+import { CodexChatClient } from './modules/chat/infrastructure/codex-chat.client.js'
+import { ProviderChatRunner } from './modules/chat/infrastructure/provider-chat.runner.js'
+import { CxzChatClient } from './modules/chat/infrastructure/cxz-chat.client.js'
+import { registerProviderModule } from './modules/providers/index.js'
 
 export async function createServer() {
   const environment = readEnvironment()
@@ -18,14 +23,26 @@ export async function createServer() {
   server.addHook('onClose', () => observability.shutdown())
   await server.register(cors, {
     allowedHeaders: ['content-type', chatConversationHeaderName],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    origin: [environment.ZETRO_WEB_ORIGIN],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    origin: [environment.ZETRO_WEB_ORIGIN, environment.ZETRO_CXZ_ORIGIN],
   })
-  const chat = await registerChatModule(server, environment, getProjectRoot())
+  const projectRoot = getProjectRoot()
+  const codex = new CodexChatClient()
+  const providers = await registerProviderModule(server, environment, projectRoot, codex)
+  const runner = new ProviderChatRunner(providers, codex, new CxzChatClient())
+  const chat = await registerChatModule(server, environment, projectRoot, runner)
+  const agentTasks = await registerAgentTaskModule(server, environment, projectRoot, chat)
+  server.addHook('onClose', async () => {
+    agentTasks.close()
+    await chat.close()
+    providers.close()
+  })
   server.get('/health', async () => ({ service: 'zetro-api', status: 'ok' }))
   server.get('/health/live', async () => ({ service: 'zetro-api', status: 'ok' }))
   server.get('/health/ready', async (_request, reply) => {
-    if (chat.isReady()) return { service: 'zetro-api', status: 'ready', storage: 'sqlite' }
+    if (agentTasks.isReady() && chat.isReady() && providers.isReady()) {
+      return { service: 'zetro-api', status: 'ready', storage: 'sqlite' }
+    }
     return reply
       .code(503)
       .send({ service: 'zetro-api', status: 'not-ready', storage: 'unavailable' })

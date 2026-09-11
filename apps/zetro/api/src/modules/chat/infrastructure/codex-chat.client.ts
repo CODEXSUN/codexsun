@@ -1,7 +1,12 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
-import type { ChatStreamEvent } from '@codexsun/zetro-contracts'
-import type { ChatRunResult } from '../application/chat.ports.js'
+import type {
+  ChatStreamEvent,
+  ProviderDeviceLoginResponse,
+  ProviderModel,
+  ProviderReasoningEffort,
+} from '@codexsun/zetro-contracts'
+import type { ProviderAccount, ProviderRunResult } from '../../providers/index.js'
 import {
   resolveChatWorkingDirectory,
   resolveCodexExecutable,
@@ -27,14 +32,12 @@ type TurnCollector = {
   content: string
   onEvent(event: ChatStreamEvent): void
   reject(error: Error): void
-  resolve(result: ChatRunResult): void
+  resolve(result: ProviderRunResult): void
   timeout: NodeJS.Timeout
 }
 
 type ThreadSession = { activeTurn?: Promise<string>; threadId: string }
 
-const chatModel = 'gpt-5.3-codex-spark'
-const chatReasoningEffort = 'low'
 const responseTimeoutMilliseconds = 5 * 60 * 1000
 
 export class CodexChatClient {
@@ -43,6 +46,7 @@ export class CodexChatClient {
   private startPromise: Promise<void> | null = null
   private readonly pendingRequests = new Map<number, PendingRequest>()
   private readonly conversations = new Map<string, Promise<ThreadSession>>()
+  private readonly loginCallbacks = new Map<string, (success: boolean, error?: string) => void>()
   private readonly turns = new Map<string, TurnCollector>()
 
   public async run(
@@ -51,19 +55,24 @@ export class CodexChatClient {
     onEvent: (event: ChatStreamEvent) => void,
     providerThreadId: string | undefined,
     onProviderThread: (threadId: string) => void,
+    model: string | undefined,
+    effort: ProviderReasoningEffort,
   ) {
     const session = await this.getConversation(
       conversationId,
       providerThreadId,
       onProviderThread,
       onEvent,
+      model,
+      effort,
     )
     if (session.activeTurn) throw new Error('This Zetro chat is already responding.')
     const completion = this.collectTurn(session.threadId, onEvent)
     const activeTurn = this.request('turn/start', {
       cwd: resolveChatWorkingDirectory(),
-      effort: chatReasoningEffort,
+      effort,
       input: [{ text: prompt, type: 'text' }],
+      model,
       threadId: session.threadId,
     }).then((result) => readString(asRecord(asRecord(result).turn), 'id'))
     session.activeTurn = activeTurn
@@ -91,6 +100,102 @@ export class CodexChatClient {
     })
   }
 
+  public async readAccount(): Promise<ProviderAccount> {
+    const result = asRecord(await this.request('account/read', { refreshToken: false }))
+    const account = isRecord(result.account) ? result.account : undefined
+    if (!account) return { authenticated: false }
+    const email = typeof account.email === 'string' ? account.email : undefined
+    const plan = typeof account.planType === 'string' ? account.planType : undefined
+    const type = typeof account.type === 'string' ? account.type : 'Codex'
+    return { authenticated: true, label: [email ?? type, plan].filter(Boolean).join(' · ') }
+  }
+
+  public async listModels(): Promise<ProviderModel[]> {
+    const models: ProviderModel[] = []
+    let cursor: string | undefined
+    do {
+      const result = asRecord(
+        await this.request('model/list', {
+          cursor: cursor ?? null,
+          includeHidden: false,
+          limit: 100,
+        }),
+      )
+      const page = Array.isArray(result.data) ? result.data : []
+      for (const value of page) {
+        const model = asRecord(value)
+        const id = readString(model, 'model')
+        models.push({
+          description: typeof model.description === 'string' ? model.description : '',
+          displayName: typeof model.displayName === 'string' ? model.displayName : id,
+          id,
+          isDefault: model.isDefault === true,
+          supportedReasoningEfforts: readReasoningEfforts(model.supportedReasoningEfforts),
+        })
+      }
+      cursor = typeof result.nextCursor === 'string' ? result.nextCursor : undefined
+    } while (cursor)
+    return models
+  }
+
+  public async startDeviceLogin(
+    onComplete: (success: boolean, error?: string) => void,
+  ): Promise<ProviderDeviceLoginResponse> {
+    const result = asRecord(
+      await this.request('account/login/start', { type: 'chatgptDeviceCode' }),
+    )
+    const response = {
+      loginId: readString(result, 'loginId'),
+      userCode: readString(result, 'userCode'),
+      verificationUrl: readString(result, 'verificationUrl'),
+    }
+    this.loginCallbacks.set(response.loginId, onComplete)
+    return response
+  }
+
+  public async restart() {
+    await this.close()
+    await this.start()
+  }
+
+  public async smoke(model: string, effort: ProviderReasoningEffort) {
+    const startedAt = Date.now()
+    const result = asRecord(
+      await this.request('thread/start', {
+        approvalPolicy: 'never',
+        cwd: resolveChatWorkingDirectory(),
+        developerInstructions: 'This is a connection smoke test. Reply exactly ZETRO_SMOKE_OK.',
+        ephemeral: true,
+        model,
+        sandbox: 'read-only',
+        serviceName: 'zetro-smoke',
+        threadSource: 'zetro',
+      }),
+    )
+    const threadId = readString(asRecord(result.thread), 'id')
+    const completion = this.collectTurn(threadId, () => undefined, 30_000)
+    try {
+      await this.request('turn/start', {
+        cwd: resolveChatWorkingDirectory(),
+        effort,
+        input: [{ text: 'Reply exactly ZETRO_SMOKE_OK.', type: 'text' }],
+        model,
+        threadId,
+      })
+      const response = (await completion).content.trim()
+      if (response !== 'ZETRO_SMOKE_OK')
+        throw new Error('Codex returned an invalid smoke response.')
+      return {
+        completedAt: Date.now(),
+        latencyMs: Date.now() - startedAt,
+        ok: true as const,
+        response: 'ZETRO_SMOKE_OK' as const,
+      }
+    } finally {
+      await this.request('thread/delete', { threadId }).catch(() => undefined)
+    }
+  }
+
   public async close() {
     const child = this.process
     this.process = null
@@ -106,10 +211,12 @@ export class CodexChatClient {
     providerThreadId: string | undefined,
     onProviderThread: (threadId: string) => void,
     onEvent: (event: ChatStreamEvent) => void,
+    model: string | undefined,
+    effort: ProviderReasoningEffort,
   ) {
     const existing = this.conversations.get(conversationId)
     if (existing) return existing
-    const created = this.resumeOrStartThread(providerThreadId, onEvent)
+    const created = this.resumeOrStartThread(providerThreadId, onEvent, model, effort)
       .then((session) => {
         onProviderThread(session.threadId)
         return session
@@ -127,15 +234,18 @@ export class CodexChatClient {
   private async resumeOrStartThread(
     providerThreadId: string | undefined,
     onEvent: (event: ChatStreamEvent) => void,
+    model: string | undefined,
+    effort: ProviderReasoningEffort,
   ): Promise<ThreadSession> {
-    if (!providerThreadId) return this.startThread()
+    if (!providerThreadId) return this.startThread(model, effort)
     try {
       const result = asRecord(
         await this.request('thread/resume', {
           approvalPolicy: 'never',
           cwd: resolveChatWorkingDirectory(),
+          developerInstructions: codexIdentityInstructions(model, effort),
           excludeTurns: true,
-          model: chatModel,
+          model,
           sandbox: 'read-only',
           threadId: providerThreadId,
         }),
@@ -147,17 +257,21 @@ export class CodexChatClient {
         method: 'thread/recovery',
         type: 'activity',
       })
-      return this.startThread()
+      return this.startThread(model, effort)
     }
   }
 
-  private async startThread(): Promise<ThreadSession> {
+  private async startThread(
+    model: string | undefined,
+    effort: ProviderReasoningEffort,
+  ): Promise<ThreadSession> {
     const result = asRecord(
       await this.request('thread/start', {
         approvalPolicy: 'never',
         cwd: resolveChatWorkingDirectory(),
+        developerInstructions: codexIdentityInstructions(model, effort),
         ephemeral: false,
-        model: chatModel,
+        model,
         sandbox: 'read-only',
         serviceName: 'zetro',
         threadSource: 'zetro',
@@ -242,6 +356,15 @@ export class CodexChatClient {
 
   private handleNotification(method: string, params: unknown) {
     const values = isRecord(params) ? params : {}
+    if (method === 'account/login/completed') {
+      const loginId = typeof values.loginId === 'string' ? values.loginId : undefined
+      if (!loginId) return
+      const callback = this.loginCallbacks.get(loginId)
+      if (!callback) return
+      this.loginCallbacks.delete(loginId)
+      callback(values.success === true, typeof values.error === 'string' ? values.error : undefined)
+      return
+    }
     const threadId = typeof values.threadId === 'string' ? values.threadId : undefined
     if (!threadId) return
     const collector = this.turns.get(threadId)
@@ -280,11 +403,15 @@ export class CodexChatClient {
     this.resolveTurn(threadId, { content: collector.content, status: 'complete' })
   }
 
-  private collectTurn(threadId: string, onEvent: (event: ChatStreamEvent) => void) {
-    return new Promise<ChatRunResult>((resolve, reject) => {
+  private collectTurn(
+    threadId: string,
+    onEvent: (event: ChatStreamEvent) => void,
+    timeoutMilliseconds = responseTimeoutMilliseconds,
+  ) {
+    return new Promise<ProviderRunResult>((resolve, reject) => {
       const timeout = setTimeout(
         () => this.rejectTurn(threadId, new Error('Codex response timed out.')),
-        responseTimeoutMilliseconds,
+        timeoutMilliseconds,
       )
       this.turns.set(threadId, { content: '', onEvent, reject, resolve, timeout })
     })
@@ -302,7 +429,7 @@ export class CodexChatClient {
     }
   }
 
-  private resolveTurn(threadId: string, result: ChatRunResult) {
+  private resolveTurn(threadId: string, result: ProviderRunResult) {
     const collector = this.turns.get(threadId)
     if (!collector) return
     clearTimeout(collector.timeout)
@@ -333,7 +460,33 @@ export class CodexChatClient {
     }
     for (const threadId of this.turns.keys()) this.rejectTurn(threadId, error)
     this.pendingRequests.clear()
+    for (const callback of this.loginCallbacks.values()) callback(false, error.message)
+    this.loginCallbacks.clear()
   }
+}
+
+export function codexIdentityInstructions(
+  model: string | undefined,
+  effort: ProviderReasoningEffort,
+) {
+  const modelLabel = model ? displayModel(model) : 'the selected model'
+  return [
+    'You are Codex running through Zetro.',
+    `The active runtime configuration is Codex ${modelLabel} with ${effort} reasoning.`,
+    `When asked for your identity, model, or reasoning setting, answer: "I am Codex, powered by ${modelLabel} with ${effort} reasoning."`,
+    'The reasoning label is configuration metadata. Never reveal private chain-of-thought.',
+  ].join(' ')
+}
+
+export function displayModel(model: string) {
+  return model
+    .split('-')
+    .map((part) => (part.toLowerCase() === 'gpt' ? 'GPT' : title(part)))
+    .join('-')
+}
+
+function title(value: string) {
+  return /^\d/.test(value) ? value : `${value.charAt(0).toUpperCase()}${value.slice(1)}`
 }
 
 function asRecord(value: unknown) {
@@ -353,4 +506,27 @@ function readString(value: Record<string, unknown>, key: string) {
 
 function toError(error: unknown) {
   return error instanceof Error ? error : new Error('Codex request failed.')
+}
+
+function readReasoningEfforts(value: unknown): ProviderReasoningEffort[] {
+  if (!Array.isArray(value)) return []
+  const efforts = new Set<ProviderReasoningEffort>([
+    'none',
+    'minimal',
+    'low',
+    'medium',
+    'high',
+    'xhigh',
+    'max',
+    'ultra',
+  ])
+  return value.flatMap((item) => {
+    if (typeof item === 'string' && efforts.has(item as ProviderReasoningEffort))
+      return [item as ProviderReasoningEffort]
+    if (!isRecord(item)) return []
+    const effort = item.reasoningEffort ?? item.effort
+    return typeof effort === 'string' && efforts.has(effort as ProviderReasoningEffort)
+      ? [effort as ProviderReasoningEffort]
+      : []
+  })
 }

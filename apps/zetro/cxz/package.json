@@ -1,0 +1,33 @@
+{
+  "name": "@codexsun/zetro-cxz",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.web.json --noEmit --pretty false && vite build --config web/vite.config.ts",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/zetro-cxz.eslintcache",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false && tsc -p tsconfig.web.json --noEmit --pretty false",
+    "start": "node ../../../dist/apps/zetro/cxz/server.js"
+  },
+  "dependencies": {
+    "@codexsun/zetro-contracts": "file:../contracts",
+    "@codexsun/ui": "^0.1.34",
+    "@fastify/static": "latest",
+    "fastify": "^5.12.3",
+    "lucide-react": "^1.33.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "@tailwindcss/vite": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}

@@ -9,198 +9,230 @@ import {
   MessageScrollerViewport,
 } from '@codexsun/ui/components/message-scroller'
 import { Textarea } from '@codexsun/ui/components/textarea'
-import { ArrowUp, Bot, Check, Copy, Square } from 'lucide-react'
-import type { ChatStreamEvent, ChatTurnStatus, StoredChatTurn } from '@codexsun/zetro-contracts'
+import type { AgentWorkspaceRail } from '@codexsun/ui/layouts/agent-workspace'
+import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
+import { Archive, ArrowUp, Bot, ClipboardList, MessageCircle, Settings, Square } from 'lucide-react'
+import type {
+  AgentTaskDraft,
+  AgentTaskSummary,
+  ChatConversationSummary,
+  ProviderSettingsResponse,
+} from '@codexsun/zetro-contracts'
 import {
-  fetchChatHistory,
+  AgentTaskRegistry,
+  AgentTaskWorkspace,
+  createAgentTaskFromChat,
+  fetchAgentTask,
+  fetchAgentTasks,
+} from './modules/agent-tasks'
+import { ProviderHeaderSwitcher } from './modules/providers/provider-header-switcher'
+import { ProviderSettings } from './modules/providers/provider-settings'
+import { fetchProviderSettings } from './modules/providers/provider.services'
+import {
+  createChatConversation,
+  fetchConversationRegistry,
   getChatConversationId,
-  startChatTurn,
-  stopChatResponse,
-  watchChatTurn,
+  setChatConversationId,
+  updateChatConversation,
 } from './modules/shell/chat.services'
-import { ChatTurnTimeline, type TurnEntry } from './modules/shell/chat-turn-timeline'
+import { ChatTurnView, EmptyChat } from './modules/shell/chat-turn-view'
+import { ConversationRegistry } from './modules/shell/conversation-registry'
+import { isRuntimeWorking, useConcurrentChat } from './modules/shell/use-concurrent-chat'
 
-type ChatTurn = {
-  completedAt?: number
-  entries: TurnEntry[]
-  id: string
-  lastSequence: number
-  prompt: string
-  startedAt: number
-  status: ChatTurnStatus
-}
-
-type ConnectionState = 'connected' | 'reconnecting'
+type WorkspaceView = 'chat' | 'settings' | 'tasks'
 
 export function App() {
-  const [turns, setTurns] = useState<ChatTurn[]>([])
   const [prompt, setPrompt] = useState('')
-  const [error, setError] = useState('')
-  const [isResponding, setIsResponding] = useState(false)
-  const [isStopping, setIsStopping] = useState(false)
-  const [connectionState, setConnectionState] = useState<ConnectionState>('connected')
-  const [conversationId] = useState(getChatConversationId)
-  const watchControllers = useRef(new Map<string, AbortController>())
+  const [shellError, setShellError] = useState('')
+  const [conversationId, setConversationId] = useState<string>()
+  const [conversations, setConversations] = useState<ChatConversationSummary[]>([])
+  const [registryScope, setRegistryScope] = useState<'active' | 'archived'>('active')
+  const [registryBusy, setRegistryBusy] = useState(true)
+  const [search, setSearch] = useState('')
+  const [view, setView] = useState<WorkspaceView>('chat')
+  const [providerSettings, setProviderSettings] = useState<ProviderSettingsResponse>()
+  const [tasks, setTasks] = useState<AgentTaskSummary[]>([])
+  const [selectedTask, setSelectedTask] = useState<AgentTaskDraft>()
+  const [tasksBusy, setTasksBusy] = useState(false)
+  const registryLoadSequence = useRef(0)
   const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
+  const chat = useConcurrentChat(() => void refreshRegistry())
+  const runtime = chat.runtimeFor(conversationId)
+  const isResponding = isRuntimeWorking(runtime)
 
   useEffect(() => {
-    let active = true
-    fetchChatHistory(conversationId)
-      .then((history) => {
-        if (!active) return
-        setTurns(history.turns.map(turnFromStored))
-        const working = history.turns.find((turn) => turn.status === 'working')
-        if (working) void watchTurn(working.id, working.events.at(-1)?.sequence ?? 0)
-      })
-      .catch((reason: unknown) => {
-        if (active)
-          setError(reason instanceof Error ? reason.message : 'Could not load chat history.')
-      })
-    return () => {
-      active = false
-      for (const controller of watchControllers.current.values()) controller.abort()
-      watchControllers.current.clear()
+    const loadSequence = ++registryLoadSequence.current
+    async function loadRegistry() {
+      try {
+        let items = await fetchConversationRegistry('all')
+        if (registryLoadSequence.current !== loadSequence) return
+        const storedId = getChatConversationId()
+        const stored = items.find(({ id }) => id === storedId)
+        let selected = stored && !stored.archivedAt ? stored : undefined
+        selected ??= items.find(({ archivedAt }) => !archivedAt)
+        if (!selected) {
+          selected = await createChatConversation()
+          if (registryLoadSequence.current !== loadSequence) return
+          items = [selected, ...items]
+        }
+        setConversations(items)
+        selectConversation(selected.id)
+      } catch (reason) {
+        if (registryLoadSequence.current === loadSequence) {
+          setShellError(errorMessage(reason, 'Could not load conversation history.'))
+        }
+      } finally {
+        if (registryLoadSequence.current === loadSequence) setRegistryBusy(false)
+      }
     }
-  }, [conversationId])
+    void loadRegistry()
+    return () => {
+      if (registryLoadSequence.current === loadSequence) registryLoadSequence.current += 1
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchProviderSettings()
+      .then(setProviderSettings)
+      .catch((reason: unknown) => {
+        setShellError(errorMessage(reason, 'Could not load provider settings.'))
+      })
+  }, [])
 
   async function sendPrompt(event?: FormEvent) {
     event?.preventDefault()
-    if (!prompt.trim() || isResponding) return
-
+    if (!conversationId) return
     const rawPrompt = prompt
-    const turnId = crypto.randomUUID()
-    setTurns((current) => [
-      ...current,
-      {
-        entries: [],
-        id: turnId,
-        lastSequence: 0,
-        prompt: rawPrompt,
-        startedAt: Date.now(),
-        status: 'working',
-      },
-    ])
     setPrompt('')
-    setError('')
-    setIsResponding(true)
+    const started = await chat.startPrompt(conversationId, rawPrompt)
+    if (!started) setPrompt(rawPrompt)
+  }
 
+  async function repeatPrompt(rawPrompt: string) {
+    if (conversationId) await chat.startPrompt(conversationId, rawPrompt)
+  }
+
+  async function refreshRegistry() {
     try {
-      await startChatTurn(conversationId, turnId, rawPrompt)
-      await watchTurn(turnId, 0)
+      setConversations(await fetchConversationRegistry('all'))
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Could not connect to Codex.'
-      setError(message)
-      finishTurn(turnId, 'failed')
+      setShellError(errorMessage(reason, 'Could not refresh conversation history.'))
+    }
+  }
+
+  async function createConversation() {
+    setRegistryBusy(true)
+    try {
+      const conversation = await createChatConversation()
+      setConversations((current) => [conversation, ...current])
+      setRegistryScope('active')
+      selectConversation(conversation.id)
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not create the conversation.'))
     } finally {
-      setIsResponding(false)
-      setIsStopping(false)
+      setRegistryBusy(false)
     }
   }
 
-  async function watchTurn(turnId: string, afterSequence: number) {
-    if (watchControllers.current.has(turnId)) return
-    const controller = new AbortController()
-    watchControllers.current.set(turnId, controller)
-    setIsResponding(true)
+  async function renameConversation(targetId: string, title: string) {
+    await updateConversation(targetId, { title }, 'Could not rename the conversation.')
+  }
+
+  async function archiveConversation(targetId: string) {
+    setRegistryBusy(true)
     try {
-      await watchChatTurn(
-        conversationId,
-        turnId,
-        afterSequence,
-        (stored) => {
-          applyStreamEvent(turnId, stored.event)
-          updateTurn(turnId, (turn) => ({ ...turn, lastSequence: stored.sequence }))
-        },
-        setConnectionState,
-        controller.signal,
-      )
-    } catch (reason) {
-      if (!controller.signal.aborted) {
-        setError(reason instanceof Error ? reason.message : 'Could not restore the Codex stream.')
-        finishTurn(turnId, 'failed')
+      const updated = await updateChatConversation(targetId, { archived: true })
+      const nextConversations = conversations.map((item) => (item.id === targetId ? updated : item))
+      setConversations(nextConversations)
+      if (targetId === conversationId) {
+        const next = nextConversations.find(({ archivedAt }) => !archivedAt)
+        if (next) selectConversation(next.id)
+        else await createConversation()
       }
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not archive the conversation.'))
     } finally {
-      watchControllers.current.delete(turnId)
-      if (!controller.signal.aborted) {
-        setIsResponding(false)
-        setIsStopping(false)
-      }
+      setRegistryBusy(false)
     }
   }
 
-  async function stopResponse() {
-    if (!isResponding || isStopping) return
-    const activeTurn = turns.find((turn) => turn.status === 'working')
-    if (!activeTurn) return
-    setIsStopping(true)
+  async function restoreConversation(targetId: string) {
+    const updated = await updateConversation(
+      targetId,
+      { archived: false },
+      'Could not restore the conversation.',
+    )
+    if (!updated) return
+    setRegistryScope('active')
+    selectConversation(targetId)
+  }
+
+  async function updateConversation(
+    targetId: string,
+    update: { archived?: boolean; title?: string },
+    fallback: string,
+  ) {
+    setRegistryBusy(true)
     try {
-      await stopChatResponse(conversationId, activeTurn.id)
+      const updated = await updateChatConversation(targetId, update)
+      setConversations((current) => current.map((item) => (item.id === targetId ? updated : item)))
+      return updated
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Codex could not be stopped.')
-      setIsStopping(false)
+      setShellError(errorMessage(reason, fallback))
+      return undefined
+    } finally {
+      setRegistryBusy(false)
     }
   }
 
-  function applyStreamEvent(turnId: string, event: ChatStreamEvent) {
-    if (event.type === 'request') {
-      appendActivity(turnId, 'request', { prompt: event.content })
-      return
-    }
-    if (event.type === 'activity') {
-      appendActivity(turnId, event.method, event.item)
-      return
-    }
-    if (event.type === 'response') {
-      appendResponse(turnId, event.delta)
-      return
-    }
-    if (event.type === 'complete') {
-      finishTurn(turnId, 'complete')
-      return
-    }
-    if (event.type === 'stopped') {
-      finishTurn(turnId, 'stopped')
-      return
-    }
-    setError(event.message)
-    finishTurn(turnId, 'failed')
+  function selectConversation(targetId: string) {
+    setChatConversationId(targetId)
+    setConversationId(targetId)
+    setView('chat')
+    setShellError('')
+    chat.clearError(targetId)
+    void chat.loadConversation(targetId)
   }
 
-  function appendActivity(turnId: string, method: string, item: Record<string, unknown>) {
-    updateTurn(turnId, (turn) => ({
-      ...turn,
-      entries: [
-        ...turn.entries,
-        { id: Date.now() + turn.entries.length, item, method, type: 'activity' },
-      ],
-    }))
+  async function openTasks(taskId?: string) {
+    setView('tasks')
+    setTasksBusy(true)
+    setShellError('')
+    try {
+      const nextTasks = await fetchAgentTasks()
+      setTasks(nextTasks)
+      const nextTaskId = taskId ?? selectedTask?.id ?? nextTasks[0]?.id
+      setSelectedTask(nextTaskId ? await fetchAgentTask(nextTaskId) : undefined)
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not load Agent Tasks.'))
+    } finally {
+      setTasksBusy(false)
+    }
   }
 
-  function appendResponse(turnId: string, delta: string) {
-    updateTurn(turnId, (turn) => {
-      const lastEntry = turn.entries.at(-1)
-      if (lastEntry?.type === 'response') {
-        return {
-          ...turn,
-          entries: [
-            ...turn.entries.slice(0, -1),
-            { ...lastEntry, content: lastEntry.content + delta },
-          ],
-        }
-      }
-      return {
-        ...turn,
-        entries: [...turn.entries, { content: delta, id: Date.now(), type: 'response' }],
-      }
-    })
+  async function selectTask(taskId: string) {
+    setTasksBusy(true)
+    try {
+      setSelectedTask(await fetchAgentTask(taskId))
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not load the task draft.'))
+    } finally {
+      setTasksBusy(false)
+    }
   }
 
-  function finishTurn(turnId: string, status: ChatTurn['status']) {
-    updateTurn(turnId, (turn) => ({ ...turn, completedAt: Date.now(), status }))
-  }
-
-  function updateTurn(turnId: string, updater: (turn: ChatTurn) => ChatTurn) {
-    setTurns((current) => current.map((turn) => (turn.id === turnId ? updater(turn) : turn)))
+  async function sendResponseToTask(turnId: string) {
+    if (!conversationId) return
+    setTasksBusy(true)
+    try {
+      const task = await createAgentTaskFromChat(conversationId, turnId)
+      setSelectedTask(task)
+      await openTasks(task.id)
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not create the task draft.'))
+    } finally {
+      setTasksBusy(false)
+    }
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -209,224 +241,232 @@ export function App() {
     void sendPrompt()
   }
 
-  return (
-    <main className="flex h-svh min-h-0 flex-col bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-        <span className="grid size-7 place-items-center rounded-lg bg-black text-white">
-          <Bot className="size-4" />
-        </span>
-        <span className="text-sm font-semibold">Zetro</span>
-        <span className="ml-auto text-xs text-gray-600">v{buildVersion}</span>
-      </header>
-
-      <section className="flex min-h-0 w-full flex-1 flex-col">
-        <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-          <MessageScroller className="flex-1">
-            <MessageScrollerViewport aria-label="Conversation">
-              <MessageScrollerContent
-                className="gap-10 px-4 py-6 sm:px-6 md:py-8 lg:px-10 2xl:px-16"
-                aria-live="polite"
-              >
-                {turns.length === 0 ? <EmptyChat /> : null}
-                {turns.map((turn, index) => (
-                  <MessageScrollerItem
-                    key={turn.id}
-                    messageId={String(turn.id)}
-                    scrollAnchor={index === turns.length - 1}
-                  >
-                    <ChatTurnView connectionState={connectionState} turn={turn} />
-                  </MessageScrollerItem>
-                ))}
-              </MessageScrollerContent>
-            </MessageScrollerViewport>
-            <MessageScrollerButton
-              aria-label="Scroll to present"
-              className="cursor-pointer rounded-full border shadow-sm"
-              direction="end"
-            />
-          </MessageScroller>
-        </MessageScrollerProvider>
-
-        <form
-          className="shrink-0 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 lg:px-10 2xl:px-16"
-          onSubmit={(event) => void sendPrompt(event)}
-        >
-          <div className="rounded-2xl border bg-background p-2 shadow-sm">
-            <Textarea
-              aria-label="Prompt Codex"
-              autoFocus
-              className="scrollbar-none min-h-32 max-h-36 resize-none overflow-y-auto border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
-              disabled={isResponding}
-              onChange={(event) => setPrompt(event.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              placeholder="Message Codex…"
-              value={prompt}
-            />
-            <div className="flex justify-end">
-              {isResponding ? (
-                <Button
-                  aria-label={isStopping ? 'Stopping response' : 'Stop response'}
-                  className="zetro-stop-shimmer cursor-pointer"
-                  disabled={isStopping}
-                  onClick={() => void stopResponse()}
-                  size="icon"
-                  type="button"
-                  variant="neutral"
-                >
-                  <Square className="size-3 fill-current" />
-                </Button>
-              ) : (
-                <Button
-                  aria-label="Send prompt"
-                  className="cursor-pointer"
-                  disabled={!prompt.trim()}
-                  size="icon"
-                  type="submit"
-                >
-                  <ArrowUp />
-                </Button>
-              )}
-            </div>
-          </div>
-          {error ? <p className="pt-2 text-sm text-destructive">{error}</p> : null}
-        </form>
-      </section>
-    </main>
+  const selectedConversation = conversations.find(({ id }) => id === conversationId)
+  const activeCount = conversations.filter(({ archivedAt }) => !archivedAt).length
+  const archivedCount = conversations.length - activeCount
+  const workingIds = new Set(
+    Object.entries(chat.runtimes)
+      .filter(([, conversationRuntime]) => isRuntimeWorking(conversationRuntime))
+      .map(([id]) => id),
   )
-}
-
-function EmptyChat() {
-  return (
-    <div className="grid h-full place-items-center text-center">
-      <div>
-        <span className="mx-auto grid size-11 place-items-center rounded-xl bg-black text-white">
-          <Bot className="size-5" />
-        </span>
-        <h1 className="mt-5 text-2xl font-semibold tracking-tight">Chat with Codex</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Send raw text and watch the live response.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function ChatTurnView({
-  connectionState,
-  turn,
-}: {
-  connectionState: ConnectionState
-  turn: ChatTurn
-}) {
-  const [copied, setCopied] = useState(false)
-  const result = assistantResult(turn.entries)
-
-  async function copyResult() {
-    if (!result) return
-    try {
-      await navigator.clipboard.writeText(result)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1_500)
-    } catch {
-      setCopied(false)
-    }
+  const primaryRail: AgentWorkspaceRail = {
+    items: [
+      {
+        active: view === 'chat' && registryScope === 'active',
+        badge: activeCount,
+        icon: MessageCircle,
+        id: 'conversations',
+        label: 'Conversations',
+        onSelect: () => {
+          setRegistryScope('active')
+          setView('chat')
+        },
+      },
+      {
+        active: view === 'chat' && registryScope === 'archived',
+        badge: archivedCount,
+        icon: Archive,
+        id: 'archived-conversations',
+        label: 'Archived conversations',
+        onSelect: () => {
+          setRegistryScope('archived')
+          setView('chat')
+        },
+      },
+      {
+        active: view === 'tasks',
+        badge: tasks.length,
+        icon: ClipboardList,
+        id: 'agent-tasks',
+        label: 'Agent Tasks',
+        onSelect: () => void openTasks(),
+      },
+    ],
+    label: 'Zetro activities',
   }
+  const secondaryRail: AgentWorkspaceRail = {
+    items: [
+      {
+        active: view === 'settings',
+        icon: Settings,
+        id: 'provider-settings',
+        label: 'Settings',
+        onSelect: () => setView((current) => (current === 'settings' ? 'chat' : 'settings')),
+      },
+    ],
+    label: 'Conversation utilities',
+  }
+  const statusLabel = workingIds.size
+    ? `${workingIds.size} ${workingIds.size === 1 ? 'chat' : 'chats'} working`
+    : 'Ready'
 
   return (
-    <article className="group/turn space-y-5">
-      <div className="flex justify-end">
-        <pre className="max-w-[75%] whitespace-pre-wrap rounded-2xl bg-muted px-4 py-3 font-sans text-sm">
-          {turn.prompt}
-        </pre>
-      </div>
-      <WorkingSeparator connectionState={connectionState} turn={turn} />
-      <ChatTurnTimeline entries={turn.entries} isWorking={turn.status === 'working'} />
-      {result && turn.status !== 'working' ? (
-        <div className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within/turn:opacity-100 group-hover/turn:opacity-100">
-          <Button
-            aria-label={copied ? 'Result copied' : 'Copy result'}
-            className="text-muted-foreground"
-            onClick={() => void copyResult()}
-            size="icon-xs"
-            type="button"
-            variant="ghost"
+    <MdiMain
+      agentWorkspace={{ primaryRail, secondaryRail }}
+      applicationIcon={Bot}
+      applicationId="zetro"
+      applicationName="Zetro"
+      defaultFeatures={{
+        appSwitcher: false,
+        notifications: false,
+        profileMenu: false,
+        secondaryUtilityRail: true,
+      }}
+      navigation={[]}
+      primaryAction={null}
+      searchPlaceholder={view === 'tasks' ? 'Search task drafts' : 'Search conversations'}
+      searchValue={search}
+      showTopologyTools={false}
+      sidebarContent={
+        view === 'tasks' ? (
+          <AgentTaskRegistry
+            busy={tasksBusy}
+            query={search}
+            selectedId={selectedTask?.id}
+            tasks={tasks}
+            onSelect={(id) => void selectTask(id)}
+          />
+        ) : (
+          <ConversationRegistry
+            busy={registryBusy}
+            conversations={conversations}
+            query={search}
+            scope={registryScope}
+            selectedId={conversationId}
+            workingIds={workingIds}
+            onArchive={(id) => void archiveConversation(id)}
+            onCreate={() => void createConversation()}
+            onRename={(id, title) => void renameConversation(id, title)}
+            onRestore={(id) => void restoreConversation(id)}
+            onSelect={selectConversation}
+          />
+        )
+      }
+      sidebarContentClassName="p-0"
+      sidebarFooter={null}
+      sidebarStateKey="zetro-conversations"
+      statusEnd={<span className="text-xs text-gray-600">v{buildVersion}</span>}
+      statusLabel={statusLabel}
+      workspaceTitle={
+        view === 'tasks'
+          ? (selectedTask?.title ?? 'Agent Tasks')
+          : (selectedConversation?.title ?? 'Conversation')
+      }
+      onSearchChange={setSearch}
+    >
+      {view === 'settings' && providerSettings ? (
+        <ProviderSettings settings={providerSettings} onChange={setProviderSettings} />
+      ) : view === 'tasks' ? (
+        <AgentTaskWorkspace task={selectedTask} />
+      ) : (
+        <section className="flex size-full min-h-0 flex-col bg-background text-foreground">
+          <header className="flex h-14 shrink-0 items-center gap-3 border-b px-5">
+            <span className="grid size-8 place-items-center rounded-lg bg-black text-white">
+              <Bot className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                {selectedConversation?.title ?? 'Conversation'}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {selectedConversation?.archivedAt ? 'Archived conversation' : 'Conversation'}
+              </span>
+            </span>
+            {providerSettings ? (
+              <ProviderHeaderSwitcher
+                disabled={isResponding}
+                settings={providerSettings}
+                onChange={setProviderSettings}
+                onError={setShellError}
+              />
+            ) : null}
+          </header>
+          <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+            <MessageScroller className="flex-1">
+              <MessageScrollerViewport aria-label="Conversation">
+                <MessageScrollerContent
+                  aria-live="polite"
+                  className="gap-10 px-4 py-6 sm:px-6 md:py-8 lg:px-10 2xl:px-16"
+                >
+                  {runtime.turns.length === 0 ? <EmptyChat /> : null}
+                  {runtime.turns.map((turn, index) => (
+                    <MessageScrollerItem
+                      key={turn.id}
+                      messageId={String(turn.id)}
+                      scrollAnchor={index === runtime.turns.length - 1}
+                    >
+                      <ChatTurnView
+                        actionsDisabled={isResponding || Boolean(selectedConversation?.archivedAt)}
+                        connectionState={runtime.connectionState}
+                        turn={turn}
+                        onRegenerate={() => void repeatPrompt(turn.prompt)}
+                        onRetry={() => void repeatPrompt(turn.prompt)}
+                        onSendToTask={() => void sendResponseToTask(turn.id)}
+                      />
+                    </MessageScrollerItem>
+                  ))}
+                </MessageScrollerContent>
+              </MessageScrollerViewport>
+              <MessageScrollerButton
+                aria-label="Scroll to present"
+                className="cursor-pointer rounded-full border shadow-sm"
+                direction="end"
+              />
+            </MessageScroller>
+          </MessageScrollerProvider>
+          <form
+            className="shrink-0 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 lg:px-10 2xl:px-16"
+            onSubmit={(event) => void sendPrompt(event)}
           >
-            {copied ? <Check /> : <Copy />}
-          </Button>
-        </div>
-      ) : null}
-    </article>
+            <div className="rounded-2xl border bg-background p-2 shadow-sm">
+              <Textarea
+                aria-label="Prompt Codex"
+                autoFocus
+                className="scrollbar-none min-h-32 max-h-36 resize-none overflow-y-auto border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                disabled={isResponding || registryBusy || Boolean(selectedConversation?.archivedAt)}
+                onChange={(event) => setPrompt(event.target.value)}
+                onKeyDown={handleComposerKeyDown}
+                placeholder="Message Codex…"
+                value={prompt}
+              />
+              <div className="flex justify-end">
+                {isResponding ? (
+                  <Button
+                    aria-label={runtime.isStopping ? 'Stopping response' : 'Stop response'}
+                    className="zetro-stop-shimmer cursor-pointer"
+                    disabled={runtime.isStopping}
+                    onClick={() => conversationId && void chat.stopResponse(conversationId)}
+                    size="icon"
+                    type="button"
+                    variant="neutral"
+                  >
+                    <Square className="size-3 fill-current" />
+                  </Button>
+                ) : (
+                  <Button
+                    aria-label="Send prompt"
+                    className="cursor-pointer"
+                    disabled={
+                      !conversationId || !prompt.trim() || Boolean(selectedConversation?.archivedAt)
+                    }
+                    size="icon"
+                    type="submit"
+                  >
+                    <ArrowUp />
+                  </Button>
+                )}
+              </div>
+            </div>
+            {runtime.error || shellError ? (
+              <p className="pt-2 text-sm text-destructive">{runtime.error || shellError}</p>
+            ) : null}
+          </form>
+        </section>
+      )}
+    </MdiMain>
   )
 }
 
-function assistantResult(entries: TurnEntry[]) {
-  return entries
-    .filter((entry) => entry.type === 'response')
-    .map((entry) => entry.content)
-    .join('\n\n')
-}
-
-function WorkingSeparator({
-  connectionState,
-  turn,
-}: {
-  connectionState: ConnectionState
-  turn: ChatTurn
-}) {
-  const seconds = useElapsedSeconds(turn)
-  const label =
-    turn.status === 'working'
-      ? connectionState === 'reconnecting'
-        ? 'Reconnecting'
-        : 'Working'
-      : turn.status === 'complete'
-        ? 'Worked'
-        : turn.status === 'stopped'
-          ? 'Stopped'
-          : 'Failed'
-
-  return (
-    <div className="flex items-center gap-3 text-sm" role="status">
-      <span className={turn.status === 'working' ? 'zetro-shimmer-text' : 'text-muted-foreground'}>
-        {label} for {seconds}s
-      </span>
-      <span className="h-px flex-1 bg-border" />
-    </div>
-  )
-}
-
-function useElapsedSeconds(turn: ChatTurn) {
-  const [now, setNow] = useState(Date.now())
-
-  useEffect(() => {
-    if (turn.status !== 'working') return
-    const timer = window.setInterval(() => setNow(Date.now()), 250)
-    return () => window.clearInterval(timer)
-  }, [turn.status])
-
-  return Math.max(0, Math.floor(((turn.completedAt ?? now) - turn.startedAt) / 1000))
-}
-
-function turnFromStored(turn: StoredChatTurn): ChatTurn {
-  const entries: TurnEntry[] = []
-  for (const [index, stored] of turn.events.entries()) {
-    const { event } = stored
-    if (event.type === 'activity') {
-      entries.push({ id: index + 1, item: event.item, method: event.method, type: 'activity' })
-    }
-    if (event.type === 'request') {
-      entries.push({
-        id: index + 1,
-        item: { prompt: event.content },
-        method: 'request',
-        type: 'activity',
-      })
-    }
-    if (event.type === 'response') {
-      const previous = entries.at(-1)
-      if (previous?.type === 'response') previous.content += event.delta
-      else entries.push({ content: event.delta, id: index + 1, type: 'response' })
-    }
-  }
-  return { ...turn, entries, lastSequence: turn.events.at(-1)?.sequence ?? 0 }
+function errorMessage(reason: unknown, fallback: string) {
+  return reason instanceof Error ? reason.message : fallback
 }

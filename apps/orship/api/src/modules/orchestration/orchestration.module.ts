@@ -4,6 +4,7 @@ import type { OrshipEnvironment } from '../../config.js'
 import { CloudTargetService } from './application/cloud-target.service.js'
 import { DeploymentEvidenceService } from './application/deployment-evidence.service.js'
 import { OrchestrationService } from './application/orchestration.service.js'
+import { PrerequisiteService } from './application/prerequisite.service.js'
 import { DeploymentTargetCatalog } from './infrastructure/deployment-target.catalog.js'
 import { CloudTargetStore } from './infrastructure/cloud-target.store.js'
 import { DeploymentRecordStore } from './infrastructure/deployment-record.store.js'
@@ -11,6 +12,7 @@ import { LocalProcessGateway } from './infrastructure/local-process.gateway.js'
 import { LocalDeploymentInspector } from './infrastructure/local-deployment.inspector.js'
 import { DockerControlGateway } from './infrastructure/docker-control.gateway.js'
 import { DockerControlStore } from './infrastructure/docker-control.store.js'
+import { PrerequisiteSettingsStore } from './infrastructure/prerequisite-settings.store.js'
 import { registerOrchestrationRoutes } from './presentation/orchestration.routes.js'
 
 export const orchestrationManifest: FrameworkModule = {
@@ -20,6 +22,8 @@ export const orchestrationManifest: FrameworkModule = {
     'orchestration.deployments.record',
     'orchestration.docker.read',
     'orchestration.docker.control',
+    'orchestration.prerequisites.read',
+    'orchestration.prerequisites.configure',
     'orchestration.services.read',
     'orchestration.services.control',
   ],
@@ -72,6 +76,14 @@ export async function registerOrchestrationModule(
     environment.ORSHIP_DOCKER_CONTROL_ENABLED === 'true',
     new DockerControlStore(projectRoot),
   )
-  await registerOrchestrationRoutes(server, service, cloudTarget, deploymentEvidence, docker)
+  await registerOrchestrationRoutes(
+    server,
+    service,
+    cloudTarget,
+    deploymentEvidence,
+    docker,
+    new PrerequisiteService(docker),
+    new PrerequisiteSettingsStore(projectRoot),
+  )
   server.addHook('onClose', () => docker.close())
 }

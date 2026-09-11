@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "incremental": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "../../../dist/apps/zetro/cxz",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/zetro-cxz.tsbuildinfo",
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

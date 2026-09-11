@@ -8,11 +8,23 @@
 
 ## Version State
 
-- Current version: 0.1.33
-- Release tag: v-0.1.33
-- Changelog label: v 0.1.33
+- Current version: 0.1.34. Release tag: v-0.1.34. Changelog label: v 0.1.34.
+
+## v-0.1.34
+
+### [v 0.1.34] 2026-09-11 7:49 pm - Zetro multi-chat and task draft handoff
+
+- Database Changes: Added immutable provider snapshots and the Agent Task draft table through owned SQLite migrations.
+- App Codebase Changes: Chat Shell 2.6.0 keeps concurrent streams active. Agent Tasks API and Web 1.0.0 add idempotent draft handoff and an Awaiting approval workspace.
+- Verification: Passed 20 API tests, Zetro type checks and lint, shared UI and module gates, production builds, chunk checks, and live Chrome concurrent-chat and task-handoff tests. Approval, execution, desktop packaging, and publication did not run. See [the development record](../records/zetro/2026-09-11-multi-chat-task-drafts.md).
 
 ## v-0.1.33
+
+### [v 0.1.33] 2026-09-11 - Zetro conversation history registry
+
+- Database update: Yes.
+- Zetro Chat API 2.1.0 adds SQLite conversation titles and archive state. Shell Web 2.4.0 adds create, search, select, rename, archive, and restore actions. See [the development record](../records/zetro/2026-09-11-zetro-conversation-registry.md).
+- Passed 10 API, repository, route, migration, concurrency, stop, shutdown, and recovery tests. Focused UI and browser checks passed.
 
 ### [v 0.1.33] 11/09/2026 10:55 am - Zetro chat lifecycle alignment
 
@@ -44,8 +56,7 @@
 
 ### [v 0.1.33] 2026-09-11 9:29 am - working on zetro again
 
-- Database update: Yes (auto-check).
-- Bumped workspace version to 0.1.33.
+- Database update: Yes (auto-check). Bumped the workspace version to 0.1.33.
 
 ## v-0.1.32
 

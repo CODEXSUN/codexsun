@@ -10,10 +10,17 @@ import { ChatRepository } from './chat.repository.js'
 
 const conversationId = 'a0b0c0d0-1111-4111-8111-111111111111'
 const turnId = '48a7f6ea-3793-49da-b846-02592c2f2223'
+const connection = {
+  connectionId: 'local-codex',
+  kind: 'codex-app-server' as const,
+  label: 'Codex',
+  model: 'gpt-5.6-terra',
+  reasoningEffort: 'medium' as const,
+}
 
 test('chat history and provider context survive a repository restart', () => {
   withRepository((first, databasePath) => {
-    assert.deepEqual(first.startTurn(conversationId, turnId, 'Hello', 100), {
+    assert.deepEqual(first.startTurn(conversationId, turnId, 'Hello', 100, connection), {
       event: { content: 'Hello', type: 'request' },
       sequence: 1,
     })
@@ -26,6 +33,7 @@ test('chat history and provider context survive a repository restart', () => {
     const history = second.getHistory(conversationId)
     assert.equal(history.conversationId, conversationId)
     assert.equal(history.turns[0]?.status, 'complete')
+    assert.deepEqual(history.turns[0]?.connection, connection)
     assert.deepEqual(history.turns[0]?.events, [
       { event: { content: 'Hello', type: 'request' }, sequence: 1 },
       { event: { delta: 'Hi', type: 'response' }, sequence: 2 },
@@ -38,10 +46,16 @@ test('chat history and provider context survive a repository restart', () => {
 
 test('one conversation accepts only one active turn', () => {
   withRepository((repository) => {
-    repository.startTurn(conversationId, turnId, 'First', 100)
+    repository.startTurn(conversationId, turnId, 'First', 100, connection)
     assert.throws(
       () =>
-        repository.startTurn(conversationId, '58a7f6ea-3793-49da-b846-02592c2f2224', 'Second', 101),
+        repository.startTurn(
+          conversationId,
+          '58a7f6ea-3793-49da-b846-02592c2f2224',
+          'Second',
+          101,
+          connection,
+        ),
       /already responding/,
     )
     assert.equal(repository.getHistory(conversationId).turns.length, 1)
@@ -51,7 +65,7 @@ test('one conversation accepts only one active turn', () => {
 
 test('startup converts an interrupted turn to one durable terminal error', () => {
   withRepository((first, databasePath) => {
-    first.startTurn(conversationId, turnId, 'Hello', 100)
+    first.startTurn(conversationId, turnId, 'Hello', 100, connection)
     first.appendEvent(turnId, { delta: 'Partial', type: 'response' })
     first.close()
 
@@ -64,7 +78,58 @@ test('startup converts an interrupted turn to one durable terminal error', () =>
   })
 })
 
-test('migration 3 preserves version 2 session data as a conversation', () => {
+test('conversation registry creates, titles, orders, archives, and restores records', () => {
+  withRepository((repository) => {
+    const secondConversationId = 'b0b0c0d0-2222-4222-8222-222222222222'
+    assert.equal(
+      repository.createConversation(conversationId, undefined, 100).title,
+      'New conversation',
+    )
+    repository.createConversation(secondConversationId, 'Named workspace', 200)
+    repository.startTurn(conversationId, turnId, '  First registry prompt  ', 300, connection)
+    repository.finishTurn(turnId, 'complete', { type: 'complete' })
+
+    const active = repository.listConversations('active')
+    assert.equal(active[0]?.id, conversationId)
+    assert.equal(active[0]?.title, 'First registry prompt')
+    assert.equal(active[0]?.turnCount, 1)
+    assert.equal(active[0]?.lastTurnStatus, 'complete')
+
+    const renamed = repository.updateConversation(
+      secondConversationId,
+      { archived: true, title: 'Archived workspace' },
+      400,
+    )
+    assert.equal(renamed?.archivedAt, 400)
+    assert.deepEqual(
+      repository.listConversations('archived').map(({ id }) => id),
+      [secondConversationId],
+    )
+    assert.throws(
+      () =>
+        repository.startTurn(
+          secondConversationId,
+          '58a7f6ea-3793-49da-b846-02592c2f2224',
+          'Blocked while archived',
+          450,
+          connection,
+        ),
+      /Restore this conversation/,
+    )
+    assert.deepEqual(
+      repository.listConversations('active').map(({ id }) => id),
+      [conversationId],
+    )
+    assert.equal(repository.listConversations('all').length, 2)
+
+    const restored = repository.updateConversation(secondConversationId, { archived: false }, 500)
+    assert.equal(restored?.archivedAt, undefined)
+    assert.equal(restored?.title, 'Archived workspace')
+    repository.close()
+  })
+})
+
+test('registry migration preserves version 2 session data as a conversation', () => {
   const directory = mkdtempSync(join(tmpdir(), 'zetro-chat-migration-test-'))
   const databasePath = join(directory, 'zetro.sqlite')
   try {
@@ -73,9 +138,10 @@ test('migration 3 preserves version 2 session data as a conversation', () => {
     const history = repository.getHistory(conversationId)
     assert.equal(history.turns[0]?.prompt, 'Migrated')
     assert.equal(repository.getProviderThreadId(conversationId), 'provider-thread-2')
+    assert.equal(repository.listConversations('active')[0]?.title, 'Migrated')
     repository.close()
   } finally {
-    rmSync(directory, { force: true, recursive: true })
+    rmSync(directory, { force: true, maxRetries: 3, recursive: true, retryDelay: 20 })
   }
 })
 
@@ -85,7 +151,7 @@ function withRepository(run: (repository: ChatRepository, databasePath: string) 
   try {
     run(new ChatRepository(databasePath), databasePath)
   } finally {
-    rmSync(directory, { force: true, recursive: true })
+    rmSync(directory, { force: true, maxRetries: 3, recursive: true, retryDelay: 20 })
   }
 }
 

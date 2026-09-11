@@ -65,4 +65,33 @@ export const chatMigrations: ChatMigration[] = [
         WHERE provider_thread_id IS NOT NULL;
     `,
   },
+  {
+    version: 4,
+    sql: `
+      ALTER TABLE chat_conversations ADD COLUMN title TEXT;
+      ALTER TABLE chat_conversations ADD COLUMN archived_at INTEGER;
+
+      UPDATE chat_conversations
+      SET title = (
+        SELECT SUBSTR(TRIM(prompt), 1, 120)
+        FROM chat_turns
+        WHERE conversation_id = chat_conversations.id
+        ORDER BY started_at, id
+        LIMIT 1
+      );
+
+      CREATE INDEX chat_conversations_registry_idx
+        ON chat_conversations(archived_at, updated_at DESC, id);
+    `,
+  },
+  {
+    version: 5,
+    sql: `
+      ALTER TABLE chat_turns ADD COLUMN provider_connection_id TEXT;
+      ALTER TABLE chat_turns ADD COLUMN provider_kind TEXT;
+      ALTER TABLE chat_turns ADD COLUMN provider_label TEXT;
+      ALTER TABLE chat_turns ADD COLUMN provider_model TEXT;
+      ALTER TABLE chat_turns ADD COLUMN provider_reasoning_effort TEXT;
+    `,
+  },
 ]

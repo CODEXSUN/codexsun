@@ -1,6 +1,10 @@
 import {
   chatConversationHeaderName,
+  chatConversationCreateRequestSchema,
   chatConversationIdSchema,
+  chatConversationListQuerySchema,
+  chatConversationParamsSchema,
+  chatConversationUpdateRequestSchema,
   chatEventStreamQuerySchema,
   chatPromptRequestSchema,
   chatStopRequestSchema,
@@ -8,6 +12,10 @@ import {
 } from '@codexsun/zetro-contracts'
 
 export {
+  chatConversationCreateRequestSchema,
+  chatConversationListQuerySchema,
+  chatConversationParamsSchema,
+  chatConversationUpdateRequestSchema,
   chatEventStreamQuerySchema,
   chatPromptRequestSchema,
   chatStopRequestSchema,

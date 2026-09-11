@@ -42,7 +42,7 @@ export function bumpNextVersion(rootDir, title = 'version update', options = {})
 
 function isIndependentZetroWorkspace(rootDir, file) {
   const path = relative(rootDir, file).replaceAll('\\', '/')
-  return path === 'apps/zetro/web/package.json'
+  return path.startsWith('apps/zetro/')
 }
 
 function updateEnvironmentVersion(file, nextVersion) {
@@ -186,9 +186,9 @@ function updateChangelog(rootDir, nextVersion, title, databaseUpdate) {
   let content = readFileSync(file, 'utf8')
 
   content = content
-    .replace(/Current version: .*/u, `Current version: ${nextVersion}`)
-    .replace(/Release tag: .*/u, `Release tag: ${tag}`)
-    .replace(/Changelog label: .*/u, `Changelog label: ${label}`)
+    .replace(/Current version: \d+\.\d+\.\d+/u, `Current version: ${nextVersion}`)
+    .replace(/Release tag: v-\d+\.\d+\.\d+/u, `Release tag: ${tag}`)
+    .replace(/Changelog label: v \d+\.\d+\.\d+/u, `Changelog label: ${label}`)
 
   if (!content.includes('Changelog label:')) {
     content = content.replace(

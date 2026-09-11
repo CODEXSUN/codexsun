@@ -9,6 +9,9 @@ import {
   deploymentRecordCreateSchema,
   deploymentRecordListSchema,
   orchestrationOverviewSchema,
+  prerequisiteOverviewSchema,
+  prerequisiteSettingsSchema,
+  prerequisiteSettingsUpdateSchema,
   runtimeFailureOverviewSchema,
   serviceActionResponseSchema,
   serviceLogsResponseSchema,
@@ -16,6 +19,7 @@ import {
   type CloudTargetUpdate,
   type DeploymentRecordCreate,
   type DockerContainerAction,
+  type PrerequisiteSettingsUpdate,
 } from '@codexsun/orship-contracts'
 
 const baseUrl = (
@@ -25,6 +29,31 @@ const baseUrl = (
 export async function fetchOrchestrationOverview() {
   const response = await fetch(`${baseUrl}/api/orship/v1/services`)
   return orchestrationOverviewSchema.parse(await readResponse(response, 'Could not load services'))
+}
+
+export async function fetchPrerequisites() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/prerequisites`)
+  return prerequisiteOverviewSchema.parse(
+    await readResponse(response, 'Could not load shared prerequisites'),
+  )
+}
+
+export async function fetchPrerequisiteSettings() {
+  const response = await fetch(`${baseUrl}/api/orship/v1/prerequisites/settings`)
+  return prerequisiteSettingsSchema.parse(
+    await readResponse(response, 'Could not load prerequisite settings'),
+  )
+}
+
+export async function savePrerequisiteSettings(settings: PrerequisiteSettingsUpdate) {
+  const response = await fetch(`${baseUrl}/api/orship/v1/prerequisites/settings`, {
+    body: JSON.stringify(prerequisiteSettingsUpdateSchema.parse(settings)),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PUT',
+  })
+  return prerequisiteSettingsSchema.parse(
+    await readResponse(response, 'Could not save prerequisite settings'),
+  )
 }
 
 export async function runServiceAction(serviceId: string, action: ServiceAction) {

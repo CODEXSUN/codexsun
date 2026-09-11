@@ -7,10 +7,13 @@ import {
   fetchDeploymentEvidence,
   fetchDeploymentRecords,
   fetchOrchestrationOverview,
+  fetchPrerequisites,
+  fetchPrerequisiteSettings,
   fetchRuntimeFailures,
   fetchServiceLogs,
   runServiceAction,
   runDockerContainerAction,
+  savePrerequisiteSettings,
 } from './orchestration.services'
 
 const overviewKey = ['orship', 'services'] as const
@@ -20,6 +23,31 @@ export function useOrchestrationOverview() {
     queryFn: fetchOrchestrationOverview,
     queryKey: overviewKey,
     refetchInterval: 4_000,
+  })
+}
+
+export function usePrerequisites() {
+  return useQuery({
+    queryFn: fetchPrerequisites,
+    queryKey: ['orship', 'prerequisites'],
+    refetchInterval: 5_000,
+  })
+}
+
+export function usePrerequisiteSettings() {
+  return useQuery({
+    queryFn: fetchPrerequisiteSettings,
+    queryKey: ['orship', 'prerequisite-settings'],
+  })
+}
+
+export function useSavePrerequisiteSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: savePrerequisiteSettings,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['orship', 'prerequisite-settings'] })
+    },
   })
 }
 

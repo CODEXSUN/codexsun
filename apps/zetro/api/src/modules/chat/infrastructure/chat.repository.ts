@@ -4,9 +4,13 @@ import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import {
   chatStreamEventSchema,
+  type ChatConversationListScope,
+  type ChatConversationSummary,
+  type ChatConversationUpdateRequest,
   type ChatHistoryResponse,
   type ChatStoredEvent,
   type ChatStreamEvent,
+  type ChatTurnProviderSnapshot,
   type ChatTurnStatus,
 } from '@codexsun/zetro-contracts'
 import { chatMigrations } from './chat.migrations.js'
@@ -15,8 +19,23 @@ type TurnRow = {
   completed_at: number | null
   id: string
   prompt: string
+  provider_connection_id: string | null
+  provider_kind: ChatTurnProviderSnapshot['kind'] | null
+  provider_label: string | null
+  provider_model: string | null
+  provider_reasoning_effort: ChatTurnProviderSnapshot['reasoningEffort'] | null
   started_at: number
   status: ChatTurnStatus
+}
+
+type ConversationRow = {
+  archived_at: number | null
+  created_at: number
+  id: string
+  last_turn_status: ChatTurnStatus | null
+  title: string | null
+  turn_count: number
+  updated_at: number
 }
 
 export class ChatRepository {
@@ -38,24 +57,45 @@ export class ChatRepository {
     turnId: string,
     prompt: string,
     startedAt: number,
+    connection: ChatTurnProviderSnapshot,
   ): ChatStoredEvent {
     this.database.exec('BEGIN IMMEDIATE')
     try {
       this.database
         .prepare(
-          `INSERT INTO chat_conversations (id, created_at, updated_at) VALUES (?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
+          `INSERT INTO chat_conversations (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             title = COALESCE(chat_conversations.title, excluded.title),
+             updated_at = excluded.updated_at`,
         )
-        .run(conversationId, startedAt, startedAt)
+        .run(conversationId, titleFromPrompt(prompt), startedAt, startedAt)
+      const conversation = this.database
+        .prepare('SELECT archived_at FROM chat_conversations WHERE id = ?')
+        .get(conversationId) as { archived_at: number | null }
+      if (conversation.archived_at !== null) {
+        throw new Error('Restore this conversation before starting a new response.')
+      }
       if (this.getActiveTurnId(conversationId)) {
         throw new Error('This Zetro conversation is already responding.')
       }
       this.database
         .prepare(
-          `INSERT INTO chat_turns (id, conversation_id, prompt, status, started_at)
-           VALUES (?, ?, ?, 'working', ?)`,
+          `INSERT INTO chat_turns
+            (id, conversation_id, prompt, status, started_at, provider_connection_id,
+             provider_kind, provider_label, provider_model, provider_reasoning_effort)
+           VALUES (?, ?, ?, 'working', ?, ?, ?, ?, ?, ?)`,
         )
-        .run(turnId, conversationId, prompt, startedAt)
+        .run(
+          turnId,
+          conversationId,
+          prompt,
+          startedAt,
+          connection.connectionId,
+          connection.kind,
+          connection.label,
+          connection.model ?? null,
+          connection.reasoningEffort,
+        )
       const request = { content: prompt, type: 'request' } as const
       this.insertEvent(turnId, 1, request, startedAt)
       this.database.exec('COMMIT')
@@ -154,7 +194,8 @@ export class ChatRepository {
   getHistory(conversationId: string): ChatHistoryResponse {
     const turns = this.database
       .prepare(
-        `SELECT id, prompt, status, started_at, completed_at
+        `SELECT id, prompt, status, started_at, completed_at, provider_connection_id,
+                provider_kind, provider_label, provider_model, provider_reasoning_effort
          FROM chat_turns WHERE conversation_id = ? ORDER BY started_at, id`,
       )
       .all(conversationId) as TurnRow[]
@@ -162,6 +203,19 @@ export class ChatRepository {
       conversationId,
       turns: turns.map((turn) => ({
         completedAt: turn.completed_at ?? undefined,
+        connection:
+          turn.provider_connection_id &&
+          turn.provider_kind &&
+          turn.provider_label &&
+          turn.provider_reasoning_effort
+            ? {
+                connectionId: turn.provider_connection_id,
+                kind: turn.provider_kind,
+                label: turn.provider_label,
+                model: turn.provider_model ?? undefined,
+                reasoningEffort: turn.provider_reasoning_effort,
+              }
+            : undefined,
         events: this.getEvents(turn.id),
         id: turn.id,
         prompt: turn.prompt,
@@ -171,12 +225,82 @@ export class ChatRepository {
     }
   }
 
+  getTaskSource(conversationId: string, turnId: string) {
+    const turn = this.getHistory(conversationId).turns.find(({ id }) => id === turnId)
+    if (!turn) return undefined
+    const response = turn.events
+      .filter(({ event }) => event.type === 'response')
+      .map(({ event }) => (event.type === 'response' ? event.delta : ''))
+      .join('')
+    return { prompt: turn.prompt, response, status: turn.status }
+  }
+
+  createConversation(
+    conversationId: string,
+    title: string | undefined,
+    createdAt: number,
+  ): ChatConversationSummary {
+    this.database
+      .prepare(
+        `INSERT INTO chat_conversations (id, title, created_at, updated_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(conversationId, title ?? null, createdAt, createdAt)
+    return this.getConversation(conversationId) as ChatConversationSummary
+  }
+
+  listConversations(scope: ChatConversationListScope): ChatConversationSummary[] {
+    const filter =
+      scope === 'active'
+        ? 'WHERE conversation.archived_at IS NULL'
+        : scope === 'archived'
+          ? 'WHERE conversation.archived_at IS NOT NULL'
+          : ''
+    return this.database
+      .prepare(
+        `${conversationSelect} ${filter} ${conversationGroup} ORDER BY conversation.updated_at DESC, conversation.id`,
+      )
+      .all()
+      .map((row) => mapConversation(row as ConversationRow))
+  }
+
+  updateConversation(
+    conversationId: string,
+    update: ChatConversationUpdateRequest,
+    updatedAt: number,
+  ): ChatConversationSummary | undefined {
+    const current = this.getConversation(conversationId)
+    if (!current) return undefined
+    const title = update.title ?? current.title
+    const archivedAt =
+      update.archived === undefined
+        ? (current.archivedAt ?? null)
+        : update.archived
+          ? updatedAt
+          : null
+    this.database
+      .prepare(
+        `UPDATE chat_conversations
+         SET title = ?, archived_at = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(title === defaultConversationTitle ? null : title, archivedAt, updatedAt, conversationId)
+    return this.getConversation(conversationId)
+  }
+
   isReady(): boolean {
     return this.database.prepare('SELECT 1 AS ready').get() !== undefined
   }
 
   close(): void {
     this.database.close()
+  }
+
+  private getConversation(conversationId: string): ChatConversationSummary | undefined {
+    const row = this.database
+      .prepare(`${conversationSelect} WHERE conversation.id = ? ${conversationGroup}`)
+      .get(conversationId) as ConversationRow | undefined
+    return row ? mapConversation(row) : undefined
   }
 
   private nextSequence(turnId: string): number {
@@ -245,4 +369,43 @@ export class ChatRepository {
       throw error
     }
   }
+}
+
+const defaultConversationTitle = 'New conversation'
+
+const conversationSelect = `
+  SELECT
+    conversation.id,
+    conversation.title,
+    conversation.created_at,
+    conversation.updated_at,
+    conversation.archived_at,
+    COUNT(turn.id) AS turn_count,
+    (
+      SELECT latest.status
+      FROM chat_turns AS latest
+      WHERE latest.conversation_id = conversation.id
+      ORDER BY latest.started_at DESC, latest.id DESC
+      LIMIT 1
+    ) AS last_turn_status
+  FROM chat_conversations AS conversation
+  LEFT JOIN chat_turns AS turn ON turn.conversation_id = conversation.id
+`
+
+const conversationGroup = 'GROUP BY conversation.id'
+
+function mapConversation(row: ConversationRow): ChatConversationSummary {
+  return {
+    archivedAt: row.archived_at ?? undefined,
+    createdAt: row.created_at,
+    id: row.id,
+    lastTurnStatus: row.last_turn_status ?? undefined,
+    title: row.title?.trim() || defaultConversationTitle,
+    turnCount: row.turn_count,
+    updatedAt: row.updated_at,
+  }
+}
+
+function titleFromPrompt(prompt: string) {
+  return prompt.trim().replace(/\s+/g, ' ').slice(0, 120) || defaultConversationTitle
 }

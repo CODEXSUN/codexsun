@@ -13,6 +13,13 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
+import { lazy, Suspense } from 'react'
+
+const MarkdownContent = lazy(async () =>
+  import('@codexsun/ui/components/markdown-content').then((module) => ({
+    default: module.MarkdownContent,
+  })),
+)
 
 type ActivityEntry = {
   id: number
@@ -56,12 +63,16 @@ export function ChatTurnTimeline({
     <div className="space-y-4">
       {timeline.map((entry) =>
         entry.type === 'response' ? (
-          <pre
-            className="whitespace-pre-wrap font-sans text-sm leading-6 text-foreground"
+          <Suspense
+            fallback={
+              <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                {entry.content}
+              </div>
+            }
             key={entry.id}
           >
-            {entry.content}
-          </pre>
+            <MarkdownContent content={entry.content} />
+          </Suspense>
         ) : (
           <ActivityDisclosure
             active={isWorking && entry.id === lastActivityGroupId}

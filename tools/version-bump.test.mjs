@@ -6,13 +6,15 @@ import test from 'node:test'
 import { checkVersions } from './check-versions.mjs'
 import { bumpNextVersion } from './version-bump.mjs'
 
-test('version bump preserves the independent Zetro frontend version', async () => {
+test('version bump preserves every independent Zetro workspace version', async () => {
   const root = await mkdtemp(join(tmpdir(), 'codexsun-version-'))
   const zetroRoot = join(root, 'apps', 'zetro', 'web')
+  const zetroApiRoot = join(root, 'apps', 'zetro', 'api')
   const platformRoot = join(root, 'apps', 'platform', 'web')
   const assistRoot = join(root, 'assist', 'documentation')
   try {
     await mkdir(zetroRoot, { recursive: true })
+    await mkdir(zetroApiRoot, { recursive: true })
     await mkdir(platformRoot, { recursive: true })
     await mkdir(assistRoot, { recursive: true })
     await writeFile(
@@ -26,6 +28,10 @@ test('version bump preserves the independent Zetro frontend version', async () =
     await writeFile(
       join(zetroRoot, 'package.json'),
       `${JSON.stringify({ name: '@codexsun/zetro-web', version: '2.0.0' }, null, 2)}\n`,
+    )
+    await writeFile(
+      join(zetroApiRoot, 'package.json'),
+      `${JSON.stringify({ name: '@codexsun/zetro-api', version: '2.0.0' }, null, 2)}\n`,
     )
     await writeFile(
       join(platformRoot, 'package.json'),
@@ -43,6 +49,10 @@ test('version bump preserves the independent Zetro frontend version', async () =
     assert.equal(result.nextVersion, '1.2.4')
     assert.equal(
       JSON.parse(await readFile(join(zetroRoot, 'package.json'), 'utf8')).version,
+      '2.0.0',
+    )
+    assert.equal(
+      JSON.parse(await readFile(join(zetroApiRoot, 'package.json'), 'utf8')).version,
       '2.0.0',
     )
     assert.equal(

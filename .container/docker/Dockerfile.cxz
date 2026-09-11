@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1.7
+FROM node:22-bookworm-slim AS builder
+WORKDIR /workspace
+RUN npm install --global npm@12.0.2 --no-audit --no-fund \
+  && test "$(npm --version)" = "12.0.2"
+COPY . .
+RUN --mount=type=cache,id=codexsun-cxz-node-npm,target=/root/.npm,sharing=locked \
+  npm ci --no-audit --no-fund
+ARG PROFILE_ID
+ARG COMPONENT_ID
+RUN npm run runtime:component -- ${PROFILE_ID} ${COMPONENT_ID}
+
+FROM node:22-bookworm-slim AS runtime
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+ENV NODE_ENV=production \
+  PATH=/opt/cxz-tools/node_modules/.bin:$PATH \
+  HOME=/app/storage/app/private/zetro/cxz/credentials \
+  CODEX_HOME=/app/storage/app/private/zetro/cxz/credentials/codex \
+  ZETRO_API_URL=http://host.docker.internal:6050
+RUN mkdir -p /opt/cxz-tools \
+  && cd /opt/cxz-tools \
+  && npm init -y \
+  && npm install --omit=dev --save-exact @openai/codex@0.153.4
+ARG PROFILE_ID
+ARG COMPONENT_ID
+COPY --from=builder /workspace/dist/deployments/${PROFILE_ID}/components/${COMPONENT_ID}/root/ ./
+RUN --mount=type=cache,id=codexsun-cxz-runtime-npm,target=/root/.npm,sharing=locked \
+  npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+  && mkdir -p storage/app/private/zetro/cxz/credentials \
+  && chown -R node:node /app
+USER node
+CMD ["node", "start.mjs"]

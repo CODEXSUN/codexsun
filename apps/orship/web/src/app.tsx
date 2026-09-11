@@ -1,7 +1,7 @@
 import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
 import { Button } from '@codexsun/ui/components/button'
 import { SuperAdminLoginPage } from '@codexsun/ui/blocks/auth'
-import { Activity, Download, FolderGit2, Network, Settings2 } from 'lucide-react'
+import { Activity, Download, FolderGit2, Network, Settings2, SlidersHorizontal } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 const CloudSettingsWorkspace = lazy(async () => {
@@ -21,11 +21,15 @@ const AppDeployerWorkspace = lazy(async () => {
   const module = await import('./modules/orchestration/app-deployer.workspace')
   return { default: module.AppDeployerWorkspace }
 })
+const PrerequisitesWorkspace = lazy(async () => {
+  const module = await import('./modules/orchestration/prerequisites.workspace')
+  return { default: module.PrerequisitesWorkspace }
+})
 
 export function App() {
   const developmentBypass = import.meta.env.VITE_AUTO_LOGIN === '1'
   const [workspace, setWorkspace] = useState<
-    'cloud-settings' | 'deployer' | 'repositories' | 'services'
+    'cloud-settings' | 'deployer' | 'prerequisites' | 'repositories' | 'services'
   >('services')
   const [authenticated, setAuthenticated] = useState(developmentBypass)
   const [checkingSession, setCheckingSession] = useState(!developmentBypass)
@@ -107,6 +111,12 @@ export function App() {
               label: 'App installer',
               onSelect: () => setWorkspace('deployer'),
             },
+            {
+              active: workspace === 'prerequisites',
+              icon: SlidersHorizontal,
+              label: 'Prerequisites',
+              onSelect: () => setWorkspace('prerequisites'),
+            },
           ],
         },
       ]}
@@ -135,6 +145,8 @@ export function App() {
           <RepositoryWorkspace />
         ) : workspace === 'deployer' ? (
           <AppDeployerWorkspace />
+        ) : workspace === 'prerequisites' ? (
+          <PrerequisitesWorkspace />
         ) : (
           <CloudSettingsWorkspace onBack={() => setWorkspace('services')} />
         )}

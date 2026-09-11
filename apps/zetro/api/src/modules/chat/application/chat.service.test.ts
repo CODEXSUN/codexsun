@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import type { ChatStreamEvent } from '@codexsun/zetro-contracts'
-import type { ChatRunResult, ChatRunner } from './chat.ports.js'
+import type {
+  ProviderRunRequest,
+  ProviderRunResult,
+  ProviderRunner,
+} from '../../providers/index.js'
 import { ChatService } from './chat.service.js'
 import { ChatRepository } from '../infrastructure/chat.repository.js'
 
@@ -55,8 +59,31 @@ test('shutdown drains an active failure before SQLite closes', async () => {
     assert.equal(reopened.getHistory(conversationA).turns[0]?.status, 'failed')
     reopened.close()
   } finally {
-    rmSync(directory, { force: true, recursive: true })
+    rmSync(directory, { force: true, maxRetries: 3, recursive: true, retryDelay: 20 })
   }
+})
+
+test('conversation registry blocks active archives and reports missing records', async () => {
+  await withService(async (service, runner) => {
+    const created = service.createConversation(conversationA, 'Workspace')
+    assert.equal(created.title, 'Workspace')
+    service.startTurn(conversationA, turnA, 'First')
+    await runner.settled()
+    assert.throws(
+      () => service.updateConversation(conversationA, { archived: true }),
+      /Stop the active response/,
+    )
+    assert.throws(
+      () => service.updateConversation(conversationB, { title: 'Missing' }),
+      /not found/,
+    )
+    runner.complete(conversationA, 'Done')
+    await runner.settled()
+    assert.equal(
+      service.updateConversation(conversationA, { archived: true }).archivedAt !== undefined,
+      true,
+    )
+  })
 })
 
 async function withService(run: (service: ChatService, runner: ControlledRunner) => Promise<void>) {
@@ -68,17 +95,17 @@ async function withService(run: (service: ChatService, runner: ControlledRunner)
     await run(service, runner)
     await service.close()
   } finally {
-    rmSync(directory, { force: true, recursive: true })
+    rmSync(directory, { force: true, maxRetries: 3, recursive: true, retryDelay: 20 })
   }
 }
 
-class ControlledRunner implements ChatRunner {
+class ControlledRunner implements ProviderRunner {
   private readonly turns = new Map<
     string,
     {
       onEvent: (event: ChatStreamEvent) => void
       reject: (error: Error) => void
-      resolve: (result: ChatRunResult) => void
+      resolve: (result: ProviderRunResult) => void
     }
   >()
   stoppedConversationId?: string
@@ -99,17 +126,15 @@ class ControlledRunner implements ChatRunner {
     turn.resolve({ content, status: 'complete' })
   }
 
-  run(
-    conversationId: string,
-    _prompt: string,
-    onEvent: (event: ChatStreamEvent) => void,
-    _providerThreadId: string | undefined,
-    onProviderThread: (threadId: string) => void,
-  ) {
-    onProviderThread(`provider-${conversationId}`)
-    return new Promise<ChatRunResult>((resolve, reject) => {
-      this.turns.set(conversationId, { onEvent, reject, resolve })
-    }).finally(() => this.turns.delete(conversationId))
+  getActiveConnection() {
+    return testConnection
+  }
+
+  run(request: ProviderRunRequest) {
+    request.onProviderThread(`provider-${request.conversationId}`)
+    return new Promise<ProviderRunResult>((resolve, reject) => {
+      this.turns.set(request.conversationId, { onEvent: request.onEvent, reject, resolve })
+    }).finally(() => this.turns.delete(request.conversationId))
   }
 
   async settled() {
@@ -120,3 +145,14 @@ class ControlledRunner implements ChatRunner {
     this.stoppedConversationId = conversationId
   }
 }
+
+const testConnection = {
+  authStatus: 'authenticated',
+  enabled: true,
+  id: 'codex-local',
+  kind: 'codex-app-server',
+  label: 'Codex',
+  model: 'test-model',
+  reasoningEffort: 'low',
+  updatedAt: 0,
+} as const

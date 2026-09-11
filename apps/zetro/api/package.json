@@ -12,7 +12,7 @@
     "start": "node ../../../dist/apps/zetro/api/server.js"
   },
   "dependencies": {
-    "@codexsun/platform-core-api": "^0.1.33",
+    "@codexsun/platform-core-api": "^0.1.34",
     "@codexsun/zetro-contracts": "file:../contracts",
     "@fastify/cors": "latest",
     "fastify": "^5.12.3",

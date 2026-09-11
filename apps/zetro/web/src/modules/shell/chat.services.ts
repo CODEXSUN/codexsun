@@ -1,10 +1,16 @@
 import {
+  chatConversationListResponseSchema,
+  chatConversationSummarySchema,
+  chatConversationUpdateRequestSchema,
   chatConversationHeaderName,
   chatConversationIdSchema,
   chatHistoryResponseSchema,
   chatTurnAcceptedResponseSchema,
   parseChatServerEvent,
   type ChatHistoryResponse,
+  type ChatConversationListScope,
+  type ChatConversationSummary,
+  type ChatConversationUpdateRequest,
   type ChatStoredEvent,
   type ChatTurnAcceptedResponse,
 } from '@codexsun/zetro-contracts'
@@ -25,6 +31,49 @@ export function getChatConversationId() {
   const conversationId = crypto.randomUUID()
   localStorage.setItem(conversationStorageKey, conversationId)
   return conversationId
+}
+
+export function setChatConversationId(conversationId: string) {
+  localStorage.setItem(conversationStorageKey, chatConversationIdSchema.parse(conversationId))
+}
+
+export async function fetchConversationRegistry(
+  scope: ChatConversationListScope = 'all',
+): Promise<ChatConversationSummary[]> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/conversations?scope=${scope}`)
+  const result = chatConversationListResponseSchema.parse(
+    await readJson(response, 'Could not load conversation history.'),
+  )
+  return result.conversations
+}
+
+export async function createChatConversation(title?: string): Promise<ChatConversationSummary> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/conversations`, {
+    body: JSON.stringify(title ? { title } : {}),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
+  })
+  return chatConversationSummarySchema.parse(
+    await readJson(response, 'Could not create the conversation.'),
+  )
+}
+
+export async function updateChatConversation(
+  conversationId: string,
+  update: ChatConversationUpdateRequest,
+): Promise<ChatConversationSummary> {
+  const payload = chatConversationUpdateRequestSchema.parse(update)
+  const response = await fetch(
+    `${baseUrl}/api/zetro/v1/chat/conversations/${encodeURIComponent(conversationId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+    },
+  )
+  return chatConversationSummarySchema.parse(
+    await readJson(response, 'Could not update the conversation.'),
+  )
 }
 
 export async function fetchChatHistory(conversationId: string): Promise<ChatHistoryResponse> {

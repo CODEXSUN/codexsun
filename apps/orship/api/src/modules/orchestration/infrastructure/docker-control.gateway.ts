@@ -18,6 +18,13 @@ type DockerSummary = {
   Status: string
 }
 
+type DockerInspection = {
+  State: {
+    Health?: { Status?: string }
+    Status?: string
+  }
+}
+
 export class DockerControlGateway {
   constructor(
     private readonly socketPath: string,
@@ -36,6 +43,29 @@ export class DockerControlGateway {
     } catch {
       return unavailable('Docker is unavailable at the configured local socket.')
     }
+  }
+
+  async healthByLabel(
+    label: string,
+  ): Promise<Array<{ id: string; name: string; state: string; status: string }>> {
+    if (!this.enabled) throw new Error('Docker control is disabled.')
+    const filters = encodeURIComponent(JSON.stringify({ label: [label] }))
+    const containers = await this.call<DockerSummary[]>(
+      `/containers/json?all=true&filters=${filters}`,
+    )
+    return Promise.all(
+      containers.map(async (container) => {
+        const inspection = await this.call<DockerInspection>(
+          `/containers/${encodeURIComponent(container.Id)}/json`,
+        )
+        return {
+          id: container.Id,
+          name: container.Names[0]?.replace(/^\//u, '') ?? container.Id.slice(0, 12),
+          state: inspection.State.Status ?? container.State,
+          status: inspection.State.Health?.Status ?? inspection.State.Status ?? container.State,
+        }
+      }),
+    )
   }
 
   async act(

@@ -56,6 +56,10 @@ After manual execution, the operator pastes terminal output and records `awaitin
 
 The named `orship-storage` volume contains SQLite operation memory and JSONL action records. The initial boundary permits only list, start, stop, and restart for containers labelled `codexsun.orship.manage=true`. It does not inspect container filesystems, execute commands in containers, or connect to a remote Docker daemon. See [.container/orship](../../.container/orship/README.md) for setup and verification.
 
+## Shared prerequisites
+
+Before an application install, start MariaDB, Redis, and File Browser from `.container/prerequisites`. Their passwords remain in the ignored root `.env` file. Orship shows their Docker health on the **Prerequisites** page and blocks an install plan until all required services are healthy.
+
 ## Operator usage
 
 ### Start the local desk

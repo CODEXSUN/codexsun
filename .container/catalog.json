@@ -23,6 +23,29 @@
       ],
       "components": [
         {
+          "id": "cxz",
+          "kind": "worker",
+          "runtime": "node",
+          "dockerfile": ".container/docker/Dockerfile.cxz",
+          "workspace": "@codexsun/zetro-cxz",
+          "buildWorkspaces": ["@codexsun/zetro-contracts", "@codexsun/ui", "@codexsun/zetro-cxz"],
+          "outputPath": "dist/apps/zetro/cxz",
+          "startFile": "dist/apps/zetro/cxz/server.js",
+          "environment": { "ZETRO_API_URL": "http://zetro-api:6050" },
+          "portEnvironmentKey": "CXZ_PORT",
+          "hostEnvironmentKey": "CXZ_HOST",
+          "defaultPort": 6155,
+          "healthPath": "/health",
+          "security": "strict",
+          "dependsOn": [],
+          "volumes": [
+            {
+              "name": "zetro-cxz-credentials",
+              "containerPath": "/app/storage/app/private/zetro/cxz/credentials"
+            }
+          ]
+        },
+        {
           "id": "platform-api",
           "kind": "api",
           "runtime": "node",
@@ -156,11 +179,12 @@
           ],
           "outputPath": "dist/apps/zetro/api",
           "startFile": "dist/apps/zetro/api/server.js",
+          "environment": { "ZETRO_CXZ_URL": "http://cxz:6155" },
           "portEnvironmentKey": "ZETRO_API_PORT",
           "hostEnvironmentKey": "ZETRO_API_HOST",
           "defaultPort": 6050,
           "healthPath": "/health",
-          "dependsOn": ["platform-api"]
+          "dependsOn": ["platform-api", "cxz"]
         },
         {
           "id": "zetro-web",
