@@ -26,5 +26,5 @@ See the [Supervisor API](../../apps/zetro/api/src/modules/supervisor/README.md).
 | `zetro.operations.web`       | 1.0.0   | Zetro web | Active      | [Operations web](../../apps/zetro/web/src/modules/operations/README.md)           |
 | `zetro.system-tasks.web`     | 1.1.0   | Zetro web | Active      | [System Tasks web](../../apps/zetro/web/src/modules/system-tasks/README.md)       |
 | `zetro.automation.web`       | 0.4.1   | Zetro web | Active      | [Automation web](../../apps/zetro/web/src/modules/automation/README.md)           |
-| `zetro.desktop`              | 0.1.23  | Tauri 2   | Active      | [Zetro desktop](../../apps/zetro/desktop/README.md)                               |
-| `zetro.cli`                  | 0.1.23  | Node CLI  | Active      | [Zetro CLI](../../apps/zetro/cli/README.md)                                       |
+| `zetro.desktop`              | 0.1.32  | Tauri 2   | Active      | [Zetro desktop](../../apps/zetro/desktop/README.md)                               |
+| `zetro.cli`                  | 0.1.32  | Node CLI  | Active      | [Zetro CLI](../../apps/zetro/cli/README.md)                                       |

@@ -9,13 +9,16 @@
 ## Version State
 
 - Current version: 0.1.32
+- Release tag: v-0.1.32
+- Changelog label: v 0.1.32
 
 ## v-0.1.32
 
-### [v 0.1.32] 2026-09-10 9:17 pm - working on zetro
+### [v 0.1.32] 2026-09-10 9:17 pm - Zetro governed task foundation
 
-- Database update: Yes (auto-check).
-- Bumped workspace version to 0.1.32.
+- Database changes: None. Existing Zetro task records remain compatible.
+- App changes: Chat defaults to read-only planning. Reviewed plans create scoped Project Tasks, and Start creates one linked System Task attempt.
+- Verification: The Zetro daily gate and Windows MSI checks are recorded in the [desktop build record](../records/zetro/2026-09-10-desktop-0.1.32.md). Verify, human acceptance, delivery, and installed acceptance remain separate open gates.
 
 ## v-0.1.31
 
@@ -139,9 +142,7 @@
 
 ### [v 0.1.5] 2026-09-09 - Alert callout specimen
 
-- Database update: No. Added success, information, warning, and error Alert specimens with semantic
-  icons, tones, titles, and copyable code. Verification is recorded in
-  `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
+- Database update: No. Added success, information, warning, and error Alert specimens with semantic icons, tones, titles, and copyable code. Verification is recorded in `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
 ### [v 0.1.5] 2026-09-09 - UI workspace identity
 
@@ -308,8 +309,7 @@
 
 - Passed the Zetro API and web builds, type checks, and all 21 Zetro tests.
 - Passed module contracts, affected lint and formatting, build output, and browser checks.
-- The live interruption was not exercised. The repository format check remains
-  blocked by unrelated concurrent Orship and Platform Core changes.
+- The live interruption was not exercised. The repository format check remains blocked by unrelated concurrent Orship and Platform Core changes.
 - See `assist/records/zetro/2026-09-09-chat-turn-stop.md`.
 
 ### [v 0.1.3] 2026-09-09 - Standard MDI Main documentation page
@@ -333,12 +333,9 @@
 
 #### Verification
 
-- Passed the shared UI type check, Platform production build, lint, application and
-  module documentation checks, authored-file line check, and `git diff --check`.
-- Verified the MDI Main page, one-item Layout menu, live MDI composition, usage code,
-  and MDI Main to Table navigation in the browser. The browser console stayed clean.
-- Verified the embedded top menu, sidebar, plain canvas, status bar, and notification
-  dropdown in Chrome after replacing the section sampler.
+- Passed the shared UI type check, Platform production build, lint, application and module documentation checks, authored-file line check, and `git diff --check`.
+- Verified the MDI Main page, one-item Layout menu, live MDI composition, usage code, and MDI Main to Table navigation in the browser. The browser console stayed clean.
+- Verified the embedded top menu, sidebar, plain canvas, status bar, and notification dropdown in Chrome after replacing the section sampler.
 - Verified the numbered MDI structure description above the code panel in Chrome.
 - Verified that a structure inspection action opens the matching ITO section and child items.
 - See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
@@ -360,8 +357,7 @@
 
 - Passed the Zetro API and web builds, type checks, and all seven chat history tests.
 - Verified the migrated date section and clean browser console at `/zetro`.
-- The live provider timer was not exercised. The full repository check remains
-  blocked by unrelated Orship formatting and type errors.
+- The live provider timer was not exercised. The full repository check remains blocked by unrelated Orship formatting and type errors.
 - See `assist/records/zetro/2026-09-09-dated-chat-timeline.md`.
 
 ### [v 0.1.3] 2026-09-09 - Persistent UI sidebar position
@@ -378,10 +374,8 @@
 
 #### Verification
 
-- Passed the shared UI type check, Platform production build, lint, application
-  documentation check, authored-file line check, and `git diff --check`.
-- Verified navigation from Aspect Ratio to Input Group and a browser refresh. The
-  Components group and sidebar scroll position remained unchanged.
+- Passed the shared UI type check, Platform production build, lint, application documentation check, authored-file line check, and `git diff --check`.
+- Verified navigation from Aspect Ratio to Input Group and a browser refresh. The Components group and sidebar scroll position remained unchanged.
 - See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
 ### [v 0.1.3] 2026-09-09 12:20 am - Separate Orship development runtime
@@ -422,8 +416,7 @@
 
 #### Verification
 
-- Passed the shared UI type check, Platform production build, lint, application
-  documentation check, authored-file line check, and `git diff --check`.
+- Passed the shared UI type check, Platform production build, lint, application documentation check, authored-file line check, and `git diff --check`.
 - Verified the Accordion page in the live browser without the preview card or Compact control.
 - See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.
 
@@ -536,8 +529,7 @@
 
 #### Verification
 
-- Passed the shared UI type check, Platform production build, lint, documentation checks,
-  authored-file line check, format check, and `git diff --check`.
+- Passed the shared UI type check, Platform production build, lint, documentation checks, authored-file line check, format check, and `git diff --check`.
 - Verified dedicated navigation, form, and overlay component pages in the live browser.
 - Verified the Table block remains bound to its default composition.
 - See `assist/records/platform/2026-09-08-ui-layout-documentation.md`.

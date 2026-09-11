@@ -83,10 +83,16 @@ export class TaskService {
 
   public async start(taskId: string, projectId: string): Promise<ZetroTask> {
     const task = this.requireTask(taskId, projectId)
-    if (!task.plan) throw new TaskPolicyError('Create a reviewed task plan before starting implementation.')
-    if (task.executionAttempt) throw new TaskPolicyError('This task already has an execution attempt. Review its result before starting another.')
-    if (task.status === 'done' || task.archived) throw new TaskPolicyError('Restore and reopen this task before implementation.')
-    if (!this.executionRunner) throw new TaskPolicyError('Task execution is unavailable. Check the local Zetro supervisor.')
+    if (!task.plan)
+      throw new TaskPolicyError('Create a reviewed task plan before starting implementation.')
+    if (task.executionAttempt)
+      throw new TaskPolicyError(
+        'This task already has an execution attempt. Review its result before starting another.',
+      )
+    if (task.status === 'done' || task.archived)
+      throw new TaskPolicyError('Restore and reopen this task before implementation.')
+    if (!this.executionRunner)
+      throw new TaskPolicyError('Task execution is unavailable. Check the local Zetro supervisor.')
     const attempt = await this.executionRunner.start({
       projectId,
       prompt: buildImplementationPrompt(task),

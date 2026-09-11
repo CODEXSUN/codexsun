@@ -41,7 +41,8 @@ export async function registerChatRoutes(
       const input = chatTurnRequestSchema.parse(request.body)
       if (!isConversationWorkflow(input.workflow)) {
         return reply.code(409).send({
-          error: 'Chat supports planning and review only. Create and start a reviewed Project Task for implementation.',
+          error:
+            'Chat supports planning and review only. Create and start a reviewed Project Task for implementation.',
         })
       }
       const project = projects.get(input.projectId)
@@ -190,7 +191,9 @@ export async function registerChatRoutes(
   })
 }
 
-function isConversationWorkflow(workflow: 'plan' | 'deliver' | 'develop' | 'document' | 'review' | 'test') {
+function isConversationWorkflow(
+  workflow: 'plan' | 'deliver' | 'develop' | 'document' | 'review' | 'test',
+) {
   return workflow === 'plan' || workflow === 'review'
 }
 

@@ -76,6 +76,8 @@ The MSI requires the Windows WiX prerequisites that Tauri documents.
 
 ## Development record
 
+- [Desktop 0.1.32 build](../../../assist/records/zetro/2026-09-10-desktop-0.1.32.md)
+
 - [Desktop 0.1.31 build](../../../assist/records/zetro/2026-09-10-desktop-0.1.31.md)
 
 - [Desktop 0.1.30 build](../../../assist/records/zetro/2026-09-10-desktop-0.1.30.md)

@@ -18,7 +18,7 @@ test('chat turns accept a supported Codex model and reasoning effort', () => {
 
   assert.equal(result.model, 'gpt-6-astra')
   assert.equal(result.reasoningEffort, 'high')
-  assert.equal(result.workflow, 'develop')
+  assert.equal(result.workflow, 'plan')
 })
 
 test('chat turns keep the account model default and medium reasoning for older clients', () => {

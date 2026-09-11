@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useProjects } from '../projects'
 import { TaskContext } from './project-tasks.controller'
-import { createTask, listTasks, startTask as startTaskRequest, updateTask } from './project-tasks.services'
-import type { TaskExecutionPlan, TaskPriority, TaskStatus, TaskUpdate, ZetroTask } from './project-tasks.types'
+import {
+  createTask,
+  listTasks,
+  startTask as startTaskRequest,
+  updateTask,
+} from './project-tasks.services'
+import type {
+  TaskExecutionPlan,
+  TaskPriority,
+  TaskStatus,
+  TaskUpdate,
+  ZetroTask,
+} from './project-tasks.types'
 
 export function ProjectTasksProvider({ children }: { children: ReactNode }) {
   const { activeProject } = useProjects()

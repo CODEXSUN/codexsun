@@ -8,7 +8,8 @@ export function taskInputFromPlan(
 ) {
   const title = findLabeledValue(content, 'Title') ?? firstContentLine(content) ?? 'Chat follow-up'
   const description = findLabeledSection(content, 'Task') ?? content
-  const plan = scope && sourceConversationId ? parsePlan(content, scope, sourceConversationId) : null
+  const plan =
+    scope && sourceConversationId ? parsePlan(content, scope, sourceConversationId) : null
   return {
     description: description.trim().slice(0, 2_000),
     ...(plan ? { plan } : {}),
@@ -29,7 +30,9 @@ function parsePlan(
       checks: parsed.checks,
       scope: {
         application: scope.application,
-        ...(scope.documentationPaths?.length ? { documentationPaths: scope.documentationPaths } : {}),
+        ...(scope.documentationPaths?.length
+          ? { documentationPaths: scope.documentationPaths }
+          : {}),
         folderPath: scope.folderPath,
         module: scope.module,
       },
@@ -106,10 +109,12 @@ function findBullets(content: string, heading: string): string[] {
 }
 
 function firstContentLine(content: string): string | null {
-  return content
-    .split('\n')
-    .map((line) => cleanMarkdown(line).trim())
-    .find(Boolean) ?? null
+  return (
+    content
+      .split('\n')
+      .map((line) => cleanMarkdown(line).trim())
+      .find(Boolean) ?? null
+  )
 }
 
 function cleanMarkdown(value: string): string {

@@ -1,5 +1,7 @@
 # Zetro Development Records
 
+- [2026-09-10 Desktop 0.1.32 build](2026-09-10-desktop-0.1.32.md)
+
 - [2026-09-10 Governed task foundation](2026-09-10-governed-task-foundation.md)
 
 - [2026-09-10 Worktree preparation](2026-09-10-worktree-preparation.md)

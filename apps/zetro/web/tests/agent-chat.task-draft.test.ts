@@ -41,7 +41,11 @@ test('creates an executable task plan from the required planning headings', () =
 })
 
 test('keeps an incomplete planning reply as a non-executable task draft', () => {
-  const input = taskInputFromPlan('Title: Inspect Zetro\nTask: Read the relevant module.', scope, 'x')
+  const input = taskInputFromPlan(
+    'Title: Inspect Zetro\nTask: Read the relevant module.',
+    scope,
+    'x',
+  )
 
   assert.equal(input.plan, undefined)
 })

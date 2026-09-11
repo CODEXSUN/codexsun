@@ -62,9 +62,5 @@ export interface UpdateTaskInput {
 }
 
 export interface TaskExecutionRunner {
-  start(input: {
-    projectId: string
-    prompt: string
-    scope: TaskScope
-  }): Promise<{ id: string }>
+  start(input: { projectId: string; prompt: string; scope: TaskScope }): Promise<{ id: string }>
 }
