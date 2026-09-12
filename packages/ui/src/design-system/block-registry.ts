@@ -71,6 +71,14 @@ export const designSystemBlocks: readonly DesignSystemBlockDefinition[] = [
   },
   {
     defaultVariantId: 'default',
+    description: 'A safe live preview for Mermaid diagram source.',
+    id: 'mermaid-preview',
+    name: 'Mermaid Preview',
+    source: '@codexsun/ui/blocks/mermaid-preview',
+    variants: [defaultVariant],
+  },
+  {
+    defaultVariantId: 'default',
     description: 'A multi-condition query filter builder with combinators and typed operators.',
     id: 'filter-builder',
     name: 'Filter Builder',

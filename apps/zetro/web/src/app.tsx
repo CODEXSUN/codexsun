@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { Button } from '@codexsun/ui/components/button'
+import { useEffect, useRef, useState } from 'react'
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -8,19 +7,16 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@codexsun/ui/components/message-scroller'
-import { Textarea } from '@codexsun/ui/components/textarea'
 import type { AgentWorkspaceRail } from '@codexsun/ui/layouts/agent-workspace'
 import { MdiMain } from '@codexsun/ui/layouts/mdi-main'
 import {
   Archive,
-  ArrowUp,
   Bot,
   ClipboardList,
   GitBranch,
   CalendarClock,
   MessageCircle,
   Settings,
-  Square,
 } from 'lucide-react'
 import type {
   AgentTaskDraft,
@@ -29,6 +25,8 @@ import type {
   ChatConversationProvider,
   ChatConversationSummary,
   ChatHandoffItem,
+  ChatWorkingSetCategory,
+  ChatWorkingSetSourceKind,
   Runbook,
   RunbookCreateRequest,
   RunbookRun,
@@ -64,14 +62,17 @@ import { ProviderSettings } from './modules/providers/provider-settings'
 import { fetchProviderSettings } from './modules/providers/provider.services'
 import {
   createChatConversation,
+  clearHandoffTray,
   fetchConversationRegistry,
   fetchHandoffTray,
   getChatConversationId,
   setChatConversationId,
   setHandoffSelection,
+  removeWorkingSetDecision,
   updateChatConversation,
 } from './modules/shell/chat.services'
 import { ChatTurnView, EmptyChat } from './modules/shell/chat-turn-view'
+import { ChatComposer } from './modules/shell/chat-composer'
 import { ConversationRegistry } from './modules/shell/conversation-registry'
 import { HandoffTray, HandoffTrayButton } from './modules/shell/handoff-tray'
 import { isRuntimeWorking, useConcurrentChat } from './modules/shell/use-concurrent-chat'
@@ -149,15 +150,6 @@ export function App() {
       setShellError(errorMessage(reason, 'Could not load the Handoff Tray.'))
     })
   }, [])
-
-  async function sendPrompt(event?: FormEvent) {
-    event?.preventDefault()
-    if (!conversationId) return
-    const rawPrompt = prompt
-    setPrompt('')
-    const started = await chat.startPrompt(conversationId, rawPrompt)
-    if (!started) setPrompt(rawPrompt)
-  }
 
   async function repeatPrompt(rawPrompt: string) {
     if (conversationId) await chat.startPrompt(conversationId, rawPrompt)
@@ -389,21 +381,41 @@ export function App() {
       setTasksBusy(false)
     }
   }
-  async function setTurnHandoff(turnId: string, selected: boolean) {
+  async function setTurnHandoff(
+    turnId: string,
+    selected: boolean,
+    sourceKind: ChatWorkingSetSourceKind = 'response',
+    category: ChatWorkingSetCategory = 'reference',
+  ) {
     if (!conversationId) return
     try {
-      setHandoffItems(await setHandoffSelection(conversationId, turnId, selected))
+      setHandoffItems(await setHandoffSelection(conversationId, turnId, { category, selected, sourceKind }))
     } catch (reason) {
-      setShellError(errorMessage(reason, 'Could not update the Handoff Tray.'))
+      setShellError(errorMessage(reason, 'Could not update the Working Set.'))
     }
+  }
+
+  async function clearWorkingSet() {
+    if (!window.confirm('Clear every selected item from the Working Set?')) return
+    try { setHandoffItems(await clearHandoffTray()) }
+    catch (reason) { setShellError(errorMessage(reason, 'Could not clear the Working Set.')) }
+  }
+
+  async function removeWorkingSetItem(item: ChatHandoffItem) {
+    try {
+      if (item.sourceKind === 'decision') setHandoffItems(await removeWorkingSetDecision(item.conversationId, item.id))
+      else setHandoffItems(await setHandoffSelection(item.conversationId, item.turnId, { category: item.category, selected: false, sourceKind: item.sourceKind }))
+    } catch (reason) { setShellError(errorMessage(reason, 'Could not leave this item off.')) }
   }
   function reviewHandoffTray() {
     setPrompt([
-      'Consolidate the selected Handoff Tray responses into one refined task proposal.',
+      'Consolidate the selected Working Set into one refined task proposal.',
       'Return goal, scope, exclusions, acceptance criteria, verification checks, and open decisions.',
       'Do not write code or create a task.',
       '',
-      ...handoffItems.map((item, index) => `## Selected response ${index + 1} · ${item.conversationTitle}\n${item.response}`),
+      ...handoffItems.map(
+        (item, index) => `## ${item.category} · ${item.sourceKind} ${index + 1} · ${item.conversationTitle}\n${item.content}`,
+      ),
     ].join('\n'))
     setHandoffOpen(false)
   }
@@ -414,17 +426,11 @@ export function App() {
       setSelectedTask(task)
       await openTasks(task.id)
     } catch (reason) {
-      setShellError(errorMessage(reason, 'Could not create a task draft from the Handoff Tray.'))
+      setShellError(errorMessage(reason, 'Could not create a task draft from the Working Set.'))
     } finally {
       setTasksBusy(false)
     }
   }
-  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key !== 'Enter' || event.shiftKey) return
-    event.preventDefault()
-    void sendPrompt()
-  }
-
   const selectedConversation = conversations.find(({ id }) => id === conversationId)
   const activeCount = conversations.filter(({ archivedAt }) => !archivedAt).length
   const archivedCount = conversations.length - activeCount
@@ -637,12 +643,27 @@ export function App() {
                     >
                       <ChatTurnView
                         actionsDisabled={isResponding || Boolean(selectedConversation?.archivedAt)}
+                        conversationId={conversationId ?? ''}
                         connectionState={runtime.connectionState}
                         turn={turn}
                         onRegenerate={() => void repeatPrompt(turn.prompt)}
+                        onDecisionConfirm={(summary) => void repeatPrompt(summary)}
                         onRetry={() => void repeatPrompt(turn.prompt)}
-                        onHandoffSelection={() => void setTurnHandoff(turn.id, !handoffItems.some((item) => item.turnId === turn.id))}
-                        selectedForHandoff={handoffItems.some((item) => item.turnId === turn.id)}
+                        onWorkingSetSelection={(sourceKind) =>
+                          void setTurnHandoff(
+                            turn.id,
+                            !handoffItems.some(
+                              (item) => item.turnId === turn.id && item.sourceKind === sourceKind,
+                            ),
+                            sourceKind,
+                          )
+                        }
+                        selectedForPrompt={handoffItems.some(
+                          (item) => item.turnId === turn.id && item.sourceKind === 'prompt',
+                        )}
+                        selectedForResponse={handoffItems.some(
+                          (item) => item.turnId === turn.id && item.sourceKind === 'response',
+                        )}
                       />
                     </MessageScrollerItem>
                   ))}
@@ -655,77 +676,28 @@ export function App() {
               />
             </MessageScroller>
           </MessageScrollerProvider>
-          <form
-            className="shrink-0 px-3 pb-3 pt-2 sm:px-5 sm:pb-5 lg:px-10 2xl:px-16"
-            onSubmit={(event) => void sendPrompt(event)}
-          >
-            <div className="rounded-2xl border bg-background p-2 shadow-sm">
-              <Textarea
-                aria-label="Prompt Codex"
-                autoFocus
-                className="scrollbar-none min-h-32 max-h-36 resize-none overflow-y-auto border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
-                disabled={
-                  isResponding ||
-                  providerSwitching ||
-                  registryBusy ||
-                  Boolean(selectedConversation?.archivedAt) ||
-                  selectedConversation?.provider.status !== 'verified'
-                }
-                onChange={(event) => setPrompt(event.target.value)}
-                onKeyDown={handleComposerKeyDown}
-                placeholder="Message Codex…"
-                value={prompt}
-              />
-              <div className="flex justify-end">
-                {isResponding ? (
-                  <Button
-                    aria-label={runtime.isStopping ? 'Stopping response' : 'Stop response'}
-                    className="zetro-stop-shimmer cursor-pointer"
-                    disabled={runtime.isStopping}
-                    onClick={() => conversationId && void chat.stopResponse(conversationId)}
-                    size="icon"
-                    type="button"
-                    variant="neutral"
-                  >
-                    <Square className="size-3 fill-current" />
-                  </Button>
-                ) : (
-                  <Button
-                    aria-label="Send prompt"
-                    className="cursor-pointer"
-                    disabled={
-                      !conversationId ||
-                      !prompt.trim() ||
-                      providerSwitching ||
-                      Boolean(selectedConversation?.archivedAt) ||
-                      selectedConversation?.provider.status !== 'verified'
-                    }
-                    size="icon"
-                    type="submit"
-                  >
-                    <ArrowUp />
-                  </Button>
-                )}
-              </div>
-            </div>
-            {runtime.error || shellError ? (
-              <p className="pt-2 text-sm text-destructive">{runtime.error || shellError}</p>
-            ) : providerSwitching ? (
-              <p className="pt-2 text-sm text-muted-foreground">Verifying this connection…</p>
-            ) : selectedConversation?.provider.status !== 'verified' ? (
-              <p className="pt-2 text-sm text-muted-foreground">
-                Verify the connection in the header before sending a prompt.
-              </p>
-            ) : null}
-          </form>
+          <ChatComposer
+            conversationId={conversationId}
+            disabled={isResponding || providerSwitching || registryBusy || Boolean(selectedConversation?.archivedAt) || selectedConversation?.provider.status !== 'verified'}
+            isResponding={isResponding}
+            isStopping={runtime.isStopping}
+            onError={setShellError}
+            onStartPrompt={(rawPrompt, imageIds) => conversationId ? chat.startPrompt(conversationId, rawPrompt, imageIds) : Promise.resolve(false)}
+            onStop={() => conversationId && void chat.stopResponse(conversationId)}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            statusMessage={runtime.error || shellError || (providerSwitching ? 'Verifying this connection…' : selectedConversation?.provider.status !== 'verified' ? 'Verify the connection in the header before sending a prompt.' : undefined)}
+          />
         </section>
       )}
       <HandoffTray
         items={handoffItems}
         onClose={() => setHandoffOpen(false)}
+        onClear={() => void clearWorkingSet()}
         onHandOff={() => void handoffTrayToTask()}
-        onRemove={(item) => void setTurnHandoff(item.turnId, false)}
+        onRemove={(item) => void removeWorkingSetItem(item)}
         onReview={reviewHandoffTray}
+        onUpdate={(item, category) => void setTurnHandoff(item.turnId, true, item.sourceKind, category)}
         open={handoffOpen}
       />
     </MdiMain>

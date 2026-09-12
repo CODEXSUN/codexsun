@@ -10,6 +10,7 @@ const environmentSchema = z.object({
   ZETRO_API_PORT: z.coerce.number().int().min(6000).max(6999).default(6050),
   ZETRO_CXZ_URL: z.string().url().default('http://127.0.0.1:6155'),
   ZETRO_CXZ_ORIGIN: z.string().url().default('http://127.0.0.1:6155'),
+  ZETRO_CHAT_ARTIFACT_PATH: z.string().default('storage/app/private/zetro/chat-artifacts'),
   ZETRO_DATABASE_PATH: z.string().default('storage/app/private/zetro/chat-v2.sqlite'),
   ZETRO_WEB_ORIGIN: z.string().url().default('http://127.0.0.1:6060'),
 })

@@ -20,7 +20,7 @@ export async function createServer() {
     component: 'zetro-api',
   })
   observability.start()
-  const server = Fastify({ ...observability.fastifyOptions(), bodyLimit: 70 * 1024 })
+  const server = Fastify({ ...observability.fastifyOptions(), bodyLimit: 3 * 1024 * 1024 })
   observability.register(server)
   server.addHook('onClose', () => observability.shutdown())
   await server.register(cors, {

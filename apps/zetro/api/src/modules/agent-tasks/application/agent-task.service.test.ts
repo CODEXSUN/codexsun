@@ -85,6 +85,43 @@ test('source validation prevents incomplete chat turns from becoming drafts', ()
   })
 })
 
+test('working set handoff preserves each evidence category in the immutable task snapshot', () => {
+  withDatabase((databasePath) => {
+    const service = new AgentTaskService(new AgentTaskRepository(databasePath), {
+      ...completedSource,
+      listHandoffItems() {
+        return [
+          {
+            category: 'idea' as const,
+            content: 'Use a compact status badge.',
+            conversationId,
+            conversationTitle: 'Todo design',
+            id: '68a7f6ea-3793-49da-b846-02592c2f2223',
+            selectedAt: 100,
+            sourceKind: 'response' as const,
+            turnId,
+          },
+          {
+            category: 'decision' as const,
+            content: 'Use In Progress when reopening a task.',
+            conversationId,
+            conversationTitle: 'Todo design',
+            id: '78a7f6ea-3793-49da-b846-02592c2f2223',
+            selectedAt: 101,
+            sourceKind: 'prompt' as const,
+            turnId: '58a7f6ea-3793-49da-b846-02592c2f2224',
+          },
+        ]
+      },
+    })
+    const task = service.createFromHandoffTray()
+    assert.match(task.sourcePrompt, /Working Set/)
+    assert.match(task.sourceResponse, /idea · response/)
+    assert.match(task.sourceResponse, /decision · prompt/)
+    service.close()
+  })
+})
+
 test('a task plan persists and must be complete before review confirmation', () => {
   withDatabase((databasePath) => {
     const service = new AgentTaskService(new AgentTaskRepository(databasePath), completedSource)

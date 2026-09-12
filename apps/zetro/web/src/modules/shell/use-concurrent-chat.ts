@@ -62,7 +62,7 @@ export function useConcurrentChat(onRegistryRefresh: () => void) {
     }
   }
 
-  async function startPrompt(conversationId: string, rawPrompt: string) {
+  async function startPrompt(conversationId: string, rawPrompt: string, imageIds: string[] = []) {
     const runtime = runtimeFor(conversationId)
     if (!rawPrompt.trim() || isRuntimeWorking(runtime)) return false
     const turnId = crypto.randomUUID()
@@ -83,7 +83,7 @@ export function useConcurrentChat(onRegistryRefresh: () => void) {
       ],
     }))
     try {
-      await startChatTurn(conversationId, turnId, rawPrompt)
+      await startChatTurn(conversationId, turnId, rawPrompt, imageIds)
       onRegistryRefresh()
       await watchTurn(conversationId, turnId, 0)
     } catch (reason) {

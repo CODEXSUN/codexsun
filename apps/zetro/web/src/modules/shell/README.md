@@ -28,8 +28,10 @@ Codex device login, and connection tests. The browser stores no provider secret.
 The left-aligned working separator reports elapsed seconds and shimmers only while
 a turn is active. Consecutive raw events are compacted into process headings that
 preserve stream order. Each heading has a chevron and reveals the complete raw JSON
-on demand; the current process heading also shimmers. There is no attachment input
-or image/file field in the request contract.
+on demand; the current process heading also shimmers. The composer stores up to four
+private PNG, JPEG, or WebP attachments for the active conversation and sends them only
+to Local Codex. It also provides a local Mermaid source editor and preview; the renderer
+is served by Zetro only when that preview is opened.
 When the reader scrolls away from the latest content, a shared message-scroller
 control returns to the present position. Each prompt exposes copy and retry actions,
 and each completed response exposes copy, regenerate, and Send to Agent Tasks actions.
@@ -53,6 +55,13 @@ The header selection belongs to the visible conversation. A changed selection be
 only after a live smoke response. A switch keeps another conversation's selection and runtime
 thread untouched; each connection has a separate durable provider thread inside a conversation.
 
+Completed prompts and responses can independently enter the durable Working Set. Each item has a
+user-chosen category: idea, requirement, decision, visual reference, or reference. The drawer can
+send that evidence back to the composer for consolidation or create an immutable task draft from it.
+Completed replies with an `Open decisions` heading also expose inline Yes, No, Skip, and custom
+choice controls. Their saved answers are durable decision items. Mermaid fenced code renders as a
+safe interactive diagram with hover controls for zoom, PNG download, and a local-only source editor.
+
 The v1 implementation is retained outside the repository in the dated Zetro
 reference backup. New product behavior must be added only after its contract is
 reviewed and assigned to an owning module.
@@ -67,3 +76,4 @@ reviewed and assigned to an owning module.
 - [Provider connections](../../../../../../../assist/records/zetro/2026-09-11-zetro-provider-connections.md)
 - [Multi-chat and task drafts](../../../../../../../assist/records/zetro/2026-09-11-multi-chat-task-drafts.md)
 - [Conversation-owned providers](../../../../../../../assist/records/zetro/2026-09-11-conversation-owned-providers.md)
+- [Working Set history](../../../../../../../assist/records/zetro/2026-09-12-working-set-history.md)

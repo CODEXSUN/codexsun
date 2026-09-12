@@ -53,6 +53,73 @@ test('chat history and provider context survive a repository restart', () => {
   })
 })
 
+test('working set keeps prompt and response evidence with independent categories', () => {
+  withRepository((repository, databasePath) => {
+    repository.startTurn(conversationId, turnId, 'Show a visual task-row idea.', 100, connection)
+    repository.appendEvent(turnId, { delta: 'Use an inline decision control.', type: 'response' })
+    repository.finishTurn(turnId, 'complete', { type: 'complete' })
+
+    repository.setHandoffItem(conversationId, turnId, {
+      category: 'visual-reference',
+      selected: true,
+      sourceKind: 'prompt',
+    })
+    repository.setHandoffItem(conversationId, turnId, {
+      category: 'decision',
+      selected: true,
+      sourceKind: 'response',
+    })
+
+    assert.deepEqual(
+      repository.listHandoffItems().map(({ category, content, sourceKind }) => ({ category, content, sourceKind })),
+      [
+        { category: 'visual-reference', content: 'Show a visual task-row idea.', sourceKind: 'prompt' },
+        { category: 'decision', content: 'Use an inline decision control.', sourceKind: 'response' },
+      ],
+    )
+    repository.close()
+
+    const reopened = new ChatRepository(databasePath)
+    assert.equal(reopened.listHandoffItems().length, 2)
+    reopened.close()
+  })
+})
+
+test('an inline decision persists and enters the Working Set', () => {
+  withRepository((repository, databasePath) => {
+    repository.startTurn(conversationId, turnId, 'Plan this.', 100, connection)
+    repository.finishTurn(turnId, 'complete', { type: 'complete' })
+    repository.upsertDecision(conversationId, turnId, {
+      answerKind: 'custom', answerText: 'Use browser storage first.', question: 'Which storage should this use?', questionIndex: 0,
+    })
+    assert.deepEqual(repository.listDecisions(conversationId, turnId).map(({ answerKind, answerText, question }) => ({ answerKind, answerText, question })), [
+      { answerKind: 'custom', answerText: 'Use browser storage first.', question: 'Which storage should this use?' },
+    ])
+    assert.equal(repository.listHandoffItems().at(-1)?.sourceKind, 'decision')
+    repository.close()
+    const reopened = new ChatRepository(databasePath)
+    assert.equal(reopened.listDecisions(conversationId, turnId)[0]?.answerText, 'Use browser storage first.')
+    reopened.close()
+  })
+})
+
+test('Working Set supports leaving off one decision and clearing every item', () => {
+  withRepository((repository) => {
+    repository.startTurn(conversationId, turnId, 'Plan this.', 100, connection)
+    repository.appendEvent(turnId, { delta: 'Plan details.', type: 'response' })
+    repository.finishTurn(turnId, 'complete', { type: 'complete' })
+    repository.setHandoffItem(conversationId, turnId, { category: 'reference', selected: true, sourceKind: 'response' })
+    const decision = repository.upsertDecision(conversationId, turnId, {
+      answerKind: 'yes', question: 'Use browser storage?', questionIndex: 0,
+    })
+    assert.equal(repository.listHandoffItems().length, 2)
+    assert.equal(repository.removeDecision(conversationId, decision.id).length, 1)
+    assert.deepEqual(repository.clearHandoffItems(), [])
+    assert.equal(repository.listDecisions(conversationId, turnId).length, 0)
+    repository.close()
+  })
+})
+
 test('a conversation keeps one provider thread for each connection', () => {
   withRepository((repository, databasePath) => {
     repository.createConversation(conversationId, undefined, 100, conversationProvider)
@@ -205,32 +272,4 @@ function withRepository(run: (repository: ChatRepository, databasePath: string) 
 }
 
 function createVersionTwoDatabase(databasePath: string) {
-  const database = new DatabaseSync(databasePath)
-  database.exec(`
-    CREATE TABLE zetro_schema_migrations (
-      version INTEGER PRIMARY KEY,
-      checksum TEXT NOT NULL,
-      applied_at INTEGER NOT NULL
-    ) STRICT
-  `)
-  for (const migration of chatMigrations.slice(0, 2)) {
-    database.exec(migration.sql)
-    const checksum = createHash('sha256').update(migration.sql).digest('hex')
-    database
-      .prepare('INSERT INTO zetro_schema_migrations VALUES (?, ?, ?)')
-      .run(migration.version, checksum, 100)
-  }
-  database
-    .prepare(
-      `INSERT INTO chat_sessions (id, created_at, updated_at, provider_thread_id)
-       VALUES (?, 100, 100, 'provider-thread-2')`,
-    )
-    .run(conversationId)
-  database
-    .prepare(
-      `INSERT INTO chat_turns (id, session_id, prompt, status, started_at, completed_at)
-       VALUES (?, ?, 'Migrated', 'complete', 100, 101)`,
-    )
-    .run(turnId, conversationId)
-  database.close()
-}
+  const datab

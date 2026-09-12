@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZetroEnvironment } from '../../config.js'
 import { ChatService } from './application/chat.service.js'
 import { ChatRepository } from './infrastructure/chat.repository.js'
+import { ChatImageArtifactStore } from './infrastructure/chat-image-artifact.store.js'
 import type { ProviderRunner } from '../providers/index.js'
 import { registerChatRoutes } from './presentation/chat.routes.js'
 
@@ -13,6 +14,7 @@ export const chatModuleManifest = {
     'concurrent-turns',
     'conversation-owned-provider-selection',
     'conversation-registry',
+    'local-codex-image-input',
     'task-source-query',
     'turn-provider-snapshot',
     'sqlite-chat-history',
@@ -36,6 +38,7 @@ export const chatModuleManifest = {
     'GET /api/zetro/v1/chat/turns/:turnId/events',
     'POST /api/zetro/v1/chat/stop',
     'GET /api/zetro/v1/chat/history',
+    'POST /api/zetro/v1/chat/images',
   ],
   scope: 'zetro-api',
   version: '2.4.0',
@@ -48,7 +51,8 @@ export async function registerChatModule(
   runner: ProviderRunner,
 ) {
   const repository = new ChatRepository(resolve(projectRoot, environment.ZETRO_DATABASE_PATH))
-  const service = new ChatService(repository, runner)
+  const images = new ChatImageArtifactStore(resolve(projectRoot, environment.ZETRO_CHAT_ARTIFACT_PATH))
+  const service = new ChatService(repository, runner, images)
   await registerChatRoutes(server, service)
   return service
 }

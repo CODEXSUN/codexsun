@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@codexsun/ui/components/button'
 import { Bot, Check, Copy, Layers3, RefreshCw, RotateCcw } from 'lucide-react'
-import type { ChatTurnStatus, StoredChatTurn } from '@codexsun/zetro-contracts'
+import type { ChatTurnStatus, ChatWorkingSetSourceKind, StoredChatTurn } from '@codexsun/zetro-contracts'
 import { ChatTurnTimeline, type TurnEntry } from './chat-turn-timeline'
+import { OpenDecisions } from './open-decisions'
 
 export type ChatTurn = {
   completedAt?: number
@@ -34,19 +35,25 @@ export function EmptyChat() {
 
 export function ChatTurnView({
   actionsDisabled,
+  conversationId,
   connectionState,
+  onDecisionConfirm,
   onRegenerate,
   onRetry,
-  onHandoffSelection,
-  selectedForHandoff,
+  onWorkingSetSelection,
+  selectedForPrompt,
+  selectedForResponse,
   turn,
 }: {
   actionsDisabled: boolean
+  conversationId: string
   connectionState: ConnectionState
+  onDecisionConfirm: (summary: string) => void
   onRegenerate: () => void
   onRetry: () => void
-  onHandoffSelection: () => void
-  selectedForHandoff: boolean
+  onWorkingSetSelection: (sourceKind: ChatWorkingSetSourceKind) => void
+  selectedForPrompt: boolean
+  selectedForResponse: boolean
   turn: ChatTurn
 }) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
@@ -95,10 +102,24 @@ export function ChatTurnView({
           >
             <RotateCcw />
           </Button>
+          {turn.status === 'complete' ? (
+            <Button
+              aria-label={selectedForPrompt ? 'Remove prompt from Working Set' : 'Add prompt to Working Set'}
+              className="text-muted-foreground"
+              disabled={actionsDisabled}
+              onClick={() => onWorkingSetSelection('prompt')}
+              size="icon-xs"
+              type="button"
+              variant="ghost"
+            >
+              <Layers3 className={selectedForPrompt ? 'fill-current' : undefined} />
+            </Button>
+          ) : null}
         </div>
       </div>
       <WorkingSeparator connectionState={connectionState} turn={turn} />
       <ChatTurnTimeline entries={turn.entries} isWorking={turn.status === 'working'} />
+      {result && turn.status === 'complete' ? <OpenDecisions conversationId={conversationId} disabled={actionsDisabled} onConfirm={onDecisionConfirm} result={result} turnId={turn.id} /> : null}
       {result && turn.status !== 'working' ? (
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within/turn:opacity-100 group-hover/turn:opacity-100">
           <Button
@@ -124,15 +145,15 @@ export function ChatTurnView({
           </Button>
           {turn.status === 'complete' ? (
             <Button
-              aria-label={selectedForHandoff ? 'Remove response from Handoff Tray' : 'Add response to Handoff Tray'}
+            aria-label={selectedForResponse ? 'Remove response from Working Set' : 'Add response to Working Set'}
               className="text-muted-foreground"
               disabled={actionsDisabled}
-              onClick={onHandoffSelection}
+            onClick={() => onWorkingSetSelection('response')}
               size="icon-xs"
               type="button"
               variant="ghost"
             >
-              <Layers3 className={selectedForHandoff ? 'fill-current' : undefined} />
+              <Layers3 className={selectedForResponse ? 'fill-current' : undefined} />
             </Button>
           ) : null}
         </div>

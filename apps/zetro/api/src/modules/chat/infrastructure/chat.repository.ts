@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -8,12 +8,16 @@ import {
   type ChatConversationProvider,
   type ChatConversationSummary,
   type ChatConversationUpdateRequest,
+  type ChatDecisionItem,
+  type ChatDecisionUpsertRequest,
   type ChatHandoffItem,
   type ChatHistoryResponse,
   type ChatStoredEvent,
   type ChatStreamEvent,
   type ChatTurnProviderSnapshot,
   type ChatTurnStatus,
+  type ChatWorkingSetCategory,
+  type ChatWorkingSetSourceKind,
 } from '@codexsun/zetro-contracts'
 import { chatMigrations } from './chat.migrations.js'
 
@@ -43,6 +47,18 @@ type ConversationRow = {
   provider_verified_at: number | null
   title: string | null
   turn_count: number
+  updated_at: number
+}
+
+type DecisionRow = {
+  answer_kind: ChatDecisionItem['answerKind']
+  answer_text: string | null
+  conversation_id: string
+  id: string
+  question: string
+  question_index: number
+  selected_at: number
+  turn_id: string
   updated_at: number
 }
 
@@ -251,46 +267,118 @@ export class ChatRepository {
   listHandoffItems(): ChatHandoffItem[] {
     const rows = this.database
       .prepare(
-        `SELECT handoff.turn_id, handoff.selected_at, turn.conversation_id, conversation.title
-         FROM chat_handoff_items handoff
-         JOIN chat_turns turn ON turn.id = handoff.turn_id
-         JOIN chat_conversations conversation ON conversation.id = turn.conversation_id
-         ORDER BY handoff.selected_at, handoff.turn_id`,
+        `SELECT working_set.id, working_set.turn_id, working_set.source_kind, working_set.category,
+                working_set.selected_at, working_set.conversation_id, conversation.title
+         FROM chat_working_set_items working_set
+         JOIN chat_conversations conversation ON conversation.id = working_set.conversation_id
+         ORDER BY working_set.selected_at, working_set.id`,
       )
       .all() as Array<{
+        category: ChatWorkingSetCategory
         conversation_id: string
+        id: string
         selected_at: number
+        source_kind: ChatWorkingSetSourceKind
         title: string | null
         turn_id: string
       }>
-    return rows.flatMap((row) => {
+    const evidence = rows.flatMap((row) => {
       const source = this.getTaskSource(row.conversation_id, row.turn_id)
-      if (source?.status !== 'complete' || !source.response) return []
+      const content = row.source_kind === 'prompt' ? source?.prompt : source?.response
+      if (source?.status !== 'complete' || !content) return []
       return [{
+        category: row.category,
         conversationId: row.conversation_id,
         conversationTitle: row.title ?? defaultConversationTitle,
-        response: source.response,
+        content,
+        id: row.id,
         selectedAt: row.selected_at,
+        sourceKind: row.source_kind,
         turnId: row.turn_id,
       }]
     })
+    const decisions = this.database.prepare(
+      `SELECT decision.id, decision.conversation_id, decision.turn_id, decision.question, decision.answer_kind,
+              decision.answer_text, decision.selected_at, conversation.title
+       FROM chat_decisions decision JOIN chat_conversations conversation ON conversation.id = decision.conversation_id
+       ORDER BY decision.selected_at, decision.id`,
+    ).all() as Array<{ answer_kind: string; answer_text: string | null; conversation_id: string; id: string; question: string; selected_at: number; title: string | null; turn_id: string }>
+    return [...evidence, ...decisions.map((decision) => ({
+      category: 'decision' as const,
+      conversationId: decision.conversation_id,
+      conversationTitle: decision.title ?? defaultConversationTitle,
+      content: `${decision.question}\n\nDecision: ${decision.answer_text?.trim() || decision.answer_kind}`,
+      id: decision.id,
+      selectedAt: decision.selected_at,
+      sourceKind: 'decision' as const,
+      turnId: decision.turn_id,
+    }))].sort((left, right) => left.selectedAt - right.selectedAt)
   }
 
-  setHandoffItem(conversationId: string, turnId: string, selected: boolean): ChatHandoffItem[] {
+  clearHandoffItems(): ChatHandoffItem[] {
+    this.database.exec('BEGIN IMMEDIATE')
+    try {
+      this.database.exec('DELETE FROM chat_working_set_items; DELETE FROM chat_decisions;')
+      this.database.exec('COMMIT')
+    } catch (error) {
+      this.database.exec('ROLLBACK')
+      throw error
+    }
+    return []
+  }
+
+  listDecisions(conversationId: string, turnId: string): ChatDecisionItem[] {
     if (!this.ownsTurn(conversationId, turnId)) throw new Error('Chat turn was not found in this conversation.')
-    if (selected) {
+    return this.database.prepare(
+      `SELECT id, conversation_id, turn_id, question_index, question, answer_kind, answer_text, selected_at, updated_at
+       FROM chat_decisions WHERE conversation_id = ? AND turn_id = ? ORDER BY question_index`,
+    ).all(conversationId, turnId).map((row) => mapDecision(row as DecisionRow))
+  }
+
+  upsertDecision(conversationId: string, turnId: string, decision: ChatDecisionUpsertRequest): ChatDecisionItem {
+    if (!this.ownsTurn(conversationId, turnId)) throw new Error('Chat turn was not found in this conversation.')
+    const now = Date.now()
+    this.database.prepare(
+      `INSERT INTO chat_decisions (id, conversation_id, turn_id, question_index, question, answer_kind, answer_text, selected_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(turn_id, question_index) DO UPDATE SET question = excluded.question, answer_kind = excluded.answer_kind,
+         answer_text = excluded.answer_text, selected_at = excluded.selected_at, updated_at = excluded.updated_at`,
+    ).run(randomUUID(), conversationId, turnId, decision.questionIndex, decision.question, decision.answerKind, decision.answerText ?? null, now, now)
+    return this.listDecisions(conversationId, turnId).find((item) => item.questionIndex === decision.questionIndex)!
+  }
+
+  removeDecision(conversationId: string, decisionId: string): ChatHandoffItem[] {
+    const result = this.database.prepare('DELETE FROM chat_decisions WHERE id = ? AND conversation_id = ?').run(decisionId, conversationId)
+    if (!result.changes) throw new Error('Decision was not found in this conversation.')
+    return this.listHandoffItems()
+  }
+
+  setHandoffItem(
+    conversationId: string,
+    turnId: string,
+    selection: { category: ChatWorkingSetCategory; selected: boolean; sourceKind: ChatWorkingSetSourceKind },
+  ): ChatHandoffItem[] {
+    if (!this.ownsTurn(conversationId, turnId)) throw new Error('Chat turn was not found in this conversation.')
+    if (selection.selected) {
       const source = this.getTaskSource(conversationId, turnId)
-      if (source?.status !== 'complete' || !source.response) {
-        throw new Error('Only completed responses can be added to the Handoff Tray.')
+      const content = selection.sourceKind === 'prompt' ? source?.prompt : source?.response
+      if (source?.status !== 'complete' || !content) {
+        throw new Error('Only completed chat evidence can be added to the Working Set.')
       }
       this.database
         .prepare(
-          `INSERT INTO chat_handoff_items (turn_id, selected_at) VALUES (?, ?)
-           ON CONFLICT(turn_id) DO NOTHING`,
+          `INSERT INTO chat_working_set_items
+             (id, conversation_id, turn_id, source_kind, category, selected_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(turn_id, source_kind) DO UPDATE SET
+             category = excluded.category,
+             selected_at = excluded.selected_at`,
         )
-        .run(turnId, Date.now())
+        .run(randomUUID(), conversationId, turnId, selection.sourceKind, selection.category, Date.now())
     } else {
-      this.database.prepare('DELETE FROM chat_handoff_items WHERE turn_id = ?').run(turnId)
+      this.database
+        .prepare('DELETE FROM chat_working_set_items WHERE turn_id = ? AND source_kind = ?')
+        .run(turnId, selection.sourceKind)
     }
     return this.listHandoffItems()
   }
@@ -525,6 +613,20 @@ function mapConversation(row: ConversationRow): ChatConversationSummary {
     },
     title: row.title?.trim() || defaultConversationTitle,
     turnCount: row.turn_count,
+    updatedAt: row.updated_at,
+  }
+}
+
+function mapDecision(row: DecisionRow): ChatDecisionItem {
+  return {
+    answerKind: row.answer_kind,
+    answerText: row.answer_text ?? undefined,
+    conversationId: row.conversation_id,
+    id: row.id,
+    question: row.question,
+    questionIndex: row.question_index,
+    selectedAt: row.selected_at,
+    turnId: row.turn_id,
     updatedAt: row.updated_at,
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/ui",
   "private": true,
-  "version": "0.1.36",
+  "version": "0.1.38",
   "type": "module",
   "main": "../../../dist/packages/ui/index.js",
   "types": "../../../dist/packages/ui/index.d.ts",
@@ -20,6 +20,7 @@
     "./blocks/kanban": "./src/blocks/kanban/index.ts",
     "./blocks/file-tree": "./src/blocks/file-tree/index.ts",
     "./blocks/dropzone": "./src/blocks/dropzone/index.ts",
+    "./blocks/mermaid-preview": "./src/blocks/mermaid-preview/index.ts",
     "./blocks/filter-builder": "./src/blocks/filter-builder/index.ts",
     "./blocks/product-card": "./src/blocks/product-card/index.ts",
     "./blocks/pricing": "./src/blocks/pricing/index.ts",

@@ -47,7 +47,9 @@ or restart. Separate conversations execute concurrently. One conversation permit
 active turn. The stop control interrupts that exact turn and retains partial output.
 The saved Codex thread ID restores follow-up context after an API restart. Shutdown
 drains active failures before SQLite closes. Stop requests identify the exact turn.
-Prompts are not trimmed or extended. The request contains text only.
+Prompts are not trimmed. A request can include private Local Codex image artifacts. Completed prompt
+and response evidence can enter the durable Working Set, which classifies ideas, requirements,
+decisions, visual references, and general references before a consolidation or task-draft handoff.
 Completed responses expose an explicit Send to Agent Tasks action. The task module stores an
 immutable prompt and response snapshot, and returns the same draft when the action is retried.
 A worker handoff needs an explicit repository path, scope, criteria, checks, and review confirmation.

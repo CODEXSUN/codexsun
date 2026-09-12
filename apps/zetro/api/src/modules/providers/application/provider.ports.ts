@@ -18,6 +18,7 @@ export type ProviderMessage = { content: string; role: 'assistant' | 'user' }
 export type ProviderRunRequest = {
   connection: ProviderConnection
   conversationId: string
+  imagePaths?: string[]
   messages: ProviderMessage[]
   onEvent(event: ChatStreamEvent): void
   onProviderThread(threadId: string): void

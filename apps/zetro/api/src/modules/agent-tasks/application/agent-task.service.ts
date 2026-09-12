@@ -31,9 +31,12 @@ export class AgentTaskService {
     const items = this.source.listHandoffItems?.() ?? []
     if (!items.length) throw new Error('Select at least one completed response in the Handoff Tray.')
     const first = items[0]
-    const sourcePrompt = `Consolidated Handoff Tray · ${items.length} selected response${items.length === 1 ? '' : 's'}`
+    const sourcePrompt = `Consolidated Working Set · ${items.length} selected item${items.length === 1 ? '' : 's'}`
     const sourceResponse = items
-      .map((item, index) => `## Source ${index + 1} · ${item.conversationTitle}\n\n${item.response}`)
+      .map(
+        (item, index) =>
+          `## ${item.category} · ${item.sourceKind} ${index + 1} · ${item.conversationTitle}\n\n${item.content}`,
+      )
       .join('\n\n---\n\n')
     return this.repository.createOrGet({
       createdAt: Date.now(),

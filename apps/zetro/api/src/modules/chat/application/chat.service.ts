@@ -4,6 +4,8 @@ import type {
   ChatConversationProviderResponse,
   ChatConversationSummary,
   ChatConversationUpdateRequest,
+  ChatDecisionItem,
+  ChatDecisionUpsertRequest,
   ChatHistoryResponse,
   ChatHandoffItem,
   ChatStoredEvent,
@@ -11,11 +13,15 @@ import type {
   ChatTurnAcceptedResponse,
   ChatTurnProviderSnapshot,
   ChatTurnStatus,
+  ChatWorkingSetCategory,
+  ChatWorkingSetSourceKind,
   ProviderConnection,
   ProviderSelectionRequest,
 } from '@codexsun/zetro-contracts'
 import type { ProviderMessage, ProviderRunner } from '../../providers/index.js'
 import type { ChatStore } from './chat.ports.js'
+import type { ChatImageArtifact } from '@codexsun/zetro-contracts'
+import { ChatImageArtifactStore } from '../infrastructure/chat-image-artifact.store.js'
 
 type EventListener = (event: ChatStoredEvent) => void
 
@@ -28,7 +34,14 @@ export class ChatService {
   constructor(
     private readonly repository: ChatStore,
     private readonly client: ProviderRunner,
+    private readonly images?: ChatImageArtifactStore,
   ) {}
+
+  uploadImage(conversationId: string, input: { dataUrl: string; name: string }): ChatImageArtifact {
+    if (!this.repository.getConversationProvider(conversationId)) throw new ChatConversationNotFoundError()
+    if (!this.images) throw new Error('Image storage is not configured.')
+    return this.images.save(conversationId, input)
+  }
 
   getHistory(conversationId: string): ChatHistoryResponse {
     return this.repository.getHistory(conversationId)
@@ -38,8 +51,28 @@ export class ChatService {
     return this.repository.listHandoffItems()
   }
 
-  setHandoffItem(conversationId: string, turnId: string, selected: boolean): ChatHandoffItem[] {
-    return this.repository.setHandoffItem(conversationId, turnId, selected)
+  clearHandoffItems(): ChatHandoffItem[] {
+    return this.repository.clearHandoffItems()
+  }
+
+  listDecisions(conversationId: string, turnId: string): ChatDecisionItem[] {
+    return this.repository.listDecisions(conversationId, turnId)
+  }
+
+  saveDecision(conversationId: string, turnId: string, decision: ChatDecisionUpsertRequest): ChatDecisionItem {
+    return this.repository.upsertDecision(conversationId, turnId, decision)
+  }
+
+  removeDecision(conversationId: string, decisionId: string): ChatHandoffItem[] {
+    return this.repository.removeDecision(conversationId, decisionId)
+  }
+
+  setHandoffItem(
+    conversationId: string,
+    turnId: string,
+    selection: { category: ChatWorkingSetCategory; selected: boolean; sourceKind: ChatWorkingSetSourceKind },
+  ): ChatHandoffItem[] {
+    return this.repository.setHandoffItem(conversationId, turnId, selection)
   }
 
   isReady(): boolean {
@@ -78,7 +111,7 @@ export class ChatService {
     return this.repository.ownsTurn(conversationId, turnId)
   }
 
-  startTurn(conversationId: string, turnId: string, prompt: string): ChatTurnAcceptedResponse {
+  startTurn(conversationId: string, turnId: string, prompt: string, imageIds: string[] = []): ChatTurnAcceptedResponse {
     if (this.closing) throw new Error('Zetro is stopping and cannot accept a new turn.')
     if (this.providerSwitches.has(conversationId)) {
       throw new ChatConversationConflictError(
@@ -112,7 +145,9 @@ export class ChatService {
           }
           return
         }
-        void this.executeTurn(conversationId, turnId, prompt, connection).then(resolve, reject)
+        const imagePaths = imageIds.length ? this.images?.resolve(conversationId, imageIds) : []
+        if (!imagePaths) throw new Error('Image storage is not configured.')
+        void this.executeTurn(conversationId, turnId, prompt, connection, imagePaths).then(resolve, reject)
       })
     })
     this.executions.add(execution)
@@ -230,12 +265,14 @@ export class ChatService {
     turnId: string,
     prompt: string,
     connection: ProviderConnection,
+    imagePaths: string[],
   ): Promise<void> {
     let streamedResponse = ''
     try {
       const result = await this.client.run({
         connection,
         conversationId,
+        imagePaths,
         messages: this.providerMessages(conversationId),
         onEvent: (event) => {
           if (event.type === 'response') streamedResponse += event.delta

@@ -7,7 +7,7 @@
 ## Purpose
 
 This module runs chat through the provider selected by `zetro.providers.api` and stores browser chat history in SQLite.
-It does not own tasks, files, Git, settings, attachments, or desktop behavior.
+It stores supported image attachments below private application storage and passes them only to Local Codex as `localImage` turn inputs. CXZ image input remains unavailable until its shared artifact mount exists. It does not own tasks, Git, settings, or desktop behavior.
 
 The API owns the conversation registry. The web application consumes its public contracts.
 
@@ -17,6 +17,11 @@ The API owns the conversation registry. The web application consumes its public 
 - `GET /api/zetro/v1/chat/turns/:turnId/events` replays and follows ordered events.
 - `POST /api/zetro/v1/chat/stop` accepts an exact turn ID and interrupts only that turn.
 - `GET /api/zetro/v1/chat/history` returns stored turns and ordered stream events.
+- `POST /api/zetro/v1/chat/images` stores one private PNG, JPEG, or WebP attachment for the active conversation.
+- `GET /api/zetro/v1/chat/handoff-tray` returns the durable Working Set.
+- `PUT /api/zetro/v1/chat/handoff-tray/:turnId` selects or classifies completed prompt or response evidence.
+- `GET /api/zetro/v1/chat/turns/:turnId/decisions` returns saved inline answers for detected Open Decisions questions.
+- `PUT /api/zetro/v1/chat/turns/:turnId/decisions` saves a Yes, No, Skip, or custom answer and adds it to the Working Set.
 - `GET /api/zetro/v1/chat/conversations` lists active, archived, or all conversations.
 - `POST /api/zetro/v1/chat/conversations` creates an empty conversation.
 - `PATCH /api/zetro/v1/chat/conversations/:conversationId` renames, archives, or restores it.
@@ -27,7 +32,8 @@ The API owns the conversation registry. The web application consumes its public 
 
 ## Persistence
 
-The module owns `chat_conversations`, `chat_turns`, and `chat_turn_events`. The database
+The module owns `chat_conversations`, `chat_turns`, `chat_turn_events`, and the durable
+Working Set evidence registry. The database
 uses WAL mode, foreign keys, and normal synchronous writes. Each event is committed
 before it is published to the browser. Migration declarations
 stay in `infrastructure/chat.migrations.ts`. The migration ledger rejects a changed
@@ -37,6 +43,8 @@ unfinished turn as failed and keeps its saved partial events. The third migratio
 renames stored session identity to conversation identity without replacing records.
 The fourth migration adds titles and archive times. It derives each existing title
 from its first prompt. It preserves every existing ID, provider thread, turn, and event.
+The ninth migration adds conversation-owned inline decisions; saving an answer makes a durable
+decision item available in the same Working Set without changing the source response.
 The fifth migration adds the immutable provider connection, model, and reasoning snapshot
 captured when a turn is accepted. The sixth migration stores the current provider selection on
 each conversation and stores one runtime thread per `(conversation, connection)` pair.

@@ -3,17 +3,22 @@ import type {
   ChatConversationProvider,
   ChatConversationSummary,
   ChatConversationUpdateRequest,
+  ChatDecisionItem,
+  ChatDecisionUpsertRequest,
   ChatHandoffItem,
   ChatHistoryResponse,
   ChatStoredEvent,
   ChatStreamEvent,
   ChatTurnProviderSnapshot,
   ChatTurnStatus,
+  ChatWorkingSetCategory,
+  ChatWorkingSetSourceKind,
 } from '@codexsun/zetro-contracts'
 
 export interface ChatStore {
   appendEvent(turnId: string, event: ChatStreamEvent): ChatStoredEvent
   close(): void
+  clearHandoffItems(): ChatHandoffItem[]
   createConversation(
     conversationId: string,
     title: string | undefined,
@@ -30,6 +35,8 @@ export interface ChatStore {
   getEvents(turnId: string, afterSequence?: number): ChatStoredEvent[]
   getHistory(conversationId: string): ChatHistoryResponse
   listHandoffItems(): ChatHandoffItem[]
+  listDecisions(conversationId: string, turnId: string): ChatDecisionItem[]
+  removeDecision(conversationId: string, decisionId: string): ChatHandoffItem[]
   getConversationProvider(conversationId: string): ChatConversationProvider | undefined
   getProviderThreadId(conversationId: string, connectionId: string): string | undefined
   getTurnStatus(turnId: string): ChatTurnStatus | undefined
@@ -37,7 +44,12 @@ export interface ChatStore {
   listConversations(scope: ChatConversationListScope): ChatConversationSummary[]
   ownsTurn(conversationId: string, turnId: string): boolean
   setProviderThreadId(conversationId: string, connectionId: string, threadId: string): void
-  setHandoffItem(conversationId: string, turnId: string, selected: boolean): ChatHandoffItem[]
+  setHandoffItem(
+    conversationId: string,
+    turnId: string,
+    selection: { category: ChatWorkingSetCategory; selected: boolean; sourceKind: ChatWorkingSetSourceKind },
+  ): ChatHandoffItem[]
+  upsertDecision(conversationId: string, turnId: string, decision: ChatDecisionUpsertRequest): ChatDecisionItem
   startTurn(
     conversationId: string,
     turnId: string,

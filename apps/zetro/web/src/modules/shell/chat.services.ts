@@ -3,7 +3,17 @@ import {
   chatConversationSummarySchema,
   chatConversationUpdateRequestSchema,
   chatHandoffTraySchema,
+  chatImageArtifactSchema,
+  chatImageUploadResponseSchema,
+  chatImageUploadRequestSchema,
   type ChatHandoffItem,
+  type ChatDecisionItem,
+  type ChatDecisionUpsertRequest,
+  chatDecisionItemSchema,
+  chatDecisionListResponseSchema,
+  type ChatWorkingSetCategory,
+  type ChatWorkingSetSourceKind,
+  type ChatImageArtifact,
   chatConversationHeaderName,
   chatConversationIdSchema,
   chatHistoryResponseSchema,
@@ -90,31 +100,67 @@ export async function fetchHandoffTray(): Promise<ChatHandoffItem[]> {
   return chatHandoffTraySchema.parse(await readJson(response, 'Could not load the Handoff Tray.')).items
 }
 
+export async function clearHandoffTray(): Promise<ChatHandoffItem[]> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/handoff-tray`, { method: 'DELETE' })
+  return chatHandoffTraySchema.parse(await readJson(response, 'Could not clear the Working Set.')).items
+}
+
+export async function removeWorkingSetDecision(conversationId: string, decisionId: string): Promise<ChatHandoffItem[]> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/decisions/${encodeURIComponent(decisionId)}`, { headers: chatHeaders(conversationId), method: 'DELETE' })
+  return chatHandoffTraySchema.parse(await readJson(response, 'Could not remove the decision.')).items
+}
+
 export async function setHandoffSelection(
   conversationId: string,
   turnId: string,
-  selected: boolean,
+  selection: { category?: ChatWorkingSetCategory; selected: boolean; sourceKind?: ChatWorkingSetSourceKind },
 ): Promise<ChatHandoffItem[]> {
   const response = await fetch(`${baseUrl}/api/zetro/v1/chat/handoff-tray/${encodeURIComponent(turnId)}`, {
-    body: JSON.stringify({ selected }),
+    body: JSON.stringify(selection),
     headers: chatHeaders(conversationId, true),
     method: 'PUT',
   })
   return chatHandoffTraySchema.parse(await readJson(response, 'Could not update the Handoff Tray.')).items
 }
 
+export async function fetchTurnDecisions(conversationId: string, turnId: string): Promise<ChatDecisionItem[]> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/turns/${encodeURIComponent(turnId)}/decisions`, { headers: chatHeaders(conversationId) })
+  return chatDecisionListResponseSchema.parse(await readJson(response, 'Could not load open decisions.')).decisions
+}
+
+export async function saveTurnDecision(conversationId: string, turnId: string, decision: ChatDecisionUpsertRequest): Promise<ChatDecisionItem> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/turns/${encodeURIComponent(turnId)}/decisions`, {
+    body: JSON.stringify(decision), headers: chatHeaders(conversationId, true), method: 'PUT',
+  })
+  return chatDecisionItemSchema.parse(await readJson(response, 'Could not save the decision.'))
+}
+
 export async function startChatTurn(
   conversationId: string,
   turnId: string,
   prompt: string,
+  imageIds: string[] = [],
 ): Promise<ChatTurnAcceptedResponse> {
   const response = await fetch(`${baseUrl}/api/zetro/v1/chat/turns`, {
-    body: JSON.stringify({ prompt, turnId }),
+    body: JSON.stringify({ imageIds, prompt, turnId }),
     headers: chatHeaders(conversationId, true),
     method: 'POST',
   })
   return chatTurnAcceptedResponseSchema.parse(
     await readJson(response, 'Codex did not accept the prompt.'),
+  )
+}
+
+export async function uploadChatImage(conversationId: string, file: File): Promise<ChatImageArtifact> {
+  const dataUrl = await readAsDataUrl(file)
+  const payload = chatImageUploadRequestSchema.parse({ dataUrl, name: file.name || 'Pasted image' })
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/images`, {
+    body: JSON.stringify(payload),
+    headers: chatHeaders(conversationId, true),
+    method: 'POST',
+  })
+  return chatImageArtifactSchema.parse(
+    chatImageUploadResponseSchema.parse(await readJson(response, 'Could not upload the image.')).image,
   )
 }
 
@@ -192,6 +238,15 @@ function errorFromBody(body: unknown) {
   if (!body || typeof body !== 'object') return undefined
   const error = Reflect.get(body, 'error')
   return typeof error === 'string' ? error : undefined
+}
+
+function readAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read the image.'))
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not read the image.'))
+    reader.readAsDataURL(file)
+  })
 }
 
 async function readServerEvents(

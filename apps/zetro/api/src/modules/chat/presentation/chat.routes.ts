@@ -3,6 +3,11 @@ import {
   chatHandoffSelectionRequestSchema,
   chatHandoffTraySchema,
   chatHandoffTurnParamsSchema,
+  chatDecisionListResponseSchema,
+  chatDecisionParamsSchema,
+  chatDecisionUpsertRequestSchema,
+  chatImageUploadRequestSchema,
+  chatImageUploadResponseSchema,
   chatConversationProviderResponseSchema,
   chatConversationSummarySchema,
   chatHistoryResponseSchema,
@@ -33,6 +38,43 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
   server.get('/api/zetro/v1/chat/handoff-tray', async () =>
     chatHandoffTraySchema.parse({ items: service.listHandoffItems() }),
   )
+  server.delete('/api/zetro/v1/chat/handoff-tray', async (_request, reply) => {
+    try { return chatHandoffTraySchema.parse({ items: service.clearHandoffItems() }) }
+    catch (error) { return reply.code(409).send({ error: errorMessage(error) }) }
+  })
+  server.delete('/api/zetro/v1/chat/decisions/:decisionId', async (request, reply) => {
+    const params = chatDecisionParamsSchema.safeParse(request.params)
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!params.success || !conversationId) return reply.code(400).send({ error: 'A valid decision is required.' })
+    try { return chatHandoffTraySchema.parse({ items: service.removeDecision(conversationId, params.data.decisionId) }) }
+    catch (error) { return reply.code(404).send({ error: errorMessage(error) }) }
+  })
+  server.get('/api/zetro/v1/chat/turns/:turnId/decisions', async (request, reply) => {
+    const params = chatTurnParamsSchema.safeParse(request.params)
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!params.success || !conversationId) return reply.code(400).send({ error: 'A valid chat turn is required.' })
+    try { return chatDecisionListResponseSchema.parse({ decisions: service.listDecisions(conversationId, params.data.turnId) }) }
+    catch (error) { return reply.code(404).send({ error: errorMessage(error) }) }
+  })
+  server.put('/api/zetro/v1/chat/turns/:turnId/decisions', async (request, reply) => {
+    const params = chatTurnParamsSchema.safeParse(request.params)
+    const body = chatDecisionUpsertRequestSchema.safeParse(request.body)
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!params.success || !body.success || !conversationId) return reply.code(400).send({ error: 'A valid decision is required.' })
+    try { return service.saveDecision(conversationId, params.data.turnId, body.data) }
+    catch (error) { return reply.code(409).send({ error: errorMessage(error) }) }
+  })
+
+  server.post('/api/zetro/v1/chat/images', async (request, reply) => {
+    const input = chatImageUploadRequestSchema.safeParse(request.body)
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!input.success || !conversationId) return reply.code(400).send({ error: 'A valid image is required.' })
+    try {
+      return reply.code(201).send(chatImageUploadResponseSchema.parse({ image: service.uploadImage(conversationId, input.data) }))
+    } catch (error) {
+      return reply.code(409).send({ error: errorMessage(error) })
+    }
+  })
   server.put('/api/zetro/v1/chat/handoff-tray/:turnId', async (request, reply) => {
     const params = chatHandoffTurnParamsSchema.safeParse(request.params)
     const body = chatHandoffSelectionRequestSchema.safeParse(request.body)
@@ -42,7 +84,7 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
     }
     try {
       return chatHandoffTraySchema.parse({
-        items: service.setHandoffItem(conversationId, params.data.turnId, body.data.selected),
+        items: service.setHandoffItem(conversationId, params.data.turnId, body.data),
       })
     } catch (error) {
       return reply.code(409).send({ error: errorMessage(error) })
@@ -133,7 +175,7 @@ export async function registerChatRoutes(server: FastifyInstance, service: ChatS
     if (!conversationId) return
 
     try {
-      const accepted = service.startTurn(conversationId, parsed.data.turnId, parsed.data.prompt)
+      const accepted = service.startTurn(conversationId, parsed.data.turnId, parsed.data.prompt, parsed.data.imageIds)
       return reply.code(202).send(chatTurnAcceptedResponseSchema.parse(accepted))
     } catch (error) {
       return reply.code(409).send({ error: errorMessage(error) })

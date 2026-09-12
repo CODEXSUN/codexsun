@@ -41,7 +41,10 @@ export class ProviderChatRunner implements ProviderRunner {
     }
     this.activeKinds.set(request.conversationId, request.connection.kind)
     try {
-      if (request.connection.kind === 'cxz-codex') return await this.cxz.run(request)
+      if (request.connection.kind === 'cxz-codex') {
+        if (request.imagePaths?.length) throw new Error('CXZ image input needs its shared artifact mount. Use Local Codex for now.')
+        return await this.cxz.run(request)
+      }
       return await this.codex.run(
         request.conversationId,
         request.prompt,
@@ -50,6 +53,7 @@ export class ProviderChatRunner implements ProviderRunner {
         request.onProviderThread,
         request.connection.model,
         request.connection.reasoningEffort,
+        request.imagePaths ?? [],
       )
     } finally {
       this.activeKinds.delete(request.conversationId)

@@ -2,6 +2,8 @@ import Markdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from 'cn'
+import { isValidElement } from 'react'
+import { MermaidPreview } from '../blocks/mermaid-preview'
 
 export function MarkdownContent({ className, content }: { className?: string; content: string }) {
   return (
@@ -64,14 +66,12 @@ const components: Components = {
     </ol>
   ),
   p: ({ children, node: _node, ...props }) => <p {...props}>{children}</p>,
-  pre: ({ children, node: _node, ...props }) => (
-    <pre
-      className="overflow-x-auto rounded-lg bg-neutral-950 p-4 font-mono text-[13px] leading-5 text-neutral-100 [&_code]:bg-transparent [&_code]:p-0"
-      {...props}
-    >
-      {children}
-    </pre>
-  ),
+  pre: ({ children, node: _node, ...props }) => {
+    if (isValidElement<{ className?: string; children?: unknown }>(children) && children.props.className?.split(' ').includes('language-mermaid')) {
+      return <MermaidPreview interactive source={String(children.props.children ?? '')} />
+    }
+    return <pre className="overflow-x-auto rounded-lg bg-neutral-950 p-4 font-mono text-[13px] leading-5 text-neutral-100 [&_code]:bg-transparent [&_code]:p-0" {...props}>{children}</pre>
+  },
   table: ({ children, node: _node, ...props }) => (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full border-collapse text-left" {...props}>

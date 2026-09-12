@@ -130,6 +130,18 @@ export function ProviderSettings({
             ))}
           </NativeSelect>
         </label>
+        <div className="border-t pt-4 text-sm">
+          <p className="font-medium">Image processing</p>
+          {active.kind === 'codex-app-server' ? (
+            <p className="mt-1 text-muted-foreground">
+              Connected Codex Vision is ready for private PNG, JPEG, and WebP attachments. Docker OCR remains optional and is not installed.
+            </p>
+          ) : (
+            <p className="mt-1 text-muted-foreground">
+              CXZ image input needs the planned shared artifact mount. Use Local Codex to discuss an image now.
+            </p>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"

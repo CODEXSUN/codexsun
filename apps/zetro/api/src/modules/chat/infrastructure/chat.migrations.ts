@@ -155,4 +155,44 @@ export const chatMigrations: ChatMigration[] = [
         ON chat_handoff_items(selected_at DESC, turn_id);
     `,
   },
+  {
+    version: 8,
+    sql: `
+      CREATE TABLE chat_working_set_items (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+        turn_id TEXT NOT NULL REFERENCES chat_turns(id) ON DELETE CASCADE,
+        source_kind TEXT NOT NULL CHECK (source_kind IN ('prompt', 'response')),
+        category TEXT NOT NULL CHECK (category IN ('decision', 'idea', 'reference', 'requirement', 'visual-reference')),
+        selected_at INTEGER NOT NULL,
+        UNIQUE(turn_id, source_kind)
+      ) STRICT;
+
+      INSERT INTO chat_working_set_items (id, conversation_id, turn_id, source_kind, category, selected_at)
+      SELECT handoff.turn_id, turn.conversation_id, handoff.turn_id, 'response', 'reference', handoff.selected_at
+      FROM chat_handoff_items handoff
+      JOIN chat_turns turn ON turn.id = handoff.turn_id;
+
+      CREATE INDEX chat_working_set_items_selected_idx
+        ON chat_working_set_items(selected_at DESC, id);
+    `,
+  },
+  {
+    version: 9,
+    sql: `
+      CREATE TABLE chat_decisions (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+        turn_id TEXT NOT NULL REFERENCES chat_turns(id) ON DELETE CASCADE,
+        question_index INTEGER NOT NULL CHECK (question_index >= 0),
+        question TEXT NOT NULL,
+        answer_kind TEXT NOT NULL CHECK (answer_kind IN ('yes', 'no', 'skip', 'custom')),
+        answer_text TEXT,
+        selected_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(turn_id, question_index)
+      ) STRICT;
+      CREATE INDEX chat_decisions_turn_idx ON chat_decisions(turn_id, question_index);
+    `,
+  },
 ]

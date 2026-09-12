@@ -57,6 +57,7 @@ export class CodexChatClient {
     onProviderThread: (threadId: string) => void,
     model: string | undefined,
     effort: ProviderReasoningEffort,
+    imagePaths: string[] = [],
   ) {
     const session = await this.getConversation(
       conversationId,
@@ -71,7 +72,7 @@ export class CodexChatClient {
     const activeTurn = this.request('turn/start', {
       cwd: resolveChatWorkingDirectory(),
       effort,
-      input: [{ text: prompt, type: 'text' }],
+      input: [{ text: prompt, type: 'text' }, ...imagePaths.map((path) => ({ path, type: 'localImage' as const }))],
       model,
       threadId: session.threadId,
     }).then((result) => readString(asRecord(asRecord(result).turn), 'id'))

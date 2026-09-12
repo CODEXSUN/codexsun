@@ -1,11 +1,12 @@
 import { Button } from '@codexsun/ui/components/button'
+import { NativeSelect, NativeSelectOption } from '@codexsun/ui/components/native-select'
 import { Layers3, Send, Sparkles, X } from 'lucide-react'
-import type { ChatHandoffItem } from '@codexsun/zetro-contracts'
+import type { ChatHandoffItem, ChatWorkingSetCategory } from '@codexsun/zetro-contracts'
 
 export function HandoffTrayButton({ count, onClick }: { count: number; onClick(): void }) {
   return (
     <Button
-      aria-label={`Open Handoff Tray, ${count} selected`}
+      aria-label={`Open Working Set, ${count} selected`}
       className="relative mr-2 cursor-pointer"
       onClick={onClick}
       size="icon-sm"
@@ -25,16 +26,20 @@ export function HandoffTrayButton({ count, onClick }: { count: number; onClick()
 export function HandoffTray({
   items,
   onClose,
+  onClear,
   onHandOff,
   onRemove,
   onReview,
+  onUpdate,
   open,
 }: {
   items: ChatHandoffItem[]
   onClose(): void
+  onClear(): void
   onHandOff(): void
   onRemove(item: ChatHandoffItem): void
   onReview(): void
+  onUpdate(item: ChatHandoffItem, category: ChatWorkingSetCategory): void
   open: boolean
 }) {
   if (!open) return null
@@ -47,17 +52,18 @@ export function HandoffTray({
       >
         <header className="flex items-center justify-between border-b px-5 py-4">
           <div>
-            <p className="text-sm font-semibold">Handoff Tray</p>
-            <p className="text-xs text-muted-foreground">{items.length} selected response{items.length === 1 ? '' : 's'}</p>
+            <p className="text-sm font-semibold">Working set</p>
+            <p className="text-xs text-muted-foreground">{items.length} selected evidence item{items.length === 1 ? '' : 's'}</p>
           </div>
-          <Button aria-label="Close Handoff Tray" onClick={onClose} size="icon-sm" type="button" variant="ghost"><X /></Button>
+          <Button aria-label="Close Working Set" onClick={onClose} size="icon-sm" type="button" variant="ghost"><X /></Button>
         </header>
         <div className="flex-1 overflow-y-auto p-4">
-          {items.length ? <div className="grid gap-3">{items.map((item) => <article className="rounded-lg border p-3" key={item.turnId}><div className="flex gap-2"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.conversationTitle}</p><p className="mt-1 line-clamp-4 text-xs leading-5 text-muted-foreground">{item.response}</p></div><Button aria-label={`Remove ${item.conversationTitle}`} onClick={() => onRemove(item)} size="icon-xs" type="button" variant="ghost"><X /></Button></div></article>)}</div> : <p className="py-12 text-center text-sm text-muted-foreground">Add completed responses from any chat to prepare one refined task.</p>}
+          {items.length ? <div className="grid gap-3">{items.map((item) => <article className="rounded-lg border p-3" key={item.id}><div className="flex gap-2"><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-sm font-medium">{item.conversationTitle}</p><span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{item.sourceKind}</span></div><NativeSelect aria-label={`Category for ${item.conversationTitle}`} className="mt-2 h-8 text-xs" disabled={item.sourceKind === 'decision'} onChange={(event) => onUpdate(item, event.target.value as ChatWorkingSetCategory)} value={item.category}><NativeSelectOption value="idea">Idea</NativeSelectOption><NativeSelectOption value="requirement">Requirement</NativeSelectOption><NativeSelectOption value="decision">Decision</NativeSelectOption><NativeSelectOption value="visual-reference">Visual reference</NativeSelectOption><NativeSelectOption value="reference">Reference</NativeSelectOption></NativeSelect><p className="mt-2 line-clamp-4 text-xs leading-5 text-muted-foreground">{item.content}</p></div><Button aria-label={`Leave off ${item.conversationTitle}`} onClick={() => onRemove(item)} size="icon-xs" type="button" variant="ghost"><X /></Button></div></article>)}</div> : <p className="py-12 text-center text-sm text-muted-foreground">Add prompts or completed responses from any chat. Classify each item before consolidating.</p>}
         </div>
         <footer className="grid gap-2 border-t p-4">
-          <Button disabled={!items.length} onClick={onReview} type="button" variant="outline"><Sparkles />Review in chat</Button>
-          <Button disabled={!items.length} onClick={onHandOff} type="button"><Send />Hand off to Task</Button>
+          <Button disabled={!items.length} onClick={onClear} type="button" variant="ghost"><X />Clear Working Set</Button>
+          <Button disabled={!items.length} onClick={onReview} type="button" variant="outline"><Sparkles />Review / consolidate</Button>
+          <Button disabled={!items.length} onClick={onHandOff} type="button"><Send />Create task draft</Button>
         </footer>
       </aside>
     </div>

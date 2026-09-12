@@ -150,12 +150,27 @@ export const chatStreamEventSchema = z.discriminatedUnion('type', [
 ])
 
 export const chatPromptRequestSchema = z.object({
+  imageIds: z.array(z.uuid()).max(4).default([]),
   prompt: z
     .string()
     .min(1)
     .max(64 * 1024),
   turnId: z.uuid(),
 })
+
+export const chatImageUploadRequestSchema = z.object({
+  dataUrl: z.string().startsWith('data:image/').max(3 * 1024 * 1024),
+  name: z.string().trim().min(1).max(160),
+})
+
+export const chatImageArtifactSchema = z.object({
+  id: z.uuid(),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  name: z.string().min(1).max(160),
+  sizeBytes: z.number().int().positive().max(2 * 1024 * 1024),
+})
+
+export const chatImageUploadResponseSchema = z.object({ image: chatImageArtifactSchema })
 
 export const chatStopRequestSchema = z.object({ turnId: z.uuid() })
 
@@ -206,16 +221,53 @@ export const chatConversationListResponseSchema = z.object({
   conversations: z.array(chatConversationSummarySchema),
 })
 
+export const chatWorkingSetSourceKindSchema = z.enum(['prompt', 'response', 'decision'])
+export const chatWorkingSetCategorySchema = z.enum([
+  'decision',
+  'idea',
+  'reference',
+  'requirement',
+  'visual-reference',
+])
+
 export const chatHandoffItemSchema = z.object({
+  category: chatWorkingSetCategorySchema,
   conversationId: chatConversationIdSchema,
   conversationTitle: chatConversationTitleSchema,
-  response: z.string().min(1),
+  content: z.string().min(1),
+  id: z.uuid(),
   selectedAt: z.number().int().nonnegative(),
+  sourceKind: chatWorkingSetSourceKindSchema,
   turnId: z.uuid(),
 })
 export const chatHandoffTraySchema = z.object({ items: z.array(chatHandoffItemSchema) })
-export const chatHandoffSelectionRequestSchema = z.object({ selected: z.boolean() })
+export const chatHandoffSelectionRequestSchema = z.object({
+  category: chatWorkingSetCategorySchema.default('reference'),
+  selected: z.boolean(),
+  sourceKind: chatWorkingSetSourceKindSchema.default('response'),
+})
 export const chatHandoffTurnParamsSchema = z.object({ turnId: z.uuid() })
+
+export const chatDecisionAnswerKindSchema = z.enum(['yes', 'no', 'skip', 'custom'])
+export const chatDecisionItemSchema = z.object({
+  answerKind: chatDecisionAnswerKindSchema,
+  answerText: z.string().trim().max(500).optional(),
+  conversationId: chatConversationIdSchema,
+  id: z.uuid(),
+  question: z.string().trim().min(1).max(1_000),
+  questionIndex: z.number().int().nonnegative(),
+  selectedAt: z.number().int().nonnegative(),
+  turnId: z.uuid(),
+  updatedAt: z.number().int().nonnegative(),
+})
+export const chatDecisionUpsertRequestSchema = z.object({
+  answerKind: chatDecisionAnswerKindSchema,
+  answerText: z.string().trim().max(500).optional(),
+  question: z.string().trim().min(1).max(1_000),
+  questionIndex: z.number().int().nonnegative(),
+})
+export const chatDecisionListResponseSchema = z.object({ decisions: z.array(chatDecisionItemSchema) })
+export const chatDecisionParamsSchema = z.object({ decisionId: z.uuid() })
 
 export const agentTaskApprovalStatusSchema = z.literal('awaiting-approval')
 export const agentTaskStatusSchema = z.literal('draft')
@@ -405,6 +457,11 @@ export type ChatConversationProviderResponse = z.infer<
 >
 export type ChatConversationUpdateRequest = z.infer<typeof chatConversationUpdateRequestSchema>
 export type ChatHandoffItem = z.infer<typeof chatHandoffItemSchema>
+export type ChatDecisionItem = z.infer<typeof chatDecisionItemSchema>
+export type ChatDecisionUpsertRequest = z.infer<typeof chatDecisionUpsertRequestSchema>
+export type ChatWorkingSetCategory = z.infer<typeof chatWorkingSetCategorySchema>
+export type ChatWorkingSetSourceKind = z.infer<typeof chatWorkingSetSourceKindSchema>
+export type ChatImageArtifact = z.infer<typeof chatImageArtifactSchema>
 export type ChatStoredEvent = z.infer<typeof storedChatEventSchema>
 export type ChatStreamEvent = z.infer<typeof chatStreamEventSchema>
 export type ChatTurnAcceptedResponse = z.infer<typeof chatTurnAcceptedResponseSchema>
