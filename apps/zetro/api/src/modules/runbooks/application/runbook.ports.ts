@@ -10,6 +10,7 @@ export type RunbookStore = {
   listDue(now: number): Runbook[]
   listRuns(): RunbookRun[]
   updateEnabled(id: string, enabled: boolean, nextRunAt: number): Runbook
+  updateArchive(id: string, archived: boolean): Runbook
   updateRun(run: RunbookRun): RunbookRun
   markScheduled(id: string, lastRunAt: number, nextRunAt: number): void
 }

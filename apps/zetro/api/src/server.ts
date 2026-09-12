@@ -25,7 +25,7 @@ export async function createServer() {
   server.addHook('onClose', () => observability.shutdown())
   await server.register(cors, {
     allowedHeaders: ['content-type', chatConversationHeaderName],
-    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
     origin: [environment.ZETRO_WEB_ORIGIN, environment.ZETRO_CXZ_ORIGIN],
   })
   const projectRoot = getProjectRoot()

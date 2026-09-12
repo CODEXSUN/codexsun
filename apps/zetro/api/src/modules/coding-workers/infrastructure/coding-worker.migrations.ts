@@ -69,4 +69,28 @@ export const codingWorkerMigrations = [
         ON coding_worker_attempts(task_id, created_at DESC);
     `,
   },
+  {
+    version: 4,
+    sql: `
+      ALTER TABLE coding_worker_attempts
+        ADD COLUMN execution_status TEXT NOT NULL DEFAULT 'not-started'
+          CHECK (execution_status IN ('not-started', 'working', 'complete', 'stopped', 'failed'));
+      ALTER TABLE coding_worker_attempts
+        ADD COLUMN execution_events_json TEXT NOT NULL DEFAULT '[]';
+      ALTER TABLE coding_worker_attempts
+        ADD COLUMN execution_started_at INTEGER;
+      ALTER TABLE coding_worker_attempts
+        ADD COLUMN execution_completed_at INTEGER;
+      ALTER TABLE coding_worker_attempts
+        ADD COLUMN execution_exit_code INTEGER;
+    `,
+  },
+  {
+    version: 5,
+    sql: `
+      ALTER TABLE coding_worker_attempts ADD COLUMN archived_at INTEGER;
+      ALTER TABLE coding_worker_attempts ADD COLUMN cleaned_at INTEGER;
+      ALTER TABLE coding_worker_attempts ADD COLUMN integrated_at INTEGER;
+    `,
+  },
 ] as const

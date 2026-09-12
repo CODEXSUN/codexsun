@@ -8,12 +8,14 @@
 
 This module prepares an isolated coding worker from an explicit task handoff. It creates a new `codex/zetro-task-*` branch and sibling Git worktree. It stores task scope, criteria, checks, base revision, and tool profile.
 
-The worktree is a generic isolated codebase, regardless of language or toolchain. The module runs only recorded allowlisted checks. It never starts Codex, commits, pushes, opens pull requests, merges, deploys, or removes a worktree.
+The worktree is a generic isolated codebase, regardless of language or toolchain. The module starts local authenticated Codex only inside the approved module folder. It stores live execution events and retains partial work after a stop or failure. It never commits, pushes, opens pull requests, merges, deploys, or removes a worktree.
 
 ## Contracts
 
-- `GET /api/zetro/v1/coding-workers` lists prepared worker attempts.
+- `GET /api/zetro/v1/coding-workers` lists prepared worker attempts and persisted execution events.
 - `POST /api/zetro/v1/coding-workers/prepare` validates review confirmation and prepares one worktree.
+- `POST /api/zetro/v1/coding-workers/:attemptId/start` starts authenticated local Codex in the approved module folder.
+- `POST /api/zetro/v1/coding-workers/:attemptId/stop` stops the exact active Codex process and keeps partial work.
 - `POST /api/zetro/v1/coding-workers/:attemptId/verify` runs the recorded checks and stores evidence.
 - `POST /api/zetro/v1/coding-workers/:attemptId/approve` or `/reject` records an explicit human decision.
 - `@codexsun/zetro-contracts` owns the request and response schemas.
@@ -27,6 +29,7 @@ The module reads task existence through the public Agent Tasks service. It does 
 - It creates worktrees only below a sibling `.<repository>-zetro-worktrees` directory.
 - A preparation failure removes only the new worktree and branch that this request created.
 - Git write, pull request, merge, push, and deployment actions remain outside this module.
+- A worker must complete before Zetro runs verification checks.
 - Only `git diff --check` and exact `npm run <script>` commands are accepted as verification checks.
 
 ## Persistence

@@ -27,6 +27,25 @@ export class AgentTaskService {
     })
   }
 
+  createFromHandoffTray(): AgentTaskDraft {
+    const items = this.source.listHandoffItems?.() ?? []
+    if (!items.length) throw new Error('Select at least one completed response in the Handoff Tray.')
+    const first = items[0]
+    const sourcePrompt = `Consolidated Handoff Tray · ${items.length} selected response${items.length === 1 ? '' : 's'}`
+    const sourceResponse = items
+      .map((item, index) => `## Source ${index + 1} · ${item.conversationTitle}\n\n${item.response}`)
+      .join('\n\n---\n\n')
+    return this.repository.createOrGet({
+      createdAt: Date.now(),
+      id: randomUUID(),
+      originConversationId: first.conversationId,
+      originTurnId: first.turnId,
+      sourcePrompt,
+      sourceResponse,
+      title: taskTitle(first.conversationTitle),
+    })
+  }
+
   get(taskId: string): AgentTaskDraft {
     const task = this.repository.get(taskId)
     if (!task) throw new AgentTaskNotFoundError()
@@ -59,6 +78,11 @@ export class AgentTaskService {
       )
     }
     return this.repository.confirmReview(taskId, Date.now())
+  }
+
+  archive(taskId: string, archived: boolean): AgentTaskDraft {
+    this.get(taskId)
+    return this.repository.updateArchive(taskId, archived)
   }
 
   close(): void {

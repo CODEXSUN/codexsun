@@ -29,4 +29,5 @@ export const agentTaskMigrations = [
       ALTER TABLE agent_task_drafts ADD COLUMN review_confirmed_at INTEGER;
     `,
   },
+  { version: 3, sql: `ALTER TABLE agent_task_drafts ADD COLUMN archived_at INTEGER;` },
 ] as const

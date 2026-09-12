@@ -3,6 +3,7 @@ import type {
   ChatConversationProvider,
   ChatConversationSummary,
   ChatConversationUpdateRequest,
+  ChatHandoffItem,
   ChatHistoryResponse,
   ChatStoredEvent,
   ChatStreamEvent,
@@ -28,6 +29,7 @@ export interface ChatStore {
   getActiveTurnId(conversationId: string): string | undefined
   getEvents(turnId: string, afterSequence?: number): ChatStoredEvent[]
   getHistory(conversationId: string): ChatHistoryResponse
+  listHandoffItems(): ChatHandoffItem[]
   getConversationProvider(conversationId: string): ChatConversationProvider | undefined
   getProviderThreadId(conversationId: string, connectionId: string): string | undefined
   getTurnStatus(turnId: string): ChatTurnStatus | undefined
@@ -35,6 +37,7 @@ export interface ChatStore {
   listConversations(scope: ChatConversationListScope): ChatConversationSummary[]
   ownsTurn(conversationId: string, turnId: string): boolean
   setProviderThreadId(conversationId: string, connectionId: string, threadId: string): void
+  setHandoffItem(conversationId: string, turnId: string, selected: boolean): ChatHandoffItem[]
   startTurn(
     conversationId: string,
     turnId: string,

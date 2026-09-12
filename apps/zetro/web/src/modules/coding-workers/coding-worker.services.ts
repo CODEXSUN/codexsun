@@ -36,10 +36,30 @@ export async function verifyCodingWorker(attemptId: string) {
   return postWorkerAction(attemptId, 'verify', undefined)
 }
 
+export async function startCodingWorker(attemptId: string) {
+  return postWorkerAction(attemptId, 'start', {})
+}
+
+export async function stopCodingWorker(attemptId: string) {
+  return postWorkerAction(attemptId, 'stop', {})
+}
+
+export async function archiveCodingWorker(attemptId: string) {
+  return postWorkerAction(attemptId, 'archive')
+}
+
+export async function cleanupCodingWorker(attemptId: string) {
+  return postWorkerAction(attemptId, 'cleanup')
+}
+
+export async function integrateCodingWorker(attemptId: string) {
+  return postWorkerAction(attemptId, 'integrate')
+}
+
 async function postWorkerAction(
   attemptId: string,
-  action: 'approve' | 'reject' | 'verify',
-  body: { confirmed: true } | undefined = { confirmed: true },
+  action: 'approve' | 'reject' | 'verify' | 'start' | 'stop' | 'archive' | 'cleanup' | 'integrate',
+  body: { confirmed: true } | Record<string, never> | undefined = { confirmed: true },
 ) {
   const response = await fetch(`${baseUrl}/api/zetro/v1/coding-workers/${attemptId}/${action}`, {
     body: body ? JSON.stringify(body) : undefined,

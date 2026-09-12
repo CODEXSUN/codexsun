@@ -8,6 +8,7 @@ import type { AgentTaskDraft } from '@codexsun/zetro-contracts'
 import { CodingWorkerRepository } from '../infrastructure/coding-worker.repository.js'
 import { GitWorktreeService } from '../infrastructure/git-worktree.service.js'
 import { CodingWorkerService } from './coding-worker.service.js'
+import type { WorkerRunner } from './coding-worker.ports.js'
 
 test('prepares an isolated branch and worktree for a confirmed daily coding handoff', () => {
   const directory = mkdtempSync(join(tmpdir(), 'zetro-coding-worker-test-'))
@@ -16,7 +17,12 @@ test('prepares an isolated branch and worktree for a confirmed daily coding hand
     initializeRepository(repositoryPath)
     const repository = new CodingWorkerRepository(join(directory, 'zetro.sqlite'))
     const taskSource = createTaskSource(repositoryPath)
-    const service = new CodingWorkerService(taskSource, new GitWorktreeService(), repository)
+    const service = new CodingWorkerService(
+      taskSource,
+      new GitWorktreeService(),
+      repository,
+      new CompletingWorkerRunner(),
+    )
     const attempt = service.prepare({
       taskId: taskSource.get('task-1').id,
     })
@@ -25,6 +31,8 @@ test('prepares an isolated branch and worktree for a confirmed daily coding hand
     assert.match(attempt.branchName, /^codex\/zetro-task-/)
     assert.ok(existsSync(attempt.worktreePath))
     assert.equal(service.list()[0]?.revision, attempt.revision)
+    const started = service.start(attempt.id)
+    assert.equal(started.execution.status, 'complete')
     const verified = service.verify(attempt.id)
     assert.equal(verified.approvalStatus, 'awaiting-approval')
     assert.equal(verified.verification[0]?.passed, true)
@@ -38,7 +46,32 @@ test('prepares an isolated branch and worktree for a confirmed daily coding hand
   }
 })
 
-function createTaskSource(repositoryPath: string) {
+test('creates a missing direct app scope only in the new isolated worktree', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'zetro-coding-worker-app-test-'))
+  const repositoryPath = join(directory, 'repository')
+  try {
+    initializeRepository(repositoryPath)
+    mkdirSync(join(repositoryPath, 'apps', 'storefront'))
+    const repository = new CodingWorkerRepository(join(directory, 'zetro.sqlite'))
+    const taskSource = createTaskSource(repositoryPath, 'apps/storefront')
+    const service = new CodingWorkerService(
+      taskSource,
+      new GitWorktreeService(),
+      repository,
+      new CompletingWorkerRunner(),
+    )
+    const attempt = service.prepare({ taskId: taskSource.get('task-1').id })
+    assert.ok(existsSync(join(attempt.worktreePath, 'apps', 'storefront')))
+    assert.ok(existsSync(join(repositoryPath, 'apps', 'storefront')))
+    execGit(repositoryPath, ['worktree', 'remove', '--force', attempt.worktreePath])
+    execGit(repositoryPath, ['branch', '--delete', '--force', attempt.branchName])
+    service.close()
+  } finally {
+    rmSync(directory, { force: true, maxRetries: 3, recursive: true, retryDelay: 20 })
+  }
+})
+
+function createTaskSource(repositoryPath: string, modulePath = 'apps/example') {
   return {
     get(_taskId: string): AgentTaskDraft {
       return {
@@ -49,7 +82,7 @@ function createTaskSource(repositoryPath: string) {
         id: 'a0b0c0d0-1111-4111-8111-111111111111',
         originConversationId: 'a0b0c0d0-1111-4111-8111-111111111111',
         originTurnId: '48a7f6ea-3793-49da-b846-02592c2f2223',
-        modulePath: 'apps/example',
+        modulePath,
         repositoryPath,
         reviewConfirmedAt: 1,
         sourcePrompt: 'Build the approved feature',
@@ -59,6 +92,17 @@ function createTaskSource(repositoryPath: string) {
         updatedAt: 1,
       }
     },
+  }
+}
+
+class CompletingWorkerRunner implements WorkerRunner {
+  start(input: Parameters<WorkerRunner['start']>[0]) {
+    input.onEvent({ message: 'Test worker activity.', type: 'activity' })
+    input.onExit({ exitCode: 0, status: 'complete' })
+  }
+
+  stop(_attemptId: string) {
+    return true
   }
 }
 

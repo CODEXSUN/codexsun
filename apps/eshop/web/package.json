@@ -1,0 +1,27 @@
+{
+  "name": "@codexsun/eshop-web",
+  "private": true,
+  "version": "0.1.36",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "lint": "eslint . --cache --cache-location ../../../node_modules/.cache/eslint/eshop-web.eslintcache",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@codexsun/ui": "file:../../../packages/ui",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "^1.33.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
+  }
+}

@@ -1,4 +1,4 @@
-import { runbookCreateRequestSchema, runbookEnabledRequestSchema, runbookInitiateRequestSchema, runbookInitiationResponseSchema, runbookListResponseSchema, runbookParamsSchema, runbookRunListResponseSchema, runbookRunParamsSchema, runbookRunSchema, runbookSchema } from '@codexsun/zetro-contracts'
+import { runbookArchiveRequestSchema, runbookCreateRequestSchema, runbookEnabledRequestSchema, runbookInitiateRequestSchema, runbookInitiationResponseSchema, runbookListResponseSchema, runbookParamsSchema, runbookRunListResponseSchema, runbookRunParamsSchema, runbookRunSchema, runbookSchema } from '@codexsun/zetro-contracts'
 import type { FastifyInstance } from 'fastify'
 import type { RunbookService } from '../application/runbook.service.js'
 
@@ -29,6 +29,11 @@ export async function registerRunbookRoutes(server: FastifyInstance, service: Ru
     const params = runbookParamsSchema.safeParse(request.params); const input = runbookEnabledRequestSchema.safeParse(request.body)
     if (!params.success || !input.success) return reply.code(400).send({ error: 'A valid runbook and enabled state are required.' })
     try { return reply.send(runbookSchema.parse(service.setEnabled(params.data.runbookId, input.data.enabled))) } catch (error) { return reply.code(404).send({ error: message(error) }) }
+  })
+  server.patch('/api/zetro/v1/runbooks/:runbookId/archive', async (request, reply) => {
+    const params = runbookParamsSchema.safeParse(request.params); const input = runbookArchiveRequestSchema.safeParse(request.body)
+    if (!params.success || !input.success) return reply.code(400).send({ error: 'A valid runbook archive state is required.' })
+    try { return reply.send(runbookSchema.parse(service.archive(params.data.runbookId, input.data.archived))) } catch (error) { return reply.code(409).send({ error: message(error) }) }
   })
 }
 function message(error: unknown) { return error instanceof Error ? error.message : 'Runbook action could not be completed.' }

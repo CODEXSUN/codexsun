@@ -118,10 +118,10 @@ export async function registerOrchestrationRoutes(
     '/api/orship/v1/prerequisites/build',
     {
       schema: {
-        body: z.toJSONSchema(prerequisiteBuildRequestSchema),
+        body: z.toJSONSchema(prerequisiteBuildRequestSchema, { target: 'jsonSchema7' }),
         response: {
-          200: z.toJSONSchema(prerequisiteBuildResponseSchema),
-          403: z.toJSONSchema(orchestrationErrorSchema),
+          200: z.toJSONSchema(prerequisiteBuildResponseSchema, { target: 'jsonSchema7' }),
+          403: z.toJSONSchema(orchestrationErrorSchema, { target: 'jsonSchema7' }),
         },
       },
     },
@@ -136,7 +136,7 @@ export async function registerOrchestrationRoutes(
 
   server.get(
     '/api/orship/v1/applications',
-    { schema: { response: { 200: z.toJSONSchema(availableApplicationsSchema) } } },
+    { schema: { response: { 200: z.toJSONSchema(availableApplicationsSchema, { target: 'jsonSchema7' }) } } },
     () => appInstaller.getAvailableApplications(),
   )
 
@@ -144,10 +144,10 @@ export async function registerOrchestrationRoutes(
     '/api/orship/v1/applications/install',
     {
       schema: {
-        body: z.toJSONSchema(appInstallationRequestSchema),
+        body: z.toJSONSchema(appInstallationRequestSchema, { target: 'jsonSchema7' }),
         response: {
-          200: z.toJSONSchema(appInstallationResultSchema),
-          403: z.toJSONSchema(orchestrationErrorSchema),
+          200: z.toJSONSchema(appInstallationResultSchema, { target: 'jsonSchema7' }),
+          403: z.toJSONSchema(orchestrationErrorSchema, { target: 'jsonSchema7' }),
         },
       },
     },
@@ -164,10 +164,10 @@ export async function registerOrchestrationRoutes(
     '/api/orship/v1/applications/deploy',
     {
       schema: {
-        body: z.strictObject({ profileId: z.string().min(1).max(120) }),
+        body: z.toJSONSchema(z.strictObject({ profileId: z.string().min(1).max(120) }), { target: 'jsonSchema7' }),
         response: {
-          200: z.toJSONSchema(appInstallationResultSchema),
-          403: z.toJSONSchema(orchestrationErrorSchema),
+          200: z.toJSONSchema(appInstallationResultSchema, { target: 'jsonSchema7' }),
+          403: z.toJSONSchema(orchestrationErrorSchema, { target: 'jsonSchema7' }),
         },
       },
     },

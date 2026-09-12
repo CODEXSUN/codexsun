@@ -8,7 +8,16 @@
 
 ## Version State
 
-- Current version: 0.1.36. Release tag: v-0.1.36. Changelog label: v 0.1.36.
+- Current version: 0.1.37. Release tag: v-0.1.37. Changelog label: v 0.1.37.
+
+## v-0.1.37
+
+### [v 0.1.37] 2026-09-11 - Orship App Installer and Prerequisites Build
+
+- Database update: No (auto-check).
+- Bumped workspace version to 0.1.37.
+- App Codebase Changes: Orship API 1.4.0 and Web 1.4.0 add the App Installer workspace and a prerequisites build trigger. The installer reads `.container/catalog.json`, resolves application dependencies, generates per-customer deployment profiles, and renders Docker Compose using `@codexsun/runtime` DeploymentPlanner. The Prerequisites page gains "Build & Apply" and "Force Rebuild" buttons that run the verified `setup-prerequisites.sh` script via a loopback-only API. Applications join the shared prerequisites network (`codexsun-prerequisites`) for MariaDB/Redis access.
+- Verification: All 28 packages build and pass typecheck. New frontend chunk `app-installer.workspace-*.js` (6.7 KB). See [the development record](../records/orship/2026-09-11-app-installer.md).
 
 ## v-0.1.36
 

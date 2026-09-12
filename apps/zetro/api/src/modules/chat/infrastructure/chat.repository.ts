@@ -8,6 +8,7 @@ import {
   type ChatConversationProvider,
   type ChatConversationSummary,
   type ChatConversationUpdateRequest,
+  type ChatHandoffItem,
   type ChatHistoryResponse,
   type ChatStoredEvent,
   type ChatStreamEvent,
@@ -245,6 +246,53 @@ export class ChatRepository {
         status: turn.status,
       })),
     }
+  }
+
+  listHandoffItems(): ChatHandoffItem[] {
+    const rows = this.database
+      .prepare(
+        `SELECT handoff.turn_id, handoff.selected_at, turn.conversation_id, conversation.title
+         FROM chat_handoff_items handoff
+         JOIN chat_turns turn ON turn.id = handoff.turn_id
+         JOIN chat_conversations conversation ON conversation.id = turn.conversation_id
+         ORDER BY handoff.selected_at, handoff.turn_id`,
+      )
+      .all() as Array<{
+        conversation_id: string
+        selected_at: number
+        title: string | null
+        turn_id: string
+      }>
+    return rows.flatMap((row) => {
+      const source = this.getTaskSource(row.conversation_id, row.turn_id)
+      if (source?.status !== 'complete' || !source.response) return []
+      return [{
+        conversationId: row.conversation_id,
+        conversationTitle: row.title ?? defaultConversationTitle,
+        response: source.response,
+        selectedAt: row.selected_at,
+        turnId: row.turn_id,
+      }]
+    })
+  }
+
+  setHandoffItem(conversationId: string, turnId: string, selected: boolean): ChatHandoffItem[] {
+    if (!this.ownsTurn(conversationId, turnId)) throw new Error('Chat turn was not found in this conversation.')
+    if (selected) {
+      const source = this.getTaskSource(conversationId, turnId)
+      if (source?.status !== 'complete' || !source.response) {
+        throw new Error('Only completed responses can be added to the Handoff Tray.')
+      }
+      this.database
+        .prepare(
+          `INSERT INTO chat_handoff_items (turn_id, selected_at) VALUES (?, ?)
+           ON CONFLICT(turn_id) DO NOTHING`,
+        )
+        .run(turnId, Date.now())
+    } else {
+      this.database.prepare('DELETE FROM chat_handoff_items WHERE turn_id = ?').run(turnId)
+    }
+    return this.listHandoffItems()
   }
 
   getTaskSource(conversationId: string, turnId: string) {

@@ -1,7 +1,9 @@
 export { AgentTaskRegistry } from './agent-task.registry'
 export {
+  archiveAgentTask,
   confirmAgentTaskReview,
   createAgentTaskFromChat,
+  createAgentTaskFromHandoffTray,
   fetchAgentTask,
   fetchAgentTasks,
   saveAgentTaskPlan,

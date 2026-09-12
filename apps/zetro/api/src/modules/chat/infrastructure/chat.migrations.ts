@@ -144,4 +144,15 @@ export const chatMigrations: ChatMigration[] = [
       WHERE provider_thread_id IS NOT NULL;
     `,
   },
+  {
+    version: 7,
+    sql: `
+      CREATE TABLE chat_handoff_items (
+        turn_id TEXT PRIMARY KEY REFERENCES chat_turns(id) ON DELETE CASCADE,
+        selected_at INTEGER NOT NULL
+      ) STRICT;
+      CREATE INDEX chat_handoff_items_selected_idx
+        ON chat_handoff_items(selected_at DESC, turn_id);
+    `,
+  },
 ]

@@ -28,8 +28,7 @@ import type {
   AgentTaskSummary,
   ChatConversationProvider,
   ChatConversationSummary,
-  CodingWorkerAttempt,
-  CodingWorkerHandoffRequest,
+  ChatHandoffItem,
   Runbook,
   RunbookCreateRequest,
   RunbookRun,
@@ -38,8 +37,9 @@ import type {
 import {
   AgentTaskRegistry,
   AgentTaskWorkspace,
+  archiveAgentTask,
   confirmAgentTaskReview,
-  createAgentTaskFromChat,
+  createAgentTaskFromHandoffTray,
   fetchAgentTask,
   fetchAgentTasks,
   saveAgentTaskPlan,
@@ -47,11 +47,7 @@ import {
 import {
   CodingWorkerRegistry,
   CodingWorkerWorkspace,
-  approveCodingWorker,
-  fetchCodingWorkerAttempts,
-  prepareCodingWorker,
-  rejectCodingWorker,
-  verifyCodingWorker,
+  useCodingWorkers,
 } from './modules/coding-workers'
 import {
   RunbookWorkspace,
@@ -69,18 +65,23 @@ import { fetchProviderSettings } from './modules/providers/provider.services'
 import {
   createChatConversation,
   fetchConversationRegistry,
+  fetchHandoffTray,
   getChatConversationId,
   setChatConversationId,
+  setHandoffSelection,
   updateChatConversation,
 } from './modules/shell/chat.services'
 import { ChatTurnView, EmptyChat } from './modules/shell/chat-turn-view'
 import { ConversationRegistry } from './modules/shell/conversation-registry'
+import { HandoffTray, HandoffTrayButton } from './modules/shell/handoff-tray'
 import { isRuntimeWorking, useConcurrentChat } from './modules/shell/use-concurrent-chat'
 
 type WorkspaceView = 'chat' | 'settings' | 'tasks' | 'workers' | 'runbooks'
 
 export function App() {
   const [prompt, setPrompt] = useState('')
+  const [handoffItems, setHandoffItems] = useState<ChatHandoffItem[]>([])
+  const [handoffOpen, setHandoffOpen] = useState(false)
   const [shellError, setShellError] = useState('')
   const [conversationId, setConversationId] = useState<string>()
   const [conversations, setConversations] = useState<ChatConversationSummary[]>([])
@@ -92,13 +93,12 @@ export function App() {
   const [tasks, setTasks] = useState<AgentTaskSummary[]>([])
   const [selectedTask, setSelectedTask] = useState<AgentTaskDraft>()
   const [tasksBusy, setTasksBusy] = useState(false)
-  const [workerAttempts, setWorkerAttempts] = useState<CodingWorkerAttempt[]>([])
-  const [workersBusy, setWorkersBusy] = useState(false)
   const [runbooks, setRunbooks] = useState<Runbook[]>([])
   const [runbookRuns, setRunbookRuns] = useState<RunbookRun[]>([])
   const [selectedRunbookId, setSelectedRunbookId] = useState<string>()
   const [runbooksBusy, setRunbooksBusy] = useState(false)
   const [providerSwitching, setProviderSwitching] = useState(false)
+  const workers = useCodingWorkers(view === 'workers', setShellError)
   const registryLoadSequence = useRef(0)
   const buildVersion = import.meta.env.VITE_ZETRO_BUILD_VERSION || '2.0.0'
   const chat = useConcurrentChat(() => void refreshRegistry())
@@ -142,6 +142,12 @@ export function App() {
       .catch((reason: unknown) => {
         setShellError(errorMessage(reason, 'Could not load provider settings.'))
       })
+  }, [])
+
+  useEffect(() => {
+    fetchHandoffTray().then(setHandoffItems).catch((reason: unknown) => {
+      setShellError(errorMessage(reason, 'Could not load the Handoff Tray.'))
+    })
   }, [])
 
   async function sendPrompt(event?: FormEvent) {
@@ -278,11 +284,9 @@ export function App() {
 
   async function openWorkers() {
     setView('workers')
-    setWorkersBusy(true)
     setShellError('')
     try {
-      const nextAttempts = await fetchCodingWorkerAttempts()
-      setWorkerAttempts(nextAttempts)
+      await workers.refresh()
       if (!selectedTask) {
         const nextTasks = await fetchAgentTasks()
         setTasks(nextTasks)
@@ -290,8 +294,6 @@ export function App() {
       }
     } catch (reason) {
       setShellError(errorMessage(reason, 'Could not load coding workers.'))
-    } finally {
-      setWorkersBusy(false)
     }
   }
 
@@ -340,36 +342,6 @@ export function App() {
     catch (reason) { setShellError(errorMessage(reason, 'Could not stop the runbook.')) }
     finally { setRunbooksBusy(false) }
   }
-  async function prepareWorker(input: CodingWorkerHandoffRequest) {
-    setWorkersBusy(true)
-    setShellError('')
-    try {
-      const attempt = await prepareCodingWorker(input)
-      setWorkerAttempts((current) => [attempt, ...current])
-    } catch (reason) {
-      setShellError(errorMessage(reason, 'Could not prepare the coding worker.'))
-    } finally {
-      setWorkersBusy(false)
-    }
-  }
-  async function updateWorker(attemptId: string, action: 'approve' | 'reject' | 'verify') {
-    setWorkersBusy(true)
-    setShellError('')
-    try {
-      const attempt = await (action === 'approve'
-        ? approveCodingWorker(attemptId)
-        : action === 'reject'
-          ? rejectCodingWorker(attemptId)
-          : verifyCodingWorker(attemptId))
-      setWorkerAttempts((current) =>
-        current.map((item) => (item.id === attempt.id ? attempt : item)),
-      )
-    } catch (reason) {
-      setShellError(errorMessage(reason, 'Could not update the coding worker.'))
-    } finally {
-      setWorkersBusy(false)
-    }
-  }
   async function saveTaskPlan(taskId: string, plan: AgentTaskPlan) {
     setTasksBusy(true)
     setShellError('')
@@ -404,15 +376,45 @@ export function App() {
       setTasksBusy(false)
     }
   }
-  async function sendResponseToTask(turnId: string) {
-    if (!conversationId) return
+  async function archiveTask(taskId: string) {
     setTasksBusy(true)
     try {
-      const task = await createAgentTaskFromChat(conversationId, turnId)
+      await archiveAgentTask(taskId)
+      const remaining = tasks.filter((task) => task.id !== taskId)
+      setTasks(remaining)
+      setSelectedTask(remaining[0] ? await fetchAgentTask(remaining[0].id) : undefined)
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not archive the task.'))
+    } finally {
+      setTasksBusy(false)
+    }
+  }
+  async function setTurnHandoff(turnId: string, selected: boolean) {
+    if (!conversationId) return
+    try {
+      setHandoffItems(await setHandoffSelection(conversationId, turnId, selected))
+    } catch (reason) {
+      setShellError(errorMessage(reason, 'Could not update the Handoff Tray.'))
+    }
+  }
+  function reviewHandoffTray() {
+    setPrompt([
+      'Consolidate the selected Handoff Tray responses into one refined task proposal.',
+      'Return goal, scope, exclusions, acceptance criteria, verification checks, and open decisions.',
+      'Do not write code or create a task.',
+      '',
+      ...handoffItems.map((item, index) => `## Selected response ${index + 1} · ${item.conversationTitle}\n${item.response}`),
+    ].join('\n'))
+    setHandoffOpen(false)
+  }
+  async function handoffTrayToTask() {
+    setTasksBusy(true)
+    try {
+      const task = await createAgentTaskFromHandoffTray()
       setSelectedTask(task)
       await openTasks(task.id)
     } catch (reason) {
-      setShellError(errorMessage(reason, 'Could not create the task draft.'))
+      setShellError(errorMessage(reason, 'Could not create a task draft from the Handoff Tray.'))
     } finally {
       setTasksBusy(false)
     }
@@ -465,7 +467,7 @@ export function App() {
       },
       {
         active: view === 'workers',
-        badge: workerAttempts.length,
+        badge: workers.attempts.length,
         icon: GitBranch,
         id: 'coding-workers',
         label: 'Worker queue',
@@ -525,7 +527,7 @@ export function App() {
             onSelect={setSelectedRunbookId}
           />
         ) : view === 'workers' ? (
-          <CodingWorkerRegistry attempts={workerAttempts} />
+          <CodingWorkerRegistry attempts={workers.attempts} />
         ) : view === 'tasks' ? (
           <AgentTaskRegistry
             busy={tasksBusy}
@@ -572,20 +574,21 @@ export function App() {
         <RunbookWorkspace busy={runbooksBusy} runbook={runbooks.find((runbook) => runbook.id === selectedRunbookId)} runs={runbookRuns} onCreate={saveRunbook} onEnabled={updateRunbookEnabled} onStart={runRunbook} onStop={stopRunbook} />
       ) : view === 'workers' ? (
         <CodingWorkerWorkspace
-          attempts={workerAttempts}
-          busy={workersBusy}
-          onUpdate={updateWorker}
+          attempts={workers.attempts}
+          busy={workers.busy}
+          onUpdate={workers.update}
           task={selectedTask}
-          onPrepare={prepareWorker}
+          onPrepare={workers.prepare}
         />
       ) : view === 'tasks' ? (
         <AgentTaskWorkspace
           busy={tasksBusy}
+          onArchive={archiveTask}
           onConfirm={confirmTaskReview}
           task={selectedTask}
           onOpenConversation={selectConversation}
           onSave={saveTaskPlan}
-          workerAttempts={workerAttempts.filter((attempt) => attempt.taskId === selectedTask?.id)}
+          workerAttempts={workers.attempts.filter((attempt) => attempt.taskId === selectedTask?.id)}
         />
       ) : (
         <section className="flex size-full min-h-0 flex-col bg-background text-foreground">
@@ -601,6 +604,9 @@ export function App() {
                 {selectedConversation?.archivedAt ? 'Archived conversation' : 'Conversation'}
               </span>
             </span>
+            {providerSettings && selectedConversation ? (
+              <HandoffTrayButton count={handoffItems.length} onClick={() => setHandoffOpen(true)} />
+            ) : null}
             {providerSettings && selectedConversation ? (
               <ProviderHeaderSwitcher
                 conversationId={selectedConversation.id}
@@ -635,7 +641,8 @@ export function App() {
                         turn={turn}
                         onRegenerate={() => void repeatPrompt(turn.prompt)}
                         onRetry={() => void repeatPrompt(turn.prompt)}
-                        onSendToTask={() => void sendResponseToTask(turn.id)}
+                        onHandoffSelection={() => void setTurnHandoff(turn.id, !handoffItems.some((item) => item.turnId === turn.id))}
+                        selectedForHandoff={handoffItems.some((item) => item.turnId === turn.id)}
                       />
                     </MessageScrollerItem>
                   ))}
@@ -713,6 +720,14 @@ export function App() {
           </form>
         </section>
       )}
+      <HandoffTray
+        items={handoffItems}
+        onClose={() => setHandoffOpen(false)}
+        onHandOff={() => void handoffTrayToTask()}
+        onRemove={(item) => void setTurnHandoff(item.turnId, false)}
+        onReview={reviewHandoffTray}
+        open={handoffOpen}
+      />
     </MdiMain>
   )
 }

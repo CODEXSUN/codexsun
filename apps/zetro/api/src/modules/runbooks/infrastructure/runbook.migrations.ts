@@ -42,4 +42,5 @@ export const runbookMigrations = [
       ALTER TABLE runbook_runs ADD COLUMN initiator_json TEXT NOT NULL DEFAULT '{}';
     `,
   },
+  { version: 4, sql: `ALTER TABLE runbooks ADD COLUMN archived_at INTEGER;` },
 ] as const

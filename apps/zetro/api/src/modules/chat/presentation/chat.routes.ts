@@ -1,5 +1,8 @@
 import {
   chatConversationListResponseSchema,
+  chatHandoffSelectionRequestSchema,
+  chatHandoffTraySchema,
+  chatHandoffTurnParamsSchema,
   chatConversationProviderResponseSchema,
   chatConversationSummarySchema,
   chatHistoryResponseSchema,
@@ -27,6 +30,24 @@ import {
 } from './chat.schema.js'
 
 export async function registerChatRoutes(server: FastifyInstance, service: ChatService) {
+  server.get('/api/zetro/v1/chat/handoff-tray', async () =>
+    chatHandoffTraySchema.parse({ items: service.listHandoffItems() }),
+  )
+  server.put('/api/zetro/v1/chat/handoff-tray/:turnId', async (request, reply) => {
+    const params = chatHandoffTurnParamsSchema.safeParse(request.params)
+    const body = chatHandoffSelectionRequestSchema.safeParse(request.body)
+    const conversationId = readConversationIdOrReply(request.headers, reply)
+    if (!params.success || !body.success || !conversationId) {
+      return reply.code(400).send({ error: 'A completed chat response and selection state are required.' })
+    }
+    try {
+      return chatHandoffTraySchema.parse({
+        items: service.setHandoffItem(conversationId, params.data.turnId, body.data.selected),
+      })
+    } catch (error) {
+      return reply.code(409).send({ error: errorMessage(error) })
+    }
+  })
   server.get('/api/zetro/v1/chat/conversations', async (request, reply) => {
     const query = chatConversationListQuerySchema.safeParse(request.query)
     if (!query.success)

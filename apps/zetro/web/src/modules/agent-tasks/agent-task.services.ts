@@ -4,6 +4,7 @@ import {
   agentTaskListResponseSchema,
   agentTaskPlanRequestSchema,
   agentTaskReviewConfirmationSchema,
+  agentTaskArchiveRequestSchema,
   type AgentTaskDraft,
   type AgentTaskPlan,
   type AgentTaskSummary,
@@ -36,6 +37,17 @@ export async function createAgentTaskFromChat(conversationId: string, turnId: st
   )
 }
 
+export async function createAgentTaskFromHandoffTray() {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/agent-tasks/from-handoff-tray`, {
+    body: JSON.stringify({}),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
+  })
+  return agentTaskDraftSchema.parse(
+    await readJson(response, 'Could not create a task draft from the Handoff Tray.'),
+  )
+}
+
 export async function saveAgentTaskPlan(taskId: string, plan: AgentTaskPlan) {
   const body = agentTaskPlanRequestSchema.parse(plan)
   const response = await fetch(
@@ -60,6 +72,16 @@ export async function confirmAgentTaskReview(taskId: string) {
     },
   )
   return agentTaskDraftSchema.parse(await readJson(response, 'Could not confirm the task review.'))
+}
+
+export async function archiveAgentTask(taskId: string) {
+  const body = agentTaskArchiveRequestSchema.parse({ archived: true })
+  const response = await fetch(`${baseUrl}/api/zetro/v1/agent-tasks/${encodeURIComponent(taskId)}/archive`, {
+    body: JSON.stringify(body),
+    headers: { 'content-type': 'application/json' },
+    method: 'PATCH',
+  })
+  return agentTaskDraftSchema.parse(await readJson(response, 'Could not archive the task.'))
 }
 
 async function readJson(response: Response, fallback: string): Promise<unknown> {

@@ -2,6 +2,8 @@ import type {
   AgentTaskDraft,
   CodingWorkerAttempt,
   CodingWorkerCheckResult,
+  CodingWorkerExecution,
+  CodingWorkerEvent,
   CodingWorkerHandoffRequest,
 } from '@codexsun/zetro-contracts'
 
@@ -23,6 +25,21 @@ export type CodingWorkerStore = {
     attemptId: string,
     verification: CodingWorkerCheckResult[],
   ): CodingWorkerAttempt
+  updateExecution(attemptId: string, execution: CodingWorkerExecution): CodingWorkerAttempt
+  updateLifecycle(
+    attemptId: string,
+    lifecycle: Pick<CodingWorkerAttempt, 'archivedAt' | 'cleanedAt' | 'integratedAt'>,
+  ): CodingWorkerAttempt
+}
+
+export type WorkerRunner = {
+  start(input: {
+    attempt: CodingWorkerAttempt
+    instructions: string
+    onEvent(event: Omit<CodingWorkerEvent, 'createdAt'>): void
+    onExit(input: { exitCode?: number; status: 'complete' | 'failed' | 'stopped' }): void
+  }): void
+  stop(attemptId: string): boolean
 }
 
 export type WorktreePreparation = Omit<
@@ -31,6 +48,7 @@ export type WorktreePreparation = Omit<
   | 'approvalStatus'
   | 'checks'
   | 'createdAt'
+  | 'execution'
   | 'id'
   | 'taskId'
   | 'updatedAt'
@@ -44,6 +62,8 @@ export type WorktreeService = {
     repositoryPath: string
     worktreePath: string
   }): WorktreePreparation
+  cleanup(input: Pick<CodingWorkerAttempt, 'branchName' | 'repositoryPath' | 'worktreePath'>): void
+  integrate(input: Pick<CodingWorkerAttempt, 'modulePath' | 'repositoryPath' | 'worktreePath'>): void
 }
 
 export type WorkerHandoffInput = CodingWorkerHandoffRequest

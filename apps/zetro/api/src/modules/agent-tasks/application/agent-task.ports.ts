@@ -1,7 +1,8 @@
-import type { AgentTaskDraft, AgentTaskPlan, AgentTaskSummary } from '@codexsun/zetro-contracts'
+import type { AgentTaskDraft, AgentTaskPlan, AgentTaskSummary, ChatHandoffItem } from '@codexsun/zetro-contracts'
 
 export type AgentTaskSource = {
   getTaskSource(conversationId: string, turnId: string): { prompt: string; response: string }
+  listHandoffItems?(): ChatHandoffItem[]
 }
 
 export type AgentTaskDraftInput = {
@@ -22,4 +23,5 @@ export type AgentTaskStore = {
   list(): AgentTaskSummary[]
   updatePlan(taskId: string, plan: AgentTaskPlan): AgentTaskDraft
   confirmReview(taskId: string, confirmedAt: number): AgentTaskDraft
+  updateArchive(taskId: string, archived: boolean): AgentTaskDraft
 }

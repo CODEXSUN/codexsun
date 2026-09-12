@@ -8,6 +8,7 @@ import { agentTaskMigrations } from './agent-task.migrations.js'
 
 type AgentTaskRow = {
   approval_status: 'awaiting-approval'
+  archived_at: number | null
   acceptance_criteria_json: string
   checks_json: string
   created_at: number
@@ -79,7 +80,7 @@ export class AgentTaskRepository implements AgentTaskStore {
   list(): AgentTaskSummary[] {
     return (
       this.database
-        .prepare('SELECT * FROM agent_task_drafts ORDER BY updated_at DESC, id')
+        .prepare('SELECT * FROM agent_task_drafts WHERE archived_at IS NULL ORDER BY updated_at DESC, id')
         .all() as unknown as AgentTaskRow[]
     ).map(({ source_prompt: _prompt, source_response: _response, ...row }) => mapSummary(row))
   }
@@ -108,6 +109,15 @@ export class AgentTaskRepository implements AgentTaskStore {
     const result = this.database
       .prepare('UPDATE agent_task_drafts SET review_confirmed_at = ?, updated_at = ? WHERE id = ?')
       .run(confirmedAt, confirmedAt, taskId)
+    if (result.changes !== 1) throw new Error('Agent task draft was not found.')
+    return this.get(taskId) as AgentTaskDraft
+  }
+
+  updateArchive(taskId: string, archived: boolean): AgentTaskDraft {
+    const now = Date.now()
+    const result = this.database
+      .prepare('UPDATE agent_task_drafts SET archived_at = ?, updated_at = ? WHERE id = ?')
+      .run(archived ? now : null, now, taskId)
     if (result.changes !== 1) throw new Error('Agent task draft was not found.')
     return this.get(taskId) as AgentTaskDraft
   }
@@ -161,6 +171,7 @@ function mapRow(row: AgentTaskRow | undefined): AgentTaskDraft | undefined {
   return {
     acceptanceCriteria: parseList(row.acceptance_criteria_json),
     approvalStatus: row.approval_status,
+    archivedAt: row.archived_at ?? undefined,
     checks: parseList(row.checks_json),
     createdAt: row.created_at,
     id: row.id,
@@ -182,6 +193,7 @@ function mapSummary(
 ): AgentTaskSummary {
   return {
     approvalStatus: row.approval_status,
+    archivedAt: row.archived_at ?? undefined,
     createdAt: row.created_at,
     id: row.id,
     originConversationId: row.origin_conversation_id,

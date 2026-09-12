@@ -1,10 +1,12 @@
 import {
   agentTaskDraftSchema,
   agentTaskFromChatRequestSchema,
+  agentTaskFromHandoffTrayRequestSchema,
   agentTaskListResponseSchema,
   agentTaskParamsSchema,
   agentTaskPlanRequestSchema,
   agentTaskReviewConfirmationSchema,
+  agentTaskArchiveRequestSchema,
 } from '@codexsun/zetro-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { AgentTaskNotFoundError, AgentTaskService } from '../application/agent-task.service.js'
@@ -36,6 +38,17 @@ export async function registerAgentTaskRoutes(server: FastifyInstance, service: 
     }
   })
 
+  server.post('/api/zetro/v1/agent-tasks/from-handoff-tray', async (request, reply) => {
+    if (!agentTaskFromHandoffTrayRequestSchema.safeParse(request.body ?? {}).success) {
+      return reply.code(400).send({ error: 'A valid Handoff Tray request is required.' })
+    }
+    try {
+      return reply.code(201).send(agentTaskDraftSchema.parse(service.createFromHandoffTray()))
+    } catch (error) {
+      return reply.code(409).send({ error: errorMessage(error) })
+    }
+  })
+
   server.put('/api/zetro/v1/agent-tasks/:taskId/plan', async (request, reply) => {
     const params = agentTaskParamsSchema.safeParse(request.params)
     const plan = agentTaskPlanRequestSchema.safeParse(request.body)
@@ -62,6 +75,19 @@ export async function registerAgentTaskRoutes(server: FastifyInstance, service: 
         .send(agentTaskDraftSchema.parse(service.confirmReview(params.data.taskId)))
     } catch (error) {
       return reply.code(409).send({ error: errorMessage(error) })
+    }
+  })
+
+  server.patch('/api/zetro/v1/agent-tasks/:taskId/archive', async (request, reply) => {
+    const params = agentTaskParamsSchema.safeParse(request.params)
+    const input = agentTaskArchiveRequestSchema.safeParse(request.body)
+    if (!params.success || !input.success) {
+      return reply.code(400).send({ error: 'A valid task archive state is required.' })
+    }
+    try {
+      return reply.code(200).send(agentTaskDraftSchema.parse(service.archive(params.data.taskId, input.data.archived)))
+    } catch (error) {
+      return sendAgentTaskError(reply, error)
     }
   })
 }

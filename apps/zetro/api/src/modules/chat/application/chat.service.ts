@@ -5,6 +5,7 @@ import type {
   ChatConversationSummary,
   ChatConversationUpdateRequest,
   ChatHistoryResponse,
+  ChatHandoffItem,
   ChatStoredEvent,
   ChatStreamEvent,
   ChatTurnAcceptedResponse,
@@ -31,6 +32,14 @@ export class ChatService {
 
   getHistory(conversationId: string): ChatHistoryResponse {
     return this.repository.getHistory(conversationId)
+  }
+
+  listHandoffItems(): ChatHandoffItem[] {
+    return this.repository.listHandoffItems()
+  }
+
+  setHandoffItem(conversationId: string, turnId: string, selected: boolean): ChatHandoffItem[] {
+    return this.repository.setHandoffItem(conversationId, turnId, selected)
   }
 
   isReady(): boolean {

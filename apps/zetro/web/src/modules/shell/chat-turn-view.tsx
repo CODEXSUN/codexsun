@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@codexsun/ui/components/button'
-import { Bot, Check, Copy, ListPlus, RefreshCw, RotateCcw } from 'lucide-react'
+import { Bot, Check, Copy, Layers3, RefreshCw, RotateCcw } from 'lucide-react'
 import type { ChatTurnStatus, StoredChatTurn } from '@codexsun/zetro-contracts'
 import { ChatTurnTimeline, type TurnEntry } from './chat-turn-timeline'
 
@@ -37,14 +37,16 @@ export function ChatTurnView({
   connectionState,
   onRegenerate,
   onRetry,
-  onSendToTask,
+  onHandoffSelection,
+  selectedForHandoff,
   turn,
 }: {
   actionsDisabled: boolean
   connectionState: ConnectionState
   onRegenerate: () => void
   onRetry: () => void
-  onSendToTask: () => void
+  onHandoffSelection: () => void
+  selectedForHandoff: boolean
   turn: ChatTurn
 }) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
@@ -122,15 +124,15 @@ export function ChatTurnView({
           </Button>
           {turn.status === 'complete' ? (
             <Button
-              aria-label="Send response to Agent Tasks"
+              aria-label={selectedForHandoff ? 'Remove response from Handoff Tray' : 'Add response to Handoff Tray'}
               className="text-muted-foreground"
               disabled={actionsDisabled}
-              onClick={onSendToTask}
+              onClick={onHandoffSelection}
               size="icon-xs"
               type="button"
               variant="ghost"
             >
-              <ListPlus />
+              <Layers3 className={selectedForHandoff ? 'fill-current' : undefined} />
             </Button>
           ) : null}
         </div>

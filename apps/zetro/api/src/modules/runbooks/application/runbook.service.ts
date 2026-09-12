@@ -31,6 +31,11 @@ export class RunbookService {
     this.running.delete(run.runbookId)
     return this.store.updateRun({ ...run, status: 'stopped', report: 'Stopped by the user.', completedAt: Date.now() })
   }
+  archive(id: string, archived: boolean) {
+    const runbook = this.requireRunbook(id)
+    if (this.running.has(runbook.id)) throw new Error('Stop the active run before archiving its runbook.')
+    return this.store.updateArchive(id, archived)
+  }
   startScheduler() { this.timer = setInterval(() => void this.scheduleDueRuns(), 15_000); void this.scheduleDueRuns() }
   close() { if (this.timer) clearInterval(this.timer); this.store.close() }
   private async scheduleDueRuns() { for (const runbook of this.store.listDue(Date.now())) { if (!this.running.has(runbook.id)) void this.enqueue(runbook, 'schedule') } }

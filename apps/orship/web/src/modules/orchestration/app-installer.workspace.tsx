@@ -120,6 +120,12 @@ export function AppInstallerWorkspace() {
     setInstallStep('select')
   }
 
+  useEffect(() => {
+    if (installStep === 'deploying') {
+      handleDeploy()
+    }
+  }, [installStep, selectedApp, customerId])
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6 pb-12">
       <header className="flex flex-wrap items-center justify-between gap-4">
@@ -263,10 +269,15 @@ export function AppInstallerWorkspace() {
                           value={portOverrides[comp.id] ?? ''}
                           onChange={(e) => {
                             const val = e.target.value
-                            setPortOverrides((prev) => ({
-                              ...prev,
-                              [comp.id]: val ? Number(val) : undefined,
-                            }))
+                            setPortOverrides((prev) => {
+                              const next = { ...prev }
+                              if (val) {
+                                next[comp.id] = Number(val)
+                              } else {
+                                delete next[comp.id]
+                              }
+                              return next
+                            })
                           }}
                         />
                       </div>

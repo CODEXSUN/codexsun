@@ -206,6 +206,17 @@ export const chatConversationListResponseSchema = z.object({
   conversations: z.array(chatConversationSummarySchema),
 })
 
+export const chatHandoffItemSchema = z.object({
+  conversationId: chatConversationIdSchema,
+  conversationTitle: chatConversationTitleSchema,
+  response: z.string().min(1),
+  selectedAt: z.number().int().nonnegative(),
+  turnId: z.uuid(),
+})
+export const chatHandoffTraySchema = z.object({ items: z.array(chatHandoffItemSchema) })
+export const chatHandoffSelectionRequestSchema = z.object({ selected: z.boolean() })
+export const chatHandoffTurnParamsSchema = z.object({ turnId: z.uuid() })
+
 export const agentTaskApprovalStatusSchema = z.literal('awaiting-approval')
 export const agentTaskStatusSchema = z.literal('draft')
 export const agentTaskIdSchema = z.uuid()
@@ -214,6 +225,7 @@ export const agentTaskFromChatRequestSchema = z.object({
   conversationId: chatConversationIdSchema,
   turnId: z.uuid(),
 })
+export const agentTaskFromHandoffTrayRequestSchema = z.object({})
 
 export const agentTaskParamsSchema = z.object({ taskId: agentTaskIdSchema })
 export const agentTaskPlanSchema = z.object({
@@ -224,10 +236,12 @@ export const agentTaskPlanSchema = z.object({
 })
 export const agentTaskPlanRequestSchema = agentTaskPlanSchema
 export const agentTaskReviewConfirmationSchema = z.object({ confirmed: z.literal(true) })
+export const agentTaskArchiveRequestSchema = z.object({ archived: z.boolean() })
 
 export const agentTaskDraftSchema = z.object({
   acceptanceCriteria: z.array(z.string()),
   approvalStatus: agentTaskApprovalStatusSchema,
+  archivedAt: z.number().int().nonnegative().optional(),
   checks: z.array(z.string()),
   createdAt: z.number().int().nonnegative(),
   id: agentTaskIdSchema,
@@ -265,6 +279,25 @@ export const codingWorkerApprovalStatusSchema = z.enum([
   'approved',
   'rejected',
 ])
+export const codingWorkerExecutionStatusSchema = z.enum([
+  'not-started',
+  'working',
+  'complete',
+  'stopped',
+  'failed',
+])
+export const codingWorkerEventSchema = z.object({
+  createdAt: z.number().int().nonnegative(),
+  message: z.string().min(1).max(8 * 1024),
+  type: z.enum(['activity', 'error', 'started', 'stopped', 'complete']),
+})
+export const codingWorkerExecutionSchema = z.object({
+  completedAt: z.number().int().nonnegative().optional(),
+  events: z.array(codingWorkerEventSchema).max(250),
+  exitCode: z.number().int().optional(),
+  startedAt: z.number().int().nonnegative().optional(),
+  status: codingWorkerExecutionStatusSchema,
+})
 export const codingWorkerCheckResultSchema = z.object({
   command: z.string().min(1),
   durationMs: z.number().int().nonnegative(),
@@ -278,10 +311,14 @@ export const codingWorkerHandoffRequestSchema = z.object({
 export const codingWorkerAttemptSchema = z.object({
   acceptanceCriteria: z.array(z.string()),
   approvalStatus: codingWorkerApprovalStatusSchema,
+  archivedAt: z.number().int().nonnegative().optional(),
   branchName: z.string().min(1),
+  cleanedAt: z.number().int().nonnegative().optional(),
   checks: z.array(z.string()),
   createdAt: z.number().int().nonnegative(),
+  execution: codingWorkerExecutionSchema,
   id: codingWorkerAttemptIdSchema,
+  integratedAt: z.number().int().nonnegative().optional(),
   modulePath: z.string().min(1),
   repositoryPath: z.string().min(1),
   revision: z.string().min(1),
@@ -298,6 +335,7 @@ export const codingWorkerAttemptListResponseSchema = z.object({
 })
 export const codingWorkerAttemptParamsSchema = z.object({ attemptId: codingWorkerAttemptIdSchema })
 export const codingWorkerApprovalRequestSchema = z.object({ confirmed: z.literal(true) })
+export const codingWorkerLifecycleRequestSchema = z.object({ confirmed: z.literal(true) })
 
 export const runbookIdSchema = z.uuid()
 export const runbookScheduleSchema = z
@@ -316,6 +354,7 @@ export const runbookCreateRequestSchema = z.object({
   schedule: runbookScheduleSchema,
 })
 export const runbookSchema = runbookCreateRequestSchema.extend({
+  archivedAt: z.number().int().nonnegative().optional(),
   createdAt: z.number().int().nonnegative(),
   enabled: z.boolean(),
   id: runbookIdSchema,
@@ -351,6 +390,7 @@ export const runbookRunListResponseSchema = z.object({ runs: z.array(runbookRunS
 export const runbookParamsSchema = z.object({ runbookId: runbookIdSchema })
 export const runbookRunParamsSchema = z.object({ runId: z.uuid() })
 export const runbookEnabledRequestSchema = z.object({ enabled: z.boolean() })
+export const runbookArchiveRequestSchema = z.object({ archived: z.boolean() })
 export const runbookInitiationResponseSchema = z.object({
   run: runbookRunSchema.optional(),
   runbook: runbookSchema,
@@ -364,6 +404,7 @@ export type ChatConversationProviderResponse = z.infer<
   typeof chatConversationProviderResponseSchema
 >
 export type ChatConversationUpdateRequest = z.infer<typeof chatConversationUpdateRequestSchema>
+export type ChatHandoffItem = z.infer<typeof chatHandoffItemSchema>
 export type ChatStoredEvent = z.infer<typeof storedChatEventSchema>
 export type ChatStreamEvent = z.infer<typeof chatStreamEventSchema>
 export type ChatTurnAcceptedResponse = z.infer<typeof chatTurnAcceptedResponseSchema>
@@ -384,6 +425,8 @@ export type AgentTaskDraft = z.infer<typeof agentTaskDraftSchema>
 export type AgentTaskPlan = z.infer<typeof agentTaskPlanSchema>
 export type CodingWorkerAttempt = z.infer<typeof codingWorkerAttemptSchema>
 export type CodingWorkerCheckResult = z.infer<typeof codingWorkerCheckResultSchema>
+export type CodingWorkerExecution = z.infer<typeof codingWorkerExecutionSchema>
+export type CodingWorkerEvent = z.infer<typeof codingWorkerEventSchema>
 export type CodingWorkerHandoffRequest = z.infer<typeof codingWorkerHandoffRequestSchema>
 export type Runbook = z.infer<typeof runbookSchema>
 export type RunbookCreateRequest = z.infer<typeof runbookCreateRequestSchema>

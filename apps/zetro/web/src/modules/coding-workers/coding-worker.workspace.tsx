@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import { Button } from '@codexsun/ui/components/button'
-import { CheckCircle2, GitBranch, Play, ShieldCheck, Wrench, XCircle } from 'lucide-react'
+import { Archive, CheckCircle2, GitBranch, Play, ShieldCheck, Sparkles, Square, Trash2, Wrench, XCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type {
   AgentTaskDraft,
@@ -17,7 +17,7 @@ export function CodingWorkerWorkspace({
 }: {
   attempts: CodingWorkerAttempt[]
   busy: boolean
-  onUpdate(attemptId: string, action: 'approve' | 'reject' | 'verify'): Promise<void>
+  onUpdate(attemptId: string, action: 'approve' | 'archive' | 'cleanup' | 'integrate' | 'reject' | 'verify' | 'start' | 'stop'): Promise<void>
   task?: AgentTaskDraft
   onPrepare(input: CodingWorkerHandoffRequest): Promise<void>
 }) {
@@ -101,6 +101,24 @@ export function CodingWorkerWorkspace({
                   <p className="mt-1 text-xs font-medium text-muted-foreground">
                     {labelForApproval(attempt.approvalStatus)}
                   </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {labelForExecution(attempt.execution.status)}
+                  </p>
+                  {attempt.integratedAt ? (
+                    <p className="mt-1 text-xs font-medium text-emerald-700">Applied to the main checkout</p>
+                  ) : null}
+                  {attempt.cleanedAt ? (
+                    <p className="mt-1 text-xs text-muted-foreground">Isolated worktree cleaned</p>
+                  ) : null}
+                  {attempt.execution.events.length ? (
+                    <ol className="mt-3 grid gap-1 border-l pl-3 text-xs text-muted-foreground">
+                      {attempt.execution.events.slice(-6).map((event) => (
+                        <li key={`${event.createdAt}-${event.message}`}>
+                          {event.message}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
                   {attempt.verification.length ? (
                     <ul className="mt-3 grid gap-1 text-xs text-muted-foreground">
                       {attempt.verification.map((result) => (
@@ -113,7 +131,30 @@ export function CodingWorkerWorkspace({
                   ) : null}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button
-                      disabled={busy || attempt.approvalStatus === 'approved'}
+                      disabled={busy || attempt.execution.status !== 'not-started'}
+                      onClick={() => void onUpdate(attempt.id, 'start')}
+                      size="sm"
+                      type="button"
+                    >
+                      <Play />
+                      Start worker
+                    </Button>
+                    <Button
+                      disabled={busy || attempt.execution.status !== 'working'}
+                      onClick={() => void onUpdate(attempt.id, 'stop')}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Square className="fill-current" />
+                      Stop
+                    </Button>
+                    <Button
+                      disabled={
+                        busy ||
+                        attempt.approvalStatus === 'approved' ||
+                        attempt.execution.status !== 'complete'
+                      }
                       onClick={() => void onUpdate(attempt.id, 'verify')}
                       size="sm"
                       type="button"
@@ -141,6 +182,39 @@ export function CodingWorkerWorkspace({
                       <XCircle />
                       Reject
                     </Button>
+                    <Button
+                      disabled={busy || attempt.approvalStatus !== 'approved' || Boolean(attempt.integratedAt) || Boolean(attempt.cleanedAt)}
+                      onClick={() => void onUpdate(attempt.id, 'integrate')}
+                      size="sm"
+                      type="button"
+                    >
+                      <Sparkles />
+                      Apply approved work
+                    </Button>
+                    <Button
+                      disabled={busy || attempt.execution.status === 'working' || Boolean(attempt.archivedAt)}
+                      onClick={() => void onUpdate(attempt.id, 'archive')}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Archive />
+                      Archive
+                    </Button>
+                    <Button
+                      disabled={busy || attempt.execution.status === 'working' || Boolean(attempt.cleanedAt)}
+                      onClick={() => {
+                        if (window.confirm('Clean this isolated worktree and its local branch? The worker record will remain.')) {
+                          void onUpdate(attempt.id, 'cleanup')
+                        }
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Trash2 />
+                      Clean worktree
+                    </Button>
                   </div>
                 </article>
               ))}
@@ -157,6 +231,14 @@ function labelForApproval(status: CodingWorkerAttempt['approvalStatus']) {
   if (status === 'awaiting-approval') return 'Checks passed · awaiting approval'
   if (status === 'approved') return 'Approved · ready for explicit integration'
   return 'Rejected · repair before another review'
+}
+
+function labelForExecution(status: CodingWorkerAttempt['execution']['status']) {
+  if (status === 'not-started') return 'Ready to start in the isolated worktree'
+  if (status === 'working') return 'Working · activity is saved as it arrives'
+  if (status === 'complete') return 'Worker complete · ready for named checks'
+  if (status === 'stopped') return 'Stopped · partial work is preserved'
+  return 'Worker failed · partial work is preserved'
 }
 
 function PlanValue({ label, value }: { label: string; value: string }) {

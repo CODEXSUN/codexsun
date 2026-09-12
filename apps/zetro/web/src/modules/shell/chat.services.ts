@@ -2,6 +2,8 @@ import {
   chatConversationListResponseSchema,
   chatConversationSummarySchema,
   chatConversationUpdateRequestSchema,
+  chatHandoffTraySchema,
+  type ChatHandoffItem,
   chatConversationHeaderName,
   chatConversationIdSchema,
   chatHistoryResponseSchema,
@@ -81,6 +83,24 @@ export async function fetchChatHistory(conversationId: string): Promise<ChatHist
     headers: chatHeaders(conversationId),
   })
   return chatHistoryResponseSchema.parse(await readJson(response, 'Could not load chat history'))
+}
+
+export async function fetchHandoffTray(): Promise<ChatHandoffItem[]> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/handoff-tray`)
+  return chatHandoffTraySchema.parse(await readJson(response, 'Could not load the Handoff Tray.')).items
+}
+
+export async function setHandoffSelection(
+  conversationId: string,
+  turnId: string,
+  selected: boolean,
+): Promise<ChatHandoffItem[]> {
+  const response = await fetch(`${baseUrl}/api/zetro/v1/chat/handoff-tray/${encodeURIComponent(turnId)}`, {
+    body: JSON.stringify({ selected }),
+    headers: chatHeaders(conversationId, true),
+    method: 'PUT',
+  })
+  return chatHandoffTraySchema.parse(await readJson(response, 'Could not update the Handoff Tray.')).items
 }
 
 export async function startChatTurn(

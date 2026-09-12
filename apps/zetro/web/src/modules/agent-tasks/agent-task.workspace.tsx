@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowRight,
+  Archive,
   BadgeCheck,
   ClipboardList,
   FileText,
@@ -26,6 +27,7 @@ type TaskStep = 'source' | 'plan' | 'verify'
 export function AgentTaskWorkspace({
   busy,
   onConfirm,
+  onArchive,
   onOpenConversation,
   onSave,
   task,
@@ -33,6 +35,7 @@ export function AgentTaskWorkspace({
 }: {
   busy: boolean
   onConfirm(taskId: string): Promise<void>
+  onArchive(taskId: string): Promise<void>
   onOpenConversation(conversationId: string): void
   onSave(taskId: string, plan: AgentTaskPlan): Promise<void>
   task?: AgentTaskDraft
@@ -86,6 +89,17 @@ export function AgentTaskWorkspace({
           </div>
           <div className="flex items-center gap-2">
             <Status task={task} />
+            <Button
+              className="cursor-pointer"
+              disabled={busy}
+              onClick={() => void onArchive(task.id)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Archive />
+              Archive
+            </Button>
             <Button
               className="cursor-pointer"
               onClick={() => onOpenConversation(task.originConversationId)}

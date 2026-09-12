@@ -2,17 +2,30 @@ import { createHash } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { CodingWorkerAttempt, CodingWorkerCheckResult } from '@codexsun/zetro-contracts'
+import type {
+  CodingWorkerAttempt,
+  CodingWorkerCheckResult,
+  CodingWorkerExecution,
+  CodingWorkerEvent,
+} from '@codexsun/zetro-contracts'
 import type { CodingWorkerStore } from '../application/coding-worker.ports.js'
 import { codingWorkerMigrations } from './coding-worker.migrations.js'
 
 type WorkerRow = {
   acceptance_criteria_json: string
   approval_status: CodingWorkerAttempt['approvalStatus']
+  archived_at: number | null
   branch_name: string
+  cleaned_at: number | null
   checks_json: string
   created_at: number
+  execution_completed_at: number | null
+  execution_events_json: string
+  execution_exit_code: number | null
+  execution_started_at: number | null
+  execution_status: CodingWorkerExecution['status']
   id: string
+  integrated_at: number | null
   module_path: string
   repository_path: string
   revision: string
@@ -42,8 +55,9 @@ export class CodingWorkerRepository implements CodingWorkerStore {
         `INSERT INTO coding_worker_attempts
           (id, task_id, repository_path, module_path, worktree_path, branch_name, revision, runtime,
            tool_profile, acceptance_criteria_json, checks_json, status, created_at, approval_status,
-           verification_json, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           verification_json, updated_at, execution_status, execution_events_json, execution_started_at,
+           execution_completed_at, execution_exit_code, archived_at, cleaned_at, integrated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         attempt.id,
@@ -62,6 +76,14 @@ export class CodingWorkerRepository implements CodingWorkerStore {
         attempt.approvalStatus,
         JSON.stringify(attempt.verification),
         attempt.updatedAt,
+        attempt.execution.status,
+        JSON.stringify(attempt.execution.events),
+        attempt.execution.startedAt ?? null,
+        attempt.execution.completedAt ?? null,
+        attempt.execution.exitCode ?? null,
+        attempt.archivedAt ?? null,
+        attempt.cleanedAt ?? null,
+        attempt.integratedAt ?? null,
       )
     return attempt
   }
@@ -117,6 +139,48 @@ export class CodingWorkerRepository implements CodingWorkerStore {
     return this.get(attemptId) as CodingWorkerAttempt
   }
 
+  updateExecution(attemptId: string, execution: CodingWorkerExecution): CodingWorkerAttempt {
+    const result = this.database
+      .prepare(
+        `UPDATE coding_worker_attempts
+           SET execution_status = ?, execution_events_json = ?, execution_started_at = ?,
+               execution_completed_at = ?, execution_exit_code = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        execution.status,
+        JSON.stringify(execution.events),
+        execution.startedAt ?? null,
+        execution.completedAt ?? null,
+        execution.exitCode ?? null,
+        Date.now(),
+        attemptId,
+      )
+    if (result.changes !== 1) throw new Error('Coding worker attempt was not found.')
+    return this.get(attemptId) as CodingWorkerAttempt
+  }
+
+  updateLifecycle(
+    attemptId: string,
+    lifecycle: Pick<CodingWorkerAttempt, 'archivedAt' | 'cleanedAt' | 'integratedAt'>,
+  ): CodingWorkerAttempt {
+    const result = this.database
+      .prepare(
+        `UPDATE coding_worker_attempts
+           SET archived_at = ?, cleaned_at = ?, integrated_at = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        lifecycle.archivedAt ?? null,
+        lifecycle.cleanedAt ?? null,
+        lifecycle.integratedAt ?? null,
+        Date.now(),
+        attemptId,
+      )
+    if (result.changes !== 1) throw new Error('Coding worker attempt was not found.')
+    return this.get(attemptId) as CodingWorkerAttempt
+  }
+
   close() {
     this.database.close()
   }
@@ -158,10 +222,20 @@ function mapRow(row: WorkerRow): CodingWorkerAttempt {
   return {
     acceptanceCriteria: parseList(row.acceptance_criteria_json),
     approvalStatus: row.approval_status,
+    archivedAt: row.archived_at ?? undefined,
     branchName: row.branch_name,
+    cleanedAt: row.cleaned_at ?? undefined,
     checks: parseList(row.checks_json),
     createdAt: row.created_at,
+    execution: {
+      completedAt: row.execution_completed_at ?? undefined,
+      events: parseEvents(row.execution_events_json),
+      exitCode: row.execution_exit_code ?? undefined,
+      startedAt: row.execution_started_at ?? undefined,
+      status: row.execution_status,
+    },
     id: row.id,
+    integratedAt: row.integrated_at ?? undefined,
     modulePath: row.module_path,
     repositoryPath: row.repository_path,
     revision: row.revision,
@@ -179,6 +253,12 @@ function parseVerification(value: string): CodingWorkerCheckResult[] {
   const parsed: unknown = JSON.parse(value)
   if (!Array.isArray(parsed)) throw new Error('Coding worker record has invalid verification data.')
   return parsed as CodingWorkerCheckResult[]
+}
+
+function parseEvents(value: string): CodingWorkerEvent[] {
+  const parsed: unknown = JSON.parse(value)
+  if (!Array.isArray(parsed)) throw new Error('Coding worker record has invalid execution events.')
+  return parsed as CodingWorkerEvent[]
 }
 
 function parseList(value: string) {

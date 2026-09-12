@@ -4,6 +4,7 @@ import {
   codingWorkerAttemptSchema,
   codingWorkerApprovalRequestSchema,
   codingWorkerHandoffRequestSchema,
+  codingWorkerLifecycleRequestSchema,
 } from '@codexsun/zetro-contracts'
 import type { FastifyInstance } from 'fastify'
 import { CodingWorkerService } from '../application/coding-worker.service.js'
@@ -42,6 +43,28 @@ export async function registerCodingWorkerRoutes(
       return reply.code(409).send({ error: messageFrom(error) })
     }
   })
+  server.post('/api/zetro/v1/coding-workers/:attemptId/start', async (request, reply) => {
+    const params = codingWorkerAttemptParamsSchema.safeParse(request.params)
+    if (!params.success)
+      return reply.code(400).send({ error: 'A valid worker attempt is required.' })
+    try {
+      return reply
+        .code(202)
+        .send(codingWorkerAttemptSchema.parse(service.start(params.data.attemptId)))
+    } catch (error) {
+      return reply.code(409).send({ error: messageFrom(error) })
+    }
+  })
+  server.post('/api/zetro/v1/coding-workers/:attemptId/stop', async (request, reply) => {
+    const params = codingWorkerAttemptParamsSchema.safeParse(request.params)
+    if (!params.success)
+      return reply.code(400).send({ error: 'A valid worker attempt is required.' })
+    try {
+      return reply.code(202).send(codingWorkerAttemptSchema.parse(service.stop(params.data.attemptId)))
+    } catch (error) {
+      return reply.code(409).send({ error: messageFrom(error) })
+    }
+  })
   server.post('/api/zetro/v1/coding-workers/:attemptId/approve', async (request, reply) => {
     const params = codingWorkerAttemptParamsSchema.safeParse(request.params)
     const body = codingWorkerApprovalRequestSchema.safeParse(request.body)
@@ -70,6 +93,20 @@ export async function registerCodingWorkerRoutes(
       return reply.code(409).send({ error: messageFrom(error) })
     }
   })
+  for (const action of ['archive', 'cleanup', 'integrate'] as const) {
+    server.post(`/api/zetro/v1/coding-workers/:attemptId/${action}`, async (request, reply) => {
+      const params = codingWorkerAttemptParamsSchema.safeParse(request.params)
+      const body = codingWorkerLifecycleRequestSchema.safeParse(request.body)
+      if (!params.success || !body.success) {
+        return reply.code(400).send({ error: 'Explicit lifecycle confirmation is required.' })
+      }
+      try {
+        return reply.code(200).send(codingWorkerAttemptSchema.parse(service[action](params.data.attemptId)))
+      } catch (error) {
+        return reply.code(409).send({ error: messageFrom(error) })
+      }
+    })
+  }
 }
 
 function messageFrom(error: unknown) {
