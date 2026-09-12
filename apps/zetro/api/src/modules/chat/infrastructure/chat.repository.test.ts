@@ -272,4 +272,32 @@ function withRepository(run: (repository: ChatRepository, databasePath: string) 
 }
 
 function createVersionTwoDatabase(databasePath: string) {
-  const datab
+  const database = new DatabaseSync(databasePath)
+  database.exec(`
+    CREATE TABLE zetro_schema_migrations (
+      version INTEGER PRIMARY KEY,
+      checksum TEXT NOT NULL,
+      applied_at INTEGER NOT NULL
+    ) STRICT
+  `)
+  for (const migration of chatMigrations.slice(0, 2)) {
+    database.exec(migration.sql)
+    const checksum = createHash('sha256').update(migration.sql).digest('hex')
+    database
+      .prepare('INSERT INTO zetro_schema_migrations VALUES (?, ?, ?)')
+      .run(migration.version, checksum, 100)
+  }
+  database
+    .prepare(
+      `INSERT INTO chat_sessions (id, created_at, updated_at, provider_thread_id)
+       VALUES (?, 100, 100, 'provider-thread-2')`,
+    )
+    .run(conversationId)
+  database
+    .prepare(
+      `INSERT INTO chat_turns (id, session_id, prompt, status, started_at, completed_at)
+       VALUES (?, ?, 'Migrated', 'complete', 100, 101)`,
+    )
+    .run(turnId, conversationId)
+  database.close()
+}

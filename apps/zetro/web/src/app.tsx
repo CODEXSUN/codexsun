@@ -396,7 +396,7 @@ export function App() {
   }
 
   async function clearWorkingSet() {
-    if (!window.confirm('Clear every selected item from the Working Set?')) return
+    if (!window.confirm('Clear all selected prompts, responses, and decisions from the Working Set?')) return
     try { setHandoffItems(await clearHandoffTray()) }
     catch (reason) { setShellError(errorMessage(reason, 'Could not clear the Working Set.')) }
   }

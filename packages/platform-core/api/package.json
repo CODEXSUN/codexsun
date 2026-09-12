@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/platform-core-api",
   "private": true,
-  "version": "0.1.38",
+  "version": "0.1.39",
   "type": "module",
   "main": "../../../dist/packages/platform-core/api/index.js",
   "types": "./src/index.ts",
