@@ -6,6 +6,8 @@ This guide defines how CODEXSUN work moves from a request to a verified result.
 
 Read the [delivery workflow](workflow.md) and [verification standards](verification.md) before implementation work.
 
+Read the [Framework and Platform plan](planning.md) and the [execution task register](task.md) before starting a planned task.
+
 ## Workflow
 
 1. Read the relevant guidance and current source before you change files.

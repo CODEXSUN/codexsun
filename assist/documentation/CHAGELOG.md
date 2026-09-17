@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.2
+Current version: 1.0.3
 
-Release tag: v-1.0.2
+Release tag: v-1.0.3
 
-Changelog label: v 1.0.2
+Changelog label: v 1.0.3
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -20,6 +20,18 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.0.3
+
+### [v 1.0.3] 2026-09-17 10:21 am - version update
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.3.
+
 ## v-1.0.2
 
 ### [v 1.0.2] 2026-09-17 9:28 am - Repository ignore policy
@@ -32,6 +44,17 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 - Bumped CODEXSUN workspace version to 1.0.2.
 - Added CODEXSUN ignore rules for generated output, runtime data, credentials, test reports, desktop/mobile binaries, and deployment overrides.
+- Added planning-only Framework and Platform phase records with task status and approval gates.
+- Added design-system and application rollout boundaries before Framework kernel implementation.
+- Completed the Framework provider manifest, dependency graph, lifecycle cleanup, public contracts, and focused test harness.
+- Wired Platform Core and Platform System into the Framework manifest lifecycle, including API startup and shutdown hooks.
+- Added Framework compatibility and extension guidance.
+- Added the repository-owned progressive development skill for repeatable implementation and handover.
+- Added module ownership and workspace runtime skills for developer handover.
+- Consolidated the task register into active work, next task, completed milestones, and planning-only queues.
+- Completed the Platform runtime registry and explicit API provider composition. Health now reports selected provider IDs without configuration values.
+- Completed shared Zod runtime configuration contracts for API, web, desktop, and mobile hosts. The web host receives only declared public values.
+- Completed provider readiness tracking and safe health reporting. The Platform health API now reports provider IDs and lifecycle state without provider values or configuration data.
 
 ## v-1.0.1
 

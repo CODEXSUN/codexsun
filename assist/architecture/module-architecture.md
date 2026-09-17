@@ -18,14 +18,14 @@ provider -> module -> add-on -> app -> platform -> deployable
 
 The sequence describes discovery and composition. It does not allow a lower layer to import a higher layer.
 
-| Layer | Responsibility |
-| --- | --- |
-| Provider | Declares that a module exists and exposes its public registration contract. |
-| Module | Owns one business capability and all of its implementation parts. |
-| Add-on | Packages one or more optional modules behind a public provider. |
-| App | Selects add-ons and composes user-facing product behavior. |
-| Platform | Hosts generic applications and platform-owned modules. It does not own product business behavior. |
-| Deployable | Selects the applications and add-ons required for a client deployment. |
+| Layer      | Responsibility                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| Provider   | Declares that a module exists and exposes its public registration contract.                       |
+| Module     | Owns one business capability and all of its implementation parts.                                 |
+| Add-on     | Packages one or more optional modules behind a public provider.                                   |
+| App        | Selects add-ons and composes user-facing product behavior.                                        |
+| Platform   | Hosts generic applications and platform-owned modules. It does not own product business behavior. |
+| Deployable | Selects the applications and add-ons required for a client deployment.                            |
 
 ## Repository structure
 

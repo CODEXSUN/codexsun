@@ -1,5 +1,5 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "../../../dist/platform/api", "rootDir": "src" },
-  "include": ["src"]
+  "compilerOptions": { "outDir": "../../../dist/platform/api", "rootDir": "." },
+  "include": ["src", "test"]
 }

@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/platform-web",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@codexsun/platform-core": "file:../../../packages/platform-core",
     "@codexsun/ui": "file:../../../packages/ui",
     "dotenv": "^17.0.0",
     "react": "^19.0.0",

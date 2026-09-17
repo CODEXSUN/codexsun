@@ -1,7 +1,15 @@
-import type { ModuleProvider, ProviderEngine } from "@codexsun/framework";
+import type { ModuleProvider, ProviderRegistrationContext } from "@codexsun/framework";
+
 export class SystemModuleProvider implements ModuleProvider {
-  readonly id = "platform.system";
-  register(engine: ProviderEngine): void {
-    engine.provide("platform.system", { name: "Platform System" });
+  readonly manifest = {
+    id: "platform.system",
+    owner: "apps/platform/api/modules/system",
+    version: "1.0.2",
+    dependencies: ["platform.core"],
+    contracts: ["platform.system"],
+  };
+
+  register(context: ProviderRegistrationContext): void {
+    context.provide("platform.system", { name: "Platform System" });
   }
 }

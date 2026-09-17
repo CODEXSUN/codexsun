@@ -2,14 +2,14 @@
 
 ## Required layers
 
-| Layer | Proof |
-| --- | --- |
-| Static | Formatting, lint, types, boundaries, and line limit. |
-| Module | Unit and repository tests for changed behavior. |
-| Integration | API, database, event, queue, and storage checks. |
-| User flow | Playwright or equivalent visible client behavior. |
-| Docker | Container composition, health, and dependency checks. |
-| Production | Selected deployment behavior with recorded evidence. |
+| Layer       | Proof                                                 |
+| ----------- | ----------------------------------------------------- |
+| Static      | Formatting, lint, types, boundaries, and line limit.  |
+| Module      | Unit and repository tests for changed behavior.       |
+| Integration | API, database, event, queue, and storage checks.      |
+| User flow   | Playwright or equivalent visible client behavior.     |
+| Docker      | Container composition, health, and dependency checks. |
+| Production  | Selected deployment behavior with recorded evidence.  |
 
 ## Target rules
 

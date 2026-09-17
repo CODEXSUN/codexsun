@@ -1,13 +1,14 @@
 {
   "name": "@codexsun/platform-api",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/platform/api/server.js",
     "check": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "tsx --test test/health-route.test.ts"
   },
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",

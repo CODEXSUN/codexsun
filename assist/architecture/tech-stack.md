@@ -6,34 +6,34 @@ This is the initial stack plan. It defines the first implementation direction fo
 
 ## Core stack
 
-| Area | Technology | Use |
-| --- | --- | --- |
-| Runtime | Node.js | Application and tool runtime. |
-| Language | TypeScript | Type-safe application and shared code. |
-| Workspace builds | Turborepo | Task orchestration and build caching. |
-| Configuration | dotenv | Local environment configuration. |
-| Validation | Zod | Runtime validation for inputs, configuration, and contracts. |
-| Formatting | Prettier | Consistent source formatting. |
-| Linting | ESLint | Static code quality checks. |
-| Browser tests | Playwright | End-to-end and browser integration tests. |
+| Area             | Technology | Use                                                          |
+| ---------------- | ---------- | ------------------------------------------------------------ |
+| Runtime          | Node.js    | Application and tool runtime.                                |
+| Language         | TypeScript | Type-safe application and shared code.                       |
+| Workspace builds | Turborepo  | Task orchestration and build caching.                        |
+| Configuration    | dotenv     | Local environment configuration.                             |
+| Validation       | Zod        | Runtime validation for inputs, configuration, and contracts. |
+| Formatting       | Prettier   | Consistent source formatting.                                |
+| Linting          | ESLint     | Static code quality checks.                                  |
+| Browser tests    | Playwright | End-to-end and browser integration tests.                    |
 
 ## Web stack
 
-| Area | Technology | Use |
-| --- | --- | --- |
-| UI | React | Browser user interfaces. |
-| Styling | Tailwind CSS | Shared utility-based styling. |
-| Components | shadcn/ui | Application components built on accessible primitives. |
-| API server | Fastify | HTTP APIs and server integration. |
+| Area       | Technology   | Use                                                    |
+| ---------- | ------------ | ------------------------------------------------------ |
+| UI         | React        | Browser user interfaces.                               |
+| Styling    | Tailwind CSS | Shared utility-based styling.                          |
+| Components | shadcn/ui    | Application components built on accessible primitives. |
+| API server | Fastify      | HTTP APIs and server integration.                      |
 
 ## Data and background work
 
-| Area | Technology | Use |
-| --- | --- | --- |
-| SQL access | Kysely | Typed database queries and migrations. |
-| Primary service database | MariaDB | Shared application data in deployed environments. |
-| Local or embedded database | SQLite | Local-first, test, desktop, or isolated application data. |
-| Background jobs | BullMQ | Queued and retryable jobs. |
+| Area                       | Technology | Use                                                       |
+| -------------------------- | ---------- | --------------------------------------------------------- |
+| SQL access                 | Kysely     | Typed database queries and migrations.                    |
+| Primary service database   | MariaDB    | Shared application data in deployed environments.         |
+| Local or embedded database | SQLite     | Local-first, test, desktop, or isolated application data. |
+| Background jobs            | BullMQ     | Queued and retryable jobs.                                |
 
 BullMQ requires Redis. Select and document the Redis runtime before the first queued job is implemented.
 
@@ -41,11 +41,11 @@ BullMQ requires Redis. Select and document the Redis runtime before the first qu
 
 The repository supports three client targets in parallel.
 
-| Target | Initial technology | Boundary |
-| --- | --- | --- |
-| Web | React, Tailwind CSS, shadcn/ui | Runs in a browser and uses public API contracts. |
-| Desktop | Tauri, Rust, Node.js, React | Tauri and Rust own native capabilities. React owns desktop user interfaces. Node.js supports tooling and optional local services. |
-| Mobile | Ionic, Capacitor | Runs as a mobile application and uses public API contracts. The mobile stack may expand later through a reviewed decision. |
+| Target  | Initial technology             | Boundary                                                                                                                          |
+| ------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Web     | React, Tailwind CSS, shadcn/ui | Runs in a browser and uses public API contracts.                                                                                  |
+| Desktop | Tauri, Rust, Node.js, React    | Tauri and Rust own native capabilities. React owns desktop user interfaces. Node.js supports tooling and optional local services. |
+| Mobile  | Ionic, Capacitor               | Runs as a mobile application and uses public API contracts. The mobile stack may expand later through a reviewed decision.        |
 
 ## Architecture boundaries
 

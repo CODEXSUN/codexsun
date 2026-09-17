@@ -4,10 +4,10 @@
 
 The repository uses two runtime configuration layers.
 
-| File | Owner | Use |
-| --- | --- | --- |
-| `.env` | Repository root | Shared repository variables, infrastructure endpoints, and global defaults. |
-| `apps/<app>/.app.env` | Application | Application credentials, ports, URLs, and application-specific overrides. |
+| File                  | Owner           | Use                                                                         |
+| --------------------- | --------------- | --------------------------------------------------------------------------- |
+| `.env`                | Repository root | Shared repository variables, infrastructure endpoints, and global defaults. |
+| `apps/<app>/.app.env` | Application     | Application credentials, ports, URLs, and application-specific overrides.   |
 
 Use `.env.example` and `apps/<app>/.app.env.example` for safe variable names and sample values. Never put live secrets in an example file.
 
@@ -19,6 +19,20 @@ Use `.env.example` and `apps/<app>/.app.env.example` for safe variable names and
 - The root `.env` provides shared defaults. An app `.app.env` provides only that application's overrides.
 - Document every required variable in the owning application README.
 - Keep `.env` and `.app.env` out of version control.
+
+## Shared runtime contracts
+
+`@codexsun/platform-core/runtime-config` owns the Zod schemas for API, web,
+desktop, and mobile runtime values. Hosts load `.env` and `.app.env`, then pass
+the environment to the correct reader before startup.
+
+The API contract reads `NODE_ENV`, `PLATFORM_HOST`, `PLATFORM_API_PORT`, and
+`DATABASE_URL`. The web contract reads only `PLATFORM_HOST`,
+`PLATFORM_WEB_PORT`, and `VITE_PLATFORM_API_URL`. Desktop and mobile contracts
+read their explicit API URLs.
+
+The web contract removes unknown values. Do not pass server values into a
+browser configuration object.
 
 ## Access boundaries
 

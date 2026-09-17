@@ -15,6 +15,8 @@ Read these documents before you add an application, package, service, or shared 
 
 - [Architecture](architecture/README.md) defines repository boundaries and ownership rules.
 - [Tech stack plan](architecture/tech-stack.md) defines the selected technologies and delivery order.
+- [Design system](architecture/design-system.md) defines themes, defaults, variants, and UI inheritance.
+- [Framework contract](architecture/framework.md) defines provider lifecycle and public contracts.
 - [Module architecture](architecture/module-architecture.md) defines the provider, module, add-on, app, platform, and deployment model.
 - [Application catalog](architecture/application-catalog.md) defines host, add-on, and client deployment selection.
 - [Contracts and events](architecture/contracts-and-events.md) defines public API and event integration.

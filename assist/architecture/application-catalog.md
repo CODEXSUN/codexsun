@@ -8,15 +8,24 @@ Do not add an application or add-on without a named owner, provider, public cont
 
 ## Initial application hosts
 
-| Host | Role | Client targets |
-| --- | --- | --- |
-| Platform | Generic holder and platform-owned capabilities. | Web, desktop, mobile. |
-| Docs | Documentation product when a deployment selects it. | Web. |
-| Orship | Independently owned application when a deployment selects it. | Web, desktop, mobile as required. |
-| UIUX | UI and experience application. It consumes `packages/ui`. | Web. |
-| Zetro | Independently owned application or add-on host. | Web, desktop, mobile as required. |
+| Host     | Role                                                                                                  | Client targets                    |
+| -------- | ----------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Platform | Generic holder and platform-owned capabilities.                                                       | Web, desktop, mobile.             |
+| Docs     | Hybrid Markdown, MDX, and database-indexed repository documentation.                                  | Web.                              |
+| Orship   | Deployment, Docker, monitoring, and database-maintenance operations application.                      | Web, desktop, mobile as required. |
+| UIUX     | Dynamic visual gallery for published `packages/ui` registry entries. It consumes `packages/ui`.       | Web.                              |
+| Zetro    | Governed AI agent application for planning, tasking, workers, review, test, and deployment workflows. | Web, desktop, mobile as required. |
 
 The listed folders are scaffolds. A deployment must explicitly select an application before it becomes a delivered product.
+
+## Application Boundaries
+
+| Application | Must own                                                                                                        | Must not own                                                                             |
+| ----------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Zetro       | Agent plans, task records, worker dispatch, review evidence, test and deployment orchestration.                 | Arbitrary unsandboxed execution, product business logic, or private application imports. |
+| Docs        | Markdown and MDX source discovery, database index, article composition, links, backlinks, and graph metadata.   | The source authority of another application or unreviewed source rewrites.               |
+| Orship      | Deployment profiles, Docker state, health, logs, metrics, database maintenance workflows, and approval records. | Product modules, direct secret display, or unapproved destructive operations.            |
+| UIUX        | Registry gallery, variant previews, visual documentation, and temporary preview controls.                       | Shared component ownership or imports from another application.                          |
 
 ## Add-on rules
 
