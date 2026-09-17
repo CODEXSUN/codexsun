@@ -88,6 +88,10 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added standard per-app planning and task records, short task-ID prefixes, phased execution status, and add-on planning templates.
 - Replaced legacy Zetro planning and task records with the agentic IDE governance plan and phased task register. No Zetro runtime code changed.
 - Replaced legacy Orship planning and task records with Platform-first infrastructure, monitoring, and deployment phases. No Orship runtime or Docker configuration changed.
+- Added the Platform-specific runtime, module, host, deployment, and extension planning phases with a phased task register. No Platform runtime code changed.
+- Added Framework shared-package planning and task records with compatibility and consumer-review gates. No Framework code changed.
+- Added UIUX catalog, visual-quality, accessibility, and design-system handoff phases with a phased task register. No UIUX code changed.
+- Added Docs source-in-place parsing, graph, workspace, and verification phases with a phased task register. No Docs runtime code changed.
 
 ## v-1.0.13
 
