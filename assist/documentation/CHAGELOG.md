@@ -93,6 +93,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added UIUX catalog, visual-quality, accessibility, and design-system handoff phases with a phased task register. No UIUX code changed.
 - Added Docs source-in-place parsing, graph, workspace, and verification phases with a phased task register. No Docs runtime code changed.
 
+- Added UI package component inventory, public-contract, component-expansion, and consumer-verification planning. No UI package code changed.
+
 ## v-1.0.13
 
 ### [v 1.0.13] 2026-09-17 2:57 pm - Application architecture audit and isolated Turbo workflow
