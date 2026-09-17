@@ -4,13 +4,13 @@ Read `docs-planning.md` before work starts.
 
 ## Active Work
 
-No Docs task is active.
+No Docs task is active. D-1210 and D-1220 are complete.
 
 ## Next Task
 
-| Task                                             | Owner    | State                           | Data impact |
-| ------------------------------------------------ | -------- | ------------------------------- | ----------- |
-| D-1211 Docs API contracts and response envelopes | Docs API | Planned. Requires confirmation. | No          |
+| Task                                                         | Owner    | State                           | Data impact |
+| ------------------------------------------------------------ | -------- | ------------------------------- | ----------- |
+| D-1231 Markdown metadata, headings, anchors, tags, and links | Docs API | Planned. Requires confirmation. | No          |
 
 ## Task Rules
 
@@ -22,14 +22,14 @@ No Docs task is active.
 
 ## Planned Task Queue
 
-| Phase                              | Tasks            | State   |
-| ---------------------------------- | ---------------- | ------- |
-| D-1210 Contracts and configuration | D-1211 to D-1214 | Planned |
-| D-1220 Discovery and indexing      | D-1221 to D-1225 | Planned |
-| D-1230 Parsing and retrieval       | D-1231 to D-1234 | Planned |
-| D-1240 Connected graph             | D-1241 to D-1245 | Planned |
-| D-1250 Web workspace               | D-1251 to D-1255 | Planned |
-| D-1260 Verification and handoff    | D-1261 to D-1264 | Planned |
+| Phase                              | Tasks            | State    |
+| ---------------------------------- | ---------------- | -------- |
+| D-1210 Contracts and configuration | D-1211 to D-1214 | Complete |
+| D-1220 Discovery and indexing      | D-1221 to D-1225 | Complete |
+| D-1230 Parsing and retrieval       | D-1231 to D-1234 | Planned  |
+| D-1240 Connected graph             | D-1241 to D-1245 | Planned  |
+| D-1250 Web workspace               | D-1251 to D-1255 | Planned  |
+| D-1260 Verification and handoff    | D-1261 to D-1264 | Planned  |
 
 ## Acceptance Template
 

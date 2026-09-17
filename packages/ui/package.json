@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/ui",
-  "version": "1.0.9",
+  "version": "1.0.11",
   "private": true,
   "type": "module",
   "peerDependencies": {
@@ -8,7 +8,7 @@
     "react-dom": "^19.0.0"
   },
   "scripts": {
-    "test": "tsx --test test/theme-contract.test.ts"
+    "test": "tsx --test test/theme-contract.test.ts test/ui-registry.test.ts"
   },
   "exports": {
     ".": "./src/index.ts",

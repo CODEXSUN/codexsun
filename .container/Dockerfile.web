@@ -1,0 +1,14 @@
+FROM node:24-alpine AS build
+WORKDIR /workspace
+COPY package.json package-lock.json turbo.json tsconfig.base.json eslint.config.mjs ./
+COPY .env.example .env
+COPY apps ./apps
+COPY packages ./packages
+COPY tools ./tools
+RUN cp apps/platform/web/.app.env.example apps/platform/web/.app.env
+RUN npm ci
+RUN npm run build --workspace @codexsun/platform-web
+
+FROM nginx:1.27-alpine
+COPY --from=build /workspace/dist/platform/web /usr/share/nginx/html
+EXPOSE 6101

@@ -31,6 +31,8 @@ composition only. It does not replace the client deployment record.
 
 Local development proves developer workflows. Docker proves container composition. Production proves the selected client deployment.
 
+Redis is optional. Until a profile selects a Redis service, event and job delivery uses the module-owned database outbox and database-backed worker claims. A profile that enables Redis must declare its service, `REDIS_URL` secret source, TLS policy, backup responsibility, health check, and recovery procedure.
+
 Do not claim production verification from local or Docker evidence. Report each environment separately.
 
 ## Aaran single-tenant profile

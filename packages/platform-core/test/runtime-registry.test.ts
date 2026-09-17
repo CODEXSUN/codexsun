@@ -3,11 +3,14 @@ import test from "node:test";
 import type { ModuleProvider } from "@codexsun/framework";
 import {
   createPlatformRuntime,
+  readDocsApiRuntimeConfig,
+  readDocsWebRuntimeConfig,
   ModuleEnablementPolicy,
   PlatformRuntimeRegistry,
   readApiRuntimeConfig,
   readDesktopRuntimeConfig,
   readMobileRuntimeConfig,
+  readRedisRuntimeConfig,
   readWebRuntimeConfig,
 } from "../src/index.js";
 
@@ -79,12 +82,37 @@ test("validates each host configuration without exposing server values to client
   assert.equal(web.VITE_PLATFORM_API_URL, "http://127.0.0.1:6100");
   assert.equal("DATABASE_URL" in web, false);
   assert.equal(
-    readDesktopRuntimeConfig({ PLATFORM_DESKTOP_API_URL: "http://127.0.0.1:6100" }).PLATFORM_DESKTOP_API_URL,
+    readDocsApiRuntimeConfig({
+      PLATFORM_HOST: "127.0.0.1",
+      DOCS_API_PORT: "6030",
+      DOCS_DATABASE_URL: "sqlite://docs",
+      DOCS_INDEX_PATH: "../../../storage/apps/private/docs/index.sqlite",
+      DOCS_WEB_ORIGIN: "http://127.0.0.1:6040",
+    }).DOCS_API_PORT,
+    6030,
+  );
+  assert.equal(
+    readDocsWebRuntimeConfig({
+      PLATFORM_HOST: "127.0.0.1",
+      DOCS_WEB_PORT: "6040",
+      VITE_DOCS_API_URL: "http://127.0.0.1:6030",
+      DATABASE_URL: "sqlite://private",
+    }).VITE_DOCS_API_URL,
+    "http://127.0.0.1:6030",
+  );
+  assert.equal(
+    readDesktopRuntimeConfig({
+      PLATFORM_HOST: "127.0.0.1",
+      PLATFORM_DESKTOP_PORT: "6103",
+      PLATFORM_DESKTOP_API_URL: "http://127.0.0.1:6100",
+    }).PLATFORM_DESKTOP_API_URL,
     "http://127.0.0.1:6100",
   );
   assert.equal(
     readMobileRuntimeConfig({ PLATFORM_MOBILE_API_URL: "http://127.0.0.1:6100" }).PLATFORM_MOBILE_API_URL,
     "http://127.0.0.1:6100",
   );
+  assert.equal(readRedisRuntimeConfig({ REDIS_URL: "redis://127.0.0.1:6379" }).REDIS_URL, "redis://127.0.0.1:6379");
+  assert.throws(() => readRedisRuntimeConfig({ REDIS_URL: "https://127.0.0.1:6379" }));
   assert.throws(() => readWebRuntimeConfig({ PLATFORM_HOST: "", PLATFORM_WEB_PORT: "0" }));
 });

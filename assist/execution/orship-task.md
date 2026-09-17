@@ -6,6 +6,13 @@ Read [orship-planning.md](orship-planning.md) before starting an Orship task.
 
 No Orship task is active.
 
+## Completed Milestones
+
+- O-1201: Standalone API and web hosts, orchestration provider, state-machine
+  contract, local configuration, and focused verification.
+- O-1202: Revision-bound private attempt records, verification checks, and a
+  browser-visible approval block for a failed required check.
+
 ## Task Rules
 
 1. Start one task only after the user confirms its exact ID.
@@ -18,8 +25,8 @@ No Orship task is active.
 
 | Task   | Owner                | Scope                                                     | Data impact | Required verification                                   | State                           |
 | ------ | -------------------- | --------------------------------------------------------- | ----------- | ------------------------------------------------------- | ------------------------------- |
-| O-1201 | Orship foundation    | Hosts, provider manifests, contracts, and state machine   | No          | API and web checks, contract tests, boundary checks     | Planned. Requires confirmation. |
-| O-1202 | Change intake        | Revision-bound attempts and verification evidence         | Yes         | Service tests and blocked-approval browser flow         | Planned. Requires confirmation. |
+| O-1201 | Orship foundation    | Hosts, provider manifests, contracts, and state machine   | No          | API and web checks, contract tests, boundary checks     | Complete.                       |
+| O-1202 | Change intake        | Revision-bound attempts and verification evidence         | Yes         | Service tests and blocked-approval browser flow         | Complete.                       |
 | O-1203 | Preview module       | Preview port, isolation, expiry, and cleanup              | Yes         | Adapter tests, provider fixture, protected preview flow | Planned. Requires confirmation. |
 | O-1204 | Approval module      | Manual approval, expiry, rejection, and invalidation      | Yes         | Authorization, transition, and browser tests            | Planned. Requires confirmation. |
 | O-1205 | Deployment module    | Coolify VPS adapter and queued deployment evidence        | Yes         | Adapter tests and non-production VPS deployment         | Planned. Requires confirmation. |

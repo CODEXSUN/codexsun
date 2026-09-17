@@ -7,22 +7,22 @@ migration, worktree, deployment, release, or Git changes.
 
 ## Next Task
 
-| Task                              | Owner | State                                 | Data impact   |
-| --------------------------------- | ----- | ------------------------------------- | ------------- |
-| Z-1201 Zetro foundation decisions | Zetro | Planned. Requires human confirmation. | Decision only |
+| Task                                 | Owner | State                                 | Data impact        |
+| ------------------------------------ | ----- | ------------------------------------- | ------------------ |
+| Z-1203 Zetro model provider boundary | Zetro | Planned. Requires human confirmation. | Configuration only |
 
 ## Phase Register
 
-| Phase                          | Tasks            | State   | Approval gate                            |
-| ------------------------------ | ---------------- | ------- | ---------------------------------------- |
-| Z0 Foundation decisions        | Z-1201 to Z-1204 | Planned | Architecture and execution policy review |
-| Z1 Ideas and planning          | Z-1210 to Z-1213 | Planned | Z0 complete                              |
-| Z2 Tasks and subtasks          | Z-1220 to Z-1223 | Planned | Z1 task model review                     |
-| Z3 Guidance and review         | Z-1230 to Z-1233 | Planned | Z2 scope policy review                   |
-| Z4 Worker and worktree control | Z-1240 to Z-1243 | Planned | Z3 worker-start gate review              |
-| Z5 Review and test evidence    | Z-1250 to Z-1253 | Planned | Z4 lifecycle evidence review             |
-| Z6 Deployment and manual merge | Z-1260 to Z-1263 | Planned | Z5 evidence and human approval review    |
-| Z7 Operations and hardening    | Z-1270 to Z-1273 | Planned | Z6 deployment and merge review           |
+| Phase                          | Tasks            | State                               | Approval gate                            |
+| ------------------------------ | ---------------- | ----------------------------------- | ---------------------------------------- |
+| Z0 Foundation decisions        | Z-1201 to Z-1204 | Active. Z-1201 and Z-1202 complete. | Architecture and execution policy review |
+| Z1 Ideas and planning          | Z-1210 to Z-1213 | Planned                             | Z0 complete                              |
+| Z2 Tasks and subtasks          | Z-1220 to Z-1223 | Planned                             | Z1 task model review                     |
+| Z3 Guidance and review         | Z-1230 to Z-1233 | Planned                             | Z2 scope policy review                   |
+| Z4 Worker and worktree control | Z-1240 to Z-1243 | Planned                             | Z3 worker-start gate review              |
+| Z5 Review and test evidence    | Z-1250 to Z-1253 | Planned                             | Z4 lifecycle evidence review             |
+| Z6 Deployment and manual merge | Z-1260 to Z-1263 | Planned                             | Z5 evidence and human approval review    |
+| Z7 Operations and hardening    | Z-1270 to Z-1273 | Planned                             | Z6 deployment and merge review           |
 
 ## Required Task Fields
 

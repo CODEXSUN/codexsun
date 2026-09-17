@@ -14,6 +14,17 @@ working baseline. Each future data module owns its migrations, repository,
 backup notes, and tests. A task must not assume that SQLite state is valid until
 its required migration and repository checks pass.
 
+## Configuration
+
+Copy `api/.app.env.example` and `web/.app.env.example` to ignored `.app.env`
+files. Zetro uses API port 6130 and web port 6131 by default. The local SQLite
+file is private under `storage/apps/private/zetro/runtime/zetro.sqlite`.
+
+## Verification
+
+Run `npm.cmd run test:zetro-api`, `npm.cmd run test:zetro-web`,
+`npm.cmd run preflight:zetro-api`, and `npm.cmd run preflight:zetro-web`.
+
 Read [agent skills](agent/SKILLS.md) before work. Read
 [Zetro planning](../../assist/execution/zetro-planning.md) and
 [Zetro task register](../../assist/execution/zetro-task.md) before an agent

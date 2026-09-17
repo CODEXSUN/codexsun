@@ -57,12 +57,12 @@ Exit criteria:
 
 ### Phase D-1210: Contracts And Configuration
 
-Status: planned.
+Status: complete.
 
-- [ ] D-1211 Create browser-safe Docs API schemas and response envelopes.
-- [ ] D-1212 Add validated Docs API and web configuration.
-- [ ] D-1213 Define Docs provider registration and module registry entries.
-- [ ] D-1214 Document SQLite lifecycle, retention, and recovery limits.
+- [x] D-1211 Create browser-safe Docs API schemas and response envelopes.
+- [x] D-1212 Add validated Docs API and web configuration.
+- [x] D-1213 Define Docs provider registration and module registry entries.
+- [x] D-1214 Document SQLite lifecycle, retention, and recovery limits.
 
 Exit criteria:
 
@@ -72,13 +72,13 @@ Exit criteria:
 
 ### Phase D-1220: Discovery And Indexing
 
-Status: planned.
+Status: complete.
 
-- [ ] D-1221 Build allowlisted Markdown and MDX source discovery.
-- [ ] D-1222 Build source metadata and change detection.
-- [ ] D-1223 Create Docs-owned SQLite index tables and migrations.
-- [ ] D-1224 Add full index sync and stale-record removal.
-- [ ] D-1225 Add path containment and excluded-path checks.
+- [x] D-1221 Build allowlisted Markdown and MDX source discovery.
+- [x] D-1222 Build source metadata and change detection.
+- [x] D-1223 Create Docs-owned SQLite index tables and migrations.
+- [x] D-1224 Add full index sync and stale-record removal.
+- [x] D-1225 Add path containment and excluded-path checks.
 
 Exit criteria:
 

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.9
+Current version: 1.0.11
 
-Release tag: v-1.0.9
+Release tag: v-1.0.11
 
-Changelog label: v 1.0.9
+Changelog label: v 1.0.11
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -20,10 +20,52 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+- Added the Docs `docs-index.001` SQLite migration, allowlisted source discovery, metadata change detection, stale-record removal, and repository-path containment checks.
+- Docs starts with a derived index sync. The index reads source files in place and does not author them.
+
+- Added the standalone Docs API and web foundations, public Docs contracts, shared Framework provider registration, validated Docs configuration, and Docs startup preflight targets.
+- Docs uses its own `DOCS_API_PORT` and `DOCS_WEB_PORT`. The SQLite index remains a planned D-1220 data change.
+
 - Added Docs agent guidance for source-in-place Markdown and MDX discovery, SQLite indexing, link resolution, backlinks, graph metadata, and verification.
 - Added a phased Docs application plan and a Docs-specific task register. No Docs application code changed.
 - Added Zetro agent skills for reviewed planning, task splitting, guidance snapshots, isolated worktrees, evidence, and manual merge approval.
 - Added a phased Zetro delivery plan and task register. No Zetro runtime code or SQLite migration changed.
+- Added standalone Zetro API and web hosts with the `zetro.foundation` provider, public health contract, Zetro-specific ports, and host `.app.env` examples.
+- Z-1201 validates the SQLite baseline configuration only. It creates no Zetro SQLite schema, migration, or worker runtime.
+- Added Zetro SQLite readiness through Platform Core, private storage policy, backup owner, seven-day retention, and recovery-check documentation. Z-1202 creates no workflow schema or migration.
+- Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
+- Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
+
+## v-1.0.11
+
+### [v 1.0.11] 2026-09-17 2:38 pm - #10 - Cross-application verification and release alignment
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.11.
+
+## v-1.0.10
+
+### [v 1.0.10] 2026-09-17 2:35 pm - Cross-application verification and release alignment
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.10.
+- Verified Platform, Docs, Orship, Zetro, and UIUX source checks in the root workspace.
+- Verified the Platform workspace browser flow with the root Playwright installation.
+- Verified public UI and API contract usage plus module route ownership checks.
+- Verified the non-desktop and non-mobile application build outputs under the root `dist/` directory.
+- Restored and verified the root-only `node_modules`, `.turbo`, and `dist/` layout after checks.
+- Marked Phase 5 and Phase 7 completion evidence in the Framework and Platform plan.
+- Deferred Redis, Docker runtime, desktop, mobile, database migration execution, and production deployment checks by scope.
 
 ## v-1.0.9
 
@@ -39,7 +81,21 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the completed shared UI theme, registry, base components, composition layers, Platform MDI integration, and standalone UIUX gallery.
 - Added the public API contracts package, centralized route composition, stable API error codes, and Platform module visibility.
 - Added Docs, Zetro, and Orship documentation records supplied in this workspace.
+- Added the standalone Orship API and web hosts with isolated local ports,
+  Orship host configuration, Platform Core composition, and the first guarded
+  orchestration state machine. Completed O-1201 without a database change.
+- Added Orship revision-bound private attempt records and typed verification
+  checks. Required failed checks now block approval requests. Completed O-1202
+  without a database change.
 - Added the Playwright Platform workspace test source and root command. It requires the declared package to be installed before it can run locally.
+- Added the optional Redis runtime configuration scaffold and operator runbook. Database-backed outbox delivery remains the current queue direction; no Redis service, worker, or database change was introduced.
+- Added the Platform Operations module with the unrun `operations.001` migration for outbox, idempotent-consumer, and audit tables. Database update: Yes when a selected deployment runs this migration.
+- Added database-backed outbox record, claim, retry, failed-record, idempotent-consumer, and state-count contracts with SQLite coverage. Redis and BullMQ remain deferred.
+- Added the scoped Storage Provider, structured operation-entry contract, Docker Compose assets, Aaran deployment profile, and backup and recovery runbook.
+- Validated the Docker Compose model with `.env.example`. Live Docker startup remains pending because the local Docker Desktop Linux daemon is unavailable.
+- Added the Platform Tauri desktop host with a narrow Rust runtime-metadata command, default capability policy, public contracts, shared UI, root Cargo target output, and desktop checks.
+- Added the Platform Ionic and Capacitor mobile host with public API contracts, desktop-import boundary coverage, root mobile web output, and Capacitor configuration. Android and iOS device checks remain pending SDK selection.
+- Completed the Aaran profile selection for Platform API, web, desktop, and mobile. Docker, migration, and production execution remain deferred by scope.
 
 ## v-1.0.8
 

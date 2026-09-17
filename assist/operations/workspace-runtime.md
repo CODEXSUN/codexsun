@@ -46,6 +46,8 @@ The API and web configurations may extend a root shared base configuration. Do n
 
 Desktop and mobile hosts use their target tooling configuration. They must write generated output only to the root `dist/` namespace.
 
+The Platform desktop launcher sets `CARGO_TARGET_DIR=dist/platform/desktop/target`. Do not allow Tauri or Cargo to create `src-tauri/target/`.
+
 ## Required checks
 
 1. Confirm only root `node_modules/` exists before final acceptance.

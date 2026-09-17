@@ -15,7 +15,7 @@ storage/apps/private/<application>/<module>/
 storage/apps/public/<application>/<module>/
 ```
 
-The owner module declares the file purpose, retention, access rules, and public delivery behavior. A storage provider creates and validates the namespace.
+The owner module declares the file purpose, retention, access rules, and public delivery behavior. `StorageProvider.forModule()` creates and validates the namespace.
 
 Do not store private files in a public path. Do not allow one application or module to read another namespace without a documented contract.
 

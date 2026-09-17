@@ -12,7 +12,8 @@ human-approved merge into `main`.
 
 ## Current Baseline
 
-- `apps/zetro` contains API and web placeholders only.
+- Zetro has standalone API and web hosts with separate configured ports.
+- `zetro.foundation` composes through Platform Core and the Framework.
 - SQLite is the current connected and working storage baseline.
 - No Zetro module, provider, public contract, migration, or worker runtime
   exists in this checkout.
@@ -65,12 +66,12 @@ include a migration, compatibility note, rollback limit, and SQLite tests.
 
 Goal: approve the runtime and safety boundaries before source work.
 
-- [ ] Z-1201 Confirm API and web host names, ports, provider IDs, and deployment profile.
-- [ ] Z-1202 Confirm SQLite file location, backup owner, retention, and recovery check.
+- [x] Z-1201 Create the standalone API and web foundation. Use ports 6130 and 6131. Register `zetro.foundation`.
+- [x] Z-1202 Set private SQLite storage, a seven-day local backup policy, and a Platform Core readiness check.
 - [ ] Z-1203 Select the model provider boundary and secret configuration contract.
 - [ ] Z-1204 Approve command, filesystem, network, and Git permission policies.
 
-Exit: a reviewed decision record states the allowed execution boundary.
+Exit: the standalone hosts start through preflight and expose the foundation health contract.
 
 ### Phase Z1: Ideas and Planning
 

@@ -27,6 +27,8 @@ The preflight reads root `.env`, then the host `.app.env`. It reserves the confi
 
 Use `npm.cmd run preflight:api` or `npm.cmd run preflight:web` to check and release a port without starting a host.
 
+Use `npm.cmd run dev:desktop` or `npm.cmd run preflight:desktop` for the Platform Tauri host. The desktop launcher sets `CARGO_TARGET_DIR` to `dist/platform/desktop/target`.
+
 If another listener or active CODEXSUN reservation uses the port, preflight stops. It never ends an unknown process.
 
 ## Workspace Layout

@@ -208,8 +208,20 @@ function validateEntry(entry: UiRegistryEntry, ids: Set<string>): void {
     throw new Error(`Invalid UI registry ID: ${entry.id}`);
   }
   if (ids.has(entry.id)) throw new Error(`Duplicate UI registry ID: ${entry.id}`);
+  if (!entry.name.trim() || !entry.category.trim()) {
+    throw new Error(`Registry entries need a name and category: ${entry.id}`);
+  }
+  if (!uiRegistryLayers.includes(entry.layer)) {
+    throw new Error(`Invalid UI registry layer: ${entry.id}`);
+  }
   if (!entry.variants.includes(entry.defaultVariant)) {
     throw new Error(`Default variant must be listed for: ${entry.id}`);
+  }
+  if (!entry.variants.length || !entry.states.length || !entry.accessibility.length || !entry.exampleData.trim()) {
+    throw new Error(`Registry entry metadata is incomplete: ${entry.id}`);
+  }
+  if (entry.states.some((state) => !uiRegistryStates.includes(state))) {
+    throw new Error(`Invalid UI registry state: ${entry.id}`);
   }
   ids.add(entry.id);
 }

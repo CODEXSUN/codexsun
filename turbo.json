@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "cacheDir": "dist/.turbo",
+  "cacheDir": "dist/.turbo/docs",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,8 +12,32 @@
     "@codexsun/platform-web#build": {
       "outputs": ["../../../dist/platform/web/**"]
     },
+    "@codexsun/orship-api#build": {
+      "outputs": ["../../../dist/orship/api/**"]
+    },
+    "@codexsun/orship-web#build": {
+      "outputs": ["../../../dist/orship/web/**"]
+    },
+    "@codexsun/docs-api#build": {
+      "outputs": ["../../../dist/docs/api/**"]
+    },
+    "@codexsun/docs-web#build": {
+      "outputs": ["../../../dist/docs/web/**"]
+    },
+    "@codexsun/platform-desktop#build": {
+      "outputs": ["../../../dist/platform/desktop/**"]
+    },
+    "@codexsun/platform-mobile#build": {
+      "outputs": ["../../../dist/platform/mobile/**"]
+    },
     "@codexsun/uiux-web#build": {
       "outputs": ["../../../dist/uiux/web/**"]
+    },
+    "@codexsun/zetro-api#build": {
+      "outputs": ["../../../dist/zetro/api/**"]
+    },
+    "@codexsun/zetro-web#build": {
+      "outputs": ["../../../dist/zetro/web/**"]
     },
     "check": {
       "dependsOn": ["^check"],

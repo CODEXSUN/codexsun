@@ -9,9 +9,9 @@ No task is active.
 
 ## Next Task
 
-| Task                          | Owner      | State                           | Data impact |
-| ----------------------------- | ---------- | ------------------------------- | ----------- |
-| E-701 Redis runtime selection | Operations | Planned. Requires confirmation. | No          |
+| Task                     | Owner         | State                           | Data impact |
+| ------------------------ | ------------- | ------------------------------- | ----------- |
+| Product module selection | Product owner | Planned. Requires confirmation. | Varies      |
 
 ## Completed Milestones
 
@@ -36,28 +36,35 @@ No task is active.
 - Public UI component registry metadata: U-602.
 - Base shadcn-compatible UI components: U-603.
 - Reusable UI composition, Platform MDI wiring, and UIUX gallery: U-604 to U-606.
+- Platform API contracts, centralized routes, shared UI composition, and verified browser flow: A-601 to A-606.
+- Redis runtime scaffold and configuration contract: E-701. Database-backed delivery remains selected.
+- Database outbox, worker, idempotent consumer, and outbox observability: E-702 to E-705.
+- Scoped storage, operation records, Docker composition, Aaran profile, and recovery runbook: O-801 to O-805.
+- Platform Tauri desktop host, native metadata command, capability policy, shared UI, public contracts, and root output: C-901 to C-904.
+- Platform Ionic and Capacitor mobile host, online policy, public contracts, and root web output: C-1001 to C-1004.
+- Aaran selected deployment profile for Platform web, desktop, and mobile: R-1101 to R-1102. R-1103 is deferred.
 
 See [CHAGELOG.md](../documentation/CHAGELOG.md) for the release record and
 `planning.md` for completed acceptance evidence.
 
 ## Planning Queue
 
-| Area                      | Task IDs         | State         |
-| ------------------------- | ---------------- | ------------- |
-| Data foundation           | D-301 to D-305   | Planning only |
-| Identity                  | I-401 to I-405   | Planning only |
-| Module standard           | M-501 to M-504   | Complete      |
-| Design system             | U-601 to U-606   | Complete      |
-| API and web shell         | A-601 to A-606   | Planning only |
-| Events and jobs           | E-701 to E-705   | Planning only |
-| Operations and deployment | O-801 to O-805   | Planning only |
-| Desktop                   | C-901 to C-904   | Planning only |
-| Mobile                    | C-1001 to C-1004 | Planning only |
-| Client deployment         | R-1101 to R-1103 | Planning only |
-| Zetro                     | Z-1201 to Z-1202 | Planning only |
-| Docs                      | D-1201 to D-1202 | Planning only |
-| Orship                    | O-1201 to O-1202 | Planning only |
-| UIUX                      | U-1201           | Planning only |
+| Area                      | Task IDs                          | State                                   |
+| ------------------------- | --------------------------------- | --------------------------------------- |
+| Data foundation           | D-301 to D-305                    | Planning only                           |
+| Identity                  | I-401 to I-405                    | Planning only                           |
+| Module standard           | M-501 to M-504                    | Complete                                |
+| Design system             | U-601 to U-606                    | Complete                                |
+| API and web shell         | A-601 to A-606                    | Complete                                |
+| Events and jobs           | E-701 to E-705                    | Complete with database delivery         |
+| Operations and deployment | O-801 to O-805                    | Complete. Docker live check pending     |
+| Desktop                   | C-901 to C-904                    | Complete                                |
+| Mobile                    | C-1001 to C-1004                  | Complete. Device check pending          |
+| Client deployment         | R-1101 to R-1103                  | Profile complete. Verification deferred |
+| Zetro                     | Z-1201 to Z-1202                  | Planning only                           |
+| Docs                      | D-1210 to D-1260                  | D-1210 and D-1220 complete.             |
+| Orship                    | O-1201 to O-1202                  | Planning only                           |
+| UIUX                      | U-1201 to U-1202 complete. U-1203 to U-1205 | Planned after U-1202          |
 
 ## Status Rules
 

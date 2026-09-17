@@ -25,9 +25,11 @@ Do not list a module until its provider and README exist.
 
 ## Registered Modules
 
-| Module                | Owner        | Provider                | Contracts                                                | Storage | Data                                | Events | Tests                      | Status |
-| --------------------- | ------------ | ----------------------- | -------------------------------------------------------- | ------- | ----------------------------------- | ------ | -------------------------- | ------ |
-| Platform System       | Platform API | `platform.system`       | `GET /api/v1/platform/health`                            | None    | None                                | None   | API health check           | Active |
-| Platform Identity API | Platform API | `platform.identity`     | Actor, authorization, and single-tenant policy contracts | None    | `identity.001`, `identity.seed.001` | None   | Identity API tests         | Active |
-| Platform Settings     | Platform API | `platform.settings`     | `GET /api/v1/platform/settings`                          | None    | `settings.001`, `settings.seed.001` | None   | Settings API module tests  | Active |
-| Platform Identity Web | Platform Web | `platform.web.identity` | Public `Actor` contract                                  | None    | None                                | None   | Identity session web tests | Active |
+| Module                | Owner        | Provider                | Contracts                                                | Storage                        | Data                                  | Events | Tests                      | Status |
+| --------------------- | ------------ | ----------------------- | -------------------------------------------------------- | ------------------------------ | ------------------------------------- | ------ | -------------------------- | ------ |
+| Platform System       | Platform API | `platform.system`       | `GET /api/v1/platform/health`                            | None                           | None                                  | None   | API health check           | Active |
+| Platform Identity API | Platform API | `platform.identity`     | Actor, authorization, and single-tenant policy contracts | None                           | `identity.001`, `identity.seed.001`   | None   | Identity API tests         | Active |
+| Platform Settings     | Platform API | `platform.settings`     | `GET /api/v1/platform/settings`                          | None                           | `settings.001`, `settings.seed.001`   | None   | Settings API module tests  | Active |
+| Platform Identity Web | Platform Web | `platform.web.identity` | Public `Actor` contract                                  | None                           | None                                  | None   | Identity session web tests | Active |
+| Orship Orchestration  | Orship API   | `orship.orchestration`  | Attempts, checks, and delivery-state contracts           | `private/orship/change-intake` | `attempts.json`                       | None   | Orchestration module tests | Active |
+| Docs Catalog API      | Docs API     | `docs.catalog`          | `GET /api/docs/v1/health`                                | None                           | SQLite `docs-index.001` derived index | None   | Docs API module tests      | Active |

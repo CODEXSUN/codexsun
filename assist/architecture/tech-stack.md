@@ -57,6 +57,7 @@ The repository supports three client targets in parallel.
 - Kysely access remains behind application-owned repositories or ports.
 - MariaDB and SQLite implementations must use the same application-level contract when both support the same feature.
 - Rust code owns Tauri commands and native operating-system access. Web code must not access native APIs directly.
+- The Platform desktop host exposes only the `desktop_runtime` metadata command. New native capabilities need a reviewed Rust command, capability policy, and desktop test.
 - Mobile code must not depend on desktop-only packages or Tauri APIs.
 
 Read the [workspace runtime](../operations/workspace-runtime.md) for root dependency, output, and TypeScript rules.

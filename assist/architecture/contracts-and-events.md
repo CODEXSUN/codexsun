@@ -33,7 +33,9 @@ Consumers validate events with the published schema. Consumers must be idempoten
 
 ## Delivery rule
 
-Use a transactional outbox before an event leaves the module database. A worker publishes outbox records and retries safely.
+Use a transactional outbox before an event leaves the module database. Until a deployment selects Redis, a database-backed worker claims and retries module-owned outbox records safely. The worker has a named owner, retry limit, retry delay, failure code, and failed-record recovery path.
+
+Each consumer records its consumer ID and message ID before it accepts a repeat delivery. A consumer must make its own side effect safe before it records completion. Redis is reserved for a future delivery provider and never becomes the source of business truth.
 
 Use synchronous public contracts for work that needs an immediate answer. Use events for independent follow-up work.
 

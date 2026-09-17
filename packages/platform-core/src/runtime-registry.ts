@@ -1,5 +1,5 @@
 import { type ModuleProvider, ProviderEngine } from "@codexsun/framework";
-import { PlatformProvider } from "./index.js";
+import { PlatformProvider, type PlatformProviderConfiguration } from "./index.js";
 import { type DeployableProfile, ModuleEnablementPolicy } from "./module-enablement-policy.js";
 
 export class PlatformRuntime {
@@ -41,9 +41,10 @@ export class PlatformRuntimeRegistry {
 export function createPlatformRuntime(
   profile: DeployableProfile,
   applicationProviders: readonly ModuleProvider[],
+  configuration?: PlatformProviderConfiguration,
 ): PlatformRuntime {
   const registry = new PlatformRuntimeRegistry();
-  registry.include(new PlatformProvider());
+  registry.include(new PlatformProvider(configuration));
   for (const provider of applicationProviders) registry.include(provider);
   return registry.compose(profile);
 }

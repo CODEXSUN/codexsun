@@ -1,0 +1,44 @@
+services:
+  mariadb:
+    image: mariadb:11.8
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:?set in root .env}
+      MARIADB_USER: ${MARIADB_USER:?set in root .env}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?set in root .env}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?set in root .env}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - codexsun-mariadb:/var/lib/mysql
+
+  platform-api:
+    build:
+      context: ..
+      dockerfile: .container/Dockerfile.api
+    env_file: ../.env
+    environment:
+      PLATFORM_HOST: 0.0.0.0
+      DATABASE_URL: mysql://${MARIADB_USER}:${MARIADB_PASSWORD}@mariadb:3306/${MARIADB_DATABASE}
+      STORAGE_ROOT: /workspace/storage/apps
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "${PLATFORM_API_PORT:-6100}:6100"
+    volumes:
+      - ../storage/apps:/workspace/storage/apps
+
+  platform-web:
+    build:
+      context: ..
+      dockerfile: .container/Dockerfile.web
+    depends_on:
+      - platform-api
+    ports:
+      - "${PLATFORM_WEB_PORT:-6101}:6101"
+
+volumes:
+  codexsun-mariadb:

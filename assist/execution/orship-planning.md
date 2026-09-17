@@ -54,6 +54,8 @@ Laravel Nightwatch patterns guide correlated observability.
 
 ### Phase O-1201: Foundation and Contracts
 
+Status: Complete.
+
 Define Orship application ownership, provider manifests, API and web workspace
 configuration, and public orchestration contracts.
 
@@ -72,6 +74,8 @@ Verification:
 - Contract and state-machine tests pass.
 
 ### Phase O-1202: Change Intake and Verification
+
+Status: Complete.
 
 Create a revision-bound deployment attempt. Record static, API, browser, and
 data checks through a typed verification contract.

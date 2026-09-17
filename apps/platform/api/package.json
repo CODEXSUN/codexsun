@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/platform-api",
-  "version": "1.0.9",
+  "version": "1.0.11",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/platform/api/server.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "test": "tsx --test src/modules/system/test/health-route.test.ts src/modules/identity/test/identity-module.test.ts src/modules/identity/test/identity-routes.test.ts src/modules/identity/test/single-tenant-policy.test.ts src/modules/settings/test/settings-module.test.ts src/modules/settings/test/settings-routes.test.ts"
+    "test": "tsx --test src/modules/system/test/health-route.test.ts src/modules/identity/test/identity-module.test.ts src/modules/identity/test/identity-routes.test.ts src/modules/identity/test/single-tenant-policy.test.ts src/modules/operations/test/operations-module.test.ts src/modules/settings/test/settings-module.test.ts src/modules/settings/test/settings-routes.test.ts"
   },
   "dependencies": {
     "@codexsun/contracts": "file:../../../packages/contracts",

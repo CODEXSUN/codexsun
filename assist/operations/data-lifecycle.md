@@ -31,6 +31,8 @@ Each module owns its tables, migrations, seeders, data compatibility rules, and 
 
 Store migrations and seeders in the owner module folder. Record migration order and applied version in the platform database-management module.
 
+The Platform Operations module owns `operations.001`. It creates the database-backed outbox, consumer idempotency, and audit tables. Run it before a deployment starts a database-backed worker.
+
 ## Lifecycle records
 
 Every data-owning module must keep a lifecycle record. The record lists the

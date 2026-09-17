@@ -1,0 +1,20 @@
+{
+  "name": "@codexsun/docs-web",
+  "version": "1.0.11",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "tsx --test src/docs-health.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/docs-contracts": "file:../../../packages/docs-contracts",
+    "@codexsun/ui": "file:../../../packages/ui",
+    "dotenv": "^17.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

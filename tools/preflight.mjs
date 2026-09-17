@@ -26,6 +26,40 @@ const targets = {
     envKey: "UIUX_WEB_PORT",
     workspace: "@codexsun/uiux-web",
   },
+  "zetro-api": {
+    displayName: "Zetro API",
+    application: "zetro",
+    environmentDirectory: "api",
+    envKey: "ZETRO_API_PORT",
+    workspace: "@codexsun/zetro-api",
+  },
+  "zetro-web": {
+    displayName: "Zetro web",
+    application: "zetro",
+    environmentDirectory: "web",
+    envKey: "ZETRO_WEB_PORT",
+    workspace: "@codexsun/zetro-web",
+  },
+  "platform-desktop": {
+    displayName: "Platform desktop",
+    environmentDirectory: "desktop",
+    envKey: "PLATFORM_DESKTOP_PORT",
+    workspace: "@codexsun/platform-desktop",
+  },
+  "docs-api": {
+    displayName: "Docs API",
+    application: "docs",
+    environmentDirectory: "api",
+    envKey: "DOCS_API_PORT",
+    workspace: "@codexsun/docs-api",
+  },
+  "docs-web": {
+    displayName: "Docs web",
+    application: "docs",
+    environmentDirectory: "web",
+    envKey: "DOCS_WEB_PORT",
+    workspace: "@codexsun/docs-web",
+  },
 };
 
 export class StartupPreflight {
@@ -158,7 +192,7 @@ function loadEnvironment(targetName) {
 }
 
 function appEnvironmentPath(targetName, environmentDirectory) {
-  const app = targetName === "uiux-web" ? "uiux" : "platform";
+  const app = targets[targetName].application ?? (targetName === "uiux-web" ? "uiux" : "platform");
   return join(root, "apps", app, environmentDirectory, ".app.env");
 }
 

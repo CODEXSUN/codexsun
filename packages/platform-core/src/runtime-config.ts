@@ -4,12 +4,23 @@ const hostSchema = z.string().trim().min(1);
 const portSchema = z.coerce.number().int().min(1).max(65_535);
 const urlSchema = z.string().url();
 const jwtSecretSchema = z.string().min(32);
+const redisUrlSchema = z
+  .string()
+  .url()
+  .refine(
+    (value) => {
+      const protocol = new URL(value).protocol;
+      return protocol === "redis:" || protocol === "rediss:";
+    },
+    { message: "REDIS_URL must use redis:// or rediss://." },
+  );
 
 export const apiRuntimeConfigSchema = z.object({
   NODE_ENV: z.string().trim().min(1).default("development"),
   PLATFORM_HOST: hostSchema,
   PLATFORM_API_PORT: portSchema,
   DATABASE_URL: urlSchema,
+  STORAGE_ROOT: z.string().trim().min(1).default("../../../storage/apps"),
   PLATFORM_JWT_SECRET: jwtSecretSchema,
   PLATFORM_JWT_ISSUER: z.string().trim().min(1),
   PLATFORM_JWT_AUDIENCE: z.string().trim().min(1),
@@ -24,7 +35,49 @@ export const webRuntimeConfigSchema = z.object({
   VITE_PLATFORM_API_URL: urlSchema,
 });
 
+export const docsApiRuntimeConfigSchema = z.object({
+  NODE_ENV: z.string().trim().min(1).default("development"),
+  PLATFORM_HOST: hostSchema,
+  DOCS_API_PORT: portSchema,
+  DOCS_DATABASE_URL: z
+    .string()
+    .url()
+    .refine((value) => new URL(value).protocol === "sqlite:", {
+      message: "DOCS_DATABASE_URL must use sqlite://.",
+    }),
+  DOCS_INDEX_PATH: z.string().trim().min(1),
+  DOCS_WEB_ORIGIN: urlSchema,
+});
+
+export const docsWebRuntimeConfigSchema = z.object({
+  PLATFORM_HOST: hostSchema,
+  DOCS_WEB_PORT: portSchema,
+  VITE_DOCS_API_URL: urlSchema,
+});
+
+export const zetroApiRuntimeConfigSchema = z.object({
+  NODE_ENV: z.string().trim().min(1).default("development"),
+  PLATFORM_HOST: hostSchema,
+  ZETRO_API_PORT: portSchema,
+  ZETRO_DATABASE_URL: z
+    .string()
+    .url()
+    .refine((value) => new URL(value).protocol === "sqlite:", {
+      message: "ZETRO_DATABASE_URL must use sqlite://.",
+    }),
+  ZETRO_DATABASE_PATH: z.string().trim().min(1),
+  ZETRO_STORAGE_ROOT: z.string().trim().min(1),
+});
+
+export const zetroWebRuntimeConfigSchema = z.object({
+  PLATFORM_HOST: hostSchema,
+  ZETRO_WEB_PORT: portSchema,
+  VITE_ZETRO_API_URL: urlSchema,
+});
+
 export const desktopRuntimeConfigSchema = z.object({
+  PLATFORM_HOST: hostSchema,
+  PLATFORM_DESKTOP_PORT: portSchema,
   PLATFORM_DESKTOP_API_URL: urlSchema,
 });
 
@@ -32,10 +85,23 @@ export const mobileRuntimeConfigSchema = z.object({
   PLATFORM_MOBILE_API_URL: urlSchema,
 });
 
+/**
+ * Reserved infrastructure configuration. No host reads this until a Redis-backed
+ * provider is selected for a deployment.
+ */
+export const redisRuntimeConfigSchema = z.object({
+  REDIS_URL: redisUrlSchema,
+});
+
 export type ApiRuntimeConfig = z.infer<typeof apiRuntimeConfigSchema>;
 export type WebRuntimeConfig = z.infer<typeof webRuntimeConfigSchema>;
+export type DocsApiRuntimeConfig = z.infer<typeof docsApiRuntimeConfigSchema>;
+export type DocsWebRuntimeConfig = z.infer<typeof docsWebRuntimeConfigSchema>;
+export type ZetroApiRuntimeConfig = z.infer<typeof zetroApiRuntimeConfigSchema>;
+export type ZetroWebRuntimeConfig = z.infer<typeof zetroWebRuntimeConfigSchema>;
 export type DesktopRuntimeConfig = z.infer<typeof desktopRuntimeConfigSchema>;
 export type MobileRuntimeConfig = z.infer<typeof mobileRuntimeConfigSchema>;
+export type RedisRuntimeConfig = z.infer<typeof redisRuntimeConfigSchema>;
 
 export function readApiRuntimeConfig(environment: NodeJS.ProcessEnv): ApiRuntimeConfig {
   return apiRuntimeConfigSchema.parse(environment);
@@ -45,10 +111,30 @@ export function readWebRuntimeConfig(environment: NodeJS.ProcessEnv): WebRuntime
   return webRuntimeConfigSchema.parse(environment);
 }
 
+export function readDocsApiRuntimeConfig(environment: NodeJS.ProcessEnv): DocsApiRuntimeConfig {
+  return docsApiRuntimeConfigSchema.parse(environment);
+}
+
+export function readDocsWebRuntimeConfig(environment: NodeJS.ProcessEnv): DocsWebRuntimeConfig {
+  return docsWebRuntimeConfigSchema.parse(environment);
+}
+
+export function readZetroApiRuntimeConfig(environment: NodeJS.ProcessEnv): ZetroApiRuntimeConfig {
+  return zetroApiRuntimeConfigSchema.parse(environment);
+}
+
+export function readZetroWebRuntimeConfig(environment: NodeJS.ProcessEnv): ZetroWebRuntimeConfig {
+  return zetroWebRuntimeConfigSchema.parse(environment);
+}
+
 export function readDesktopRuntimeConfig(environment: NodeJS.ProcessEnv): DesktopRuntimeConfig {
   return desktopRuntimeConfigSchema.parse(environment);
 }
 
 export function readMobileRuntimeConfig(environment: NodeJS.ProcessEnv): MobileRuntimeConfig {
   return mobileRuntimeConfigSchema.parse(environment);
+}
+
+export function readRedisRuntimeConfig(environment: NodeJS.ProcessEnv): RedisRuntimeConfig {
+  return redisRuntimeConfigSchema.parse(environment);
 }

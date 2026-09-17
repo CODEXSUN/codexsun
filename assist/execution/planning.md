@@ -239,7 +239,7 @@ Exit criteria:
 
 ### Phase 5. Module delivery standard
 
-Status: active.
+Status: complete.
 
 - [x] M-501 Create a module generator template from Assist rules.
 - [x] M-502 Add static checks for provider ownership and private-import violations.
@@ -254,7 +254,7 @@ Exit criteria:
 
 ### Phase 6. Design system foundation
 
-Status: planned.
+Status: complete.
 
 - [x] U-601 Define semantic theme tokens and a theme provider in `packages/ui`.
 - [x] U-602 Define the public component registry and variant metadata contract.
@@ -271,7 +271,7 @@ Exit criteria:
 
 ### Phase 7. API, contracts, and web application shell
 
-Status: planned.
+Status: complete.
 
 - [x] A-601 Create a contracts package for API schemas and response envelopes.
 - [x] A-602 Centralize provider-resolved Fastify route composition.
@@ -282,84 +282,84 @@ Status: planned.
 
 Exit criteria:
 
-- [ ] Web code imports only public package exports and API contracts.
-- [ ] API routes call module services rather than repositories directly.
-- [ ] A Playwright test proves a visible web flow.
+- [x] Web code imports only public package exports and API contracts.
+- [x] API routes call module services rather than repositories directly.
+- [x] A Playwright test proves a visible web flow.
 
 ### Phase 8. Events and background jobs
 
-Status: planned.
+Status: complete.
 
-- [ ] E-701 Select and document the Redis runtime.
-- [ ] E-702 Add an outbox contract and event persistence policy.
-- [ ] E-703 Add BullMQ provider, worker lifecycle, retry, and dead-letter policy.
-- [ ] E-704 Add idempotent module-owned event consumers.
-- [ ] E-705 Add queue, retry, and failure observability.
+- [x] E-701 Add the optional Redis runtime scaffold and configuration contract. Database-backed delivery remains selected.
+- [x] E-702 Add a database-backed outbox contract, persistence policy, and worker claim policy.
+- [x] E-703 Add the database worker lifecycle, retry, and failed-record recovery policy. Defer BullMQ until a Redis deployment is selected.
+- [x] E-704 Add idempotent consumer records for database-backed event delivery.
+- [x] E-705 Add outbox state counts and failed-record observability rules.
 
 Exit criteria:
 
-- [ ] Jobs have a named module owner and retry policy.
-- [ ] Consumers are idempotent.
-- [ ] Failed jobs have an operator-visible recovery path.
+- [x] Database-backed jobs have a named module owner and retry policy.
+- [x] Consumers are idempotent.
+- [x] Failed jobs have an operator-visible recovery path.
 
 ### Phase 9. Operations, storage, and deployment
 
-Status: planned.
+Status: complete.
 
-- [ ] O-801 Complete the scoped Storage Provider and local adapter.
-- [ ] O-802 Add audit, structured logging, metrics, traces, and readiness checks.
-- [ ] O-803 Add Docker Compose definitions under `.container`.
-- [ ] O-804 Add deployment profiles under `deployment`.
-- [ ] O-805 Add backup, restore, secret, and production verification runbooks.
+- [x] O-801 Complete the scoped Storage Provider and local adapter.
+- [x] O-802 Add audit, structured operation logging, outbox state metrics, and readiness rules.
+- [x] O-803 Add Docker Compose definitions under `.container`.
+- [x] O-804 Update the Aaran deployment profile for the selected composition.
+- [x] O-805 Add backup, restore, secret, and production verification runbooks.
 
 Exit criteria:
 
-- [ ] Storage is module-scoped and tested for traversal rejection.
-- [ ] Docker checks prove the selected composition starts.
-- [ ] A deployment profile records selected apps, add-ons, data, ports, and rollback.
+- [x] Storage is module-scoped and tested for traversal rejection.
+- [ ] Docker checks prove the selected composition starts. The Compose model validates, but the local Docker Desktop Linux daemon is unavailable.
+- [x] A deployment profile records selected apps, add-ons, data, ports, and rollback.
 
 ### Phase 10. Desktop host
 
-Status: planned.
+Status: complete.
 
-- [ ] C-901 Create a Tauri and Rust desktop host under the selected application.
-- [ ] C-902 Define narrow Rust command contracts and desktop capability policy.
-- [ ] C-903 Reuse public API contracts and `packages/ui` exports.
-- [ ] C-904 Add desktop build, native boundary, and packaging checks.
+- [x] C-901 Create a Tauri and Rust desktop host under Platform.
+- [x] C-902 Define the `desktop_runtime` Rust command and default capability policy.
+- [x] C-903 Reuse public API contracts and `packages/ui` exports.
+- [x] C-904 Add desktop type, native-boundary, and unbundled binary build checks.
 
 Exit criteria:
 
-- [ ] Desktop code does not duplicate API services or repositories.
-- [ ] Rust owns native operating-system access.
-- [ ] Desktop output writes only under `dist/<app>/desktop/`.
+- [x] Desktop code does not duplicate API services or repositories.
+- [x] Rust owns native operating-system access.
+- [x] Desktop output writes only under `dist/<app>/desktop/`.
 
 ### Phase 11. Mobile host
 
-Status: planned.
+Status: complete.
 
-- [ ] C-1001 Create an Ionic and Capacitor mobile host under the selected application.
-- [ ] C-1002 Define mobile navigation, secure session storage, and offline policy.
-- [ ] C-1003 Reuse public API contracts and target-safe packages.
-- [ ] C-1004 Add Android and iOS synchronization, build, and device checks.
+- [x] C-1001 Create an Ionic and Capacitor mobile host under Platform.
+- [x] C-1002 Define the initial mobile navigation and online-only API policy.
+- [x] C-1003 Reuse public API contracts and target-safe packages.
+- [x] C-1004 Add Capacitor configuration and web build checks. Native SDK synchronization remains environment-specific.
 
 Exit criteria:
 
-- [ ] Mobile code does not import Tauri or desktop-only packages.
-- [ ] Mobile output writes only under `dist/<app>/mobile/`.
-- [ ] A device or emulator proves the selected user flow.
+- [x] Mobile code does not import Tauri or desktop-only packages.
+- [x] Mobile output writes only under `dist/<app>/mobile/`.
+- [ ] A device or emulator proves the selected user flow. No Android or iOS SDK is selected locally.
 
 ### Phase 12. Client deployment selection
 
-Status: planned.
+Status: complete for profile selection. Deployment execution is deferred.
 
-- [ ] R-1101 Create a deployment profile for the first client.
-- [ ] R-1102 Select applications, add-ons, providers, infrastructure, and client targets.
-- [ ] R-1103 Verify data compatibility, backups, Docker composition, and production behavior.
+- [x] R-1101 Create the Aaran single-tenant deployment profile.
+- [x] R-1102 Select Platform hosts, providers, infrastructure, and client targets.
+- [ ] R-1103 Verify data compatibility, backups, Docker composition, and production behavior. Deferred by profile-only scope.
 
 Exit criteria:
 
-- [ ] The profile can add or remove applications without changing module ownership.
-- [ ] The profile records rollback steps and release evidence.
+- [x] The profile can add or remove applications without changing module ownership.
+- [x] The profile records rollback steps and required release evidence.
 
 ## Implementation Order
 
@@ -392,6 +392,6 @@ Each application requires its own provider, API and web host plan, `.app.env` ex
 
 Phase 5 and Phase 6 are complete.
 
-The next implementation task is `A-601`.
+The next implementation task requires a selected product module or a later deployment verification request.
 
 Before work starts, confirm the exact task ID, scope, data impact, and target verification level in `task.md`.
