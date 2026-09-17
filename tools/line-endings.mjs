@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -57,7 +57,7 @@ function collectTextFiles(root) {
     .split("\n")
     .filter(Boolean);
 
-  return files.filter((file) => isTextFile(resolve(root, file), file));
+  return files.filter((file) => existsSync(resolve(root, file)) && isTextFile(resolve(root, file), file));
 }
 
 function describeViolation(root, file) {

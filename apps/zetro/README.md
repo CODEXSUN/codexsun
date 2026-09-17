@@ -26,6 +26,6 @@ Run `npm.cmd run test:zetro-api`, `npm.cmd run test:zetro-web`,
 `npm.cmd run preflight:zetro-api`, and `npm.cmd run preflight:zetro-web`.
 
 Read [agent skills](agent/SKILLS.md) before work. Read
-[Zetro planning](../../assist/execution/zetro-planning.md) and
-[Zetro task register](../../assist/execution/zetro-task.md) before an agent
+[Zetro planning](../../assist/execution/apps/zetro/planning.md) and
+[Zetro task register](../../assist/execution/apps/zetro/task.md) before an agent
 plans or starts Zetro work.

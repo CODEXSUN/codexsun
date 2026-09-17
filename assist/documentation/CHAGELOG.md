@@ -86,6 +86,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added one app-facing Assist guide for the required worktree, development, review, approval, and merge lifecycle.
 - Added a required read-only worktree verification stage before agent development begins.
 - Added standard per-app planning and task records, short task-ID prefixes, phased execution status, and add-on planning templates.
+- Replaced legacy Zetro planning and task records with the agentic IDE governance plan and phased task register. No Zetro runtime code changed.
+- Replaced legacy Orship planning and task records with Platform-first infrastructure, monitoring, and deployment phases. No Orship runtime or Docker configuration changed.
 
 ## v-1.0.13
 
