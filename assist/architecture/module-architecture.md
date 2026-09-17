@@ -84,6 +84,22 @@ The provider exposes the module's identity, version, dependencies, public contra
 
 Routes, controllers, services, repositories, migrations, seeders, and test suites remain inside their owner module. Modules communicate through public contracts and domain events, not private file imports.
 
+## Application foundation rule
+
+Every deployable application uses the same foundation where its target applies:
+
+| Application | API provider foundation | Web package UI composition | Business module difference |
+| --- | --- | --- | --- |
+| Platform | Framework and Platform Core | `@codexsun/ui` | Platform system capabilities |
+| Docs | Framework and Platform Core | `@codexsun/ui` | Repository document catalog |
+| Orship | Framework and Platform Core | `@codexsun/ui` | Deployment orchestration |
+| Zetro | Framework and Platform Core | `@codexsun/ui` | Governed task and storage capabilities |
+| UIUX | UI-only catalog profile | `@codexsun/ui` | Design-system gallery only |
+
+The UIUX profile does not own an API or business module. This is an explicit visual-catalog exception, not a second application architecture.
+
+The application architecture audit verifies these host profiles, owner module providers, configuration files, module tests, shared package dependencies, public UI composition, and private import boundaries.
+
 ## DDD and event rules
 
 - A module owns its aggregates, value objects, policies, and application services.

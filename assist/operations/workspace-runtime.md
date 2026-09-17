@@ -28,10 +28,18 @@ dist/<app-name>/web/
 dist/<app-name>/desktop/
 dist/<app-name>/mobile/
 dist/packages/<package>/
-dist/.turbo/
+dist/.turbo/<scope>/
 ```
 
-`dist/.turbo/` is the only Turborepo cache location. No app, add-on, package, module, or tool may write a local `dist/`, `.turbo/`, generated JavaScript, declarations, or build artifacts into source folders.
+`dist/.turbo/` is the only Turborepo cache location. Each Turbo scope writes to `dist/.turbo/<scope>/`.
+
+Use these scope names: `platform`, `docs`, `orship`, `zetro`, `uiux`, `packages`, and `workspace`.
+
+No app, add-on, package, module, or tool may write a local `dist/`, `.turbo/`, generated JavaScript, declarations, or build artifacts into source folders.
+
+Use `npm.cmd run build:<scope>` or `npm.cmd run check:<scope>` for focused application work. The runner includes each selected host and its package dependency closure.
+
+Turbo can create temporary task-log folders below participating packages. The scoped runner always removes these folders before it returns. Do not run `turbo` directly for scoped work.
 
 ## TypeScript hosts
 
@@ -52,7 +60,7 @@ The Platform desktop launcher sets `CARGO_TARGET_DIR=dist/platform/desktop/targe
 
 1. Confirm only root `node_modules/` exists before final acceptance.
 2. Confirm generated output exists only under root `dist/`.
-3. Confirm Turborepo writes cache files under `dist/.turbo/`.
+3. Confirm Turborepo writes cache files under `dist/.turbo/<scope>/`.
 4. Typecheck each affected API and web host with its owner configuration.
 5. Run `npm.cmd run check:root-layout` to reject nested workspace output, cache, and dependency folders.
 

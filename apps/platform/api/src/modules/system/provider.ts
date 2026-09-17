@@ -7,6 +7,7 @@ export class SystemModuleProvider implements ModuleProvider {
     version: "1.0.2",
     dependencies: ["platform.core"],
     contracts: ["platform.system"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

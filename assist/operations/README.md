@@ -8,6 +8,8 @@ Read the [runtime layout](runtime-layout.md) before you add storage, container, 
 
 Read the [workspace runtime](workspace-runtime.md) before you add dependencies, build outputs, or TypeScript configuration.
 
+Read [isolated application development](isolated-app-development.md) before you start parallel app work.
+
 Read the [Redis runtime scaffold](redis-runtime.md) before adding a Redis service or delivery provider.
 
 Read [backup and recovery](backup-and-recovery.md) before a migration, deployment, or rollback.

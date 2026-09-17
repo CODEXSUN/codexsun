@@ -16,6 +16,7 @@ export class SettingsModuleProvider implements ModuleProvider {
     version: "1.0.7",
     dependencies: ["platform.core"],
     contracts: ["platform.settings.read", "GET /api/v1/platform/settings"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

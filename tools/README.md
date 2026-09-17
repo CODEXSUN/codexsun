@@ -35,4 +35,6 @@ If another listener or active CODEXSUN reservation uses the port, preflight stop
 
 Use `npm.cmd run check:root-layout` to verify the single root `node_modules/`, `dist/`, and `dist/.turbo/` locations.
 
+Use `npm.cmd run check:app-architecture` to verify app profiles, host configuration, provider ownership, event declarations, module tests, shared package use, and private import boundaries.
+
 Use `npm.cmd run clean:root-layout` to remove generated nested copies before a build or check completes.

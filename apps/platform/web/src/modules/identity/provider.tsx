@@ -3,4 +3,5 @@ export { IdentitySessionProvider, useIdentitySession } from "./session/identity-
 export const identityWebModule = {
   id: "platform.web.identity",
   owner: "apps/platform/web/modules/identity",
+  events: { published: [], consumed: [] },
 };

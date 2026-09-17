@@ -96,6 +96,7 @@ export class PlatformProvider implements ModuleProvider {
     version: "1.0.2",
     dependencies: [],
     contracts: ["environment", "database", "settings"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

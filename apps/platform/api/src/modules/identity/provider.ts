@@ -18,6 +18,7 @@ export class IdentityModuleProvider implements ModuleProvider {
     version: "1.0.6",
     dependencies: ["platform.core"],
     contracts: ["identity.actor.read", "identity.authorization", "identity.single-tenant-policy"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

@@ -27,6 +27,8 @@ Core root entry because it also exports Node-only data adapters.
 
 ## Domain events
 
+Every Framework module provider must declare `events.published` and `events.consumed`. Use empty arrays when the module has no asynchronous domain behavior.
+
 A module publishes a versioned event after its transaction succeeds. An event includes an event identifier, event type, schema version, module owner, occurred time, correlation identifier, and payload.
 
 Consumers validate events with the published schema. Consumers must be idempotent and record processed event identifiers.

@@ -13,6 +13,7 @@ test("reports provider readiness without provider values", async () => {
       version: "1.0.2",
       dependencies: [],
       contracts: ["platform.test"],
+      events: { published: [], consumed: [] },
     },
     register(): void {},
   };

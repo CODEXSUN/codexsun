@@ -10,6 +10,7 @@ export class OrshipOrchestrationProvider implements ModuleProvider {
     version: "1.0.9",
     dependencies: ["platform.core"],
     contracts: ["orship.orchestration.attempt", "orship.orchestration.state"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

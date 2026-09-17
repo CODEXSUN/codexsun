@@ -48,6 +48,16 @@ The required composition path stays:
 provider -> module -> add-on -> app -> platform -> deployable
 ```
 
+## Isolated application delivery
+
+Each approved app task uses one named Git worktree, local root `.env`, owner `.app.env`, and Turbo cache namespace.
+
+Use `dist/.turbo/<app-name>/` for app-scoped work. Use `dist/.turbo/packages/` only for an approved shared-package task. Use `dist/.turbo/workspace/` only for full workspace checks and builds.
+
+An app task must not refactor shared packages by default. Report the public contract, owner, affected apps, and compatibility risk before a shared-package change. Create a separate reviewed package worktree after confirmation.
+
+Each app worktree must run its scoped checks, focused tests, and required browser flow. A human must confirm the reviewed diff and verification evidence before merge into `main`.
+
 Lower layers must not import higher layers. A module must not import another module's private files.
 
 ## Framework Concepts

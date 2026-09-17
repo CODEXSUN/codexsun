@@ -15,6 +15,12 @@ export interface ProviderManifest {
   readonly version: string;
   readonly dependencies: readonly string[];
   readonly contracts: readonly string[];
+  readonly events: ProviderEvents;
+}
+
+export interface ProviderEvents {
+  readonly published: readonly string[];
+  readonly consumed: readonly string[];
 }
 
 export interface ModuleProvider {
@@ -258,5 +264,18 @@ function validateManifest(manifest: ProviderManifest): ProviderManifest {
     version: manifest.version,
     dependencies: [...new Set(manifest.dependencies)].sort(),
     contracts: [...new Set(manifest.contracts)].sort(),
+    events: {
+      published: normalizeEventNames(manifest.id, "published", manifest.events.published),
+      consumed: normalizeEventNames(manifest.id, "consumed", manifest.events.consumed),
+    },
   };
+}
+
+function normalizeEventNames(providerId: string, direction: string, events: readonly string[]): string[] {
+  if (!Array.isArray(events)) throw new Error(`Provider ${providerId} requires ${direction} event declarations.`);
+  if (events.some((event) => !event.trim())) {
+    throw new Error(`Provider ${providerId} has an empty ${direction} event declaration.`);
+  }
+
+  return [...new Set(events)].sort();
 }

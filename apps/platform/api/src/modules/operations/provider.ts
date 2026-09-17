@@ -9,6 +9,7 @@ export class OperationsModuleProvider implements ModuleProvider {
     version: "1.0.9",
     dependencies: ["platform.core"],
     contracts: ["platform.operations.audit", "platform.operations.storage", "platform.operations.outbox"],
+    events: { published: ["platform.operation-recorded.v1"], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

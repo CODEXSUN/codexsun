@@ -7,6 +7,7 @@ export class ZetroFoundationProvider implements ModuleProvider {
     version: "1.0.9",
     dependencies: ["platform.core"],
     contracts: ["zetro.health"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

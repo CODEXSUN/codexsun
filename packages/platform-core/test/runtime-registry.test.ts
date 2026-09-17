@@ -22,6 +22,7 @@ function provider(id: string): ModuleProvider {
       version: "1.0.2",
       dependencies: id === "platform.test" ? ["platform.core"] : [],
       contracts: [],
+      events: { published: [], consumed: [] },
     },
     register(): void {},
   };

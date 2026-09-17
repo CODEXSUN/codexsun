@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.12
+Current version: 1.0.13
 
-Release tag: v-1.0.12
+Release tag: v-1.0.13
 
-Changelog label: v 1.0.12
+Changelog label: v 1.0.13
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -36,6 +36,24 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
 - Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
 
+## v-1.0.13
+
+### [v 1.0.13] 2026-09-17 2:57 pm - Application architecture audit and isolated Turbo workflow
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.13.
+- Added app-scoped Turbo commands and root cache namespaces for Platform, Docs, Orship, Zetro, UIUX, and shared packages.
+- Added isolated worktree, local environment, shared-package review, and manual merge rules for parallel development.
+- Added `check:app-architecture` and its test suite to the required root check.
+- The audit verifies declared app profiles, host configuration, public `@codexsun/ui` composition, provider ownership, module tests, private imports, and event declarations.
+- Extended Framework provider manifests with explicit published and consumed event lists.
+- Updated active module records and documented UIUX as the permitted UI-only catalog profile.
+
 ## v-1.0.12
 
 ### [v 1.0.12] 2026-09-17 2:39 pm - Release version alignment correction
@@ -49,6 +67,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Bumped CODEXSUN workspace version to 1.0.12.
 - Restored the required match between the current version reference, changelog entry, and Git commit subject.
 - This correction does not add database schema, seed, or application behavior changes.
+- Added app-isolated Turbo cache scopes, worktree environment rules, shared-package change gates, and manual merge confirmation requirements.
+- Added the application architecture audit and explicit provider event declarations for modular, DDD, and event-driven boundary checks.
 
 ## v-1.0.11
 

@@ -19,6 +19,7 @@ export class DocsCatalogProvider implements ModuleProvider {
     version: "1.0.9",
     dependencies: ["platform.core"],
     contracts: ["docs.health"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

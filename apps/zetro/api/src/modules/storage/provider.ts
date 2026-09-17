@@ -10,6 +10,7 @@ export class ZetroStorageProvider implements ModuleProvider {
     version: "1.0.9",
     dependencies: ["platform.core"],
     contracts: ["zetro.sqlite"],
+    events: { published: [], consumed: [] },
   };
 
   register(context: ProviderRegistrationContext): void {

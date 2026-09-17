@@ -17,6 +17,7 @@ test("returns the public Zetro health envelope", async () => {
       version: "1.0.9",
       dependencies: ["platform.core"],
       contracts: ["zetro.sqlite"],
+      events: { published: [], consumed: [] },
     },
     register(context) {
       context.provide("zetro.sqlite", { check: async () => true });

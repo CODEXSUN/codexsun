@@ -35,7 +35,8 @@ Split a file by a meaningful module concern before it exceeds the limit. Do not 
 - Write all build artifacts only to the root `dist/` directory.
 - All applications, add-ons, packages, modules, client hosts, and tools must use the single root `dist/` directory.
 - Local `dist/` directories are prohibited everywhere below the repository root.
-- Write Turborepo cache files only to `dist/.turbo/`.
+- Write Turborepo cache files only to `dist/.turbo/<scope>/`.
+- Use the approved scope names: `platform`, `docs`, `orship`, `zetro`, `uiux`, `packages`, and `workspace`.
 - Do not write build artifacts, generated declarations, or cache files into source folders.
 - Keep exactly one TypeScript configuration in each app API host and one in each app web host.
 - Use `apps/<app>/api/tsconfig.json` for the API host and `apps/<app>/web/tsconfig.json` for the web host.
@@ -45,6 +46,8 @@ Split a file by a meaningful module concern before it exceeds the limit. Do not 
 Each module must have a provider. The provider is the module's presence declaration.
 
 The provider must identify the module, version, dependencies, public contracts, registration hooks, and supported events. The provider must not contain business logic.
+
+Every provider must explicitly declare its published and consumed events. An empty declaration means the module is synchronous-only.
 
 ## Platform rules
 
@@ -64,6 +67,12 @@ Platform-owned modules include identity, database management, Git repository man
 ## Development and delivery rules
 
 - Use separate tasks or worktrees for independent changes.
+- Create one branch and one Git worktree for each approved app or package task.
+- Keep each worktree's `.env` and owner host `.app.env` files local and ignored.
+- Build and test an app from its own worktree with its named Turbo scope.
+- Do not merge a worktree into `main` without explicit manual confirmation.
+- Do not refactor a shared package from an app task without first reporting the required shared-package change.
+- Split shared-package changes into a separate reviewed task and worktree.
 - Keep each task within one reviewed module scope.
 - Integrate changes through public contracts and reviewed composition points.
 - Test the affected module during development.

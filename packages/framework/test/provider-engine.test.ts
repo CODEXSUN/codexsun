@@ -10,6 +10,7 @@ function manifest(id: string, dependencies: readonly string[] = []): ProviderMan
     version: "1.0.2",
     dependencies,
     contracts: [],
+    events: { published: [], consumed: [] },
   };
 }
 

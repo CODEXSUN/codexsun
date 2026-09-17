@@ -21,7 +21,7 @@ Read the [module architecture](../architecture/module-architecture.md) and [repo
 - Keep every authored file at 700 lines or fewer.
 - Keep the provider, routes, controllers, services, repositories, migrations, seeders, events, and tests in the owner module folder.
 - Install packages from the repository root only.
-- Write all build output only to the single root `dist/` and Turborepo cache only to `dist/.turbo/`.
+- Write all build output only to the single root `dist/` and Turborepo cache only to `dist/.turbo/<scope>/`.
 - Keep one `tsconfig.json` in each app API host and one in each app web host.
 
 ## Contract and data rules
@@ -53,4 +53,8 @@ Read the [module architecture](../architecture/module-architecture.md) and [repo
 - Read environment values from root `.env` or an application's `.app.env`. Do not hardcode configuration values.
 - Document architecture, contract, database, security, or deployment decisions before implementation when they affect multiple modules.
 - Keep a task single-scope. Split cross-module work into reviewed, ordered tasks.
+- Start app work from an isolated Git worktree and its app-specific Turbo scope.
+- Copy the root `.env.example` and owner `.app.env.example` files into ignored local files in that worktree.
+- Do not change `packages/*` from an app task without first reporting the public contract, owner, affected apps, and required review.
+- Merge only after a human confirms the worktree checks, diff, and integration scope.
 - Update `assist/documentation/CHAGELOG.md` for every completed repository progress change.
