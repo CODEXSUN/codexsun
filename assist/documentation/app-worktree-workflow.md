@@ -23,6 +23,7 @@ Do not use this workflow for `packages/*`. A shared package needs its own approv
 ```text
 main checkout
   -> create worktree
+  -> verify worktree
   -> develop in one agent session
   -> review and verification
   -> human confirmation
@@ -36,6 +37,7 @@ Start from a clean `main` checkout:
 ```text
 npm.cmd run codexsun -- app create <scope> <task>
 npm.cmd run codexsun -- app guide <scope> <task>
+npm.cmd run codexsun -- app verify <scope> <task>
 ```
 
 The CLI creates:
@@ -44,7 +46,13 @@ The CLI creates:
 - Worktree: beside the repository in `.codexsun-worktrees/<scope>-<task>`.
 - Local lifecycle record: `storage/runtime/worktrees/<scope>-<task>.json`.
 
+Use the short task ID from `assist/execution/apps/<app>/task.md`, such as `z-1203`. The CLI creates `codex/zetro-z-1203` and `.codexsun-worktrees/zetro-z-1203`.
+
 The lifecycle record is local runtime state. Do not commit it.
+
+`verify` runs before development. It confirms the expected path, branch, unchanged main baseline, clean worktree, root-only artifact layout, LF text endings, and scoped application check. It records the verified state.
+
+Install dependencies at the new worktree root before verification. This creates one root-level `node_modules/` folder for that worktree only.
 
 ## Agent Session
 
@@ -52,7 +60,7 @@ Open the returned worktree path as the only agent workspace.
 
 Read `assist/skills/isolated-app-session/SKILL.md`, the selected app documentation, the owner module records, and the task acceptance checks.
 
-During development:
+After verification, during development:
 
 ```text
 npm.cmd run codexsun -- app develop <scope> <task>

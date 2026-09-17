@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, relative, resolve } from "node:path";
 import { scopeWorkspaces } from "./turbo-scope.mjs";
@@ -7,6 +7,7 @@ const ROOT = resolve(import.meta.dirname, "..");
 const WORKTREE_ROOT = resolve(ROOT, "..", ".codexsun-worktrees");
 const STATE_ROOT = resolve(ROOT, "storage", "runtime", "worktrees");
 const MAIN_BRANCH = "main";
+const TASK_PREFIXES = { docs: "d", orship: "o", platform: "p", uiux: "u", zetro: "z" };
 
 export function createWorktree(scope, task) {
   const state = createState(scope, task);
@@ -15,12 +16,33 @@ export function createWorktree(scope, task) {
   assertMissing(state);
   mkdirSync(WORKTREE_ROOT, { recursive: true });
   runGit(["worktree", "add", "-b", state.branch, state.path, MAIN_BRANCH]);
+  state.baseCommit = runGit(["rev-parse", "HEAD"], state.path).trim();
+  writeState(state);
+  return state;
+}
+
+export function verifyWorktree(scope, task) {
+  const state = readState(scope, task);
+  if (!new Set(["created", "verified"]).has(state.status)) {
+    throw new Error("Verify a new worktree before development starts.");
+  }
+  assertWorktreeExists(state);
+  assertExpectedLocation(state);
+  assertWorktreeBranch(state);
+  assertBaseline(state);
+  assertClean(state.path);
+  runNodeTool("check-root-layout.mjs", state.path);
+  runNpm(["check:line-endings"], state.path);
+  runNpm([`check:${state.scope}`], state.path);
+  state.status = "verified";
+  state.verifiedAt = new Date().toISOString();
   writeState(state);
   return state;
 }
 
 export function developWorktree(scope, task) {
   const state = readState(scope, task);
+  if (state.status !== "verified") throw new Error("Run verify before development.");
   assertWorktreeExists(state);
   runNpm([`check:${state.scope}`], state.path);
   return state;
@@ -72,6 +94,7 @@ export function showWorktreeGuide(scope, task) {
   return [
     `Worktree: ${state.path}`,
     `Branch: ${state.branch}`,
+    "Verify before development: codexsun app verify <scope> <task>.",
     "Agent instructions: assist/skills/isolated-app-session/SKILL.md",
     `Run: npm.cmd run check:${state.scope}`,
     "Use the worktree root as the agent workspace for this task.",
@@ -83,12 +106,13 @@ export function showWorktreeGuide(scope, task) {
 
 export function createState(scope, task) {
   assertScope(scope);
-  const safeTask = normalizeTask(task);
+  const safeTask = normalizeNewTask(scope, task);
   const key = `${scope}-${safeTask}`;
   return {
     approvedAt: null,
     approvedBy: null,
     branch: `codex/${key}`,
+    baseCommit: null,
     createdAt: new Date().toISOString(),
     key,
     path: resolve(WORKTREE_ROOT, key),
@@ -96,6 +120,7 @@ export function createState(scope, task) {
     scope,
     status: "created",
     task: safeTask,
+    verifiedAt: null,
   };
 }
 
@@ -131,6 +156,27 @@ function assertWorktreeExists(state) {
   if (!existsSync(state.path)) throw new Error(`The recorded worktree is missing: ${state.path}`);
 }
 
+function assertExpectedLocation(state) {
+  const expectedPath = resolve(WORKTREE_ROOT, state.key);
+  if (resolve(state.path) !== expectedPath) throw new Error("The recorded worktree path is invalid.");
+}
+
+function assertWorktreeBranch(state) {
+  const branch = runGit(["branch", "--show-current"], state.path).trim();
+  if (branch !== state.branch) throw new Error(`Expected branch ${state.branch}, found ${branch}.`);
+}
+
+function assertBaseline(state) {
+  const head = runGit(["rev-parse", "HEAD"], state.path).trim();
+  if (!state.baseCommit) {
+    const baseCommit = runGit(["merge-base", MAIN_BRANCH, state.branch], state.path).trim();
+    if (head !== baseCommit) throw new Error("The worktree changed before verification.");
+    state.baseCommit = head;
+    return;
+  }
+  if (head !== state.baseCommit) throw new Error("The worktree changed before verification.");
+}
+
 function assertNoSharedPackageChanges(state) {
   const changed = runGit(["diff", "--name-only", `${MAIN_BRANCH}...${state.branch}`], state.path)
     .split("\n")
@@ -146,7 +192,15 @@ function assertScope(scope) {
   }
 }
 
-function normalizeTask(task) {
+function normalizeNewTask(scope, task) {
+  const safeTask = normalizeLegacyTask(task);
+  if (!new RegExp(`^${TASK_PREFIXES[scope]}-\\d{4}$`).test(safeTask)) {
+    throw new Error(`Use the short ${TASK_PREFIXES[scope]}-0000 task ID from the app task register.`);
+  }
+  return safeTask;
+}
+
+function normalizeLegacyTask(task) {
   const safeTask = String(task ?? "").trim().toLowerCase();
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(safeTask)) {
     throw new Error("Task must use lowercase letters, numbers, and single hyphens.");
@@ -155,12 +209,16 @@ function normalizeTask(task) {
 }
 
 function getStatePath(scope, task) {
-  const safeTask = normalizeTask(task);
+  const safeTask = normalizeLegacyTask(task);
   return resolve(STATE_ROOT, `${scope}-${safeTask}.json`);
 }
 
 function runNpm(args, cwd) {
-  execFileSync("npm.cmd", ["run", ...args], { cwd, stdio: "inherit" });
+  execSync(`npm.cmd run ${args.join(" ")}`, { cwd, stdio: "inherit" });
+}
+
+function runNodeTool(tool, cwd) {
+  execFileSync(process.execPath, [resolve(cwd, "tools", tool)], { cwd, stdio: "inherit" });
 }
 
 function runGit(args, cwd) {

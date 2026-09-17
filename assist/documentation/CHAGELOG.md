@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.15
+Current version: 1.0.16
 
-Release tag: v-1.0.15
+Release tag: v-1.0.16
 
-Changelog label: v 1.0.15
+Changelog label: v 1.0.16
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -35,6 +35,21 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added Zetro SQLite readiness through Platform Core, private storage policy, backup owner, seven-day retention, and recovery-check documentation. Z-1202 creates no workflow schema or migration.
 - Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
 - Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
+
+## v-1.0.16
+
+### [v 1.0.16] 2026-09-17 3:49 pm - Worktree planning and verification governance
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.16.
+- Verified the clean Zetro and Orship worktrees through the required pre-development lifecycle checks.
+- Added the verified worktree gate, short app task IDs, app planning and task registers, and add-on record templates.
+- Kept active Docs and UIUX task work outside this release because their worktrees contain unreviewed changes.
 
 ## v-1.0.15
 
@@ -69,6 +84,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the CODEXSUN app worktree CLI, local lifecycle records, scoped review checks, explicit human approval, and fast-forward-only merge gate.
 - Added the isolated app session skill for one-agent worktree development and review handoff.
 - Added one app-facing Assist guide for the required worktree, development, review, approval, and merge lifecycle.
+- Added a required read-only worktree verification stage before agent development begins.
+- Added standard per-app planning and task records, short task-ID prefixes, phased execution status, and add-on planning templates.
 
 ## v-1.0.13
 

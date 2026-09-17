@@ -7,11 +7,12 @@ import {
   mergeWorktree,
   reviewWorktree,
   showWorktreeGuide,
+  verifyWorktree,
 } from "./app-worktree.mjs";
 
 function main() {
   const [area, action, scope, task, ...options] = process.argv.slice(2);
-  if (area !== "app") throw new Error("Use: codexsun app <create|develop|review|guide|approve|merge> <scope> <task>.");
+  if (area !== "app") throw new Error("Use: codexsun app <create|verify|develop|review|guide|approve|merge> <scope> <task>.");
 
   const handlers = {
     approve: () => approveWorktree(scope, task, optionValue(options, "--approved-by")),
@@ -20,6 +21,7 @@ function main() {
     guide: () => showWorktreeGuide(scope, task),
     merge: () => mergeWorktree(scope, task),
     review: () => reviewWorktree(scope, task),
+    verify: () => verifyWorktree(scope, task),
   };
   if (!handlers[action]) throw new Error("Unknown app command.");
 

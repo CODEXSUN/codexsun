@@ -34,6 +34,7 @@ Use the CODEXSUN CLI from the main checkout:
 ```text
 npm.cmd run codexsun -- app create docs index-refresh
 npm.cmd run codexsun -- app guide docs index-refresh
+npm.cmd run codexsun -- app verify docs index-refresh
 npm.cmd run codexsun -- app review docs index-refresh
 npm.cmd run codexsun -- app approve docs index-refresh --approved-by "Reviewer Name"
 npm.cmd run codexsun -- app merge docs index-refresh
@@ -41,7 +42,7 @@ npm.cmd run codexsun -- app merge docs index-refresh
 
 The CLI creates a branch and worktree beside the repository. It records local lifecycle state under `storage/runtime/worktrees/`.
 
-The review command blocks dirty worktrees and unapproved shared-package changes. The merge command requires recorded approval and uses fast-forward only. It does not push.
+The verify command validates the new worktree before development starts. The review command blocks dirty worktrees and unapproved shared-package changes. The merge command requires recorded approval and uses fast-forward only. It does not push.
 
 `version:bump` updates every npm-required version mirror and adds a changelog entry. It does not commit or push.
 

@@ -34,6 +34,7 @@ Use the root CLI to enforce the lifecycle:
 ```text
 npm.cmd run codexsun -- app create <scope> <task>
 npm.cmd run codexsun -- app guide <scope> <task>
+npm.cmd run codexsun -- app verify <scope> <task>
 npm.cmd run codexsun -- app develop <scope> <task>
 npm.cmd run codexsun -- app review <scope> <task>
 npm.cmd run codexsun -- app approve <scope> <task> --approved-by <name>
@@ -41,6 +42,8 @@ npm.cmd run codexsun -- app merge <scope> <task>
 ```
 
 `create` runs only from a clean `main` checkout. It creates `codex/<scope>-<task>` beside the repository under `.codexsun-worktrees/`.
+
+`verify` must pass before `develop`. It checks the expected worktree path, branch, untouched baseline, root-only artifact layout, LF endings, and the scoped check.
 
 `develop` runs the scope check in the isolated worktree. `review` requires a clean worktree, blocks changes under `packages/`, runs the scoped check, and records review time.
 
