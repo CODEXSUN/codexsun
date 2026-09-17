@@ -38,6 +38,8 @@ Read the [module architecture](../architecture/module-architecture.md) and [repo
 - Format changed files with Prettier.
 - Run ESLint and TypeScript checks for changed workspaces.
 - Add focused tests for behavior changes.
+- Run `npm.cmd run check:module-boundaries` after module boundary changes.
+- Keep module tests in the owner module `test/` folder.
 - Use Playwright for user-visible web flows.
 - Run a build for each affected target.
 - Run `git diff --check` before handoff.

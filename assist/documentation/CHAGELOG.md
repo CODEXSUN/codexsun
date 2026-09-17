@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.7
+Current version: 1.0.8
 
-Release tag: v-1.0.7
+Release tag: v-1.0.8
 
-Changelog label: v 1.0.7
+Changelog label: v 1.0.8
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -20,6 +20,23 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.0.8
+
+### [v 1.0.8] 2026-09-17 1:16 pm - Design system theme foundation
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Includes the unrun module-owned `settings.001` migration and `settings.seed.001` source. No shared database changed.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.8.
+- Added semantic dark and light theme tokens, compact/default/relaxed density tokens, and the public `ThemeProvider` API in `@codexsun/ui`.
+- Updated shared UI controls, blocks, pages, and the MDI template to use semantic tokens instead of fixed palette classes.
+- Wired the Platform web host to the shared default theme and added a focused UI theme-contract test to root validation.
+- Completed U-601. The next design-system task is U-602 public component registry metadata.
+
 ## v-1.0.7
 
 ### [v 1.0.7] 2026-09-17 12:57 pm - Identity and module foundation
@@ -28,6 +45,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 - Database update: Yes (manual).
 - Added the unrun `identity.001` migration and `identity.seed.001` source. No shared database changed.
+- Added the unrun `settings.001` migration and `settings.seed.001` source. No shared database changed.
 
 #### App Codebase Changes
 
@@ -38,6 +56,12 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Scoped Turbo build artifacts to host-specific root `dist/` paths.
 - Added the guarded module generator and focused checks for generated ownership shape and unsafe input.
 - Completed M-501.
+- Added static module boundary checks for root providers, owner declarations, README files, and private relative imports.
+- Added boundary-check tests and completed M-502.
+- Added module test conventions and generated test guidance for new modules.
+- Moved the System health route test into its owner module and completed M-503.
+- Added the module-owned Platform Settings provider, controller, service, repository, migration, seeder, route, tests, and data documentation.
+- Added the protected non-secret settings API and completed M-504. Phase 5 is complete.
 
 ## v-1.0.6
 

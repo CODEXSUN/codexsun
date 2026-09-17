@@ -2,6 +2,9 @@
 
 This module owns the Platform web session boundary.
 
+`provider.tsx` declares the module ID and owner. It exports the session provider
+for the Platform web composition root.
+
 `IdentitySessionProvider` keeps a signed JWT bearer token in React memory.
 It does not use local storage, session storage, cookies, or browser-visible
 environment values for tokens.

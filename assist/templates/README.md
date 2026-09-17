@@ -3,6 +3,7 @@
 Store reusable document templates here.
 
 - [Module](module.md)
+- [Module test conventions](module-test-conventions.md)
 - [Decision record](decision-record.md)
 - [Deployment profile](deployment-profile.md)
 - [App environment](app-env.md)

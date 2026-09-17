@@ -11,6 +11,10 @@ Start a new module with `npm.cmd run module:create -- ...`. Review the generated
 provider ID, owner, dependencies, and contracts before you add module behavior.
 The generator does not register the module in an application composition root.
 
+Run `npm.cmd run check:module-boundaries` after module changes. It requires a
+root provider and README, verifies provider ownership, and rejects relative
+imports into another module folder.
+
 Keep all applicable module code in one owned folder:
 
 ```text
@@ -47,6 +51,10 @@ module needs that responsibility.
 Add focused tests for public behavior and boundary failures. Update the module
 README and `assist/modules/registry.md`. Record data changes separately in the
 changelog. Run the module check and the root workspace check.
+
+Use the [module test conventions](../templates/module-test-conventions.md). Keep
+provider, contract, service, repository, route, event, migration, and seeder
+tests with their owning module when that module owns the related behavior.
 
 ## Exclusions
 

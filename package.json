@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build": "npm run clean:root-layout && turbo run build && npm run clean:root-layout && npm run check:root-layout",
-    "check": "npm run clean:root-layout && npm run check:versions && turbo run check && npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:module-generator && npm run lint && npm run clean:root-layout && npm run check:root-layout",
+    "check": "npm run clean:root-layout && npm run check:versions && turbo run check && npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:ui && npm run test:module-generator && npm run check:module-boundaries && npm run test:module-boundaries && npm run lint && npm run clean:root-layout && npm run check:root-layout",
     "check:root-layout": "node tools/check-root-layout.mjs",
     "clean:root-layout": "node tools/clean-root-layout.mjs",
     "dev:api": "node tools/preflight.mjs platform-api",
@@ -24,12 +24,15 @@
     "check:versions": "node tools/check-versions.mjs",
     "github:now": "node tools/github-helper.mjs",
     "module:create": "node tools/create-module.mjs",
+    "check:module-boundaries": "node tools/check-module-boundaries.mjs",
     "test:module-generator": "node --test tools/create-module.test.mjs",
+    "test:module-boundaries": "node --test tools/check-module-boundaries.test.mjs",
     "test:versions": "node --test tools/version-bump.test.mjs",
     "test:framework": "npm run test --workspace @codexsun/framework",
     "test:platform-core": "npm run test --workspace @codexsun/platform-core",
     "test:platform-api": "npm run test --workspace @codexsun/platform-api",
-    "test:platform-web": "npm run test --workspace @codexsun/platform-web"
+    "test:platform-web": "npm run test --workspace @codexsun/platform-web",
+    "test:ui": "npm run test --workspace @codexsun/ui"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

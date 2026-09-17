@@ -9,9 +9,9 @@ No task is active.
 
 ## Next Task
 
-| Task                                            | Owner    | State                           | Data impact |
-| ----------------------------------------------- | -------- | ------------------------------- | ----------- |
-| M-502 Static module ownership and import checks | Platform | Planned. Requires confirmation. | No          |
+| Task                                     | Owner | State                           | Data impact |
+| ---------------------------------------- | ----- | ------------------------------- | ----------- |
+| U-602 Public component registry metadata | UI    | Planned. Requires confirmation. | No          |
 
 ## Completed Milestones
 
@@ -29,6 +29,10 @@ No task is active.
 - In-memory Platform web session boundary: I-404.
 - Aaran single-tenant deployment policy: I-405.
 - Module generator template: M-501.
+- Module ownership and private-import checks: M-502.
+- Module test conventions: M-503.
+- Reference Platform Settings module: M-504.
+- Semantic theme tokens and shared theme provider: U-601.
 
 See [CHAGELOG.md](../documentation/CHAGELOG.md) for the release record and
 `planning.md` for completed acceptance evidence.
@@ -39,8 +43,8 @@ See [CHAGELOG.md](../documentation/CHAGELOG.md) for the release record and
 | ------------------------- | ---------------- | ------------- |
 | Data foundation           | D-301 to D-305   | Planning only |
 | Identity                  | I-401 to I-405   | Planning only |
-| Module standard           | M-501 to M-504   | Planning only |
-| Design system             | U-601 to U-606   | Planning only |
+| Module standard           | M-501 to M-504   | Complete      |
+| Design system             | U-601 to U-606   | Active        |
 | API and web shell         | A-601 to A-606   | Planning only |
 | Events and jobs           | E-701 to E-705   | Planning only |
 | Operations and deployment | O-801 to O-805   | Planning only |

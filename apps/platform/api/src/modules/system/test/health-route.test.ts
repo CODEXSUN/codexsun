@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import Fastify from "fastify";
 import { type ModuleProvider, ProviderEngine } from "@codexsun/framework";
-import { registerHealthRoute } from "../src/modules/system/routes/health-route.js";
+import { registerHealthRoute } from "../routes/health-route.js";
 
 test("reports provider readiness without provider values", async () => {
   const engine = new ProviderEngine();
   const provider: ModuleProvider = {
     manifest: {
       id: "platform.test",
-      owner: "apps/platform/api/test",
+      owner: "apps/platform/api/modules/system/test",
       version: "1.0.2",
       dependencies: [],
       contracts: ["platform.test"],

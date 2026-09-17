@@ -54,6 +54,8 @@ Component defaults always apply when an application omits a variant.
 
 Tokens must use semantic names. Components must not depend on product brand colors.
 
+The shared CSS asset defines these token groups as CSS variables. `ThemeProvider` applies `data-theme` and `data-density` to the application root and document root. The current approved values are `dark` and `light` themes, plus `compact`, `default`, and `relaxed` density. The provider starts with `dark` and `default`.
+
 ## Component Defaults and Variants
 
 | Component           | Default         | Required variants                                    |

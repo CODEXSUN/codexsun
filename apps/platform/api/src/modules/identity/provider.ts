@@ -34,5 +34,5 @@ const platformOperator = actorSchema.parse({
   id: "platform.operator",
   kind: "service",
   roles: ["platform.operator"],
-  permissions: ["platform.health.read"],
+  permissions: ["platform.health.read", "platform.settings.read"],
 });

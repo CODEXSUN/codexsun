@@ -27,6 +27,7 @@ export function createModule({ rootDir, target, moduleName, moduleId, owner }) {
   writeFile(modulePath, "provider.ts", providerSource(moduleName, moduleId, owner));
   writeFile(modulePath, "README.md", readmeSource(moduleName, moduleId, owner));
   writeFile(modulePath, "test/provider.test.ts", testSource(moduleName));
+  writeFile(modulePath, "test/README.md", testReadmeSource());
   for (const folder of artifactFolders) writeFile(modulePath, `${folder}/.gitkeep`, "");
   return modulePath;
 }
@@ -67,6 +68,10 @@ function readmeSource(moduleName, moduleId, owner) {
 
 function testSource(moduleName) {
   return `import test from "node:test";\n\ntest("${moduleName} module provider placeholder", () => {});\n`;
+}
+
+function testReadmeSource() {
+  return `# Module Test Conventions\n\nKeep each test in this module folder.\n\n- Test public contracts with valid and invalid data.\n- Test services through use cases.\n- Test repositories with an isolated provider.\n- Test routes with Fastify inject.\n- Test events for payload and idempotent consumer behavior.\n- Test migrations and seeders when this module owns data.\n`;
 }
 
 function capitalize(value) {

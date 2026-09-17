@@ -1,7 +1,7 @@
-import { MdiMain, ProviderOverviewPage } from "@codexsun/ui";
+import { MdiMain, ProviderOverviewPage, ThemeProvider } from "@codexsun/ui";
 import { useEffect, useState } from "react";
 import { HttpIdentitySessionGateway } from "./modules/identity/session/identity-session-gateway";
-import { IdentitySessionProvider, useIdentitySession } from "./modules/identity/session/identity-session-provider";
+import { IdentitySessionProvider, useIdentitySession } from "./modules/identity/provider";
 
 interface Health {
   status: string;
@@ -10,9 +10,11 @@ interface Health {
 const apiUrl = import.meta.env.VITE_PLATFORM_API_URL;
 export function App() {
   return (
-    <IdentitySessionProvider gateway={new HttpIdentitySessionGateway(apiUrl)}>
-      <PlatformWorkspace />
-    </IdentitySessionProvider>
+    <ThemeProvider>
+      <IdentitySessionProvider gateway={new HttpIdentitySessionGateway(apiUrl)}>
+        <PlatformWorkspace />
+      </IdentitySessionProvider>
+    </ThemeProvider>
   );
 }
 

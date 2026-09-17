@@ -242,21 +242,21 @@ Exit criteria:
 Status: active.
 
 - [x] M-501 Create a module generator template from Assist rules.
-- [ ] M-502 Add static checks for provider ownership and private-import violations.
-- [ ] M-503 Add module contract, service, repository, route, and event test conventions.
-- [ ] M-504 Add a reference Platform Settings module as the first full module.
+- [x] M-502 Add static checks for provider ownership and private-import violations.
+- [x] M-503 Add module contract, service, repository, route, and event test conventions.
+- [x] M-504 Add a reference Platform Settings module as the first full module.
 
 Exit criteria:
 
-- [ ] A new module has one owned folder and one provider.
-- [ ] A module exposes only documented contracts.
-- [ ] The reference module contains no cross-module private imports.
+- [x] A new module has one owned folder and one provider.
+- [x] A module exposes only documented contracts.
+- [x] The reference module contains no cross-module private imports.
 
 ### Phase 6. Design system foundation
 
 Status: planned.
 
-- [ ] U-601 Define semantic theme tokens and a theme provider in `packages/ui`.
+- [x] U-601 Define semantic theme tokens and a theme provider in `packages/ui`.
 - [ ] U-602 Define the public component registry and variant metadata contract.
 - [ ] U-603 Complete shadcn-compatible base components with documented defaults and variants.
 - [ ] U-604 Complete reusable blocks, pages, templates, and the default MDI composition.
@@ -390,6 +390,8 @@ Each application requires its own provider, API and web host plan, `.app.env` ex
 
 ## Approval Gate
 
-The next implementation task is `M-502`.
+Phase 5 is complete. Phase 6 is active.
+
+The next implementation task is `U-602`.
 
 Before work starts, confirm the exact task ID, scope, data impact, and target verification level in `task.md`.

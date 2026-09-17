@@ -22,6 +22,7 @@ test("creates one owned module template", () => {
 
     assert.equal(existsSync(join(modulePath, "provider.ts")), true);
     assert.equal(existsSync(join(modulePath, "controller/.gitkeep")), true);
+    assert.match(readFileSync(join(modulePath, "test/README.md"), "utf8"), /Fastify inject/u);
     assert.equal(existsSync(join(modulePath, "services/.gitkeep")), true);
     assert.match(readFileSync(join(modulePath, "provider.ts"), "utf8"), /demo\.settings/u);
     assert.throws(
