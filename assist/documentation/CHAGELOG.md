@@ -22,15 +22,17 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.0.3
 
-### [v 1.0.3] 2026-09-17 10:21 am - version update
+### [v 1.0.3] 2026-09-17 10:21 am - Platform runtime foundation
 
 #### Database Changes
 
-- Database update: Yes (manual).
+- Database update: No (manual).
 
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.3.
+- Added provider manifests, lifecycle dependency checks, public contracts, runtime configuration, readiness reporting, and focused tests.
+- Added Platform runtime composition, safe health reporting, repository skills, and execution handover records.
 
 ## v-1.0.2
 
