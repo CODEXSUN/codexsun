@@ -12,6 +12,8 @@ Read the [workspace runtime](workspace-runtime.md) before you add dependencies, 
 
 Read [isolated application development](isolated-app-development.md) before you start parallel app work.
 
+Read the [isolated app session skill](../skills/isolated-app-session/SKILL.md) before an agent starts app work in a worktree.
+
 Read the [Redis runtime scaffold](redis-runtime.md) before adding a Redis service or delivery provider.
 
 Read [backup and recovery](backup-and-recovery.md) before a migration, deployment, or rollback.

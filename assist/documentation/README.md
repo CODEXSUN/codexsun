@@ -8,6 +8,8 @@ Read the [changelog](CHAGELOG.md) for the repository progress record.
 
 Read the [documentation standards](standards.md) before you add or update documentation.
 
+Read the [app worktree workflow](app-worktree-workflow.md) before application development, agent work, review, or merge.
+
 ## Required documentation
 
 Each application and package must have a README that states:

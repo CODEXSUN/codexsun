@@ -27,6 +27,31 @@ Develop one application or shared package without changing another active applic
 7. Review the branch diff and record verification evidence.
 8. Request manual confirmation before merging into `main`.
 
+## CODEXSUN CLI
+
+Use the root CLI to enforce the lifecycle:
+
+```text
+npm.cmd run codexsun -- app create <scope> <task>
+npm.cmd run codexsun -- app guide <scope> <task>
+npm.cmd run codexsun -- app develop <scope> <task>
+npm.cmd run codexsun -- app review <scope> <task>
+npm.cmd run codexsun -- app approve <scope> <task> --approved-by <name>
+npm.cmd run codexsun -- app merge <scope> <task>
+```
+
+`create` runs only from a clean `main` checkout. It creates `codex/<scope>-<task>` beside the repository under `.codexsun-worktrees/`.
+
+`develop` runs the scope check in the isolated worktree. `review` requires a clean worktree, blocks changes under `packages/`, runs the scoped check, and records review time.
+
+Only a human may run `approve`. `merge` runs only from a clean main checkout after approval. It uses fast-forward only and never pushes.
+
+The local lifecycle record is under `storage/runtime/worktrees/`. It is runtime state and must not be committed.
+
+## Agent Session Skill
+
+The agent must read `assist/skills/isolated-app-session/SKILL.md` after the CLI creates the worktree. The agent works only in that returned path for the selected task.
+
 ## Shared package gate
 
 An app task must not refactor `packages/*` by default.

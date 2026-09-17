@@ -38,6 +38,7 @@ No task is active.
 - Reusable UI composition, Platform MDI wiring, and UIUX gallery: U-604 to U-606.
 - Platform API contracts, centralized routes, shared UI composition, and verified browser flow: A-601 to A-606.
 - Isolated app Turbo scopes, worktree environment rules, shared-package gate, and manual merge protocol.
+- CODEXSUN app worktree CLI, local lifecycle records, agent session skill, scoped review gate, explicit approval, and fast-forward-only merge workflow.
 - Redis runtime scaffold and configuration contract: E-701. Database-backed delivery remains selected.
 - Database outbox, worker, idempotent consumer, and outbox observability: E-702 to E-705.
 - Scoped storage, operation records, Docker composition, Aaran profile, and recovery runbook: O-801 to O-805.

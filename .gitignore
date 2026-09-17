@@ -6,6 +6,7 @@ dist/
 
 # Runtime and local storage
 storage/runtime/
+.codexsun-worktrees/
 storage/apps/private/
 storage/apps/public/
 logs/

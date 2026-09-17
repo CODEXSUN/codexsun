@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.14
+Current version: 1.0.15
 
-Release tag: v-1.0.14
+Release tag: v-1.0.15
 
-Changelog label: v 1.0.14
+Changelog label: v 1.0.15
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -36,6 +36,21 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
 - Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
 
+## v-1.0.15
+
+### [v 1.0.15] 2026-09-17 3:15 pm - App worktree workflow
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.15.
+- Added the root CODEXSUN app-worktree CLI for create, develop, review, approval, and fast-forward merge lifecycle commands.
+- Added local worktree lifecycle records, scoped check execution, clean-worktree review checks, and a shared-package change gate.
+- Added the isolated app session skill and the single Assist guide for agent development, review evidence, manual approval, and merge rules.
+
 ## v-1.0.14
 
 ### [v 1.0.14] 2026-09-17 3:04 pm - Line ending governance
@@ -51,6 +66,9 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added text-file line-ending normalization and validation commands with a binary-safe test suite.
 - Updated `github:now` to normalize before its change review and validate again before Git staging.
 - Documented the required pre-staging workflow for developers and coding agents.
+- Added the CODEXSUN app worktree CLI, local lifecycle records, scoped review checks, explicit human approval, and fast-forward-only merge gate.
+- Added the isolated app session skill for one-agent worktree development and review handoff.
+- Added one app-facing Assist guide for the required worktree, development, review, approval, and merge lifecycle.
 
 ## v-1.0.13
 

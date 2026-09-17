@@ -58,6 +58,10 @@ An app task must not refactor shared packages by default. Report the public cont
 
 Each app worktree must run its scoped checks, focused tests, and required browser flow. A human must confirm the reviewed diff and verification evidence before merge into `main`.
 
+The root CODEXSUN CLI records this lifecycle locally: create, develop, review, approve, and merge. It creates application branches under `codex/`, stores worktrees beside the repository, blocks shared-package changes during app review, and permits only approved fast-forward merges.
+
+Each agent session must start from the generated worktree path and use `assist/skills/isolated-app-session/SKILL.md`. The agent must stop when a task requires a package, cross-app, schema, or deployment change.
+
 Lower layers must not import higher layers. A module must not import another module's private files.
 
 ## Framework Concepts
