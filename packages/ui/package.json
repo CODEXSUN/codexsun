@@ -1,0 +1,20 @@
+{
+  "name": "@codexsun/ui",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./assets": "./src/assets/index.css"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "radix-ui": "^1.6.7",
+    "tailwind-merge": "^3.7.0"
+  }
+}

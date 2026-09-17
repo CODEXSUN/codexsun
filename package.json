@@ -1,0 +1,45 @@
+{
+  "name": "codexsun",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@12.0.2",
+  "workspaces": [
+    "apps/*/api",
+    "apps/*/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run clean:root-layout && turbo run build && npm run clean:root-layout && npm run check:root-layout",
+    "check": "npm run clean:root-layout && npm run check:versions && turbo run check && npm run lint && npm run clean:root-layout && npm run check:root-layout",
+    "check:root-layout": "node tools/check-root-layout.mjs",
+    "clean:root-layout": "node tools/clean-root-layout.mjs",
+    "dev:api": "node tools/preflight.mjs platform-api",
+    "dev:web": "node tools/preflight.mjs platform-web",
+    "preflight:api": "node tools/preflight.mjs platform-api --check",
+    "preflight:web": "node tools/preflight.mjs platform-web --check",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "version:bump": "node tools/version-bump.mjs",
+    "check:versions": "node tools/check-versions.mjs",
+    "github:now": "node tools/github-helper.mjs",
+    "test:versions": "node --test tools/version-bump.test.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.0.0",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.0.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.70.0",
+    "vite": "^7.0.0"
+  }
+}
