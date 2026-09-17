@@ -207,7 +207,7 @@ Exit criteria:
 
 ### Phase 3. Data foundation
 
-Status: implementation complete. Module integration evidence is pending.
+Status: complete.
 
 - [x] D-301 Define repository and transaction contracts in the Framework.
 - [x] D-302 Add the Kysely adapter behind Platform Data providers.
@@ -217,31 +217,31 @@ Status: implementation complete. Module integration evidence is pending.
 
 Exit criteria:
 
-- [ ] A module owns its migrations and seeders.
-- [ ] SQLite and MariaDB use the same repository contract where both apply.
-- [ ] Migration status and rollback limits are recorded before deployment.
+- [x] A module owns its migrations and seeders.
+- [x] SQLite and MariaDB use the same repository contract where both apply.
+- [x] Migration status and rollback limits are recorded before deployment.
 
 ### Phase 4. Identity and authorization
 
-Status: planned.
+Status: complete.
 
-- [ ] I-401 Define identity, session, role, permission, and actor contracts.
-- [ ] I-402 Create the Platform Identity module with module-owned data and routes.
-- [ ] I-403 Add API authentication and authorization boundaries.
-- [ ] I-404 Add web session handling through public contracts.
-- [ ] I-405 Define tenant policy only after the first tenant requirement is confirmed.
+- [x] I-401 Define identity, session, role, permission, and actor contracts.
+- [x] I-402 Create the Platform Identity module with module-owned data and routes.
+- [x] I-403 Add API authentication and authorization boundaries.
+- [x] I-404 Add web session handling through public contracts.
+- [x] I-405 Define tenant policy only after the first tenant requirement is confirmed.
 
 Exit criteria:
 
-- [ ] Protected routes require a verified actor and permission.
-- [ ] Product modules do not manage credentials or copy identity logic.
-- [ ] Identity tests cover unauthenticated, unauthorized, and authorized cases.
+- [x] Protected routes require a verified actor and permission.
+- [x] Product modules do not manage credentials or copy identity logic.
+- [x] Identity tests cover unauthenticated, unauthorized, and authorized cases.
 
 ### Phase 5. Module delivery standard
 
-Status: planned.
+Status: active.
 
-- [ ] M-501 Create a module generator template from Assist rules.
+- [x] M-501 Create a module generator template from Assist rules.
 - [ ] M-502 Add static checks for provider ownership and private-import violations.
 - [ ] M-503 Add module contract, service, repository, route, and event test conventions.
 - [ ] M-504 Add a reference Platform Settings module as the first full module.
@@ -390,9 +390,6 @@ Each application requires its own provider, API and web host plan, `.app.env` ex
 
 ## Approval Gate
 
-The Phase 3 implementation tasks are complete. Its exit criteria require the
-first data-owning module to supply migration, seeder, and deployment evidence.
-
-The next implementation task is `I-401`.
+The next implementation task is `M-502`.
 
 Before work starts, confirm the exact task ID, scope, data impact, and target verification level in `task.md`.

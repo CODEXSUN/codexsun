@@ -3,12 +3,19 @@ import { z } from "zod";
 const hostSchema = z.string().trim().min(1);
 const portSchema = z.coerce.number().int().min(1).max(65_535);
 const urlSchema = z.string().url();
+const jwtSecretSchema = z.string().min(32);
 
 export const apiRuntimeConfigSchema = z.object({
   NODE_ENV: z.string().trim().min(1).default("development"),
   PLATFORM_HOST: hostSchema,
   PLATFORM_API_PORT: portSchema,
   DATABASE_URL: urlSchema,
+  PLATFORM_JWT_SECRET: jwtSecretSchema,
+  PLATFORM_JWT_ISSUER: z.string().trim().min(1),
+  PLATFORM_JWT_AUDIENCE: z.string().trim().min(1),
+  PLATFORM_DEPLOYMENT_MODE: z.literal("single"),
+  PLATFORM_DEPLOYMENT_NAME: z.string().trim().min(1).max(120),
+  PLATFORM_BOOTSTRAP_ADMIN_EMAIL: z.string().trim().email(),
 });
 
 export const webRuntimeConfigSchema = z.object({

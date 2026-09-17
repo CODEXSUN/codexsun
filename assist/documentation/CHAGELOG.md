@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.6
+Current version: 1.0.7
 
-Release tag: v-1.0.6
+Release tag: v-1.0.7
 
-Changelog label: v 1.0.6
+Changelog label: v 1.0.7
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -20,6 +20,25 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.0.7
+
+### [v 1.0.7] 2026-09-17 12:57 pm - Identity and module foundation
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Added the unrun `identity.001` migration and `identity.seed.001` source. No shared database changed.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.7.
+- Added Platform Identity contracts, module-owned persistence files, signed JWT verification, and actor-isolation checks.
+- Added the in-memory Platform web session provider and browser-safe identity contract entry.
+- Added the Aaran single-tenant deployment policy. Multi-tenancy remains an add-on.
+- Scoped Turbo build artifacts to host-specific root `dist/` paths.
+- Added the guarded module generator and focused checks for generated ownership shape and unsafe input.
+- Completed M-501.
+
 ## v-1.0.6
 
 ### [v 1.0.6] 2026-09-17 10:46 am - Data lifecycle policy
@@ -27,6 +46,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### Database Changes
 
 - Database update: No (manual).
+- Added the unrun `identity.001` module migration and `identity.seed.001` seeder source. No shared database changed.
 
 #### App Codebase Changes
 
@@ -35,6 +55,25 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added focused checks for descriptor ownership, duplicate IDs, and compatibility rollback limits.
 - Added lifecycle, migration, backup, restore, and deployment evidence rules with a reusable record template.
 - Completed D-305. Phase 3 integration evidence remains pending the first data-owning module.
+- Added Platform Core public actor, role, permission, session, and authorization contracts.
+- Added schema and authorization tests that keep credentials, tokens, and role-derived permissions out of the public contract.
+- Added the module-owned Platform Identity provider, actor route, controller, service, repositories, migration, repeat-safe seeder, and tests.
+- Added isolated SQLite migration and identity repository checks. No shared MariaDB migration has run.
+- Completed I-402 and Phase 3 exit evidence. I-403 must protect Identity routes before a production release.
+- Added signed JWT bearer verification for the Platform Identity actor route.
+- JWT token subjects now resolve to module-owned actors. Tokens never grant permissions directly.
+- Enforced signed-actor isolation: self reads are allowed, cross-actor reads require `identity.read`.
+- Added configuration validation and focused unauthenticated, invalid-token, unauthorized, authorized, and not-found route checks.
+- Completed I-403. Token issuance, browser sessions, revocation, and tenant selection remain later Identity work.
+- Added the authenticated current-actor API route for browser session verification.
+- Added the Platform web Identity session provider and authenticated request boundary.
+- Kept JWT bearer tokens only in React memory. The web host does not persist or expose them.
+- Added focused web session gateway checks. Completed I-404.
+- Added a browser-safe Platform Core identity-contract export and web build coverage.
+- Scoped Turbo build cache outputs to each Platform host. The shared root cache is no longer a build artifact.
+- Added the Aaran single-tenant deployment policy and validated deployment and bootstrap administrator configuration.
+- Added the Aaran deployment profile. No tenant schema, migration, seed, or JWT tenant claim was added.
+- Completed I-405. Multi-tenancy remains a future add-on.
 
 ## v-1.0.5
 

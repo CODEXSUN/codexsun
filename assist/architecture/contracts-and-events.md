@@ -8,6 +8,15 @@ HTTP contracts use a versioned API prefix. Each response uses a documented succe
 
 Applications, clients, and add-ons consume public contracts. They must not import module services, repositories, or domain internals.
 
+Platform identity contracts define actor and authorization shapes without a
+login endpoint, credential, or tenant model. Platform Identity verifies signed
+JWT bearer tokens privately, then resolves the token subject to an actor before
+an authorization decision. Token permission claims are not an authority source.
+
+Browser hosts import identity contracts from the browser-safe
+`@codexsun/platform-core/identity` entry. They must not import the Platform
+Core root entry because it also exports Node-only data adapters.
+
 ## HTTP rules
 
 - Fastify routes validate input before a controller calls an application service.
@@ -30,4 +39,6 @@ Use synchronous public contracts for work that needs an immediate answer. Use ev
 
 ## Decision gate
 
-Before the first API, approve the API prefix, error envelope, pagination format, authentication header, event transport, and outbox storage design.
+Before a new API module is protected, approve its API prefix, error envelope,
+pagination format, authorization requirements, event transport, and outbox
+storage design.

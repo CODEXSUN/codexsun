@@ -1,5 +1,15 @@
 # Module Template
 
+Create this template with:
+
+```text
+npm.cmd run module:create -- --target apps/<app>/api/src/modules --name <module-name> --id <owner>.<module-name> --owner apps/<app>/api
+```
+
+The command refuses an existing target and paths outside `apps/` or `packages/`.
+It creates the provider, README, provider test placeholder, and owned artifact
+folders. Add only the folders that the module needs after generation.
+
 ## Purpose
 
 State the business capability and its owner.

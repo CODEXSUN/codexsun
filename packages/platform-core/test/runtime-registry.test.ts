@@ -60,6 +60,12 @@ test("validates each host configuration without exposing server values to client
     PLATFORM_HOST: "127.0.0.1",
     PLATFORM_API_PORT: "6100",
     DATABASE_URL: "sqlite://local",
+    PLATFORM_JWT_SECRET: "runtime-config-test-secret-runtime-config-test",
+    PLATFORM_JWT_ISSUER: "codexsun-platform",
+    PLATFORM_JWT_AUDIENCE: "codexsun-platform-api",
+    PLATFORM_DEPLOYMENT_MODE: "single",
+    PLATFORM_DEPLOYMENT_NAME: "aaran",
+    PLATFORM_BOOTSTRAP_ADMIN_EMAIL: "admin@admin.com",
   });
   const web = readWebRuntimeConfig({
     PLATFORM_HOST: "127.0.0.1",
@@ -69,6 +75,7 @@ test("validates each host configuration without exposing server values to client
   });
 
   assert.equal(api.NODE_ENV, "development");
+  assert.equal(api.PLATFORM_DEPLOYMENT_MODE, "single");
   assert.equal(web.VITE_PLATFORM_API_URL, "http://127.0.0.1:6100");
   assert.equal("DATABASE_URL" in web, false);
   assert.equal(

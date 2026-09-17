@@ -7,6 +7,10 @@ module owns one business capability in the modular monolith.
 
 ## Required Shape
 
+Start a new module with `npm.cmd run module:create -- ...`. Review the generated
+provider ID, owner, dependencies, and contracts before you add module behavior.
+The generator does not register the module in an application composition root.
+
 Keep all applicable module code in one owned folder:
 
 ```text

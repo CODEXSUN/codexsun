@@ -4,7 +4,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["../../../dist/**"]
+      "outputs": []
+    },
+    "@codexsun/platform-api#build": {
+      "outputs": ["../../../dist/platform/api/**"]
+    },
+    "@codexsun/platform-web#build": {
+      "outputs": ["../../../dist/platform/web/**"]
     },
     "check": {
       "dependsOn": ["^check"],

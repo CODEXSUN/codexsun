@@ -33,6 +33,12 @@ Local development proves developer workflows. Docker proves container compositio
 
 Do not claim production verification from local or Docker evidence. Report each environment separately.
 
+## Aaran single-tenant profile
+
+`deployment/aaran.md` selects the first single-tenant Platform deployment. It
+does not define multi-tenant behavior. A future tenant add-on must add its own
+data, contracts, migration plan, and deployment review.
+
 ## Production gate
 
 1. Review the selected applications and add-ons.

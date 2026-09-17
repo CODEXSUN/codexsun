@@ -1,5 +1,7 @@
 import { MdiMain, ProviderOverviewPage } from "@codexsun/ui";
 import { useEffect, useState } from "react";
+import { HttpIdentitySessionGateway } from "./modules/identity/session/identity-session-gateway";
+import { IdentitySessionProvider, useIdentitySession } from "./modules/identity/session/identity-session-provider";
 
 interface Health {
   status: string;
@@ -7,7 +9,16 @@ interface Health {
 }
 const apiUrl = import.meta.env.VITE_PLATFORM_API_URL;
 export function App() {
+  return (
+    <IdentitySessionProvider gateway={new HttpIdentitySessionGateway(apiUrl)}>
+      <PlatformWorkspace />
+    </IdentitySessionProvider>
+  );
+}
+
+function PlatformWorkspace() {
   const [health, setHealth] = useState<Health | null>(null);
+  const session = useIdentitySession();
   useEffect(() => {
     if (!apiUrl) {
       setHealth({ status: "configuration error", providers: [] });
@@ -19,7 +30,11 @@ export function App() {
       .catch(() => setHealth({ status: "offline", providers: [] }));
   }, []);
   return (
-    <MdiMain title="CODEXSUN Platform" menu={["Workspace", "Apps", "Settings"]} status={health?.status ?? "loading"}>
+    <MdiMain
+      title="CODEXSUN Platform"
+      menu={["Workspace", "Apps", "Settings"]}
+      status={`${health?.status ?? "loading"} · ${session.state}`}
+    >
       <ProviderOverviewPage providerCount={health?.providers.length ?? 0} />
     </MdiMain>
   );

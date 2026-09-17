@@ -9,9 +9,9 @@ No task is active.
 
 ## Next Task
 
-| Task                            | Owner    | State                           | Data impact |
-| ------------------------------- | -------- | ------------------------------- | ----------- |
-| I-401 Identity public contracts | Platform | Planned. Requires confirmation. | None        |
+| Task                                            | Owner    | State                           | Data impact |
+| ----------------------------------------------- | -------- | ------------------------------- | ----------- |
+| M-502 Static module ownership and import checks | Platform | Planned. Requires confirmation. | No          |
 
 ## Completed Milestones
 
@@ -23,6 +23,12 @@ No task is active.
 - Platform SQLite data adapter: D-303.
 - Platform MariaDB data adapter: D-304.
 - Data lifecycle policy and record template: D-305.
+- Identity public contracts: I-401.
+- Platform Identity module: I-402.
+- JWT API authentication and actor-isolation boundary: I-403.
+- In-memory Platform web session boundary: I-404.
+- Aaran single-tenant deployment policy: I-405.
+- Module generator template: M-501.
 
 See [CHAGELOG.md](../documentation/CHAGELOG.md) for the release record and
 `planning.md` for completed acceptance evidence.

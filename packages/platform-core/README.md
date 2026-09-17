@@ -29,3 +29,10 @@ must verify real database connectivity through a dedicated integration check.
 `ModuleDataLifecyclePolicy` validates module-owned migration and seeder IDs,
 ownership, and compatibility records. It does not run migrations or create a
 schema. The selected deployment profile owns backup and restore operations.
+
+The public identity contracts define actors, roles, permissions, sessions, and
+authorization decisions. They do not contain passwords, tokens, credentials,
+tenant assignment, or an HTTP authentication method.
+
+Browser hosts import identity contracts from `@codexsun/platform-core/identity`.
+The root package entry also exports Node-only Platform adapters.
