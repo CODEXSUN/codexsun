@@ -28,11 +28,16 @@ transport field. The Identity module will own those private details.
 
 ## Current API authentication boundary
 
-Platform API Identity routes use a signed HS256 JWT bearer token. The required
-root environment values are `PLATFORM_JWT_SECRET`, `PLATFORM_JWT_ISSUER`, and
-`PLATFORM_JWT_AUDIENCE`. The token `sub` identifies an actor; the Identity
-repository resolves the actor and its permissions. Token permission claims are
-not an authority source.
+Platform API Identity routes use a signed HS256 JWT bearer token. The root
+environment requires `PLATFORM_JWT_SECRET`. Platform Core sets fixed issuer and
+audience defaults. The token `sub` identifies an actor. The Identity repository
+resolves the actor and its permissions. Token permission claims are not an
+authority source.
+
+Run `npm.cmd run platform:jwt-token` to create or keep the local signing secret
+and create a local `platform.operator` token in the ignored root `.env`. The
+command does not print either value. Do not copy that token into an app env file,
+browser configuration, source code, or log.
 
 Identity actor reads are isolated by default. An actor can read only its own
 record unless its resolved permissions include `identity.read`.

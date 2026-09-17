@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/platform-core",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -12,10 +12,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./identity": "./src/identity.ts",
+    "./jwt": "./src/platform-jwt.ts",
     "./runtime-config": "./src/runtime-config.ts"
   },
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --test test/runtime-registry.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/data-lifecycle-policy.test.ts test/identity-contracts.test.ts"
+    "test": "tsx --test test/runtime-registry.test.ts test/platform-jwt.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/data-lifecycle-policy.test.ts test/identity-contracts.test.ts"
   }
 }

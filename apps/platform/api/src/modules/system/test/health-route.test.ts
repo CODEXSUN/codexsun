@@ -30,5 +30,8 @@ test("reports provider readiness without provider values", async () => {
     providers: ["platform.test"],
     readiness: [{ id: "platform.test", state: "started" }],
   });
+  const readiness = await app.inject({ method: "GET", url: "/healthz" });
+  assert.equal(readiness.statusCode, 200);
+  assert.deepEqual(readiness.json(), { status: "ok" });
   await app.close();
 });

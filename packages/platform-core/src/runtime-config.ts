@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const defaultPlatformJwtIssuer = "codexsun-platform";
+const defaultPlatformJwtAudience = "codexsun-platform-api";
+
 const hostSchema = z.string().trim().min(1);
 const portSchema = z.coerce.number().int().min(1).max(65_535);
 const urlSchema = z.string().url();
@@ -19,11 +22,12 @@ export const apiRuntimeConfigSchema = z.object({
   NODE_ENV: z.string().trim().min(1).default("development"),
   PLATFORM_HOST: hostSchema,
   PLATFORM_API_PORT: portSchema,
+  PLATFORM_WEB_ORIGIN: urlSchema.default("http://127.0.0.1:6101"),
   DATABASE_URL: urlSchema,
   STORAGE_ROOT: z.string().trim().min(1).default("../../../storage/apps"),
   PLATFORM_JWT_SECRET: jwtSecretSchema,
-  PLATFORM_JWT_ISSUER: z.string().trim().min(1),
-  PLATFORM_JWT_AUDIENCE: z.string().trim().min(1),
+  PLATFORM_JWT_ISSUER: z.string().trim().min(1).default(defaultPlatformJwtIssuer),
+  PLATFORM_JWT_AUDIENCE: z.string().trim().min(1).default(defaultPlatformJwtAudience),
   PLATFORM_DEPLOYMENT_MODE: z.literal("single"),
   PLATFORM_DEPLOYMENT_NAME: z.string().trim().min(1).max(120),
   PLATFORM_BOOTSTRAP_ADMIN_EMAIL: z.string().trim().email(),
@@ -75,6 +79,11 @@ export const zetroWebRuntimeConfigSchema = z.object({
   VITE_ZETRO_API_URL: urlSchema,
 });
 
+export const uiuxWebRuntimeConfigSchema = z.object({
+  PLATFORM_HOST: hostSchema,
+  UIUX_WEB_PORT: portSchema,
+});
+
 export const desktopRuntimeConfigSchema = z.object({
   PLATFORM_HOST: hostSchema,
   PLATFORM_DESKTOP_PORT: portSchema,
@@ -99,6 +108,7 @@ export type DocsApiRuntimeConfig = z.infer<typeof docsApiRuntimeConfigSchema>;
 export type DocsWebRuntimeConfig = z.infer<typeof docsWebRuntimeConfigSchema>;
 export type ZetroApiRuntimeConfig = z.infer<typeof zetroApiRuntimeConfigSchema>;
 export type ZetroWebRuntimeConfig = z.infer<typeof zetroWebRuntimeConfigSchema>;
+export type UiuxWebRuntimeConfig = z.infer<typeof uiuxWebRuntimeConfigSchema>;
 export type DesktopRuntimeConfig = z.infer<typeof desktopRuntimeConfigSchema>;
 export type MobileRuntimeConfig = z.infer<typeof mobileRuntimeConfigSchema>;
 export type RedisRuntimeConfig = z.infer<typeof redisRuntimeConfigSchema>;
@@ -125,6 +135,10 @@ export function readZetroApiRuntimeConfig(environment: NodeJS.ProcessEnv): Zetro
 
 export function readZetroWebRuntimeConfig(environment: NodeJS.ProcessEnv): ZetroWebRuntimeConfig {
   return zetroWebRuntimeConfigSchema.parse(environment);
+}
+
+export function readUiuxWebRuntimeConfig(environment: NodeJS.ProcessEnv): UiuxWebRuntimeConfig {
+  return uiuxWebRuntimeConfigSchema.parse(environment);
 }
 
 export function readDesktopRuntimeConfig(environment: NodeJS.ProcessEnv): DesktopRuntimeConfig {

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.16
+Current version: 1.0.17
 
-Release tag: v-1.0.16
+Release tag: v-1.0.17
 
-Changelog label: v 1.0.16
+Changelog label: v 1.0.17
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -35,6 +35,60 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added Zetro SQLite readiness through Platform Core, private storage policy, backup owner, seven-day retention, and recovery-check documentation. Z-1202 creates no workflow schema or migration.
 - Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
 - Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
+- Replaced the Zetro delivery plan with the chat-first workflow: idea chat,
+  revision, final brief, and future task handover are now explicitly separated
+  from worker execution and local Codex authentication.
+- Added the Zetro web chat workspace using published `@codexsun/ui` exports and
+  `MdiMain`. The current interaction is browser-memory-only and cannot create
+  work, persist an idea, or access credentials. The local Codex device-code
+  boundary remains the separately planned Z-1204 task. No database change.
+- Added the Platform Core JWT signer and a local Platform JWT generator. The
+  generator writes the ignored root `.env`, keeps the signing secret private,
+  creates a local operator token, and removes issuer and audience overrides.
+  Platform Core now provides the fixed issuer and audience defaults. No database
+  change.
+- Added idempotent Platform API shutdown handling for `SIGINT` and `SIGTERM`.
+  Preflight now starts npm without a Windows shell and ends only its known child
+  process tree if graceful shutdown does not finish. Added the reservation-scoped
+  `stop:api` command, which confirms the configured port is released. No
+  database change.
+- Changed `dev:api` to restart only an existing reservation owned by the Platform
+  API workspace, then wait for the configured port before starting the next
+  process. No database change.
+- Added Fastify Helmet security headers and origin-restricted Fastify CORS for
+  the configured Platform web host. No database change.
+- Added Pino structured API logging with colorized development console output,
+  authorization-header redaction, and Chalk preflight status output. No database
+  change.
+- Added the Platform API LoggerProvider and explicit Fastify request and response
+  lifecycle logs with readable timestamps, request metadata, status codes, and
+  response durations. No database change.
+- Added the API root redirect to the configured frontend when runtime readiness
+  passes, plus the compact `/healthz` readiness endpoint. No database change.
+- Set Platform API Pino timestamps explicitly to `Asia/Kolkata` and label them
+  as Indian Standard Time (`IST`). No database change.
+- Changed development Pino output to one line per event and shortened the
+  explicit India timestamp to `YYYY-MM-DD HH:mm:ss`. No database change.
+- Reduced request lifecycle console logs to method, path, response status, and
+  duration. Request IDs and remote addresses remain out of console output. No
+  database change.
+
+## v-1.0.17
+
+### [v 1.0.17] 2026-09-17 6:31 pm - Platform API lifecycle and logging
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.17.
+- Added local Platform JWT generation and fixed issuer and audience defaults.
+- Added safe Platform API restart and stop commands with port reservations.
+- Added Fastify CORS, Helmet, a frontend root redirect, and `/healthz` readiness.
+- Added the Platform API LoggerProvider with Pino and Chalk console output.
+- Console request logs now use India time, one line, method, path, status, and duration.
 
 ## v-1.0.16
 

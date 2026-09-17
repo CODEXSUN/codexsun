@@ -25,6 +25,8 @@ export { ModuleStorage, StorageProvider } from "./storage-provider.js";
 export type { StorageVisibility } from "./storage-provider.js";
 export { createOperationLogEntry } from "./observability.js";
 export type { OperationLogEntry } from "./observability.js";
+export { createPlatformJwtToken, defaultPlatformJwtAudience, defaultPlatformJwtIssuer } from "./platform-jwt.js";
+export type { PlatformJwtConfiguration, PlatformJwtTokenInput } from "./platform-jwt.js";
 export { ModuleDataLifecyclePolicy } from "./data-lifecycle-policy.js";
 export type {
   DataCompatibilityLevel,
@@ -61,6 +63,7 @@ export {
   readDocsWebRuntimeConfig,
   readZetroApiRuntimeConfig,
   readZetroWebRuntimeConfig,
+  readUiuxWebRuntimeConfig,
   readRedisRuntimeConfig,
   readApiRuntimeConfig,
   readDesktopRuntimeConfig,
@@ -70,6 +73,7 @@ export {
   webRuntimeConfigSchema,
   zetroApiRuntimeConfigSchema,
   zetroWebRuntimeConfigSchema,
+  uiuxWebRuntimeConfigSchema,
 } from "./runtime-config.js";
 export type {
   ApiRuntimeConfig,
@@ -81,6 +85,7 @@ export type {
   WebRuntimeConfig,
   ZetroApiRuntimeConfig,
   ZetroWebRuntimeConfig,
+  UiuxWebRuntimeConfig,
 } from "./runtime-config.js";
 
 export interface PlatformProviderConfiguration {

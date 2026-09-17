@@ -5,6 +5,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, w
 import { createServer } from "node:net";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import chalk from "chalk";
 
 const root = resolve(import.meta.dirname, "..");
 const targets = {
@@ -72,13 +73,13 @@ export class StartupPreflight {
   }
 
   async check() {
-    console.log(`\n  > ${this.target.displayName} preflight`);
-    console.log(`  - Checking ${this.host}:${this.port}`);
+    console.log(`\n  ${chalk.bold.cyan(">")} ${chalk.bold(this.target.displayName)} preflight`);
+    console.log(`  ${chalk.dim("-")} Checking ${this.host}:${this.port}`);
     await this.reservation.acquire();
 
     try {
       await assertPortAvailable(this.host, this.port);
-      console.log(`  ok Reserved ${this.host}:${this.port}\n`);
+      console.log(`  ${chalk.green("ok")} Reserved ${this.host}:${this.port}\n`);
     } catch (error) {
       this.reservation.release();
       throw error;
@@ -100,6 +101,34 @@ export class StartupPreflight {
       process.exitCode = code ?? 0;
     });
     attachShutdownHandlers(child, release);
+  }
+
+  async stop() {
+    const owner = this.reservation.readOwner();
+    if (!owner?.pid || owner.workspace !== this.target.workspace) {
+      throw new Error(`No running ${this.target.displayName} process is recorded for port ${this.port}.`);
+    }
+
+    if (!isProcessRunning(owner.pid)) {
+      this.reservation.removeStale();
+      console.log(`  ${chalk.green("ok")} Cleared stale reservation for ${this.host}:${this.port}`);
+      return;
+    }
+
+    console.log(`  ${chalk.dim("-")} Stopping ${this.target.workspace} (PID ${owner.pid})`);
+    await stopProcessTree(owner.pid);
+    await waitForPortAvailable(this.host, this.port);
+    this.reservation.removeStale();
+    console.log(`  ${chalk.green("ok")} Stopped ${this.target.displayName}\n`);
+  }
+
+  async restart() {
+    const owner = this.reservation.readOwner();
+    if (owner?.pid && owner.workspace === this.target.workspace) {
+      await this.stop();
+    }
+
+    await this.start();
   }
 }
 
@@ -143,6 +172,14 @@ class PortReservation {
     this.acquired = false;
   }
 
+  removeStale() {
+    try {
+      unlinkSync(this.file);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+
   port() {
     return Number(this.file.match(/(\d+)\.lock$/u)?.[1]);
   }
@@ -168,14 +205,24 @@ class PortReservation {
 async function main() {
   const [targetName, mode] = process.argv.slice(2);
   const target = targets[targetName];
-  if (!target || (mode && mode !== "--check")) {
-    throw new Error(`Usage: node tools/preflight.mjs <${Object.keys(targets).join("|")}> [--check]`);
+  if (!target || (mode && mode !== "--check" && mode !== "--restart" && mode !== "--stop")) {
+    throw new Error(`Usage: node tools/preflight.mjs <${Object.keys(targets).join("|")}> [--check|--restart|--stop]`);
   }
 
   const preflight = new StartupPreflight(target, loadEnvironment(targetName));
   if (mode === "--check") {
     await preflight.check();
     preflight.reservation.release();
+    return;
+  }
+
+  if (mode === "--stop") {
+    await preflight.stop();
+    return;
+  }
+
+  if (mode === "--restart") {
+    await preflight.restart();
     return;
   }
 
@@ -234,6 +281,14 @@ async function assertPortAvailable(host, port) {
   throw new Error(`Port ${port} is already in use. Stop its verified owner or choose another configured port.`);
 }
 
+async function waitForPortAvailable(host, port) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (await canBind(host, port)) return;
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
+  }
+  throw new Error(`Port ${port} did not release after the recorded workspace process stopped.`);
+}
+
 function canBind(host, port) {
   return new Promise((resolveBind) => {
     const server = createServer();
@@ -244,23 +299,70 @@ function canBind(host, port) {
 }
 
 function startWorkspace(workspace, env) {
-  const command = process.platform === "win32" ? "npm.cmd" : "npm";
-  console.log(`  - Starting ${workspace}\n`);
-  return spawn(command, ["run", "dev", "--workspace", workspace], {
+  const npmCli = resolveNpmCli();
+  console.log(`  ${chalk.dim("-")} Starting ${workspace}\n`);
+  return spawn(process.execPath, [npmCli, "run", "dev", "--workspace", workspace], {
     cwd: root,
     env,
-    shell: process.platform === "win32",
+    shell: false,
     stdio: "inherit",
   });
 }
 
+function resolveNpmCli() {
+  const npmCli = process.env.npm_execpath;
+  if (npmCli && existsSync(npmCli)) return npmCli;
+
+  const bundledNpmCli = resolve(process.execPath, "..", "node_modules", "npm", "bin", "npm-cli.js");
+  if (existsSync(bundledNpmCli)) return bundledNpmCli;
+  throw new Error("Could not locate the npm CLI for startup preflight.");
+}
+
 function attachShutdownHandlers(child, release) {
+  let stopping = false;
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.once(signal, () => {
-      release();
-      child.kill(signal);
+      if (stopping) return;
+      stopping = true;
+      stopWorkspace(child, signal, release);
     });
   }
+}
+
+function stopWorkspace(child, signal, release) {
+  if (child.exitCode !== null) return;
+  child.kill(signal);
+  if (process.platform !== "win32" || !child.pid) return;
+
+  const timeout = setTimeout(() => {
+    if (child.exitCode !== null) return;
+    spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: "ignore", windowsHide: true });
+  }, 5_000);
+  timeout.unref();
+  child.once("exit", () => {
+    clearTimeout(timeout);
+    release();
+  });
+}
+
+async function stopProcessTree(pid) {
+  if (process.platform === "win32") {
+    await runProcess("taskkill", ["/pid", String(pid), "/t", "/f"]);
+    return;
+  }
+
+  process.kill(pid, "SIGTERM");
+}
+
+function runProcess(command, args) {
+  return new Promise((resolveProcess, rejectProcess) => {
+    const child = spawn(command, args, { stdio: "ignore", windowsHide: true });
+    child.once("error", rejectProcess);
+    child.once("exit", (code) => {
+      if (code === 0) resolveProcess();
+      else rejectProcess(new Error(`${command} exited with code ${code ?? "unknown"}.`));
+    });
+  });
 }
 
 function isProcessRunning(pid) {
@@ -274,7 +376,7 @@ function isProcessRunning(pid) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
-    console.error(`\n  x ${error.message}\n`);
+    console.error(`\n  ${chalk.red("x")} ${error.message}\n`);
     process.exitCode = 1;
   });
 }

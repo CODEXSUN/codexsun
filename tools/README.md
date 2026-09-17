@@ -53,6 +53,8 @@ Do not bump, commit, tag, or push unless the task explicitly requires it.
 ## Startup Preflight
 
 Use `npm.cmd run dev:api` or `npm.cmd run dev:web` to start a Platform host.
+`dev:api` restarts an existing recorded Platform API instance before it starts a
+new one. It refuses to stop a reservation owned by a different workspace.
 
 The preflight reads root `.env`, then the host `.app.env`. It reserves the configured `PLATFORM_HOST` and port through `storage/runtime/ports/` before it starts the workspace command.
 
@@ -61,6 +63,15 @@ Use `npm.cmd run preflight:api` or `npm.cmd run preflight:web` to check and rele
 Use `npm.cmd run dev:desktop` or `npm.cmd run preflight:desktop` for the Platform Tauri host. The desktop launcher sets `CARGO_TARGET_DIR` to `dist/platform/desktop/target`.
 
 If another listener or active CODEXSUN reservation uses the port, preflight stops. It never ends an unknown process.
+
+Preflight starts npm through Node without a Windows shell. On `SIGINT` or
+`SIGTERM`, it asks the child workspace to stop. Windows falls back to ending the
+known child process tree after five seconds.
+
+Use `npm.cmd run stop:api` to stop the recorded Platform API process tree. The
+command checks the reservation owner and confirms port `6100` is available
+before it removes the reservation. It does not search for or stop an unknown
+listener.
 
 ## Workspace Layout
 
