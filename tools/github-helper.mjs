@@ -121,7 +121,7 @@ async function main() {
     console.log("\n  > npm.cmd run fix:line-endings");
     run("npm.cmd run fix:line-endings");
   }
-  run("npm.cmd run check:line-endings");
+  run("node tools/line-endings.mjs check");
 
   let changelogEntry = readLatestVersionedChangelogEntry(ROOT);
   let defaultMessage =
@@ -197,10 +197,10 @@ async function main() {
     return subject;
   });
 
-  run("npm.cmd run check:versions");
+  run("node tools/check-versions.mjs");
   checkAndPull();
-  console.log("  > npm.cmd run check:line-endings");
-  run("npm.cmd run check:line-endings");
+  console.log("  > node tools/line-endings.mjs check");
+  run("node tools/line-endings.mjs check");
 
   console.log("  > git add -A");
   runGit(["add", "-A"]);

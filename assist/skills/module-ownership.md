@@ -11,7 +11,7 @@ Start a new module with `npm.cmd run module:create -- ...`. Review the generated
 provider ID, owner, dependencies, and contracts before you add module behavior.
 The generator does not register the module in an application composition root.
 
-Run `npm.cmd run check:module-boundaries` after module changes. It requires a
+Run `node tools/check-module-boundaries.mjs` after module changes. It requires a
 root provider and README, verifies provider ownership, and rejects relative
 imports into another module folder.
 

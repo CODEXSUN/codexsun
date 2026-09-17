@@ -20,6 +20,14 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+- Replaced the copied Zetro feature modules with a fresh chat vertical slice.
+  Zetro now uses the public `MdiMain` shell, private SQLite conversation
+  history, public chat contracts and routes, and a read-only ephemeral local
+  Codex CLI runner. Device-code login, final briefs, task handover, and worker
+  execution remain out of scope. The preserved copied modules are under
+  `apps/zetro/temp/legacy-copy-2026-09-17/`. No existing storage records were
+  removed.
+
 - Added the Docs `docs-index.001` SQLite migration, allowlisted source discovery, metadata change detection, stale-record removal, and repository-path containment checks.
 - Docs starts with a derived index sync. The index reads source files in place and does not author them.
 
@@ -72,6 +80,22 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Reduced request lifecycle console logs to method, path, response status, and
   duration. Request IDs and remote addresses remain out of console output. No
   database change.
+- Expanded the isolated UIUX web gallery with live previews of published public
+  UI exports and preview-only theme, density, surface, and state controls. No
+  database change.
+- Changed `dev:uiux` to safely restart its verified UIUX reservation before
+  Vite starts, matching the Platform API startup behavior. No database change.
+- Added the generated shadcn `sidebar-08` navigation block to `@codexsun/ui`,
+  including package-owned `lucide-react`, public composition exports, registry
+  metadata, and UIUX gallery preview coverage. No database change.
+- Added the generated shadcn `sidebar-16` navigation block under the versioned
+  `sidemenu/v16` package path, with public header and sidebar exports plus UIUX
+  gallery preview coverage. No database change.
+- Added the standalone Orship `MdiMain` workspace shell. The starting screen
+  contains no workflow, API, verification, approval, or deployment controls.
+- Added isolated Orship startup preflight targets. The API reserves port `6090`
+  and the web host reserves port `6091`; the web host proxies `/api` to the
+  configured API URL. No database change.
 
 ## v-1.0.17
 
@@ -83,12 +107,28 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 #### App Codebase Changes
 
+- Moved shared UI runtime dependencies to the root workspace installation.
+- Removed workspace-local `node_modules` folders and moved Vite caches to `dist/.vite`.
+- Renamed the shared application shell to `MdiMain` and wired all web and desktop hosts to it.
+- Added the MDI shell Playwright check and fixed copied UI package import and type errors.
+
+- Added optional, trace-only OTLP export for Platform API manual request spans.
+  It starts only when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is configured; no
+  automatic instrumentation, metrics pipeline, or collector is bundled.
+
 - Bumped CODEXSUN workspace version to 1.0.17.
 - Added local Platform JWT generation and fixed issuer and audience defaults.
 - Added safe Platform API restart and stop commands with port reservations.
 - Added Fastify CORS, Helmet, a frontend root redirect, and `/healthz` readiness.
 - Added the Platform API LoggerProvider with Pino and Chalk console output.
 - Console request logs now use India time, one line, method, path, status, and duration.
+- Made `MdiMain` the Platform web starting shell. Removed dashboard, identity, and API content from startup.
+- Added Fastify Zod request and response schemas, generated OpenAPI 3 coverage for
+  public Platform routes, and a JWT- and permission-protected internal API
+  reference at `/api/internal/reference`. No database change.
+- Added Platform API factory composition, correlation IDs, OpenTelemetry API spans,
+  TanStack Query server-state handling, and a transactional Platform Core migration
+  runner with SQLite clean/upgrade/repeat-seed coverage. No database change.
 
 ## v-1.0.16
 

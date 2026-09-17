@@ -41,11 +41,33 @@ const targets = {
     envKey: "ZETRO_WEB_PORT",
     workspace: "@codexsun/zetro-web",
   },
+  "orship-api": {
+    displayName: "Orship API",
+    application: "orship",
+    environmentDirectory: "api",
+    envKey: "ORSHIP_API_PORT",
+    hostKey: "ORSHIP_HOST",
+    workspace: "@codexsun/orship-api",
+  },
+  "orship-web": {
+    displayName: "Orship web",
+    application: "orship",
+    environmentDirectory: "web",
+    envKey: "ORSHIP_WEB_PORT",
+    hostKey: "ORSHIP_HOST",
+    workspace: "@codexsun/orship-web",
+  },
   "platform-desktop": {
     displayName: "Platform desktop",
     environmentDirectory: "desktop",
     envKey: "PLATFORM_DESKTOP_PORT",
     workspace: "@codexsun/platform-desktop",
+  },
+  "platform-mobile": {
+    displayName: "Platform mobile",
+    environmentDirectory: "mobile",
+    envKey: "PLATFORM_MOBILE_PORT",
+    workspace: "@codexsun/platform-mobile",
   },
   "docs-api": {
     displayName: "Docs API",
@@ -67,7 +89,7 @@ export class StartupPreflight {
   constructor(target, env) {
     this.target = target;
     this.env = env;
-    this.host = parseRequiredHost(env.PLATFORM_HOST);
+    this.host = parseRequiredHost(env[this.target.hostKey ?? "PLATFORM_HOST"], this.target.hostKey ?? "PLATFORM_HOST");
     this.port = parseRequiredPort(env[target.envKey], target.envKey);
     this.reservation = new PortReservation(root, this.port, target.workspace);
   }
@@ -87,6 +109,7 @@ export class StartupPreflight {
   }
 
   async start() {
+    await this.stopExistingTarget();
     await this.check();
     const child = startWorkspace(this.target.workspace, this.env);
     const release = () => this.reservation.release();
@@ -123,12 +146,14 @@ export class StartupPreflight {
   }
 
   async restart() {
+    await this.start();
+  }
+
+  async stopExistingTarget() {
     const owner = this.reservation.readOwner();
     if (owner?.pid && owner.workspace === this.target.workspace) {
       await this.stop();
     }
-
-    await this.start();
   }
 }
 
@@ -270,9 +295,9 @@ function parseRequiredPort(value, envKey) {
   return port;
 }
 
-function parseRequiredHost(value) {
+function parseRequiredHost(value, envKey) {
   const host = String(value ?? "").trim();
-  if (!host) throw new Error("Set PLATFORM_HOST in .env or the app .app.env file.");
+  if (!host) throw new Error(`Set ${envKey} in .env or the app .app.env file.`);
   return host;
 }
 

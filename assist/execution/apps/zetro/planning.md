@@ -18,28 +18,29 @@ The first screen is a standalone Zetro web workspace. It uses only published
 compose those exports, but it must not duplicate UI controls, tokens, templates,
 or blocks.
 
-## Delivery Boundaries
+## Delivered Foundation
 
 ```text
-Zetro web chat -> Zetro public contracts -> Zetro workflow modules
-                                            -> local Codex adapter
-                                            -> evidence and approval records
+Zetro web chat -> Zetro public contracts -> Zetro chat provider
+                                            -> private SQLite history
+                                            -> local Codex CLI adapter
 ```
 
-- The chat UI owns only in-memory draft interaction in its first task.
-- A future Zetro module owns persisted ideas, revisions, final briefs, and task
-  handover records.
-- A future local-Codex adapter owns device-code initiation, polling, local
-  credential-store access, and redacted connection status.
-- The web host never reads, writes, displays, or persists Codex credentials,
-  device codes, or local authentication files.
+- The web workspace owns draft interaction and conversation selection only.
+- The `zetro.chat` API provider owns conversation and message persistence in
+  Zetro's private SQLite database.
+- The local runner invokes `codex exec` in read-only, ephemeral mode. It uses
+  the existing local Codex CLI session and does not read, write, display, or
+  persist device codes, tokens, or authentication files.
+- Idea finalization and task handover remain future workflow records. Chat
+  cannot create repository work or dispatch a worker.
 
 ## Phases
 
 ### Phase Z-1200: Chat-First Foundation
 
-- [ ] Z-1203 Chat idea workspace and connection-settings shell.
-- [ ] Z-1204 Local Codex connection contract, device-code boundary, and secret
+- [x] Z-1203 Persistent chat idea workspace and local-Codex execution boundary.
+- [ ] Z-1204 Local Codex connection status, device-code boundary, and secret
       redaction policy.
 - [ ] Z-1205 Idea, revision, final-brief, and task-handover records.
 
@@ -65,17 +66,15 @@ Exit: Zetro can prove an approved worker's bounded change and its verification.
 
 ## Local Codex Authentication Decision
 
-The Z-1203 settings surface is deliberately non-authenticating. Device-code
-authentication is a local-runtime concern, not browser state. Z-1204 must use a
-provider-neutral adapter, expose only redacted status to the browser, and require
-an operator to complete the browser/device-code step. It must not copy
-`auth.json`, tokens, or device codes into Zetro storage, logs, API responses, or
-chat records.
+Z-1203 calls an already-authenticated local Codex CLI only. Device-code
+authentication remains a local-runtime concern, not browser state. Z-1204 must
+expose only redacted status and require an operator to complete the
+browser/device-code step. It must not copy `auth.json`, tokens, or device codes
+into Zetro storage, logs, API responses, or chat records.
 
 ## First Task Acceptance
 
-Z-1203 is complete when the web host provides a keyboard-accessible conversation
-for drafting, revising, finalizing, and preparing an idea handover, plus a clear
-local-Codex connection-settings shell. All interaction remains local and visibly
-marked as a draft; no worker, repository command, credential, or persistent
-workflow record is created.
+Z-1203 is complete when the web host provides keyboard-accessible chat, a
+history side menu, and private conversation persistence; it sends replies to an
+already-authenticated local Codex CLI in read-only, ephemeral mode. No worker,
+repository command, credential, final brief, or task handover record is created.

@@ -8,13 +8,13 @@ Use one isolated Git worktree for one approved app task. This keeps app work ind
 
 Use one app scope for each task:
 
-| Scope | Applications |
-| --- | --- |
+| Scope      | Applications                           |
+| ---------- | -------------------------------------- |
 | `platform` | Platform API, web, desktop, and mobile |
-| `docs` | Docs API and web |
-| `orship` | Orship API and web |
-| `zetro` | Zetro API and web |
-| `uiux` | UIUX web |
+| `docs`     | Docs API and web                       |
+| `orship`   | Orship API and web                     |
+| `zetro`    | Zetro API and web                      |
+| `uiux`     | UIUX web                               |
 
 Do not use this workflow for `packages/*`. A shared package needs its own approved package task.
 
@@ -65,7 +65,7 @@ After verification, during development:
 ```text
 npm.cmd run codexsun -- app develop <scope> <task>
 npm.cmd run fix:line-endings
-npm.cmd run check:<scope>
+npm.cmd run turbo:scope -- <scope> check
 ```
 
 The agent must work only on the selected application. It must use public package exports and module-owned code.

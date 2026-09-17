@@ -17,6 +17,6 @@
   },
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --test test/runtime-registry.test.ts test/platform-jwt.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/data-lifecycle-policy.test.ts test/identity-contracts.test.ts"
+    "test": "tsx --test test/runtime-registry.test.ts test/platform-jwt.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/mariadb-migration-runner.integration.test.ts test/data-lifecycle-policy.test.ts test/migration-runner.test.ts test/identity-contracts.test.ts"
   }
 }

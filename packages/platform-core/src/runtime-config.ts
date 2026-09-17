@@ -23,6 +23,7 @@ export const apiRuntimeConfigSchema = z.object({
   PLATFORM_HOST: hostSchema,
   PLATFORM_API_PORT: portSchema,
   PLATFORM_WEB_ORIGIN: urlSchema.default("http://127.0.0.1:6101"),
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: urlSchema.optional(),
   DATABASE_URL: urlSchema,
   STORAGE_ROOT: z.string().trim().min(1).default("../../../storage/apps"),
   PLATFORM_JWT_SECRET: jwtSecretSchema,
@@ -79,10 +80,6 @@ export const zetroWebRuntimeConfigSchema = z.object({
   VITE_ZETRO_API_URL: urlSchema,
 });
 
-export const uiuxWebRuntimeConfigSchema = z.object({
-  PLATFORM_HOST: hostSchema,
-  UIUX_WEB_PORT: portSchema,
-});
 
 export const desktopRuntimeConfigSchema = z.object({
   PLATFORM_HOST: hostSchema,
@@ -108,7 +105,6 @@ export type DocsApiRuntimeConfig = z.infer<typeof docsApiRuntimeConfigSchema>;
 export type DocsWebRuntimeConfig = z.infer<typeof docsWebRuntimeConfigSchema>;
 export type ZetroApiRuntimeConfig = z.infer<typeof zetroApiRuntimeConfigSchema>;
 export type ZetroWebRuntimeConfig = z.infer<typeof zetroWebRuntimeConfigSchema>;
-export type UiuxWebRuntimeConfig = z.infer<typeof uiuxWebRuntimeConfigSchema>;
 export type DesktopRuntimeConfig = z.infer<typeof desktopRuntimeConfigSchema>;
 export type MobileRuntimeConfig = z.infer<typeof mobileRuntimeConfigSchema>;
 export type RedisRuntimeConfig = z.infer<typeof redisRuntimeConfigSchema>;
@@ -137,9 +133,6 @@ export function readZetroWebRuntimeConfig(environment: NodeJS.ProcessEnv): Zetro
   return zetroWebRuntimeConfigSchema.parse(environment);
 }
 
-export function readUiuxWebRuntimeConfig(environment: NodeJS.ProcessEnv): UiuxWebRuntimeConfig {
-  return uiuxWebRuntimeConfigSchema.parse(environment);
-}
 
 export function readDesktopRuntimeConfig(environment: NodeJS.ProcessEnv): DesktopRuntimeConfig {
   return desktopRuntimeConfigSchema.parse(environment);

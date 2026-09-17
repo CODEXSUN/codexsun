@@ -7,7 +7,7 @@ The root `package.json` version is the only version authority.
 Use these commands:
 
 ```text
-npm.cmd run check:versions
+node tools/check-versions.mjs
 npm.cmd run version:bump -- --title "<title>" --database-update
 npm.cmd run version:bump -- --title "<title>" --no-database-update
 npm.cmd run github:now -- --dry-run
@@ -21,7 +21,7 @@ Use these commands before Git staging:
 
 ```text
 npm.cmd run fix:line-endings
-npm.cmd run check:line-endings
+node tools/line-endings.mjs check
 ```
 
 `github:now` runs the fix before its file review and checks again before `git add -A`.
@@ -52,31 +52,31 @@ Do not bump, commit, tag, or push unless the task explicitly requires it.
 
 ## Startup Preflight
 
-Use `npm.cmd run dev:api` or `npm.cmd run dev:web` to start a Platform host.
-`dev:api` restarts an existing recorded Platform API instance before it starts a
-new one. It refuses to stop a reservation owned by a different workspace.
+Use a `dev:*` command to start an application host. Every development command
+stops its own recorded workspace process before it starts a fresh one. It
+refuses to stop a reservation owned by a different workspace.
 
 The preflight reads root `.env`, then the host `.app.env`. It reserves the configured `PLATFORM_HOST` and port through `storage/runtime/ports/` before it starts the workspace command.
 
-Use `npm.cmd run preflight:api` or `npm.cmd run preflight:web` to check and release a port without starting a host.
+To check a port without starting a host, run `node tools/preflight.mjs platform-api --check` or
+`node tools/preflight.mjs platform-web --check`.
 
-Use `npm.cmd run dev:desktop` or `npm.cmd run preflight:desktop` for the Platform Tauri host. The desktop launcher sets `CARGO_TARGET_DIR` to `dist/platform/desktop/target`.
+Use `npm.cmd run dev:desktop` for the Platform Tauri host. The desktop launcher sets `CARGO_TARGET_DIR` to `dist/platform/desktop/target`.
 
-If another listener or active CODEXSUN reservation uses the port, preflight stops. It never ends an unknown process.
+If another listener or active CODEXSUN reservation uses the port, preflight
+stops. It never ends an unknown process.
 
 Preflight starts npm through Node without a Windows shell. On `SIGINT` or
 `SIGTERM`, it asks the child workspace to stop. Windows falls back to ending the
 known child process tree after five seconds.
 
-Use `npm.cmd run stop:api` to stop the recorded Platform API process tree. The
-command checks the reservation owner and confirms port `6100` is available
-before it removes the reservation. It does not search for or stop an unknown
-listener.
+Stop a development command with `Ctrl+C`. The runner releases its reservation
+when its workspace process exits.
 
 ## Workspace Layout
 
-Use `npm.cmd run check:root-layout` to verify the single root `node_modules/`, `dist/`, and `dist/.turbo/` locations.
+Use `node tools/check-root-layout.mjs` to verify the single root `node_modules/`, `dist/`, and `dist/.turbo/` locations.
 
-Use `npm.cmd run check:app-architecture` to verify app profiles, host configuration, provider ownership, event declarations, module tests, shared package use, and private import boundaries.
+Use `node tools/check-app-architecture.mjs` to verify app profiles, host configuration, provider ownership, event declarations, module tests, shared package use, and private import boundaries.
 
 Use `npm.cmd run clean:root-layout` to remove generated nested copies before a build or check completes.

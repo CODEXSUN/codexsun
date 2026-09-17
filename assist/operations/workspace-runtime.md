@@ -37,7 +37,7 @@ Use these scope names: `platform`, `docs`, `orship`, `zetro`, `uiux`, `packages`
 
 No app, add-on, package, module, or tool may write a local `dist/`, `.turbo/`, generated JavaScript, declarations, or build artifacts into source folders.
 
-Use `npm.cmd run build:<scope>` or `npm.cmd run check:<scope>` for focused application work. The runner includes each selected host and its package dependency closure.
+Use `npm.cmd run build:<scope>` or `npm.cmd run turbo:scope -- <scope> check` for focused application work. The runner includes each selected host and its package dependency closure.
 
 Turbo can create temporary task-log folders below participating packages. The scoped runner always removes these folders before it returns. Do not run `turbo` directly for scoped work.
 
@@ -62,7 +62,7 @@ The Platform desktop launcher sets `CARGO_TARGET_DIR=dist/platform/desktop/targe
 2. Confirm generated output exists only under root `dist/`.
 3. Confirm Turborepo writes cache files under `dist/.turbo/<scope>/`.
 4. Typecheck each affected API and web host with its owner configuration.
-5. Run `npm.cmd run check:root-layout` to reject nested workspace output, cache, and dependency folders.
+5. Run `node tools/check-root-layout.mjs` to reject nested workspace output, cache, and dependency folders.
 
 ## Startup preflight
 
@@ -72,6 +72,9 @@ Start Platform hosts through the root commands:
 npm.cmd run dev:api
 npm.cmd run dev:web
 ```
+
+Start every API host with `npm.cmd run dev:all-api`, or every web host with
+`npm.cmd run dev:all-web`.
 
 The preflight reads root `.env` first. It then reads the host `.app.env` file. The host file may override its port and URL values.
 

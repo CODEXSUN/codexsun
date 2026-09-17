@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("shows the Platform workspace and enabled modules", async ({ page }) => {
+test("shows the shared MDI workspace shell", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Workspace" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Enabled modules" })).toBeVisible();
+  await expect(page.getByText("CODEXSUN Platform")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Toggle Sidebar" }).last()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Super Admin Desk/ })).toBeVisible();
 });

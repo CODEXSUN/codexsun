@@ -24,10 +24,10 @@ Do not stop an occupied port until you confirm that this workspace owns it.
 
 ## Verification and Handover
 
-Run `npm.cmd run check` after workspace-wide changes. This cleans nested cache
-directories, checks version alignment, runs package checks and focused tests,
-lints the source, and validates root layout. Distinguish static checks from live
-API, browser, Docker, desktop, mobile, and production evidence.
+Run the relevant workspace checks and focused tests after workspace-wide changes.
+Use the direct root tools for version, line-ending, and layout validation.
+Distinguish static checks from live API, browser, Docker, desktop, mobile, and
+production evidence.
 
 ## Exclusions
 

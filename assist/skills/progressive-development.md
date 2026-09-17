@@ -25,7 +25,7 @@ code, install dependencies, run migrations, or change deployment state.
 6. Read configuration from root `.env` and the host `.app.env`. Do not hard-code secrets, URLs, or ports.
 7. Keep authored files below 700 lines. Split code by ownership and responsibility.
 8. Add focused tests for the changed contract before expanding to the next task.
-9. Run the relevant checks, then run `npm.cmd run check` when the workspace scope permits it.
+9. Run the relevant workspace checks and focused tests when the workspace scope permits it.
 10. Update Assist planning, task status, module records, and `CHAGELOG.md` after verification.
 11. Use one approved app or package worktree. Run its scoped build and checks. Wait for manual merge confirmation before integration.
 

@@ -33,6 +33,8 @@ export type {
   DataCompatibilityRecord,
   ModuleDataLifecyclePlan,
 } from "./data-lifecycle-policy.js";
+export { MigrationRunner } from "./migration-runner.js";
+export type { DatabaseLifecyclePlan, DatabaseMigration, DatabaseSeeder } from "./migration-runner.js";
 export {
   actorKindSchema,
   actorSchema,
@@ -63,7 +65,6 @@ export {
   readDocsWebRuntimeConfig,
   readZetroApiRuntimeConfig,
   readZetroWebRuntimeConfig,
-  readUiuxWebRuntimeConfig,
   readRedisRuntimeConfig,
   readApiRuntimeConfig,
   readDesktopRuntimeConfig,
@@ -73,7 +74,6 @@ export {
   webRuntimeConfigSchema,
   zetroApiRuntimeConfigSchema,
   zetroWebRuntimeConfigSchema,
-  uiuxWebRuntimeConfigSchema,
 } from "./runtime-config.js";
 export type {
   ApiRuntimeConfig,
@@ -85,7 +85,6 @@ export type {
   WebRuntimeConfig,
   ZetroApiRuntimeConfig,
   ZetroWebRuntimeConfig,
-  UiuxWebRuntimeConfig,
 } from "./runtime-config.js";
 
 export interface PlatformProviderConfiguration {

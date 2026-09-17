@@ -173,7 +173,7 @@ git push
 
 Before it shows the commit review, the helper normalizes repository text files to LF. It checks line endings again immediately before `git add -A`. See `assist/operations/line-endings.md`.
 
-Use `npm.cmd run check:versions` to verify the root version, workspace mirrors, lockfile, and changelog Version State.
+Use `node tools/check-versions.mjs` to verify the root version, workspace mirrors, lockfile, and changelog Version State.
 
 ## Documentation Progress Rule
 
@@ -198,7 +198,7 @@ Rules:
 - Release tags use the `v-` prefix.
 - Validate before tagging a release.
 - Version bumps only happen as explicit release tasks.
-- Run `npm.cmd run check` before finalizing work that changes code, service boundaries, rules, documentation workflow, changelog policy, or package versions.
+- Run the relevant workspace checks and focused tests before finalizing work that changes code, service boundaries, rules, documentation workflow, changelog policy, or package versions.
 
 ### Windows release
 

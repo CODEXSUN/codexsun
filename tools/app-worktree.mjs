@@ -96,7 +96,7 @@ export function showWorktreeGuide(scope, task) {
     `Branch: ${state.branch}`,
     "Verify before development: codexsun app verify <scope> <task>.",
     "Agent instructions: assist/skills/isolated-app-session/SKILL.md",
-    `Run: npm.cmd run check:${state.scope}`,
+    `Run: npm.cmd run turbo:scope -- ${state.scope} check`,
     "Use the worktree root as the agent workspace for this task.",
     "Do not change packages/* without a separate approved package task.",
     "After implementation: codexsun app review <scope> <task>.",
@@ -188,7 +188,11 @@ function assertNoSharedPackageChanges(state) {
 
 function assertScope(scope) {
   if (!scopeWorkspaces[scope] || scope === "packages") {
-    throw new Error(`Use an application scope: ${Object.keys(scopeWorkspaces).filter((name) => name !== "packages").join(", ")}.`);
+    throw new Error(
+      `Use an application scope: ${Object.keys(scopeWorkspaces)
+        .filter((name) => name !== "packages")
+        .join(", ")}.`,
+    );
   }
 }
 
@@ -201,7 +205,9 @@ function normalizeNewTask(scope, task) {
 }
 
 function normalizeLegacyTask(task) {
-  const safeTask = String(task ?? "").trim().toLowerCase();
+  const safeTask = String(task ?? "")
+    .trim()
+    .toLowerCase();
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(safeTask)) {
     throw new Error("Task must use lowercase letters, numbers, and single hyphens.");
   }

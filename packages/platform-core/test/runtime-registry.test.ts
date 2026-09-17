@@ -11,7 +11,6 @@ import {
   readDesktopRuntimeConfig,
   readMobileRuntimeConfig,
   readRedisRuntimeConfig,
-  readUiuxWebRuntimeConfig,
   readWebRuntimeConfig,
 } from "../src/index.js";
 
@@ -82,6 +81,7 @@ test("validates each host configuration without exposing server values to client
   assert.equal(api.PLATFORM_WEB_ORIGIN, "http://127.0.0.1:6101");
   assert.equal(api.PLATFORM_JWT_ISSUER, "codexsun-platform");
   assert.equal(api.PLATFORM_JWT_AUDIENCE, "codexsun-platform-api");
+  assert.equal(api.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, undefined);
   assert.equal(web.VITE_PLATFORM_API_URL, "http://127.0.0.1:6100");
   assert.equal("DATABASE_URL" in web, false);
   assert.equal(
@@ -116,11 +116,18 @@ test("validates each host configuration without exposing server values to client
     "http://127.0.0.1:6100",
   );
   assert.equal(readRedisRuntimeConfig({ REDIS_URL: "redis://127.0.0.1:6379" }).REDIS_URL, "redis://127.0.0.1:6379");
-  assert.equal(
-    readUiuxWebRuntimeConfig({ PLATFORM_HOST: "127.0.0.1", UIUX_WEB_PORT: "6102" }).UIUX_WEB_PORT,
-    6102,
-  );
   assert.throws(() => readRedisRuntimeConfig({ REDIS_URL: "https://127.0.0.1:6379" }));
-  assert.throws(() => readUiuxWebRuntimeConfig({ PLATFORM_HOST: "", UIUX_WEB_PORT: "0" }));
   assert.throws(() => readWebRuntimeConfig({ PLATFORM_HOST: "", PLATFORM_WEB_PORT: "0" }));
+  assert.throws(() =>
+    readApiRuntimeConfig({
+      PLATFORM_HOST: "127.0.0.1",
+      PLATFORM_API_PORT: "6100",
+      DATABASE_URL: "sqlite://local",
+      PLATFORM_JWT_SECRET: "runtime-config-test-secret-runtime-config-test",
+      PLATFORM_DEPLOYMENT_MODE: "single",
+      PLATFORM_DEPLOYMENT_NAME: "aaran",
+      PLATFORM_BOOTSTRAP_ADMIN_EMAIL: "admin@admin.com",
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "not-a-url",
+    }),
+  );
 });
