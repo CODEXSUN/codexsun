@@ -1,14 +1,14 @@
 {
   "name": "@codexsun/docs-api",
-  "version": "1.0.17",
   "private": true,
+  "version": "1.0.18",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/docs/api/server.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "test": "tsx --test src/modules/catalog/test/catalog-provider.test.ts src/modules/catalog/test/document-catalog.test.ts src/modules/catalog/test/docs-health-route.test.ts"
+    "test": "tsx --test src/modules/catalog/test/provider.test.ts"
   },
   "dependencies": {
     "@codexsun/docs-contracts": "file:../../../packages/docs-contracts",

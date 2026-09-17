@@ -1,17 +1,42 @@
-import { config } from "dotenv";
-import { resolve } from "node:path";
-import { readUiuxWebRuntimeConfig } from "@codexsun/platform-core/runtime-config";
-import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
+import { loadComponentEnvironment, readRequiredHost, readRequiredPort } from "../../../tools/vite-environment.mjs";
 
-config({ path: resolve(import.meta.dirname, "../../../.env") });
-config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
+const projectRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
-const runtimeConfig = readUiuxWebRuntimeConfig(process.env);
+export default defineConfig(() => {
+  const environment = loadComponentEnvironment(projectRoot, "apps/uiux/web/.app.env");
+  const webHost = readRequiredHost(environment, "WEB_HOST");
+  const webPort = readRequiredPort(environment, "WEB_PORT");
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  server: { host: runtimeConfig.PLATFORM_HOST, port: runtimeConfig.UIUX_WEB_PORT, strictPort: true },
-  build: { outDir: "../../../dist/uiux/web", emptyOutDir: true },
+  return {
+    cacheDir: "../../../node_modules/.cache/vite/uiux-web",
+    envDir: projectRoot,
+    plugins: [react(), tailwindcss()],
+    server: { host: webHost, port: webPort, strictPort: true },
+    preview: { host: webHost, port: webPort, strictPort: true },
+    build: {
+      outDir: "../../../dist/apps/uiux/web",
+      emptyOutDir: true,
+      chunkSizeWarningLimit: 400,
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [{ name: "vendor", test: /node_modules/, maxSize: 400_000 }],
+          },
+        },
+      },
+    },
+    resolve: {
+      alias: [
+        { find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },
+        {
+          find: /^@codexsun\/ui$/,
+          replacement: fileURLToPath(new URL("../../../packages/ui/src/index.ts", import.meta.url)),
+        },
+      ],
+    },
+  };
 });

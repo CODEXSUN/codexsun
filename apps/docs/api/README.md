@@ -2,20 +2,23 @@
 
 ## Purpose
 
-Docs API publishes documentation contracts and Docs provider health.
+Docs API owns document discovery, restricted MDX rendering, metadata indexing,
+and the versioned Docs HTTP API.
 
-## Owner
+## Dependencies
 
-The Docs API owns the `docs.catalog` module provider.
+It uses the public `@codexsun/docs-contracts`, `@codexsun/framework`, and
+`@codexsun/platform-core` contracts. Its document-library module owns Docs
+domain behavior and persistence; it does not import another application's
+private source.
 
 ## Configuration
 
-Set `PLATFORM_HOST`, `DOCS_API_PORT`, `DOCS_DATABASE_URL`, `DOCS_INDEX_PATH`, and `DOCS_WEB_ORIGIN`.
-
-## Data
-
-SQLite will store the derived Docs index. D-1220 owns the schema and sync work.
+Copy `.app.env.example` to the ignored `.app.env`. Configure the API host and
+port, Docs vault path, index mode, web origin, and MariaDB connection values.
 
 ## Verification
 
-Run `npm.cmd run test:docs-api` and `npm.cmd run check --workspace @codexsun/docs-api`.
+Run `npm.cmd run typecheck --workspace @codexsun/docs-api`,
+`npm.cmd run lint --workspace @codexsun/docs-api`, and
+`npm.cmd run test --workspace @codexsun/docs-api`.

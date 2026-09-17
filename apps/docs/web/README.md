@@ -2,16 +2,22 @@
 
 ## Purpose
 
-Docs Web is the standalone browser host for CODEXSUN documentation.
+Docs Web provides the browser reading, search, navigation, editing, and
+documentation-health experience for the Docs application.
 
 ## Dependencies
 
-Docs Web uses `@codexsun/ui` and `@codexsun/docs-contracts` public exports.
+It composes public `@codexsun/ui` layouts and components and consumes
+versioned document data only through `@codexsun/docs-contracts` and the Docs
+HTTP API.
 
 ## Configuration
 
-Set `PLATFORM_HOST`, `DOCS_WEB_PORT`, and `VITE_DOCS_API_URL`.
+Copy `.app.env.example` to the ignored `.app.env`. Configure `WEB_HOST` and
+`WEB_PORT`; the root environment supplies `VITE_DOCS_API_URL`.
 
 ## Verification
 
-Run `npm.cmd run test:docs-web` and `npm.cmd run check --workspace @codexsun/docs-web`.
+Run `npm.cmd run typecheck --workspace @codexsun/docs-web`,
+`npm.cmd run lint --workspace @codexsun/docs-web`, and
+`npm.cmd run test --workspace @codexsun/docs-web`.

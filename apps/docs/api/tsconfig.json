@@ -7,5 +7,5 @@
       "@codexsun/docs-contracts": ["../../../packages/docs-contracts/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src/config.ts", "src/server.ts", "src/modules/catalog"]
 }

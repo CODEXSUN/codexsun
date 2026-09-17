@@ -10,6 +10,7 @@ import {
   readApiRuntimeConfig,
   readDesktopRuntimeConfig,
   readMobileRuntimeConfig,
+  readUiuxWebRuntimeConfig,
   readRedisRuntimeConfig,
   readWebRuntimeConfig,
 } from "../src/index.js";
@@ -114,6 +115,10 @@ test("validates each host configuration without exposing server values to client
   assert.equal(
     readMobileRuntimeConfig({ PLATFORM_MOBILE_API_URL: "http://127.0.0.1:6100" }).PLATFORM_MOBILE_API_URL,
     "http://127.0.0.1:6100",
+  );
+  assert.equal(
+    readUiuxWebRuntimeConfig({ PLATFORM_HOST: "127.0.0.1", UIUX_WEB_PORT: "6102" }).UIUX_WEB_PORT,
+    6102,
   );
   assert.equal(readRedisRuntimeConfig({ REDIS_URL: "redis://127.0.0.1:6379" }).REDIS_URL, "redis://127.0.0.1:6379");
   assert.throws(() => readRedisRuntimeConfig({ REDIS_URL: "https://127.0.0.1:6379" }));

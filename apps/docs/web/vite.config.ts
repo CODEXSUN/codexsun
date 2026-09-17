@@ -1,22 +1,59 @@
-import { config } from "dotenv";
-import { resolve } from "node:path";
-import { readDocsWebRuntimeConfig } from "@codexsun/platform-core/runtime-config";
-import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
+import { loadComponentEnvironment, readRequiredHost, readRequiredPort } from "../../../tools/vite-environment.mjs";
 
-config({ path: resolve(import.meta.dirname, "../../../.env") });
-config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
+const projectRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
-const runtimeConfig = readDocsWebRuntimeConfig(process.env);
+export default defineConfig(() => {
+  const environment = loadComponentEnvironment(projectRoot, "apps/docs/web/.app.env");
+  const webHost = readRequiredHost({ ...environment, WEB_HOST: environment.WEB_HOST ?? environment.PLATFORM_HOST }, "WEB_HOST");
+  const webPort = readRequiredPort({ ...environment, WEB_PORT: environment.WEB_PORT ?? environment.DOCS_WEB_PORT }, "WEB_PORT");
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@codexsun/docs-contracts": resolve(import.meta.dirname, "../../../packages/docs-contracts/src/index.ts"),
+  return {
+    cacheDir: "../../../node_modules/.cache/vite/docs-web",
+    plugins: [react(), tailwindcss()],
+    build: {
+      outDir: "../../../dist/apps/docs/web",
+      emptyOutDir: true,
+      chunkSizeWarningLimit: 400,
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name(moduleId) {
+                  const packagePath = moduleId.match(/node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/)?.[1];
+                  return packagePath ? `vendor-${packagePath.replaceAll("/", "-").replaceAll("\\", "-")}` : null;
+                },
+                test: /node_modules/,
+                maxSize: 360_000,
+              },
+            ],
+          },
+        },
+      },
     },
-  },
-  server: { host: runtimeConfig.PLATFORM_HOST, port: runtimeConfig.DOCS_WEB_PORT, strictPort: true },
-  build: { outDir: "../../../dist/docs/web", emptyOutDir: true },
+    resolve: {
+      alias: [
+        { find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },
+        {
+          find: /^@codexsun\/docs-contracts$/,
+          replacement: fileURLToPath(new URL("../contracts/src/index.ts", import.meta.url)),
+        },
+        {
+          find: /^@codexsun\/ui$/,
+          replacement: fileURLToPath(new URL("../../../packages/ui/src/index.ts", import.meta.url)),
+        },
+      ],
+    },
+    server: {
+      host: webHost,
+      hmr: false,
+      port: webPort,
+      strictPort: true,
+      watch: null,
+    },
+  };
 });

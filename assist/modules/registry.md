@@ -27,6 +27,7 @@ Do not list a module until its provider and README exist.
 
 | Module                | Owner        | Provider                | Contracts                                                | Storage                        | Data                                  | Events | Tests                      | Status |
 | --------------------- | ------------ | ----------------------- | -------------------------------------------------------- | ------------------------------ | ------------------------------------- | ------ | -------------------------- | ------ |
+| UIUX Gallery          | UIUX Web     | `uiux.web.gallery`      | Browser gallery routes and shared UI specimens           | None                           | None                                  | None   | Gallery module contract test | Active |
 | Platform System       | Platform API | `platform.system`       | `GET /api/v1/platform/health`                            | None                           | None                                  | None   | API health check           | Active |
 | Platform Identity API | Platform API | `platform.identity`     | Actor, authorization, and single-tenant policy contracts | None                           | `identity.001`, `identity.seed.001`   | None   | Identity API tests         | Active |
 | Platform Settings     | Platform API | `platform.settings`     | `GET /api/v1/platform/settings`                          | None                           | `settings.001`, `settings.seed.001`   | None   | Settings API module tests  | Active |

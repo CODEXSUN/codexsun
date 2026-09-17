@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.17
+Current version: 1.0.18
 
-Release tag: v-1.0.17
+Release tag: v-1.0.18
 
-Changelog label: v 1.0.17
+Changelog label: v 1.0.18
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -19,6 +19,20 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+- Aligned the UIUX Gallery with the shared UI package contract. The Gallery now
+  declares its UI-only provider and module test, and the public UI entry point
+  exports its MDI shell. Shared components now use the package-owned `cn`
+  utility rather than an unresolved external module. No UI positions or visual
+  layout changed.
+
+- Wired all browser workspaces to their owned shared shell. Docs now mounts the
+  Documentation Workspace. Zetro now mounts the Agent Workspace inside
+  `MdiMain`. Platform web, Platform desktop, and Orship now use the current
+  `MdiMain` contract. The MDI catalog recognizes UIUX as the UI workspace.
+  Docs accepts root or app-local web port configuration. Added missing Docs
+  Catalog and Zetro Chat module records. Application architecture and module
+  boundary checks pass. No database change.
 
 - Replaced the copied Zetro feature modules with a fresh chat vertical slice.
   Zetro now uses the public `MdiMain` shell, private SQLite conversation
@@ -96,6 +110,18 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added isolated Orship startup preflight targets. The API reserves port `6090`
   and the web host reserves port `6091`; the web host proxies `/api` to the
   configured API URL. No database change.
+
+## v-1.0.18
+
+### [v 1.0.18] 2026-09-17 10:44 pm - working on uiux refactor
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.18.
 
 ## v-1.0.17
 

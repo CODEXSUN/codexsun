@@ -1,4 +1,4 @@
-import "@codexsun/ui/assets";
+import "@codexsun/ui/globals.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./app.js";
 

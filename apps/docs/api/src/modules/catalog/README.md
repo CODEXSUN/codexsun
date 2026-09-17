@@ -1,23 +1,7 @@
 # Docs Catalog Module
 
-## Purpose
+Docs Catalog owns repository document discovery, its local index, and the Docs
+health route. It exposes the `docs.catalog` provider contract to the Docs API.
 
-This module registers the Docs catalog capability, health contract, and
-derived SQLite document index.
-
-## Provider
-
-The provider ID is `docs.catalog`. It depends on `platform.core`.
-
-## Contracts
-
-The module exposes `GET /api/docs/v1/health`.
-
-## Data
-
-The module owns `docs-index.001`. It indexes allowed source files in place.
-It deletes stale index records during a full sync. Source documents stay authoritative.
-
-## Tests
-
-Run the Docs API test command.
+The module depends on Platform Core only through its public provider contract.
+It does not own documentation presentation or browser workspace composition.

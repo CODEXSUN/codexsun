@@ -80,6 +80,10 @@ export const zetroWebRuntimeConfigSchema = z.object({
   VITE_ZETRO_API_URL: urlSchema,
 });
 
+export const uiuxWebRuntimeConfigSchema = z.object({
+  PLATFORM_HOST: hostSchema,
+  UIUX_WEB_PORT: portSchema,
+});
 
 export const desktopRuntimeConfigSchema = z.object({
   PLATFORM_HOST: hostSchema,
@@ -105,6 +109,7 @@ export type DocsApiRuntimeConfig = z.infer<typeof docsApiRuntimeConfigSchema>;
 export type DocsWebRuntimeConfig = z.infer<typeof docsWebRuntimeConfigSchema>;
 export type ZetroApiRuntimeConfig = z.infer<typeof zetroApiRuntimeConfigSchema>;
 export type ZetroWebRuntimeConfig = z.infer<typeof zetroWebRuntimeConfigSchema>;
+export type UiuxWebRuntimeConfig = z.infer<typeof uiuxWebRuntimeConfigSchema>;
 export type DesktopRuntimeConfig = z.infer<typeof desktopRuntimeConfigSchema>;
 export type MobileRuntimeConfig = z.infer<typeof mobileRuntimeConfigSchema>;
 export type RedisRuntimeConfig = z.infer<typeof redisRuntimeConfigSchema>;
@@ -133,6 +138,9 @@ export function readZetroWebRuntimeConfig(environment: NodeJS.ProcessEnv): Zetro
   return zetroWebRuntimeConfigSchema.parse(environment);
 }
 
+export function readUiuxWebRuntimeConfig(environment: NodeJS.ProcessEnv): UiuxWebRuntimeConfig {
+  return uiuxWebRuntimeConfigSchema.parse(environment);
+}
 
 export function readDesktopRuntimeConfig(environment: NodeJS.ProcessEnv): DesktopRuntimeConfig {
   return desktopRuntimeConfigSchema.parse(environment);

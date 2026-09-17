@@ -24,7 +24,8 @@ const targets = {
   "uiux-web": {
     displayName: "UIUX web",
     environmentDirectory: "web",
-    envKey: "UIUX_WEB_PORT",
+    envKey: "WEB_PORT",
+    hostKey: "WEB_HOST",
     workspace: "@codexsun/uiux-web",
   },
   "zetro-api": {

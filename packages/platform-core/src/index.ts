@@ -69,9 +69,11 @@ export {
   readApiRuntimeConfig,
   readDesktopRuntimeConfig,
   readMobileRuntimeConfig,
+  readUiuxWebRuntimeConfig,
   readWebRuntimeConfig,
   redisRuntimeConfigSchema,
   webRuntimeConfigSchema,
+  uiuxWebRuntimeConfigSchema,
   zetroApiRuntimeConfigSchema,
   zetroWebRuntimeConfigSchema,
 } from "./runtime-config.js";
@@ -85,6 +87,7 @@ export type {
   WebRuntimeConfig,
   ZetroApiRuntimeConfig,
   ZetroWebRuntimeConfig,
+  UiuxWebRuntimeConfig,
 } from "./runtime-config.js";
 
 export interface PlatformProviderConfiguration {

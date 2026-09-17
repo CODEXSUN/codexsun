@@ -1,17 +1,8 @@
-# UIUX Web
+# UI Web Workspace
 
-This standalone gallery reads public `@codexsun/ui` exports. It does not provide reusable controls to other apps.
+This React and Vite workspace owns the UIUX Gallery. It writes production output only to
+`dist/apps/uiux/web`.
 
-It filters registry layers and shows selected-item metadata, including default
-and supported variants, states, required props, accessibility notes, example
-data, and lifecycle status.
-
-It renders an isolated live preview for the selected published item. Preview theme,
-density, surface, and state are browser-memory-only controls; they never change a
-production application preference.
-
-Set `PLATFORM_HOST` and `UIUX_WEB_PORT` in `web/.app.env`. The default UIUX
-web port is `6102`, isolated from Platform (`6101`) and Zetro (`6131`). Run
-`npm.cmd run dev:uiux`, `npm.cmd run check:uiux`, and `npm.cmd run build:uiux`.
-
-Build output: `dist/uiux/web`.
+The [Gallery module](src/modules/gallery/README.md) owns catalogs, pages, live specimens,
+examples, code samples, routes, navigation, environment, and browser state. It consumes
+reusable UI through public `@codexsun/ui` exports.

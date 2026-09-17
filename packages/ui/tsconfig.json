@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "../../node_modules/.cache/tsbuildinfo/ui.tsbuildinfo",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "outDir": "../../dist/packages/ui",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

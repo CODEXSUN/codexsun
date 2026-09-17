@@ -1,4 +1,9 @@
-import { Alert, Badge, Button, Card, DashboardPage, MdiMain, ThemeProvider } from "@codexsun/ui";
+import { MdiMain } from "@codexsun/ui";
+import { Alert } from "@codexsun/ui/components/alert";
+import { Badge } from "@codexsun/ui/components/badge";
+import { Button } from "@codexsun/ui/components/button";
+import { Card, CardContent } from "@codexsun/ui/components/card";
+import { ActivityIcon, ClipboardCheckIcon, LayoutDashboardIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface HealthResponse {
@@ -14,11 +19,7 @@ interface AttemptResponse {
 const apiUrl = import.meta.env.VITE_ORSHIP_API_URL as string | undefined;
 
 export function App() {
-  return (
-    <ThemeProvider>
-      <OrshipWorkspace />
-    </ThemeProvider>
-  );
+  return <OrshipWorkspace />;
 }
 
 function OrshipWorkspace() {
@@ -62,43 +63,64 @@ function OrshipWorkspace() {
       setError(cause instanceof Error ? cause.message : "The attempt could not be recorded.");
     }
   };
+
   return (
-    <MdiMain title="CODEXSUN Orship" menu={["Overview", "Attempts", "Telemetry"]} status={status}>
-      <DashboardPage
-        title="Orchestration foundation"
-        description="Orship will coordinate reviewed changes from preview through live verification."
-      >
+    <MdiMain
+      applicationId="orship"
+      applicationName="CODEXSUN Orship"
+      navigation={[
+        {
+          items: [
+            { active: true, icon: LayoutDashboardIcon, label: "Overview" },
+            { icon: ClipboardCheckIcon, label: "Attempts" },
+            { icon: ActivityIcon, label: "Telemetry" },
+          ],
+        },
+      ]}
+      primaryAction={null}
+      statusLabel={status}
+      workspaceTitle="Orchestration foundation"
+    >
+      <section className="size-full overflow-y-auto p-6">
+        <header className="mb-6">
+          <h1 className="text-xl font-semibold tracking-tight">Orchestration foundation</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Orship coordinates reviewed changes from preview through live verification.
+          </p>
+        </header>
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <p className="text-sm text-muted-foreground">API status</p>
-            <div className="mt-3 flex items-center gap-2">
-              <Badge variant={error ? "danger" : health?.status === "ok" ? "success" : "warning"}>{status}</Badge>
-              <span className="text-sm text-muted-foreground">{error ?? "Standalone Orship API"}</span>
-            </div>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">API status</p>
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant={error ? "destructive" : health?.status === "ok" ? "secondary" : "outline"}>{status}</Badge>
+                <span className="text-sm text-muted-foreground">{error ?? "Standalone Orship API"}</span>
+              </div>
+            </CardContent>
           </Card>
           <Card>
-            <p className="text-sm text-muted-foreground">Loaded providers</p>
-            <p className="mt-3 text-2xl font-semibold">{health?.providers.length ?? 0}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Platform Core and Orship orchestration are composed here.
-            </p>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Loaded providers</p>
+              <p className="mt-3 text-2xl font-semibold">{health?.providers.length ?? 0}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Platform Core and Orship orchestration are composed here.</p>
+            </CardContent>
           </Card>
         </div>
-        <Card>
-          <p className="text-sm text-muted-foreground">Approval gate</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            A required failed check blocks approval before any deployment provider can run.
-          </p>
-          <Button className="mt-4" onClick={() => void createFailedAttempt()}>
-            Record failed verification
-          </Button>
-          {attempt ? (
-            <Alert className="mt-4" variant="danger">
-              Attempt {attempt.id} is {attempt.state}. Approval is blocked.
-            </Alert>
-          ) : null}
+        <Card className="mt-4">
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Approval gate</p>
+            <p className="mt-2 text-sm text-muted-foreground">A required failed check blocks approval before any deployment provider can run.</p>
+            <Button className="mt-4" onClick={() => void createFailedAttempt()}>
+              Record failed verification
+            </Button>
+            {attempt ? (
+              <Alert className="mt-4" variant="destructive">
+                Attempt {attempt.id} is {attempt.state}. Approval is blocked.
+              </Alert>
+            ) : null}
+          </CardContent>
         </Card>
-      </DashboardPage>
+      </section>
     </MdiMain>
   );
 }

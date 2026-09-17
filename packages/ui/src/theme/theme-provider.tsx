@@ -1,39 +1,101 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { resolveThemeAttributes, type ThemeDensity, type ThemeName, type ThemeSelection } from "./theme-contract";
+'use client'
 
-interface ThemeContextValue extends ThemeSelection {
-  setTheme(theme: ThemeName): void;
-  setDensity(density: ThemeDensity): void;
+import * as React from 'react'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+
+import {
+  COLOR_THEME_ATTRIBUTE,
+  COLOR_THEME_STORAGE_KEY,
+  THEME_STORAGE_KEY,
+  isColorThemeId,
+  type ColorThemeId,
+} from './theme-config'
+
+type ColorThemeContextValue = {
+  colorTheme: ColorThemeId
+  setColorTheme: (theme: ColorThemeId) => void
 }
 
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-
-export interface ThemeProviderProps {
-  readonly children: ReactNode;
-  readonly defaultTheme?: ThemeName;
-  readonly defaultDensity?: ThemeDensity;
+type ThemeProviderProps = React.ComponentProps<typeof NextThemesProvider> & {
+  colorStorageKey?: string
+  defaultColorTheme?: ColorThemeId
 }
 
-export function ThemeProvider({ children, defaultTheme = "dark", defaultDensity = "default" }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<ThemeName>(defaultTheme);
-  const [density, setDensity] = useState<ThemeDensity>(defaultDensity);
-  const attributes = resolveThemeAttributes({ theme, density });
-  const value = useMemo(() => ({ theme, density, setTheme, setDensity }), [theme, density]);
+const ColorThemeContext = React.createContext<ColorThemeContextValue | null>(null)
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.dataset.density = density;
-  }, [theme, density]);
+export function ThemeProvider({
+  attribute = 'class',
+  children,
+  colorStorageKey = COLOR_THEME_STORAGE_KEY,
+  defaultColorTheme = 'neutral',
+  defaultTheme = 'system',
+  disableTransitionOnChange = true,
+  enableSystem = true,
+  storageKey = THEME_STORAGE_KEY,
+  ...props
+}: ThemeProviderProps) {
+  const [colorTheme, setColorThemeState] = React.useState<ColorThemeId>(() =>
+    readColorTheme(colorStorageKey, defaultColorTheme),
+  )
+
+  const setColorTheme = React.useCallback(
+    (theme: ColorThemeId) => {
+      setColorThemeState(theme)
+      writeColorTheme(colorStorageKey, theme)
+    },
+    [colorStorageKey],
+  )
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute(COLOR_THEME_ATTRIBUTE, colorTheme)
+  }, [colorTheme])
+
+  React.useEffect(() => {
+    function syncColorTheme(event: StorageEvent) {
+      if (event.key !== colorStorageKey) return
+      setColorThemeState(isColorThemeId(event.newValue) ? event.newValue : defaultColorTheme)
+    }
+
+    window.addEventListener('storage', syncColorTheme)
+    return () => window.removeEventListener('storage', syncColorTheme)
+  }, [colorStorageKey, defaultColorTheme])
 
   return (
-    <ThemeContext.Provider value={value}>
-      <div {...attributes}>{children}</div>
-    </ThemeContext.Provider>
-  );
+    <NextThemesProvider
+      attribute={attribute}
+      defaultTheme={defaultTheme}
+      disableTransitionOnChange={disableTransitionOnChange}
+      enableSystem={enableSystem}
+      storageKey={storageKey}
+      {...props}
+    >
+      <ColorThemeContext.Provider value={{ colorTheme, setColorTheme }}>
+        {children}
+      </ColorThemeContext.Provider>
+    </NextThemesProvider>
+  )
 }
 
-export function useTheme(): ThemeContextValue {
-  const value = useContext(ThemeContext);
-  if (!value) throw new Error("useTheme must be used inside ThemeProvider.");
-  return value;
+export function useColorTheme(): ColorThemeContextValue {
+  const context = React.useContext(ColorThemeContext)
+  if (!context) throw new Error('useColorTheme must be used inside ThemeProvider.')
+  return context
+}
+
+function readColorTheme(storageKey: string, fallback: ColorThemeId): ColorThemeId {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const stored = window.localStorage.getItem(storageKey)
+    return isColorThemeId(stored) ? stored : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function writeColorTheme(storageKey: string, theme: ColorThemeId) {
+  try {
+    window.localStorage.setItem(storageKey, theme)
+  } catch {
+    // The active session still keeps the selected color when storage is unavailable.
+  }
 }

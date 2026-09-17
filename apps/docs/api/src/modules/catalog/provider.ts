@@ -8,11 +8,9 @@ export interface DocsCatalogConfiguration {
 
 export class DocsCatalogProvider implements ModuleProvider {
   private readonly catalog?: DocumentCatalog;
-
   constructor(configuration?: DocsCatalogConfiguration) {
     this.catalog = configuration ? new DocumentCatalog(configuration) : undefined;
   }
-
   readonly manifest = {
     id: "docs.catalog",
     owner: "apps/docs/api/modules/catalog",
@@ -21,16 +19,13 @@ export class DocsCatalogProvider implements ModuleProvider {
     contracts: ["docs.health"],
     events: { published: [], consumed: [] },
   };
-
   register(context: ProviderRegistrationContext): void {
     context.provide("docs.catalog", { name: "Docs Catalog" });
     if (this.catalog) context.provide("docs.catalog.service", this.catalog);
   }
-
   start(): void {
     this.catalog?.sync();
   }
-
   stop(): void {
     this.catalog?.close();
   }

@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/zetro-web",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "vite build",
     "check": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "test": "tsx --test src/zetro-health.test.ts"
+    "test": "tsx --test src/chat-api.test.ts"
   },
   "dependencies": {
     "@codexsun/ui": "file:../../../packages/ui",
