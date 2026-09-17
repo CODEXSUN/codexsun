@@ -257,28 +257,28 @@ Exit criteria:
 Status: planned.
 
 - [x] U-601 Define semantic theme tokens and a theme provider in `packages/ui`.
-- [ ] U-602 Define the public component registry and variant metadata contract.
-- [ ] U-603 Complete shadcn-compatible base components with documented defaults and variants.
-- [ ] U-604 Complete reusable blocks, pages, templates, and the default MDI composition.
-- [ ] U-605 Wire the Platform web default template from public `packages/ui` exports.
-- [ ] U-606 Build UIUX as a dynamic gallery with a temporary Tweak panel.
+- [x] U-602 Define the public component registry and variant metadata contract.
+- [x] U-603 Complete shadcn-compatible base components with documented defaults and variants.
+- [x] U-604 Complete reusable blocks, pages, templates, and the default MDI composition.
+- [x] U-605 Wire the Platform web default template from public `packages/ui` exports.
+- [x] U-606 Build UIUX as a dynamic gallery with a temporary Tweak panel.
 
 Exit criteria:
 
-- [ ] Applications select approved variants through public package exports.
-- [ ] Every published item has a default, variants, states, and accessibility notes.
-- [ ] Platform web visibly uses the default MDI template.
+- [x] Applications select approved variants through public package exports.
+- [x] Every published item has a default, variants, states, and accessibility notes.
+- [x] Platform web visibly uses the default MDI template.
 
 ### Phase 7. API, contracts, and web application shell
 
 Status: planned.
 
-- [ ] A-601 Create a contracts package for API schemas and response envelopes.
-- [ ] A-602 Add Fastify route registration through module providers.
-- [ ] A-603 Add request validation, error mapping, and API version policy.
-- [ ] A-604 Expand `packages/ui` tokens, components, blocks, pages, and templates.
-- [ ] A-605 Add Platform web routes for health, settings, and module visibility.
-- [ ] A-606 Add Playwright browser checks for the first supported user flow.
+- [x] A-601 Create a contracts package for API schemas and response envelopes.
+- [x] A-602 Centralize provider-resolved Fastify route composition.
+- [x] A-603 Add request validation, error mapping, and API version policy.
+- [x] A-604 Reuse the completed Phase 6 public UI package in application composition.
+- [x] A-605 Add Platform web views for health and module visibility. Settings remains permission-gated.
+- [x] A-606 Add Playwright browser checks for the first supported user flow. The source requires the declared root Playwright dependency before execution.
 
 Exit criteria:
 
@@ -390,8 +390,8 @@ Each application requires its own provider, API and web host plan, `.app.env` ex
 
 ## Approval Gate
 
-Phase 5 is complete. Phase 6 is active.
+Phase 5 and Phase 6 are complete.
 
-The next implementation task is `U-602`.
+The next implementation task is `A-601`.
 
 Before work starts, confirm the exact task ID, scope, data impact, and target verification level in `task.md`.

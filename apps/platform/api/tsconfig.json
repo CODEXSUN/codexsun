@@ -1,5 +1,9 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "../../../dist/platform/api", "rootDir": "." },
+  "compilerOptions": {
+    "outDir": "../../../dist/platform/api",
+    "baseUrl": ".",
+    "paths": { "@codexsun/contracts": ["../../../packages/contracts/src/index.ts"] }
+  },
   "include": ["src", "test"]
 }

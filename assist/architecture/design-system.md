@@ -58,21 +58,23 @@ The shared CSS asset defines these token groups as CSS variables. `ThemeProvider
 
 ## Component Defaults and Variants
 
-| Component           | Default         | Required variants                                    |
-| ------------------- | --------------- | ---------------------------------------------------- |
-| Button              | `primary`, `md` | secondary, outline, ghost, danger, link, icon sizes. |
-| Input               | `default`       | error, disabled, read-only, compact.                 |
-| Select              | `default`       | error, disabled, compact.                            |
-| Checkbox and switch | `default`       | disabled, invalid.                                   |
-| Badge               | `neutral`       | success, warning, danger, info.                      |
-| Alert               | `info`          | success, warning, danger.                            |
-| Card                | `surface`       | flush, outlined, interactive.                        |
-| Dialog              | `default`       | confirmation, destructive, full-screen.              |
-| Table               | `default`       | dense, selectable, empty, loading.                   |
-| Empty state         | `default`       | error, no-results, no-access.                        |
-| Skeleton            | `default`       | text, card, table, page.                             |
+| Component           | Default         | Required variants                                         |
+| ------------------- | --------------- | --------------------------------------------------------- |
+| Button              | `default`, `md` | secondary, outline, ghost, destructive, link, icon sizes. |
+| Input               | `default`       | error, disabled, read-only, compact.                      |
+| Select              | `default`       | error, disabled, compact.                                 |
+| Checkbox and switch | `default`       | disabled, invalid.                                        |
+| Badge               | `neutral`       | success, warning, danger, info.                           |
+| Alert               | `info`          | success, warning, danger.                                 |
+| Card                | `surface`       | flush, outlined, interactive.                             |
+| Dialog              | `default`       | confirmation, destructive, full-screen.                   |
+| Table               | `default`       | dense, selectable, empty, loading.                        |
+| Empty state         | `default`       | error, no-results, no-access.                             |
+| Skeleton            | `default`       | text, card, table, page.                                  |
 
 The package exposes components from `components/` only. Blocks compose components. Pages compose blocks. Templates compose pages.
+
+U-603 publishes the listed base components through `@codexsun/ui`. They use semantic tokens and documented variants. The Dialog presents an accessible modal role, title, and named close action. Focus trapping and restore remain required behavior for the later dialog interaction enhancement.
 
 ## Blocks, Pages, and Templates
 
@@ -96,9 +98,13 @@ Every shared component, block, page, and template must publish metadata:
 - example data source;
 - deprecation status.
 
+`@codexsun/ui` exports this metadata as `uiRegistry`. Registry IDs use `ui.<layer>.<name>` and are immutable after publication. The registry is metadata only. It does not import an application or render a preview.
+
 The future UIUX application reads this public registry to render a dynamic gallery. It must not import private package files or become a dependency for other applications.
 
 The gallery includes a lower-right Tweak panel. It controls supported preview axes such as theme, density, surface style, and state. It never writes application production preferences.
+
+U-604 adds the public `ContentSection`, `DashboardPage`, and `SettingsPage` composition exports. `MdiMain` remains the default workspace template. U-605 wires the Platform web host through these public exports. U-606 adds the standalone `apps/uiux/web` gallery, with preview-only theme and density controls.
 
 ## Accessibility Rules
 

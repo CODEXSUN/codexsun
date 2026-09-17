@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.8
+Current version: 1.0.9
 
-Release tag: v-1.0.8
+Release tag: v-1.0.9
 
-Changelog label: v 1.0.8
+Changelog label: v 1.0.9
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -19,6 +19,27 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+- Added Docs agent guidance for source-in-place Markdown and MDX discovery, SQLite indexing, link resolution, backlinks, graph metadata, and verification.
+- Added a phased Docs application plan and a Docs-specific task register. No Docs application code changed.
+- Added Zetro agent skills for reviewed planning, task splitting, guidance snapshots, isolated worktrees, evidence, and manual merge approval.
+- Added a phased Zetro delivery plan and task register. No Zetro runtime code or SQLite migration changed.
+
+## v-1.0.9
+
+### [v 1.0.9] 2026-09-17 1:48 pm - Platform API contracts and UI system
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.9.
+- Added the completed shared UI theme, registry, base components, composition layers, Platform MDI integration, and standalone UIUX gallery.
+- Added the public API contracts package, centralized route composition, stable API error codes, and Platform module visibility.
+- Added Docs, Zetro, and Orship documentation records supplied in this workspace.
+- Added the Playwright Platform workspace test source and root command. It requires the declared package to be installed before it can run locally.
 
 ## v-1.0.8
 
@@ -36,6 +57,18 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Updated shared UI controls, blocks, pages, and the MDI template to use semantic tokens instead of fixed palette classes.
 - Wired the Platform web host to the shared default theme and added a focused UI theme-contract test to root validation.
 - Completed U-601. The next design-system task is U-602 public component registry metadata.
+- Added the public `uiRegistry` metadata contract for shared UI components, blocks, pages, and templates.
+- Added stable registry IDs, variant and state metadata, accessibility notes, example data, lifecycle status, and focused validation tests.
+- Completed U-602. The next design-system task is U-603 base shadcn-compatible UI components.
+- Added documented public form, feedback, surface, dialog, table, empty-state, and skeleton components in `@codexsun/ui`.
+- Registered every base component with variants, states, and accessibility guidance. Completed U-603.
+- Added reusable UI composition exports and wired Platform web through the public default MDI template.
+- Added the standalone UIUX gallery host with a public registry view and preview-only theme and density Tweak panel.
+- Added UIUX root preflight, environment, Turbo output, and `dist/uiux/web` wiring. Completed U-604 to U-606 and Phase 6.
+- Added the public `@codexsun/contracts` package and centralized Platform API route composition through provider-resolved services.
+- Added validated Platform health and module contracts plus Platform web module visibility. Phase 7 remains active for API error policy and Playwright coverage.
+- Added stable API error codes, centralized not-found and internal-error mapping, and a declared Playwright Platform workspace flow.
+- Completed A-603 and Phase 7 source work. Playwright execution needs its declared package installed in the root workspace.
 
 ## v-1.0.7
 

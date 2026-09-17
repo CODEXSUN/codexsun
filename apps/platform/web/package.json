@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/platform-web",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,6 +11,7 @@
     "test": "tsx --test src/modules/identity/test/identity-session-gateway.test.ts"
   },
   "dependencies": {
+    "@codexsun/contracts": "file:../../../packages/contracts",
     "@codexsun/platform-core": "file:../../../packages/platform-core",
     "@codexsun/ui": "file:../../../packages/ui",
     "dotenv": "^17.0.0",

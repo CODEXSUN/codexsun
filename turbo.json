@@ -12,6 +12,9 @@
     "@codexsun/platform-web#build": {
       "outputs": ["../../../dist/platform/web/**"]
     },
+    "@codexsun/uiux-web#build": {
+      "outputs": ["../../../dist/uiux/web/**"]
+    },
     "check": {
       "dependsOn": ["^check"],
       "outputs": []

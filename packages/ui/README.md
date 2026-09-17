@@ -5,3 +5,7 @@
 Applications import components from `@codexsun/ui` and shared Tailwind CSS from `@codexsun/ui/assets`.
 
 `ThemeProvider` owns approved theme and density selection. Applications use its public exports and semantic Tailwind token classes such as `bg-canvas`, `bg-surface`, and `text-foreground`.
+
+`uiRegistry` is the public metadata source for UIUX and documentation tools. It lists each published item, its allowed variants, states, required props, accessibility notes, example data, and lifecycle status. Applications and UIUX must import it only from `@codexsun/ui`.
+
+Base exports include form controls, Button, Badge, Alert, Card, Dialog, Table, EmptyState, and Skeleton. Use these exports instead of application-local primitives.

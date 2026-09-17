@@ -20,6 +20,12 @@ const targets = {
     envKey: "PLATFORM_WEB_PORT",
     workspace: "@codexsun/platform-web",
   },
+  "uiux-web": {
+    displayName: "UIUX web",
+    environmentDirectory: "web",
+    envKey: "UIUX_WEB_PORT",
+    workspace: "@codexsun/uiux-web",
+  },
 };
 
 export class StartupPreflight {
@@ -147,8 +153,13 @@ function loadEnvironment(targetName) {
   return {
     ...process.env,
     ...readEnvFile(join(root, ".env")),
-    ...readEnvFile(join(root, "apps", "platform", target.environmentDirectory, ".app.env")),
+    ...readEnvFile(appEnvironmentPath(targetName, target.environmentDirectory)),
   };
+}
+
+function appEnvironmentPath(targetName, environmentDirectory) {
+  const app = targetName === "uiux-web" ? "uiux" : "platform";
+  return join(root, "apps", app, environmentDirectory, ".app.env");
 }
 
 function readEnvFile(file) {

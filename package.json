@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -16,8 +16,10 @@
     "clean:root-layout": "node tools/clean-root-layout.mjs",
     "dev:api": "node tools/preflight.mjs platform-api",
     "dev:web": "node tools/preflight.mjs platform-web",
+    "dev:uiux": "node tools/preflight.mjs uiux-web",
     "preflight:api": "node tools/preflight.mjs platform-api --check",
     "preflight:web": "node tools/preflight.mjs platform-web --check",
+    "preflight:uiux": "node tools/preflight.mjs uiux-web --check",
     "format": "prettier --write .",
     "lint": "eslint .",
     "version:bump": "node tools/version-bump.mjs",
@@ -32,10 +34,12 @@
     "test:platform-core": "npm run test --workspace @codexsun/platform-core",
     "test:platform-api": "npm run test --workspace @codexsun/platform-api",
     "test:platform-web": "npm run test --workspace @codexsun/platform-web",
-    "test:ui": "npm run test --workspace @codexsun/ui"
+    "test:ui": "npm run test --workspace @codexsun/ui",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",

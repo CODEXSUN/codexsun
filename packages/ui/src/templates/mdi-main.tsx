@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { Button } from "../components/button";
 
 export interface MdiMainProps {
-  title: string;
-  menu: string[];
-  children: ReactNode;
-  status: string;
+  readonly title: string;
+  readonly menu: readonly string[];
+  readonly children: ReactNode;
+  readonly status: string;
+  readonly rail?: ReactNode;
 }
 
-export function MdiMain({ title, menu, children, status }: MdiMainProps) {
+export function MdiMain({ title, menu, children, status, rail }: MdiMainProps) {
   return (
     <main className="min-h-screen bg-canvas text-foreground">
       <header className="border-b border-border bg-surface px-6 py-4">
@@ -24,7 +25,12 @@ export function MdiMain({ title, menu, children, status }: MdiMainProps) {
           ))}
         </nav>
       </header>
-      <section className="p-6">{children}</section>
+      <div className="grid min-h-[calc(100vh-7.5rem)] grid-cols-1 lg:grid-cols-[15rem_1fr]">
+        {rail ? (
+          <aside className="border-b border-border bg-surface p-4 lg:border-r lg:border-b-0">{rail}</aside>
+        ) : null}
+        <section className="p-6">{children}</section>
+      </div>
     </main>
   );
 }

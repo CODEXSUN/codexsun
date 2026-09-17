@@ -12,6 +12,9 @@ const runtimeConfig = readWebRuntimeConfig(process.env);
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: { "@codexsun/contracts": resolve(import.meta.dirname, "../../../packages/contracts/src/index.ts") },
+  },
   server: { host: runtimeConfig.PLATFORM_HOST, port: runtimeConfig.PLATFORM_WEB_PORT, strictPort: true },
   build: { outDir: "../../../dist/platform/web", emptyOutDir: true },
 });
