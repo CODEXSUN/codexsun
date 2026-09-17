@@ -1,10 +1,12 @@
 {
   "name": "@codexsun/platform-core",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "private": true,
   "type": "module",
   "dependencies": {
     "@codexsun/framework": "file:../framework",
+    "kysely": "^0.29.6",
+    "mysql2": "^3.24.4",
     "zod": "^3.25.76"
   },
   "exports": {
@@ -13,6 +15,6 @@
   },
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --test test/runtime-registry.test.ts"
+    "test": "tsx --test test/runtime-registry.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/data-lifecycle-policy.test.ts"
   }
 }

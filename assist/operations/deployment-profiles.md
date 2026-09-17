@@ -6,6 +6,16 @@ A deployment profile defines one client deployment. It selects applications and 
 
 Store profile definitions in `deployment/`. Use configuration templates without live secrets.
 
+## Provider selection
+
+An application composition root creates a `DeployableProfile` with an ID and
+an explicit `enabledProviderIds` list. It passes the profile and available
+providers to `createPlatformRuntime()`.
+
+`ModuleEnablementPolicy` rejects duplicate IDs, unavailable providers, and
+missing provider dependencies before host startup. The profile selects runtime
+composition only. It does not replace the client deployment record.
+
 ## Required profile content
 
 - client identifier and environment;

@@ -1,5 +1,6 @@
 import { type ModuleProvider, ProviderEngine } from "@codexsun/framework";
 import { PlatformProvider } from "./index.js";
+import { type DeployableProfile, ModuleEnablementPolicy } from "./module-enablement-policy.js";
 
 export class PlatformRuntime {
   constructor(
@@ -29,16 +30,20 @@ export class PlatformRuntimeRegistry {
     return this;
   }
 
-  compose(): PlatformRuntime {
+  compose(profile: DeployableProfile): PlatformRuntime {
     const engine = new ProviderEngine();
-    for (const provider of this.providers.values()) engine.register(provider);
+    const policy = new ModuleEnablementPolicy();
+    for (const provider of policy.select(profile, [...this.providers.values()])) engine.register(provider);
     return new PlatformRuntime(engine, engine.ids());
   }
 }
 
-export function createPlatformRuntime(applicationProviders: readonly ModuleProvider[]): PlatformRuntime {
+export function createPlatformRuntime(
+  profile: DeployableProfile,
+  applicationProviders: readonly ModuleProvider[],
+): PlatformRuntime {
   const registry = new PlatformRuntimeRegistry();
   registry.include(new PlatformProvider());
   for (const provider of applicationProviders) registry.include(provider);
-  return registry.compose();
+  return registry.compose(profile);
 }

@@ -9,15 +9,20 @@ No task is active.
 
 ## Next Task
 
-| Task                           | Owner                                 | State                           | Data impact |
-| ------------------------------ | ------------------------------------- | ------------------------------- | ----------- |
-| P-204 Module enablement policy | Platform Core and deployable profiles | Planned. Requires confirmation. | None        |
+| Task                            | Owner    | State                           | Data impact |
+| ------------------------------- | -------- | ------------------------------- | ----------- |
+| I-401 Identity public contracts | Platform | Planned. Requires confirmation. | None        |
 
 ## Completed Milestones
 
 - Foundation: F-001 through F-005.
 - Framework kernel: F-101 through F-105.
-- Platform runtime registry, configuration, and readiness: P-201 to P-203.
+- Platform runtime registry, configuration, readiness, and enablement: P-201 to P-204.
+- Framework persistence contracts: D-301.
+- Platform Kysely transaction adapter: D-302.
+- Platform SQLite data adapter: D-303.
+- Platform MariaDB data adapter: D-304.
+- Data lifecycle policy and record template: D-305.
 
 See [CHAGELOG.md](../documentation/CHAGELOG.md) for the release record and
 `planning.md` for completed acceptance evidence.
@@ -26,7 +31,6 @@ See [CHAGELOG.md](../documentation/CHAGELOG.md) for the release record and
 
 | Area                      | Task IDs         | State         |
 | ------------------------- | ---------------- | ------------- |
-| Platform runtime          | P-204            | Planning only |
 | Data foundation           | D-301 to D-305   | Planning only |
 | Identity                  | I-401 to I-405   | Planning only |
 | Module standard           | M-501 to M-504   | Planning only |

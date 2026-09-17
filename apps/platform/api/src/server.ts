@@ -4,7 +4,10 @@ import { SystemModuleProvider } from "./modules/system/provider.js";
 import { registerHealthRoute } from "./modules/system/routes/health-route.js";
 import { readConfig } from "./config.js";
 
-const runtime = createPlatformRuntime([new SystemModuleProvider()]);
+const runtime = createPlatformRuntime(
+  { id: "platform.local", enabledProviderIds: ["platform.core", "platform.system"] },
+  [new SystemModuleProvider()],
+);
 const { engine } = runtime;
 runtime.start();
 const app = Fastify({ logger: true });

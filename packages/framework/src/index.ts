@@ -7,6 +7,7 @@ export interface ProviderReadiness {
 }
 
 export * from "./contracts.js";
+export * from "./persistence-contracts.js";
 
 export interface ProviderManifest {
   readonly id: string;

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.3
+Current version: 1.0.6
 
-Release tag: v-1.0.3
+Release tag: v-1.0.6
 
-Changelog label: v 1.0.3
+Changelog label: v 1.0.6
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -19,6 +19,57 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.6
+
+### [v 1.0.6] 2026-09-17 10:46 am - Data lifecycle policy
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.6.
+- Added Framework seeder descriptors and a Platform policy for module-owned data lifecycle records.
+- Added focused checks for descriptor ownership, duplicate IDs, and compatibility rollback limits.
+- Added lifecycle, migration, backup, restore, and deployment evidence rules with a reusable record template.
+- Completed D-305. Phase 3 integration evidence remains pending the first data-owning module.
+
+## v-1.0.5
+
+### [v 1.0.5] 2026-09-17 10:40 am - SQLite Platform data adapter
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.5.
+- Added a Platform SQLite factory that creates a Kysely-backed local data provider from an explicit filename.
+- Enabled SQLite foreign-key checks, WAL mode, and a 5-second busy timeout for local runtime use.
+- Added real SQLite commit and rollback tests with an isolated in-memory database.
+- Extended the Kysely provider with a transaction-scoped query callback.
+- Added a Platform MariaDB factory with validated root-managed connection URLs and focused creation tests.
+- Updated `mysql2` to 3.24.4 after dependency audit review.
+
+## v-1.0.4
+
+### [v 1.0.4] 2026-09-17 10:30 am - Platform data contract foundation
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.4.
+- Added Framework repository, transaction, unit-of-work, and migration contracts without a database driver.
+- Added commit and rollback contract tests for Framework transaction work.
+- Completed deployable module-enablement policy work with explicit provider selection and dependency closure checks.
+- Added the Platform Core Kysely transaction adapter with commit, rollback, shutdown, and focused contract tests.
+- Updated Kysely to 0.29.6 after dependency audit review.
 
 ## v-1.0.3
 

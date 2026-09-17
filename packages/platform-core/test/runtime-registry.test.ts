@@ -3,6 +3,7 @@ import test from "node:test";
 import type { ModuleProvider } from "@codexsun/framework";
 import {
   createPlatformRuntime,
+  ModuleEnablementPolicy,
   PlatformRuntimeRegistry,
   readApiRuntimeConfig,
   readDesktopRuntimeConfig,
@@ -24,11 +25,27 @@ function provider(id: string): ModuleProvider {
 }
 
 test("composes platform and application providers from one registry", () => {
-  const runtime = createPlatformRuntime([provider("platform.test")]);
+  const runtime = createPlatformRuntime({ id: "test", enabledProviderIds: ["platform.core", "platform.test"] }, [
+    provider("platform.test"),
+  ]);
 
   assert.deepEqual(runtime.enabledProviderIds, ["platform.core", "platform.test"]);
   runtime.start();
   runtime.stop();
+});
+
+test("requires a deployable profile to select providers and their dependencies", () => {
+  const policy = new ModuleEnablementPolicy();
+  const providers = [provider("platform.core"), provider("platform.test")];
+
+  assert.throws(
+    () => policy.select({ id: "test", enabledProviderIds: ["platform.test"] }, providers),
+    /omits dependency platform.core/u,
+  );
+  assert.throws(
+    () => policy.select({ id: "test", enabledProviderIds: ["missing"] }, providers),
+    /enables unavailable provider/u,
+  );
 });
 
 test("rejects duplicate runtime providers before engine composition", () => {

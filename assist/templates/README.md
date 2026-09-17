@@ -6,5 +6,6 @@ Store reusable document templates here.
 - [Decision record](decision-record.md)
 - [Deployment profile](deployment-profile.md)
 - [App environment](app-env.md)
+- [Data lifecycle record](data-lifecycle-record.md)
 
 Keep templates generic. Do not include project secrets, live identifiers, or private data.

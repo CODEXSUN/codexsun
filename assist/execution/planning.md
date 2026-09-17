@@ -14,7 +14,7 @@ The platform is a generic holder. Product behavior belongs to a named applicatio
 
 ## Current Baseline
 
-The released foundation is `v-1.0.2`.
+The released foundation is `v-1.0.4`.
 
 - [x] Root npm workspace, root dependency directory, root build directory, and root Turbo cache rules exist.
 - [x] Platform API and web hosts exist.
@@ -192,28 +192,28 @@ Exit criteria:
 
 ### Phase 2. Platform runtime and configuration
 
-Status: active.
+Status: complete.
 
 - [x] P-201 Create a Platform Runtime module registry and composition plan.
 - [x] P-202 Add typed runtime configuration schemas for API, web, desktop, and mobile hosts.
 - [x] P-203 Add safe provider readiness and health reporting.
-- [ ] P-204 Add a module enablement policy for deployable profiles.
+- [x] P-204 Add a module enablement policy for deployable profiles.
 
 Exit criteria:
 
 - [x] A host starts only with validated configuration and valid provider dependencies.
 - [x] Health reports provider status without exposing secrets.
-- [ ] A deployable profile selects enabled providers explicitly.
+- [x] A deployable profile selects enabled providers explicitly.
 
 ### Phase 3. Data foundation
 
-Status: planned.
+Status: implementation complete. Module integration evidence is pending.
 
-- [ ] D-301 Define repository and transaction contracts in the Framework.
-- [ ] D-302 Add the Kysely adapter behind Platform Data providers.
-- [ ] D-303 Add SQLite support for local tests and isolated runtime use.
-- [ ] D-304 Add MariaDB support for deployed service data.
-- [ ] D-305 Create migration, seeder, compatibility, backup, and restore rules.
+- [x] D-301 Define repository and transaction contracts in the Framework.
+- [x] D-302 Add the Kysely adapter behind Platform Data providers.
+- [x] D-303 Add SQLite support for local tests and isolated runtime use.
+- [x] D-304 Add MariaDB support for deployed service data.
+- [x] D-305 Create migration, seeder, compatibility, backup, and restore rules.
 
 Exit criteria:
 
@@ -390,6 +390,9 @@ Each application requires its own provider, API and web host plan, `.app.env` ex
 
 ## Approval Gate
 
-The next implementation task is `P-204`.
+The Phase 3 implementation tasks are complete. Its exit criteria require the
+first data-owning module to supply migration, seeder, and deployment evidence.
+
+The next implementation task is `I-401`.
 
 Before work starts, confirm the exact task ID, scope, data impact, and target verification level in `task.md`.

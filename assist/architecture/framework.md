@@ -20,6 +20,18 @@ public values. They must not reach into another provider's private files.
 Framework contracts define typed `Result`, `FrameworkFailure`, `Page`,
 `Command`, `Query`, and `DomainEvent` envelopes. They remain transport-neutral.
 
+The Framework also defines driver-neutral repository, transaction,
+unit-of-work, and migration contracts. `executeTransaction` commits after
+successful work and rolls back when work fails.
+
+Platform Data providers implement these contracts. Modules use repository
+contracts and own their migrations. The Framework does not import Kysely,
+database drivers, or database schemas.
+
+`KyselyDataProvider` belongs to Platform Core, not the Framework. It adapts a
+Kysely connection to the Framework transaction contract without selecting a
+dialect or owning a module repository.
+
 Public contracts are additive by default. A breaking removal or semantic change
 requires a major-version decision, migration notes, consumer checks, and a
 changelog entry. Use a new contract key for incompatible behavior.
