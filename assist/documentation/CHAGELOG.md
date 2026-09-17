@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.11
+Current version: 1.0.12
 
-Release tag: v-1.0.11
+Release tag: v-1.0.12
 
-Changelog label: v 1.0.11
+Changelog label: v 1.0.12
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -35,6 +35,20 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added Zetro SQLite readiness through Platform Core, private storage policy, backup owner, seven-day retention, and recovery-check documentation. Z-1202 creates no workflow schema or migration.
 - Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
 - Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
+
+## v-1.0.12
+
+### [v 1.0.12] 2026-09-17 2:39 pm - Release version alignment correction
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.12.
+- Restored the required match between the current version reference, changelog entry, and Git commit subject.
+- This correction does not add database schema, seed, or application behavior changes.
 
 ## v-1.0.11
 
