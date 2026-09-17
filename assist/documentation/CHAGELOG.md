@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.1
+Current version: 1.0.2
 
-Release tag: v-1.0.1
+Release tag: v-1.0.2
 
-Changelog label: v 1.0.1
+Changelog label: v 1.0.2
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -19,6 +19,19 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.0.2
+
+### [v 1.0.2] 2026-09-17 9:28 am - Repository ignore policy
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.2.
+- Added CODEXSUN ignore rules for generated output, runtime data, credentials, test reports, desktop/mobile binaries, and deployment overrides.
 
 ## v-1.0.1
 
