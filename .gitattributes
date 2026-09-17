@@ -1,0 +1,23 @@
+# Store all repository text files with LF endings, regardless of local Git settings.
+* text=auto eol=lf
+
+# Do not transform binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.7z binary
+*.p12 binary
+*.pfx binary
+*.dll binary
+*.exe binary
+*.msi binary
+*.apk binary
+*.aab binary
+*.ipa binary

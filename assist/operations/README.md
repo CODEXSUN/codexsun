@@ -4,6 +4,8 @@ Store runtime, deployment, monitoring, backup, and incident procedures here.
 
 Read the [versioning and release rules](versioning.md) before a version or release change.
 
+Read [line endings](line-endings.md) before staging files or using `github:now`.
+
 Read the [runtime layout](runtime-layout.md) before you add storage, container, or deployment files.
 
 Read the [workspace runtime](workspace-runtime.md) before you add dependencies, build outputs, or TypeScript configuration.

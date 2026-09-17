@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.13
+Current version: 1.0.14
 
-Release tag: v-1.0.13
+Release tag: v-1.0.14
 
-Changelog label: v 1.0.13
+Changelog label: v 1.0.14
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -36,6 +36,22 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Completed U-1201. The UI registry now rejects incomplete metadata and has a focused test for all 18 active published UI items. No database change.
 - Completed U-1202. UIUX now filters registry layers and shows accessible selected-item metadata. Browser verification passed. No database change.
 
+## v-1.0.14
+
+### [v 1.0.14] 2026-09-17 3:04 pm - Line ending governance
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.14.
+- Added root `.gitattributes` rules that store repository text files with LF endings and preserve binary assets.
+- Added text-file line-ending normalization and validation commands with a binary-safe test suite.
+- Updated `github:now` to normalize before its change review and validate again before Git staging.
+- Documented the required pre-staging workflow for developers and coding agents.
+
 ## v-1.0.13
 
 ### [v 1.0.13] 2026-09-17 2:57 pm - Application architecture audit and isolated Turbo workflow
@@ -53,6 +69,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - The audit verifies declared app profiles, host configuration, public `@codexsun/ui` composition, provider ownership, module tests, private imports, and event declarations.
 - Extended Framework provider manifests with explicit published and consumed event lists.
 - Updated active module records and documented UIUX as the permitted UI-only catalog profile.
+- Added repository-owned LF normalization and validation before Git staging, with a binary-safe test suite and `.gitattributes` authority.
 
 ## v-1.0.12
 

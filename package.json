@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "npm run clean:root-layout && turbo run build && npm run clean:root-layout && npm run check:root-layout",
-    "check": "npm run clean:root-layout && npm run check:versions && turbo run check && npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:platform-desktop && npm run test:ui && npm run test:module-generator && npm run test:turbo-scope && npm run check:module-boundaries && npm run test:module-boundaries && npm run check:app-architecture && npm run test:app-architecture && npm run lint && npm run clean:root-layout && npm run check:root-layout",
+    "check": "npm run clean:root-layout && npm run check:line-endings && npm run check:versions && turbo run check && npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:platform-desktop && npm run test:ui && npm run test:module-generator && npm run test:turbo-scope && npm run test:line-endings && npm run check:module-boundaries && npm run test:module-boundaries && npm run check:app-architecture && npm run test:app-architecture && npm run lint && npm run clean:root-layout && npm run check:root-layout",
     "turbo:scope": "node tools/turbo-scope.mjs",
     "build:platform": "npm run turbo:scope -- platform build",
     "check:platform": "npm run turbo:scope -- platform check",
@@ -49,6 +49,8 @@
     "lint": "eslint .",
     "version:bump": "node tools/version-bump.mjs",
     "check:versions": "node tools/check-versions.mjs",
+    "check:line-endings": "node tools/line-endings.mjs check",
+    "fix:line-endings": "node tools/line-endings.mjs fix",
     "github:now": "node tools/github-helper.mjs",
     "module:create": "node tools/create-module.mjs",
     "check:module-boundaries": "node tools/check-module-boundaries.mjs",
@@ -58,6 +60,7 @@
     "test:module-boundaries": "node --test tools/check-module-boundaries.test.mjs",
     "test:app-architecture": "node --test tools/check-app-architecture.test.mjs",
     "test:versions": "node --test tools/version-bump.test.mjs",
+    "test:line-endings": "node --test tools/line-endings.test.mjs",
     "test:framework": "npm run test --workspace @codexsun/framework",
     "test:platform-core": "npm run test --workspace @codexsun/platform-core",
     "test:platform-api": "npm run test --workspace @codexsun/platform-api",

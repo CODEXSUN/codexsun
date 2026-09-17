@@ -117,6 +117,12 @@ function isYes(value) {
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
+  if (!dryRun) {
+    console.log("\n  > npm.cmd run fix:line-endings");
+    run("npm.cmd run fix:line-endings");
+  }
+  run("npm.cmd run check:line-endings");
+
   let changelogEntry = readLatestVersionedChangelogEntry(ROOT);
   let defaultMessage =
     changelogEntry.reference > 0 ? formatChangelogCommitSubject(changelogEntry) : "(requires a v-1.0.1 bump)";
@@ -193,6 +199,8 @@ async function main() {
 
   run("npm.cmd run check:versions");
   checkAndPull();
+  console.log("  > npm.cmd run check:line-endings");
+  run("npm.cmd run check:line-endings");
 
   console.log("  > git add -A");
   runGit(["add", "-A"]);

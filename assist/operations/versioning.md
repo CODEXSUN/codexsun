@@ -171,6 +171,8 @@ git commit -m "<subject>"
 git push
 ```
 
+Before it shows the commit review, the helper normalizes repository text files to LF. It checks line endings again immediately before `git add -A`. See `assist/operations/line-endings.md`.
+
 Use `npm.cmd run check:versions` to verify the root version, workspace mirrors, lockfile, and changelog Version State.
 
 ## Documentation Progress Rule

@@ -13,6 +13,20 @@ npm.cmd run version:bump -- --title "<title>" --no-database-update
 npm.cmd run github:now -- --dry-run
 ```
 
+## Line Endings
+
+The root `.gitattributes` file requires LF endings for repository text files.
+
+Use these commands before Git staging:
+
+```text
+npm.cmd run fix:line-endings
+npm.cmd run check:line-endings
+```
+
+`github:now` runs the fix before its file review and checks again before `git add -A`.
+See `assist/operations/line-endings.md` for the full rule.
+
 `version:bump` updates every npm-required version mirror and adds a changelog entry. It does not commit or push.
 
 `github:now` requires the exact subject from the latest changelog entry: `#<reference> - <title>`. It asks for confirmation before Git changes.
