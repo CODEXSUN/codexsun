@@ -1,8 +1,6 @@
-export { MdiMain, type MdiMainProps } from './mdi-main'
 export { createDefaultMdiApps } from './mdi-app-catalog'
 export { MdiNotificationsMenu } from './mdi-notifications-menu'
 export { MdiAppSwitcher } from './mdi-app-switcher'
-export { MdiEmptyWorkspace } from './mdi-empty-workspace'
 export { MdiFeatureSettings } from './mdi-feature-settings'
 export { MdiGlobalSearch } from './mdi-global-search'
 export { MdiProfileMenu } from './mdi-profile-menu'

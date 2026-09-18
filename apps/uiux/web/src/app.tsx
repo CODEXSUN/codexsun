@@ -1,4 +1,4 @@
-import { MdiMain } from "@codexsun/ui"
+import { MainWorkspace } from "@codexsun/ui";
 import {
   BellIcon,
   BlocksIcon,
@@ -29,59 +29,64 @@ import {
   TrendingDownIcon,
   TruckIcon,
   UploadCloudIcon,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   uiBlockDocs,
   uiComponentDocs,
   uiGalleryTopologySections,
   uiLayoutDocs,
   uiPageDocs,
+  uiStaticPageDocs,
   UiGalleryContainer,
-} from './modules/gallery'
+} from "./modules/gallery";
 
 const layoutIcons = {
-  'agent-workspace': BotIcon,
-  'documentation-workspace': BookOpenIcon,
-  'mdi-main': PanelsTopLeftIcon,
-  'site-header': PanelTopIcon,
-  'ecommerce-header': StoreIcon,
-  'blog-header': NewspaperIcon,
-} as const
+  "agent-workspace": BotIcon,
+  "documentation-workspace": BookOpenIcon,
+  mdi: PanelsTopLeftIcon,
+  "main-workspace": PanelsTopLeftIcon,
+} as const;
+const staticPageIcons = {
+  "site-header": PanelTopIcon,
+  "ecommerce-header": StoreIcon,
+  "blog-header": NewspaperIcon,
+} as const;
 const blockIcons = {
   form: FilePenLineIcon,
   table: Table2Icon,
-  'execution-status': BotIcon,
+  "execution-status": BotIcon,
   kanban: Columns3Icon,
-  'file-tree': FolderTreeIcon,
+  "file-tree": FolderTreeIcon,
   dropzone: UploadCloudIcon,
-  'filter-builder': FilterIcon,
-  'product-card': ShoppingBagIcon,
+  "filter-builder": FilterIcon,
+  "product-card": ShoppingBagIcon,
   pricing: TagIcon,
   cart: ShoppingBagIcon,
   categories: LayersIcon,
   checkout: CreditCardIcon,
   comparison: ScaleIcon,
-  'coupon-wallet': TicketIcon,
-  'delivery-tracker': TruckIcon,
-  'payment-methods': CreditCardIcon,
-  'price-history': TrendingDownIcon,
+  "coupon-wallet": TicketIcon,
+  "delivery-tracker": TruckIcon,
+  "payment-methods": CreditCardIcon,
+  "price-history": TrendingDownIcon,
   reviews: MessageSquareIcon,
   wishlist: HeartIcon,
   footer: PanelTopIcon,
   blog: BookOpenIcon,
-} as const
+} as const;
 
 export function App() {
-  const search = new URLSearchParams(window.location.search)
-  const selectedLayout = search.get('layout')
-  const selectedPage = search.get('page')
-  const selectedComponent = search.get('component')
-  const selectedBlock = search.get('block') ?? (selectedComponent === 'table' ? 'table' : null)
+  const search = new URLSearchParams(window.location.search);
+  const selectedLayout = search.get("layout");
+  const selectedPage = search.get("page");
+  const selectedStaticPage = search.get("static");
+  const selectedComponent = search.get("component");
+  const selectedBlock = search.get("block") ?? (selectedComponent === "table" ? "table" : null);
 
   const navigation = [
     {
       icon: LayoutTemplateIcon,
-      label: 'Layouts',
+      label: "Layouts",
       items: uiLayoutDocs.map((layout) => ({
         active: selectedLayout === layout.id,
         href: `/?layout=${layout.id}`,
@@ -90,31 +95,41 @@ export function App() {
       })),
     },
     {
+      icon: PanelsTopLeftIcon,
+      label: "Static Pages",
+      items: uiStaticPageDocs.map((page) => ({
+        active: selectedStaticPage === page.id,
+        href: `/?static=${page.id}`,
+        icon: staticPageIcons[page.id],
+        label: page.name,
+      })),
+    },
+    {
       items: [
         {
-          active: selectedPage !== null && selectedPage !== 'notifications',
+          active: selectedPage !== null && selectedPage !== "notifications",
           children: uiPageDocs
-            .filter(({ id }) => id !== 'notifications')
+            .filter(({ id }) => id !== "notifications")
             .map((page) => ({
               active: selectedPage === page.id,
               href: `/?page=${page.id}`,
               label: page.name,
             })),
-          defaultOpen: selectedPage !== null && selectedPage !== 'notifications',
+          defaultOpen: selectedPage !== null && selectedPage !== "notifications",
           icon: FingerprintIcon,
-          label: 'Authentication',
+          label: "Authentication",
         },
         {
-          active: selectedPage === 'notifications',
-          href: '/?page=notifications',
+          active: selectedPage === "notifications",
+          href: "/?page=notifications",
           icon: BellIcon,
-          label: 'Notifications Page',
+          label: "Notifications Page",
         },
       ],
     },
     {
       icon: BlocksIcon,
-      label: 'Blocks',
+      label: "Blocks",
       items: uiBlockDocs.map((block) => ({
         active: selectedBlock === block.id,
         href: `/?block=${block.id}`,
@@ -124,7 +139,7 @@ export function App() {
     },
     {
       icon: ComponentIcon,
-      label: 'Components',
+      label: "Components",
       items: uiComponentDocs.map((component) => ({
         active: selectedComponent === component.id,
         href: `/?component=${component.id}`,
@@ -132,17 +147,17 @@ export function App() {
         label: component.name,
       })),
     },
-  ]
+  ];
 
   return (
-    <MdiMain
+    <MainWorkspace
       applicationId="uiux"
       applicationName="UIUX"
       navigation={navigation}
       primaryAction={{
         icon: LayoutDashboardIcon,
-        label: 'Overview',
-        onSelect: () => window.location.assign('/'),
+        label: "Overview",
+        onSelect: () => window.location.assign("/"),
       }}
       searchPlaceholder="Search UIUX"
       sidebarStateKey="codexsun.uiux.sidebar"
@@ -150,6 +165,6 @@ export function App() {
       workspaceTitle="Overview"
     >
       <UiGalleryContainer />
-    </MdiMain>
-  )
+    </MainWorkspace>
+  );
 }

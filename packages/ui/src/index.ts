@@ -1,5 +1,6 @@
-export { cn } from './lib/utils'
-export { designTokens } from './tokens/index'
-export { MdiMain, type MdiMainProps } from './layouts/mdi-main'
-export { DocumentationWorkspace, type DocumentationWorkspaceProps } from './layouts/documentation-workspace'
-export { useMdiTopology, type MdiNavigationItem } from './layouts/mdi-main'
+export { cn } from "./lib/utils";
+export { designTokens } from "./tokens/index";
+export { MainWorkspace, type MainWorkspaceProps } from "./layouts/main-workspace";
+export { Mdi, type MdiProps } from "./layouts/mdi";
+export { DocumentationWorkspace, type DocumentationWorkspaceProps } from "./layouts/documentation-workspace";
+export { useMdiTopology, type MdiNavigationItem } from "./layouts/main-workspace";

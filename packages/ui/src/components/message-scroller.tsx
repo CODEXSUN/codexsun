@@ -23,7 +23,7 @@ function MessageScrollerViewport({ className, ...props }: React.ComponentProps<"
     <div
       data-slot="message-scroller-viewport"
       className={cn(
-        "size-full min-h-0 min-w-0 scroll-fade-b scrollbar-thin scrollbar-gutter-stable overflow-y-auto overscroll-contain contain-content",
+        "size-full min-h-0 min-w-0 scroll-fade scrollbar-thin scrollbar-gutter-stable overflow-y-auto overscroll-contain contain-content",
         className,
       )}
       {...props}
@@ -61,7 +61,7 @@ function MessageScrollerButton({
     <Button
       aria-label={direction === "end" ? "Scroll to end" : "Scroll to start"}
       className={cn(
-        "absolute inset-s-1/2 -translate-x-1/2 border-border bg-background text-foreground data-[direction=end]:bottom-4 data-[direction=start]:top-4 rtl:translate-x-1/2 data-[direction=start]:[&_svg]:rotate-180",
+        "absolute inset-s-1/2 -translate-x-1/2 border-border bg-background text-foreground data-[direction=end]:bottom-4 data-[direction=start]:top-4 rtl:translate-x-1/2 data-[direction=start]:[&_svg]:rotate-180 group-hover/message-scroller:visible group-hover/message-scroller:opacity-100",
         className,
       )}
       data-direction={direction}

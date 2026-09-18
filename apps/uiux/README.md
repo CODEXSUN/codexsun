@@ -28,7 +28,7 @@ create and inject the required typed Provider under the Provider Standard.
 
 | Workspace            | Purpose                         | Development command             | Component port key |
 | -------------------- | ------------------------------- | ------------------------------- | ------------------ |
-| `@codexsun/uiux-web` | UIUX documentation and previews | `npm.cmd run dev:stack -- uiux` | `WEB_PORT`         |
+| `@codexsun/uiux-web` | UIUX documentation and previews | `npm.cmd run dev:uiux` | `WEB_PORT`         |
 
 Use `npm.cmd run build --workspace @codexsun/uiux-web` and
 `npm.cmd run typecheck --workspace @codexsun/uiux-web` for focused validation.
@@ -49,7 +49,7 @@ marker for `SIGINT`, `SIGTERM`, and supervisor IPC.
 
 - Type-check and build both `@codexsun/ui` and `@codexsun/uiux-web`.
 - Run UI boundary, module documentation, application documentation, and runtime catalog checks.
-- Start `npm.cmd run dev:stack -- uiux`, open the root URL, and verify navigation and the application title.
+- Start `npm.cmd run dev:uiux`, open the root URL, and verify navigation and the application title.
 - Confirm production chunks remain within the 400 KB budget without warnings.
 
 ## Module catalog

@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @source "../components/**/*.tsx";
 @source "../blocks/**/*.tsx";
@@ -95,7 +95,7 @@
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-:root[data-color-theme='blue'] {
+:root[data-color-theme="blue"] {
   --primary: oklch(0.55 0.2 260);
   --primary-foreground: oklch(0.985 0.005 260);
   --secondary: oklch(0.96 0.018 255);
@@ -108,7 +108,7 @@
   --sidebar-ring: var(--ring);
 }
 
-.dark[data-color-theme='blue'] {
+.dark[data-color-theme="blue"] {
   --primary: oklch(0.7 0.17 255);
   --primary-foreground: oklch(0.2 0.045 260);
   --secondary: oklch(0.27 0.035 260);
@@ -118,7 +118,7 @@
   --ring: oklch(0.65 0.18 258);
 }
 
-:root[data-color-theme='violet'] {
+:root[data-color-theme="violet"] {
   --primary: oklch(0.54 0.22 293);
   --primary-foreground: oklch(0.985 0.005 293);
   --secondary: oklch(0.96 0.018 293);
@@ -131,7 +131,7 @@
   --sidebar-ring: var(--ring);
 }
 
-.dark[data-color-theme='violet'] {
+.dark[data-color-theme="violet"] {
   --primary: oklch(0.72 0.16 293);
   --primary-foreground: oklch(0.21 0.05 293);
   --secondary: oklch(0.28 0.04 293);
@@ -141,7 +141,7 @@
   --ring: oklch(0.67 0.18 293);
 }
 
-:root[data-color-theme='emerald'] {
+:root[data-color-theme="emerald"] {
   --primary: oklch(0.52 0.14 160);
   --primary-foreground: oklch(0.985 0.006 160);
   --secondary: oklch(0.96 0.02 160);
@@ -154,7 +154,7 @@
   --sidebar-ring: var(--ring);
 }
 
-.dark[data-color-theme='emerald'] {
+.dark[data-color-theme="emerald"] {
   --primary: oklch(0.71 0.15 160);
   --primary-foreground: oklch(0.2 0.045 160);
   --secondary: oklch(0.27 0.035 160);
@@ -164,7 +164,7 @@
   --ring: oklch(0.64 0.16 160);
 }
 
-:root[data-color-theme='orange'] {
+:root[data-color-theme="orange"] {
   --primary: oklch(0.63 0.18 48);
   --primary-foreground: oklch(0.985 0.006 48);
   --secondary: oklch(0.96 0.025 72);
@@ -177,7 +177,7 @@
   --sidebar-ring: var(--ring);
 }
 
-.dark[data-color-theme='orange'] {
+.dark[data-color-theme="orange"] {
   --primary: oklch(0.76 0.15 62);
   --primary-foreground: oklch(0.24 0.055 48);
   --secondary: oklch(0.28 0.04 55);
@@ -243,5 +243,77 @@
 
   button:not(:disabled) {
     @apply cursor-pointer;
+  }
+}
+
+@layer utilities {
+  @keyframes codexsun-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
+  .shimmer {
+    --shimmer-color: var(--muted-foreground);
+    background-image: linear-gradient(110deg, color-mix(in oklch, var(--shimmer-color) 35%, transparent) 35%, var(--shimmer-color) 50%, color-mix(in oklch, var(--shimmer-color) 35%, transparent) 65%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: codexsun-shimmer 1.6s linear infinite;
+  }
+
+  .shimmer-orange {
+    --shimmer-color: oklch(0.7 0.17 55);
+  }
+
+  .shimmer-surface {
+    --shimmer-surface-color: var(--primary);
+    background-image: linear-gradient(110deg, color-mix(in oklch, var(--shimmer-surface-color) 70%, white) 35%, var(--shimmer-surface-color) 50%, color-mix(in oklch, var(--shimmer-surface-color) 70%, white) 65%);
+    background-size: 200% 100%;
+    animation: codexsun-shimmer 1.6s linear infinite;
+  }
+
+  .shimmer-surface-orange {
+    --shimmer-surface-color: oklch(0.64 0.19 48);
+  }
+
+  .scroll-fade {
+    mask-image: linear-gradient(to bottom, transparent, black 1.5rem, black calc(100% - 1.5rem), transparent);
+  }
+
+  .scroll-fade-b {
+    mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), transparent);
+  }
+
+  .scrollbar-slim,
+  .workspace-scrollbar-slim,
+  .workspace-scrollbar-slim * {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 60%, transparent) transparent;
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar,
+  .workspace-scrollbar-slim::-webkit-scrollbar,
+  .workspace-scrollbar-slim *::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-thumb,
+  .workspace-scrollbar-slim::-webkit-scrollbar-thumb,
+  .workspace-scrollbar-slim *::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+    border-radius: 999px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-track,
+  .workspace-scrollbar-slim::-webkit-scrollbar-track,
+  .workspace-scrollbar-slim *::-webkit-scrollbar-track {
+    background: transparent;
   }
 }

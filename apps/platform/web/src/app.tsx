@@ -1,4 +1,4 @@
-import { MdiMain } from "@codexsun/ui";
+import { MainWorkspace } from "@codexsun/ui";
 import { Card, CardContent } from "@codexsun/ui/components/card";
 import { BlocksIcon, LayoutDashboardIcon, SettingsIcon } from "lucide-react";
 import { platformHealthSchema, platformModulesSchema, type PlatformHealth } from "@codexsun/contracts";
@@ -37,7 +37,7 @@ function PlatformWorkspace() {
   }, []);
 
   return (
-    <MdiMain
+    <MainWorkspace
       applicationId="platform"
       applicationName="CODEXSUN Platform"
       navigation={[
@@ -79,6 +79,6 @@ function PlatformWorkspace() {
           </ul>
         </section>
       </section>
-    </MdiMain>
+    </MainWorkspace>
   );
 }

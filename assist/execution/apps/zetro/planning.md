@@ -14,7 +14,7 @@ workflow. Chat is a planning surface; it cannot start repository work, create a
 worktree, or grant approval.
 
 The first screen is a standalone Zetro web workspace. It uses only published
-`@codexsun/ui` exports and the shared `MdiMain` template. Application code may
+`@codexsun/ui` exports and the shared `MainWorkspace` template. Application code may
 compose those exports, but it must not duplicate UI controls, tokens, templates,
 or blocks.
 

@@ -309,6 +309,6 @@ export function MdiTopologyProvider({
 
 export function useMdiTopology() {
   const topology = useContext(MdiTopologyContext)
-  if (!topology) throw new Error('useMdiTopology must be used inside MdiMain.')
+  if (!topology) throw new Error('useMdiTopology must be used inside MainWorkspace.')
   return topology
 }

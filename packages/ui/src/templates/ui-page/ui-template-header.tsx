@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react'
-import { Check, Copy } from 'lucide-react'
-import { Badge } from '../../components/badge'
+import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
+import { Badge } from "../../components/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '../../components/breadcrumb'
-import { Button } from '../../components/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/tooltip'
-import { cn } from '../../lib/utils'
+} from "../../components/breadcrumb";
+import { Button } from "../../components/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/tooltip";
+import { cn } from "../../lib/utils";
 
-export type UiTemplateKind = 'Block' | 'Component' | 'Layout' | 'Page'
+export type UiTemplateKind = "Block" | "Component" | "Layout" | "Page" | "Static Page";
 
 export function UiTemplateHeader({
   importPath,
@@ -20,40 +20,40 @@ export function UiTemplateHeader({
   name,
   topologyLabelsVisible = false,
 }: {
-  importPath: string
-  kind: UiTemplateKind
-  name: string
-  topologyLabelsVisible?: boolean
+  importPath: string;
+  kind: UiTemplateKind;
+  name: string;
+  topologyLabelsVisible?: boolean;
 }) {
-  const [copyState, setCopyState] = useState<'copied' | 'failed' | 'idle'>('idle')
+  const [copyState, setCopyState] = useState<"copied" | "failed" | "idle">("idle");
 
   useEffect(() => {
-    if (copyState === 'idle') return
-    const timeout = window.setTimeout(() => setCopyState('idle'), 2000)
-    return () => window.clearTimeout(timeout)
-  }, [copyState])
+    if (copyState === "idle") return;
+    const timeout = window.setTimeout(() => setCopyState("idle"), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
 
   async function copyImportPath() {
     try {
-      await navigator.clipboard.writeText(importPath)
-      setCopyState('copied')
+      await navigator.clipboard.writeText(importPath);
+      setCopyState("copied");
     } catch {
-      setCopyState('failed')
+      setCopyState("failed");
     }
   }
 
   const copyLabel =
-    copyState === 'copied'
-      ? 'Import path copied'
-      : copyState === 'failed'
-        ? 'Copy import path failed'
-        : 'Copy import path'
+    copyState === "copied"
+      ? "Import path copied"
+      : copyState === "failed"
+        ? "Copy import path failed"
+        : "Copy import path";
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-20 flex min-h-14 items-center justify-between gap-4 border-b bg-background/95 pr-6 backdrop-blur lg:pr-10',
-        topologyLabelsVisible ? 'pl-52' : 'pl-6 lg:pl-10',
+        "sticky top-0 z-20 flex min-h-14 items-center justify-between gap-4 border-b bg-background/95 pr-6 backdrop-blur lg:pr-10",
+        topologyLabelsVisible ? "pl-52" : "pl-6 lg:pl-10",
       )}
     >
       <Breadcrumb>
@@ -76,12 +76,12 @@ export function UiTemplateHeader({
               render={<Button aria-label={copyLabel} size="icon-sm" variant="ghost" />}
               onClick={copyImportPath}
             >
-              {copyState === 'copied' ? <Check /> : <Copy />}
+              {copyState === "copied" ? <Check /> : <Copy />}
             </TooltipTrigger>
             <TooltipContent>{copyLabel}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
     </header>
-  )
+  );
 }

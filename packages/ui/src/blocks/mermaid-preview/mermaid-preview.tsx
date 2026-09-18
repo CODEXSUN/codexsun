@@ -8,40 +8,18 @@ type MermaidRuntime = {
   render: (id: string, source: string) => Promise<{ svg: string }>
 }
 
-declare global {
-  interface Window {
-    mermaid?: MermaidRuntime
-  }
-}
-
 let runtimePromise: Promise<MermaidRuntime> | undefined
 
-function loadRuntime(scriptUrl: string) {
-  runtimePromise ??= new Promise<MermaidRuntime>((resolve, reject) => {
-    const existing = window.mermaid
-    if (existing) {
-      resolve(existing)
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = scriptUrl
-    script.async = true
-    script.onload = () =>
-      window.mermaid ? resolve(window.mermaid) : reject(new Error('Mermaid did not load.'))
-    script.onerror = () => reject(new Error('Mermaid could not load.'))
-    document.head.append(script)
-  })
+function loadRuntime() {
+  runtimePromise ??= import('mermaid').then(({ default: runtime }) => runtime as MermaidRuntime)
   return runtimePromise
 }
 
 export function MermaidPreview({
   interactive = false,
-  scriptUrl = '/vendor/mermaid.min.js',
   source,
 }: {
   interactive?: boolean
-  scriptUrl?: string
   source: string
 }) {
   const id = useId().replace(/:/g, '-')
@@ -59,7 +37,7 @@ export function MermaidPreview({
       return
     }
     let active = true
-    void loadRuntime(scriptUrl)
+    void loadRuntime()
       .then((runtime) => {
         runtime.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' })
         return runtime.render(`mermaid-${id}`, value)
@@ -69,7 +47,7 @@ export function MermaidPreview({
     return () => {
       active = false
     }
-  }, [draft, id, scriptUrl])
+  }, [draft, id])
 
   if (!draft.trim()) return null
   if (result.error) return <p className="text-sm text-destructive">{result.error}</p>

@@ -1,32 +1,27 @@
-import { ArrowRight, Boxes, Component, LayoutTemplate } from 'lucide-react'
-import { Badge } from '@codexsun/ui/components/badge'
-import { ExecutionStatus } from '@codexsun/ui/blocks/execution-status'
-import { Button } from '@codexsun/ui/components/button'
-import { designSystemCategories } from '@codexsun/ui/design-system'
-import { TopologyRegion } from '@codexsun/ui/features/interface-topology'
-import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
-import { ComponentSpecimen } from './component-specimen'
-import { resolveUiComponentVariant } from './component-variants'
-import { uiBlockDocs } from './ui-blocks'
-import { uiComponentDocs, type UiComponentDoc } from './ui-components'
+import { ArrowRight, Boxes, Component, LayoutTemplate } from "lucide-react";
+import { Badge } from "@codexsun/ui/components/badge";
+import { ExecutionStatus } from "@codexsun/ui/blocks/execution-status";
+import { Button } from "@codexsun/ui/components/button";
+import { designSystemCategories } from "@codexsun/ui/design-system";
+import { TopologyRegion } from "@codexsun/ui/features/interface-topology";
+import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
+import { ComponentSpecimen } from "./component-specimen";
+import { resolveUiComponentVariant } from "./component-variants";
+import { uiBlockDocs } from "./ui-blocks";
+import { uiComponentDocs, type UiComponentDoc } from "./ui-components";
 
 export function UiOverview() {
-  const topology = useMdiTopology()
+  const topology = useMdiTopology();
 
   return (
-    <TopologyRegion
-      as="main"
-      className="h-full overflow-y-auto bg-background"
-      id="20"
-      topology={topology}
-    >
+    <TopologyRegion as="main" className="h-full overflow-y-auto bg-background" id="20" topology={topology}>
       <div className="mx-auto grid w-full max-w-[96rem] gap-14 px-6 py-12 lg:px-10 lg:py-14">
         <OverviewHeader />
         <DefaultBlockLinks />
         <DefaultComponentSections />
       </div>
     </TopologyRegion>
-  )
+  );
 }
 
 function OverviewHeader() {
@@ -37,17 +32,15 @@ function OverviewHeader() {
           <Component className="size-3.5" /> CODEXSUN UI
         </Badge>
         <div className="grid gap-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Application design system
-          </h1>
+          <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Application design system</h1>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-            Every preview below renders the package-owned default. Applications import the same
-            component, block, variant, and token contracts.
+            Every preview below renders the package-owned default. Applications import the same component, block,
+            variant, and token contracts.
           </p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button nativeButton={false} render={<a href="/?layout=mdi-main" />} variant="outline">
+        <Button nativeButton={false} render={<a href="/?layout=main-workspace" />} variant="outline">
           <LayoutTemplate /> Layouts
         </Button>
         <Button nativeButton={false} render={<a href="/?block=table" />}>
@@ -55,7 +48,7 @@ function OverviewHeader() {
         </Button>
       </div>
     </header>
-  )
+  );
 }
 
 function DefaultBlockLinks() {
@@ -87,18 +80,18 @@ function DefaultBlockLinks() {
         title="Execution Status · sample preview"
         description="Open the block to inspect active, complete, attention, and paused motion states."
         elapsed="Not started"
-        metrics={[{ label: 'Sample updates', value: 0 }]}
+        metrics={[{ label: "Sample updates", value: 0 }]}
       />
     </section>
-  )
+  );
 }
 
 function DefaultComponentSections() {
   return (
     <div className="grid gap-14">
       {designSystemCategories.map((category) => {
-        const components = uiComponentDocs.filter((component) => component.category === category)
-        if (components.length === 0) return null
+        const components = uiComponentDocs.filter((component) => component.category === category);
+        if (components.length === 0) return null;
         return (
           <section className="grid gap-7" key={category} aria-labelledby={`category-${category}`}>
             <SectionHeader
@@ -113,20 +106,18 @@ function DefaultComponentSections() {
               ))}
             </div>
           </section>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 function DefaultComponentCard({ component }: { component: UiComponentDoc }) {
-  const defaultVariant = resolveUiComponentVariant(component, null)
-  const wide = component.id === 'button' || component.id === 'button-group'
+  const defaultVariant = resolveUiComponentVariant(component, null);
+  const wide = component.id === "button" || component.id === "button-group";
 
   return (
-    <article
-      className={`min-w-0 overflow-hidden rounded-2xl border bg-card ${wide ? 'xl:col-span-3' : ''}`}
-    >
+    <article className={`min-w-0 overflow-hidden rounded-2xl border bg-card ${wide ? "xl:col-span-3" : ""}`}>
       <header className="flex min-h-20 items-center justify-between gap-5 border-b bg-muted/15 px-6 py-4">
         <div className="grid min-w-0 gap-1.5">
           <a
@@ -145,7 +136,7 @@ function DefaultComponentCard({ component }: { component: UiComponentDoc }) {
         <ComponentSpecimen compact component={component} variant={defaultVariant.id} />
       </div>
     </article>
-  )
+  );
 }
 
 function SectionHeader({
@@ -154,10 +145,10 @@ function SectionHeader({
   id,
   title,
 }: {
-  count: number
-  description: string
-  id: string
-  title: string
+  count: number;
+  description: string;
+  id: string;
+  title: string;
 }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
@@ -169,5 +160,5 @@ function SectionHeader({
       </div>
       <Badge variant="secondary">{count}</Badge>
     </header>
-  )
+  );
 }

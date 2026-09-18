@@ -1,27 +1,23 @@
-import { useState } from 'react'
-import { Button } from '@codexsun/ui/components/button'
-import {
-  SiteHeader,
-  type SiteHeaderCategory,
-  type SiteHeaderNavLink,
-} from '@codexsun/ui/layouts/site-header'
-import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
-import { UiTemplatePage } from '@codexsun/ui/templates/ui-page'
+import { useState } from "react";
+import { Button } from "@codexsun/ui/components/button";
+import { SiteHeader, type SiteHeaderCategory, type SiteHeaderNavLink } from "@codexsun/ui/layouts/site-header";
+import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
+import { UiTemplatePage } from "@codexsun/ui/templates/ui-page";
 
 const sampleLinks: readonly SiteHeaderNavLink[] = [
-  { href: '#products', label: 'Products', badge: 'New' },
-  { href: '#categories', label: 'Categories' },
-  { href: '#deals', label: 'Deals', badge: 'Sale' },
-  { href: '#about', label: 'About Us' },
-]
+  { href: "#products", label: "Products", badge: "New" },
+  { href: "#categories", label: "Categories" },
+  { href: "#deals", label: "Deals", badge: "Sale" },
+  { href: "#about", label: "About Us" },
+];
 
 const sampleCategories: readonly SiteHeaderCategory[] = [
-  { active: true, href: '#all', id: 'all', label: 'All Products' },
-  { href: '#electronics', id: 'electronics', label: 'Electronics & Audio' },
-  { href: '#apparel', id: 'apparel', label: 'Apparel & Streetwear' },
-  { href: '#home', id: 'home', label: 'Home Office & Studio' },
-  { href: '#accessories', id: 'accessories', label: 'Accessories' },
-]
+  { active: true, href: "#all", id: "all", label: "All Products" },
+  { href: "#electronics", id: "electronics", label: "Electronics & Audio" },
+  { href: "#apparel", id: "apparel", label: "Apparel & Streetwear" },
+  { href: "#home", id: "home", label: "Home Office & Studio" },
+  { href: "#accessories", id: "accessories", label: "Accessories" },
+];
 
 const headerCode = `import { SiteHeader } from '@codexsun/ui/layouts/site-header'
 
@@ -48,25 +44,25 @@ export function StorefrontHeader() {
       }}
     />
   )
-}`
+}`;
 
 export function UiSiteHeaderDocumentation() {
-  const topology = useMdiTopology()
-  const [cartCount, setCartCount] = useState(3)
-  const [mode, setMode] = useState<'ecommerce' | 'portfolio'>('ecommerce')
-  const [feedback, setFeedback] = useState('Site Header active in E-Commerce mode.')
+  const topology = useMdiTopology();
+  const [cartCount, setCartCount] = useState(3);
+  const [mode, setMode] = useState<"ecommerce" | "portfolio">("ecommerce");
+  const [feedback, setFeedback] = useState("Site Header active in E-Commerce mode.");
 
-  const isEcom = mode === 'ecommerce'
+  const isEcom = mode === "ecommerce";
 
   return (
     <UiTemplatePage
       code={headerCode}
       importPath="@codexsun/ui/layouts/site-header"
-      kind="Layout"
+      kind="Static Page"
       name="Site Header"
       navigation={{
-        next: { href: '/?layout=mdi-main', name: 'MDI Main' },
-        previous: { href: '/?layout=documentation-workspace', name: 'Documentation Workspace' },
+        next: { href: "/?static=ecommerce-header", name: "E-Commerce Header" },
+        previous: { href: "/?layout=mdi", name: "MDI" },
       }}
       preview={
         <div className="flex flex-col gap-6">
@@ -77,22 +73,22 @@ export function UiSiteHeaderDocumentation() {
               <div className="flex rounded-lg border border-border/80 bg-background p-0.5">
                 <Button
                   size="sm"
-                  variant={isEcom ? 'default' : 'ghost'}
+                  variant={isEcom ? "default" : "ghost"}
                   className="h-7 px-2.5 text-xs"
                   onClick={() => {
-                    setMode('ecommerce')
-                    setFeedback('Switched to E-Commerce mode (announcement, categories, cart).')
+                    setMode("ecommerce");
+                    setFeedback("Switched to E-Commerce mode (announcement, categories, cart).");
                   }}
                 >
                   E-Commerce Storefront
                 </Button>
                 <Button
                   size="sm"
-                  variant={!isEcom ? 'default' : 'ghost'}
+                  variant={!isEcom ? "default" : "ghost"}
                   className="h-7 px-2.5 text-xs"
                   onClick={() => {
-                    setMode('portfolio')
-                    setFeedback('Switched to Portfolio Showcase mode (minimal, hire me CTA).')
+                    setMode("portfolio");
+                    setFeedback("Switched to Portfolio Showcase mode (minimal, hire me CTA).");
                   }}
                 >
                   Static Portfolio
@@ -130,23 +126,23 @@ export function UiSiteHeaderDocumentation() {
               <SiteHeader
                 actions={{
                   cartCount,
-                  ctaLabel: 'Checkout',
-                  onAccountClick: () => setFeedback('Account profile clicked.'),
+                  ctaLabel: "Checkout",
+                  onAccountClick: () => setFeedback("Account profile clicked."),
                   onCartClick: () => setFeedback(`Cart opened (${cartCount} items).`),
-                  onCtaClick: () => setFeedback('Checkout requested.'),
-                  onSearchClick: () => setFeedback('Search triggered.'),
+                  onCtaClick: () => setFeedback("Checkout requested."),
+                  onSearchClick: () => setFeedback("Search triggered."),
                   showCart: true,
                   showCta: true,
                 }}
                 announcement={{
-                  actionLabel: 'Shop Now',
-                  actionUrl: '#deals',
-                  message: 'Mid-Season Flash Sale: Up to 40% off with code CODEX40',
+                  actionLabel: "Shop Now",
+                  actionUrl: "#deals",
+                  message: "Mid-Season Flash Sale: Up to 40% off with code CODEX40",
                 }}
                 brand={{
-                  badge: 'Store',
-                  tagline: 'Modern Lifestyle Essentials',
-                  title: 'CodexShop',
+                  badge: "Store",
+                  tagline: "Modern Lifestyle Essentials",
+                  title: "CodexShop",
                 }}
                 categories={sampleCategories}
                 links={sampleLinks}
@@ -157,23 +153,23 @@ export function UiSiteHeaderDocumentation() {
             ) : (
               <SiteHeader
                 actions={{
-                  ctaLabel: 'Hire Me',
-                  onCtaClick: () => setFeedback('Inquiry form requested.'),
-                  onThemeToggle: () => setFeedback('Theme toggled.'),
+                  ctaLabel: "Hire Me",
+                  onCtaClick: () => setFeedback("Inquiry form requested."),
+                  onThemeToggle: () => setFeedback("Theme toggled."),
                   showAccount: false,
                   showCart: false,
                   showCta: true,
                   showSearch: false,
                 }}
                 brand={{
-                  tagline: 'Staff Software Architect & Designer',
-                  title: 'Alex Chen',
+                  tagline: "Staff Software Architect & Designer",
+                  title: "Alex Chen",
                 }}
                 links={[
-                  { href: '#work', label: 'Selected Works', badge: 'Featured' },
-                  { href: '#experience', label: 'Experience' },
-                  { href: '#writing', label: 'Articles' },
-                  { href: '#contact', label: 'Get in Touch' },
+                  { href: "#work", label: "Selected Works", badge: "Featured" },
+                  { href: "#experience", label: "Experience" },
+                  { href: "#writing", label: "Articles" },
+                  { href: "#contact", label: "Get in Touch" },
                 ]}
                 showCategories={false}
                 sticky={false}
@@ -191,14 +187,14 @@ export function UiSiteHeaderDocumentation() {
         </div>
       }
       topology={topology}
-      topologyIds={{ page: '28', preview: '28.1', usage: '28.2' }}
+      topologyIds={{ page: "28", preview: "28.1", usage: "28.2" }}
       usageDescription={
         <p>
-          The Separated Site Header layout decouples the top announcement bar, primary brand navbar,
-          action cluster, category strip, and mobile drawer into independently configurable bands.
-          Ideal for public-facing e-commerce storefronts, SaaS landing pages, and portfolio sites.
+          The Separated Site Header layout decouples the top announcement bar, primary brand navbar, action cluster,
+          category strip, and mobile drawer into independently configurable bands. Ideal for public-facing e-commerce
+          storefronts, SaaS landing pages, and portfolio sites.
         </p>
       }
     />
-  )
+  );
 }

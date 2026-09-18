@@ -26,6 +26,7 @@ The application-owned gallery documents and previews the shared UI system.
 
 - Root route: `/`.
 - Layout selection: `/?layout=<layout-id>`.
+- Static page selection: `/?static=<static-page-id>`.
 - Page selection: `/?page=<page-id>`.
 - Component selection: `/?component=<component-id>`.
 - Block selection: `/?block=<block-id>`.
@@ -38,7 +39,7 @@ The application-owned gallery documents and previews the shared UI system.
 - `npm.cmd run typecheck --workspace @codexsun/uiux-web`
 - `npm.cmd run build --workspace @codexsun/uiux-web`
 - `npm.cmd run check:ui-system`
-- Browser verification covers Overview and layout, page, block, and component selections.
+- Browser verification covers Overview and layout, static page, page, block, and component selections.
 
 ## Development records
 

@@ -104,7 +104,7 @@ The future UIUX application reads this public registry to render a dynamic galle
 
 The gallery includes a lower-right Tweak panel. It controls supported preview axes such as theme, density, surface style, and state. It never writes application production preferences.
 
-U-604 adds the public `ContentSection`, `DashboardPage`, and `SettingsPage` composition exports. `MdiMain` remains the default workspace template. U-605 wires the Platform web host through these public exports. U-606 adds the standalone `apps/uiux/web` gallery, with preview-only theme and density controls.
+U-604 adds the public `ContentSection`, `DashboardPage`, and `SettingsPage` composition exports. `MainWorkspace` is the default workspace template. U-605 wires the Platform web host through these public exports. U-606 adds the standalone `apps/uiux/web` gallery, with preview-only theme and density controls.
 
 ## Accessibility Rules
 

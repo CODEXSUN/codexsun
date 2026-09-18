@@ -1,32 +1,33 @@
-import type { ReactNode } from 'react'
-import { TopologyRegion, type InterfaceTopologyController } from '../../features/interface-topology'
-import { cn } from '../../lib/utils'
-import { UiTemplateCode } from './ui-template-code'
-import { UiTemplateHeader, type UiTemplateKind } from './ui-template-header'
-import { UiTemplateNavigation, type UiTemplateNavigationItem } from './ui-template-navigation'
+import type { ReactNode } from "react";
+import { TopologyRegion, type InterfaceTopologyController } from "../../features/interface-topology";
+import { cn } from "../../lib/utils";
+import { UiBrowserFrame } from "./ui-browser-frame";
+import { UiTemplateCode } from "./ui-template-code";
+import { UiTemplateHeader, type UiTemplateKind } from "./ui-template-header";
+import { UiTemplateNavigation, type UiTemplateNavigationItem } from "./ui-template-navigation";
 
 export type UiTemplatePageProps = {
-  code: string
-  codeCopyLabel?: string
-  importPath: string
-  kind: UiTemplateKind
-  name: string
+  code: string;
+  codeCopyLabel?: string;
+  importPath: string;
+  kind: UiTemplateKind;
+  name: string;
   navigation?: {
-    next?: UiTemplateNavigationItem
-    previous?: UiTemplateNavigationItem
-  }
-  preview: ReactNode
-  previewClassName?: string
-  showCode?: boolean
-  topology: InterfaceTopologyController
+    next?: UiTemplateNavigationItem;
+    previous?: UiTemplateNavigationItem;
+  };
+  preview: ReactNode;
+  previewClassName?: string;
+  showCode?: boolean;
+  topology: InterfaceTopologyController;
   topologyIds: {
-    page: string
-    preview: string
-    usage: string
-  }
-  usageDescription: ReactNode
-  usageTitle?: string
-}
+    page: string;
+    preview: string;
+    usage: string;
+  };
+  usageDescription: ReactNode;
+  usageTitle?: string;
+};
 
 export function UiTemplatePage({
   code,
@@ -59,11 +60,13 @@ export function UiTemplatePage({
       <div className="grid min-w-0 gap-10 pt-12 pb-8">
         <TopologyRegion
           as="section"
-          className={cn('mx-auto w-[90%] min-w-0', previewClassName)}
+          className={cn("mx-auto w-[90%] min-w-0", previewClassName)}
           id={topologyIds.preview}
           topology={topology}
         >
-          {preview}
+          <UiBrowserFrame className={kind === "Layout" ? "rounded-none" : undefined} title={name}>
+            {preview}
+          </UiBrowserFrame>
         </TopologyRegion>
 
         <TopologyRegion
@@ -76,16 +79,12 @@ export function UiTemplatePage({
             <h2 className="text-xl font-semibold tracking-tight">
               {usageTitle ?? `Use the shared ${name} ${kind.toLowerCase()}`}
             </h2>
-            <div className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              {usageDescription}
-            </div>
+            <div className="max-w-3xl text-sm leading-6 text-muted-foreground">{usageDescription}</div>
           </div>
           {showCode ? <UiTemplateCode code={code} copyLabel={codeCopyLabel} /> : null}
-          {navigation ? (
-            <UiTemplateNavigation next={navigation.next} previous={navigation.previous} />
-          ) : null}
+          {navigation ? <UiTemplateNavigation next={navigation.next} previous={navigation.previous} /> : null}
         </TopologyRegion>
       </div>
     </TopologyRegion>
-  )
+  );
 }

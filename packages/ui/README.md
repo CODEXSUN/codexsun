@@ -77,12 +77,13 @@ use the shared 40px Button contract and wrap without a scrollbar.
 - `UiTemplatePage` owns the kind and title header, copyable import path, 90-percent
   live preview lane, code space, and named documentation navigation.
 - UI template pages keep 48px between the tool strip and live preview.
-- The MDI documentation preview embeds the package-owned `MdiMain` shell. It renders
+- The MDI documentation preview embeds the package-owned `MainWorkspace` shell. It renders
   the real top menu, navigation sidebar, plain workspace canvas, and status bar together.
-- The MDI Main code section uses a numbered structure list for each shared shell region.
+- The Main Workspace code section uses a numbered structure list for each shared shell region.
 - Each MDI structure row opens the existing ITO inspector. Region rows select their
   matching topology section and expose its numbered child items.
-- The UI gallery lists MDI Main as its only Layout page. The page uses the same
+- The UI gallery lists MDI, Main Workspace, Documentation Workspace, and Agent Workspace.
+  Each page uses the same
   shared documentation structure as the Table and Form block pages.
 
 ## Included blocks
@@ -171,7 +172,7 @@ See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integrati
 - `@codexsun/ui/layouts/agent-workspace` exports the shared Agent Workspace composition.
   It fixes a Primary Activity Rail and Secondary Utility Rail around one center canvas.
   Applications supply typed icon items, active state, badges, and selection callbacks.
-- `MdiMain` accepts `agentWorkspace` to place this composition inside the MDI canvas.
+- `MainWorkspace` accepts `agentWorkspace` to place this composition inside the MDI canvas.
   Its feature settings show independent switches for both rails when this option is present.
 - MDI orders this layout as Primary Activity Rail, default sidebar, center canvas, then
   Secondary Utility Rail. The standard navigation toggle still controls the default sidebar.
@@ -181,7 +182,7 @@ See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integrati
 - `@codexsun/ui/layouts/mdi-main` exports the composed layout and its separate
   top-menu, app-switcher, profile, sidebar, status, empty-state, and feature
   settings components.
-- `MdiMain` owns the MDI Overview topology desk. Each app adds a separate desk
+- `MainWorkspace` owns the MDI Overview topology desk. Each app adds a separate desk
   through the `topologySections` property and maps regions with `useMdiTopology`.
 - `showMdiOverview` exposes the shared MDI desk on the Platform `/overview`
   route. A single application desk hides the ITO selector and its inactive
@@ -204,7 +205,7 @@ See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integrati
   border lines, preserving the canvas surface while giving the transition slim depth.
 - Framer Motion owns the unread ripple because it needs a repeated value sequence.
 - Inline CSS variables are limited to runtime sidebar width and topology marker colors.
-- `MdiMain` binds the shared theme provider for Platform, Docs, Orship, and Zetro.
+- `MainWorkspace` binds the shared theme provider for Platform, Docs, Orship, and Zetro.
 - The appearance panel contains the shared mode and color selector.
 - The MDI sidebar starts with application navigation. It does not repeat the
   application identity from the command bar.

@@ -6,6 +6,13 @@ import { loadComponentEnvironment, readRequiredHost, readRequiredPort } from "..
 
 const projectRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
+function vendorChunk(id: string) {
+  const packageMatch = id.replaceAll("\\", "/").match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
+  if (!packageMatch) return undefined;
+
+  return `vendor-${packageMatch[1].replace("@", "").replace("/", "-")}`;
+}
+
 export default defineConfig(() => {
   const environment = loadComponentEnvironment(projectRoot, "apps/uiux/web/.app.env");
   const webHost = readRequiredHost(environment, "WEB_HOST");
@@ -21,11 +28,9 @@ export default defineConfig(() => {
       outDir: "../../../dist/apps/uiux/web",
       emptyOutDir: true,
       chunkSizeWarningLimit: 400,
-      rolldownOptions: {
+      rollupOptions: {
         output: {
-          codeSplitting: {
-            groups: [{ name: "vendor", test: /node_modules/, maxSize: 400_000 }],
-          },
+          manualChunks: vendorChunk,
         },
       },
     },

@@ -15,7 +15,7 @@ Read `planning.md` before work starts.
   - Data impact: private SQLite stores conversation metadata and messages only.
     Authentication material is not stored.
   - Acceptance criteria:
-    1. The workspace uses the published `@codexsun/ui` controls and `MdiMain`.
+    1. The workspace uses the published `@codexsun/ui` controls and `MainWorkspace`.
     2. A user can create, select, and continue a persistent conversation.
     3. A message is passed to the existing local Codex CLI with read-only and
        ephemeral execution options; its response or failure is saved to history.

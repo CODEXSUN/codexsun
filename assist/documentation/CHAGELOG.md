@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.18
+Current version: 1.0.19
 
-Release tag: v-1.0.18
+Release tag: v-1.0.19
 
-Changelog label: v 1.0.18
+Changelog label: v 1.0.19
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -19,6 +19,46 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+- Restored UI and UIUX Gallery compliance. Markdown renderers no longer pass
+  parser nodes to DOM elements. Gallery specimen categories now load on demand.
+  The shared UI validation command, Gallery task records, Static Pages route
+  documentation, MainWorkspace terminology, and preview spacer documentation
+  are current. Removed the duplicate UI export and duplicate UIUX host setting.
+  No UI positions changed.
+
+- Replaced Zetro's placeholder runtime selectors with a live local Codex
+  runtime probe. Provider, model, and reasoning selections now travel with the
+  next read-only Codex run. The header shows a glowing green connection
+  indicator when available and a Reconnect control when unavailable.
+
+- Added Zetro's compact raw Codex event trace. Redacted JSONL events are shown
+  in a shimmer-backed Compacting auto accordion while a turn runs, then collapse
+  when the final response is saved. Assistant responses now render safe GFM
+  Markdown, links, tables, code, task lists, and locally bundled Mermaid
+  diagrams. Removed inactive handoff, task, and presentation controls from
+  message history.
+
+- Added live, read-only local Codex streaming to Zetro chat. The API now emits
+  validated processing, command, response, completion, and error events over
+  Server-Sent Events. The web workspace displays the redacted raw event data
+  during a response, then refreshes its persistent conversation history. Stop
+  now closes the active local Codex child process. No credentials, auth files,
+  or device codes are sent to the browser or persisted in chat history.
+
+- Removed rounded outer corners from UIUX MDI layout previews. The Main Workspace
+  top menu remains square. Browser indicator dots remain round.
+
+- Added a reusable Browser Frame around every UIUX Gallery preview. The frame
+  shows three browser dots and the preview name. Preview content stays unchanged.
+
+- Made Main Workspace side-menu and content scrollbars 4px wide. Added a 48px
+  green scroll-end gap inside the canvas. The gap is hidden by default and apps
+  can enable it with `showCanvasEndSpacer`. No component placement changed.
+
+- Moved Site Header, E-Commerce Header, and Blog Header from UIUX Layouts to
+  Static Pages. The Gallery now uses static-page routes for these examples.
+  The page labels now identify them as Static Pages. No component layout changed.
 
 - Aligned the UIUX Gallery with the shared UI package contract. The Gallery now
   declares its UI-only provider and module test, and the public UI entry point
@@ -33,6 +73,24 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
   Docs accepts root or app-local web port configuration. Added missing Docs
   Catalog and Zetro Chat module records. Application architecture and module
   boundary checks pass. No database change.
+
+- Split the Ecommerce Header into small layout parts for its announcement,
+  search, actions, navigation, and mobile drawer. The header keeps its current
+  placement and public API. Documented the MDI and standalone header boundary.
+  Exported the shared Chat Runtime Controls block. No database change.
+
+- Removed the default MDI empty-workspace placeholder. The canvas now stays
+  empty until an application supplies workspace children. Removed the unused
+  placeholder export. No database change.
+
+- Renamed the shared `MdiMain` component to `MainWorkspace`. Updated the public
+  package entry point, application hosts, Docs adapter, and UIUX layout guide.
+  The old MDI entry point now exposes only internal MDI helpers. No database
+  change.
+
+- Added the plain `Mdi` layout and its UIUX Gallery preview. The layout centers
+  its label or application content without workspace shell chrome. No database
+  change.
 
 - Replaced the copied Zetro feature modules with a fresh chat vertical slice.
   Zetro now uses the public `MdiMain` shell, private SQLite conversation
@@ -110,6 +168,22 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added isolated Orship startup preflight targets. The API reserves port `6090`
   and the web host reserves port `6091`; the web host proxies `/api` to the
   configured API URL. No database change.
+
+## v-1.0.19
+
+### [v 1.0.19] 2026-09-18 10:37 am - UIUX Gallery Build Compliance
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.19.
+- Fixed UI and UIUX Gallery compliance. The UI lint, Gallery validation,
+  root-layout check, and UIUX production build now pass.
+- Split Gallery component and vendor code. Every JavaScript production chunk
+  is within the 400 KB budget. No UI positions changed.
 
 ## v-1.0.18
 

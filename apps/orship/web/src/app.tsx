@@ -1,4 +1,4 @@
-import { MdiMain } from "@codexsun/ui";
+import { MainWorkspace } from "@codexsun/ui";
 import { Alert } from "@codexsun/ui/components/alert";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
@@ -65,7 +65,7 @@ function OrshipWorkspace() {
   };
 
   return (
-    <MdiMain
+    <MainWorkspace
       applicationId="orship"
       applicationName="CODEXSUN Orship"
       navigation={[
@@ -121,7 +121,7 @@ function OrshipWorkspace() {
           </CardContent>
         </Card>
       </section>
-    </MdiMain>
+    </MainWorkspace>
   );
 }
 

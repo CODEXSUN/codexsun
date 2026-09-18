@@ -1,8 +1,8 @@
 import { BookOpenIcon } from 'lucide-react'
 
-import { MdiMain, type MdiMainProps } from '../mdi-main'
+import { MainWorkspace, type MainWorkspaceProps } from '../main-workspace'
 
-export type DocumentationWorkspaceProps = MdiMainProps
+export type DocumentationWorkspaceProps = MainWorkspaceProps
 
 /** Shared MDI workspace defaults for documentation and knowledge applications. */
 export function DocumentationWorkspace({
@@ -18,7 +18,7 @@ export function DocumentationWorkspace({
   ...props
 }: DocumentationWorkspaceProps) {
   return (
-    <MdiMain
+    <MainWorkspace
       {...props}
       applicationIcon={applicationIcon}
       applicationId={applicationId}

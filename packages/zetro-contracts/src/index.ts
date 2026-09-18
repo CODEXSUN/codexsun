@@ -57,10 +57,39 @@ export const zetroCreateConversationSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
 });
 
+export const zetroCodexModelSchema = z.enum(["Default", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"]);
+export const zetroCodexReasoningSchema = z.enum(["Default", "Low", "Medium", "High", "XHigh"]);
+
+export const zetroChatRuntimeSelectionSchema = z.object({
+  provider: z.literal("Codex"),
+  model: zetroCodexModelSchema,
+  reasoning: zetroCodexReasoningSchema,
+});
+
 export const zetroCreateChatMessageSchema = z.object({
   content: z.string().trim().min(1).max(20_000),
+  runtime: zetroChatRuntimeSelectionSchema.optional(),
+});
+
+export const zetroChatRuntimeSchema = zetroChatRuntimeSelectionSchema.extend({
+  connected: z.boolean(),
+  message: z.string().min(1).max(500),
+  models: z.array(zetroCodexModelSchema),
+  providers: z.array(z.literal("Codex")),
+  reasoningLevels: z.array(zetroCodexReasoningSchema),
+});
+
+export const zetroChatRuntimeResponseSchema = zetroSuccessSchema(zetroChatRuntimeSchema);
+
+export const zetroChatStreamEventSchema = z.object({
+  type: z.enum(["processing", "command", "response", "error", "complete"]),
+  message: z.string().min(1).max(20_000),
+  raw: z.string().max(20_000).optional(),
 });
 
 export type ZetroChatConversation = z.infer<typeof zetroChatConversationSchema>;
 export type ZetroChatMessage = z.infer<typeof zetroChatMessageSchema>;
 export type ZetroChatRole = z.infer<typeof zetroChatRoleSchema>;
+export type ZetroChatStreamEvent = z.infer<typeof zetroChatStreamEventSchema>;
+export type ZetroChatRuntime = z.infer<typeof zetroChatRuntimeSchema>;
+export type ZetroChatRuntimeSelection = z.infer<typeof zetroChatRuntimeSelectionSchema>;
